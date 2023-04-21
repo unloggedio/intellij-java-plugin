@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedInputStream;
@@ -35,6 +36,8 @@ public class GenericNavigationComponent {
     private JTextArea mainContentText;
     private GutterState currentState;
     private JEditorPane imagePane;
+    private JButton discordButton;
+    private JPanel supportPanel;
     private InsidiousService insidiousService;
 
     public GenericNavigationComponent(GutterState state, InsidiousService insidiousService) {
@@ -66,6 +69,12 @@ public class GenericNavigationComponent {
             actionButton.setVisible(false);
         }
         loadimageForCurrentState();
+        discordButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                routeToDiscord();
+            }
+        });
     }
 
     public JPanel getComponent() {
@@ -320,5 +329,20 @@ public class GenericNavigationComponent {
                 break;
         }
         return header;
+    }
+
+    private void routeToDiscord() {
+        String link = "https://discord.gg/Hhwvay8uTa";
+        if (Desktop.isDesktopSupported()) {
+            try {
+                java.awt.Desktop.getDesktop()
+                        .browse(java.net.URI.create(link));
+            } catch (Exception e) {
+            }
+        } else {
+            //no browser
+        }
+        UsageInsightTracker.getInstance().RecordEvent(
+                "routeToDiscord_EXE", null);
     }
 }

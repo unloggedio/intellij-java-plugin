@@ -1,13 +1,17 @@
 package com.insidious.plugin.ui.GutterClickNavigationStates;
 
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.VMoptionsConstructionService;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.project.DumbService;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ItemEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Arrays;
 import java.util.List;
 
@@ -33,6 +37,8 @@ public class AgentConfigComponent {
     private JTextArea vmparamsArea;
     private JButton copyVMParameterButton;
     private JEditorPane imagePane;
+    private JPanel supportPanel;
+    private JButton discordButton;
     private InsidiousService insidiousService;
     private String currentModuleName;
     private VMoptionsConstructionService vmoptsConstructionService = new VMoptionsConstructionService();
@@ -81,6 +87,12 @@ public class AgentConfigComponent {
                     currentType = t;
                 }
                 updateVMParams();
+            }
+        });
+        discordButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                routeToDiscord();
             }
         });
     }
@@ -136,6 +148,21 @@ public class AgentConfigComponent {
                 "<div align=\"left\"><img src=\"" + this.getClass().getClassLoader()
                 .getResource("icons/gif/not_running.gif").toString()+"\" /></div></body></html>";
         imagePane.setText(htmlString);
+    }
+
+    private void routeToDiscord() {
+        String link = "https://discord.gg/Hhwvay8uTa";
+        if (Desktop.isDesktopSupported()) {
+            try {
+                java.awt.Desktop.getDesktop()
+                        .browse(java.net.URI.create(link));
+            } catch (Exception e) {
+            }
+        } else {
+            //no browser
+        }
+        UsageInsightTracker.getInstance().RecordEvent(
+                "routeToDiscord_EXE", null);
     }
 
 }
