@@ -60,7 +60,7 @@
                 <children/>
               </grid>
               <grid id="2e778" binding="diffContentPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
-                <constraints border-constraint="South"/>
+                <constraints border-constraint="Center"/>
                 <properties/>
                 <border type="none"/>
                 <children/>

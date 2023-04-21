@@ -1107,7 +1107,7 @@ final public class InsidiousService implements Disposable,
 //                "New atomic test cases identified", NotificationType.INFORMATION
 //        );
 
-        new GotItTooltip("io.unlogged.candidate.new" + new Date().getTime(), "New candidates processed", this)
+        new GotItTooltip("io.unlogged.candidate.new", "New candidates processed", this)
                 .withIcon(UIUtils.UNLOGGED_ICON_LIGHT_SVG)
                 .withLink("Show", () -> {
                     atomicTestContainerWindow.loadExecutionFlow();
@@ -1268,8 +1268,11 @@ final public class InsidiousService implements Disposable,
         logger.warn("disconnected from agent");
         // disconnected from agent
         this.isAgentServerRunning = false;
-        triggerGutterIconReload();
-        demoteState();
+        ApplicationManager.getApplication().invokeLater(() -> {
+            triggerGutterIconReload();
+            demoteState();
+        });
+
     }
 
     public ObjectMapper getObjectMapper() {
@@ -1611,9 +1614,7 @@ final public class InsidiousService implements Disposable,
             GutterState state = this.atomicTestContainerWindow.getCurrentState();
             if (state.equals(GutterState.PROCESS_RUNNING)) {
                 System.out.println("Demoting to PROCESS_NOT_RUNNING");
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
-                });
+                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
             }
         }
     }
@@ -1625,6 +1626,11 @@ final public class InsidiousService implements Disposable,
 
     public void loadMethodInAtomicTests(JavaMethodAdapter methodAdapter) {
         atomicTestContainerWindow.triggerMethodExecutorRefresh(methodAdapter);
+    }
+
+    public void showNewTestCandidateGotIt() {
+//        new GotItTooltip("io.unlogged.newtestcase." + new Date().getTime(), "New test candidate found",
+//                this).show();
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}

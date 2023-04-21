@@ -3,10 +3,10 @@ package com.insidious.plugin.ui.methodscope;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.insidious.plugin.agent.AgentCommandResponse;
-import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.TestCaseUtils;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -119,6 +119,36 @@ public class AgentResponseComponent implements Supplier<Component> {
 //        }
     }
 
+
+    public DifferenceResult computeDifferences(DifferenceResult differenceResult) {
+
+        switch (differenceResult.getDiffResultType()) {
+
+            case EXCEPTION:
+                this.statusLabel.setText("" + this.agentCommandResponse.getMessage());
+                this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
+                this.statusLabel.setForeground(UIUtils.red);
+                this.tableParent.setVisible(false);
+                showExceptionTrace(this.agentResponse);
+                break;
+            case DIFF:
+                this.statusLabel.setText("Differences Found.");
+                renderTableWithDifferences(differenceResult.getDifferenceInstanceList());
+                break;
+            case NO_ORIGINAL:
+                this.statusLabel.setText("No previous Candidate found, current response.");
+                renderTableForResponse(differenceResult.getRightOnly());
+                break;
+            case SAME:
+                this.statusLabel.setText("Both Responses are Equal.");
+                this.statusLabel.setIcon(UIUtils.CHECK_GREEN_SMALL);
+                this.statusLabel.setForeground(UIUtils.green);
+                this.tableParent.setVisible(false);
+                break;
+        }
+
+        return differenceResult;
+    }
 
     private void renderTableWithDifferences(List<DifferenceInstance> differenceInstances) {
         CompareTableModel newModel = new CompareTableModel(differenceInstances, this.mainTable);

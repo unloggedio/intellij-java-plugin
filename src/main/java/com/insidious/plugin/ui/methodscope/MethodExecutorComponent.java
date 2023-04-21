@@ -207,6 +207,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         } else {
             loadMethodCandidates();
             executeAndShowDifferencesButton.setEnabled(true);
+            insidiousService.showNewTestCandidateGotIt();
         }
         executeAndShowDifferencesButton.revalidate();
         executeAndShowDifferencesButton.repaint();
@@ -278,9 +279,12 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         this.diffContentPanel.setLayout(new GridLayout(1, 1));
         GridConstraints constraints = new GridConstraints();
         diffContentPanel.setMinimumSize(new Dimension(-1, 700));
-        constraints.setRow(1);
-        this.diffContentPanel.add(component.get(), constraints);
+//        constraints.setRow(0);
+        Component comp = component.get();
+        comp.setMinimumSize(new Dimension(-1, 700));
+        this.diffContentPanel.add(comp);
         this.diffContentPanel.revalidate();
+        this.diffContentPanel.repaint();
     }
 
 
@@ -303,7 +307,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     @NotNull
-    private Supplier<Component> createTestCandidateChangeComponent(TestCandidateMetadata testCandidateMetadata, AgentCommandResponse<String> agentCommandResponse) {
+    private Supplier<Component> createTestCandidateChangeComponent(
+            TestCandidateMetadata testCandidateMetadata,
+            AgentCommandResponse<String> agentCommandResponse
+    ) {
         Supplier<Component> response;
         if (agentCommandResponse.getResponseType() != null &&
                 (agentCommandResponse.getResponseType().equals(ResponseType.FAILED) ||
@@ -311,8 +318,13 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             response = new AgentExceptionResponseComponent(
                     testCandidateMetadata, agentCommandResponse, insidiousService);
         } else {
-            response = new AgentResponseComponent(
+            DifferenceResult differences = insidiousService.calculateDifferences(testCandidateMetadata,
+                    agentCommandResponse);
+            AgentResponseComponent response1 = new AgentResponseComponent(
                     agentCommandResponse, true, insidiousService::generateCompareWindows);
+            response1.computeDifferences(differences);
+            response = response1;
+
         }
         return response;
     }

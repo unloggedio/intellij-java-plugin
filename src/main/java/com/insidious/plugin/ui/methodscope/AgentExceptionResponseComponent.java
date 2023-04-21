@@ -19,6 +19,9 @@ import java.util.stream.Stream;
 
 public class AgentExceptionResponseComponent implements Supplier<Component> {
     private final ObjectMapper objectMapper;
+    final private InsidiousService insidiousService;
+    final private TestCandidateMetadata metadata;
+    final private AgentCommandResponse<String> response;
     private JPanel mainPanel;
     private JPanel defParent;
     private JPanel topPanel;
@@ -26,13 +29,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
     private JPanel afterBorderParent;
     private JPanel beforeBorderParent;
 
-    private InsidiousService insidiousService;
-
-    private TestCandidateMetadata metadata;
-
-    private AgentCommandResponse response;
-
-    public AgentExceptionResponseComponent(TestCandidateMetadata metadata, AgentCommandResponse response, InsidiousService insidiousService) {
+    public AgentExceptionResponseComponent(TestCandidateMetadata metadata, AgentCommandResponse<String> response, InsidiousService insidiousService) {
 
         this.insidiousService = insidiousService;
         this.objectMapper = insidiousService.getObjectMapper();

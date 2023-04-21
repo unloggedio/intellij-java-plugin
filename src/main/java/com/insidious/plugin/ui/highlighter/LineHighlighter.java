@@ -60,9 +60,10 @@ public class LineHighlighter implements LineMarkerProvider {
 //            }
             GutterState gutterStateForMethod = getGutterStateForMethod(psiMethod);
 //            System.out.println("[GOT STATE] {"+gutterStateForMethod.toString()+"} FOR METHOD {"+psiMethod.getName()+"}");
-            Icon gutterIcon = UIUtils.getGutterIconForState(gutterStateForMethod);
+            final Icon gutterIcon = UIUtils.getGutterIconForState(gutterStateForMethod);
 
-            LineMarkerInfo<PsiIdentifier> psiIdentifierLineMarkerInfo = new LineMarkerInfo<>((PsiIdentifier) element,
+            LineMarkerInfo<PsiIdentifier> psiIdentifierLineMarkerInfo = new LineMarkerInfo<PsiIdentifier>(
+                    (PsiIdentifier) element,
                     element.getTextRange(), gutterIcon, psiIdentifier -> gutterStateForMethod.getToolTipText(),
                     navHandlerMap.get(gutterStateForMethod), GutterIconRenderer.Alignment.LEFT,
                     gutterStateForMethod.getAccessibleTextProvider());
