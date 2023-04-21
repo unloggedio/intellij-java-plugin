@@ -27,7 +27,7 @@ import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.inlay.InsidiousInlayHintsCollector;
 import com.insidious.plugin.pojo.*;
-import com.insidious.plugin.ui.GutterClickNavigationStates.ComponentScaffold;
+import com.insidious.plugin.ui.GutterClickNavigationStates.AtomicTestContainer;
 import com.insidious.plugin.ui.*;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.methodscope.*;
@@ -78,10 +78,14 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
-import com.intellij.psi.*;
+import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
@@ -94,7 +98,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -164,8 +167,9 @@ final public class InsidiousService implements Disposable,
     private MethodDirectInvokeComponent methodDirectInvokeComponent;
     private Content directMethodInvokeContent;
     private boolean isAgentServerRunning = false;
-    private Content componentScaffoldContent;
-    private ComponentScaffold componentScaffoldWindow;
+    private Content atomicTestContent;
+    private AtomicTestContainer atomicTestContainerWindow;
+    private MethodAdapter currentMethod;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -206,12 +210,8 @@ final public class InsidiousService implements Disposable,
 
     @NotNull
     private static String getClassMethodHashKey(MethodAdapter method) {
-        return ApplicationManager.getApplication().runReadAction(new Computable<String>() {
-            @Override
-            public String compute() {
-                return method.getContainingClass().getQualifiedName() + "#" + method.getName();
-            }
-        });
+        return ApplicationManager.getApplication().runReadAction(
+                (Computable<String>) () -> method.getContainingClass().getQualifiedName() + "#" + method.getName());
     }
 
     @NotNull
@@ -242,7 +242,7 @@ final public class InsidiousService implements Disposable,
             ignored.printStackTrace();
         } catch (Throwable e) {
             e.printStackTrace();
-            logger.error("exception in videobug service init", e);
+            logger.error("exception in unlogged service init", e);
         }
 
     }
@@ -329,40 +329,6 @@ final public class InsidiousService implements Disposable,
         }
     }
 
-    public boolean isValidJavaModule(String modulename) {
-        Collection<VirtualFile> virtualFiles =
-                FileBasedIndex.getInstance()
-                        .getContainingFiles(FileTypeIndex.NAME, JavaFileType.INSTANCE,
-                                GlobalSearchScope.projectScope(project));
-        List<String> components = new ArrayList<String>();
-        for (VirtualFile vf : virtualFiles) {
-            PsiFile psifile = PsiManager.getInstance(project)
-                    .findFile(vf);
-            if (psifile instanceof PsiJavaFile && vf.getPath()
-                    .contains(modulename)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public Set<String> getModulesListFromString(String pomSection) {
-        Set<String> modules = new HashSet<>();
-        String[] parts = pomSection.split("<modules>");
-        for (int i = 0; i < parts.length; i++) {
-            String[] mps = parts[i].split("\\n");
-            for (int j = 0; j < mps.length; j++) {
-                if (mps[j].contains("<module>")) {
-                    String[] line_segments = mps[j].split("<module>");
-                    String module = line_segments[1].split("</module>")[0];
-                    modules.add(module);
-                }
-            }
-        }
-        System.out.println("Modules - from pom string : " + modules);
-        return modules;
-    }
-
     public synchronized void init(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         if (this.initiated) {
             return;
@@ -371,13 +337,6 @@ final public class InsidiousService implements Disposable,
         this.project = project;
         this.toolWindow = toolWindow;
         start();
-    }
-
-    public boolean isValidEmailAddress(String email) {
-        String ePattern = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$";
-        Pattern p = Pattern.compile(ePattern);
-        Matcher m = p.matcher(email);
-        return m.matches();
     }
 
     public String fetchPathToSaveTestCase(TestCaseUnit testCaseScript) {
@@ -751,13 +710,13 @@ final public class InsidiousService implements Disposable,
         contentManager.addContent(testCaseCreatorWindowContent);
 
         // method executor window
-        componentScaffoldWindow = new ComponentScaffold(this);
-        componentScaffoldContent =
-                contentFactory.createContent(componentScaffoldWindow.getContent(), "Atomic Tests", false);
+        atomicTestContainerWindow = new AtomicTestContainer(this);
+        atomicTestContent =
+                contentFactory.createContent(atomicTestContainerWindow.getComponent(), "Atomic Tests", false);
         //this.methodExecutorWindow = methodExecutorWindow;
-        componentScaffoldContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        componentScaffoldContent.setIcon(UIUtils.ATOMIC_TESTS);
-        contentManager.addContent(componentScaffoldContent);
+        atomicTestContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
+        contentManager.addContent(atomicTestContent);
 
 
         methodDirectInvokeComponent = new MethodDirectInvokeComponent(this);
@@ -925,6 +884,10 @@ final public class InsidiousService implements Disposable,
         if (method == null) {
             return;
         }
+        if (currentMethod != null && currentMethod.equals(method)) {
+            return;
+        }
+        currentMethod = method;
         final ClassAdapter psiClass = method.getContainingClass();
         if (psiClass.getName() == null) {
             return;
@@ -956,7 +919,7 @@ final public class InsidiousService implements Disposable,
         }
 
         //methodExecutorToolWindow.refreshAndReloadCandidates(method);
-        componentScaffoldWindow.triggerMethodExecutorRefresh(method);
+        atomicTestContainerWindow.triggerMethodExecutorRefresh(method);
         methodDirectInvokeComponent.renderForMethod(method);
         testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
     }
@@ -988,34 +951,38 @@ final public class InsidiousService implements Disposable,
         }
 
         CompilerManager compilerManager = CompilerManager.getInstance(project);
-        compilerManager.compile(
-                new VirtualFile[]{psiClass.getContainingFile().getVirtualFile()},
-                (aborted, errors, warnings, compileContext) -> {
-                    logger.warn("compiled class: " + compileContext);
-                    if (aborted || errors > 0) {
-                        compileStatusNotification.finished(aborted, errors, warnings, compileContext);
-                        return;
+
+        ApplicationManager.getApplication().runWriteAction(() -> {
+            compilerManager.compile(
+                    new VirtualFile[]{psiClass.getContainingFile().getVirtualFile()},
+                    (aborted, errors, warnings, compileContext) -> {
+                        logger.warn("compiled class: " + compileContext);
+                        if (aborted || errors > 0) {
+                            compileStatusNotification.finished(aborted, errors, warnings, compileContext);
+                            return;
+                        }
+                        HotSwapUIImpl.getInstance(project).reloadChangedClasses(currentDebugSession.get(), false,
+                                new HotSwapStatusListener() {
+                                    @Override
+                                    public void onCancel(List<DebuggerSession> sessions) {
+                                        compileStatusNotification.finished(true, errors, warnings, compileContext);
+                                    }
+
+                                    @Override
+                                    public void onSuccess(List<DebuggerSession> sessions) {
+                                        compileStatusNotification.finished(false, 0, warnings, compileContext);
+                                    }
+
+                                    @Override
+                                    public void onFailure(List<DebuggerSession> sessions) {
+                                        compileStatusNotification.finished(false, 1, warnings, compileContext);
+                                    }
+                                });
+
                     }
-                    HotSwapUIImpl.getInstance(project).reloadChangedClasses(currentDebugSession.get(), false,
-                            new HotSwapStatusListener() {
-                                @Override
-                                public void onCancel(List<DebuggerSession> sessions) {
-                                    compileStatusNotification.finished(true, errors, warnings, compileContext);
-                                }
+            );
+        });
 
-                                @Override
-                                public void onSuccess(List<DebuggerSession> sessions) {
-                                    compileStatusNotification.finished(false, 0, warnings, compileContext);
-                                }
-
-                                @Override
-                                public void onFailure(List<DebuggerSession> sessions) {
-                                    compileStatusNotification.finished(false, 1, warnings, compileContext);
-                                }
-                            });
-
-                }
-        );
 
 //        Object myClassClass = Reflect.compile(psiClass.getQualifiedName(),
 //                psiClass.getContainingFile().getText()).create().get();
@@ -1128,37 +1095,30 @@ final public class InsidiousService implements Disposable,
         }
 
 
-        @NotNull ContentManager contentManager = toolWindow.getContentManager();
-        @Nullable Content directInvokeContent = contentManager.getContent(1);
+//        @NotNull ContentManager contentManager = toolWindow.getContentManager();
+//        @Nullable Content directInvokeContent = contentManager.getContent(1);
 
 //        toolWindow.
 
 
-        JComponent component = directInvokeContent.getComponent();
+//        JComponent component = directInvokeContent.getComponent();
 
 //        InsidiousNotification.notifyMessage(
 //                "New atomic test cases identified", NotificationType.INFORMATION
 //        );
 
-//        new GotItTooltip("io.unlogged.candidate.new" + new Date().getTime(), "New candidates processed", this)
-//                .withLink("Disable for all files", new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        compile(null, null);
-//                    }
-//                })
-//                .show(component, new Function2<Component, Balloon, Point>() {
-//                    @Override
-//                    public Point invoke(Component component, Balloon balloon) {
-//                        Point location = component.getLocationOnScreen();
-//                        return new Point(location.x, location.y);
-//                    }
-//                });
+        new GotItTooltip("io.unlogged.candidate.new" + new Date().getTime(), "New candidates processed", this)
+                .withIcon(UIUtils.UNLOGGED_ICON_LIGHT_SVG)
+                .withLink("Show", () -> {
+                    atomicTestContainerWindow.loadExecutionFlow();
+                    this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent, true);
+                })
+                .show(toolWindow.getComponent(), GotItTooltip.TOP_MIDDLE);
 //        GutterActionRenderer
 
 
-        if (componentScaffoldWindow != null) {
-            componentScaffoldWindow.refresh();
+        if (atomicTestContainerWindow != null) {
+            atomicTestContainerWindow.refresh();
         }
 
     }
@@ -1196,13 +1156,6 @@ final public class InsidiousService implements Disposable,
         return sessionInstance;
     }
 
-    public void executeWithAgentForMethod(PsiMethod method) {
-
-        if (this.componentScaffoldWindow != null && this.componentScaffoldContent != null) {
-            this.toolWindow.getContentManager().setSelectedContent(this.componentScaffoldContent);
-            componentScaffoldWindow.triggerMethodExecutorRefresh(new JavaMethodAdapter(method));
-        }
-    }
 
     public GutterState getGutterStateFor(MethodAdapter method) {
         //check for agent here before other comps
@@ -1337,10 +1290,10 @@ final public class InsidiousService implements Disposable,
     }
 
     public void updateScaffoldForState(GutterState state) {
-        if (this.componentScaffoldWindow != null) {
-            componentScaffoldWindow.loadComponentForState(state);
-            if (this.componentScaffoldContent != null) {
-                this.toolWindow.getContentManager().setSelectedContent(this.componentScaffoldContent);
+        if (this.atomicTestContainerWindow != null) {
+            atomicTestContainerWindow.loadComponentForState(state);
+            if (this.atomicTestContent != null) {
+                this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent);
             }
 
         }
@@ -1537,8 +1490,6 @@ final public class InsidiousService implements Disposable,
         toolWindow.getContentManager().setSelectedContent(directMethodInvokeContent, true);
     }
 
-    public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
-
     public String fetchBasePackage() {
         Set<String> ret = new HashSet<String>();
         Collection<VirtualFile> virtualFiles =
@@ -1597,9 +1548,7 @@ final public class InsidiousService implements Disposable,
                             components = intersection;
                         }
                     }
-                }
-                else
-                {
+                } else {
                     //generic package name
                     ret.add(packageName);
                 }
@@ -1640,33 +1589,26 @@ final public class InsidiousService implements Disposable,
         return list;
     }
 
-    public void promoteState()
-    {
-        if(this.componentScaffoldWindow!=null)
-        {
-            GutterState state = this.componentScaffoldWindow.getCurrentState();
-            if(state.equals(GutterState.NO_AGENT))
-            {
+    public void promoteState() {
+        if (this.atomicTestContainerWindow != null) {
+            GutterState state = this.atomicTestContainerWindow.getCurrentState();
+            if (state.equals(GutterState.NO_AGENT)) {
                 System.out.println("Promoting to PROCESS_NOT_RUNNING");
-                componentScaffoldWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
             }
-            if(state.equals(GutterState.PROCESS_NOT_RUNNING))
-            {
+            if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
                 System.out.println("Promoting to PROCESS_RUNNING");
-                componentScaffoldWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
+                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
             }
         }
     }
 
-    public void demoteState()
-    {
-        if(this.componentScaffoldWindow!=null)
-        {
-            GutterState state = this.componentScaffoldWindow.getCurrentState();
-            if(state.equals(GutterState.PROCESS_RUNNING))
-            {
+    public void demoteState() {
+        if (this.atomicTestContainerWindow != null) {
+            GutterState state = this.atomicTestContainerWindow.getCurrentState();
+            if (state.equals(GutterState.PROCESS_RUNNING)) {
                 System.out.println("Demoting to PROCESS_NOT_RUNNING");
-                componentScaffoldWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
             }
 //            if(state.equals(GutterState.PROCESS_NOT_RUNNING))
 //            {
@@ -1675,4 +1617,11 @@ final public class InsidiousService implements Disposable,
 //            }
         }
     }
+
+    public void executeWithAgentForMethod(JavaMethodAdapter methodAdapter) {
+        atomicTestContainerWindow.triggerMethodExecutorRefresh(methodAdapter);
+        atomicTestContainerWindow.triggerCompileAndExecute();
+    }
+
+    public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
 }

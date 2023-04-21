@@ -66,14 +66,12 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 );
                 return;
             }
-            compileAndExecuteAll();
+            executeAll();
         });
     }
 
     public void compileAndExecuteAll() {
 //        this.isDifferent = false;
-        callCount = methodTestCandidates.size();
-        componentCounter = 0;
         insidiousService.compile(methodElement.getContainingClass(), (aborted, errors, warnings, compileContext) -> {
                     logger.warn("compiled class: " + compileContext);
                     if (aborted) {
@@ -123,6 +121,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         scrollPane.setBorder(JBUI.Borders.empty());
 
         centerPanel.setMinimumSize(new Dimension(-1, panelHeight));
+        centerPanel.setMaximumSize(new Dimension(-1, 700));
         centerPanel.add(scrollPane, BorderLayout.CENTER);
         centerPanel.revalidate();
         centerPanel.repaint();

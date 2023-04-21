@@ -8,7 +8,7 @@ import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
 import javax.swing.*;
 import java.awt.*;
 
-public class ComponentScaffold {
+public class AtomicTestContainer {
     private JPanel mainPanel;
     private JPanel borderParent;
     private InsidiousService insidiousService;
@@ -16,7 +16,7 @@ public class ComponentScaffold {
 
     private GutterState currentState;
 
-    public ComponentScaffold(InsidiousService insidiousService) {
+    public AtomicTestContainer(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
     }
 
@@ -36,7 +36,7 @@ public class ComponentScaffold {
             loadExecutionFlow();
         } else {
             this.borderParent.removeAll();
-            GenericNavigationComponent component = new GenericNavigationComponent(state,insidiousService);
+            GenericNavigationComponent component = new GenericNavigationComponent(state, insidiousService);
             this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
             this.borderParent.revalidate();
         }
@@ -58,27 +58,20 @@ public class ComponentScaffold {
         }
     }
 
-    public JComponent getContent() {
-        return this.mainPanel;
-    }
-
     public void refresh() {
         if (GutterState.EXECUTE.equals(this.currentState)
-        || GutterState.DATA_AVAILABLE.equals(this.currentState)) {
+                || GutterState.DATA_AVAILABLE.equals(this.currentState)) {
             if (methodExecutorComponent != null) {
                 methodExecutorComponent.refresh();
             }
         }
     }
 
-    public GutterState getCurrentState()
-    {
+    public GutterState getCurrentState() {
         return this.currentState;
     }
 
     public void triggerCompileAndExecute() {
-        if (methodExecutorComponent != null) {
-            methodExecutorComponent.compileAndExecuteAll();
-        }
+        methodExecutorComponent.compileAndExecuteAll();
     }
 }

@@ -1,12 +1,14 @@
 package com.insidious.plugin.ui.highlighter;
 
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiIdentifier;
@@ -34,7 +36,8 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
                 method.getTextOffset(), PsiClass.class, false);
         InsidiousService insidiousService = psiClass.getProject().getService(InsidiousService.class);
         insidiousService.openTestCaseDesigner(psiClass.getProject());
-        insidiousService.methodFocussedHandler(new JavaMethodAdapter(method));
+        JavaMethodAdapter methodAdapter = new JavaMethodAdapter(method);
+        insidiousService.methodFocussedHandler(methodAdapter);
         UsageInsightTracker.getInstance().RecordEvent("TestIconClick", null);
 
 
@@ -49,7 +52,20 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
 //        if (this.state.equals(GutterState.EXECUTE)) {
 //            execute = true;
 //        }
-        insidiousService.executeWithAgentForMethod(method);
+
+        if (this.state == GutterState.EXECUTE) {
+            insidiousService.compile(methodAdapter.getContainingClass(), (aborted, errors, warnings, compileContext) -> {
+                        logger.warn("compiled class: " + compileContext);
+                        if (aborted) {
+                            InsidiousNotification.notifyMessage(
+                                    "Re-execution cancelled", NotificationType.WARNING
+                            );
+                            return;
+                        }
+                        insidiousService.executeWithAgentForMethod(methodAdapter);
+                    }
+            );
+        }
 
 
 //        MethodExecutorComponent gutterMethodPanel = new MethodExecutorComponent((PsiMethod) identifier.getParent());
