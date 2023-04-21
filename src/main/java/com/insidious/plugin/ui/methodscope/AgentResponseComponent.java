@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.TestCaseUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
 import org.json.JSONArray;
@@ -14,6 +13,8 @@ import org.json.JSONObject;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
@@ -48,13 +49,22 @@ public class AgentResponseComponent implements Supplier<Component> {
     private JPanel methodArgumentsPanel;
     private JButton acceptButton;
     private JScrollPane scrollParent;
+    private JPanel topPanel;
+    private JButton hideButton;
 
     public AgentResponseComponent(
             AgentCommandResponse<String> agentCommandResponse,
             boolean showAcceptButton,
-            FullViewEventListener fullViewEventListener) {
+            FullViewEventListener fullViewEventListener
+    ) {
         this.agentCommandResponse = agentCommandResponse;
         this.showAcceptButton = showAcceptButton;
+        hideButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+            }
+        });
 
         if (!showAcceptButton) {
             this.bottomControlPanel.setVisible(false);

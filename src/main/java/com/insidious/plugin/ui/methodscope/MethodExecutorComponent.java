@@ -128,6 +128,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 //        centerPanel.setMinimumSize(new Dimension(-1, 500));
 //        centerPanel.setMaximumSize(new Dimension(-1, Math.min(500, panelHeight)));
         centerParent.setMaximumSize(new Dimension(-1, Math.min(500, panelHeight)));
+        centerParent.setMinimumSize(new Dimension(-1, 500));
 
         centerParent.add(scrollPane, BorderLayout.CENTER);
         centerParent.revalidate();
@@ -279,7 +280,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     public void displayResponse(Supplier<Component> component) {
         this.diffContentPanel.removeAll();
         this.diffContentPanel.setLayout(new GridLayout(1, 1));
-        GridConstraints constraints = new GridConstraints();
+//        GridConstraints constraints = new GridConstraints();
         diffContentPanel.setMinimumSize(new Dimension(-1, 700));
 //        constraints.setRow(0);
         Component comp = component.get();
