@@ -41,16 +41,15 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
         @NotNull List<LineMarkerInfo<?>> lineMarkerInfoList = new LinkedList<>();
         lineMarkerInfoList.add(new LineHighlighter().getLineMarkerInfo(identifier));
 
-        if(!this.state.equals(GutterState.DIFF) &&
+        if (!this.state.equals(GutterState.DIFF) &&
                 !this.state.equals(GutterState.NO_DIFF)) {
             insidiousService.updateScaffoldForState(this.state);
         }
-        boolean execute = false;
-        if(this.state.equals(GutterState.EXECUTE))
-        {
-            execute = true;
-        }
-        insidiousService.executeWithAgentForMethod(method,execute);
+//        boolean execute = false;
+//        if (this.state.equals(GutterState.EXECUTE)) {
+//            execute = true;
+//        }
+        insidiousService.executeWithAgentForMethod(method);
 
 
 //        MethodExecutorComponent gutterMethodPanel = new MethodExecutorComponent((PsiMethod) identifier.getParent());

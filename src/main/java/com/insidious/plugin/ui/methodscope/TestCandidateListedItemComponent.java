@@ -141,7 +141,13 @@ public class TestCandidateListedItemComponent {
 
         GridLayout gridLayout = new GridLayout(1, 1);
         int desiredHeightPerInput = 30;
-        int desiredHeight = Math.min(inputRoot.getLeafCount() * desiredHeightPerInput, 200);
+        int desiredHeight = inputRoot.getLeafCount() * desiredHeightPerInput;
+        if (desiredHeight < 200) {
+            desiredHeight = 200;
+        }
+        if (desiredHeight > 1000) {
+            desiredHeight = 1000;
+        }
         Dimension preferredSize = new Dimension(-1, desiredHeight);
 
 //        mainContentPanel.setPreferredSize(preferredSize);

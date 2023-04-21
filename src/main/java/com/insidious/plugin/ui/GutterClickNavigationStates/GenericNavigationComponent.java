@@ -1,9 +1,9 @@
 package com.insidious.plugin.ui.GutterClickNavigationStates;
 
-import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.Checksums;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.util.UIUtils;
@@ -36,13 +36,12 @@ public class GenericNavigationComponent {
     private GutterState currentState;
     private JEditorPane imagePane;
     private InsidiousService insidiousService;
-    public GenericNavigationComponent(GutterState state, InsidiousService insidiousService)
-    {
+
+    public GenericNavigationComponent(GutterState state, InsidiousService insidiousService) {
         this.currentState = state;
         this.insidiousService = insidiousService;
         setTextAndIcons();
-        if(state.equals(GutterState.NO_AGENT))
-        {
+        if (state.equals(GutterState.NO_AGENT)) {
             //display button
             this.actionButton.setVisible(true);
             this.actionButton.setText("Download Agent");
@@ -53,9 +52,7 @@ public class GenericNavigationComponent {
                 }
             });
             actionButton.setIcon(UIUtils.DOWNLOAD_WHITE);
-        }
-        else if(state.equals(GutterState.PROCESS_RUNNING))
-        {
+        } else if (state.equals(GutterState.PROCESS_RUNNING)) {
             this.actionButton.setVisible(true);
             this.actionButton.setText("Execute method");
             actionButton.addMouseListener(new MouseAdapter() {
@@ -65,48 +62,41 @@ public class GenericNavigationComponent {
                 }
             });
             actionButton.setIcon(UIUtils.GENERATE_ICON);
-        }
-        else
-        {
+        } else {
             actionButton.setVisible(false);
         }
         loadimageForCurrentState();
     }
 
-    public JPanel getComponent()
-    {
+    public JPanel getComponent() {
         return this.mainPanel;
     }
 
-    public void setTextAndIcons()
-    {
+    public void setTextAndIcons() {
         this.iconLabel.setText(getHeaderTextForCurrentState());
         this.mainContentText.setText(getBodyText());
-        Icon icon=null;
-        switch (currentState)
-        {
+        Icon icon = null;
+        switch (currentState) {
 //            case DATA_AVAILABLE:
 //                icon= UIUtils.DATA_AVAILABLE_HEADER;
 //                iconLabel.setForeground(UIUtils.yellow_alert);
 //                break;
             case PROCESS_RUNNING:
-                icon=UIUtils.PROCESS_RUNNING_HEADER;
+                icon = UIUtils.PROCESS_RUNNING_HEADER;
                 break;
             case NO_AGENT:
-                icon=UIUtils.NO_AGENT_HEADER;
+                icon = UIUtils.NO_AGENT_HEADER;
                 iconLabel.setForeground(UIUtils.red);
                 break;
         }
         this.iconLabel.setIcon(icon);
     }
 
-    public void triggerAgentDownload()
-    {
-        if(this.currentState.equals(GutterState.NO_AGENT))
-        {
+    public void triggerAgentDownload() {
+        if (this.currentState.equals(GutterState.NO_AGENT)) {
             System.out.println("Download Agent triggered");
             String agentVersion = insidiousService.suggestAgentVersion();
-            System.out.println("Agent suggested : "+agentVersion);
+            System.out.println("Agent suggested : " + agentVersion);
             downloadAgentinBackground(agentVersion);
         }
     }
@@ -273,67 +263,60 @@ public class GenericNavigationComponent {
         return false;
     }
 
-    public void loadimageForCurrentState()
-    {
-        String gif=null;
-        switch (currentState)
-        {
+    public void loadimageForCurrentState() {
+        String gif = null;
+        switch (currentState) {
 //            case DATA_AVAILABLE:
 //                gif="data_available.gif";
 //                break;
             case PROCESS_RUNNING:
-                gif="process_running.gif";
+                gif = "process_running.gif";
                 break;
             case NO_AGENT:
-                gif="no_agent.gif";
+                gif = "no_agent.gif";
                 break;
         }
-        if(gif!=null) {
+        if (gif != null) {
             loadHintGif(gif);
         }
     }
 
-    public void loadHintGif(String gif)
-    {
+    public void loadHintGif(String gif) {
         imagePane.setContentType("text/html");
-        String htmlString = "<html><body>"+
+        String htmlString = "<html><body>" +
                 "<div align=\"left\"><img src=\"" + this.getClass().getClassLoader()
-                .getResource("icons/gif/"+gif).toString()+"\" /></div></body></html>";
+                .getResource("icons/gif/" + gif).toString() + "\" /></div></body></html>";
         imagePane.setText(htmlString);
     }
 
-    private String getBodyText()
-    {
+    private String getBodyText() {
         String header = "";
-        switch (currentState)
-        {
+        switch (currentState) {
 //            case DATA_AVAILABLE:
 //                header="You can make code changes and run these inputs to check before and after";
 //                break;
             case PROCESS_RUNNING:
-                header="Call your application/relevant APIs using Postman, Swagger or UI. The Unlogged agent will record input/output for each method accessed.";
+                header = "Call your application/relevant APIs using Postman, Swagger or UI. The Unlogged agent will record input/output for each method accessed.";
                 break;
             case NO_AGENT:
-                header="The agent byte code instruments your code to record input/output values of each method in your code.\n" +
+                header = "The agent byte code instruments your code to record input/output values of each method in your code.\n" +
                         "Read more about bytecode instrumenting here.";
                 break;
         }
         return header;
     }
 
-    private String getHeaderTextForCurrentState()
-    {
+    private String getHeaderTextForCurrentState() {
         String header = "";
-        switch (currentState)
-        {
+        switch (currentState) {
 //            case DATA_AVAILABLE:
 //                header="Unlogged agent has successfully recorded input/output this method";
 //                break;
             case PROCESS_RUNNING:
-                header="Application is running but no recordings found for this method";
+                header = "Application is running but no recordings found for this method";
                 break;
             case NO_AGENT:
-                header="Unlogged Agent is not found.";
+                header = "Unlogged Agent is not found.";
                 break;
         }
         return header;

@@ -162,7 +162,7 @@ final public class InsidiousService implements Disposable,
     private Content methodExecutorWindow;
     private boolean agentJarExists = false;
     private MethodDirectInvokeComponent methodDirectInvokeComponent;
-    private Content manualMethodExecutorWindow;
+    private Content directMethodInvokeContent;
     private boolean isAgentServerRunning = false;
     private Content componentScaffoldContent;
     private ComponentScaffold componentScaffoldWindow;
@@ -761,11 +761,11 @@ final public class InsidiousService implements Disposable,
 
 
         methodDirectInvokeComponent = new MethodDirectInvokeComponent(this);
-        this.manualMethodExecutorWindow =
+        this.directMethodInvokeContent =
                 contentFactory.createContent(methodDirectInvokeComponent.getContent(), "Direct Invoke", false);
-        this.manualMethodExecutorWindow.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        this.manualMethodExecutorWindow.setIcon(UIUtils.EXECUTE_METHOD);
-        contentManager.addContent(this.manualMethodExecutorWindow);
+        this.directMethodInvokeContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        this.directMethodInvokeContent.setIcon(UIUtils.EXECUTE_METHOD);
+        contentManager.addContent(this.directMethodInvokeContent);
 
 
         gptWindow = new UnloggedGPT(this);
@@ -1348,7 +1348,7 @@ final public class InsidiousService implements Disposable,
 
     public void focusDirectInvokeTab() {
         ApplicationManager.getApplication().invokeLater(
-                () -> toolWindow.getContentManager().setSelectedContent(manualMethodExecutorWindow, false));
+                () -> toolWindow.getContentManager().setSelectedContent(directMethodInvokeContent, false));
     }
 
 
@@ -1531,6 +1531,10 @@ final public class InsidiousService implements Disposable,
         if (existing.getDiffResultType() == DiffResultType.SAME) {
             executionRecord.put(keyName, newDiffRecord);
         }
+    }
+
+    public void openDirectExecuteWindow() {
+        toolWindow.getContentManager().setSelectedContent(directMethodInvokeContent, true);
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}

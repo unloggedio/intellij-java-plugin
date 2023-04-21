@@ -70,10 +70,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         });
     }
 
-    public void compileAndExecuteAll()
-    {
-        this.isDifferent = false;
-        callCount = this.components.size();
+    public void compileAndExecuteAll() {
+//        this.isDifferent = false;
+        callCount = methodTestCandidates.size();
         componentCounter = 0;
         insidiousService.compile(methodElement.getContainingClass(), (aborted, errors, warnings, compileContext) -> {
                     logger.warn("compiled class: " + compileContext);
@@ -88,10 +87,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                                 "Re-execution cancelled due to [" + errors + "] compilation errors", NotificationType.ERROR
                         );
                     }
-                    System.out.println("Starting execute all");
-                    for (ComponentContainer component : this.components) {
-                        execute_save(component.getCandidateMetadata(), component.getMethodArgumentValues(), component);
-                    }
+                    executeAll();
                 }
         );
     }
