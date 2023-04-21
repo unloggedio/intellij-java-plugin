@@ -1,15 +1,19 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.ui.methodscope.AgentExceptionResponseComponent;
-import com.insidious.plugin.ui.methodscope.AgentResponseComponent;
-import com.insidious.plugin.ui.methodscope.TestCandidateListedItemComponent;
+import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
+
+import java.awt.*;
+import java.util.List;
+import java.util.function.Supplier;
 
 public interface MethodExecutionListener {
 
-    void executeCandidate(TestCandidateMetadata metadata, TestCandidateListedItemComponent controlComponent);
+    void executeCandidate(
+            TestCandidateMetadata metadata,
+            List<String> methodArgumentValues,
+            AgentCommandResponseListener<String> stringAgentCommandResponseListener
+    );
 
-    void displayResponse(AgentResponseComponent responseComponent);
-
-    void displayExceptionResponse(AgentExceptionResponseComponent comp);
+    void displayResponse(Supplier<Component> responseComponent);
 }

@@ -26,13 +26,16 @@ public class ComponentScaffold {
 
     public void loadComponentForState(GutterState state) {
         System.out.println("Loading Component for state : " + state);
+        if (this.currentState == state) {
+            return;
+        }
         this.currentState = state;
         if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
             this.borderParent.removeAll();
             AgentConfigComponent component = new AgentConfigComponent(this.insidiousService);
             this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
             this.borderParent.revalidate();
-        } else if (state.equals(GutterState.EXECUTE)) {
+        } else if (state.equals(GutterState.EXECUTE) || state.equals(GutterState.DATA_AVAILABLE)) {
             loadExecutionFlow();
         } else {
             this.borderParent.removeAll();
@@ -50,10 +53,8 @@ public class ComponentScaffold {
     }
 
     public void triggerMethodExecutorRefresh(MethodAdapter method) {
-        if (GutterState.EXECUTE.equals(this.currentState)) {
-            if (methodExecutorComponent != null) {
-                methodExecutorComponent.refreshAndReloadCandidates(method);
-            }
+        if (methodExecutorComponent != null) {
+            methodExecutorComponent.refreshAndReloadCandidates(method);
         }
     }
 
@@ -62,10 +63,10 @@ public class ComponentScaffold {
     }
 
     public void refresh() {
-        if (GutterState.EXECUTE.equals(this.currentState)) {
-            if (methodExecutorComponent != null) {
-                methodExecutorComponent.refresh();
-            }
+        if (methodExecutorComponent != null) {
+            methodExecutorComponent.refresh();
+        } else {
+            loadExecutionFlow();
         }
     }
 }

@@ -2,6 +2,8 @@ package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
+import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
@@ -15,6 +17,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -30,33 +33,53 @@ public class TestCandidateListedItemComponent {
     private final List<String> methodArgumentValues;
     private final MethodExecutionListener listener;
     private final Map<String, String> parameterMap;
+    private final InsidiousService insidiousService;
     private JPanel mainPanel;
     private JLabel statusLabel;
     private JPanel mainContentPanel;
     private JLabel executeLabel;
     private JPanel controlPanel;
-    private AgentResponseComponent responseComponent;
 
-    public TestCandidateListedItemComponent(TestCandidateMetadata candidateMetadata, MethodAdapter method,
-                                            MethodExecutionListener listener) {
+    public TestCandidateListedItemComponent(
+            TestCandidateMetadata candidateMetadata,
+            MethodAdapter method,
+            MethodExecutionListener listener,
+            CandidateSelectedListener candidateSelectedListener,
+            InsidiousService insidiousService) {
         this.candidateMetadata = candidateMetadata;
+        this.insidiousService = insidiousService;
         this.method = method;
         this.listener = listener;
-        this.methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
-                candidateMetadata);
-        this.parameterMap = generateParameterMap();
+        this.methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata);
+        this.parameterMap = generateParameterMap(method.getParameters());
+
+        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
+        titledBorder.setTitle("#" + String.valueOf(candidateMetadata.getEntryProbeIndex()));
+        mainPanel.revalidate();
 
         loadInputTree();
         executeLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                executeCandidate();
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("className", candidateMetadata.getTestSubject().getType());
+                eventProperties.put("methodName", candidateMetadata.getMainMethod().getMethodName());
+                UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
+
+                listener.executeCandidate(candidateMetadata,
+                        TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata),
+                        (testCandidate, agentCommandResponse, diffResult) -> {
+                            insidiousService.updateMethodHashForExecutedMethod(method);
+                            setAndDisplayResponse(agentCommandResponse, diffResult);
+                            candidateSelectedListener.onCandidateSelected(testCandidate);
+                        }
+                );
             }
         });
         statusLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                displayResponse();
+                candidateSelectedListener.onCandidateSelected(candidateMetadata);
             }
         });
         executeLabel.setIcon(UIUtils.EXECUTE_COMPONENT);
@@ -67,7 +90,8 @@ public class TestCandidateListedItemComponent {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                displayResponse();
+                candidateSelectedListener.onCandidateSelected(candidateMetadata);
+//                listener.displayResponse(responseComponent);
             }
         });
     }
@@ -80,15 +104,11 @@ public class TestCandidateListedItemComponent {
         return candidateMetadata;
     }
 
-    private void displayResponse() {
-        if (this.responseComponent != null) {
-            this.listener.displayResponse(this.responseComponent);
-        }
-    }
-
-    private void displayExceptionResponse(AgentExceptionResponseComponent comp) {
-        this.listener.displayExceptionResponse(comp);
-    }
+//    private void displayResponse() {
+//        if (this.responseComponent != null) {
+//            this.listener.displayResponse(this.responseComponent);
+//        }
+//    }
 
     private void loadInputTree() {
         this.mainContentPanel.removeAll();
@@ -141,6 +161,7 @@ public class TestCandidateListedItemComponent {
 
 
         mainPanel.setPreferredSize(preferredSize);
+        mainPanel.setMinimumSize(new Dimension(-1, 100));
         mainPanel.setMaximumSize(preferredSize);
 
         mainContentPanel.setLayout(gridLayout);
@@ -209,14 +230,13 @@ public class TestCandidateListedItemComponent {
 
     public Map<String, String> getParameterMap() {
         if (this.parameterMap == null || this.parameterMap.size() == 0) {
-            return generateParameterMap();
+            return generateParameterMap(method.getParameters());
         } else {
             return this.parameterMap;
         }
     }
 
-    public Map<String, String> generateParameterMap() {
-        ParameterAdapter[] parameters = method.getParameters();
+    public Map<String, String> generateParameterMap(ParameterAdapter[] parameters) {
         Map<String, String> parameterInputMap = new TreeMap<>();
         if (parameters != null) {
             for (int i = 0; i < parameters.length; i++) {
@@ -229,23 +249,10 @@ public class TestCandidateListedItemComponent {
         return parameterInputMap;
     }
 
-    public List<String> getMethodArgumentValues() {
-        return methodArgumentValues;
-    }
 
-    public void executeCandidate() {
-        JSONObject eventProperties = new JSONObject();
-        eventProperties.put("className", candidateMetadata.getTestSubject().getType());
-        eventProperties.put("methodName", candidateMetadata.getMainMethod().getMethodName());
-
-        UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
-
-        this.listener.executeCandidate(this.candidateMetadata, this);
-    }
-
-    public void setResponseComponent(AgentResponseComponent responseComponent) {
-        this.responseComponent = responseComponent;
-        Boolean status = this.responseComponent.computeDifferences();
+    public void setResponseComponent(Boolean status) {
+//        this.responseComponent = responseComponent;
+//        Boolean status = this.responseComponent.computeDifferences();
         if (status == null) {
             this.statusLabel.setText("Exception");
             this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
@@ -262,33 +269,29 @@ public class TestCandidateListedItemComponent {
         }
     }
 
-    public void setAndDisplayResponse(AgentResponseComponent responseComponent) {
-        this.responseComponent = responseComponent;
-        Boolean status = this.responseComponent.computeDifferences();
-        if (status == null) {
-            this.statusLabel.setText("Exception");
-            this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
-            System.out.println("Exception message : " + this.responseComponent
-                    .getAgentCommandResponse().getMessage());
-            displayResponse();
-            return;
-        }
-        if (!status) {
-            //no diff
-            this.statusLabel.setText("Same");
-            this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
-        } else {
-            //diff
-            this.statusLabel.setText("Different");
-            this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
-        }
-        displayResponse();
-    }
+    public void setAndDisplayResponse(
+            AgentCommandResponse<String> agentCommandResponse,
+            DifferenceResult differenceResult
+    ) {
 
-    public void DisplayExceptionResponse(AgentExceptionResponseComponent exceptionResponseComponent) {
-        this.statusLabel.setText("Exception");
-        this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
-        displayExceptionResponse(exceptionResponseComponent);
+        switch (differenceResult.getDiffResultType()) {
+
+            case EXCEPTION:
+                this.statusLabel.setText("Exception");
+                this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
+                System.out.println("Exception message : " + agentCommandResponse.getMessage());
+                break;
+            case DIFF:
+                this.statusLabel.setText("Different");
+                this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
+                break;
+            case NO_ORIGINAL:
+                break;
+            case SAME:
+                this.statusLabel.setText("Same");
+                this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
+                break;
+        }
     }
 
     public int getHash() {

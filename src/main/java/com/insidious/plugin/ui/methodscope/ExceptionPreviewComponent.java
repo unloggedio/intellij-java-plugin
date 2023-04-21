@@ -10,7 +10,7 @@ import javax.swing.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-public class ExceptionOptionsComponent {
+public class ExceptionPreviewComponent {
     private JPanel mainPanel;
     private JPanel buttonControlPanel;
     private JButton showfulltrace;
@@ -24,11 +24,13 @@ public class ExceptionOptionsComponent {
 
     private InsidiousService service;
 
-    public ExceptionOptionsComponent(String message, String stacktrace, InsidiousService insidiousService) {
+    public ExceptionPreviewComponent(String message, String stacktrace, InsidiousService insidiousService) {
         this.message = message;
         this.stackTrace = stacktrace;
         this.service = insidiousService;
+
         this.exceptionArea.setText(stacktrace);
+
         this.iconLabel.setIcon(UIUtils.EXCEPTION_CASE);
         showfulltrace.addMouseListener(new MouseAdapter() {
             @Override

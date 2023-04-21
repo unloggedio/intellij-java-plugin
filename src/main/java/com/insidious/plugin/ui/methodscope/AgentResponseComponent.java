@@ -1,59 +1,33 @@
 package com.insidious.plugin.ui.methodscope;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.MapDifference;
-import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
 import com.insidious.plugin.agent.AgentCommandResponse;
-import com.insidious.plugin.agent.ResponseType;
-import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
-import com.insidious.plugin.pojo.JsonFramework;
-import com.insidious.plugin.pojo.MockFramework;
-import com.insidious.plugin.pojo.ResourceEmbedMode;
-import com.insidious.plugin.pojo.TestFramework;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
-import com.insidious.plugin.ui.IOTreeCellRenderer;
-import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.UIUtils;
-import com.intellij.diff.DiffContentFactory;
-import com.intellij.diff.DiffManager;
-import com.intellij.diff.contents.DocumentContent;
-import com.intellij.diff.requests.SimpleDiffRequest;
-import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.ui.components.JBScrollPane;
-import com.intellij.ui.treeStructure.Tree;
-import com.intellij.uiDesigner.core.GridConstraints;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.border.EtchedBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
-import java.util.*;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
 
-public class AgentResponseComponent {
+public class AgentResponseComponent implements Supplier<Component> {
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = true;
-    private final InsidiousService insidiousService;
-    private final TestCandidateMetadata testCandidateMetadata;
-    private final AgentCommandResponse agentCommandResponse;
+    private final AgentCommandResponse<String> agentCommandResponse;
     private final boolean MOCK_MODE = false;
+    final private boolean showAcceptButton;
     String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\",\"wut\":\"ay\",\"get\":\"ay\",\"sut\":\"ay\",\"put\":\"ay\",\"fut\":\"ay\"}";
     //    String s1 = "";
     String d1 = "1";
@@ -62,7 +36,6 @@ public class AgentResponseComponent {
     String d2 = "1";
     private String oldResponse;
     private String agentResponse;
-    private Map<String, String> parameters;
     private JPanel mainPanel;
     private JPanel borderParent;
     private JPanel centerPanel;
@@ -75,22 +48,15 @@ public class AgentResponseComponent {
     private JPanel methodArgumentsPanel;
     private JButton acceptButton;
     private JScrollPane scrollParent;
-    private boolean alt;
 
     public AgentResponseComponent(
-            TestCandidateMetadata testCandidateMetadata,
-            AgentCommandResponse agentCommandResponse,
-            InsidiousService insidiousService,
-            Map<String, String> parameters,
-            boolean showaccept
-    ) {
-        this.testCandidateMetadata = testCandidateMetadata;
+            AgentCommandResponse<String> agentCommandResponse,
+            boolean showAcceptButton,
+            FullViewEventListener fullViewEventListener) {
         this.agentCommandResponse = agentCommandResponse;
-        this.insidiousService = insidiousService;
-        this.parameters = parameters;
-        this.alt = showaccept;
+        this.showAcceptButton = showAcceptButton;
 
-        if (!showaccept) {
+        if (!showAcceptButton) {
             this.bottomControlPanel.setVisible(false);
         }
 
@@ -98,9 +64,11 @@ public class AgentResponseComponent {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (MOCK_MODE) {
-                    GenerateCompareWindows(s1, s2);
+//                    GenerateCompareWindows(s1, s2);
+                    fullViewEventListener.generateCompareWindows(s1, s2);
                 } else {
-                    GenerateCompareWindows(oldResponse, agentResponse);
+                    fullViewEventListener.generateCompareWindows(oldResponse, agentResponse);
+//                    GenerateCompareWindows(oldResponse, agentResponse);
                 }
             }
         });
@@ -151,107 +119,6 @@ public class AgentResponseComponent {
 //        }
     }
 
-    public JPanel getComponent() {
-        return this.mainPanel;
-    }
-
-    //constructor to take string difference and parameter/mce from candidate
-    public Boolean computeDifferences() {
-        if (MOCK_MODE) {
-            if (alt) {
-                this.oldResponse = s1;
-                this.agentResponse = s2;
-            } else {
-                this.oldResponse = d1;
-                this.agentResponse = d2;
-            }
-            return tryTestDiff(this.oldResponse, this.agentResponse);
-        } else {
-            this.oldResponse = new String(
-                    testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
-            this.agentResponse = String.valueOf(agentCommandResponse.getMethodReturnValue());
-            System.out.println("Agent Response : "+agentCommandResponse.getMethodReturnValue());
-            return calculateDifferences(this.oldResponse, this.agentResponse);
-        }
-    }
-
-    public Boolean tryTestDiff(String s1, String s2) {
-        return calculateDifferences(s1, s2);
-    }
-
-    private Boolean calculateDifferences(String s1, String s2) {
-        ObjectMapper om = new ObjectMapper();
-        //replace Boolean with enum
-        if (agentCommandResponse.getResponseType() != null && (agentCommandResponse.getResponseType()
-                .equals(ResponseType.EXCEPTION) || agentCommandResponse.getResponseType().equals(ResponseType.FAILED))) {
-            this.statusLabel.setText("" + this.agentCommandResponse.getMessage());
-            this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
-            this.statusLabel.setForeground(UIUtils.red);
-            this.tableParent.setVisible(false);
-            showExceptionTrace(s2);
-            return null;
-        }
-        try {
-            Map<String, Object> m1;
-            if (s1 == null || s1.isEmpty()) {
-                m1 = new TreeMap<>();
-            } else {
-                m1 = (Map<String, Object>) (om.readValue(s1, Map.class));
-            }
-            Map<String, Object> m2 = (Map<String, Object>) (om.readValue(s2, Map.class));
-
-            MapDifference<String, Object> res = Maps.difference(flatten(m1), flatten(m2));
-            System.out.println(res);
-
-            res.entriesOnlyOnLeft().forEach((key, value) -> System.out.println(key + ": " + value));
-            Map<String, Object> leftOnly = res.entriesOnlyOnLeft();
-
-            res.entriesOnlyOnRight().forEach((key, value) -> System.out.println(key + ": " + value));
-            Map<String, Object> rightOnly = res.entriesOnlyOnRight();
-
-            res.entriesDiffering().forEach((key, value) -> System.out.println(key + ": " + value));
-            Map<String, MapDifference.ValueDifference<Object>> differences = res.entriesDiffering();
-            List<DifferenceInstance> differenceInstances = getDifferenceModel(leftOnly,
-                    rightOnly, differences);
-            if (differenceInstances.size() == 0) {
-                //no differences
-                this.statusLabel.setText("Both Responses are Equal.");
-                this.statusLabel.setIcon(UIUtils.CHECK_GREEN_SMALL);
-                this.statusLabel.setForeground(UIUtils.green);
-                this.tableParent.setVisible(false);
-                return false;
-            } else if (s1 == null || s1.isEmpty()) {
-                this.statusLabel.setText("No previous Candidate found, current response.");
-                renderTableForResponse(rightOnly);
-                return true;
-            } else {
-//                merge left and right differneces
-//                or iterate and create a new pojo that works with 1 table model
-                this.statusLabel.setText("Differences Found.");
-                renderTableWithDifferences(differenceInstances);
-                return true;
-            }
-        } catch (Exception e) {
-            System.out.println("TestDiff Exception: " + e);
-            e.printStackTrace();
-            System.out.println("S1 AND S2 : "+s1+", "+s2);
-            if (s1.equals(s2)) {
-                this.statusLabel.setText("Both Responses are Equal.");
-                this.statusLabel.setIcon(UIUtils.CHECK_GREEN_SMALL);
-                this.statusLabel.setForeground(UIUtils.green);
-                this.tableParent.setVisible(false);
-                return false;
-            }
-            //this.statusLabel.setText("Differences Found.");
-            //happens for malformed jsons or primitives.
-            DifferenceInstance instance = new DifferenceInstance("Return Value", s1, s2,
-                    DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE);
-            ArrayList<DifferenceInstance> differenceInstances = new ArrayList<>();
-            differenceInstances.add(instance);
-            renderTableWithDifferences(differenceInstances);
-            return true;
-        }
-    }
 
     private void renderTableWithDifferences(List<DifferenceInstance> differenceInstances) {
         CompareTableModel newModel = new CompareTableModel(differenceInstances, this.mainTable);
@@ -265,70 +132,6 @@ public class AgentResponseComponent {
         this.mainTable.setModel(newModel);
         this.mainTable.revalidate();
         this.mainTable.repaint();
-    }
-
-    public Map<String, Object> flatten(Map<String, Object> map) {
-        return map.entrySet().stream()
-                .flatMap(this::flatten)
-                .collect(LinkedHashMap::new, (m, e) -> m.put("/" + e.getKey(), e.getValue()), LinkedHashMap::putAll);
-    }
-
-    private Stream<Map.Entry<String, Object>> flatten(Map.Entry<String, Object> entry) {
-        if (entry == null) {
-            return Stream.empty();
-        }
-
-        if (entry.getValue() instanceof Map<?, ?>) {
-            return ((Map<?, ?>) entry.getValue()).entrySet().stream()
-                    .flatMap(e -> flatten(
-                            new AbstractMap.SimpleEntry<>(entry.getKey() + "/" + e.getKey(), e.getValue())));
-        }
-
-        if (entry.getValue() instanceof List<?>) {
-            List<?> list = (List<?>) entry.getValue();
-            return IntStream.range(0, list.size())
-                    .mapToObj(i -> new AbstractMap.SimpleEntry<String, Object>(entry.getKey() + "/" + i, list.get(i)))
-                    .flatMap(this::flatten);
-        }
-
-        return Stream.of(entry);
-    }
-
-    public void GenerateCompareWindows(String before, String after) {
-        DocumentContent content1 = DiffContentFactory.getInstance().create(getPrettyJsonString(before));
-        DocumentContent content2 = DiffContentFactory.getInstance().create(getPrettyJsonString(after));
-        SimpleDiffRequest request = new SimpleDiffRequest("Comparing Before and After", content1, content2, "Before",
-                "After");
-        DiffManager.getInstance().showDiff(this.insidiousService.getProject(), request);
-    }
-
-    private String getPrettyJsonString(String input) {
-        if (input == null || input.isEmpty()) {
-            return "";
-        }
-        JsonElement je = gson.fromJson(input, JsonElement.class);
-        return gson.toJson(je);
-    }
-
-    private List<DifferenceInstance> getDifferenceModel(Map<String, Object> left, Map<String, Object> right,
-                                                        Map<String, MapDifference.ValueDifference<Object>> differences) {
-        ArrayList<DifferenceInstance> differenceInstances = new ArrayList<>();
-        for (String key : differences.keySet()) {
-            DifferenceInstance instance = new DifferenceInstance(key, differences.get(key).leftValue(),
-                    differences.get(key).rightValue(), DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE);
-            differenceInstances.add(instance);
-        }
-        for (String key : left.keySet()) {
-            DifferenceInstance instance = new DifferenceInstance(key, left.get(key),
-                    "", DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY);
-            differenceInstances.add(instance);
-        }
-        for (String key : right.keySet()) {
-            DifferenceInstance instance = new DifferenceInstance(key, "",
-                    right.get(key), DifferenceInstance.DIFFERENCE_TYPE.RIGHT_ONLY);
-            differenceInstances.add(instance);
-        }
-        return differenceInstances;
     }
 
     private DefaultMutableTreeNode buildJsonTree(String source, String name) {
@@ -399,9 +202,14 @@ public class AgentResponseComponent {
         textArea.setText(response);
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
-        JScrollPane scroll = new JBScrollPane(textArea,
-                JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+//        JScrollPane scroll = new JBScrollPane(textArea,
+//                JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
         this.tableParent.add(textArea, BorderLayout.CENTER);
         this.tableParent.revalidate();
+    }
+
+    @Override
+    public Component get() {
+        return this.mainPanel;
     }
 }

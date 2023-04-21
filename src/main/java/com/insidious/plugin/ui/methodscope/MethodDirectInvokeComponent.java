@@ -44,6 +44,7 @@ public class MethodDirectInvokeComponent {
     private JScrollPane returnValuePanel;
     private JTextArea returnValueTextArea;
     private JPanel methodParameterScrollContainer;
+    private JPanel scrollerContainer;
     private MethodAdapter methodElement;
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
@@ -88,17 +89,19 @@ public class MethodDirectInvokeComponent {
                 MethodUtils.createRequestWithParameters(methodElement, methodArgumentValues);
         agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
         returnValueTextArea.setText("");
+
+
         insidiousService.executeMethodInRunningProcess(agentCommandRequest,
-                (request, response) -> {
-                    logger.warn("Agent command execution response: " + response);
+                (agentCommandRequest1, agentCommandResponse) -> {
+                    logger.warn("Agent command execution response: " + agentCommandResponse);
 
 
-                    ResponseType responseType = response.getResponseType();
-                    String responseMessage = response.getMessage() == null ? "" :
-                            response.getMessage() + "\n";
+                    ResponseType responseType = agentCommandResponse.getResponseType();
+                    String responseMessage = agentCommandResponse.getMessage() == null ? "" :
+                            agentCommandResponse.getMessage() + "\n";
                     TitledBorder panelTitledBoarder = (TitledBorder) returnValuePanel.getBorder();
-                    String responseObjectClassName = response.getResponseClassName();
-                    String methodReturnValue = response.getMethodReturnValue();
+                    String responseObjectClassName = agentCommandResponse.getResponseClassName();
+                    Object methodReturnValue = agentCommandResponse.getMethodReturnValue();
                     if (responseType == null) {
                         panelTitledBoarder.setTitle(responseObjectClassName);
                         returnValueTextArea.setText(responseMessage + methodReturnValue);
@@ -112,21 +115,21 @@ public class MethodDirectInvokeComponent {
                         panelTitledBoarder.setTitle(returnTypePresentableText);
                         ObjectMapper objectMapper = insidiousService.getObjectMapper();
                         try {
-                            JsonNode jsonNode = objectMapper.readValue(methodReturnValue, JsonNode.class);
+                            JsonNode jsonNode = objectMapper.readValue(methodReturnValue.toString(), JsonNode.class);
                             returnValueTextArea.setText(objectMapper
                                     .writerWithDefaultPrettyPrinter()
                                     .writeValueAsString(jsonNode));
                         } catch (JsonProcessingException ex) {
-                            returnValueTextArea.setText(methodReturnValue);
+                            returnValueTextArea.setText(methodReturnValue.toString());
 //                            throw new RuntimeException(ex);
                         }
                     } else if (responseType.equals(ResponseType.EXCEPTION)) {
                         panelTitledBoarder.setTitle(responseObjectClassName);
                         if (methodReturnValue != null) {
                             returnValueTextArea.setText(
-                                    ExceptionUtils.prettyPrintException(methodReturnValue));
+                                    ExceptionUtils.prettyPrintException(methodReturnValue.toString()));
                         } else {
-                            returnValueTextArea.setText(response.getMessage());
+                            returnValueTextArea.setText(agentCommandResponse.getMessage());
                         }
                     } else {
                         panelTitledBoarder.setTitle(responseObjectClassName);
@@ -188,7 +191,9 @@ public class MethodDirectInvokeComponent {
                 ParameterInputComponent parameterContainer =
                         new ParameterInputComponent(methodParameter, parameterValue);
                 parameterInputComponents.add(parameterContainer);
-                methodParameterContainer.add(parameterContainer.getContent());
+                JPanel content = parameterContainer.getContent();
+                content.setMinimumSize(new Dimension(-1, 150));
+                methodParameterContainer.add(content);
             }
         } else {
             JBLabel noParametersLabel = new JBLabel("Method " + methodName + "() has no parameters");

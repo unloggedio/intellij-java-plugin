@@ -6,8 +6,11 @@ import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
+import com.google.common.collect.MapDifference;
+import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
@@ -27,8 +30,7 @@ import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.GutterClickNavigationStates.ComponentScaffold;
 import com.insidious.plugin.ui.*;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
-import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
-import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
+import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
 import com.insidious.plugin.ui.testgenerator.LiveViewWindow;
 import com.insidious.plugin.util.LoggerUtil;
@@ -39,6 +41,10 @@ import com.intellij.debugger.DebuggerManagerEx;
 import com.intellij.debugger.impl.DebuggerSession;
 import com.intellij.debugger.ui.HotSwapStatusListener;
 import com.intellij.debugger.ui.HotSwapUIImpl;
+import com.intellij.diff.DiffContentFactory;
+import com.intellij.diff.DiffManager;
+import com.intellij.diff.contents.DocumentContent;
+import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
@@ -63,7 +69,9 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
-import com.intellij.openapi.util.*;
+import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.util.Disposer;
+import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.openapi.vcs.BranchChangeListener;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
@@ -74,7 +82,6 @@ import com.intellij.psi.*;
 import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
-import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
@@ -87,6 +94,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -101,39 +109,37 @@ import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 @Storage("insidious.xml")
 final public class InsidiousService implements Disposable,
         NewTestCandidateIdentifiedListener, BranchChangeListener, ConnectionStateListener {
     public static final String HOSTNAME = System.getProperty("user.name");
-    private static final Key<Long> PSI_MODIFICATION_STAMP = Key.create("psi.modification.stamp");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
-    private final Map<String, Pair<AgentCommandRequest, AgentCommandResponse>> executionPairs = new HashMap<>();
     private final ProjectTypeInfo projectTypeInfo = new ProjectTypeInfo();
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
     private final AgentClient agentClient = new AgentClient("http://localhost:12100", this);
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final SessionLoader sessionLoader;
-    private final Map<String, Boolean> executionRecord = new TreeMap<>();
+    private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
+    final private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH + "=i=YOUR.PACKAGE.NAME\"";
+    final private int TOOL_WINDOW_HEIGHT = 430;
+    final private int TOOL_WINDOW_WIDTH = 600;
     private Project project;
     private VideobugClientInterface client;
     private Module currentModule;
-    private String packageName = "YOUR.PACKAGE.NAME";
     private SingleWindowView singleWindowView;
-    //    private XDebugSession debugSession;
     private InsidiousJavaDebugProcess debugProcess;
     private ToolWindow toolWindow;
     private String appToken;
-    private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH + "=i=YOUR.PACKAGE.NAME\"";
     private TracePoint pendingTrace;
     private TracePoint pendingSelectTrace;
     private LiveViewWindow liveViewWindow;
-    private int TOOL_WINDOW_HEIGHT = 430;
-    private int TOOL_WINDOW_WIDTH = 600;
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
     private OnboardingConfigurationWindow onboardingConfigurationWindow;
@@ -195,6 +201,16 @@ final public class InsidiousService implements Disposable,
         multicaster.addEditorMouseListener(listener, this);
 //        multicaster.add
 
+    }
+
+    @NotNull
+    private static String getClassMethodHashKey(MethodAdapter method) {
+        return ApplicationManager.getApplication().runReadAction(new Computable<String>() {
+            @Override
+            public String compute() {
+                return method.getContainingClass().getQualifiedName() + "#" + method.getName();
+            }
+        });
     }
 
     @NotNull
@@ -744,12 +760,11 @@ final public class InsidiousService implements Disposable,
 
 
         methodDirectInvokeComponent = new MethodDirectInvokeComponent(this);
-        @NotNull Content manualMethodExecutorWindow =
+        this.manualMethodExecutorWindow =
                 contentFactory.createContent(methodDirectInvokeComponent.getContent(), "Direct Invoke", false);
-        this.manualMethodExecutorWindow = manualMethodExecutorWindow;
-        manualMethodExecutorWindow.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        manualMethodExecutorWindow.setIcon(UIUtils.TEST_CASES_ICON_TEAL);
-        contentManager.addContent(manualMethodExecutorWindow);
+        this.manualMethodExecutorWindow.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        this.manualMethodExecutorWindow.setIcon(UIUtils.TEST_CASES_ICON_TEAL);
+        contentManager.addContent(this.manualMethodExecutorWindow);
 
 
         gptWindow = new UnloggedGPT(this);
@@ -1022,7 +1037,7 @@ final public class InsidiousService implements Disposable,
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
             try {
-                AgentCommandResponse agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
+                AgentCommandResponse<String> agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
                 logger.warn("agent command response - " + agentCommandResponse);
                 if (executionResponseListener != null) {
                     executionResponseListener.onExecutionComplete(agentCommandRequest, agentCommandResponse);
@@ -1090,6 +1105,10 @@ final public class InsidiousService implements Disposable,
 //        }
     }
 
+//    public Pair<AgentCommandRequest, AgentCommandResponse> getExecutionPairs(String executionPairKey) {
+//        return executionPairs.get(executionPairKey);
+//    }
+
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
         logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "]");
@@ -1109,16 +1128,31 @@ final public class InsidiousService implements Disposable,
 
 
         @NotNull ContentManager contentManager = toolWindow.getContentManager();
-        @Nullable Content directInvokeContent = contentManager.getContent(2);
+        @Nullable Content directInvokeContent = contentManager.getContent(1);
 
-        new GotItTooltip("io.unlogged.candidate.new", "New candidates processed", this)
-                .withLink("Disable for all files", new Runnable() {
-                    @Override
-                    public void run() {
-                        compile(null, null);
-                    }
-                })
-                .show(directInvokeContent.getComponent(), GotItTooltip.TOP_MIDDLE);
+//        toolWindow.
+
+
+        JComponent component = directInvokeContent.getComponent();
+
+//        InsidiousNotification.notifyMessage(
+//                "New atomic test cases identified", NotificationType.INFORMATION
+//        );
+
+//        new GotItTooltip("io.unlogged.candidate.new" + new Date().getTime(), "New candidates processed", this)
+//                .withLink("Disable for all files", new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        compile(null, null);
+//                    }
+//                })
+//                .show(component, new Function2<Component, Balloon, Point>() {
+//                    @Override
+//                    public Point invoke(Component component, Balloon balloon) {
+//                        Point location = component.getLocationOnScreen();
+//                        return new Point(location.x, location.y);
+//                    }
+//                });
 //        GutterActionRenderer
 
 
@@ -1127,10 +1161,6 @@ final public class InsidiousService implements Disposable,
         }
 
     }
-
-//    public Pair<AgentCommandRequest, AgentCommandResponse> getExecutionPairs(String executionPairKey) {
-//        return executionPairs.get(executionPairKey);
-//    }
 
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
         if (sessionInstance == null) {
@@ -1166,15 +1196,10 @@ final public class InsidiousService implements Disposable,
     }
 
     public void executeWithAgentForMethod(PsiMethod method) {
-//        if (this.methodExecutorToolWindow != null && this.methodExecutorWindow != null) {
-//            this.toolWindow.getContentManager().setSelectedContent(this.methodExecutorWindow);
-//            //this.methodExecutorToolWindow.executeAll(method);
-//        }
 
         if (this.componentScaffoldWindow != null && this.componentScaffoldContent != null) {
             this.toolWindow.getContentManager().setSelectedContent(this.componentScaffoldContent);
             componentScaffoldWindow.triggerMethodExecutorRefresh(new JavaMethodAdapter(method));
-            //this.methodExecutorToolWindow.executeAll(method);
         }
     }
 
@@ -1204,7 +1229,7 @@ final public class InsidiousService implements Disposable,
         // so check if we have executed this before
 
         //check for change
-        String hashKey = methodClassQualifiedName + "." + methodName;
+        String hashKey = methodClassQualifiedName + "#" + methodName;
 
         // we havent checked anything for this method earlier
         // store method hash for diffs
@@ -1223,20 +1248,29 @@ final public class InsidiousService implements Disposable,
             return GutterState.EXECUTE;
         }
 
-        if (!executionRecord.containsKey(methodName)) {
+        if (!executionRecord.containsKey(hashKey)) {
             return GutterState.DATA_AVAILABLE;
         }
 
-        return executionRecord.get(methodName) ? GutterState.DIFF : GutterState.NO_DIFF;
+        DifferenceResult differenceResult = executionRecord.get(hashKey);
+        switch (differenceResult.getDiffResultType()) {
+            case EXCEPTION:
+                return GutterState.DIFF;
+            case DIFF:
+                return GutterState.DIFF;
+            case NO_ORIGINAL:
+                return GutterState.NO_DIFF;
+            case SAME:
+                return GutterState.NO_DIFF;
+        }
+        return null;
     }
 
-    public void updateMethodHashForExecutedMethod(PsiMethod method) {
-        if (this.executionRecord.containsKey(method.getName())) {
-            Application application = ApplicationManager.getApplication();
-            PsiClass containingClass = application.runReadAction((Computable<PsiClass>) method::getContainingClass);
-            String qualifiedName = application.runReadAction((Computable<String>) containingClass::getQualifiedName);
+    public void updateMethodHashForExecutedMethod(MethodAdapter method) {
+        Application application = ApplicationManager.getApplication();
+        String classMethodHashKey = getClassMethodHashKey(method);
+        if (this.executionRecord.containsKey(classMethodHashKey)) {
 
-            String classMethodHashKey = qualifiedName + "." + method.getName();
             String methodBody = application.runReadAction((Computable<String>) method::getText);
             int methodBodyHashCode = methodBody.hashCode();
             this.methodHash.put(classMethodHashKey, methodBodyHashCode);
@@ -1245,10 +1279,6 @@ final public class InsidiousService implements Disposable,
             //don't update hash
             //failed execution
         }
-    }
-
-    public Map<String, Boolean> getExecutionRecord() {
-        return this.executionRecord;
     }
 
     public boolean doesAgentExist() {
@@ -1272,10 +1302,13 @@ final public class InsidiousService implements Disposable,
         this.isAgentServerRunning = true;
         triggerGutterIconReload();
 
+        ServerMetadata serverMetadata = this.agentClient.getServerMetadata();
 
-        InsidiousNotification.notifyMessage("Connected to process", NotificationType.INFORMATION);
+        InsidiousNotification.notifyMessage("New session identified "
+                        + serverMetadata.getIncludePackageName()
+                        + ", connected, agent version: " + serverMetadata.getAgentVersion(),
+                NotificationType.INFORMATION);
         focusDirectInvokeTab();
-
 
     }
 
@@ -1308,11 +1341,195 @@ final public class InsidiousService implements Disposable,
             if (this.componentScaffoldContent != null) {
                 this.toolWindow.getContentManager().setSelectedContent(this.componentScaffoldContent);
             }
+
         }
     }
 
     public void focusDirectInvokeTab() {
-        toolWindow.getContentManager().setSelectedContent(manualMethodExecutorWindow, false);
+        ApplicationManager.getApplication().invokeLater(
+                () -> toolWindow.getContentManager().setSelectedContent(manualMethodExecutorWindow, false));
+    }
+
+
+    public Map<String, Object> flatten(Map<String, Object> map) {
+        return map.entrySet().stream()
+                .flatMap(this::flatten)
+                .collect(LinkedHashMap::new, (m, e) -> m.put("/" + e.getKey(), e.getValue()), LinkedHashMap::putAll);
+    }
+
+    private Stream<Map.Entry<String, Object>> flatten(Map.Entry<String, Object> entry) {
+        if (entry == null) {
+            return Stream.empty();
+        }
+
+        if (entry.getValue() instanceof Map<?, ?>) {
+            return ((Map<?, ?>) entry.getValue()).entrySet().stream()
+                    .flatMap(e -> flatten(
+                            new AbstractMap.SimpleEntry<>(entry.getKey() + "/" + e.getKey(), e.getValue())));
+        }
+
+        if (entry.getValue() instanceof List<?>) {
+            List<?> list = (List<?>) entry.getValue();
+            return IntStream.range(0, list.size())
+                    .mapToObj(i -> new AbstractMap.SimpleEntry<String, Object>(entry.getKey() + "/" + i, list.get(i)))
+                    .flatMap(this::flatten);
+        }
+
+        return Stream.of(entry);
+    }
+
+    public DifferenceResult calculateDifferences(
+            TestCandidateMetadata testCandidateMetadata,
+            AgentCommandResponse<String> agentCommandResponse
+    ) {
+
+        String originalString = new String(
+                testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+        String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
+
+        boolean isDifferent = true;
+        if (agentCommandResponse.getResponseType() == null || agentCommandResponse.getResponseType() == ResponseType.FAILED) {
+            return new DifferenceResult(new LinkedList<>(), DiffResultType.DIFF, null, null);
+        }
+
+        if (agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION)) {
+            try {
+                String responseClassName = agentCommandResponse.getResponseClassName();
+                String expectedClassName = testCandidateMetadata.getMainMethod().getReturnValue().getType();
+
+                isDifferent = responseClassName.equals(expectedClassName);
+                if (!isDifferent) {
+                    return new DifferenceResult(new LinkedList<>(), DiffResultType.SAME, null, null);
+//                    return differenceResult;
+                }
+
+
+            } catch (Exception e) {
+                logger.warn(
+                        "failed to match expected and returned type: " +
+                                agentCommandResponse + "\n" + testCandidateMetadata, e);
+            }
+        }
+
+        return calculateDifferences(originalString, actualString, agentCommandResponse.getResponseType());
+
+    }
+
+
+    private DifferenceResult calculateDifferences(String originalString, String actualString, ResponseType responseType) {
+        //replace Boolean with enum
+        if (responseType != null &&
+                (responseType.equals(ResponseType.EXCEPTION) || responseType.equals(ResponseType.FAILED))) {
+            return new DifferenceResult(null, DiffResultType.EXCEPTION, null, null);
+        }
+        try {
+            Map<String, Object> m1;
+            if (originalString == null || originalString.isEmpty()) {
+                m1 = new TreeMap<>();
+            } else {
+                m1 = (Map<String, Object>) (objectMapper.readValue(originalString, Map.class));
+            }
+            Map<String, Object> m2 = (Map<String, Object>) (objectMapper.readValue(actualString, Map.class));
+            if (m2 == null) {
+                m2 = new HashMap<>();
+            }
+
+            MapDifference<String, Object> res = Maps.difference(flatten(m1), flatten(m2));
+            System.out.println(res);
+
+            res.entriesOnlyOnLeft().forEach((key, value) -> System.out.println(key + ": " + value));
+            Map<String, Object> leftOnly = res.entriesOnlyOnLeft();
+
+            res.entriesOnlyOnRight().forEach((key, value) -> System.out.println(key + ": " + value));
+            Map<String, Object> rightOnly = res.entriesOnlyOnRight();
+
+            res.entriesDiffering().forEach((key, value) -> System.out.println(key + ": " + value));
+            Map<String, MapDifference.ValueDifference<Object>> differences = res.entriesDiffering();
+            List<DifferenceInstance> differenceInstances = getDifferenceModel(leftOnly,
+                    rightOnly, differences);
+            if (differenceInstances.size() == 0) {
+                //no differences
+                return new DifferenceResult(differenceInstances, DiffResultType.SAME, leftOnly, rightOnly);
+            } else if (originalString == null || originalString.isEmpty()) {
+                return new DifferenceResult(differenceInstances, DiffResultType.NO_ORIGINAL, leftOnly, rightOnly);
+            } else {
+//                merge left and right differences
+//                or iterate and create a new pojo that works with 1 table model
+                return new DifferenceResult(differenceInstances, DiffResultType.DIFF, leftOnly, rightOnly);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            if ((originalString == null && actualString == null) || Objects.equals(originalString, actualString)) {
+                return new DifferenceResult(new LinkedList<>(), DiffResultType.SAME, null, null);
+            }
+            //this.statusLabel.setText("Differences Found.");
+            //happens for malformed jsons or primitives.
+            DifferenceInstance instance = new DifferenceInstance("Return Value", originalString, actualString,
+                    DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE);
+            ArrayList<DifferenceInstance> differenceInstances = new ArrayList<>();
+            differenceInstances.add(instance);
+            return new DifferenceResult(differenceInstances, DiffResultType.DIFF, null, null);
+        }
+    }
+
+    private List<DifferenceInstance> getDifferenceModel(
+            Map<String, Object> left, Map<String, Object> right,
+            Map<String, MapDifference.ValueDifference<Object>> differences
+    ) {
+        ArrayList<DifferenceInstance> differenceInstances = new ArrayList<>();
+        for (String key : differences.keySet()) {
+            DifferenceInstance instance = new DifferenceInstance(key, differences.get(key).leftValue(),
+                    differences.get(key).rightValue(), DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE);
+            differenceInstances.add(instance);
+        }
+        for (String key : left.keySet()) {
+            DifferenceInstance instance = new DifferenceInstance(key, left.get(key),
+                    "", DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY);
+            differenceInstances.add(instance);
+        }
+        for (String key : right.keySet()) {
+            DifferenceInstance instance = new DifferenceInstance(key, "",
+                    right.get(key), DifferenceInstance.DIFFERENCE_TYPE.RIGHT_ONLY);
+            differenceInstances.add(instance);
+        }
+        return differenceInstances;
+    }
+
+    public void generateCompareWindows(String before, String after) {
+        DocumentContent content1 = DiffContentFactory.getInstance().create(getPrettyJsonString(before));
+        DocumentContent content2 = DiffContentFactory.getInstance().create(getPrettyJsonString(after));
+        SimpleDiffRequest request = new SimpleDiffRequest("Comparing Before and After", content1, content2, "Before",
+                "After");
+        showDiffEditor(request);
+    }
+
+    private String getPrettyJsonString(String input) {
+        if (input == null || input.isEmpty()) {
+            return "";
+        }
+        JsonElement je = gson.fromJson(input, JsonElement.class);
+        return gson.toJson(je);
+    }
+
+
+    public void showDiffEditor(SimpleDiffRequest request) {
+        DiffManager.getInstance().showDiff(project, request);
+    }
+
+    public void addDiffRecord(MethodAdapter methodElement, DifferenceResult newDiffRecord) {
+        if (newDiffRecord == null) {
+            return;
+        }
+        String keyName = getClassMethodHashKey(methodElement);
+
+        if (!executionRecord.containsKey(keyName)) {
+            executionRecord.put(keyName, newDiffRecord);
+            return;
+        }
+        DifferenceResult existing = executionRecord.get(keyName);
+        if (existing.getDiffResultType() == DiffResultType.SAME) {
+            executionRecord.put(keyName, newDiffRecord);
+        }
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}

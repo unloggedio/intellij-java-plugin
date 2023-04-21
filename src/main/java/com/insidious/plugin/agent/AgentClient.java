@@ -1,6 +1,8 @@
 package com.insidious.plugin.agent;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.plugin.client.pojo.ResponseMetadata;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import okhttp3.*;
@@ -25,6 +27,7 @@ public class AgentClient {
     private final ConnectionChecker connectionChecker;
     private final ConnectionStateListener connectionStateListener;
     private final ExecutorService threadPool = Executors.newFixedThreadPool(1);
+    private ServerMetadata serverMetadata;
 
     public AgentClient(String baseUrl, ConnectionStateListener connectionStateListener) {
         this.agentUrl = baseUrl;
@@ -40,7 +43,7 @@ public class AgentClient {
         threadPool.shutdownNow();
     }
 
-    public AgentCommandResponse executeCommand(AgentCommandRequest agentCommandRequest) throws IOException {
+    public AgentCommandResponse<String> executeCommand(AgentCommandRequest agentCommandRequest) throws IOException {
 
         RequestBody body = RequestBody.create(objectMapper.writeValueAsString(agentCommandRequest), JSON);
         Request request = new Request.Builder()
@@ -50,24 +53,26 @@ public class AgentClient {
 
         try (Response response = client.newCall(request).execute()) {
             String responseBody = response.body().string();
-            return objectMapper.readValue(responseBody, AgentCommandResponse.class);
+            return objectMapper.readValue(responseBody, new TypeReference<AgentCommandResponse<String>>() {
+            });
         } catch (Throwable e) {
             logger.warn("Failed to invoke call to agent server: " + e.getMessage());
-            AgentCommandResponse agentCommandResponse = new AgentCommandResponse(ResponseType.FAILED);
+            AgentCommandResponse<String> agentCommandResponse = new AgentCommandResponse<String>(ResponseType.FAILED);
             agentCommandResponse.setMessage(NO_SERVER_CONNECT_ERROR_MESSAGE + e.getMessage());
             return agentCommandResponse;
         }
 
     }
 
-    public AgentCommandResponse ping() {
+    public AgentCommandResponse<ServerMetadata> ping() {
         try {
             Response response = client.newCall(pingRequest).execute();
             String responseBody = response.body().string();
             response.close();
-            return objectMapper.readValue(responseBody, AgentCommandResponse.class);
+            return objectMapper.readValue(responseBody, new TypeReference<AgentCommandResponse<ServerMetadata>>() {
+            });
         } catch (Throwable e) {
-            AgentCommandResponse agentCommandResponse = new AgentCommandResponse(ResponseType.FAILED);
+            AgentCommandResponse<ServerMetadata> agentCommandResponse = new AgentCommandResponse<>(ResponseType.FAILED);
             agentCommandResponse.setMessage(NO_SERVER_CONNECT_ERROR_MESSAGE + e.getMessage());
             return agentCommandResponse;
         }
@@ -77,7 +82,11 @@ public class AgentClient {
         return connectionChecker.currentState;
     }
 
-    public static class ConnectionChecker implements Runnable {
+    public ServerMetadata getServerMetadata() {
+        return serverMetadata;
+    }
+
+    public class ConnectionChecker implements Runnable {
 
         private final AgentClient agentClient;
         private boolean currentState = false;
@@ -89,10 +98,13 @@ public class AgentClient {
         @Override
         public void run() {
             while (true) {
-                AgentCommandResponse response = agentClient.ping();
+                AgentCommandResponse<ServerMetadata> response = agentClient.ping();
                 boolean newState = response.getResponseType().equals(ResponseType.NORMAL);
                 if (newState && !currentState) {
                     currentState = true;
+
+                    ServerMetadata returnedMetadata = response.getMethodReturnValue();;
+                    AgentClient.this.serverMetadata = returnedMetadata;
                     agentClient.connectionStateListener.onConnectedToAgentServer();
                 } else if (!newState && currentState) {
                     currentState = false;
