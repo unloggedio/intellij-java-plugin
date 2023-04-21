@@ -52,6 +52,7 @@ public class GenericNavigationComponent {
                     triggerAgentDownload();
                 }
             });
+            actionButton.setIcon(UIUtils.DOWNLOAD_WHITE);
         }
         else if(state.equals(GutterState.PROCESS_RUNNING))
         {
@@ -63,6 +64,7 @@ public class GenericNavigationComponent {
                     insidiousService.openDirectExecuteWindow();
                 }
             });
+            actionButton.setIcon(UIUtils.GENERATE_ICON);
         }
         else
         {
@@ -88,7 +90,7 @@ public class GenericNavigationComponent {
 //                iconLabel.setForeground(UIUtils.yellow_alert);
 //                break;
             case PROCESS_RUNNING:
-                icon=UIUtils.PROCESS_RUNNING;
+                icon=UIUtils.PROCESS_RUNNING_HEADER;
                 break;
             case NO_AGENT:
                 icon=UIUtils.NO_AGENT_HEADER;
