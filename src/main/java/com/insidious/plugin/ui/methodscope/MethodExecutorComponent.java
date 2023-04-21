@@ -89,9 +89,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                         );
                     }
                     System.out.println("Starting execute all");
-                    for (ComponentContainer component : this.components) {
-                        execute_save(component.getCandidateMetadata(), component.getMethodArgumentValues(), component);
-                    }
+                    executeAll();
                 }
         );
     }
