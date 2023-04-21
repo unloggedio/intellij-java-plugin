@@ -130,7 +130,7 @@ final public class InsidiousService implements Disposable,
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
-    final private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH + "=i=YOUR.PACKAGE.NAME\"";
+    final private String javaAgentString = "-javaagent:\"" + Constants.AGENT_PATH + "=i=YOUR.PACKAGE.NAME\"";
     final private int TOOL_WINDOW_HEIGHT = 430;
     final private int TOOL_WINDOW_WIDTH = 600;
     private Project project;
@@ -175,7 +175,7 @@ final public class InsidiousService implements Disposable,
         this.project = project;
         logger.info("starting insidious service: " + project);
 
-        String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
+        String pathToSessions = Constants.HOME_PATH + "/sessions";
         FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
         this.client = new VideobugLocalClient(pathToSessions, project);
         this.sessionLoader = new SessionLoader(client, this);
@@ -183,9 +183,9 @@ final public class InsidiousService implements Disposable,
         threadPoolExecutor.submit(() -> {
             while (true) {
 //                String path = Constants.VIDEOBUG_AGENT_PATH.toString();
-                File agentFile = Constants.VIDEOBUG_AGENT_PATH.toFile();
+                File agentFile = Constants.AGENT_PATH.toFile();
                 if (agentFile.exists()) {
-                    logger.warn("Found agent jar at: " + Constants.VIDEOBUG_AGENT_PATH);
+                    logger.warn("Found agent jar at: " + Constants.AGENT_PATH);
                     System.out.println("Found agent jar.");
                     agentJarExists = true;
                     triggerGutterIconReload();
@@ -653,7 +653,7 @@ final public class InsidiousService implements Disposable,
     // works for current sessions structure,
     // will need refactor when project/module based logs are stored
     public boolean areLogsPresent() {
-        File sessionDir = new File(Constants.VIDEOBUG_SESSIONS_PATH.toString());
+        File sessionDir = new File(Constants.SESSIONS_PATH.toString());
         File[] files = sessionDir.listFiles();
         for (File file : files) {
             if (file.isDirectory()) {
@@ -752,7 +752,7 @@ final public class InsidiousService implements Disposable,
     }
 
     public String getVideoBugAgentPath() {
-        return Constants.VIDEOBUG_AGENT_PATH.toAbsolutePath().toString();
+        return Constants.AGENT_PATH.toAbsolutePath().toString();
     }
 
     public VideobugClientInterface getClient() {
@@ -1034,7 +1034,7 @@ final public class InsidiousService implements Disposable,
 
     public synchronized void setSession(ExecutionSession executionSession) throws SQLException, IOException {
         if (client == null) {
-            String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
+            String pathToSessions = Constants.HOME_PATH + "/sessions";
             FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
             this.client = new VideobugLocalClient(pathToSessions, project);
         }
@@ -1135,7 +1135,7 @@ final public class InsidiousService implements Disposable,
     }
 
     public void loadDefaultSession() {
-        String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
+        String pathToSessions = Constants.HOME_PATH + "/sessions/na";
         ExecutionSession executionSession = new ExecutionSession();
         executionSession.setPath(pathToSessions);
         executionSession.setSessionId("na");
@@ -1612,6 +1612,9 @@ final public class InsidiousService implements Disposable,
     public void demoteState() {
         if (this.atomicTestContainerWindow != null) {
             GutterState state = this.atomicTestContainerWindow.getCurrentState();
+            if (state == null) {
+                return;
+            }
             if (state.equals(GutterState.PROCESS_RUNNING)) {
                 System.out.println("Demoting to PROCESS_NOT_RUNNING");
                 atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);

@@ -56,6 +56,17 @@ public class MethodDirectInvokeComponent {
 
         executeButton.addActionListener(e -> executeMethodWithParameters());
         methodParameterScrollContainer.addKeyListener(new KeyAdapter() {
+
+            @Override
+            public void keyTyped(KeyEvent e) {
+                super.keyTyped(e);
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                super.keyReleased(e);
+            }
+
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {

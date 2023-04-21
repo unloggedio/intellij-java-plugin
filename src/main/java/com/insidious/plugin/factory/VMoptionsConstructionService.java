@@ -80,12 +80,12 @@ public class VMoptionsConstructionService {
     }
 
     private String getJVMoptionsBase() {
-        String vmoptions = "-javaagent:" +quoute_type+ Constants.VIDEOBUG_AGENT_PATH+ "=";
+        String vmoptions = "-javaagent:" +quoute_type+ Constants.AGENT_PATH + "=";
         return vmoptions;
     }
 
     private String getJVMoptionsBase(String quoute_type) {
-        String vmoptions = "-javaagent:" +quoute_type+ Constants.VIDEOBUG_AGENT_PATH+ "=";
+        String vmoptions = "-javaagent:" +quoute_type+ Constants.AGENT_PATH + "=";
         return vmoptions;
     }
 

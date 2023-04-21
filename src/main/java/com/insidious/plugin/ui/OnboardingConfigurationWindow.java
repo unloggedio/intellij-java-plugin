@@ -32,7 +32,6 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -214,7 +213,7 @@ public class OnboardingConfigurationWindow implements OnboardingService {
         logger.info("[Starting agent download]");
         UsageInsightTracker.getInstance()
                 .RecordEvent("AgentDownloadStart", null);
-        Path fileURiString = Constants.VIDEOBUG_AGENT_PATH;
+        Path fileURiString = Constants.AGENT_PATH;
         String absolutePath = fileURiString.toAbsolutePath()
                 .toString();
 

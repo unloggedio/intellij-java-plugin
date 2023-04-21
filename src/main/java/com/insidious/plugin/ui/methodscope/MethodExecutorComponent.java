@@ -45,8 +45,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     private JPanel diffContentPanel;
     private JPanel candidateDisplayPanel;
     private JPanel topPanel;
-    private JPanel centerPanel;
-    private JPanel mainContent;
+    //    private JPanel centerPanel;
     private JPanel centerParent;
     private JPanel selectedCandidateInfoPanel;
     private JPanel borderParent;
@@ -125,11 +124,14 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         JScrollPane scrollPane = new JBScrollPane(gridPanel);
         scrollPane.setBorder(JBUI.Borders.empty());
 
-        centerPanel.setMinimumSize(new Dimension(-1, panelHeight));
-        centerPanel.setMaximumSize(new Dimension(-1, 700));
-        centerPanel.add(scrollPane, BorderLayout.CENTER);
-        centerPanel.revalidate();
-        centerPanel.repaint();
+        scrollPane.setMaximumSize(new Dimension(-1, Math.min(500, panelHeight)));
+//        centerPanel.setMinimumSize(new Dimension(-1, 500));
+//        centerPanel.setMaximumSize(new Dimension(-1, Math.min(500, panelHeight)));
+        centerParent.setMaximumSize(new Dimension(-1, Math.min(500, panelHeight)));
+
+        centerParent.add(scrollPane, BorderLayout.CENTER);
+        centerParent.revalidate();
+        centerParent.repaint();
     }
 
     private void showDirectInvokeNavButton() {
@@ -146,9 +148,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         buttonPanel.setSize(new Dimension(-1, 100));
         buttonPanel.setBorder(JBUI.Borders.empty());
 
-        centerPanel.add(buttonPanel, BorderLayout.CENTER);
-        centerPanel.revalidate();
-        centerPanel.repaint();
+        centerParent.add(buttonPanel, BorderLayout.CENTER);
+        centerParent.revalidate();
+        centerParent.repaint();
     }
 
 
@@ -217,12 +219,12 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     private void clearBoard() {
 //        this.candidateListScroller.removeAll();
         candidateComponentMap.clear();
-        centerPanel.removeAll();
+        centerParent.removeAll();
 
-        this.diffContentPanel.removeAll();
-        this.diffContentPanel.revalidate();
-        this.centerPanel.revalidate();
-        this.centerPanel.repaint();
+        diffContentPanel.removeAll();
+        diffContentPanel.revalidate();
+        centerParent.revalidate();
+        centerParent.repaint();
     }
 
     public List<TestCandidateMetadata> deDuplicateList(List<TestCandidateMetadata> list) {

@@ -159,7 +159,7 @@ public class GenericNavigationComponent {
 //        logger.info("[Starting agent download]");
         UsageInsightTracker.getInstance()
                 .RecordEvent("AgentDownloadStart", null);
-        Path fileURiString = Constants.VIDEOBUG_AGENT_PATH;
+        Path fileURiString = Constants.AGENT_PATH;
         String absolutePath = fileURiString.toAbsolutePath()
                 .toString();
 

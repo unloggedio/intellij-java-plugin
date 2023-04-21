@@ -57,7 +57,7 @@ public class ReportIssue {
                     pathPrefix = seLogDirPath.substring(0, lastIndexOf);
                     zipFileName = seLogDirPath.substring(lastIndexOf + 1) + ".zip";
                 } else {
-                    pathPrefix = Constants.VIDEOBUG_HOME_PATH + File.separator + "sessions";
+                    pathPrefix = Constants.HOME_PATH + File.separator + "sessions";
                     zipFileName = "empty-selogger-folder.zip";
                 }
 
@@ -145,7 +145,7 @@ public class ReportIssue {
     }
 
     public String getLatestSeLogFolderPath() {
-        String parentFolder = Constants.VIDEOBUG_HOME_PATH + File.separator + "sessions" + File.separator;
+        String parentFolder = Constants.HOME_PATH + File.separator + "sessions" + File.separator;
         File sessionDirectory = new File(parentFolder);
 
         if (sessionDirectory.listFiles() == null) {
