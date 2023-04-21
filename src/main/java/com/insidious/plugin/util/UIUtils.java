@@ -36,6 +36,8 @@ public class UIUtils {
     public static Color red = new Color(245, 101, 101);
     public static Color green = new Color(56, 161, 105);
     public static Color yellow_alert = new Color(225, 163, 54);
+
+    public static Color orange = new Color(221, 107, 32);
     public static Color DefaultForegoround = new Color(187, 187, 187);
     public static Color NeutralGrey = new Color(81, 85, 87);
     public static Color black_custom = new Color(32, 32, 32);
@@ -57,6 +59,9 @@ public class UIUtils {
     public static Icon PROCESS_RUNNING = IconLoader.getIcon("/icons/svg/process_running.svg", UIUtils.class);
     public static Icon PROCESS_NOT_RUNNING = IconLoader.getIcon("/icons/svg/process_not_running.svg", UIUtils.class);
     public static Icon DATA_AVAILABLE = IconLoader.getIcon("/icons/svg/data_available_v2.svg", UIUtils.class);
+    public static Icon ATOMIC_TESTS = IconLoader.getIcon("/icons/svg/atomic_tests_v2.svg", UIUtils.class);
+    public static Icon EXECUTE_METHOD = IconLoader.getIcon("/icons/svg/execute_method.svg", UIUtils.class);
+    public static Icon ORANGE_EXCEPTION = IconLoader.getIcon("/icons/svg/exception_orange.svg", UIUtils.class);
     public static Icon ONBOARDING_ICON_DARK = IconLoader.getIcon("/icons/png/onboarding_icon_dark.png", UIUtils.class);
     public static Icon ONBOARDING_ICON_PINK = IconLoader.getIcon("/icons/png/onboarding_icon_pink.png", UIUtils.class);
     public static Icon ONBOARDING_ICON_TEAL = IconLoader.getIcon("/icons/png/onboarding_icon_teal.png", UIUtils.class);
@@ -88,6 +93,10 @@ public class UIUtils {
     public static Icon NO_MISSING_DEPENDENCIES_ICON = IconLoader.getIcon(
             "/icons/png/no_missing_dependencies_icon_20.png", UIUtils.class);
     public static Icon GENERATE_ICON = IconLoader.getIcon("/icons/png/generate_icon.png", UIUtils.class);
+    public static Icon DOWNLOAD_WHITE = IconLoader.getIcon("/icons/png/download_white.png", UIUtils.class);
+    public static Icon NO_AGENT_HEADER = IconLoader.getIcon("/icons/png/no_agent_header.png", UIUtils.class);
+    public static Icon PROCESS_RUNNING_HEADER = IconLoader.getIcon("/icons/png/process_running_header.png", UIUtils.class);
+    public static Icon DATA_AVAILABLE_HEADER = IconLoader.getIcon("/icons/png/data_available_header.png", UIUtils.class);
 
     public static void setDividerColorForSplitPane(JSplitPane splitPane, Color color) {
         splitPane.setUI(new BasicSplitPaneUI() {
@@ -136,6 +145,20 @@ public class UIUtils {
             System.out.println("Exception setting Gif icon for label " + e);
             e.printStackTrace();
             label.setIcon(fallback);
+        }
+    }
+
+    public static void setGifIconForEditorPane(JEditorPane pane, String gif) {
+        try {
+//            ImageIcon loadingIcon = new ImageIcon(UIUtils.class.getResource(gifPath + gif));
+            //get abs path
+            pane.setText("<html><body><img src = \""+gifPath+gif+"\"></body></html>");
+
+//            this.getClass().getClassLoader()
+//                    .getResource("images/logo_html.png").toString()
+        } catch (Exception e) {
+            System.out.println("Exception setting Gif icon for label " + e);
+            e.printStackTrace();
         }
     }
 

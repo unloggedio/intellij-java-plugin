@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="com.insidious.plugin.ui.GutterClickNavigationStates.GenericNavigationComponent">
   <grid id="66d51" binding="mainPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-    <margin top="0" left="0" bottom="0" right="0"/>
+    <margin top="0" left="8" bottom="8" right="8"/>
     <constraints>
-      <xy x="6" y="15" width="393" height="342"/>
+      <xy x="6" y="15" width="417" height="342"/>
     </constraints>
     <properties/>
     <border type="none"/>
@@ -16,8 +16,8 @@
         <properties/>
         <border type="none"/>
         <children>
-          <grid id="d5844" binding="topTextPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="0" bottom="0" right="0"/>
+          <grid id="d5844" binding="topTextPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+            <margin top="4" left="4" bottom="4" right="4"/>
             <constraints>
               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
             </constraints>
@@ -29,16 +29,8 @@
                   <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
-                  <text value="Label"/>
+                  <text value=""/>
                 </properties>
-              </component>
-              <component id="be28a" class="javax.swing.JTextArea" binding="topStatusText">
-                <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                    <preferred-size width="150" height="50"/>
-                  </grid>
-                </constraints>
-                <properties/>
               </component>
             </children>
           </grid>
@@ -53,6 +45,11 @@
               <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties>
+              <background color="-105256"/>
+              <borderPainted value="false"/>
+              <contentAreaFilled value="false"/>
+              <foreground color="-1"/>
+              <opaque value="true"/>
               <text value="Action"/>
               <visible value="true"/>
             </properties>
@@ -63,7 +60,14 @@
                 <preferred-size width="150" height="50"/>
               </grid>
             </constraints>
-            <properties/>
+            <properties>
+              <background color="-14671840"/>
+              <editable value="false"/>
+              <foreground color="-16659211"/>
+              <lineWrap value="true"/>
+              <margin top="4" left="4" bottom="4" right="4"/>
+              <wrapStyleWord value="true"/>
+            </properties>
           </component>
           <component id="15042" class="javax.swing.JSeparator">
             <constraints>
@@ -71,15 +75,17 @@
             </constraints>
             <properties/>
           </component>
-          <grid id="8b1c4" binding="demoImageHolder" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="0" bottom="0" right="0"/>
+          <component id="aa656" class="javax.swing.JEditorPane" binding="imagePane">
             <constraints>
-              <grid row="5" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+              <grid row="5" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                <preferred-size width="150" height="50"/>
+              </grid>
             </constraints>
-            <properties/>
-            <border type="none"/>
-            <children/>
-          </grid>
+            <properties>
+              <enabled value="false"/>
+              <visible value="false"/>
+            </properties>
+          </component>
         </children>
       </grid>
     </children>

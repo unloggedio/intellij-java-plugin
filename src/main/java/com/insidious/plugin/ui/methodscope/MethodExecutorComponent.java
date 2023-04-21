@@ -66,8 +66,34 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 );
                 return;
             }
-            executeAll();
+            compileAndExecuteAll();
         });
+    }
+
+    public void compileAndExecuteAll()
+    {
+        this.isDifferent = false;
+        callCount = this.components.size();
+        componentCounter = 0;
+        insidiousService.compile(methodElement.getContainingClass(), (aborted, errors, warnings, compileContext) -> {
+                    logger.warn("compiled class: " + compileContext);
+                    if (aborted) {
+                        InsidiousNotification.notifyMessage(
+                                "Re-execution cancelled", NotificationType.WARNING
+                        );
+                        return;
+                    }
+                    if (errors > 0) {
+                        InsidiousNotification.notifyMessage(
+                                "Re-execution cancelled due to [" + errors + "] compilation errors", NotificationType.ERROR
+                        );
+                    }
+                    System.out.println("Starting execute all");
+                    for (ComponentContainer component : this.components) {
+                        execute_save(component.getCandidateMetadata(), component.getMethodArgumentValues(), component);
+                    }
+                }
+        );
     }
 
     public void loadMethodCandidates() {

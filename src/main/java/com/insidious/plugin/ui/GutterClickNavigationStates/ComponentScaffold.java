@@ -26,9 +26,6 @@ public class ComponentScaffold {
 
     public void loadComponentForState(GutterState state) {
         System.out.println("Loading Component for state : " + state);
-        if (this.currentState == state) {
-            return;
-        }
         this.currentState = state;
         if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
             this.borderParent.removeAll();
@@ -39,7 +36,7 @@ public class ComponentScaffold {
             loadExecutionFlow();
         } else {
             this.borderParent.removeAll();
-            GenericNavigationComponent component = new GenericNavigationComponent(state);
+            GenericNavigationComponent component = new GenericNavigationComponent(state,insidiousService);
             this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
             this.borderParent.revalidate();
         }
@@ -53,8 +50,11 @@ public class ComponentScaffold {
     }
 
     public void triggerMethodExecutorRefresh(MethodAdapter method) {
-        if (methodExecutorComponent != null) {
-            methodExecutorComponent.refreshAndReloadCandidates(method);
+        if (GutterState.EXECUTE.equals(this.currentState) ||
+                GutterState.DATA_AVAILABLE.equals(this.currentState)) {
+            if (methodExecutorComponent != null) {
+                methodExecutorComponent.refreshAndReloadCandidates(method);
+            }
         }
     }
 
@@ -63,10 +63,22 @@ public class ComponentScaffold {
     }
 
     public void refresh() {
+        if (GutterState.EXECUTE.equals(this.currentState)
+        || GutterState.DATA_AVAILABLE.equals(this.currentState)) {
+            if (methodExecutorComponent != null) {
+                methodExecutorComponent.refresh();
+            }
+        }
+    }
+
+    public GutterState getCurrentState()
+    {
+        return this.currentState;
+    }
+
+    public void triggerCompileAndExecute() {
         if (methodExecutorComponent != null) {
-            methodExecutorComponent.refresh();
-        } else {
-            loadExecutionFlow();
+            methodExecutorComponent.compileAndExecuteAll();
         }
     }
 }

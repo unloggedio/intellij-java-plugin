@@ -6,7 +6,9 @@
       <xy x="8" y="11" width="388" height="321"/>
     </constraints>
     <properties/>
-    <border type="etched"/>
+    <border type="empty">
+      <color color="-4473925"/>
+    </border>
     <children>
       <grid id="71a2e" binding="defParent" layout-manager="BorderLayout" hgap="0" vgap="0">
         <constraints>

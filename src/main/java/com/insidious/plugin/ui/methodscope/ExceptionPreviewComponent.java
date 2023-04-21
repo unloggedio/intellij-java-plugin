@@ -32,6 +32,7 @@ public class ExceptionPreviewComponent {
         this.exceptionArea.setText(stacktrace);
 
         this.iconLabel.setIcon(UIUtils.EXCEPTION_CASE);
+        this.iconLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
         showfulltrace.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {

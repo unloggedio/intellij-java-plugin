@@ -255,16 +255,19 @@ public class TestCandidateListedItemComponent {
 //        Boolean status = this.responseComponent.computeDifferences();
         if (status == null) {
             this.statusLabel.setText("Exception");
-            this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
+            this.statusLabel.setForeground(UIUtils.orange);
+            this.statusLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
             return;
         }
         if (!status) {
             //no diff
             this.statusLabel.setText("Same");
+            this.statusLabel.setForeground(UIUtils.green);
             this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
         } else {
             //diff
             this.statusLabel.setText("Different");
+            this.statusLabel.setForeground(UIUtils.red);
             this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
         }
     }
@@ -278,17 +281,20 @@ public class TestCandidateListedItemComponent {
 
             case EXCEPTION:
                 this.statusLabel.setText("Exception");
-                this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
+                this.statusLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
+                this.statusLabel.setForeground(UIUtils.orange);
                 System.out.println("Exception message : " + agentCommandResponse.getMessage());
                 break;
             case DIFF:
                 this.statusLabel.setText("Different");
+                this.statusLabel.setForeground(UIUtils.red);
                 this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
                 break;
             case NO_ORIGINAL:
                 break;
             case SAME:
                 this.statusLabel.setText("Same");
+                this.statusLabel.setForeground(UIUtils.green);
                 this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
                 break;
         }
