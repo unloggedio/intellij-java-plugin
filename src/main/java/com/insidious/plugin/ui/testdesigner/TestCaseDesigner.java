@@ -247,7 +247,7 @@ public class TestCaseDesigner implements Disposable {
         return mainContainer;
     }
 
-    public void renderTestDesignerInterface(ClassAdapter psiClass, MethodAdapter method) {
+    public void renderTestDesignerInterface(MethodAdapter method) {
         if (this.currentMethod != null && this.currentMethod.equals(method)) {
             return;
         }
@@ -268,10 +268,10 @@ public class TestCaseDesigner implements Disposable {
         saveLocationTextField.setText("");
 
         this.currentMethod = method;
-        this.currentClass = psiClass;
+        this.currentClass = method.getContainingClass();
 
 
-        selectedMethodNameLabel.setText(psiClass.getName() + "." + method.getName() + "()");
+        selectedMethodNameLabel.setText(currentClass.getName() + "." + method.getName() + "()");
         updatePreviewTestCase();
         saveTestCaseButton.setEnabled(true);
         bottomControlPanel.setEnabled(true);

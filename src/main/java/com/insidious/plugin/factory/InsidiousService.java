@@ -921,7 +921,7 @@ final public class InsidiousService implements Disposable,
         //methodExecutorToolWindow.refreshAndReloadCandidates(method);
         atomicTestContainerWindow.triggerMethodExecutorRefresh(method);
         methodDirectInvokeComponent.renderForMethod(method);
-        testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
+        testCaseDesignerWindow.renderTestDesignerInterface(method);
     }
 
     public void compile(ClassAdapter psiClass, CompileStatusNotification compileStatusNotification) {
@@ -952,7 +952,7 @@ final public class InsidiousService implements Disposable,
 
         CompilerManager compilerManager = CompilerManager.getInstance(project);
 
-        ApplicationManager.getApplication().runWriteAction(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             compilerManager.compile(
                     new VirtualFile[]{psiClass.getContainingFile().getVirtualFile()},
                     (aborted, errors, warnings, compileContext) -> {
@@ -1256,8 +1256,6 @@ final public class InsidiousService implements Disposable,
         triggerGutterIconReload();
 
         ServerMetadata serverMetadata = this.agentClient.getServerMetadata();
-        promoteState();
-
         InsidiousNotification.notifyMessage("New session identified "
                         + serverMetadata.getIncludePackageName()
                         + ", connected, agent version: " + serverMetadata.getAgentVersion(),
@@ -1301,7 +1299,9 @@ final public class InsidiousService implements Disposable,
 
     public void focusDirectInvokeTab() {
         ApplicationManager.getApplication().invokeLater(
-                () -> toolWindow.getContentManager().setSelectedContent(directMethodInvokeContent, false));
+                () -> {
+                    toolWindow.getContentManager().setSelectedContent(directMethodInvokeContent, false);
+                });
     }
 
 
@@ -1592,6 +1592,9 @@ final public class InsidiousService implements Disposable,
     public void promoteState() {
         if (this.atomicTestContainerWindow != null) {
             GutterState state = this.atomicTestContainerWindow.getCurrentState();
+            if (state == null) {
+                return;
+            }
             if (state.equals(GutterState.NO_AGENT)) {
                 System.out.println("Promoting to PROCESS_NOT_RUNNING");
                 atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
@@ -1608,19 +1611,20 @@ final public class InsidiousService implements Disposable,
             GutterState state = this.atomicTestContainerWindow.getCurrentState();
             if (state.equals(GutterState.PROCESS_RUNNING)) {
                 System.out.println("Demoting to PROCESS_NOT_RUNNING");
-                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+                });
             }
-//            if(state.equals(GutterState.PROCESS_NOT_RUNNING))
-//            {
-//                System.out.println("Demoting to NO_AGENT");
-//                componentScaffoldWindow.loadComponentForState(GutterState.NO_AGENT);
-//            }
         }
     }
 
-    public void executeWithAgentForMethod(JavaMethodAdapter methodAdapter) {
+    public void compileAndExecuteWithAgentForMethod(JavaMethodAdapter methodAdapter) {
         atomicTestContainerWindow.triggerMethodExecutorRefresh(methodAdapter);
         atomicTestContainerWindow.triggerCompileAndExecute();
+    }
+
+    public void loadMethodInAtomicTests(JavaMethodAdapter methodAdapter) {
+        atomicTestContainerWindow.triggerMethodExecutorRefresh(methodAdapter);
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}

@@ -1,14 +1,12 @@
 package com.insidious.plugin.ui.highlighter;
 
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
-import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
-import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiIdentifier;
@@ -48,74 +46,13 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
                 !this.state.equals(GutterState.NO_DIFF)) {
             insidiousService.updateScaffoldForState(this.state);
         }
-//        boolean execute = false;
-//        if (this.state.equals(GutterState.EXECUTE)) {
-//            execute = true;
-//        }
 
         if (this.state == GutterState.EXECUTE) {
-            insidiousService.compile(methodAdapter.getContainingClass(), (aborted, errors, warnings, compileContext) -> {
-                        logger.warn("compiled class: " + compileContext);
-                        if (aborted) {
-                            InsidiousNotification.notifyMessage(
-                                    "Re-execution cancelled", NotificationType.WARNING
-                            );
-                            return;
-                        }
-                        insidiousService.executeWithAgentForMethod(methodAdapter);
-                    }
-            );
+            insidiousService.compileAndExecuteWithAgentForMethod(methodAdapter);
+        } else {
+            insidiousService.loadMethodInAtomicTests(methodAdapter);
         }
 
 
-//        MethodExecutorComponent gutterMethodPanel = new MethodExecutorComponent((PsiMethod) identifier.getParent());
-//        JComponent gutterMethodComponent = gutterMethodPanel.getContent();
-//        @NotNull ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
-//                .createComponentPopupBuilder(gutterMethodComponent, null);
-//
-//        gutterMethodComponentPopup
-//                .setProject(identifier.getProject())
-//                .setShowBorder(true)
-//                .setShowShadow(true)
-//                .setFocusable(true)
-//                .setRequestFocus(true)
-//                .setCancelOnClickOutside(true)
-//                .setBelongsToGlobalPopupStack(false)
-//                .setTitle("Execute " + method.getName())
-//                .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
-//                .createPopup()
-//                .show(new RelativePoint(e));
-
-//        IPopupChooserBuilder<LineMarkerInfo<?>> builder = JBPopupFactory.getInstance()
-//                .createPopupChooserBuilder(lineMarkerInfoList);
-//        builder.setRenderer(new SelectionAwareListCellRenderer<>(dom -> {
-//            Icon icon = null;
-//            GutterIconRenderer renderer = dom.createGutterRenderer();
-//            if (renderer != null) {
-//                Icon originalIcon = renderer.getIcon();
-//                icon = IconUtil.scale(originalIcon, null, JBUIScale.scale(16.0f) / originalIcon.getIconWidth());
-//            }
-//            PsiElement element = dom.getElement();
-//            String elementPresentation;
-//            if (element == null) {
-//                elementPresentation = IdeBundle.message("node.structureview.invalid");
-//            } else if (dom instanceof MergeableLineMarkerInfo) {
-//                elementPresentation = ((MergeableLineMarkerInfo<?>) dom).getElementPresentation(element);
-//            } else {
-//                elementPresentation = element.getText();
-//            }
-//            String text = StringUtil.first(elementPresentation, 100, true).replace('\n', ' ');
-//
-//            JBLabel label = new JBLabel(text, icon, SwingConstants.LEFT);
-//            label.setBorder(JBUI.Borders.empty(2));
-//            return label;
-//        }));
-//        builder.setItemChosenCallback(value -> {
-//            //noinspection unchecked
-//            GutterIconNavigationHandler<PsiElement> handler = (GutterIconNavigationHandler<PsiElement>) value.getNavigationHandler();
-//            if (handler != null) {
-//                handler.navigate(e, value.getElement());
-//            }
-//        }).createPopup().show(new RelativePoint(e));
     }
 }

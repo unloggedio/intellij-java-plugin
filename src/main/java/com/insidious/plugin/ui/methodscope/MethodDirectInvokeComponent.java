@@ -29,8 +29,10 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.*;
 
 public class MethodDirectInvokeComponent {
     private static final Logger logger = LoggerUtil.getInstance(MethodDirectInvokeComponent.class);
@@ -45,6 +47,7 @@ public class MethodDirectInvokeComponent {
     private JTextArea returnValueTextArea;
     private JPanel methodParameterScrollContainer;
     private JPanel scrollerContainer;
+    private JLabel methodNameLabel;
     private MethodAdapter methodElement;
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
@@ -148,6 +151,7 @@ public class MethodDirectInvokeComponent {
 
         logger.warn("render method executor for: " + methodName);
         this.methodElement = methodElement;
+        methodNameLabel.setText(methodName);
         ParameterAdapter[] methodParameters = methodElement.getParameters();
 
 
@@ -233,7 +237,7 @@ public class MethodDirectInvokeComponent {
             }
             if (parameterType.getCanonicalText().equals("java.util.Date")) {
 //                try {
-                    return "\"" + new Date().toGMTString() + "\"";
+                return "\"" + new Date().toGMTString() + "\"";
 //                } catch (JsonProcessingException e) {
 //                     should never happen
 //                }

@@ -59,7 +59,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         System.out.println("In Constructor mec");
         this.insidiousService = insidiousService;
         executeAndShowDifferencesButton.addActionListener(e -> {
-            if (methodTestCandidates.size() == 0) {
+            if (methodTestCandidates == null || methodTestCandidates.size() == 0) {
                 InsidiousNotification.notifyMessage(
                         "Please use the agent to record values for replay. No candidates found for " + methodElement.getName(),
                         NotificationType.WARNING
@@ -72,22 +72,27 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     public void compileAndExecuteAll() {
 //        this.isDifferent = false;
-        insidiousService.compile(methodElement.getContainingClass(), (aborted, errors, warnings, compileContext) -> {
-                    logger.warn("compiled class: " + compileContext);
-                    if (aborted) {
-                        InsidiousNotification.notifyMessage(
-                                "Re-execution cancelled", NotificationType.WARNING
-                        );
-                        return;
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            insidiousService.compile(methodElement.getContainingClass(),
+                    (aborted, errors, warnings, compileContext) -> {
+                        logger.warn("compiled class: " + compileContext);
+                        if (aborted) {
+                            InsidiousNotification.notifyMessage(
+                                    "Re-execution cancelled", NotificationType.WARNING
+                            );
+                            return;
+                        }
+                        if (errors > 0) {
+                            InsidiousNotification.notifyMessage(
+                                    "Re-execution cancelled due to [" + errors + "] compilation errors",
+                                    NotificationType.ERROR
+                            );
+                        }
+                        executeAll();
                     }
-                    if (errors > 0) {
-                        InsidiousNotification.notifyMessage(
-                                "Re-execution cancelled due to [" + errors + "] compilation errors", NotificationType.ERROR
-                        );
-                    }
-                    executeAll();
-                }
-        );
+            );
+        });
     }
 
     public void loadMethodCandidates() {
@@ -148,34 +153,34 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
 
     public void executeAll() {
-        JSONObject eventProperties = new JSONObject();
-        ClassAdapter psiClass = methodElement.getContainingClass();
-        eventProperties.put("className", psiClass.getQualifiedName());
-        eventProperties.put("methodName", methodElement.getName());
-        UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
+        ApplicationManager.getApplication().invokeLater(() -> {
+            JSONObject eventProperties = new JSONObject();
+            ClassAdapter psiClass = methodElement.getContainingClass();
+            eventProperties.put("className", psiClass.getQualifiedName());
+            eventProperties.put("methodName", methodElement.getName());
+            UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
 
-        callCount = candidateComponentMap.size();
-        componentCounter = 0;
+            callCount = candidateComponentMap.size();
+            componentCounter = 0;
 
-        for (TestCandidateMetadata methodTestCandidate : this.methodTestCandidates) {
-            List<String> methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
-                    methodTestCandidate);
-            executeCandidate(methodTestCandidate, methodArgumentValues,
-                    (testCandidate, agentCommandResponse, diffResult) -> {
-                        componentCounter++;
-                        if (componentCounter == callCount) {
-                            insidiousService.updateMethodHashForExecutedMethod(methodElement);
-                            DaemonCodeAnalyzer.getInstance(insidiousService.getProject())
-                                    .restart(methodElement.getContainingFile());
-                            ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
-                        }
-                    });
-        }
+            for (TestCandidateMetadata methodTestCandidate : this.methodTestCandidates) {
+                List<String> methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
+                        methodTestCandidate);
+                executeCandidate(methodTestCandidate, methodArgumentValues,
+                        (testCandidate, agentCommandResponse, diffResult) -> {
+                            componentCounter++;
+                            if (componentCounter == callCount) {
+                                insidiousService.updateMethodHashForExecutedMethod(methodElement);
+                                DaemonCodeAnalyzer.getInstance(insidiousService.getProject())
+                                        .restart(methodElement.getContainingFile());
+                                ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
+                            }
+                        });
+            }
 
 
-//        for (ComponentContainer component : this.components) {
-//            execute_save(component.getCandidateMetadata(), component);
-//        }
+        });
+
     }
 
     public void refresh() {
@@ -272,6 +277,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         this.diffContentPanel.removeAll();
         this.diffContentPanel.setLayout(new GridLayout(1, 1));
         GridConstraints constraints = new GridConstraints();
+        diffContentPanel.setMinimumSize(new Dimension(-1, 700));
         constraints.setRow(1);
         this.diffContentPanel.add(component.get(), constraints);
         this.diffContentPanel.revalidate();
@@ -291,10 +297,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             return;
         }
         Supplier<Component> response = createTestCandidateChangeComponent(testCandidateMetadata, agentCommandResponse);
-
-//        selectedCandidateInfoPanel.removeAll();
-//        selectedCandidateInfoPanel.add(new JBLabel(String.valueOf(testCandidateMetadata.getEntryProbeIndex())),
-//                BorderLayout.CENTER);
         displayResponse(response);
 
 
