@@ -83,6 +83,7 @@
             </constraints>
             <properties>
               <enabled value="false"/>
+              <visible value="false"/>
             </properties>
           </component>
         </children>

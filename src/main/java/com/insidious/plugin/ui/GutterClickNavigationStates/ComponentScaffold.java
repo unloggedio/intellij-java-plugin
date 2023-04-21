@@ -75,4 +75,10 @@ public class ComponentScaffold {
     {
         return this.currentState;
     }
+
+    public void triggerCompileAndExecute() {
+        if (methodExecutorComponent != null) {
+            methodExecutorComponent.compileAndExecuteAll();
+        }
+    }
 }

@@ -32,6 +32,12 @@ public class ComponentContainer {
         this.source.setAndDisplayResponse(normalResponse);
     }
 
+    public void setOnlyNormalResponse(AgentResponseComponent normalResponse)
+    {
+        this.normalResponse = normalResponse;
+        this.source.setResponseComponent(normalResponse);
+    }
+
     public AgentExceptionResponseComponent getExceptionResponse() {
         return exceptionResponse;
     }

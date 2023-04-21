@@ -1164,10 +1164,14 @@ final public class InsidiousService implements Disposable,
         return sessionInstance;
     }
 
-    public void executeWithAgentForMethod(PsiMethod method) {
+    public void executeWithAgentForMethod(PsiMethod method, boolean execute) {
         if (this.componentScaffoldWindow != null && this.componentScaffoldContent != null) {
             this.toolWindow.getContentManager().setSelectedContent(this.componentScaffoldContent);
             componentScaffoldWindow.triggerMethodExecutorRefresh(new JavaMethodAdapter(method));
+            if(execute)
+            {
+                componentScaffoldWindow.triggerCompileAndExecute();
+            }
         }
     }
 

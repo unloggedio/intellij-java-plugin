@@ -42,7 +42,12 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
                 !this.state.equals(GutterState.NO_DIFF)) {
             insidiousService.updateScaffoldForState(this.state);
         }
-        insidiousService.executeWithAgentForMethod(method);
+        boolean execute = false;
+        if(this.state.equals(GutterState.EXECUTE))
+        {
+            execute = true;
+        }
+        insidiousService.executeWithAgentForMethod(method,execute);
 
 
 //        MethodExecutorComponent gutterMethodPanel = new MethodExecutorComponent((PsiMethod) identifier.getParent());
