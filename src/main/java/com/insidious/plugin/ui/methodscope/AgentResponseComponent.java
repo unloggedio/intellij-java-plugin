@@ -59,12 +59,12 @@ public class AgentResponseComponent implements Supplier<Component> {
     ) {
         this.agentCommandResponse = agentCommandResponse;
         this.showAcceptButton = showAcceptButton;
-        hideButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-
-            }
-        });
+//        hideButton.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent e) {
+//
+//            }
+//        });
 
         if (!showAcceptButton) {
             this.bottomControlPanel.setVisible(false);

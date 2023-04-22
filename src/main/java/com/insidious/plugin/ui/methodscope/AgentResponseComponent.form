@@ -74,7 +74,9 @@
       </grid>
       <grid id="de7d1" binding="topPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
         <constraints>
-          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+            <maximum-size width="-1" height="150"/>
+          </grid>
         </constraints>
         <properties/>
         <border type="none"/>
@@ -84,13 +86,6 @@
             <properties>
               <icon value="icons/png/difference_icon.png"/>
               <text value="Status"/>
-            </properties>
-          </component>
-          <component id="34394" class="javax.swing.JButton" binding="hideButton">
-            <constraints border-constraint="East"/>
-            <properties>
-              <icon value="actions/cross.png"/>
-              <text value=""/>
             </properties>
           </component>
         </children>
