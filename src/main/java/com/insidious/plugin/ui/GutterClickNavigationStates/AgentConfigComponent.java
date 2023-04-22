@@ -22,11 +22,9 @@ public class AgentConfigComponent {
     private JLabel iconLabel;
     private JTextArea messagearea1;
     private JPanel selectionsParent;
-    private JPanel moduleSelectorPanel;
     private JPanel javaVersionSelectorPanel;
     private JPanel runModeSelectorPanel;
     private JPanel packageSelectorPanel;
-    private JLabel mspLabel;
     private JComboBox moduleCombobox;
     private JLabel jvsplabel;
     private JComboBox javaComboBox;
@@ -39,6 +37,8 @@ public class AgentConfigComponent {
     private JEditorPane imagePane;
     private JPanel supportPanel;
     private JButton discordButton;
+    private JPanel moduleSelectorPanel;
+    private JLabel mspLabel;
     private InsidiousService insidiousService;
     private String currentModuleName;
     private VMoptionsConstructionService vmoptsConstructionService = new VMoptionsConstructionService();
@@ -55,6 +55,7 @@ public class AgentConfigComponent {
         DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
         dumbService.runWhenSmart(() -> {
             setModuleList();
+            //vmoptsConstructionService.setBasePackage(insidiousService.fetchBasePackage());
             setRunModes();
             updateVMParams();
         });
@@ -134,7 +135,8 @@ public class AgentConfigComponent {
 
     public String getCurrentVMopts()
     {
-        String basePackage = insidiousService.fetchBasePackageForModule(this.currentModuleName);
+        //String basePackage = insidiousService.fetchBasePackageForModule(this.currentModuleName);
+        String basePackage = insidiousService.fetchBasePackage();
         this.basePackageTextField.setText(basePackage);
         vmoptsConstructionService.setBasePackage(basePackage);
         vmoptsConstructionService.setAddopens(addOpens);
