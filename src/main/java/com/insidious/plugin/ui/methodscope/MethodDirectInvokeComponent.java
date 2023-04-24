@@ -163,6 +163,10 @@ public class MethodDirectInvokeComponent {
         logger.warn("render method executor for: " + methodName);
         this.methodElement = methodElement;
         methodNameLabel.setText(methodName);
+        TitledBorder titledBorder = (TitledBorder) actionControlPanel.getBorder();
+        titledBorder.setTitle(methodElement.getContainingClass().getName());
+
+
         ParameterAdapter[] methodParameters = methodElement.getParameters();
 
 

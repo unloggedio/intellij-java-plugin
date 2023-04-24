@@ -12,4 +12,6 @@ public interface AgentStateProvider extends ConnectionStateListener {
     String fetchVersionFromLibName(String name, String lib);
 
     boolean doesAgentExist();
+
+    boolean isAgentRunning();
 }

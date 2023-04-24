@@ -2,7 +2,6 @@ package com.insidious.plugin.agent;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.insidious.plugin.client.pojo.ResponseMetadata;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import okhttp3.*;
@@ -103,12 +102,11 @@ public class AgentClient {
                 if (newState && !currentState) {
                     currentState = true;
 
-                    ServerMetadata returnedMetadata = response.getMethodReturnValue();;
-                    AgentClient.this.serverMetadata = returnedMetadata;
-                    agentClient.connectionStateListener.onConnectedToAgentServer();
+                    AgentClient.this.serverMetadata = response.getMethodReturnValue();
+                    connectionStateListener.onConnectedToAgentServer(AgentClient.this.serverMetadata);
                 } else if (!newState && currentState) {
                     currentState = false;
-                    agentClient.connectionStateListener.onDisconnectedFromAgentServer();
+                    connectionStateListener.onDisconnectedFromAgentServer();
                 }
                 try {
                     Thread.sleep(1000);

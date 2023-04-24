@@ -38,9 +38,6 @@ import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.debugger.DebuggerManagerEx;
-import com.intellij.debugger.DebuggerTestCase;
-import com.intellij.debugger.DefaultDebugEnvironment;
-import com.intellij.debugger.engine.JavaDebugProcess;
 import com.intellij.debugger.impl.DebuggerSession;
 import com.intellij.debugger.ui.HotSwapStatusListener;
 import com.intellij.debugger.ui.HotSwapUIImpl;
@@ -48,14 +45,9 @@ import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffManager;
 import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.SimpleDiffRequest;
-import com.intellij.execution.ExecutionException;
 import com.intellij.execution.RunManager;
 import com.intellij.execution.RunnerAndConfigurationSettings;
 import com.intellij.execution.application.ApplicationConfiguration;
-import com.intellij.execution.executors.DefaultDebugExecutor;
-import com.intellij.execution.impl.DefaultJavaProgramRunner;
-import com.intellij.execution.runners.ExecutionEnvironment;
-import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
@@ -99,8 +91,6 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.util.FileContentUtil;
 import com.intellij.util.indexing.FileBasedIndex;
-import com.intellij.xdebugger.XDebugProcess;
-import com.intellij.xdebugger.XDebugProcessStarter;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
 import org.apache.commons.io.IOUtils;
@@ -134,7 +124,7 @@ final public class InsidiousService implements Disposable,
     private static final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
     private final ProjectTypeInfo projectTypeInfo = new ProjectTypeInfo();
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
-    private final AgentClient agentClient = new AgentClient("http://localhost:12100", this);
+    private final AgentClient agentClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final SessionLoader sessionLoader;
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
@@ -142,6 +132,7 @@ final public class InsidiousService implements Disposable,
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
     final private int TOOL_WINDOW_HEIGHT = 430;
     final private int TOOL_WINDOW_WIDTH = 600;
+    final private AgentStateProvider stateProvider;
     private Project project;
     private VideobugClientInterface client;
     private Module currentModule;
@@ -172,14 +163,11 @@ final public class InsidiousService implements Disposable,
     private InsidiousInlayHintsCollector inlayHintsCollector;
     private MethodExecutorComponent methodExecutorToolWindow;
     private Content methodExecutorWindow;
-    private boolean agentJarExists = false;
     private MethodDirectInvokeComponent methodDirectInvokeComponent;
     private Content directMethodInvokeContent;
-    private boolean isAgentServerRunning = false;
     private Content atomicTestContent;
     private AtomicTestContainer atomicTestContainerWindow;
     private MethodAdapter currentMethod;
-    private AgentStateProvider stateProvider;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -190,30 +178,13 @@ final public class InsidiousService implements Disposable,
         this.client = new VideobugLocalClient(pathToSessions, project);
         this.sessionLoader = new SessionLoader(client, this);
         threadPoolExecutor.submit(this.sessionLoader);
-        threadPoolExecutor.submit(() -> {
-            while (true) {
-//                String path = Constants.VIDEOBUG_AGENT_PATH.toString();
-                File agentFile = Constants.AGENT_PATH.toFile();
-                if (agentFile.exists()) {
-                    logger.warn("Found agent jar at: " + Constants.AGENT_PATH);
-                    System.out.println("Found agent jar.");
-                    agentJarExists = true;
-                    triggerGutterIconReload();
-                    promoteState();
-                    break;
-                }
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
 
 
         EditorEventMulticaster multicaster = EditorFactory.getInstance().getEventMulticaster();
         InsidiousCaretListener listener = new InsidiousCaretListener(project);
         multicaster.addEditorMouseListener(listener, this);
+        stateProvider = new DefaultAgentStateProvider(this);
+        agentClient = new AgentClient("http://localhost:12100", this);
 //        multicaster.add
 
     }
@@ -242,7 +213,6 @@ final public class InsidiousService implements Disposable,
                     "Updated VM parameter for " + selectedConfig.getName(), NotificationType.INFORMATION
             );
         }
-
 
 
 //        try {
@@ -1169,13 +1139,13 @@ final public class InsidiousService implements Disposable,
     @Override
     public GutterState getGutterStateFor(MethodAdapter method) {
         //check for agent here before other comps
-        if (!doesAgentExist()) {
+        if (!stateProvider.doesAgentExist()) {
             return GutterState.NO_AGENT;
         }
 
         // agent exists but cannot connect with agent server
         // so no process is running with the agent
-        if (!this.isAgentServerRunning) {
+        if (!stateProvider.isAgentRunning()) {
             return GutterState.PROCESS_NOT_RUNNING;
         }
 
@@ -1261,7 +1231,12 @@ final public class InsidiousService implements Disposable,
 
     @Override
     public boolean doesAgentExist() {
-        return agentJarExists;
+        return stateProvider.doesAgentExist();
+    }
+
+    @Override
+    public boolean isAgentRunning() {
+        return stateProvider.isAgentRunning();
     }
 
     @Override
@@ -1591,8 +1566,8 @@ final public class InsidiousService implements Disposable,
     }
 
     @Override
-    public void onConnectedToAgentServer() {
-        stateProvider.onConnectedToAgentServer();
+    public void onConnectedToAgentServer(ServerMetadata serverMetadata) {
+        stateProvider.onConnectedToAgentServer(serverMetadata);
     }
 
     @Override

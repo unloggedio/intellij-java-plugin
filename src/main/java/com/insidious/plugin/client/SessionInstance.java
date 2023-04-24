@@ -3015,8 +3015,7 @@ public class SessionInstance {
                                 // the current methodCall on stack is the actual one we have entered in
                                 // we are not setting methodCall to null since else we will create a new call for
                                 // this methodEntry and eventually bad things will happen (while popping calls)
-                            } else if (!methodCallSubjectTypeMap.get(methodCall.getId())
-                                    .startsWith(expectedClassName)
+                            } else if (!methodCallSubjectTypeMap.get(methodCall.getId()).startsWith(expectedClassName)
                                     || !methodInfo.getMethodName()
                                     .equals(methodCall.getMethodName())) {
                                 methodCall = null;

@@ -1,7 +1,6 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.Constants;
-import com.insidious.plugin.agent.AgentClient;
 import com.insidious.plugin.agent.ServerMetadata;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
@@ -13,14 +12,18 @@ import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
 
+import java.io.File;
 import java.util.Iterator;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class DefaultAgentStateProvider implements AgentStateProvider {
     final private String javaAgentString = "-javaagent:\"" + Constants.AGENT_PATH + "=i=YOUR.PACKAGE.NAME\"";
-    private Logger logger = LoggerUtil.getInstance(DefaultAgentStateProvider.class);
+    final private Logger logger = LoggerUtil.getInstance(DefaultAgentStateProvider.class);
+    final private InsidiousService insidiousService;
+    final private ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(1);
     private boolean isAgentServerRunning;
-    private InsidiousService insidiousService;
-    private AgentClient agentClient;
+    private boolean agentJarExists;
 
     public DefaultAgentStateProvider(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -39,18 +42,36 @@ public class DefaultAgentStateProvider implements AgentStateProvider {
 
 
     @Override
-    public void onConnectedToAgentServer() {
+    public void onConnectedToAgentServer(ServerMetadata serverMetadata) {
         logger.warn("connected to agent");
         // connected to agent
         this.isAgentServerRunning = true;
         insidiousService.triggerGutterIconReload();
-
-        ServerMetadata serverMetadata = this.agentClient.getServerMetadata();
         InsidiousNotification.notifyMessage("New session identified "
                         + serverMetadata.getIncludePackageName()
                         + ", connected, agent version: " + serverMetadata.getAgentVersion(),
                 NotificationType.INFORMATION);
         insidiousService.focusDirectInvokeTab();
+
+        threadPoolExecutor.submit(() -> {
+            while (true) {
+                File agentFile = Constants.AGENT_PATH.toFile();
+                if (agentFile.exists()) {
+                    logger.warn("Found agent jar at: " + Constants.AGENT_PATH);
+                    System.out.println("Found agent jar.");
+                    agentJarExists = true;
+                    insidiousService.triggerGutterIconReload();
+                    insidiousService.promoteState();
+                    break;
+                }
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+
     }
 
     @Override
@@ -70,26 +91,22 @@ public class DefaultAgentStateProvider implements AgentStateProvider {
     public String suggestAgentVersion() {
         String version = null;
         LibraryTable libraryTable = LibraryTablesRegistrar.getInstance().getLibraryTable(insidiousService.getProject());
-        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
-        int count = 0;
-        while (lib_iterator.hasNext()) {
-            Library lib = lib_iterator.next();
+        Iterator<Library> libraryTableIterator = libraryTable.getLibraryIterator();
+        int count = libraryTable.getLibraries().length;
+        ProjectTypeInfo projectTypeInfo = insidiousService.getProjectTypeInfo();
+        if (count == 0) {
+            return projectTypeInfo.DEFAULT_PREFERRED_JSON_MAPPER();
+        }
+        while (libraryTableIterator.hasNext()) {
+            Library lib = libraryTableIterator.next();
             if (lib.getName().contains("jackson-databind:")) {
                 version = fetchVersionFromLibName(lib.getName(), "jackson-databind");
             }
-            count++;
         }
-        ProjectTypeInfo projectTypeInfo = insidiousService.getProjectTypeInfo();
-        if (count == 0) {
-            //libs not ready
+        if (version == null) {
             return projectTypeInfo.DEFAULT_PREFERRED_JSON_MAPPER();
-
         } else {
-            if (version == null) {
-                return projectTypeInfo.DEFAULT_PREFERRED_JSON_MAPPER();
-            } else {
-                return "jackson-" + version;
-            }
+            return "jackson-" + version;
         }
     }
 
@@ -110,6 +127,11 @@ public class DefaultAgentStateProvider implements AgentStateProvider {
 
     @Override
     public boolean doesAgentExist() {
-        return false;
+        return agentJarExists;
+    }
+
+    @Override
+    public boolean isAgentRunning() {
+        return isAgentServerRunning;
     }
 }
