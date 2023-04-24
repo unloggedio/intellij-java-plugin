@@ -8,7 +8,9 @@ import com.intellij.openapi.project.DumbService;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ItemEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Arrays;
 import java.util.List;
 
@@ -60,7 +62,9 @@ public class AgentConfigComponent {
 //            }
 //        });
 
-        addToCurrentRunConfigButton.addActionListener(e -> insidiousService.addAgentToRunConfig(vmparamsArea.getText()));
+        addToCurrentRunConfigButton.addActionListener(
+                e -> insidiousService.addAgentToRunConfig(
+                        getCurrentVMopts(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION)));
 
         javaComboBox.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {
@@ -92,7 +96,7 @@ public class AgentConfigComponent {
     }
 
     public void updateVMParams() {
-        this.vmparamsArea.setText(getCurrentVMopts());
+        this.vmparamsArea.setText(getCurrentVMopts(currentType));
     }
 
 //    private void setModuleList() {
@@ -121,13 +125,15 @@ public class AgentConfigComponent {
 //        insidiousService.copyToClipboard(getCurrentVMopts());
     }
 
-    public String getCurrentVMopts() {
-        //String basePackage = insidiousService.fetchBasePackageForModule(this.currentModuleName);
+    public String getCurrentVMopts(ProjectTypeInfo.RUN_TYPES currentType1) {
         String basePackage = insidiousService.fetchBasePackage();
+
+        //String basePackage = insidiousService.fetchBasePackageForModule(this.currentModuleName);
 //        this.basePackageTextField.setText(basePackage);
+
         vmoptsConstructionService.setBasePackage(basePackage);
         vmoptsConstructionService.setAddopens(addOpens);
-        return vmoptsConstructionService.getVMOptionsForRunType(currentType);
+        return vmoptsConstructionService.getVMOptionsForRunType(currentType1);
     }
 
     public void loadHintGif() {
