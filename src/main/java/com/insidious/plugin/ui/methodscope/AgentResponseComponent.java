@@ -50,6 +50,7 @@ public class AgentResponseComponent implements Supplier<Component> {
     private JButton acceptButton;
     private JScrollPane scrollParent;
     private JPanel topPanel;
+    private JPanel topAlign;
     private JButton hideButton;
 
     public AgentResponseComponent(
