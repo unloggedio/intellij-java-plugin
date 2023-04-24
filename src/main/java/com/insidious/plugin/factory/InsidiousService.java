@@ -1367,9 +1367,7 @@ final public class InsidiousService implements Disposable,
                                 agentCommandResponse + "\n" + testCandidateMetadata, e);
             }
         }
-
         return calculateDifferences(originalString, actualString, agentCommandResponse.getResponseType());
-
     }
 
 

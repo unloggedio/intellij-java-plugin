@@ -47,6 +47,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     private JPanel topPanel;
     //    private JPanel centerPanel;
     private JPanel centerParent;
+    private JPanel topAligner;
     private JPanel selectedCandidateInfoPanel;
     private JPanel borderParent;
     private List<TestCandidateMetadata> methodTestCandidates;
@@ -124,11 +125,11 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         JScrollPane scrollPane = new JBScrollPane(gridPanel);
         scrollPane.setBorder(JBUI.Borders.empty());
 
-        scrollPane.setMaximumSize(new Dimension(-1, Math.min(500, panelHeight)));
+        scrollPane.setMaximumSize(new Dimension(-1, Math.min(380, panelHeight)));
 //        centerPanel.setMinimumSize(new Dimension(-1, 500));
 //        centerPanel.setMaximumSize(new Dimension(-1, Math.min(500, panelHeight)));
-        centerParent.setMaximumSize(new Dimension(-1, Math.min(500, panelHeight)));
-        centerParent.setMinimumSize(new Dimension(-1, 500));
+        centerParent.setMaximumSize(new Dimension(-1, Math.min(380, panelHeight)));
+        centerParent.setMinimumSize(new Dimension(-1, 380));
 
         centerParent.add(scrollPane, BorderLayout.CENTER);
         centerParent.revalidate();
@@ -143,6 +144,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         takeToDirectInvokeButton.setMaximumSize(new Dimension(100, 80));
         takeToDirectInvokeButton.setBackground(Color.BLUE);
         takeToDirectInvokeButton.setForeground(Color.WHITE);
+        takeToDirectInvokeButton.setBorderPainted(false);
+        takeToDirectInvokeButton.setContentAreaFilled(false);
+        takeToDirectInvokeButton.setOpaque(true);
         takeToDirectInvokeButton.addActionListener(e -> insidiousService.focusDirectInvokeTab());
 
         buttonPanel.add(takeToDirectInvokeButton, BorderLayout.NORTH);
@@ -305,8 +309,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         }
         Supplier<Component> response = createTestCandidateChangeComponent(testCandidateMetadata, agentCommandResponse);
         displayResponse(response);
-
-
     }
 
     @NotNull
