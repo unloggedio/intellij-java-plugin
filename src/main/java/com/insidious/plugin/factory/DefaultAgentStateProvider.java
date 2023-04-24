@@ -27,6 +27,24 @@ public class DefaultAgentStateProvider implements AgentStateProvider {
 
     public DefaultAgentStateProvider(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
+        threadPoolExecutor.submit(() -> {
+            while (true) {
+                File agentFile = Constants.AGENT_PATH.toFile();
+                if (agentFile.exists()) {
+                    logger.warn("Found agent jar at: " + Constants.AGENT_PATH);
+                    System.out.println("Found agent jar.");
+                    agentJarExists = true;
+                    insidiousService.triggerGutterIconReload();
+                    insidiousService.promoteState();
+                    break;
+                }
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
     }
 
 
@@ -52,25 +70,6 @@ public class DefaultAgentStateProvider implements AgentStateProvider {
                         + ", connected, agent version: " + serverMetadata.getAgentVersion(),
                 NotificationType.INFORMATION);
         insidiousService.focusDirectInvokeTab();
-
-        threadPoolExecutor.submit(() -> {
-            while (true) {
-                File agentFile = Constants.AGENT_PATH.toFile();
-                if (agentFile.exists()) {
-                    logger.warn("Found agent jar at: " + Constants.AGENT_PATH);
-                    System.out.println("Found agent jar.");
-                    agentJarExists = true;
-                    insidiousService.triggerGutterIconReload();
-                    insidiousService.promoteState();
-                    break;
-                }
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
 
     }
 
