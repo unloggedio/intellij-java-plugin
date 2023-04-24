@@ -23,9 +23,9 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
     final private TestCandidateMetadata metadata;
     final private AgentCommandResponse<String> response;
     private JPanel mainPanel;
-    private JPanel defParent;
-    private JPanel topPanel;
-    private JPanel bottomPanel;
+    private JPanel contentPanel;
+    private JPanel afterSection;
+    private JPanel beforeSection;
     private JPanel afterBorderParent;
     private JPanel beforeBorderParent;
 
@@ -42,8 +42,8 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
     public void setupDefLayout() {
         JPanel panel = new JPanel();
         panel.setLayout(new GridLayout(2, 1));
-        topPanel.removeAll();
-        bottomPanel.removeAll();
+        afterSection.removeAll();
+        beforeSection.removeAll();
 
         Object methodReturnValue = response.getMethodReturnValue();
         if (response.getResponseType() != null && (response.getResponseType().equals(ResponseType.EXCEPTION)
@@ -62,16 +62,13 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
             }
             options = new ExceptionPreviewComponent(responseMessage, stacktrace, insidiousService);
             JPanel component = options.getComponent();
-//            component.setMaximumSize();
-//            panel.add(component);
-            topPanel.add(component, BorderLayout.CENTER);
+            afterSection.add(component, BorderLayout.CENTER);
         } else {
             //load after as normal response.
             //loadAfterAsNormal();
             String value = String.valueOf(methodReturnValue);
             JTableComponent comp = new JTableComponent(getModelFor(value));
-//            panel.add(comp.getComponent());
-            topPanel.add(comp.getComponent(), BorderLayout.CENTER);
+            afterSection.add(comp.getComponent(), BorderLayout.CENTER);
         }
 
         Parameter returnValue = metadata.getMainMethod().getReturnValue();
@@ -82,22 +79,18 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
                     ExceptionUtils.prettyPrintException(returnValue.getProb().getSerializedValue()),
                     insidiousService);
             panel.add(options.getComponent());
-            bottomPanel.add(options.getComponent(), BorderLayout.CENTER);
+            beforeSection.add(options.getComponent(), BorderLayout.CENTER);
         } else {
             //load before as normal response.
             //loadBeforeAsNormal();
             String value = String.valueOf(methodReturnValue);
             JTableComponent comp = new JTableComponent(getModelFor(value));
             panel.add(comp.getComponent());
-            bottomPanel.add(comp.getComponent(), BorderLayout.CENTER);
+            beforeSection.add(comp.getComponent(), BorderLayout.CENTER);
         }
 
-        topPanel.revalidate();
-        bottomPanel.revalidate();
-
-        this.defParent.add(panel, BorderLayout.CENTER);
-        panel.revalidate();
-        this.defParent.revalidate();
+        afterSection.revalidate();
+        beforeSection.revalidate();
     }
 
     private ResponseMapTable getModelFor(String s1) {

@@ -56,7 +56,7 @@
                   <scrollpane id="2edd0" binding="scrollParent">
                     <constraints border-constraint="Center"/>
                     <properties>
-                      <preferredSize width="454" height="180"/>
+                      <preferredSize width="454" height="160"/>
                     </properties>
                     <border type="none"/>
                     <children>
