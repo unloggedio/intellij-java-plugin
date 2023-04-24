@@ -38,6 +38,9 @@ import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.debugger.DebuggerManagerEx;
+import com.intellij.debugger.DebuggerTestCase;
+import com.intellij.debugger.DefaultDebugEnvironment;
+import com.intellij.debugger.engine.JavaDebugProcess;
 import com.intellij.debugger.impl.DebuggerSession;
 import com.intellij.debugger.ui.HotSwapStatusListener;
 import com.intellij.debugger.ui.HotSwapUIImpl;
@@ -45,6 +48,14 @@ import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffManager;
 import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.SimpleDiffRequest;
+import com.intellij.execution.ExecutionException;
+import com.intellij.execution.RunManager;
+import com.intellij.execution.RunnerAndConfigurationSettings;
+import com.intellij.execution.application.ApplicationConfiguration;
+import com.intellij.execution.executors.DefaultDebugExecutor;
+import com.intellij.execution.impl.DefaultJavaProgramRunner;
+import com.intellij.execution.runners.ExecutionEnvironment;
+import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
@@ -66,9 +77,6 @@ import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.libraries.Library;
-import com.intellij.openapi.roots.libraries.LibraryTable;
-import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.ThrowableComputable;
@@ -91,6 +99,8 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.util.FileContentUtil;
 import com.intellij.util.indexing.FileBasedIndex;
+import com.intellij.xdebugger.XDebugProcess;
+import com.intellij.xdebugger.XDebugProcessStarter;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
 import org.apache.commons.io.IOUtils;
@@ -117,7 +127,7 @@ import java.util.stream.Stream;
 
 @Storage("insidious.xml")
 final public class InsidiousService implements Disposable,
-        NewTestCandidateIdentifiedListener, BranchChangeListener, ConnectionStateListener {
+        NewTestCandidateIdentifiedListener, BranchChangeListener, ConnectionStateListener, GutterStateProvider, AgentStateProvider {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -130,7 +140,6 @@ final public class InsidiousService implements Disposable,
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
-    final private String javaAgentString = "-javaagent:\"" + Constants.AGENT_PATH + "=i=YOUR.PACKAGE.NAME\"";
     final private int TOOL_WINDOW_HEIGHT = 430;
     final private int TOOL_WINDOW_WIDTH = 600;
     private Project project;
@@ -170,6 +179,7 @@ final public class InsidiousService implements Disposable,
     private Content atomicTestContent;
     private AtomicTestContainer atomicTestContainerWindow;
     private MethodAdapter currentMethod;
+    private AgentStateProvider stateProvider;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -212,6 +222,50 @@ final public class InsidiousService implements Disposable,
     private static String getClassMethodHashKey(MethodAdapter method) {
         return ApplicationManager.getApplication().runReadAction(
                 (Computable<String>) () -> method.getContainingClass().getQualifiedName() + "#" + method.getName());
+    }
+
+    public void addAgentToRunConfig(String javaAgentString) {
+
+
+        RunManager runManager = project.getService(RunManager.class);
+        List<RunnerAndConfigurationSettings> allSettings = runManager.getAllSettings();
+
+        RunnerAndConfigurationSettings selectedConfig = runManager.getSelectedConfiguration();
+
+        if (selectedConfig.getConfiguration() instanceof ApplicationConfiguration) {
+            ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) selectedConfig.getConfiguration();
+            String currentVMParams = applicationConfiguration.getVMParameters();
+            String newVmOptions = currentVMParams;
+            newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
+            applicationConfiguration.setVMParameters(newVmOptions.trim());
+            InsidiousNotification.notifyMessage(
+                    "Updated VM parameter for " + selectedConfig.getName(), NotificationType.INFORMATION
+            );
+        }
+
+
+
+//        try {
+//            ExecutionEnvironment environment = new ExecutionEnvironment(
+//                    executor,
+//            );
+//            environment.set
+//            DefaultJavaProgramRunner.getInstance().execute(environment);
+//        } catch (ExecutionException e) {
+//            throw new RuntimeException(e);
+//        }
+
+//        for (RunnerAndConfigurationSettings runSetting : allSettings) {
+//            logger.info("runner config - " + runSetting.getName());
+//
+//            if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
+//                ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
+//                String currentVMParams = applicationConfiguration.getVMParameters();
+//                String newVmOptions = currentVMParams;
+//                newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
+//                applicationConfiguration.setVMParameters(newVmOptions.trim());
+//            }
+//        }
     }
 
     @NotNull
@@ -747,14 +801,6 @@ final public class InsidiousService implements Disposable,
 //        }
     }
 
-    public String getJavaAgentString() {
-        return javaAgentString;
-    }
-
-    public String getVideoBugAgentPath() {
-        return Constants.AGENT_PATH.toAbsolutePath().toString();
-    }
-
     public VideobugClientInterface getClient() {
         return client;
     }
@@ -836,43 +882,6 @@ final public class InsidiousService implements Disposable,
         return false;
     }
 
-    public String fetchVersionFromLibName(String name, String lib) {
-        String[] parts = name.split(lib + ":");
-        return trimVersion(parts[parts.length - 1].trim());
-    }
-
-    public String trimVersion(String version) {
-        String[] versionParts = version.split("\\.");
-        if (versionParts.length > 2) {
-            return versionParts[0] + "." + versionParts[1];
-        }
-        return version;
-    }
-
-    public String suggestAgentVersion() {
-        String version = null;
-        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance().getLibraryTable(getProject());
-        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
-        int count = 0;
-        while (lib_iterator.hasNext()) {
-            Library lib = lib_iterator.next();
-            if (lib.getName().contains("jackson-databind:")) {
-                version = fetchVersionFromLibName(lib.getName(), "jackson-databind");
-            }
-            count++;
-        }
-        if (count == 0) {
-            //libs not ready
-            return getProjectTypeInfo().DEFAULT_PREFERRED_JSON_MAPPER();
-
-        } else {
-            if (version == null) {
-                return getProjectTypeInfo().DEFAULT_PREFERRED_JSON_MAPPER();
-            } else {
-                return "jackson-" + version;
-            }
-        }
-    }
 
     public boolean hasProgramRunning() {
         return false;
@@ -1157,6 +1166,7 @@ final public class InsidiousService implements Disposable,
     }
 
 
+    @Override
     public GutterState getGutterStateFor(MethodAdapter method) {
         //check for agent here before other comps
         if (!doesAgentExist()) {
@@ -1234,6 +1244,22 @@ final public class InsidiousService implements Disposable,
         }
     }
 
+    @Override
+    public String getJavaAgentString() {
+        return null;
+    }
+
+    @Override
+    public String getVideoBugAgentPath() {
+        return null;
+    }
+
+    @Override
+    public String suggestAgentVersion() {
+        return null;
+    }
+
+    @Override
     public boolean doesAgentExist() {
         return agentJarExists;
     }
@@ -1248,32 +1274,6 @@ final public class InsidiousService implements Disposable,
         logger.warn("branch has changed: " + branchName);
     }
 
-    @Override
-    public void onConnectedToAgentServer() {
-        logger.warn("connected to agent");
-        // connected to agent
-        this.isAgentServerRunning = true;
-        triggerGutterIconReload();
-
-        ServerMetadata serverMetadata = this.agentClient.getServerMetadata();
-        InsidiousNotification.notifyMessage("New session identified "
-                        + serverMetadata.getIncludePackageName()
-                        + ", connected, agent version: " + serverMetadata.getAgentVersion(),
-                NotificationType.INFORMATION);
-        focusDirectInvokeTab();
-    }
-
-    @Override
-    public void onDisconnectedFromAgentServer() {
-        logger.warn("disconnected from agent");
-        // disconnected from agent
-        this.isAgentServerRunning = false;
-        ApplicationManager.getApplication().invokeLater(() -> {
-            triggerGutterIconReload();
-            demoteState();
-        });
-
-    }
 
     public ObjectMapper getObjectMapper() {
         return objectMapper;
@@ -1525,50 +1525,6 @@ final public class InsidiousService implements Disposable,
         return basePackage;
     }
 
-    public String fetchBasePackageForModule(String modulename) {
-        Set<String> ret = new HashSet<>();
-        Collection<VirtualFile> virtualFiles =
-                FileBasedIndex.getInstance()
-                        .getContainingFiles(FileTypeIndex.NAME, JavaFileType.INSTANCE,
-                                GlobalSearchScope.projectScope(project));
-        List<String> components = new ArrayList<>();
-        for (VirtualFile vf : virtualFiles) {
-            PsiFile psifile = PsiManager.getInstance(project)
-                    .findFile(vf);
-            if (psifile instanceof PsiJavaFile && vf.getPath()
-                    .contains(modulename)) {
-                PsiJavaFile psiJavaFile = (PsiJavaFile) psifile;
-                String packageName = psiJavaFile.getPackageName();
-                if (packageName.contains(".") && !packageName.equals("io.unlogged")) {
-                    ret.add(packageName);
-                    if (components.size() == 0) {
-                        String[] parts = packageName.split("\\.");
-                        components = Arrays.asList(parts);
-                    } else {
-                        List<String> sp = Arrays.asList(packageName.split("\\."));
-                        List<String> intersection = intersection(components, sp);
-                        if (intersection.size() >= 2) {
-                            components = intersection;
-                        }
-                    }
-                } else {
-                    //generic package name
-                    ret.add(packageName);
-                }
-            }
-        }
-        String basePackage = buildPackageNameFromList(components);
-        if (basePackage.equals("?")) {
-            return fetchBasePackage();
-        }
-        return basePackage;
-    }
-
-    public String fetchPackagePathForModule(String modulename) {
-        String source = fetchBasePackageForModule(modulename);
-        return source.replaceAll("\\.", "/");
-    }
-
     private String buildPackageNameFromList(List<String> parts) {
         if (parts.size() < 2) {
             return "?";
@@ -1634,6 +1590,20 @@ final public class InsidiousService implements Disposable,
     public void showNewTestCandidateGotIt() {
 //        new GotItTooltip("io.unlogged.newtestcase." + new Date().getTime(), "New test candidate found",
 //                this).show();
+    }
+
+    @Override
+    public void onConnectedToAgentServer() {
+        stateProvider.onConnectedToAgentServer();
+    }
+
+    @Override
+    public void onDisconnectedFromAgentServer() {
+        stateProvider.onDisconnectedFromAgentServer();
+    }
+
+    public String fetchVersionFromLibName(String name, String dependency) {
+        return stateProvider.fetchVersionFromLibName(name, dependency);
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}

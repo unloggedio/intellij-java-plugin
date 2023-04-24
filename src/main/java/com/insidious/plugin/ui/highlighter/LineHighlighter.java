@@ -95,7 +95,6 @@ public class LineHighlighter implements LineMarkerProvider {
     }
 
     public GutterState getGutterStateForMethod(PsiMethod method) {
-        return method.getProject().getService(InsidiousService.class)
-                .getGutterStateFor(new JavaMethodAdapter(method));
+        return method.getProject().getService(InsidiousService.class).getGutterStateFor(new JavaMethodAdapter(method));
     }
 }

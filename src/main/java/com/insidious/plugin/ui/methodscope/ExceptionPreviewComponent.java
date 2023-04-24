@@ -46,6 +46,9 @@ public class ExceptionPreviewComponent {
     }
 
     public void displayFullStackTrace() {
+        if (stackTrace == null) {
+            return;
+        }
         LightVirtualFile file = new LightVirtualFile("Exception trace", PlainTextFileType.INSTANCE, stackTrace);
         file.setWritable(false);
         FileEditorManager.getInstance(service.getProject()).openFile(file, true);
