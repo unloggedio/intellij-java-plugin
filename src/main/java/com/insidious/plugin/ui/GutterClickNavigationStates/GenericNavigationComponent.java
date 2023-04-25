@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.util.Objects;
 
 public class GenericNavigationComponent {
     private JPanel mainPanel;
@@ -68,7 +69,6 @@ public class GenericNavigationComponent {
         } else {
             actionButton.setVisible(false);
         }
-        loadimageForCurrentState();
         discordButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -272,29 +272,11 @@ public class GenericNavigationComponent {
         return false;
     }
 
-    public void loadimageForCurrentState() {
-        String gif = null;
-//        switch (currentState) {
-//            case DATA_AVAILABLE:
-//                gif="data_available.gif";
-//                break;
-//            case PROCESS_RUNNING:
-//                gif = "process_running.gif";
-//                break;
-//            case NO_AGENT:
-//                gif = "no_agent.gif";
-//                break;
-//        }
-//        if (gif != null) {
-//            loadHintGif(gif);
-//        }
-    }
-
     public void loadHintGif(String gif) {
         imagePane.setContentType("text/html");
         String htmlString = "<html><body>" +
-                "<div align=\"left\"><img src=\"" + this.getClass().getClassLoader()
-                .getResource("icons/gif/" + gif).toString() + "\" /></div></body></html>";
+                "<div align=\"left\"><img src=\"" + Objects.requireNonNull(this.getClass().getClassLoader()
+                .getResource("icons/gif/" + gif)) + "\" /></div></body></html>";
         imagePane.setText(htmlString);
     }
 

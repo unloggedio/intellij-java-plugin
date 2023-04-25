@@ -10,6 +10,7 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.MethodExecutionListener;
+import com.insidious.plugin.util.DiffUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.MethodUtils;
 import com.insidious.plugin.util.TestCandidateUtils;
@@ -253,19 +254,19 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                 (request, agentCommandResponse) -> {
 
-
                     candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
-                    DifferenceResult diffResult = insidiousService.calculateDifferences(testCandidate,
-                            agentCommandResponse);
+                    DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
                     insidiousService.addDiffRecord(methodElement, diffResult);
 
-                    TestCandidateListedItemComponent candidateComponent = candidateComponentMap.get(
-                            testCandidate.getEntryProbeIndex());
+                    TestCandidateListedItemComponent candidateComponent =
+                            candidateComponentMap.get(testCandidate.getEntryProbeIndex());
 
                     candidateComponent.setAndDisplayResponse(agentCommandResponse, diffResult);
 
                     agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
-                    DaemonCodeAnalyzer.getInstance(insidiousService.getProject())
+
+                    DaemonCodeAnalyzer
+                            .getInstance(insidiousService.getProject())
                             .restart(methodElement.getContainingFile());
 
 
@@ -321,7 +322,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             response = new AgentExceptionResponseComponent(
                     testCandidateMetadata, agentCommandResponse, insidiousService);
         } else {
-            DifferenceResult differences = insidiousService.calculateDifferences(testCandidateMetadata,
+            DifferenceResult differences = DiffUtils.calculateDifferences(testCandidateMetadata,
                     agentCommandResponse);
             AgentResponseComponent response1 = new AgentResponseComponent(
                     agentCommandResponse, true, insidiousService::generateCompareWindows);
