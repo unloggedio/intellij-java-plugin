@@ -36,8 +36,7 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
         insidiousService.openTestCaseDesigner(psiClass.getProject());
         JavaMethodAdapter methodAdapter = new JavaMethodAdapter(method);
         insidiousService.methodFocussedHandler(methodAdapter);
-        UsageInsightTracker.getInstance().RecordEvent("TestIconClick", null);
-
+        recordAnalyticEvent();
 
         @NotNull List<LineMarkerInfo<?>> lineMarkerInfoList = new LinkedList<>();
         lineMarkerInfoList.add(new LineHighlighter().getLineMarkerInfo(identifier));
@@ -53,6 +52,35 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
             insidiousService.loadMethodInAtomicTests(methodAdapter);
         }
 
+    }
 
+    private void recordAnalyticEvent()
+    {
+        String event = "GutterIconClicked";
+        switch (this.state)
+        {
+            case NO_AGENT:
+                event="IconClickNoAgent";
+                break;
+            case PROCESS_NOT_RUNNING:
+                event="IconClickProcessNotRunning";
+                break;
+            case PROCESS_RUNNING:
+                event="IconClickProcessRunning";
+                break;
+            case DATA_AVAILABLE:
+                event="IconClickDataAvailable";
+                break;
+            case EXECUTE:
+                event="IconClickReload";
+                break;
+            case DIFF:
+                event="IconClickDiff";
+                break;
+            case NO_DIFF:
+                event="IconClickNoDiff";
+                break;
+        }
+        UsageInsightTracker.getInstance().RecordEvent(event, null);
     }
 }

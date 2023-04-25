@@ -134,14 +134,6 @@ public class AgentResponseComponent implements Supplier<Component> {
     public DifferenceResult computeDifferences(DifferenceResult differenceResult) {
 
         switch (differenceResult.getDiffResultType()) {
-
-            case EXCEPTION:
-                this.statusLabel.setText("" + this.agentCommandResponse.getMessage());
-                this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
-                this.statusLabel.setForeground(UIUtils.red);
-                this.tableParent.setVisible(false);
-                showExceptionTrace(this.agentResponse);
-                break;
             case DIFF:
                 this.statusLabel.setText("Differences Found.");
                 renderTableWithDifferences(differenceResult.getDifferenceInstanceList());
@@ -156,8 +148,14 @@ public class AgentResponseComponent implements Supplier<Component> {
                 this.statusLabel.setForeground(UIUtils.green);
                 this.tableParent.setVisible(false);
                 break;
+            default:
+                this.statusLabel.setText("" + this.agentCommandResponse.getMessage());
+                this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
+                this.statusLabel.setForeground(UIUtils.red);
+                this.tableParent.setVisible(false);
+                showExceptionTrace(this.agentResponse);
+                break;
         }
-
         return differenceResult;
     }
 
@@ -226,11 +224,6 @@ public class AgentResponseComponent implements Supplier<Component> {
             }
         }
         return root;
-    }
-
-    public void setBorderTitle(int x) {
-//        TitledBorder b = new TitledBorder("Input Set " + x);
-//        this.borderParent.setBorder(b);
     }
 
     public AgentCommandResponse getAgentCommandResponse() {

@@ -29,7 +29,7 @@ public class ExceptionPreviewComponent {
         this.stackTrace = stacktrace;
         this.service = insidiousService;
 
-        this.exceptionArea.setText(stacktrace);
+        this.exceptionArea.setText(message);
 
         this.iconLabel.setIcon(UIUtils.EXCEPTION_CASE);
         this.iconLabel.setIcon(UIUtils.ORANGE_EXCEPTION);

@@ -27,6 +27,7 @@ import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.inlay.InsidiousInlayHintsCollector;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.ui.GutterClickNavigationStates.AtomicTestContainer;
 import com.insidious.plugin.ui.*;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
@@ -1138,6 +1139,7 @@ final public class InsidiousService implements Disposable,
 
     @Override
     public GutterState getGutterStateFor(MethodAdapter method) {
+
         //check for agent here before other comps
         if (!stateProvider.doesAgentExist()) {
             return GutterState.NO_AGENT;
@@ -1187,16 +1189,15 @@ final public class InsidiousService implements Disposable,
 
         DifferenceResult differenceResult = executionRecord.get(hashKey);
         switch (differenceResult.getDiffResultType()) {
-            case EXCEPTION:
-                return GutterState.DIFF;
             case DIFF:
                 return GutterState.DIFF;
             case NO_ORIGINAL:
                 return GutterState.NO_DIFF;
             case SAME:
                 return GutterState.NO_DIFF;
+            default:
+                return GutterState.DIFF;
         }
-        return null;
     }
 
     public void updateMethodHashForExecutedMethod(MethodAdapter method) {
@@ -1248,7 +1249,6 @@ final public class InsidiousService implements Disposable,
     public void branchHasChanged(@NotNull String branchName) {
         logger.warn("branch has changed: " + branchName);
     }
-
 
     public ObjectMapper getObjectMapper() {
         return objectMapper;
@@ -1314,11 +1314,34 @@ final public class InsidiousService implements Disposable,
             TestCandidateMetadata testCandidateMetadata,
             AgentCommandResponse<String> agentCommandResponse
     ) {
-
         String originalString = new String(
                 testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
+        if(testCandidateMetadata.getMainMethod().getReturnValue().isException() ||
+                (agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION)))
+        {
+            //exception flow wip
+            if(testCandidateMetadata.getMainMethod().getReturnValue().isException())
+            {
+                //load before as exception
+                DifferenceResult res =  calculateDifferences(originalString, actualString, agentCommandResponse.getResponseType());
+                if(res.getDiffResultType().equals(DiffResultType.ACTUAL_EXCEPTION))
+                {
+                    res.setDiffResultType(DiffResultType.BOTH_EXCEPTION);
+                }
+                else
+                {
+                    res.setDiffResultType(DiffResultType.ORIGINAL_EXCEPTION);
+                }
+                return res;
+            }
+            else
+            {
+                //load before as normal
+                return calculateDifferences(originalString, actualString, agentCommandResponse.getResponseType());
+            }
+        }
         boolean isDifferent = true;
         if (agentCommandResponse.getResponseType() == null || agentCommandResponse.getResponseType() == ResponseType.FAILED) {
             return new DifferenceResult(new LinkedList<>(), DiffResultType.DIFF, null, null);
@@ -1335,7 +1358,6 @@ final public class InsidiousService implements Disposable,
 //                    return differenceResult;
                 }
 
-
             } catch (Exception e) {
                 logger.warn(
                         "failed to match expected and returned type: " +
@@ -1345,12 +1367,31 @@ final public class InsidiousService implements Disposable,
         return calculateDifferences(originalString, actualString, agentCommandResponse.getResponseType());
     }
 
+    private Map<String,Object> getFlatMapFor(String s1) {
+        ObjectMapper om = new ObjectMapper();
+        try {
+            Map<String, Object> m1;
+            if (s1 == null || s1.isEmpty()) {
+                m1 = new TreeMap<>();
+            } else {
+                m1 = (Map<String, Object>) (om.readValue(s1, Map.class));
+                m1 = flatten(m1);
+            }
+            return m1;
+        } catch (Exception e) {
+            System.out.println("Flatmap make Exception: " + e);
+            e.printStackTrace();
+            Map<String, Object> m1 = new TreeMap<>();
+            m1.put("value", s1);
+            return m1;
+        }
+    }
 
     private DifferenceResult calculateDifferences(String originalString, String actualString, ResponseType responseType) {
         //replace Boolean with enum
         if (responseType != null &&
                 (responseType.equals(ResponseType.EXCEPTION) || responseType.equals(ResponseType.FAILED))) {
-            return new DifferenceResult(null, DiffResultType.EXCEPTION, null, null);
+            return new DifferenceResult(null, DiffResultType.ACTUAL_EXCEPTION, getFlatMapFor(originalString), null);
         }
         try {
             Map<String, Object> m1;

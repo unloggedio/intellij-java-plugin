@@ -284,13 +284,6 @@ public class TestCandidateListedItemComponent {
     ) {
 
         switch (differenceResult.getDiffResultType()) {
-
-            case EXCEPTION:
-                this.statusLabel.setText("Exception");
-                this.statusLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
-                this.statusLabel.setForeground(UIUtils.orange);
-                System.out.println("Exception message : " + agentCommandResponse.getMessage());
-                break;
             case DIFF:
                 this.statusLabel.setText("Different");
                 this.statusLabel.setForeground(UIUtils.red);
@@ -303,6 +296,11 @@ public class TestCandidateListedItemComponent {
                 this.statusLabel.setForeground(UIUtils.green);
                 this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
                 break;
+            default:
+                this.statusLabel.setText("Exception");
+                this.statusLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
+                this.statusLabel.setForeground(UIUtils.orange);
+                System.out.println("Exception message : " + agentCommandResponse.getMessage());
         }
     }
 

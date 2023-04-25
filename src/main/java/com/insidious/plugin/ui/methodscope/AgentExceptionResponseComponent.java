@@ -40,6 +40,13 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
     }
 
     public void setupDefLayout() {
+
+        String originalString = new String(
+                metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+        String actualString = String.valueOf(response.getMethodReturnValue());
+        System.out.println("EXCEPTION COMP DATA : ");
+        System.out.println("BEFORE DATA : "+originalString);
+        System.out.println("AFTER DATA : "+actualString);
         JPanel panel = new JPanel();
         panel.setLayout(new GridLayout(2, 1));
         afterSection.removeAll();
@@ -55,10 +62,10 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
             String stacktrace = responseMessage;
             if (response.getResponseType().equals(ResponseType.EXCEPTION)) {
                 if (methodReturnValue != null) {
-                    stacktrace = ExceptionUtils.prettyPrintException(String.valueOf(methodReturnValue));
+                    stacktrace = ExceptionUtils.prettyPrintException(actualString);
                 }
             } else {
-                stacktrace = String.valueOf(methodReturnValue);
+                stacktrace = String.valueOf(actualString);
             }
             options = new ExceptionPreviewComponent(responseMessage, stacktrace, insidiousService);
             JPanel component = options.getComponent();
@@ -66,8 +73,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
         } else {
             //load after as normal response.
             //loadAfterAsNormal();
-            String value = String.valueOf(methodReturnValue);
-            JTableComponent comp = new JTableComponent(getModelFor(value));
+            JTableComponent comp = new JTableComponent(getModelFor(actualString));
             afterSection.add(comp.getComponent(), BorderLayout.CENTER);
         }
 
@@ -78,14 +84,11 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
             ExceptionPreviewComponent options = new ExceptionPreviewComponent("Exception message",
                     ExceptionUtils.prettyPrintException(returnValue.getProb().getSerializedValue()),
                     insidiousService);
-            panel.add(options.getComponent());
             beforeSection.add(options.getComponent(), BorderLayout.CENTER);
         } else {
             //load before as normal response.
             //loadBeforeAsNormal();
-            String value = String.valueOf(methodReturnValue);
-            JTableComponent comp = new JTableComponent(getModelFor(value));
-            panel.add(comp.getComponent());
+            JTableComponent comp = new JTableComponent(getModelFor(originalString));
             beforeSection.add(comp.getComponent(), BorderLayout.CENTER);
         }
 
@@ -93,6 +96,10 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
         beforeSection.revalidate();
     }
 
+    public void setDiffResult(DifferenceResult result)
+    {
+        System.out.println("Diff result : "+result.getDiffResultType());
+    }
     private ResponseMapTable getModelFor(String s1) {
         ObjectMapper om = new ObjectMapper();
         try {

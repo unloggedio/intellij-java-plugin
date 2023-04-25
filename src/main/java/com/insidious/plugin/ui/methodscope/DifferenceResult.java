@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class DifferenceResult {
     private final List<DifferenceInstance> differenceInstanceList;
-    private final DiffResultType diffResultType;
+    private DiffResultType diffResultType;
     private final Map<String, Object> leftOnly;
     private final Map<String, Object> rightOnly;
 
@@ -33,5 +33,10 @@ public class DifferenceResult {
 
     public DiffResultType getDiffResultType() {
         return diffResultType;
+    }
+
+    public void setDiffResultType(DiffResultType type)
+    {
+        this.diffResultType = type;
     }
 }
