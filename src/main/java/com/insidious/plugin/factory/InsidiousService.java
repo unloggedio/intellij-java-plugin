@@ -1058,7 +1058,7 @@ final public class InsidiousService implements Disposable,
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
         logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "]");
-
+        System.out.println("new candidate found");
         ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
         Editor[] currentOpenEditorsList = EditorFactory.getInstance().getAllEditors();
         for (Editor editor : currentOpenEditorsList) {
@@ -1081,8 +1081,8 @@ final public class InsidiousService implements Disposable,
                 .show(toolWindow.getComponent(), GotItTooltip.TOP_MIDDLE);
 //        GutterActionRenderer
 
-
         if (atomicTestContainerWindow != null) {
+            //promoteState();
             atomicTestContainerWindow.refresh();
         }
 
@@ -1250,9 +1250,9 @@ final public class InsidiousService implements Disposable,
         DaemonCodeAnalyzer.getInstance(project).restart();
     }
 
-    public void updateScaffoldForState(GutterState state) {
+    public void updateScaffoldForState(GutterState state, MethodAdapter method) {
         if (this.atomicTestContainerWindow != null) {
-            atomicTestContainerWindow.loadComponentForState(state);
+            atomicTestContainerWindow.loadComponentForState(state, method);
             if (this.atomicTestContent != null) {
                 this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent);
             }
@@ -1372,12 +1372,17 @@ final public class InsidiousService implements Disposable,
             }
             if (state.equals(GutterState.NO_AGENT)) {
                 System.out.println("Promoting to PROCESS_NOT_RUNNING");
-                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING,null);
             }
             if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
                 System.out.println("Promoting to PROCESS_RUNNING");
-                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
+                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING,null);
             }
+//            if (state.equals(GutterState.PROCESS_RUNNING)) {
+//                System.out.println("Promoting to DATA_AVAILABLE");
+//                atomicTestContainerWindow.loadComponentForState(GutterState.DATA_AVAILABLE,null);
+//                atomicTestContainerWindow.refresh();
+//            }
         }
     }
 
@@ -1389,7 +1394,7 @@ final public class InsidiousService implements Disposable,
             }
             if (state.equals(GutterState.PROCESS_RUNNING)) {
                 System.out.println("Demoting to PROCESS_NOT_RUNNING");
-                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING,null);
             }
         }
     }

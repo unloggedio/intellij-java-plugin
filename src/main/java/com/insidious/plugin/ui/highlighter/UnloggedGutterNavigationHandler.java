@@ -43,7 +43,7 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
 
         if (!this.state.equals(GutterState.DIFF) &&
                 !this.state.equals(GutterState.NO_DIFF)) {
-            insidiousService.updateScaffoldForState(this.state);
+            insidiousService.updateScaffoldForState(this.state, methodAdapter);
         }
 
         if (this.state == GutterState.EXECUTE) {

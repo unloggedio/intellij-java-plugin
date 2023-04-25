@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.methodscope;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
@@ -53,24 +54,24 @@ public class AgentResponseComponent implements Supplier<Component> {
     private JPanel topAlign;
     private JButton hideButton;
 
+    private TestCandidateMetadata metadata;
+
     public AgentResponseComponent(
             AgentCommandResponse<String> agentCommandResponse,
+            TestCandidateMetadata metadata,
             boolean showAcceptButton,
             FullViewEventListener fullViewEventListener
     ) {
         this.agentCommandResponse = agentCommandResponse;
         this.showAcceptButton = showAcceptButton;
-//        hideButton.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent e) {
-//
-//            }
-//        });
+        this.metadata = metadata;
 
         if (!showAcceptButton) {
             this.bottomControlPanel.setVisible(false);
         }
-
+        String originalString = new String(
+                metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+        String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
         viewFullButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -78,8 +79,7 @@ public class AgentResponseComponent implements Supplier<Component> {
 //                    GenerateCompareWindows(s1, s2);
                     fullViewEventListener.generateCompareWindows(s1, s2);
                 } else {
-                    fullViewEventListener.generateCompareWindows(oldResponse, agentResponse);
-//                    GenerateCompareWindows(oldResponse, agentResponse);
+                    fullViewEventListener.generateCompareWindows(originalString, actualString);
                 }
             }
         });

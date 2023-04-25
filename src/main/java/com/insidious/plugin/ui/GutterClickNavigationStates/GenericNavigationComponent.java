@@ -69,6 +69,7 @@ public class GenericNavigationComponent {
         } else {
             actionButton.setVisible(false);
         }
+        //loadimageForCurrentState();
         discordButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {

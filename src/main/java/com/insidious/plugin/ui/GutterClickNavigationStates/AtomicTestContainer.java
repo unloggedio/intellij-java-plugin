@@ -13,7 +13,6 @@ public class AtomicTestContainer {
     private JPanel borderParent;
     private InsidiousService insidiousService;
     private MethodExecutorComponent methodExecutorComponent;
-
     private GutterState currentState;
 
     public AtomicTestContainer(InsidiousService insidiousService) {
@@ -24,7 +23,13 @@ public class AtomicTestContainer {
         return this.mainPanel;
     }
 
-    public void loadComponentForState(GutterState state) {
+    private MethodAdapter lastSelectedMethod;
+
+    public void loadComponentForState(GutterState state, MethodAdapter method) {
+        if(method!=null)
+        {
+            lastSelectedMethod = method;
+        }
         System.out.println("Loading Component for state : " + state);
         this.currentState = state;
         if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {

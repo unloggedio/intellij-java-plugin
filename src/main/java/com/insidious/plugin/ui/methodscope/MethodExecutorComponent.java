@@ -2,6 +2,7 @@ package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
@@ -208,8 +209,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         if (this.methodTestCandidates.size() == 0) {
 //            this.candidateComponentMap.clear();
 //            this.candidateResponseMap.clear();
-            showDirectInvokeNavButton();
-            executeAndShowDifferencesButton.setEnabled(false);
+            //showDirectInvokeNavButton();
+            //executeAndShowDifferencesButton.setEnabled(false);
+            insidiousService.focusDirectInvokeTab();
+            insidiousService.loadMethodInAtomicTests(new JavaMethodAdapter(method.getPsiMethod()));
         } else {
             loadMethodCandidates();
             executeAndShowDifferencesButton.setEnabled(true);
@@ -325,7 +328,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             DifferenceResult differences = DiffUtils.calculateDifferences(testCandidateMetadata,
                     agentCommandResponse);
             AgentResponseComponent response1 = new AgentResponseComponent(
-                    agentCommandResponse, true, insidiousService::generateCompareWindows);
+                    agentCommandResponse, testCandidateMetadata,true, insidiousService::generateCompareWindows);
             response1.computeDifferences(differences);
             response = response1;
 

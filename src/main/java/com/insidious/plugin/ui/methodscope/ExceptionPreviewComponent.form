@@ -10,7 +10,7 @@
       <minimumSize width="225" height="80"/>
       <preferredSize width="225" height="80"/>
     </properties>
-    <border type="line">
+    <border type="line" title="#">
       <font/>
       <title-color color="-4473925"/>
       <color color="-4473925"/>

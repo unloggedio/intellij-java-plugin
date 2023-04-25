@@ -65,10 +65,12 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
                 stacktrace = String.valueOf(actualString);
             }
             options = new ExceptionPreviewComponent(responseMessage, stacktrace, insidiousService);
+            options.setBorderTitle("After");
             JPanel component = options.getComponent();
             afterSection.add(component, BorderLayout.CENTER);
         } else {
             JTableComponent comp = new JTableComponent(getModelFor(actualString));
+            comp.setBorderTitle("After");
             afterSection.add(comp.getComponent(), BorderLayout.CENTER);
         }
 
@@ -77,9 +79,11 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
             String prettyException = ExceptionUtils.prettyPrintException(returnValue.getProb().getSerializedValue());
             ExceptionPreviewComponent options = new ExceptionPreviewComponent("Exception message",
                     prettyException, insidiousService);
+            options.setBorderTitle("Before");
             beforeSection.add(options.getComponent(), BorderLayout.CENTER);
         } else {
             JTableComponent comp = new JTableComponent(getModelFor(originalString));
+            comp.setBorderTitle("Before");
             beforeSection.add(comp.getComponent(), BorderLayout.CENTER);
         }
 

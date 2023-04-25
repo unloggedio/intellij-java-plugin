@@ -10,7 +10,7 @@
       <minimumSize width="26" height="60"/>
       <preferredSize width="458" height="60"/>
     </properties>
-    <border type="line">
+    <border type="line" title="#">
       <color color="-4473925"/>
     </border>
     <children>

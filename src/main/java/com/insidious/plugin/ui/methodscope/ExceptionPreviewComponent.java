@@ -7,6 +7,7 @@ import com.intellij.openapi.fileTypes.PlainTextFileType;
 import com.intellij.testFramework.LightVirtualFile;
 
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -52,5 +53,11 @@ public class ExceptionPreviewComponent {
         LightVirtualFile file = new LightVirtualFile("Exception trace", PlainTextFileType.INSTANCE, stackTrace);
         file.setWritable(false);
         FileEditorManager.getInstance(service.getProject()).openFile(file, true);
+    }
+
+    public void setBorderTitle(String title)
+    {
+        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
+        titledBorder.setTitle(title);
     }
 }

@@ -52,7 +52,7 @@ public class AgentConfigComponent {
             updateVMParams();
         });
 
-        loadHintGif();
+        //loadHintGif();
 //        moduleCombobox.addItemListener(event -> {
 //            if (event.getStateChange() == ItemEvent.SELECTED) {
 //                String moduleName = event.getItem()
