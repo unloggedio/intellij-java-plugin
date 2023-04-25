@@ -211,6 +211,9 @@ final public class InsidiousService implements Disposable,
             InsidiousNotification.notifyMessage(
                     "Updated VM parameter for " + selectedConfig.getName(), NotificationType.INFORMATION
             );
+        } else {
+            InsidiousNotification.notifyMessage("Current run configuration [" + selectedConfig.getName() + "] is not " +
+                    "a java application run configuration. Cannot add VM parameter.", NotificationType.WARNING);
         }
 
 
@@ -1372,11 +1375,11 @@ final public class InsidiousService implements Disposable,
             }
             if (state.equals(GutterState.NO_AGENT)) {
                 System.out.println("Promoting to PROCESS_NOT_RUNNING");
-                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING,null);
+                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING, null);
             }
             if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
                 System.out.println("Promoting to PROCESS_RUNNING");
-                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING,null);
+                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING, null);
             }
 //            if (state.equals(GutterState.PROCESS_RUNNING)) {
 //                System.out.println("Promoting to DATA_AVAILABLE");
@@ -1394,7 +1397,7 @@ final public class InsidiousService implements Disposable,
             }
             if (state.equals(GutterState.PROCESS_RUNNING)) {
                 System.out.println("Demoting to PROCESS_NOT_RUNNING");
-                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING,null);
+                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING, null);
             }
         }
     }
