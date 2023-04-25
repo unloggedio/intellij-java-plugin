@@ -1072,19 +1072,6 @@ final public class InsidiousService implements Disposable,
                     () -> DaemonCodeAnalyzer.getInstance(project).restart(psiFile));
         }
 
-
-//        @NotNull ContentManager contentManager = toolWindow.getContentManager();
-//        @Nullable Content directInvokeContent = contentManager.getContent(1);
-
-//        toolWindow.
-
-
-//        JComponent component = directInvokeContent.getComponent();
-
-//        InsidiousNotification.notifyMessage(
-//                "New atomic test cases identified", NotificationType.INFORMATION
-//        );
-
         new GotItTooltip("io.unlogged.candidate.new", "New candidates processed", this)
                 .withIcon(UIUtils.UNLOGGED_ICON_LIGHT_SVG)
                 .withLink("Show", () -> {

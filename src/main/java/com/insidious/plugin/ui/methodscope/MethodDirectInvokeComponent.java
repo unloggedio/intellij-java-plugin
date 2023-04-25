@@ -162,7 +162,8 @@ public class MethodDirectInvokeComponent {
 
         logger.warn("render method executor for: " + methodName);
         this.methodElement = methodElement;
-        methodNameLabel.setText(methodName);
+        String methodNameForLabel = methodName.length() > 25 ? methodName.substring(0, 25) : methodName;
+        methodNameLabel.setText(methodNameForLabel);
         TitledBorder titledBorder = (TitledBorder) actionControlPanel.getBorder();
         titledBorder.setTitle(methodElement.getContainingClass().getName());
 
