@@ -65,6 +65,7 @@ public class DefaultAgentStateProvider implements AgentStateProvider {
         // connected to agent
         this.isAgentServerRunning = true;
         insidiousService.triggerGutterIconReload();
+        insidiousService.promoteState();
         InsidiousNotification.notifyMessage("New session identified "
                         + serverMetadata.getIncludePackageName()
                         + ", connected, agent version: " + serverMetadata.getAgentVersion(),

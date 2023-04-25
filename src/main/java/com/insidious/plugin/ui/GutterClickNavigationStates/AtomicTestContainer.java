@@ -35,6 +35,10 @@ public class AtomicTestContainer {
         } else if (state.equals(GutterState.EXECUTE) || state.equals(GutterState.DATA_AVAILABLE)) {
             loadExecutionFlow();
         } else if (state.equals(GutterState.PROCESS_RUNNING)) {
+            this.borderParent.removeAll();
+            GenericNavigationComponent component = new GenericNavigationComponent(state, insidiousService);
+            this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
+            this.borderParent.revalidate();
             insidiousService.focusDirectInvokeTab();
         } else {
             this.borderParent.removeAll();

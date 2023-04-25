@@ -274,20 +274,20 @@ public class GenericNavigationComponent {
 
     public void loadimageForCurrentState() {
         String gif = null;
-        switch (currentState) {
+//        switch (currentState) {
 //            case DATA_AVAILABLE:
 //                gif="data_available.gif";
 //                break;
-            case PROCESS_RUNNING:
-                gif = "process_running.gif";
-                break;
-            case NO_AGENT:
-                gif = "no_agent.gif";
-                break;
-        }
-        if (gif != null) {
-            loadHintGif(gif);
-        }
+//            case PROCESS_RUNNING:
+//                gif = "process_running.gif";
+//                break;
+//            case NO_AGENT:
+//                gif = "no_agent.gif";
+//                break;
+//        }
+//        if (gif != null) {
+//            loadHintGif(gif);
+//        }
     }
 
     public void loadHintGif(String gif) {
