@@ -18,6 +18,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,6 +53,7 @@ public class AgentResponseComponent implements Supplier<Component> {
     private JScrollPane scrollParent;
     private JPanel topPanel;
     private JPanel topAlign;
+    private JLabel infoLabel;
     private JButton hideButton;
 
     private TestCandidateMetadata metadata;
@@ -128,6 +130,11 @@ public class AgentResponseComponent implements Supplier<Component> {
 //                }
 //            });
 //        }
+    }
+
+    public void setInfoLabel(String info)
+    {
+        this.infoLabel.setText(info);
     }
 
 

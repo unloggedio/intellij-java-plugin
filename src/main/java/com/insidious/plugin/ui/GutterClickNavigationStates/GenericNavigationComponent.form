@@ -82,7 +82,8 @@
               </grid>
             </constraints>
             <properties>
-              <enabled value="false"/>
+              <editable value="false"/>
+              <enabled value="true"/>
               <visible value="false"/>
             </properties>
           </component>

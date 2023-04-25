@@ -25,6 +25,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
     private JPanel contentPanel;
     private JPanel afterSection;
     private JPanel beforeSection;
+    private JLabel infoLabel;
 
     public AgentExceptionResponseComponent(
             TestCandidateMetadata metadata,
@@ -141,5 +142,10 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
     @Override
     public Component get() {
         return this.mainPanel;
+    }
+
+    public void setInfoLabel(String info)
+    {
+        this.infoLabel.setText(info);
     }
 }

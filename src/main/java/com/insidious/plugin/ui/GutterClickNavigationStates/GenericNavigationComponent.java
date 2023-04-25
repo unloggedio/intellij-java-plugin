@@ -59,6 +59,7 @@ public class GenericNavigationComponent {
         } else if (state.equals(GutterState.PROCESS_RUNNING)) {
             this.actionButton.setVisible(true);
             this.actionButton.setText("Execute method");
+            loadimageForCurrentState();
             actionButton.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
@@ -76,6 +77,12 @@ public class GenericNavigationComponent {
                 routeToDiscord();
             }
         });
+    }
+
+    public void loadimageForCurrentState() {
+        this.imagePane.setVisible(true);
+        String gif = "postman_gif.gif";
+        loadHintGif(gif);
     }
 
     public JPanel getComponent() {
@@ -275,10 +282,13 @@ public class GenericNavigationComponent {
 
     public void loadHintGif(String gif) {
         imagePane.setContentType("text/html");
+        imagePane.setOpaque(false);
         String htmlString = "<html><body>" +
                 "<div align=\"left\"><img src=\"" + Objects.requireNonNull(this.getClass().getClassLoader()
                 .getResource("icons/gif/" + gif)) + "\" /></div></body></html>";
         imagePane.setText(htmlString);
+        imagePane.revalidate();
+
     }
 
     private String getBodyText() {

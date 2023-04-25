@@ -25,6 +25,7 @@ import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
+import java.text.SimpleDateFormat;
 
 import javax.swing.*;
 import java.awt.*;
@@ -322,17 +323,30 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         if (agentCommandResponse.getResponseType() != null &&
                 (agentCommandResponse.getResponseType().equals(ResponseType.FAILED) ||
                         agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
-            response = new AgentExceptionResponseComponent(
+            AgentExceptionResponseComponent resp = new AgentExceptionResponseComponent(
                     testCandidateMetadata, agentCommandResponse, insidiousService);
+            resp.setInfoLabel("Recorded at "+formatDate(new Date())+" for "
+                    +methodElement.getContainingClass().getName()+"."+methodElement.getName()+"()");
+            response = resp;
         } else {
             DifferenceResult differences = DiffUtils.calculateDifferences(testCandidateMetadata,
                     agentCommandResponse);
             AgentResponseComponent response1 = new AgentResponseComponent(
                     agentCommandResponse, testCandidateMetadata,true, insidiousService::generateCompareWindows);
             response1.computeDifferences(differences);
+            response1.setInfoLabel("Recorded at "+formatDate(new Date())+" for "
+                    +methodElement.getContainingClass().getName()+"."+methodElement.getName()+"()");
             response = response1;
 
         }
         return response;
+    }
+
+    public String formatDate(Date date)
+    {
+        SimpleDateFormat formatter =
+                new SimpleDateFormat("HH:mm:ss | dd MMM, yyyy");
+        String formattedDate = formatter.format(date);
+        return formattedDate;
     }
 }
