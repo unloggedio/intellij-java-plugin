@@ -88,8 +88,8 @@
             </constraints>
             <properties>
               <font name="JetBrains Mono" size="14" style="1"/>
-              <icon value="icons/png/unloggedGPT_pink.png"/>
-              <text value="Focus on a method to begin"/>
+              <icon value="icons/png/unlogged_toMetadataView.png"/>
+              <text value="Click on a method to proceed"/>
             </properties>
           </component>
         </children>

@@ -53,8 +53,8 @@ public class TestCandidateListedItemComponent {
         this.methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata);
         this.parameterMap = generateParameterMap(method.getParameters());
 
-        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
-        titledBorder.setTitle("#" + String.valueOf(candidateMetadata.getEntryProbeIndex()));
+//        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
+//        titledBorder.setTitle("#" + String.valueOf(candidateMetadata.getEntryProbeIndex()));
         mainPanel.revalidate();
 
         loadInputTree();

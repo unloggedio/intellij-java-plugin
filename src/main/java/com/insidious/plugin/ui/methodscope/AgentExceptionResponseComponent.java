@@ -46,13 +46,9 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
 
 
     public void setupDefLayout() {
-
         final byte[] mainMethodReturnValue = metadata.getMainMethod().getReturnDataEvent().getSerializedValue();
         final String originalString = new String(mainMethodReturnValue);
         final String actualString = String.valueOf(response.getMethodReturnValue());
-        System.out.println("EXCEPTION COMP DATA : ");
-        System.out.println("BEFORE DATA : " + originalString);
-        System.out.println("AFTER DATA : " + actualString);
         JPanel panel = new JPanel();
         panel.setLayout(new GridLayout(2, 1));
         afterSection.removeAll();
