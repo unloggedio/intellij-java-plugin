@@ -7,6 +7,7 @@ import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -31,6 +32,8 @@ import java.awt.*;
 import java.util.List;
 import java.util.*;
 import java.util.function.Supplier;
+
+import static com.insidious.plugin.util.DateUtils.formatDate;
 
 public class MethodExecutorComponent implements MethodExecutionListener, CandidateSelectedListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
@@ -207,8 +210,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 .getTestCandidatesForAllMethod(classQualifiedName, methodName, false);
         this.methodTestCandidates = deDuplicateList(candidates);
         if (this.methodTestCandidates.size() == 0) {
-            insidiousService.focusDirectInvokeTab();
-            insidiousService.loadMethodInAtomicTests(new JavaMethodAdapter(method.getPsiMethod()));
+            //moving to differnet view as this is not the intended screen for no available data.
+            insidiousService.updateScaffoldForState(GutterState.PROCESS_RUNNING, new JavaMethodAdapter(method.getPsiMethod()));
         } else {
             loadMethodCandidates();
             executeAndShowDifferencesButton.setEnabled(true);
@@ -314,15 +317,25 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             TestCandidateMetadata testCandidateMetadata,
             AgentCommandResponse<String> agentCommandResponse
     ) {
+        Supplier<Component> response;
         if (agentCommandResponse.getResponseType() != null &&
                 (agentCommandResponse.getResponseType().equals(ResponseType.FAILED) ||
                         agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
-            return new AgentExceptionResponseComponent(
+            AgentExceptionResponseComponent resp = new AgentExceptionResponseComponent(
                     testCandidateMetadata, agentCommandResponse, insidiousService);
+            resp.setInfoLabel("Method executed at "+formatDate(new Date())+" for "
+                    +methodElement.getContainingClass().getName()+"."+methodElement.getName()+"()");
+            response = resp;
         } else {
-            return new AgentResponseComponent(
-                    agentCommandResponse, testCandidateMetadata, true, insidiousService::generateCompareWindows);
-
+            DifferenceResult differences = DiffUtils.calculateDifferences(testCandidateMetadata,
+                    agentCommandResponse);
+            AgentResponseComponent response1 = new AgentResponseComponent(
+                    agentCommandResponse, testCandidateMetadata,true, insidiousService::generateCompareWindows);
+            response1.computeDifferences(differences);
+            response1.setInfoLabel("Method Executed at "+formatDate(new Date())+" for "
+                    +methodElement.getContainingClass().getName()+"."+methodElement.getName()+"()");
+            response = response1;
         }
+        return response;
     }
 }
