@@ -108,7 +108,7 @@ public class TestCaseService implements Runnable {
 
 
         logger.info("Convert test case script to methods with: " + testCaseScript.getObjectRoutines().size());
-        logger.info("Test case script: " + testCaseScript);
+//        logger.info("Test case script: " + testCaseScript);
         for (ObjectRoutineScript objectRoutine : testCaseScript.getObjectRoutines()) {
             if (objectRoutine.getName().equalsIgnoreCase("<init>")) {
                 continue;

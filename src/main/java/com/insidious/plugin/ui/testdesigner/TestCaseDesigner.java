@@ -673,7 +673,7 @@ public class TestCaseDesigner implements Disposable {
             PsiExpressionListImpl callParameterExpression
     ) {
 
-        logger.info("Find matching method for [" + methodName + "] - " + classReference.getName());
+        logger.debug("Find matching method for [" + methodName + "] - " + classReference.getName());
 
         Set<ClassAdapter> classesToCheck = new HashSet<>();
         classesToCheck.add(classReference);
@@ -691,7 +691,7 @@ public class TestCaseDesigner implements Disposable {
             }
             for (MethodAdapter matchedMethod : matchedMethods) {
                 boolean isMismatch = false;
-                logger.info(
+                logger.debug(
                         "Check matched method: [" + matchedMethod + "] in class [" + psiClass.getQualifiedName() + "]");
                 PsiType[] expectedExpressionType = callParameterExpression.getExpressionTypes();
                 ParameterAdapter[] parameters = matchedMethod.getParameters();
