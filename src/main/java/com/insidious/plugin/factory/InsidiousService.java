@@ -1061,7 +1061,6 @@ final public class InsidiousService implements Disposable,
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
         logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "]");
-        System.out.println("new candidate found");
         ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
         Editor[] currentOpenEditorsList = EditorFactory.getInstance().getAllEditors();
         for (Editor editor : currentOpenEditorsList) {
@@ -1109,6 +1108,7 @@ final public class InsidiousService implements Disposable,
         executionSession.setSessionId("na");
         executionSession.setCreatedAt(new Date());
         executionSession.setLastUpdateAt(new Date().getTime());
+
         try {
             setSession(executionSession);
         } catch (SQLException | IOException e) {
@@ -1135,7 +1135,7 @@ final public class InsidiousService implements Disposable,
 
         // agent exists but cannot connect with agent server
         // so no process is running with the agent
-        if (!stateProvider.isAgentRunning()) {
+        if (!stateProvider.isAgentRunning() || sessionInstance == null) {
             return GutterState.PROCESS_NOT_RUNNING;
         }
 

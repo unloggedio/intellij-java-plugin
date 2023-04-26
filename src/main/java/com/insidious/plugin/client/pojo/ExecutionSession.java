@@ -1,6 +1,7 @@
 package com.insidious.plugin.client.pojo;
 
 
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Date;
 
@@ -8,6 +9,7 @@ public class ExecutionSession {
 
 
     public static final String EXECUTION_DB_NAME = "execution.db";
+    public static final String LOG_FILE_NAME = "log.txt";
     private long lastUpdateAt;
     private String projectId;
     private Date createdAt;
@@ -66,7 +68,11 @@ public class ExecutionSession {
     }
 
     public String getDatabasePath() {
-        return Path.of(path, EXECUTION_DB_NAME).toAbsolutePath().toString();
+        return FileSystems.getDefault().getPath(path, EXECUTION_DB_NAME).toAbsolutePath().toString();
+    }
+
+    public String getLogFilePath() {
+        return FileSystems.getDefault().getPath(path, LOG_FILE_NAME).toAbsolutePath().toString();
     }
 
     public String getPath() {

@@ -14,6 +14,7 @@ public class AtomicTestContainer {
     private InsidiousService insidiousService;
     private MethodExecutorComponent methodExecutorComponent;
     private GutterState currentState;
+    private MethodAdapter lastSelectedMethod;
 
     public AtomicTestContainer(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -23,11 +24,8 @@ public class AtomicTestContainer {
         return this.mainPanel;
     }
 
-    private MethodAdapter lastSelectedMethod;
-
     public void loadComponentForState(GutterState state, MethodAdapter method) {
-        if(method!=null)
-        {
+        if (method != null) {
             lastSelectedMethod = method;
         }
         System.out.println("Loading Component for state : " + state);
