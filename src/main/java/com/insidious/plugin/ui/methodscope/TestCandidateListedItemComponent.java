@@ -145,8 +145,8 @@ public class TestCandidateListedItemComponent {
         if (desiredHeight < 100) {
             desiredHeight = 100;
         }
-        if (desiredHeight > 1000) {
-            desiredHeight = 1000;
+        if (desiredHeight > 220) {
+            desiredHeight = 220;
         }
         Dimension preferredSize = new Dimension(-1, desiredHeight);
 
