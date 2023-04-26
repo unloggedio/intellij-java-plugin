@@ -216,7 +216,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         }
         executeAndShowDifferencesButton.revalidate();
         executeAndShowDifferencesButton.repaint();
-        this.candidateCountLabel.setText(methodTestCandidates.size() + " unique candidates for " + method.getName());
+        this.candidateCountLabel.setText(methodTestCandidates.size() + " Unique candidates for " + method.getName());
     }
 
     private void clearBoard() {
