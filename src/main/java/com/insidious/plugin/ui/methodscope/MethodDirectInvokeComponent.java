@@ -156,6 +156,9 @@ public class MethodDirectInvokeComponent {
             return;
         }
 
+        executeButton.setToolTipText("");
+        executeButton.setEnabled(true);
+
         String methodName = methodElement.getName();
         String classQualifiedName = methodElement.getContainingClass().getQualifiedName();
 

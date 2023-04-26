@@ -9,7 +9,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -73,9 +72,7 @@ public class AgentResponseComponent implements Supplier<Component> {
 
 
         String methodLabel = simpleClassName + "." + metadata.getMainMethod().getMethodName() + "()";
-//        setInfoLabel(methodLabel + " | " + DateUtils.formatDate(new Date()));
-        setInfoLabel("Recorded at " + DateUtils.formatDate(new Date()) + " for " + methodLabel);
-
+        setInfoLabel("Method executed at " + DateUtils.formatDate(new Date()) + " for " + methodLabel);
 
         viewFullButton.addMouseListener(new MouseAdapter() {
             @Override

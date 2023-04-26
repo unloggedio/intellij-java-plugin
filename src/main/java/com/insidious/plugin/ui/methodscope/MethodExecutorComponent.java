@@ -211,7 +211,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         this.methodTestCandidates = deDuplicateList(candidates);
         if (this.methodTestCandidates.size() == 0) {
             //moving to differnet view as this is not the intended screen for no available data.
-            insidiousService.updateScaffoldForState(GutterState.PROCESS_RUNNING, new JavaMethodAdapter(method.getPsiMethod()));
+            insidiousService.updateScaffoldForState(GutterState.PROCESS_RUNNING,
+                    new JavaMethodAdapter(method.getPsiMethod()));
         } else {
             loadMethodCandidates();
             executeAndShowDifferencesButton.setEnabled(true);
@@ -317,25 +318,15 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             TestCandidateMetadata testCandidateMetadata,
             AgentCommandResponse<String> agentCommandResponse
     ) {
-        Supplier<Component> response;
         if (agentCommandResponse.getResponseType() != null &&
                 (agentCommandResponse.getResponseType().equals(ResponseType.FAILED) ||
                         agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
-            AgentExceptionResponseComponent resp = new AgentExceptionResponseComponent(
+            return new AgentExceptionResponseComponent(
                     testCandidateMetadata, agentCommandResponse, insidiousService);
-            resp.setInfoLabel("Method executed at "+formatDate(new Date())+" for "
-                    +methodElement.getContainingClass().getName()+"."+methodElement.getName()+"()");
-            response = resp;
         } else {
-            DifferenceResult differences = DiffUtils.calculateDifferences(testCandidateMetadata,
-                    agentCommandResponse);
-            AgentResponseComponent response1 = new AgentResponseComponent(
-                    agentCommandResponse, testCandidateMetadata,true, insidiousService::generateCompareWindows);
-            response1.computeDifferences(differences);
-            response1.setInfoLabel("Method Executed at "+formatDate(new Date())+" for "
-                    +methodElement.getContainingClass().getName()+"."+methodElement.getName()+"()");
-            response = response1;
+            return new AgentResponseComponent(
+                    agentCommandResponse, testCandidateMetadata, true, insidiousService::generateCompareWindows);
+
         }
-        return response;
     }
 }

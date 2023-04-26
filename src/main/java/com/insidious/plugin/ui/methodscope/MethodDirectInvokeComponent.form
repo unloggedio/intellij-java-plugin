@@ -74,10 +74,12 @@
               <background color="-1210058"/>
               <borderPainted value="false"/>
               <contentAreaFilled value="false"/>
+              <enabled value="false"/>
               <foreground color="-1"/>
               <icon value="icons/png/execute_all_white.png"/>
               <opaque value="true"/>
               <text value="Execute method"/>
+              <toolTipText value="Start your application with Unlogged java agent to enable Direct Invoke"/>
             </properties>
           </component>
           <component id="287d" class="javax.swing.JLabel" binding="methodNameLabel">

@@ -41,8 +41,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
         String simpleClassName = metadata.getFullyQualifiedClassname();
         simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
         String methodLabel = simpleClassName + "." + metadata.getMainMethod().getMethodName() + "()";
-//        setInfoLabel(methodLabel + " | " + DateUtils.formatDate(new Date()));
-        setInfoLabel("Recorded at " + DateUtils.formatDate(new Date()) + " for " + methodLabel);
+        setInfoLabel("Method executed at " + DateUtils.formatDate(new Date()) + " for " + methodLabel);
     }
 
 
