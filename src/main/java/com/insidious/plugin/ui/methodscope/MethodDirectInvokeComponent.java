@@ -113,11 +113,11 @@ public class MethodDirectInvokeComponent {
                     ResponseType responseType = agentCommandResponse.getResponseType();
                     String responseMessage = agentCommandResponse.getMessage() == null ? "" :
                             agentCommandResponse.getMessage() + "\n";
-                    TitledBorder panelTitledBoarder = (TitledBorder) returnValuePanel.getBorder();
+                    TitledBorder panelTitledBoarder = (TitledBorder) scrollerContainer.getBorder();
                     String responseObjectClassName = agentCommandResponse.getResponseClassName();
                     Object methodReturnValue = agentCommandResponse.getMethodReturnValue();
                     if (responseType == null) {
-                        panelTitledBoarder.setTitle(responseObjectClassName);
+                        panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);
                         returnValueTextArea.setText(responseMessage + methodReturnValue);
                         return;
                     }
@@ -126,7 +126,7 @@ public class MethodDirectInvokeComponent {
                         String returnTypePresentableText = ApplicationManager.getApplication()
                                 .runReadAction(
                                         (Computable<String>) () -> methodElement.getReturnType().getPresentableText());
-                        panelTitledBoarder.setTitle(returnTypePresentableText);
+                        panelTitledBoarder.setTitle("Method response: " + returnTypePresentableText);
                         ObjectMapper objectMapper = insidiousService.getObjectMapper();
                         try {
                             JsonNode jsonNode = objectMapper.readValue(methodReturnValue.toString(), JsonNode.class);
@@ -135,10 +135,9 @@ public class MethodDirectInvokeComponent {
                                     .writeValueAsString(jsonNode));
                         } catch (JsonProcessingException ex) {
                             returnValueTextArea.setText(methodReturnValue.toString());
-//                            throw new RuntimeException(ex);
                         }
                     } else if (responseType.equals(ResponseType.EXCEPTION)) {
-                        panelTitledBoarder.setTitle(responseObjectClassName);
+                        panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);
                         if (methodReturnValue != null) {
                             returnValueTextArea.setText(
                                     ExceptionUtils.prettyPrintException(methodReturnValue.toString()));
@@ -146,7 +145,7 @@ public class MethodDirectInvokeComponent {
                             returnValueTextArea.setText(agentCommandResponse.getMessage());
                         }
                     } else {
-                        panelTitledBoarder.setTitle(responseObjectClassName);
+                        panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);
                         returnValueTextArea.setText(responseMessage + methodReturnValue);
                     }
                 });
@@ -171,23 +170,24 @@ public class MethodDirectInvokeComponent {
         ParameterAdapter[] methodParameters = methodElement.getParameters();
 
 
-        List<TestCandidateMetadata> methodTestCandidates = this.insidiousService
-                .getSessionInstance()
-                .getTestCandidatesForAllMethod(classQualifiedName, methodName, false);
-
-
-        TestCandidateMetadata mostRecentTestCandidate = null;
+//        TestCandidateMetadata mostRecentTestCandidate = null;
         List<String> methodArgumentValues = null;
-        if (methodTestCandidates.size() > 0) {
-            mostRecentTestCandidate = methodTestCandidates.get(methodTestCandidates.size() - 1);
-            methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
-                    mostRecentTestCandidate);
-        }
-        AgentCommandRequest acr = MethodUtils.createRequestWithParameters(methodElement, methodArgumentValues);
+        AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(methodElement,
+                methodArgumentValues);
 
-        AgentCommandRequest existingRequests = insidiousService.getAgentCommandRequests(acr);
+        AgentCommandRequest existingRequests = insidiousService.getAgentCommandRequests(agentCommandRequest);
         if (existingRequests != null) {
             methodArgumentValues = existingRequests.getMethodParameters();
+        } else {
+            List<TestCandidateMetadata> methodTestCandidates = this.insidiousService
+                    .getSessionInstance()
+                    .getTestCandidatesForAllMethod(classQualifiedName, methodName, false);
+            int candidateCount = methodTestCandidates.size();
+            if (candidateCount > 0) {
+                TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(candidateCount - 1);
+                methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
+                        mostRecentTestCandidate);
+            }
         }
 
         JPanel methodParameterContainer = new JPanel();

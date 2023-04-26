@@ -1,21 +1,17 @@
 package com.insidious.plugin.ui.methodscope;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
-import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.UIUtils;
+import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Date;
@@ -26,27 +22,19 @@ import java.util.function.Supplier;
 
 public class AgentResponseComponent implements Supplier<Component> {
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
-    private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = true;
     private final AgentCommandResponse<String> agentCommandResponse;
     private final boolean MOCK_MODE = false;
     final private boolean showAcceptButton;
     String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\",\"wut\":\"ay\",\"get\":\"ay\",\"sut\":\"ay\",\"put\":\"ay\",\"fut\":\"ay\"}";
     //    String s1 = "";
-    String d1 = "1";
     String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"dababy\",\"e\":\"f\"}";
-    //    String s1 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
-    String d2 = "1";
-    private String oldResponse;
-    private String agentResponse;
     private JPanel mainPanel;
-    private JPanel borderParent;
     private JPanel centerPanel;
     private JPanel bottomControlPanel;
     private JButton viewFullButton;
     private JTable mainTable;
     private JLabel statusLabel;
-    private JButton closeButton;
     private JPanel tableParent;
     private JPanel methodArgumentsPanel;
     private JButton acceptButton;
@@ -71,9 +59,24 @@ public class AgentResponseComponent implements Supplier<Component> {
         if (!showAcceptButton) {
             this.bottomControlPanel.setVisible(false);
         }
+
+        DifferenceResult differences = DiffUtils.calculateDifferences(metadata, agentCommandResponse);
+        computeDifferences(differences);
+
+
         String originalString = new String(
                 metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
+
+        String simpleClassName = metadata.getFullyQualifiedClassname();
+        simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
+
+
+        String methodLabel = simpleClassName + "." + metadata.getMainMethod().getMethodName() + "()";
+//        setInfoLabel(methodLabel + " | " + DateUtils.formatDate(new Date()));
+        setInfoLabel("Recorded at " + DateUtils.formatDate(new Date()) + " for " + methodLabel);
+
+
         viewFullButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -132,13 +135,14 @@ public class AgentResponseComponent implements Supplier<Component> {
 //        }
     }
 
-    public void setInfoLabel(String info)
-    {
+    public void setInfoLabel(String info) {
+//        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
+//        titledBorder.setTitle(info);
         this.infoLabel.setText(info);
     }
 
 
-    public DifferenceResult computeDifferences(DifferenceResult differenceResult) {
+    public void computeDifferences(DifferenceResult differenceResult) {
 
         switch (differenceResult.getDiffResultType()) {
             case DIFF:
@@ -160,10 +164,12 @@ public class AgentResponseComponent implements Supplier<Component> {
                 this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
                 this.statusLabel.setForeground(UIUtils.red);
                 this.tableParent.setVisible(false);
-                showExceptionTrace(this.agentResponse);
+                showExceptionTrace(
+                        ExceptionUtils.prettyPrintException(
+                                this.metadata.getMainMethod().getReturnDataEvent().getSerializedValue())
+                );
                 break;
         }
-        return differenceResult;
     }
 
     private void renderTableWithDifferences(List<DifferenceInstance> differenceInstances) {

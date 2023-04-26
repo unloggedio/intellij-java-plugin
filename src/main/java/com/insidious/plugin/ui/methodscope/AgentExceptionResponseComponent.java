@@ -7,6 +7,7 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
+import com.insidious.plugin.util.DateUtils;
 import com.insidious.plugin.util.ExceptionUtils;
 
 import javax.swing.*;
@@ -37,7 +38,13 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
         this.metadata = metadata;
         this.response = response;
         setupDefLayout();
+        String simpleClassName = metadata.getFullyQualifiedClassname();
+        simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
+        String methodLabel = simpleClassName + "." + metadata.getMainMethod().getMethodName() + "()";
+//        setInfoLabel(methodLabel + " | " + DateUtils.formatDate(new Date()));
+        setInfoLabel("Recorded at " + DateUtils.formatDate(new Date()) + " for " + methodLabel);
     }
+
 
     public void setupDefLayout() {
 
@@ -144,8 +151,9 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
         return this.mainPanel;
     }
 
-    public void setInfoLabel(String info)
-    {
+    public void setInfoLabel(String info) {
+//        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
+//        titledBorder.setTitle(info);
         this.infoLabel.setText(info);
     }
 }

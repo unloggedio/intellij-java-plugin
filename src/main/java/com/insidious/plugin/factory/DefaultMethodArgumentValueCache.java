@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import org.jetbrains.annotations.NotNull;
 
