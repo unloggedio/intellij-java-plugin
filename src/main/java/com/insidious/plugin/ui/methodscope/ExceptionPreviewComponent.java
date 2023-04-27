@@ -12,6 +12,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class ExceptionPreviewComponent {
+    private final String message;
+    private final String stackTrace;
+    private final InsidiousService service;
     private JPanel mainPanel;
     private JPanel buttonControlPanel;
     private JButton showfulltrace;
@@ -20,10 +23,6 @@ public class ExceptionPreviewComponent {
     private JLabel iconLabel;
     private JPanel topPanel;
     private JPanel topAligner;
-    private String message;
-    private String stackTrace;
-
-    private InsidiousService service;
 
     public ExceptionPreviewComponent(String message, String stacktrace, InsidiousService insidiousService) {
         this.message = message;
@@ -55,8 +54,7 @@ public class ExceptionPreviewComponent {
         FileEditorManager.getInstance(service.getProject()).openFile(file, true);
     }
 
-    public void setBorderTitle(String title)
-    {
+    public void setBorderTitle(String title) {
         TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
         titledBorder.setTitle(title);
     }

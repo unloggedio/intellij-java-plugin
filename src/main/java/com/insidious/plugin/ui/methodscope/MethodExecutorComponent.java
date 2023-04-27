@@ -28,12 +28,11 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.util.List;
 import java.util.*;
 import java.util.function.Supplier;
-
-import static com.insidious.plugin.util.DateUtils.formatDate;
 
 public class MethodExecutorComponent implements MethodExecutionListener, CandidateSelectedListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
@@ -204,6 +203,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         clearBoard();
         this.methodElement = method;
         String classQualifiedName = methodElement.getContainingClass().getQualifiedName();
+        String classSimpleName = methodElement.getContainingClass().getName();
         String methodName = methodElement.getName();
         List<TestCandidateMetadata> candidates = this.insidiousService
                 .getSessionInstance()
@@ -220,7 +220,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         }
         executeAndShowDifferencesButton.revalidate();
         executeAndShowDifferencesButton.repaint();
-        this.candidateCountLabel.setText(methodTestCandidates.size() + " Unique candidates for " + method.getName());
+        this.candidateCountLabel.setText(methodTestCandidates.size() + " Unique candidates");
+        TitledBorder topPanelTitledBorder = (TitledBorder) topPanel.getBorder();
+        topPanelTitledBorder.setTitle(classSimpleName + "." + methodName + "()");
+
     }
 
     private void clearBoard() {

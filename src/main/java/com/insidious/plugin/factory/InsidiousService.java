@@ -166,6 +166,7 @@ final public class InsidiousService implements Disposable,
     private Content atomicTestContent;
     private AtomicTestContainer atomicTestContainerWindow;
     private MethodAdapter currentMethod;
+    private boolean hasShownIndexWaitNotification = false;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -861,7 +862,8 @@ final public class InsidiousService implements Disposable,
         DumbService dumbService = project.getService(DumbService.class);
         String methodName = method.getName();
 
-        if (dumbService.isDumb()) {
+        if (dumbService.isDumb() && !hasShownIndexWaitNotification) {
+            hasShownIndexWaitNotification = true;
             InsidiousNotification.notifyMessage("Please wait for IDE indexing to finish to start creating tests",
                     NotificationType.WARNING);
             dumbService.runWhenSmart(() -> {
