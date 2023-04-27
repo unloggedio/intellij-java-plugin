@@ -1074,13 +1074,15 @@ final public class InsidiousService implements Disposable,
                     () -> DaemonCodeAnalyzer.getInstance(project).restart(psiFile));
         }
 
-        new GotItTooltip("io.unlogged.candidate.new", "New candidates processed", this)
-                .withIcon(UIUtils.UNLOGGED_ICON_LIGHT_SVG)
-                .withLink("Show", () -> {
-                    atomicTestContainerWindow.loadExecutionFlow();
-                    this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent, true);
-                })
-                .show(toolWindow.getComponent(), GotItTooltip.TOP_MIDDLE);
+        if (toolWindow != null && atomicTestContainerWindow != null) {
+            new GotItTooltip("io.unlogged.candidate.new", "New candidates processed", this)
+                    .withIcon(UIUtils.UNLOGGED_ICON_LIGHT_SVG)
+                    .withLink("Show", () -> {
+                        atomicTestContainerWindow.loadExecutionFlow();
+                        this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent, true);
+                    })
+                    .show(toolWindow.getComponent(), GotItTooltip.TOP_MIDDLE);
+        }
 //        GutterActionRenderer
 
         if (atomicTestContainerWindow != null) {
@@ -1264,6 +1266,9 @@ final public class InsidiousService implements Disposable,
     }
 
     public void focusDirectInvokeTab() {
+        if (toolWindow == null || directMethodInvokeContent == null) {
+            return;
+        }
         ApplicationManager.getApplication().invokeLater(
                 () -> {
                     toolWindow.getContentManager().setSelectedContent(directMethodInvokeContent, false);

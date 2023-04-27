@@ -68,7 +68,8 @@ public class DefaultAgentStateProvider implements AgentStateProvider {
         insidiousService.promoteState();
         InsidiousNotification.notifyMessage("New session identified "
                         + serverMetadata.getIncludePackageName()
-                        + ", connected, agent version: " + serverMetadata.getAgentVersion(),
+                        + ", connected, agent version: " + serverMetadata.getAgentVersion() + " | Project: " + insidiousService.getProject()
+                        .getName(),
                 NotificationType.INFORMATION);
         insidiousService.focusDirectInvokeTab();
 
