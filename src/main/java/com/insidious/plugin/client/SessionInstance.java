@@ -590,12 +590,10 @@ public class SessionInstance {
             probeInfoIndex.putAll(probesMap);
         }
 
-        daoService.createOrUpdateClassDefinitions(classInfoIndex.values()
-                .stream()
+        daoService.createOrUpdateClassDefinitions(classInfoIndex.values().stream()
                 .map(ClassDefinition::fromClassInfo)
                 .collect(Collectors.toList()));
-        daoService.createOrUpdateMethodDefinitions(methodInfoIndex.values()
-                .stream()
+        daoService.createOrUpdateMethodDefinitions(methodInfoIndex.values().stream()
                 .map(e -> MethodDefinition.fromMethodInfo(e, classInfoIndex.get(e.getClassId()), false))
                 .collect(Collectors.toList()));
         classWeaveInfo._io().close();
@@ -1028,23 +1026,24 @@ public class SessionInstance {
 
     private void readClassWeaveInfoStream(@NotNull File sessionFile) throws IOException, FailedToReadClassWeaveException {
 
-        logger.warn("creating class weave info from scratch from file [1026]: " + sessionFile.getName());
-        String classWeaveFileStream = getFileStreamFromArchive(sessionFile, WEAVE_DAT_FILE.getFileName());
-        refreshWeaveInformationStream(classWeaveFileStream);
-
-        NameWithBytes typeIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionFile,
-                INDEX_TYPE_DAT_FILE.getFileName());
-        if (typeIndexBytes == null) {
-            throw new FailedToReadClassWeaveException("index.type.dat not found in: " + sessionFile.getName());
-        }
-
         try {
+            logger.warn("creating class weave info from scratch from file [1026]: " + sessionFile.getName());
+            String classWeaveFileStream = getFileStreamFromArchive(sessionFile, WEAVE_DAT_FILE.getFileName());
+            refreshWeaveInformationStream(classWeaveFileStream);
+
+            NameWithBytes typeIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionFile,
+                    INDEX_TYPE_DAT_FILE.getFileName());
+            if (typeIndexBytes == null) {
+                throw new FailedToReadClassWeaveException("index.type.dat not found in: " + sessionFile.getName());
+            }
+
             archiveIndex = readArchiveIndex(typeIndexBytes.getBytes(), INDEX_TYPE_DAT_FILE);
             ConcurrentIndexedCollection<TypeInfoDocument> typeIndex = archiveIndex.getTypeInfoIndex();
             typeIndex.parallelStream().forEach(e -> typeInfoIndex.put(e.getTypeId(), e));
-        } catch (IOException e) {
-//            e.printStackTrace();
-            logger.warn("failed to read archive for types index: " + e.getMessage());
+        } catch (Exception e) {
+            logger.warn("failed to read archive for types index: " + e.getMessage(), e);
+            throw new FailedToReadClassWeaveException("Failed to read " + INDEX_TYPE_DAT_FILE + " in "
+                    + sessionFile.getPath() + " -> " + e.getMessage());
         }
     }
 

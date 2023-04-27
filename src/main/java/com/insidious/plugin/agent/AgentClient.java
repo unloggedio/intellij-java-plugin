@@ -101,7 +101,6 @@ public class AgentClient {
                 boolean newState = response.getResponseType().equals(ResponseType.NORMAL);
                 if (newState && !currentState) {
                     currentState = true;
-
                     AgentClient.this.serverMetadata = response.getMethodReturnValue();
                     connectionStateListener.onConnectedToAgentServer(AgentClient.this.serverMetadata);
                 } else if (!newState && currentState) {

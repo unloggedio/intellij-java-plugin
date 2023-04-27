@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.methodscope;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
@@ -12,6 +13,7 @@ import com.insidious.plugin.util.ExceptionUtils;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
 import java.util.List;
 import java.util.*;
 import java.util.function.Supplier;
@@ -19,6 +21,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class AgentExceptionResponseComponent implements Supplier<Component> {
+    private static final ObjectMapper objectMapper = new ObjectMapper();
     final private InsidiousService insidiousService;
     final private TestCandidateMetadata metadata;
     final private AgentCommandResponse<String> response;
@@ -80,7 +83,16 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
         Parameter returnValue = metadata.getMainMethod().getReturnValue();
         if (returnValue.isException()) {
             String prettyException = ExceptionUtils.prettyPrintException(returnValue.getProb().getSerializedValue());
-            ExceptionPreviewComponent options = new ExceptionPreviewComponent("Exception message",
+            String exceptionMessage = "Exception message";
+            try {
+                JsonNode jsonNode = objectMapper.readValue(returnValue.getProb().getSerializedValue(), JsonNode.class);
+                if (jsonNode.has("message")) {
+                    exceptionMessage = jsonNode.get("message").asText();
+                }
+            } catch (IOException e) {
+                // failed to read return value as json node
+            }
+            ExceptionPreviewComponent options = new ExceptionPreviewComponent(exceptionMessage,
                     prettyException, insidiousService);
             options.setBorderTitle("Before");
             beforeSection.add(options.getComponent(), BorderLayout.CENTER);

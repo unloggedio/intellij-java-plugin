@@ -116,7 +116,7 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
                 return false;
             }
 
-            String finalIncludedPackagedName = includedPackagedName;
+            String finalIncludedPackagedName = includedPackagedName.replace('/', '.');
             @Nullable PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
                     (Computable<PsiPackage>) () -> JavaPsiFacade.getInstance(project)
                             .findPackage(finalIncludedPackagedName));
