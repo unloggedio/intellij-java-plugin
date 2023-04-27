@@ -10,12 +10,15 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.event.EditorMouseEvent;
 import com.intellij.openapi.editor.event.EditorMouseEventArea;
 import com.intellij.openapi.editor.event.EditorMouseListener;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.serviceContainer.AlreadyDisposedException;
+import com.intellij.testFramework.LightVirtualFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.kotlin.psi.KtNamedFunction;
 
@@ -44,6 +47,11 @@ public class InsidiousCaretListener implements EditorMouseListener {
             Editor editor = event.getEditor();
             int offset = editor.getCaretModel().getOffset();
             Document document = editor.getDocument();
+            VirtualFile virtualFile = FileDocumentManager.getInstance().getFile(document);
+            if (virtualFile instanceof LightVirtualFile) {
+                return;
+            }
+
             PsiFile file = PsiDocumentManager.getInstance(project).getPsiFile(document);
             if (file == null) {
                 return;
