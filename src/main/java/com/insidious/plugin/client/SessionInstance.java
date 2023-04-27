@@ -102,6 +102,9 @@ public class SessionInstance {
     private final ZipConsumer zipConsumer;
     private final Project project;
     private final Map<String, Boolean> classNotFound = new HashMap<>();
+    private final Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
+    private final Map<Long, com.insidious.plugin.pojo.dao.MethodCallExpression> methodCallMap = new HashMap<>();
+    private final Map<Long, String> methodCallSubjectTypeMap = new HashMap<>();
     private List<File> sessionArchives;
     private ArchiveIndex archiveIndex;
     private ChronicleMap<Long, ObjectInfoDocument> objectInfoIndex;
@@ -110,14 +113,13 @@ public class SessionInstance {
     private ChronicleMap<Integer, MethodInfo> methodInfoIndex;
     private ChronicleMap<String, MethodInfo> methodInfoByNameIndex;
     private ChronicleMap<Integer, ClassInfo> classInfoIndex;
-    private Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexCollection;
     private NewTestCandidateIdentifiedListener testCandidateListener;
     private File currentSessionArchiveBeingProcessed;
-    private Map<Long, com.insidious.plugin.pojo.dao.MethodCallExpression> methodCallMap = new HashMap<>();
-    private Map<Long, String> methodCallSubjectTypeMap = new HashMap<>();
     private ChronicleVariableContainer parameterContainer;
     private Date lastScannedTimeStamp;
+    private boolean isSessionCorrupted = false;
+    private boolean hasShownCorruptedNotification = false;
 
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
@@ -2274,6 +2276,17 @@ public class SessionInstance {
     }
 
     public void scanDataAndBuildReplay() {
+        if (isSessionCorrupted) {
+            if (!hasShownCorruptedNotification) {
+                hasShownCorruptedNotification = true;
+                InsidiousNotification.notifyMessage(
+                        "Session is corrupted, please restart application or contact us" +
+                                " at Discord [ https://discord.gg/Hhwvay8uTa ] if the issue persists",
+                        NotificationType.ERROR);
+            }
+
+            return;
+        }
         try {
 
             long scanStart = System.currentTimeMillis();
@@ -2326,8 +2339,9 @@ public class SessionInstance {
             eventProperties.put("session_folder_size", (size_folder / 1000000));
             UsageInsightTracker.getInstance().RecordEvent("ScanMetrics", eventProperties);
         } catch (Exception e) {
+            isSessionCorrupted = true;
             e.printStackTrace();
-            logger.error("Exception in scan and build session : " + e);
+            logger.warn("Exception in scan and build session : " + e);
         }
     }
 

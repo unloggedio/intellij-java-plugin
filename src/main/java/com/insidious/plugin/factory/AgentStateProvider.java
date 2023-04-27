@@ -1,8 +1,6 @@
 package com.insidious.plugin.factory;
 
-import com.insidious.plugin.agent.ConnectionStateListener;
-
-public interface AgentStateProvider extends ConnectionStateListener {
+public interface AgentStateProvider {
     String getJavaAgentString();
 
     String getVideoBugAgentPath();

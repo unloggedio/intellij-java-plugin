@@ -9,11 +9,11 @@ public class ServerMetadata {
         this.agentVersion = agentVersion;
     }
 
-    public String getIncludePackageName() {
-        return includePackageName;
+    public ServerMetadata() {
     }
 
-    public ServerMetadata() {
+    public String getIncludePackageName() {
+        return includePackageName;
     }
 
     public void setIncludePackageName(String includePackageName) {
@@ -26,5 +26,13 @@ public class ServerMetadata {
 
     public void setAgentVersion(String agentVersion) {
         this.agentVersion = agentVersion;
+    }
+
+    @Override
+    public String toString() {
+        return "ServerMetadata{" +
+                "includePackageName='" + includePackageName + '\'' +
+                ", agentVersion='" + agentVersion + '\'' +
+                '}';
     }
 }

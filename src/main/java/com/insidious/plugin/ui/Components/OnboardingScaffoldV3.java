@@ -373,7 +373,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         String suggestedAgent = project.getService(InsidiousService.class).suggestAgentVersion();
         System.out.println("[SUGGESTED AGENT] " + suggestedAgent);
 
-        Integer defaultIntex = 0;
+        int defaultIntex = 0;
         if (serializers.contains(suggestedAgent)) {
             defaultIntex = serializers.indexOf(suggestedAgent);
         }

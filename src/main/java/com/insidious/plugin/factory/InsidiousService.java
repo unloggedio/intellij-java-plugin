@@ -86,7 +86,6 @@ import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
-import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
@@ -116,7 +115,7 @@ import java.util.stream.Collectors;
 
 @Storage("insidious.xml")
 final public class InsidiousService implements Disposable,
-        NewTestCandidateIdentifiedListener, BranchChangeListener, ConnectionStateListener, GutterStateProvider, AgentStateProvider {
+        NewTestCandidateIdentifiedListener, BranchChangeListener, GutterStateProvider, AgentStateProvider {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -183,7 +182,7 @@ final public class InsidiousService implements Disposable,
         InsidiousCaretListener listener = new InsidiousCaretListener(project);
         multicaster.addEditorMouseListener(listener, this);
         stateProvider = new DefaultAgentStateProvider(this);
-        agentClient = new AgentClient("http://localhost:12100", this);
+        agentClient = new AgentClient("http://localhost:12100", (ConnectionStateListener) stateProvider);
 //        multicaster.add
 
     }
@@ -198,7 +197,7 @@ final public class InsidiousService implements Disposable,
 
 
         RunManager runManager = project.getService(RunManager.class);
-        List<RunnerAndConfigurationSettings> allSettings = runManager.getAllSettings();
+//        List<RunnerAndConfigurationSettings> allSettings = runManager.getAllSettings();
 
         RunnerAndConfigurationSettings selectedConfig = runManager.getSelectedConfiguration();
 
@@ -215,29 +214,6 @@ final public class InsidiousService implements Disposable,
             InsidiousNotification.notifyMessage("Current run configuration [" + selectedConfig.getName() + "] is not " +
                     "a java application run configuration. Cannot add VM parameter.", NotificationType.WARNING);
         }
-
-
-//        try {
-//            ExecutionEnvironment environment = new ExecutionEnvironment(
-//                    executor,
-//            );
-//            environment.set
-//            DefaultJavaProgramRunner.getInstance().execute(environment);
-//        } catch (ExecutionException e) {
-//            throw new RuntimeException(e);
-//        }
-
-//        for (RunnerAndConfigurationSettings runSetting : allSettings) {
-//            logger.info("runner config - " + runSetting.getName());
-//
-//            if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
-//                ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
-//                String currentVMParams = applicationConfiguration.getVMParameters();
-//                String newVmOptions = currentVMParams;
-//                newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
-//                applicationConfiguration.setVMParameters(newVmOptions.trim());
-//            }
-//        }
     }
 
     @NotNull
@@ -744,6 +720,14 @@ final public class InsidiousService implements Disposable,
         atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
         contentManager.addContent(atomicTestContent);
 
+        if (stateProvider.isAgentRunning()) {
+            atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING, null);
+        } else if (doesAgentExist()) {
+            atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING, null);
+        } else {
+            atomicTestContainerWindow.loadComponentForState(GutterState.NO_AGENT, null);
+        }
+
 
         methodDirectInvokeComponent = new MethodDirectInvokeComponent(this);
         this.directMethodInvokeContent =
@@ -1074,15 +1058,15 @@ final public class InsidiousService implements Disposable,
                     () -> DaemonCodeAnalyzer.getInstance(project).restart(psiFile));
         }
 
-        if (toolWindow != null && atomicTestContainerWindow != null) {
-            new GotItTooltip("io.unlogged.candidate.new", "New candidates processed", this)
-                    .withIcon(UIUtils.UNLOGGED_ICON_LIGHT_SVG)
-                    .withLink("Show", () -> {
-                        atomicTestContainerWindow.loadExecutionFlow();
-                        this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent, true);
-                    })
-                    .show(toolWindow.getComponent(), GotItTooltip.TOP_MIDDLE);
-        }
+//        if (toolWindow != null && atomicTestContainerWindow != null) {
+//            new GotItTooltip("io.unlogged.candidate.new", "New candidates processed", this)
+//                    .withIcon(UIUtils.UNLOGGED_ICON_LIGHT_SVG)
+//                    .withLink("Show", () -> {
+//                        atomicTestContainerWindow.loadExecutionFlow();
+//                        this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent, true);
+//                    })
+//                    .show(toolWindow.getComponent(), GotItTooltip.TOP_MIDDLE);
+//        }
 //        GutterActionRenderer
 
         if (atomicTestContainerWindow != null) {
@@ -1217,7 +1201,7 @@ final public class InsidiousService implements Disposable,
 
     @Override
     public String suggestAgentVersion() {
-        return null;
+        return "jackson-2.13";
     }
 
     @Override
@@ -1421,19 +1405,10 @@ final public class InsidiousService implements Disposable,
 //                this).show();
     }
 
-    @Override
-    public void onConnectedToAgentServer(ServerMetadata serverMetadata) {
-        stateProvider.onConnectedToAgentServer(serverMetadata);
-    }
-
-    @Override
-    public void onDisconnectedFromAgentServer() {
-        stateProvider.onDisconnectedFromAgentServer();
-    }
-
     public String fetchVersionFromLibName(String name, String dependency) {
         return stateProvider.fetchVersionFromLibName(name, dependency);
     }
+
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
 }

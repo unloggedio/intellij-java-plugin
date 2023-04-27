@@ -3,10 +3,12 @@ package com.insidious.plugin.ui.GutterClickNavigationStates;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
 
 public class AtomicTestContainer {
     private JPanel mainPanel;
@@ -18,6 +20,7 @@ public class AtomicTestContainer {
 
     public AtomicTestContainer(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
+        methodExecutorComponent = new MethodExecutorComponent(insidiousService);
     }
 
     public JComponent getComponent() {
@@ -53,7 +56,6 @@ public class AtomicTestContainer {
 
     public void loadExecutionFlow() {
         this.borderParent.removeAll();
-        methodExecutorComponent = new MethodExecutorComponent(insidiousService);
         this.borderParent.add(methodExecutorComponent.getComponent(), BorderLayout.CENTER);
         this.borderParent.revalidate();
     }
@@ -64,7 +66,21 @@ public class AtomicTestContainer {
             if (methodExecutorComponent != null) {
                 methodExecutorComponent.refreshAndReloadCandidates(method);
             }
+        } else {
+            String classQualifiedName = method.getContainingClass().getQualifiedName();
+            String methodName = method.getName();
+            List<TestCandidateMetadata> methodTestCandidates = this.insidiousService
+                    .getSessionInstance()
+                    .getTestCandidatesForAllMethod(classQualifiedName, methodName, false);
+            if (methodTestCandidates.size() > 0) {
+                loadExecutionFlow();
+                methodExecutorComponent.refreshAndReloadCandidates(method);
+            } else {
+                loadComponentForState(this.currentState, method);
+            }
         }
+
+
     }
 
     public void refresh() {

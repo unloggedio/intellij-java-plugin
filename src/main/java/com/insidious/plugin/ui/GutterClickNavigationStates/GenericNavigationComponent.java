@@ -127,8 +127,7 @@ public class GenericNavigationComponent {
                         downloadAgent(version);
                     }
                 };
-        ProgressManager.getInstance()
-                .run(dl_task);
+        ProgressManager.getInstance().run(dl_task);
     }
 
     private void checkProgressIndicator(String text1, String text2) {
@@ -150,7 +149,7 @@ public class GenericNavigationComponent {
 
     private void downloadAgent(String version) {
 //        agentDownloadInitiated = true;
-        String host = "https://builds.bug.video/unlogged-java-agent-1.10.3-SNAPSHOT-";
+        String host = "https://builds.bug.video/unlogged-java-agent-1.13.3-SNAPSHOT-";
         String type = version;
         String extention = ".jar";
 
@@ -184,7 +183,8 @@ public class GenericNavigationComponent {
             }
 //            logger.info("[Agent download complete]");
             if (md5Check(fetchVersionFromUrl(url), agentFile)) {
-                InsidiousNotification.notifyMessage("Agent downloaded.",
+                InsidiousNotification.notifyMessage("Agent downloaded. Now configure the VM parameter for your " +
+                                "application and start in debug mode",
                         NotificationType.INFORMATION);
 
             } else {
@@ -318,7 +318,7 @@ public class GenericNavigationComponent {
                 header = "Application is running but no recordings found for this method";
                 break;
             case NO_AGENT:
-                header = "Unlogged Agent is not found.";
+                header = "Unlogged JAVA Agent not found.";
                 break;
         }
         return header;
@@ -339,8 +339,7 @@ public class GenericNavigationComponent {
                 "routeToDiscord_EXE", null);
     }
 
-    public void setButtonText(String text)
-    {
+    public void setButtonText(String text) {
         this.actionButton.setText(text);
     }
 }

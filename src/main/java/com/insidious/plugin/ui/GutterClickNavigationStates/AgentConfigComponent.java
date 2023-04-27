@@ -5,16 +5,21 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.VMoptionsConstructionService;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.intellij.openapi.project.DumbService;
+import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.IOException;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 
 public class AgentConfigComponent {
+    private final URI calendlyUri = URI.create("https://calendly.com/unlogged/unlogged-onboarding");
     private JPanel mainPanel;
     private JPanel aligner;
     private JPanel topPanel;
@@ -32,10 +37,11 @@ public class AgentConfigComponent {
     private JPanel vmparamsSection;
     private JTextArea vmparamsArea;
     private JButton copyToClipboardButton;
-    private JEditorPane imagePane;
+    //    private JEditorPane imagePane;
     private JPanel supportPanel;
     private JButton discordButton;
     private JButton addToCurrentRunConfigButton;
+    private JPanel calendlyLinkPanel;
     private InsidiousService insidiousService;
     private String currentModuleName;
     private VMoptionsConstructionService vmoptsConstructionService = new VMoptionsConstructionService();
@@ -86,9 +92,31 @@ public class AgentConfigComponent {
         discordButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                routeToDiscord();
+                routeToDiscord("https://discord.gg/Hhwvay8uTa");
             }
         });
+
+        JButton button = new JButton();
+        button.setText("<HTML><a href=\"https://calendly.com/unlogged/unlogged-onboarding\">" +
+                "https://calendly.com/unlogged/unlogged-onboarding</a></HTML>");
+        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setBorderPainted(false);
+        button.setOpaque(false);
+        button.setBackground(Color.WHITE);
+        button.setBorder(BorderFactory.createEmptyBorder());
+        button.setToolTipText(calendlyUri.toString());
+        button.setMargin(JBUI.insets(5));
+        button.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (Desktop.isDesktopSupported()) {
+                    try {
+                        Desktop.getDesktop().browse(calendlyUri);
+                    } catch (IOException e1) { /* TODO: error handling */ }
+                } else { /* TODO: error handling */ }
+            }
+        });
+        calendlyLinkPanel.add(button, BorderLayout.CENTER);
     }
 
     public JPanel getComponent() {
@@ -136,20 +164,18 @@ public class AgentConfigComponent {
         return vmoptsConstructionService.getVMOptionsForRunType(currentType1);
     }
 
-    public void loadHintGif() {
-        imagePane.setContentType("text/html");
-        String htmlString = "<html><body>" +
-                "<div align=\"left\"><img src=\"" + this.getClass().getClassLoader()
-                .getResource("icons/gif/not_running.gif").toString() + "\" /></div></body></html>";
-        imagePane.setText(htmlString);
-    }
+//    public void loadHintGif() {
+//        imagePane.setContentType("text/html");
+//        String htmlString = "<html><body>" +
+//                "<div align=\"left\"><img src=\"" + this.getClass().getClassLoader()
+//                .getResource("icons/gif/not_running.gif").toString() + "\" /></div></body></html>";
+//        imagePane.setText(htmlString);
+//    }
 
-    private void routeToDiscord() {
-        String link = "https://discord.gg/Hhwvay8uTa";
+    private void routeToDiscord(String link) {
         if (Desktop.isDesktopSupported()) {
             try {
-                java.awt.Desktop.getDesktop()
-                        .browse(java.net.URI.create(link));
+                java.awt.Desktop.getDesktop().browse(java.net.URI.create(link));
             } catch (Exception e) {
             }
         } else {

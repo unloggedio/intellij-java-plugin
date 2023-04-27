@@ -702,7 +702,7 @@ public class TestCaseDesigner implements Disposable {
                         // this is a generic type, wont match with the actual expression type
                         continue;
                     }
-                    if (!type.isAssignableFrom(expectedExpressionType[i])) {
+                    if (expectedExpressionType[i] == null || !type.isAssignableFrom(expectedExpressionType[i])) {
                         logger.warn("parameter [" + i + "] mismatch [" + type + " vs " + expectedExpressionType[i]);
                         isMismatch = true;
                         break;
