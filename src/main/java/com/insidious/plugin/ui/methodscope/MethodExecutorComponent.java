@@ -130,11 +130,11 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         JScrollPane scrollPane = new JBScrollPane(gridPanel);
         scrollPane.setBorder(JBUI.Borders.empty());
 
-        scrollPane.setMaximumSize(new Dimension(-1, Math.min(380, panelHeight)));
+        scrollPane.setMaximumSize(new Dimension(-1, Math.min(300, panelHeight)));
 //        centerPanel.setMinimumSize(new Dimension(-1, 500));
 //        centerPanel.setMaximumSize(new Dimension(-1, Math.min(500, panelHeight)));
-        centerParent.setMaximumSize(new Dimension(-1, Math.min(380, panelHeight)));
-        centerParent.setMinimumSize(new Dimension(-1, 380));
+        centerParent.setMaximumSize(new Dimension(-1, Math.min(300, panelHeight)));
+        centerParent.setMinimumSize(new Dimension(-1, 300));
 
         centerParent.add(scrollPane, BorderLayout.CENTER);
         centerParent.revalidate();

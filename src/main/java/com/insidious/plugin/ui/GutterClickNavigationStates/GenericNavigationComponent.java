@@ -338,4 +338,9 @@ public class GenericNavigationComponent {
         UsageInsightTracker.getInstance().RecordEvent(
                 "routeToDiscord_EXE", null);
     }
+
+    public void setButtonText(String text)
+    {
+        this.actionButton.setText(text);
+    }
 }
