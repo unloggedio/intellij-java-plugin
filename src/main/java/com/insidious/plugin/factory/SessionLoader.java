@@ -121,8 +121,9 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
                     (Computable<PsiPackage>) () -> JavaPsiFacade.getInstance(project)
                             .findPackage(finalIncludedPackagedName));
             if (locatedPackage == null) {
-                logger.warn(
-                        "Package for agent [" + includedPackagedName + "] not found in current project" + mostRecentSession.getLogFilePath());
+                logger.warn("Package for agent [" + finalIncludedPackagedName + "] not found in current " +
+                                "project [" + project.getName() + "]" +
+                                " -> " + mostRecentSession.getLogFilePath());
                 checkCache.put(mostRecentSession.getSessionId(), false);
                 return false;
             }

@@ -58,7 +58,7 @@
               </grid>
             </constraints>
             <properties/>
-            <border type="empty">
+            <border type="bevel-lowered">
               <color color="-4473925"/>
             </border>
             <children/>

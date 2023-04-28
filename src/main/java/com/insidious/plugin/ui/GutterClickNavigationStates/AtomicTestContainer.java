@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.GutterClickNavigationStates;
 
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -69,8 +70,13 @@ public class AtomicTestContainer {
         } else {
             String classQualifiedName = method.getContainingClass().getQualifiedName();
             String methodName = method.getName();
-            List<TestCandidateMetadata> methodTestCandidates = this.insidiousService
-                    .getSessionInstance()
+            SessionInstance sessionInstance = this.insidiousService
+                    .getSessionInstance();
+            if (sessionInstance == null) {
+                loadComponentForState(this.currentState, method);
+                return;
+            }
+            List<TestCandidateMetadata> methodTestCandidates = sessionInstance
                     .getTestCandidatesForAllMethod(classQualifiedName, methodName, false);
             if (methodTestCandidates.size() > 0) {
                 loadExecutionFlow();

@@ -8,6 +8,7 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -182,14 +183,16 @@ public class MethodDirectInvokeComponent {
         if (existingRequests != null) {
             methodArgumentValues = existingRequests.getMethodParameters();
         } else {
-            List<TestCandidateMetadata> methodTestCandidates = this.insidiousService
-                    .getSessionInstance()
-                    .getTestCandidatesForAllMethod(classQualifiedName, methodName, false);
-            int candidateCount = methodTestCandidates.size();
-            if (candidateCount > 0) {
-                TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(candidateCount - 1);
-                methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
-                        mostRecentTestCandidate);
+            SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
+            if (sessionInstance != null) {
+                List<TestCandidateMetadata> methodTestCandidates = sessionInstance
+                        .getTestCandidatesForAllMethod(classQualifiedName, methodName, false);
+                int candidateCount = methodTestCandidates.size();
+                if (candidateCount > 0) {
+                    TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(candidateCount - 1);
+                    methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
+                            mostRecentTestCandidate);
+                }
             }
         }
 

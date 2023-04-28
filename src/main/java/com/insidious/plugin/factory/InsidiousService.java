@@ -1247,7 +1247,6 @@ final public class InsidiousService implements Disposable,
             if (this.atomicTestContent != null) {
                 this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent);
             }
-
         }
     }
 
