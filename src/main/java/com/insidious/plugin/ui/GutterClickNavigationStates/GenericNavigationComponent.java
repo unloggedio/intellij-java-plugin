@@ -149,7 +149,7 @@ public class GenericNavigationComponent {
 
     private void downloadAgent(String version) {
 //        agentDownloadInitiated = true;
-        String host = "https://builds.bug.video/unlogged-java-agent-1.13.3-SNAPSHOT-";
+        String host = "https://builds.bug.video/unlogged-java-agent-1.13.4-SNAPSHOT-";
         String type = version;
         String extention = ".jar";
 
@@ -157,7 +157,7 @@ public class GenericNavigationComponent {
         String url = (host + type + extention).trim();
 //        logger.info("[Downloading from] " + url);
         InsidiousNotification.notifyMessage(
-                "Downloading agent for dependency : " + type,
+                "Downloading Unlogged JAVA agent to $HOME/.unlogged/unlogged-java-agent.jar",
                 NotificationType.INFORMATION);
         downloadAgent(url, true);
     }
