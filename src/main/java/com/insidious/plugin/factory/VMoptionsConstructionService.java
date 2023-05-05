@@ -7,7 +7,7 @@ import java.util.*;
 
 public class VMoptionsConstructionService {
 
-    private final String addOpensOption = "--add-opens=java.base/java.util=ALL-UNNAMED";
+    private final String addOpensOption = "--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED";
     //private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH;
     public boolean addopens = false;
     public String basePackage = "your.package";
