@@ -600,7 +600,7 @@ public class TestCaseDesigner implements Disposable {
                             Parameter callParameter = new Parameter();
                             callParameter.setValue(random.nextLong());
                             PsiType typeToAssignFrom = parameterExpression.getType();
-                            if (typeToAssignFrom.getCanonicalText().equals("null")) {
+                            if (typeToAssignFrom == null ||  typeToAssignFrom.getCanonicalText().equals("null")) {
                                 typeToAssignFrom = parameter.getType();
                             }
                             setParameterTypeFromPsiType(callParameter, typeToAssignFrom, false);
