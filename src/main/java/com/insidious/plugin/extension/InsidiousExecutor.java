@@ -65,11 +65,6 @@ public class InsidiousExecutor extends Executor {
     }
 
     @Override
-    public boolean isSupportedOnTarget() {
-        return false;
-    }
-
-    @Override
     public boolean isApplicable(@NotNull Project project) {
         return false;
     }

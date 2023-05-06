@@ -1,39 +1,35 @@
 package com.insidious.plugin.inlay;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.insidious.plugin.agent.AgentCommandRequest;
-import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.MethodCallAggregate;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.codeInsight.hints.BlockConstraints;
 import com.intellij.codeInsight.hints.FactoryInlayHintsCollector;
 import com.intellij.codeInsight.hints.InlayHintsSink;
 import com.intellij.codeInsight.hints.presentation.InlayPresentation;
 import com.intellij.codeInsight.hints.presentation.PresentationFactory;
-import com.intellij.codeInsight.hints.presentation.RecursivelyUpdatingRootPresentation;
 import com.intellij.codeInsight.hints.presentation.SequencePresentation;
-import com.intellij.lang.jvm.JvmParameter;
+import com.intellij.codeInsight.hints.presentation.SpacePresentation;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.util.Pair;
+import com.intellij.openapi.editor.ex.util.EditorUtil;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
+import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.ui.JBColor;
 import com.intellij.util.containers.JBIterable;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
 public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     public static final Color INLAY_BACKGROUND_COLOR = JBColor.BLUE;
     public static final float BACKGROUND_ALPHA = 0.2f;
-    public static final Integer UNLOGGED_APM_GROUP = 100;
+    public static final Integer UNLOGGED_APM_GROUP = -500;
     public static final Integer UNLOGGED_REQUEST_GROUP = 101;
     public static final Integer UNLOGGED_RESPONSE_GROUP = 102;
     private static final Logger logger = LoggerUtil.getInstance(InsidiousInlayHintsCollector.class);
@@ -57,56 +53,71 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         return String.format("%.2f µs", duration);
     }
 
+    private static int getAnchorOffset(PsiElement element) {
+        for (PsiElement child : element.getChildren()) {
+            if (!(child instanceof PsiDocComment) && !(child instanceof PsiWhiteSpace)) {
+                return child.getTextRange().getStartOffset();
+            }
+        }
+        return element.getTextRange().getStartOffset();
+    }
+
     @Override
     public boolean collect(@NotNull PsiElement element, @NotNull Editor editor, @NotNull InlayHintsSink inlayHintsSink) {
         if (element instanceof PsiClass) {
             currentClass = (PsiClass) element;
             classMethodAggregates = insidiousService.getClassMethodAggregates(currentClass.getQualifiedName());
+            return true;
+        }
+        if (!(element instanceof PsiMethod)) {
+            return true;
         }
 
-        if (element instanceof PsiMethod) {
-            if (classMethodAggregates == null) {
-                logger.warn("we dont have any class method aggregates for class: " + currentClass.getQualifiedName());
-                return false;
-            }
-            PsiMethod methodElement = (PsiMethod) element;
-            MethodCallAggregate methodAggregate = classMethodAggregates.getMethodAggregate(methodElement.getName());
-            if (methodAggregate == null) {
+
+//        if (element instanceof PsiMethod) {
+        if (classMethodAggregates == null) {
+            logger.warn("we dont have any class method aggregates for class: " + currentClass.getQualifiedName());
+            return false;
+        }
+        PsiMethod methodElement = (PsiMethod) element;
+        MethodCallAggregate methodAggregate = classMethodAggregates.getMethodAggregate(methodElement.getName());
+        if (methodAggregate == null) {
 //                logger.warn(
 //                        "no aggregate found for method [" + currentClass.getQualifiedName() + "." + methodElement.getName() + "()]");
-                return true;
-            }
+            return true;
+        }
 
-            Document document = editor.getDocument();
-            int elementLineNumber = document.getLineNumber(element.getTextOffset());
+        Document document = editor.getDocument();
+        int elementLineNumber = document.getLineNumber(element.getTextOffset());
 
-            TextRange range = getTextRangeWithoutLeadingCommentsAndWhitespaces(element);
+        TextRange range = getTextRangeWithoutLeadingCommentsAndWhitespaces(element);
 
 
-            String elementTypeClass = methodElement.getName();
-            InlayPresentation inlayShowingCount = createInlayPresentation(methodAggregate.getCount() + " calls");
-            String avgStringText = String.format(", avg: " + formatTimeDuration(methodAggregate.getAverage()));
-            InlayPresentation inlayShowingAverage = createInlayPresentation(avgStringText);
-            String stdDevStringText = String.format(", stdDev: " + formatTimeDuration(methodAggregate.getStdDev()));
-            InlayPresentation inlayShowingStdDev = createInlayPresentation(stdDevStringText);
+        InlayPresentation inlayShowingCount = createInlayPresentation(methodAggregate.getCount() + " calls");
+        String avgStringText = String.format(", avg: " + formatTimeDuration(methodAggregate.getAverage()));
+        InlayPresentation inlayShowingAverage = createInlayPresentation(avgStringText);
+        String stdDevStringText = String.format(", stdDev: " + formatTimeDuration(methodAggregate.getStdDev()));
+        InlayPresentation inlayShowingStdDev = createInlayPresentation(stdDevStringText);
 
-            SequencePresentation sequenceOfInlays = new SequencePresentation(
-                    Arrays.asList(inlayShowingCount, inlayShowingAverage, inlayShowingStdDev));
 
-            int line = editor.getDocument().getLineNumber(range.getStartOffset());
-            int column = range.getStartOffset() - editor.getDocument().getLineStartOffset(line);
+        int line = editor.getDocument().getLineNumber(range.getStartOffset());
+        int offset = getAnchorOffset(element);
+        int columnWidth = EditorUtil.getPlainSpaceWidth(editor);
+        int startOffset = document.getLineStartOffset(line);
+        int column = offset - startOffset;
 
-            RecursivelyUpdatingRootPresentation root = new RecursivelyUpdatingRootPresentation(sequenceOfInlays);
+        SequencePresentation sequenceOfInlays = new SequencePresentation(
+                Arrays.asList(new SpacePresentation(column * columnWidth, 0), inlayShowingCount,
+                        inlayShowingAverage, inlayShowingStdDev));
 
-            BlockConstraints constraints = new BlockConstraints(false, 100, UNLOGGED_APM_GROUP, column);
+        logger.warn("PSIElement " +
+                "[" + element.getClass().getSimpleName() + "]" +
+                "[" + elementLineNumber + "," + column + "]: "
+                + currentClass.getQualifiedName() + "."
+                + methodElement.getName() + "()");
 
-            logger.warn("PSIElement " +
-                    "[" + element.getClass().getSimpleName() + "]" +
-                    "[" + elementLineNumber + "," + column + "]: "
-                    + currentClass.getQualifiedName() + "."
-                    + methodElement.getName() + "()");
-
-            inlayHintsSink.addBlockElement(line, true, root, constraints);
+//            inlayHintsSink.addBlockElement(line, true, root, constraints);
+        inlayHintsSink.addBlockElement(startOffset, true, true, UNLOGGED_APM_GROUP, sequenceOfInlays);
 
 //            String executionPairKey = currentClass.getQualifiedName() + "#" + ((PsiMethod) element).getName();
 //            Pair<AgentCommandRequest, AgentCommandResponse> executionPairList = insidiousService.getExecutionPairs(
@@ -145,7 +156,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 //                inlayHintsSink.addBlockElement(line, true, responseInlayRoot, responseInlayConstraints);
 //
 //            }
-        }
+
         return true;
     }
 
@@ -166,18 +177,20 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         try {
             Map valueInMap = objectMapper.readValue(inlayText, Map.class);
             String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(valueInMap);
-            text = factory.smallTextWithoutBackground(prettyJson);
+            text = factory.smallText(prettyJson);
         } catch (Exception e) {
             // not a json value
-            text = factory.smallTextWithoutBackground(inlayText);
+            text = factory.smallText(inlayText);
         }
 
         InlayPresentation withIcon = text;
 
 
-        return factory.referenceOnHover(withIcon, (mouseEvent, point) -> {
-            logger.warn("inlay on hover: " + mouseEvent.getPoint());
-        });
+        return withIcon;
+
+//        return factory.referenceOnHover(withIcon, (mouseEvent, point) -> {
+//            logger.warn("inlay on hover: " + mouseEvent.getPoint());
+//        });
     }
 
     @NotNull
@@ -187,18 +200,19 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         InlayPresentation text;
         try {
             String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(valueInMap);
-            text = factory.smallTextWithoutBackground(prettyJson);
+            text = factory.smallText(prettyJson);
         } catch (Exception e) {
             // not a json value
-            text = factory.smallTextWithoutBackground(String.valueOf(valueInMap));
+            text = factory.smallText(String.valueOf(valueInMap));
         }
 
         InlayPresentation withIcon = text;
 
+        return withIcon;
 
-        return factory.referenceOnHover(withIcon, (mouseEvent, point) -> {
-            logger.warn("inlay on hover: " + mouseEvent.getPoint());
-        });
+//        return factory.referenceOnHover(withIcon, (mouseEvent, point) -> {
+//            logger.warn("inlay on hover: " + mouseEvent.getPoint());
+//        });
     }
 
 

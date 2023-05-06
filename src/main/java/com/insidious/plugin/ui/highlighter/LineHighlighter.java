@@ -65,8 +65,7 @@ public class LineHighlighter implements LineMarkerProvider {
             LineMarkerInfo<PsiIdentifier> psiIdentifierLineMarkerInfo = new LineMarkerInfo<PsiIdentifier>(
                     (PsiIdentifier) element,
                     element.getTextRange(), gutterIcon, psiIdentifier -> gutterStateForMethod.getToolTipText(),
-                    navHandlerMap.get(gutterStateForMethod), GutterIconRenderer.Alignment.LEFT,
-                    gutterStateForMethod.getAccessibleTextProvider());
+                    navHandlerMap.get(gutterStateForMethod), GutterIconRenderer.Alignment.LEFT);
 
 //            switch (state) {
 //

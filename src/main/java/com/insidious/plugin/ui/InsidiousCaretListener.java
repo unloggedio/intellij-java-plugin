@@ -17,7 +17,6 @@ import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.serviceContainer.AlreadyDisposedException;
 import com.intellij.testFramework.LightVirtualFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.kotlin.psi.KtNamedFunction;
@@ -66,12 +65,6 @@ public class InsidiousCaretListener implements EditorMouseListener {
             if (kotlinMethod != null) {
                 insidiousService.methodFocussedHandler(new KotlinMethodAdapter(kotlinMethod));
             }
-        } catch (AlreadyDisposedException e) {
-            //case where insidious service may not be ready/null.
-            logger.error("Exception in caret listener (AlreadyDisposed): ", e);
-//            e.printStackTrace();
-//            InsidiousNotification.notifyMessage("Please try again when Unlogged is ready",
-//                    NotificationType.ERROR);
         } catch (Exception ex) {
             //other exception
             logger.error("Exception in caret listener (" + ex.getMessage() + "): ", ex);

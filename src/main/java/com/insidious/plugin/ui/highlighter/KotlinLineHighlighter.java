@@ -52,7 +52,7 @@ public class KotlinLineHighlighter implements LineMarkerProvider {
             Icon gutter_Icon = getIconForState(psiMethod);
             return new LineMarkerInfo<LeafPsiElement>((LeafPsiElement) element,
                     element.getTextRange(), gutter_Icon, null, navHandler,
-                    GutterIconRenderer.Alignment.LEFT, accessibleNameProvider);
+                    GutterIconRenderer.Alignment.LEFT);
         }
         return null;
     }
