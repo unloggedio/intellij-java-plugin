@@ -126,8 +126,18 @@ public class UnloggedGPT implements UnloggedGptListener {
                     NotificationType.INFORMATION);
             return;
         }
+
         String lastMethodCode = this.currentMethod.getText();
         methodCode = lastMethodCode;
+
+        if(gptChatScaffold!=null)
+        {
+            if(gptChatScaffold.getApiMode().equals(GPTChatScaffold.API_MODE.ALPACA))
+            {
+                sendAlpacaRequestForMethod(type, methodCode);
+                return;
+            }
+        }
 
         switch (mode.trim()) {
             case "Optimize":
@@ -172,6 +182,41 @@ public class UnloggedGPT implements UnloggedGptListener {
         }
     }
 
+    private void sendAlpacaRequestForMethod(String type ,String method)
+    {
+        String endpoint = "";
+        String prompt = "";
+        switch (type.trim()) {
+            case "Optimize":
+                prompt = "Optimize the following code";
+                break;
+            case "Find Bugs":
+                prompt = "Find possible bugs in the following code";
+                break;
+            case "Refactor":
+                prompt = "Refactor the following code";
+                break;
+            case "test":
+                prompt = "Generate a unit test case for the following code";
+            default:
+                prompt = "Explain the following code";
+        }
+        if(gptChatScaffold!=null)
+        {
+            endpoint = gptChatScaffold.getTextFieldContent();
+        }
+        String response = makeOkHTTPRequestForMethod_alpaca(prompt ,method, endpoint);
+        //add response
+        if (gptChatScaffold != null) {
+            if (!response.isEmpty()) {
+                gptChatScaffold.addNewMessage(response, "Alpaca", true);
+            }
+            gptChatScaffold.setReadyButtonState();
+            navigationBar.setActionButtonReadyState(type);
+        }
+        gptChatScaffold.scrollToBottomV2();
+    }
+
     @Override
     public void triggerCallOfType(String type) {
 
@@ -210,7 +255,14 @@ public class UnloggedGPT implements UnloggedGptListener {
     @Override
     public void makeApiCallForPrompt(String currentPrompt) {
 //        makeOkHTTPRequestForPrompt(currentPrompt);
-        processCustomPromptBackground(currentPrompt);
+            if(gptChatScaffold.getApiMode().equals(GPTChatScaffold.API_MODE.ALPACA))
+            {
+                processCustomPromptBackground_Alpaca(currentPrompt);
+            }
+            else
+            {
+                processCustomPromptBackground(currentPrompt);
+            }
     }
 
     @Override
@@ -237,6 +289,24 @@ public class UnloggedGPT implements UnloggedGptListener {
                 .run(task);
     }
 
+    public void processCustomPromptBackground_Alpaca(String prompt) {
+        Task.Backgroundable task = new Task.Backgroundable(
+                insidiousService.getProject(), "Unlogged, Inc.", true) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                //run read here
+                ApplicationManager.getApplication()
+                        .runReadAction(new Runnable() {
+                            public void run() {
+                                processCustomPromptAlpaca(prompt);
+                            }
+                        });
+            }
+        };
+        ProgressManager.getInstance()
+                .run(task);
+    }
+
     public void processCustomPrompt(String prompt) {
         //gptChatScaffold.addNewMessage(prompt,"You",true);
         UsageInsightTracker.getInstance().RecordEvent(
@@ -248,6 +318,20 @@ public class UnloggedGPT implements UnloggedGptListener {
             gptChatScaffold.resetPrompt();
         }
         gptChatScaffold.addNewMessage(response, "ChatGPT", true);
+        gptChatScaffold.setReadyButtonState();
+    }
+
+    public void processCustomPromptAlpaca(String prompt) {
+        //gptChatScaffold.addNewMessage(prompt,"You",true);
+        UsageInsightTracker.getInstance().RecordEvent(
+                "CustomQueryAlpaca", null);
+        gptChatScaffold.setLoadingButtonState();
+
+        String response = makeOkHTTPRequestForMethod_alpaca(prompt,"", gptChatScaffold.getTextFieldContent());
+        if (!response.isEmpty()) {
+            gptChatScaffold.resetPrompt();
+        }
+        gptChatScaffold.addNewMessage(response, "Alpaca", true);
         gptChatScaffold.setReadyButtonState();
     }
 
@@ -316,9 +400,71 @@ public class UnloggedGPT implements UnloggedGptListener {
         return "";
     }
 
+    public String makeOkHTTPRequestForMethod_alpaca(String prompt, String method,String endpoint) {
+        String responseBodyString = null;
+        System.out.println("Making API call to chatGPT");
+        try {
+            OkHttpClient client = new OkHttpClient();
+            Request request = buildHttpRequest_alpaca(prompt, method, endpoint);
+            if (request == null) {
+                return "";
+            }
+            Response response = client.newCall(request).execute();
+            responseBodyString = response.body().string();
+            System.out.println("RAW RESPONSE [ALPACA] -> " + responseBodyString);
+            return responseBodyString;
+        } catch (Exception e) {
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("message", e.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent("ALPACA_CALL_REQUEST_EXCEPTION", eventProperties);
+            e.printStackTrace();
+        }
+        return "";
+    }
+
     public String getErrorMessageFromResponse(String response) {
         System.out.println("ResponseBody : " + response);
         return "E";
+    }
+
+    public Request buildHttpRequest_alpaca(String prompt,String method,  String endpoint) {
+
+        String token = this.gptChatScaffold.getAPIkey();
+        if (token.isEmpty()) {
+            InsidiousNotification.notifyMessage("Please enter a valid API Key",
+                    NotificationType.ERROR);
+            return null;
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        TreeMap<Object, Object> body = new TreeMap<>();
+        body.put("prompt", prompt);
+        body.put("input_code", method);
+        body.put("max_new_tokens", 2048);
+        body.put("temperature", 0.1);
+        body.put("num_beams", 4);
+        body.put("top_p", 0.75);
+        body.put("top_k", 40);
+
+        TreeMap<String, String> headers = new TreeMap<>();
+        headers.put("Accept", "text/event-stream");
+        headers.put("Content-Type", "application/json");
+//        headers.put("Authorization", "Bearer " + token);
+        try {
+            return new Request.Builder()
+                    .url(""+endpoint)
+                    .headers(Headers.of(headers))
+                    .post(RequestBody.create(
+                            mapper
+                                    .writerWithDefaultPrettyPrinter()
+                                    .writeValueAsString(body),
+                            MediaType.parse("application/json")))
+                    .build();
+        } catch (JsonProcessingException e) {
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("message", e.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent("ALPACA_CALL_EXCEPTION", eventProperties);
+            throw new RuntimeException("Unable to serialize request payload", e);
+        }
     }
 
     public Request buildHttpRequest(String prompt) {
@@ -362,6 +508,7 @@ public class UnloggedGPT implements UnloggedGptListener {
             throw new RuntimeException("Unable to serialize request payload", e);
         }
     }
+
 
     public ChatGPTResponse getResponsePojo(String response) {
         try {
