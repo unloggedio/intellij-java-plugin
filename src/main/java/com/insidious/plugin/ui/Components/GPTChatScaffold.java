@@ -10,6 +10,7 @@ import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Enumeration;
 
 public class GPTChatScaffold {
     private JPanel mainPanel;
@@ -24,11 +25,27 @@ public class GPTChatScaffold {
     private JLabel apiKeyLabel;
     private JScrollPane parentScroller;
     private JScrollPane TextScrollPanel;
+    private JRadioButton chatGPTRadioButton;
+    private JRadioButton selfHostedAlpacaRadioButton;
+    private JPanel buttonPanel;
+    private JPanel textPanel;
+    private JButton modeSelectButton;
     private ScrollablePanel scrollablePanel;
     private UnloggedGptListener listener;
     private JScrollPane scrollPane;
     private boolean firstCall = false;
+    private char defaultChar = apiKeyTextField.getEchoChar();
+    private API_MODE apiMode = API_MODE.CHAT_GPT;
+    public enum API_MODE {CHAT_GPT,ALPACA}
+
+    ButtonGroup radioGroup = new ButtonGroup();
     public GPTChatScaffold(UnloggedGptListener listener) {
+
+        radioGroup.add(chatGPTRadioButton);
+        radioGroup.add(selfHostedAlpacaRadioButton);
+
+        chatGPTRadioButton.setSelected(true);
+
         this.listener = listener;
         scrollablePanel = new ScrollablePanel();
         scrollablePanel.setLayout(new BoxLayout(scrollablePanel, BoxLayout.Y_AXIS));
@@ -52,6 +69,18 @@ public class GPTChatScaffold {
             }
         });
         sendDefaultMessage();
+        chatGPTRadioButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                updateDisplayForState();
+            }
+        });
+        selfHostedAlpacaRadioButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                updateDisplayForState();
+            }
+        });
     }
 
     public JPanel getComponent() {
@@ -124,5 +153,50 @@ public class GPTChatScaffold {
 
     public void resetPrompt() {
         this.promptTextArea.setText("");
+    }
+
+    public void updateDisplayForState()
+    {
+        String selectionText = "GPT";
+        for (Enumeration<AbstractButton> buttons = radioGroup.getElements(); buttons.hasMoreElements();) {
+            AbstractButton button = buttons.nextElement();
+
+            if (button.isSelected()) {
+                selectionText = button.getText();
+            }
+        }
+        System.out.println("Selected : "+selectionText);
+        if(selectionText.contains("GPT"))
+        {
+            this.apiMode = API_MODE.CHAT_GPT;
+            this.apiKeyTextField.setEchoChar(defaultChar);
+
+        }
+        else
+        {
+            this.apiMode = API_MODE.ALPACA;
+            this.apiKeyTextField.setEchoChar((char) 0);
+        }
+
+        if(this.apiMode.equals(API_MODE.CHAT_GPT))
+        {
+            this.apiKeyLabel.setText("ChatGPT API key");
+        }
+        else
+        {
+            this.apiKeyLabel.setText("Your Alpaca Endpoint");
+
+        }
+        this.topPanel.revalidate();
+    }
+
+    public API_MODE getApiMode()
+    {
+        return this.apiMode;
+    }
+
+    public String getTextFieldContent()
+    {
+        return this.apiKeyTextField.getText();
     }
 }

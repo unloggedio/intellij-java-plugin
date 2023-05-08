@@ -25,7 +25,13 @@ public class GPTChatElement {
     {
         this.messageText.setText(message);
         this.userInfoLabel.setText(user);
-        if(!user.equals("You"))
+        if(user.equals("Alpaca"))
+        {
+            this.userInfoLabel.setIcon(UIUtils.TEST_TUBE_FILL);
+            this.messageText.setBackground(UIUtils.black_custom);
+            this.messageText.setForeground(UIUtils.teal);
+        }
+        else
         {
             this.userInfoLabel.setIcon(UIUtils.UNLOGGED_GPT_ICON_PINK);
             this.messageText.setBackground(UIUtils.black_custom);
