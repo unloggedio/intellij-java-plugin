@@ -41,7 +41,6 @@ public class AgentResponseComponent implements Supplier<Component> {
     private JScrollPane scrollParent;
     private JPanel topPanel;
     private JPanel topAlign;
-    private JLabel infoLabel;
     private JButton hideButton;
 
     private TestCandidateMetadata metadata;

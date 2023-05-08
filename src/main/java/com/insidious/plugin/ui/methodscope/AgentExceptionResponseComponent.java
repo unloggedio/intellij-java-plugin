@@ -30,7 +30,6 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
     private JPanel contentPanel;
     private JPanel afterSection;
     private JPanel beforeSection;
-    private JLabel infoLabel;
 
     public AgentExceptionResponseComponent(
             TestCandidateMetadata metadata,
