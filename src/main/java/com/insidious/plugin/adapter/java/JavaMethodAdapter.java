@@ -63,7 +63,7 @@ public class JavaMethodAdapter implements MethodAdapter {
 
     @Override
     public Project getProject() {
-        return psiMethod.getProject();
+        return ApplicationManager.getApplication().runReadAction((Computable<Project>) psiMethod::getProject);
     }
 
     @Override
