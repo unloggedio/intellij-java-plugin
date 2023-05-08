@@ -5,6 +5,7 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.VMoptionsConstructionService;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.intellij.openapi.project.DumbService;
+import com.intellij.ui.JBColor;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
@@ -15,11 +16,13 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 
 public class AgentConfigComponent {
-    private final URI calendlyUri = URI.create("https://calendly.com/unlogged/unlogged-onboarding");
+    public static final String CALENDLY_UNLOGGED_LINK_STRING = "https://calendly.com/unlogged/unlogged-onboarding";
+    private URI calendlyUri;
     private JPanel mainPanel;
     private JPanel aligner;
     private JPanel topPanel;
@@ -49,6 +52,12 @@ public class AgentConfigComponent {
     private ProjectTypeInfo.RUN_TYPES currentType = ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION;
 
     public AgentConfigComponent(InsidiousService insidiousService) {
+        try {
+            this.calendlyUri = new URI(CALENDLY_UNLOGGED_LINK_STRING);
+        } catch (URISyntaxException e) {
+            this.calendlyUri = null;
+            // should never happen
+        }
         this.insidiousService = insidiousService;
         DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
         dumbService.runWhenSmart(() -> {
@@ -97,19 +106,20 @@ public class AgentConfigComponent {
         });
 
         JButton button = new JButton();
-        button.setText("<HTML><a href=\"https://calendly.com/unlogged/unlogged-onboarding\">" +
-                "https://calendly.com/unlogged/unlogged-onboarding</a></HTML>");
+        button.setText("<HTML>" +
+                "<a href=\"" + CALENDLY_UNLOGGED_LINK_STRING + "\">" + CALENDLY_UNLOGGED_LINK_STRING + "</a>" +
+                "</HTML>");
         button.setHorizontalAlignment(SwingConstants.LEFT);
         button.setBorderPainted(false);
         button.setOpaque(false);
-        button.setBackground(Color.WHITE);
+        button.setBackground(JBColor.WHITE);
         button.setBorder(BorderFactory.createEmptyBorder());
-        button.setToolTipText(calendlyUri.toString());
+        button.setToolTipText(calendlyUri != null ? calendlyUri.toString() : CALENDLY_UNLOGGED_LINK_STRING);
         button.setMargin(JBUI.insets(5));
         button.addActionListener(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (Desktop.isDesktopSupported()) {
+                if (Desktop.isDesktopSupported() && calendlyUri != null) {
                     try {
                         Desktop.getDesktop().browse(calendlyUri);
                     } catch (IOException e1) { /* TODO: error handling */ }

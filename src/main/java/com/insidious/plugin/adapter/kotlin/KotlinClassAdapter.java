@@ -4,6 +4,7 @@ import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.FieldAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.intellij.openapi.project.Project;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.impl.source.PsiJavaFileImpl;
 import org.jetbrains.kotlin.psi.KtClass;
 
@@ -57,5 +58,25 @@ public class KotlinClassAdapter implements ClassAdapter {
     @Override
     public MethodAdapter[] getMethods() {
         return new MethodAdapter[0];
+    }
+
+    @Override
+    public boolean isInterface() {
+        return false;
+    }
+
+    @Override
+    public boolean isEnum() {
+        return false;
+    }
+
+    @Override
+    public boolean isAnnotationType() {
+        return false;
+    }
+
+    @Override
+    public PsiElement getSource() {
+        return null;
     }
 }

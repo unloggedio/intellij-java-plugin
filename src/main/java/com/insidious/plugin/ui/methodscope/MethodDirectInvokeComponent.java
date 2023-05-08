@@ -9,13 +9,13 @@ import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.util.ExceptionUtils;
-import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.MethodUtils;
-import com.insidious.plugin.util.TestCandidateUtils;
+import com.insidious.plugin.util.*;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Computable;
@@ -79,77 +79,98 @@ public class MethodDirectInvokeComponent {
     }
 
     private void executeMethodWithParameters() {
-        JSONObject eventProperties = new JSONObject();
-        eventProperties.put("className", methodElement.getContainingClass().getQualifiedName());
-        eventProperties.put("methodName", methodElement.getName());
 
-        UsageInsightTracker.getInstance().RecordEvent("DIRECT_INVOKE", eventProperties);
-        List<String> methodArgumentValues = new ArrayList<>();
-        ParameterAdapter[] parameters = methodElement.getParameters();
-        for (int i = 0; i < parameterInputComponents.size(); i++) {
-            ParameterInputComponent parameterInputComponent = parameterInputComponents.get(i);
-            ParameterAdapter parameter = parameters[i];
-            String parameterValue = parameterInputComponent.getParameterValue();
-            if (parameter.getType().equals("java.lang.String") && !parameterValue.startsWith("\"")) {
-                try {
-                    parameterValue = objectMapper.writeValueAsString(parameterValue);
-                } catch (JsonProcessingException e) {
-                    // should never happen
-                }
-            }
-            methodArgumentValues.add(parameterValue);
+        if (!insidiousService.doesAgentExist()) {
+            InsidiousNotification.notifyMessage("Start your application with Unlogged JAVA agent to start using " +
+                    "method DirectInvoke", NotificationType.INFORMATION);
+            insidiousService.updateScaffoldForState(GutterState.NO_AGENT, methodElement);
+            return;
         }
 
-        AgentCommandRequest agentCommandRequest =
-                MethodUtils.createRequestWithParameters(methodElement, methodArgumentValues);
-        agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
-        returnValueTextArea.setText("");
+        if (!insidiousService.isAgentRunning()) {
+            InsidiousNotification.notifyMessage("Start your application with Unlogged JAVA agent to start using " +
+                    "method DirectInvoke", NotificationType.INFORMATION);
+            insidiousService.updateScaffoldForState(GutterState.PROCESS_NOT_RUNNING, methodElement);
+            return;
+        }
 
 
-        insidiousService.executeMethodInRunningProcess(agentCommandRequest,
-                (agentCommandRequest1, agentCommandResponse) -> {
-                    logger.warn("Agent command execution response: " + agentCommandResponse);
+        ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("className", psiClass.getQualifiedName());
+            eventProperties.put("methodName", methodElement.getName());
 
-
-                    ResponseType responseType = agentCommandResponse.getResponseType();
-                    String responseMessage = agentCommandResponse.getMessage() == null ? "" :
-                            agentCommandResponse.getMessage() + "\n";
-                    TitledBorder panelTitledBoarder = (TitledBorder) scrollerContainer.getBorder();
-                    String responseObjectClassName = agentCommandResponse.getResponseClassName();
-                    Object methodReturnValue = agentCommandResponse.getMethodReturnValue();
-                    if (responseType == null) {
-                        panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);
-                        returnValueTextArea.setText(responseMessage + methodReturnValue);
-                        return;
+            UsageInsightTracker.getInstance().RecordEvent("DIRECT_INVOKE", eventProperties);
+            List<String> methodArgumentValues = new ArrayList<>();
+            ParameterAdapter[] parameters = methodElement.getParameters();
+            for (int i = 0; i < parameterInputComponents.size(); i++) {
+                ParameterInputComponent parameterInputComponent = parameterInputComponents.get(i);
+                ParameterAdapter parameter = parameters[i];
+                String parameterValue = parameterInputComponent.getParameterValue();
+                if (parameter.getType().equals("java.lang.String") && !parameterValue.startsWith("\"")) {
+                    try {
+                        parameterValue = objectMapper.writeValueAsString(parameterValue);
+                    } catch (JsonProcessingException e) {
+                        // should never happen
                     }
+                }
+                methodArgumentValues.add(parameterValue);
+            }
 
-                    if (responseType.equals(ResponseType.NORMAL)) {
-                        String returnTypePresentableText = ApplicationManager.getApplication()
-                                .runReadAction(
-                                        (Computable<String>) () -> methodElement.getReturnType().getPresentableText());
-                        panelTitledBoarder.setTitle("Method response: " + returnTypePresentableText);
-                        ObjectMapper objectMapper = insidiousService.getObjectMapper();
-                        try {
-                            JsonNode jsonNode = objectMapper.readValue(methodReturnValue.toString(), JsonNode.class);
-                            returnValueTextArea.setText(objectMapper
-                                    .writerWithDefaultPrettyPrinter()
-                                    .writeValueAsString(jsonNode));
-                        } catch (JsonProcessingException ex) {
-                            returnValueTextArea.setText(methodReturnValue.toString());
+            AgentCommandRequest agentCommandRequest =
+                    MethodUtils.createRequestWithParameters(methodElement, psiClass, methodArgumentValues);
+            agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
+            returnValueTextArea.setText("");
+
+
+            insidiousService.executeMethodInRunningProcess(agentCommandRequest,
+                    (agentCommandRequest1, agentCommandResponse) -> {
+                        logger.warn("Agent command execution response: " + agentCommandResponse);
+
+                        ResponseType responseType = agentCommandResponse.getResponseType();
+                        String responseMessage = agentCommandResponse.getMessage() == null ? "" :
+                                agentCommandResponse.getMessage() + "\n";
+                        TitledBorder panelTitledBoarder = (TitledBorder) scrollerContainer.getBorder();
+                        String responseObjectClassName = agentCommandResponse.getResponseClassName();
+                        Object methodReturnValue = agentCommandResponse.getMethodReturnValue();
+                        if (responseType == null) {
+                            panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);
+                            returnValueTextArea.setText(responseMessage + methodReturnValue);
+                            return;
                         }
-                    } else if (responseType.equals(ResponseType.EXCEPTION)) {
-                        panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);
-                        if (methodReturnValue != null) {
-                            returnValueTextArea.setText(
-                                    ExceptionUtils.prettyPrintException(methodReturnValue.toString()));
+
+                        if (responseType.equals(ResponseType.NORMAL)) {
+                            String returnTypePresentableText = ApplicationManager.getApplication()
+                                    .runReadAction(
+                                            (Computable<String>) () -> methodElement.getReturnType()
+                                                    .getPresentableText());
+                            panelTitledBoarder.setTitle("Method response: " + returnTypePresentableText);
+                            ObjectMapper objectMapper = insidiousService.getObjectMapper();
+                            try {
+                                JsonNode jsonNode = objectMapper.readValue(methodReturnValue.toString(),
+                                        JsonNode.class);
+                                returnValueTextArea.setText(objectMapper
+                                        .writerWithDefaultPrettyPrinter()
+                                        .writeValueAsString(jsonNode));
+                            } catch (JsonProcessingException ex) {
+                                returnValueTextArea.setText(methodReturnValue.toString());
+                            }
+                        } else if (responseType.equals(ResponseType.EXCEPTION)) {
+                            panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);
+                            if (methodReturnValue != null) {
+                                returnValueTextArea.setText(
+                                        ExceptionUtils.prettyPrintException(methodReturnValue.toString()));
+                            } else {
+                                returnValueTextArea.setText(agentCommandResponse.getMessage());
+                            }
                         } else {
-                            returnValueTextArea.setText(agentCommandResponse.getMessage());
+                            panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);
+                            returnValueTextArea.setText(responseMessage + methodReturnValue);
                         }
-                    } else {
-                        panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);
-                        returnValueTextArea.setText(responseMessage + methodReturnValue);
-                    }
-                });
+                    });
+        });
+
+
     }
 
     public void renderForMethod(MethodAdapter methodElement) {
@@ -177,7 +198,7 @@ public class MethodDirectInvokeComponent {
 //        TestCandidateMetadata mostRecentTestCandidate = null;
         List<String> methodArgumentValues = null;
         AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(methodElement,
-                methodArgumentValues);
+                (PsiClass) methodElement.getContainingClass().getSource(), methodArgumentValues);
 
         AgentCommandRequest existingRequests = insidiousService.getAgentCommandRequests(agentCommandRequest);
         if (existingRequests != null) {

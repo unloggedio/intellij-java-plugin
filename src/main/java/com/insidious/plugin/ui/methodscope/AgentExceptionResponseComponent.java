@@ -12,6 +12,7 @@ import com.insidious.plugin.util.DateUtils;
 import com.insidious.plugin.util.ExceptionUtils;
 
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.io.IOException;
 import java.util.List;
@@ -33,18 +34,18 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
 
     public AgentExceptionResponseComponent(
             TestCandidateMetadata metadata,
-            AgentCommandResponse<String> response,
+            AgentCommandResponse<String> agentCommandResponse,
             InsidiousService insidiousService
     ) {
 
         this.insidiousService = insidiousService;
         this.metadata = metadata;
-        this.response = response;
+        this.response = agentCommandResponse;
         setupDefLayout();
         String simpleClassName = metadata.getFullyQualifiedClassname();
         simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
         String methodLabel = simpleClassName + "." + metadata.getMainMethod().getMethodName() + "()";
-        setInfoLabel("Method executed at " + DateUtils.formatDate(new Date()) + " for " + methodLabel);
+        setInfoLabel(methodLabel + " at " + DateUtils.formatDate(new Date(agentCommandResponse.getTimestamp())));
     }
 
 
@@ -159,8 +160,8 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
     }
 
     public void setInfoLabel(String info) {
-//        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
-//        titledBorder.setTitle(info);
-        this.infoLabel.setText(info);
+        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
+        titledBorder.setTitle(info);
+//        this.infoLabel.setText(info);
     }
 }

@@ -1,6 +1,5 @@
 package com.insidious.plugin.ui.methodscope;
 
-import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
@@ -12,15 +11,13 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.MethodExecutionListener;
-import com.insidious.plugin.util.DiffUtils;
-import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.MethodUtils;
-import com.insidious.plugin.util.TestCandidateUtils;
+import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.psi.PsiClass;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
@@ -166,18 +163,16 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     public void executeAll() {
         ApplicationManager.getApplication().invokeLater(() -> {
             JSONObject eventProperties = new JSONObject();
-            ClassAdapter psiClass = methodElement.getContainingClass();
-            eventProperties.put("className", psiClass.getQualifiedName());
-            eventProperties.put("methodName", methodElement.getName());
-            UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
 
-            callCount = candidateComponentMap.size();
-            componentCounter = 0;
+            ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass1 -> {
+                eventProperties.put("className", psiClass1.getQualifiedName());
+                eventProperties.put("methodName", methodElement.getName());
+                UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
 
-            for (TestCandidateMetadata methodTestCandidate : this.methodTestCandidates) {
-                List<String> methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
-                        methodTestCandidate);
-                executeCandidate(methodTestCandidate, methodArgumentValues,
+                callCount = candidateComponentMap.size();
+                componentCounter = 0;
+
+                executeCandidate(methodTestCandidates, psiClass1,
                         (testCandidate, agentCommandResponse, diffResult) -> {
                             componentCounter++;
                             if (componentCounter == callCount) {
@@ -187,7 +182,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                                 ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
                             }
                         });
-            }
+            });
+
+
         });
 
     }
@@ -224,6 +221,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         TitledBorder topPanelTitledBorder = (TitledBorder) topPanel.getBorder();
         topPanelTitledBorder.setTitle(classSimpleName + "." + methodName + "()");
 
+        this.rootContent.revalidate();
+        this.rootContent.repaint();
+
     }
 
     private void clearBoard() {
@@ -250,34 +250,41 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     @Override
     public void executeCandidate(
-            TestCandidateMetadata testCandidate,
-            List<String> methodArgumentValues,
+            List<TestCandidateMetadata> testCandidateList,
+            PsiClass psiClass,
             AgentCommandResponseListener<String> agentCommandResponseListener
     ) {
-        AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(methodElement,
-                methodArgumentValues);
 
-        insidiousService.executeMethodInRunningProcess(agentCommandRequest,
-                (request, agentCommandResponse) -> {
+        for (TestCandidateMetadata testCandidate : testCandidateList) {
 
-                    candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
-                    DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
-                    insidiousService.addDiffRecord(methodElement, diffResult);
+            List<String> methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(testCandidate);
+            AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(
+                    methodElement, psiClass, methodArgumentValues);
 
-                    TestCandidateListedItemComponent candidateComponent =
-                            candidateComponentMap.get(testCandidate.getEntryProbeIndex());
+            insidiousService.executeMethodInRunningProcess(agentCommandRequest,
+                    (request, agentCommandResponse) -> {
+                        candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
+                        DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate,
+                                agentCommandResponse);
+                        insidiousService.addDiffRecord(methodElement, diffResult);
 
-                    candidateComponent.setAndDisplayResponse(agentCommandResponse, diffResult);
+                        TestCandidateListedItemComponent candidateComponent =
+                                candidateComponentMap.get(testCandidate.getEntryProbeIndex());
 
-                    agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
+                        candidateComponent.setAndDisplayResponse(agentCommandResponse, diffResult);
 
-                    DaemonCodeAnalyzer
-                            .getInstance(insidiousService.getProject())
-                            .restart(methodElement.getContainingFile());
+                        agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
+
+                        DaemonCodeAnalyzer
+                                .getInstance(insidiousService.getProject())
+                                .restart(methodElement.getContainingFile());
+
+                        agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
+                    });
+
+        }
 
 
-                    agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
-                });
     }
 
 

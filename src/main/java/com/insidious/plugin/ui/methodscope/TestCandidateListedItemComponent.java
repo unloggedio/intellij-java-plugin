@@ -8,6 +8,7 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.ui.MethodExecutionListener;
+import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.TestCandidateUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.ui.components.JBScrollPane;
@@ -17,15 +18,12 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 public class TestCandidateListedItemComponent {
     private final TestCandidateMetadata candidateMetadata;
@@ -53,27 +51,27 @@ public class TestCandidateListedItemComponent {
         this.methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata);
         this.parameterMap = generateParameterMap(method.getParameters());
 
-//        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
-//        titledBorder.setTitle("#" + String.valueOf(candidateMetadata.getEntryProbeIndex()));
         mainPanel.revalidate();
 
         loadInputTree();
         executeLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                JSONObject eventProperties = new JSONObject();
-                eventProperties.put("className", candidateMetadata.getTestSubject().getType());
-                eventProperties.put("methodName", candidateMetadata.getMainMethod().getMethodName());
-                UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
 
-                listener.executeCandidate(candidateMetadata,
-                        TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata),
-                        (testCandidate, agentCommandResponse, diffResult) -> {
-                            insidiousService.updateMethodHashForExecutedMethod(method);
-                            setAndDisplayResponse(agentCommandResponse, diffResult);
-                            candidateSelectedListener.onCandidateSelected(testCandidate);
-                        }
-                );
+                ClassUtils.chooseClassImplementation(method.getContainingClass(), psiClass -> {
+                    JSONObject eventProperties = new JSONObject();
+                    eventProperties.put("className", psiClass.getQualifiedName());
+                    eventProperties.put("methodName", candidateMetadata.getMainMethod().getMethodName());
+                    UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
+                    listener.executeCandidate(
+                            Collections.singletonList(candidateMetadata), psiClass,
+                            (testCandidate, agentCommandResponse, diffResult) -> {
+                                insidiousService.updateMethodHashForExecutedMethod(method);
+                                setAndDisplayResponse(agentCommandResponse, diffResult);
+                                candidateSelectedListener.onCandidateSelected(testCandidate);
+                            }
+                    );
+                });
             }
         });
         statusLabel.addMouseListener(new MouseAdapter() {

@@ -9,6 +9,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -63,16 +64,16 @@ public class AgentResponseComponent implements Supplier<Component> {
         computeDifferences(differences);
 
 
-        String originalString = new String(
-                metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+        String originalString = new String(metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
-        String simpleClassName = metadata.getFullyQualifiedClassname();
+        String simpleClassName = agentCommandResponse.getTargetClassName();
         simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
 
 
-        String methodLabel = simpleClassName + "." + metadata.getMainMethod().getMethodName() + "()";
-        setInfoLabel("Method executed at " + DateUtils.formatDate(new Date()) + " for " + methodLabel);
+        String methodLabel = simpleClassName + "." + agentCommandResponse.getTargetMethodName() + "()";
+
+        setInfoLabel(methodLabel + " at " + DateUtils.formatDate(new Date(agentCommandResponse.getTimestamp())));
 
         viewFullButton.addMouseListener(new MouseAdapter() {
             @Override
@@ -133,9 +134,9 @@ public class AgentResponseComponent implements Supplier<Component> {
     }
 
     public void setInfoLabel(String info) {
-//        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
-//        titledBorder.setTitle(info);
-        this.infoLabel.setText(info);
+        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
+        titledBorder.setTitle(info);
+//        this.infoLabel.setText(info);
     }
 
 

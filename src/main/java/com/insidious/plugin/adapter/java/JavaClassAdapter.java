@@ -5,6 +5,7 @@ import com.insidious.plugin.adapter.FieldAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.impl.source.PsiJavaFileImpl;
@@ -95,5 +96,25 @@ public class JavaClassAdapter implements ClassAdapter {
         }
 
         return interfacesArray;
+    }
+
+    @Override
+    public boolean isInterface() {
+        return psiClass.isInterface();
+    }
+
+    @Override
+    public boolean isEnum() {
+        return psiClass.isEnum();
+    }
+
+    @Override
+    public boolean isAnnotationType() {
+        return psiClass.isAnnotationType();
+    }
+
+    @Override
+    public PsiElement getSource() {
+        return psiClass;
     }
 }
