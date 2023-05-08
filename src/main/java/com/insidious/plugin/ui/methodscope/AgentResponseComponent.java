@@ -67,7 +67,7 @@ public class AgentResponseComponent implements Supplier<Component> {
         String originalString = new String(metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
-        String simpleClassName = agentCommandResponse.getTargetClassName();
+        String simpleClassName = agentCommandResponse.getResponseClassName();
         simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
 
 

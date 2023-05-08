@@ -143,7 +143,6 @@ final public class InsidiousService implements Disposable,
     private LiveViewWindow liveViewWindow;
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
-    private OnboardingConfigurationWindow onboardingConfigurationWindow;
     private Content onboardingConfigurationWindowContent;
     private boolean liveViewAdded = false;
     private Content liveWindowContent;
@@ -693,14 +692,6 @@ final public class InsidiousService implements Disposable,
             // ignored
         }
         ContentManager contentManager = this.toolWindow.getContentManager();
-
-//
-//        onboardingConfigurationWindow = new OnboardingConfigurationWindow(project, this);
-//        onboardingConfigurationWindowContent = contentFactory.createContent(
-//                onboardingConfigurationWindow.getContent(), "Get Started", false);
-//
-//        singleWindowView = new SingleWindowView(project, this);
-//        singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
 
         // test case designer form
         testCaseDesignerWindow = new TestCaseDesigner();

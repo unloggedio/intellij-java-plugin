@@ -1,7 +1,5 @@
 package com.insidious.plugin.pojo;
 
-import com.insidious.plugin.ui.Components.OnboardingScaffoldV3;
-
 public class InsidiousOnboardingStatus {
 
     private boolean completed=false;
