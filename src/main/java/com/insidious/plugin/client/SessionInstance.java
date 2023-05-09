@@ -2277,6 +2277,10 @@ public class SessionInstance {
     public void scanDataAndBuildReplay() {
         if (isSessionCorrupted) {
             if (!hasShownCorruptedNotification) {
+                JSONObject properties = new JSONObject();
+                properties.put("project", this.project.getName());
+                properties.put("session", executionSession.getPath());
+                UsageInsightTracker.getInstance().RecordEvent("SESSSION_CORRUPT", properties);
                 hasShownCorruptedNotification = true;
                 InsidiousNotification.notifyMessage(
                         "Session is corrupted, please restart application or contact us" +
