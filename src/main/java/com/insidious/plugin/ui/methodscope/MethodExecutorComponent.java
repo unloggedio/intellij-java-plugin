@@ -49,6 +49,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     //    private JPanel centerPanel;
     private JPanel centerParent;
     private JPanel topAligner;
+    private JScrollPane scrollParent;
     private JPanel selectedCandidateInfoPanel;
     private JPanel borderParent;
     private List<TestCandidateMetadata> methodTestCandidates;
@@ -325,12 +326,19 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             TestCandidateMetadata testCandidateMetadata,
             AgentCommandResponse<String> agentCommandResponse
     ) {
+        if(testCandidateMetadata.getMainMethod().getReturnValue().isException())
+        {
+            return new AgentExceptionResponseComponent(
+                    testCandidateMetadata, agentCommandResponse, insidiousService);
+        }
         if (agentCommandResponse.getResponseType() != null &&
                 (agentCommandResponse.getResponseType().equals(ResponseType.FAILED) ||
                         agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
+            System.out.println("Returning exception");
             return new AgentExceptionResponseComponent(
                     testCandidateMetadata, agentCommandResponse, insidiousService);
         } else {
+            System.out.println("Returning Diff view");
             return new AgentResponseComponent(
                     agentCommandResponse, testCandidateMetadata, true, insidiousService::generateCompareWindows);
 

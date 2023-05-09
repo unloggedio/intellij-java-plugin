@@ -26,7 +26,7 @@ public class DiffUtils {
         String originalString = new String(
                 testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
-
+        System.out.println("Is Exception from session : "+testCandidateMetadata.getMainMethod().getReturnValue().isException());
         if (testCandidateMetadata.getMainMethod().getReturnValue().isException() ||
                 (agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
             //exception flow wip

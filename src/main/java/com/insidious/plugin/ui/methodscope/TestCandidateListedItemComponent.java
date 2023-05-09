@@ -298,7 +298,7 @@ public class TestCandidateListedItemComponent {
                 this.statusLabel.setText("Exception");
                 this.statusLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
                 this.statusLabel.setForeground(UIUtils.orange);
-                System.out.println("Exception message : " + agentCommandResponse.getMessage());
+                System.out.println("Exception display for status label : ");
         }
     }
 
