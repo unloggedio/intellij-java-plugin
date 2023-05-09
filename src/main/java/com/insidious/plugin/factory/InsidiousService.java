@@ -26,7 +26,10 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.inlay.InsidiousInlayHintsCollector;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.GutterClickNavigationStates.AtomicTestContainer;
-import com.insidious.plugin.ui.*;
+import com.insidious.plugin.ui.InsidiousCaretListener;
+import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.ui.UnloggedGPT;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
@@ -1118,10 +1121,8 @@ final public class InsidiousService implements Disposable,
             return GutterState.PROCESS_NOT_RUNNING;
         }
 
-        String methodClassQualifiedName = method.getContainingClass().getQualifiedName();
-        String methodName = method.getName();
-        List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesForAllMethod(
-                methodClassQualifiedName, methodName, false);
+        List<TestCandidateMetadata> candidates = getTestCandidateMetadata(method);
+
         // process is running, but no test candidates for this method
         if (candidates.size() == 0) {
             return GutterState.PROCESS_RUNNING;
@@ -1131,7 +1132,7 @@ final public class InsidiousService implements Disposable,
         // so check if we have executed this before
 
         //check for change
-        String hashKey = methodClassQualifiedName + "#" + methodName;
+        String hashKey = method.getContainingClass().getQualifiedName() + "#" + method.getName();
 
         // we havent checked anything for this method earlier
         // store method hash for diffs
@@ -1165,6 +1166,34 @@ final public class InsidiousService implements Disposable,
             default:
                 return GutterState.DIFF;
         }
+    }
+
+    public List<TestCandidateMetadata> getTestCandidateMetadata(MethodAdapter method) {
+
+        String methodName = method.getName();
+        ClassAdapter containingClass = method.getContainingClass();
+        String methodClassQualifiedName = containingClass.getQualifiedName();
+
+        List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesForAllMethod(
+                methodClassQualifiedName, methodName, false);
+
+        ClassAdapter[] interfaceList = containingClass.getInterfaces();
+        for (ClassAdapter classInterface : interfaceList) {
+            boolean hasMethod = false;
+            for (MethodAdapter interfaceMethod : classInterface.getMethods()) {
+                if (interfaceMethod.getName().equals(methodName) && interfaceMethod.getJVMSignature()
+                        .equals(method.getJVMSignature())) {
+                    hasMethod = true;
+                }
+            }
+
+            if (hasMethod) {
+                List<TestCandidateMetadata> interfaceCandidates = sessionInstance.getTestCandidatesForAllMethod(
+                        classInterface.getQualifiedName(), methodName, false);
+                candidates.addAll(interfaceCandidates);
+            }
+        }
+        return candidates;
     }
 
     public void updateMethodHashForExecutedMethod(MethodAdapter method) {

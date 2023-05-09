@@ -199,12 +199,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     public void refreshAndReloadCandidates(MethodAdapter method) {
         clearBoard();
         this.methodElement = method;
-        String classQualifiedName = methodElement.getContainingClass().getQualifiedName();
-        String classSimpleName = methodElement.getContainingClass().getName();
-        String methodName = methodElement.getName();
-        List<TestCandidateMetadata> candidates = this.insidiousService
-                .getSessionInstance()
-                .getTestCandidatesForAllMethod(classQualifiedName, methodName, false);
+
+        List<TestCandidateMetadata> candidates = this.insidiousService.getTestCandidateMetadata(method);
         this.methodTestCandidates = deDuplicateList(candidates);
         if (this.methodTestCandidates.size() == 0) {
             //moving to differnet view as this is not the intended screen for no available data.
@@ -219,7 +215,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         executeAndShowDifferencesButton.repaint();
         this.candidateCountLabel.setText(methodTestCandidates.size() + " Unique candidates");
         TitledBorder topPanelTitledBorder = (TitledBorder) topPanel.getBorder();
-        topPanelTitledBorder.setTitle(classSimpleName + "." + methodName + "()");
+        topPanelTitledBorder.setTitle(
+                methodElement.getContainingClass().getName() + "." + methodElement.getName() + "()");
 
         this.rootContent.revalidate();
         this.rootContent.repaint();

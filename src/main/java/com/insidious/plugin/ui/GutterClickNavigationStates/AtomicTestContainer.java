@@ -68,16 +68,14 @@ public class AtomicTestContainer {
                 methodExecutorComponent.refreshAndReloadCandidates(method);
             }
         } else {
-            String classQualifiedName = method.getContainingClass().getQualifiedName();
-            String methodName = method.getName();
-            SessionInstance sessionInstance = this.insidiousService
-                    .getSessionInstance();
+            SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
             if (sessionInstance == null) {
                 loadComponentForState(this.currentState, method);
                 return;
             }
-            List<TestCandidateMetadata> methodTestCandidates = sessionInstance
-                    .getTestCandidatesForAllMethod(classQualifiedName, methodName, false);
+
+            List<TestCandidateMetadata> methodTestCandidates = this.insidiousService.getTestCandidateMetadata(method);
+
             if (methodTestCandidates.size() > 0) {
                 loadExecutionFlow();
                 methodExecutorComponent.refreshAndReloadCandidates(method);

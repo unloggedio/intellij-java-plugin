@@ -251,12 +251,16 @@ public class MethodDirectInvokeComponent {
 
         JBScrollPane parameterScrollPanel = new JBScrollPane(methodParameterContainer);
         parameterScrollPanel.setSize(new Dimension(-1, 500));
+        parameterScrollPanel.setBorder(BorderFactory.createEmptyBorder());
 //        parameterScrollPanel.setMinimumSize(new Dimension(-1, 500));
 //        parameterScrollPanel.setMaximumSize(new Dimension(-1, 500));
 
+        methodParameterScrollContainer.setMinimumSize(new Dimension(-1, Math.min(methodParameters.length * 150, 150)));
         methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
-        methodParameterScrollContainer.revalidate();
-        methodParameterScrollContainer.repaint();
+//        methodParameterScrollContainer.revalidate();
+//        methodParameterScrollContainer.repaint();
+        mainContainer.revalidate();
+        mainContainer.repaint();
     }
 
     private String createDummyValue(PsiType parameterType) {
