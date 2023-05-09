@@ -63,7 +63,9 @@ public class AgentResponseComponent implements Supplier<Component> {
         computeDifferences(differences);
 
 
-        String originalString = new String(metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+        byte[] serializedValue = metadata.getMainMethod().getReturnDataEvent().getSerializedValue();
+        String originalString = serializedValue.length > 0 ? new String(serializedValue) :
+                String.valueOf(metadata.getMainMethod().getReturnDataEvent().getValue());
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
         String simpleClassName = agentCommandResponse.getTargetClassName();

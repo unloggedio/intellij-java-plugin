@@ -23,8 +23,9 @@ public class DiffUtils {
             TestCandidateMetadata testCandidateMetadata,
             AgentCommandResponse<String> agentCommandResponse
     ) {
-        String originalString = new String(
-                testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+        byte[] serializedValue = testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue();
+        String originalString = serializedValue.length > 0 ? new String(serializedValue) :
+                String.valueOf(testCandidateMetadata.getMainMethod().getReturnDataEvent().getValue());
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
         System.out.println("Is Exception from session : "+testCandidateMetadata.getMainMethod().getReturnValue().isException());
         if (testCandidateMetadata.getMainMethod().getReturnValue().isException() ||
