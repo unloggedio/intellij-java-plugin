@@ -43,9 +43,11 @@ public class InsidiousServiceTest {
                 "-javaagent:\"agent.jar=i=com/videobug,token=localhost-token\"").split(" ");
         Assert.assertTrue(vmParams.length == newVmParams.length);
 
-        vmParams = VideobugUtils.addAgentToVMParams(newVmParam,
-                "--add-opens=java.base/java.util=ALL-UNNAMED").split(" ");
-        Assert.assertTrue(vmParams.length == 3);
+        vmParams = VideobugUtils.addAgentToVMParams("-javaagent:\"/Users/artpar/.unlogged/unlogged-java-agent" +
+                        ".jar=i=com.videobug\" --add-opens=java.base/java.util=ALL-UNNAMED",
+                "-javaagent:\"/Users/artpar/.unlogged/unlogged-java-agent.jar=i=com.videobug\"\n" +
+                        "--add-opens=java.base/java.util=ALL-UNNAMED").split(" ");
+        Assert.assertTrue(vmParams.length == 2);
 
     }
 }

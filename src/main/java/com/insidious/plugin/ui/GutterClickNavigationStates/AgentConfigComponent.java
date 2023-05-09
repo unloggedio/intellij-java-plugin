@@ -1,15 +1,19 @@
 package com.insidious.plugin.ui.GutterClickNavigationStates;
 
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.VMoptionsConstructionService;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.ui.JBColor;
 import com.intellij.util.ui.JBUI;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.MouseAdapter;
@@ -78,13 +82,16 @@ public class AgentConfigComponent {
 //        });
 
         addToCurrentRunConfigButton.addActionListener(
-                e -> insidiousService.addAgentToRunConfig(
-                        getCurrentVMopts(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION)));
+                e -> {
+                    UsageInsightTracker.getInstance().RecordEvent("ADD_AGENT_TO_RUN_CONFIG", new JSONObject());
+                    insidiousService.addAgentToRunConfig(
+                            getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION));
+                });
 
         javaComboBox.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {
-                Integer java_version = Integer.parseInt(event.getItem().toString());
-                this.addOpens = (java_version >= 17) ? true : false;
+                int javaVersion = Integer.parseInt(event.getItem().toString());
+                this.addOpens = javaVersion >= 17;
                 updateVMParams();
             }
         });
@@ -103,6 +110,17 @@ public class AgentConfigComponent {
             public void mouseClicked(MouseEvent e) {
                 routeToDiscord("https://discord.gg/Hhwvay8uTa");
             }
+        });
+
+        copyToClipboardButton.addActionListener(e -> {
+            UsageInsightTracker.getInstance().RecordEvent("COPY_VM_PARAMS", new JSONObject());
+            Toolkit.getDefaultToolkit()
+                    .getSystemClipboard()
+                    .setContents(
+                            new StringSelection(vmparamsArea.getText()),
+                            null
+                    );
+            InsidiousNotification.notifyMessage("Copied JVM param to clipboard", NotificationType.INFORMATION);
         });
 
         JButton button = new JButton();
@@ -134,7 +152,7 @@ public class AgentConfigComponent {
     }
 
     public void updateVMParams() {
-        this.vmparamsArea.setText(getCurrentVMopts(currentType));
+        this.vmparamsArea.setText(getCurrentJVMOpts(currentType));
     }
 
 //    private void setModuleList() {
@@ -163,7 +181,7 @@ public class AgentConfigComponent {
 //        insidiousService.copyToClipboard(getCurrentVMopts());
     }
 
-    public String getCurrentVMopts(ProjectTypeInfo.RUN_TYPES currentType1) {
+    public String getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES currentType1) {
         String basePackage = insidiousService.fetchBasePackage();
 
         //String basePackage = insidiousService.fetchBasePackageForModule(this.currentModuleName);

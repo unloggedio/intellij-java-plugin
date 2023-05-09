@@ -158,8 +158,8 @@ final public class InsidiousService implements Disposable,
     private SessionInstance sessionInstance;
     private boolean initiated = false;
     private Content testDesignerContent;
-    private UnloggedGPT gptWindow;
-    private Content gptContent;
+//    private UnloggedGPT gptWindow;
+//    private Content gptContent;
     private InsidiousInlayHintsCollector inlayHintsCollector;
     private MethodExecutorComponent methodExecutorToolWindow;
     private Content methodExecutorWindow;
@@ -264,32 +264,6 @@ final public class InsidiousService implements Disposable,
         System.out.println(selection);
     }
 
-    private List<Module> selectJavaModules(List<Module> modules) {
-        return modules.stream()
-                .filter(module -> module.getModuleTypeName() == null || module.getModuleTypeName()
-                        .equals(
-                                "JAVA_MODULE"))
-                .collect(Collectors.toList());
-    }
-
-    private void registerModules(List<Module> modules) {
-
-        this.moduleMap = new TreeMap<>();
-        for (Module module : modules) {
-            if (module.getName()
-                    .endsWith(".main") || module.getName()
-                    .endsWith(".test")) {
-                continue;
-            }
-            ModuleInformation info = new ModuleInformation(module.getName(), module.getModuleTypeName(),
-                    module.getModuleFilePath());
-            info.setModule(module);
-            if (selectedModule == null) {
-                selectedModule = info.getName();
-            }
-            this.moduleMap.put(info.getName(), info);
-        }
-    }
 
     public PROJECT_BUILD_SYSTEM findBuildSystemForModule(String modulename) {
         Module module = moduleMap.get(modulename)
@@ -312,27 +286,6 @@ final public class InsidiousService implements Disposable,
         return PROJECT_BUILD_SYSTEM.DEF;
     }
 
-    public List<String> fetchModules() {
-        List<Module> modules = Arrays.asList(ModuleManager.getInstance(project)
-                .getModules());
-        modules = selectJavaModules(modules);
-        if (modules.size() > 0) {
-            registerModules(modules);
-            return new ArrayList<>(this.moduleMap.keySet());
-        } else {
-            List<String> res = new ArrayList<>();
-            if (!this.moduleMap.containsKey(this.project.getName())) {
-                ModuleInformation info = new ModuleInformation(this.project.getName(),
-                        "JAVA_MODULE", this.project.getBasePath());
-                this.moduleMap.put(this.project.getName(), info);
-            }
-            if (this.selectedModule == null) {
-                this.selectedModule = this.project.getName();
-            }
-            res.add(project.getName());
-            return res;
-        }
-    }
 
     public synchronized void init(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         if (this.initiated) {
@@ -349,7 +302,7 @@ final public class InsidiousService implements Disposable,
                 .replaceFirst("Test", ""));
         sb.deleteCharAt(sb.length() - 1);
 
-        @NotNull PsiFile[] classBase = FilenameIndex.getFilesByName(project, sb.toString() + ".java",
+        @NotNull PsiFile[] classBase = FilenameIndex.getFilesByName(project, sb + ".java",
                 GlobalSearchScope.projectScope(project));
 
         if (classBase.length > 0) {
@@ -379,8 +332,7 @@ final public class InsidiousService implements Disposable,
         if (last_index == -1) {
             return null;
         }
-        String basePath = path.substring(0, last_index);
-        return basePath;
+        return path.substring(0, last_index);
     }
 
     public String getTestCandidateCode(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
@@ -530,21 +482,19 @@ final public class InsidiousService implements Disposable,
             List<VirtualFile> newFile1 = new ArrayList<>();
             newFile1.add(newFile);
             FileContentUtil.reparseFiles(project, newFile1, true);
-            @Nullable Document newDocument = FileDocumentManager.getInstance()
-                    .getDocument(newFile);
+            @Nullable Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
 
-            FileEditorManager.getInstance(project)
-                    .openFile(newFile, true, true);
+            FileEditorManager.getInstance(project).openFile(newFile, true, true);
 
             logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
             return newFile;
         }
-//        VirtualFileManager.getInstance().syncRefresh();
+
         return null;
     }
 
     public void ensureTestUtilClass(String basePath) throws IOException {
-        String testOutputDirPath = null;
+        String testOutputDirPath;
         if (basePath != null) {
             testOutputDirPath = basePath + "src/test/java/io/unlogged";
         } else {
@@ -732,11 +682,11 @@ final public class InsidiousService implements Disposable,
         contentManager.addContent(this.directMethodInvokeContent);
 
 
-        gptWindow = new UnloggedGPT(this);
-        gptContent = contentFactory.createContent(gptWindow.getComponent(), "UnloggedGPT", false);
-        gptContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        gptContent.setIcon(UIUtils.UNLOGGED_GPT_ICON_PINK);
-        contentManager.addContent(gptContent);
+//        gptWindow = new UnloggedGPT(this);
+//        gptContent = contentFactory.createContent(gptWindow.getComponent(), "UnloggedGPT", false);
+//        gptContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+//        gptContent.setIcon(UIUtils.UNLOGGED_GPT_ICON_PINK);
+//        contentManager.addContent(gptContent);
 
         // test candidate list by packages
         liveViewWindow = new LiveViewWindow(project);
@@ -870,9 +820,9 @@ final public class InsidiousService implements Disposable,
             return;
         }
 
-        if (this.gptWindow != null) {
-            this.gptWindow.updateUI(psiClass, method);
-        }
+//        if (this.gptWindow != null) {
+//            this.gptWindow.updateUI(psiClass, method);
+//        }
 
         if (testCaseDesignerWindow == null || !this.toolWindow.isVisible()) {
             logger.warn("test case designer window is not ready to create test case for " + methodName);
@@ -1323,20 +1273,17 @@ final public class InsidiousService implements Disposable,
     }
 
     public String fetchBasePackage() {
-        Set<String> ret = new HashSet<String>();
-        Collection<VirtualFile> virtualFiles =
-                FileBasedIndex.getInstance()
-                        .getContainingFiles(FileTypeIndex.NAME, JavaFileType.INSTANCE,
-                                GlobalSearchScope.projectScope(project));
+        Collection<VirtualFile> virtualFiles = FileTypeIndex.getFiles(JavaFileType.INSTANCE,
+                GlobalSearchScope.projectScope(project));
+
+
         List<String> components = new ArrayList<String>();
         for (VirtualFile vf : virtualFiles) {
-            PsiFile psifile = PsiManager.getInstance(project)
-                    .findFile(vf);
+            PsiFile psifile = PsiManager.getInstance(project).findFile(vf);
             if (psifile instanceof PsiJavaFile) {
                 PsiJavaFile psiJavaFile = (PsiJavaFile) psifile;
                 String packageName = psiJavaFile.getPackageName();
                 if (packageName.contains(".")) {
-                    ret.add(packageName);
                     if (components.size() == 0) {
                         String[] parts = packageName.split("\\.");
                         components = Arrays.asList(parts);
