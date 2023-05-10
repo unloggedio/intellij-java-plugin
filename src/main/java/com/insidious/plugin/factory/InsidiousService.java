@@ -89,6 +89,7 @@ import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
@@ -994,6 +995,11 @@ final public class InsidiousService implements Disposable,
         ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
         Editor[] currentOpenEditorsList = EditorFactory.getInstance().getAllEditors();
         for (Editor editor : currentOpenEditorsList) {
+            VirtualFile virtualFile = FileDocumentManager.getInstance().getFile(editor.getDocument());
+            if (virtualFile instanceof LightVirtualFile) {
+                return;
+            }
+
             @Nullable PsiFile psiFile = ApplicationManager.getApplication().runReadAction(
                     (ThrowableComputable<PsiFile, RuntimeException>) () -> PsiDocumentManager.getInstance(project)
                             .getPsiFile(editor.getDocument()));

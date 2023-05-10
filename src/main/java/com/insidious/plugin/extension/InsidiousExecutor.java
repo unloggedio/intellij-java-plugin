@@ -10,62 +10,62 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 
-public class InsidiousExecutor extends Executor {
+public class InsidiousExecutor  {
 
-    private final @NotNull Icon icon = IconLoader.getIcon("/icons/videobug.svg", InsidiousRunConfigTypeInterface.class);
-
-    @Override
-    public @NotNull String getToolWindowId() {
-        return ToolWindowId.DEBUG;
-    }
-
-    @Override
-    public @NotNull Icon getToolWindowIcon() {
-        return icon;
-    }
-
-    @Override
-    public @NotNull Icon getIcon() {
-        return icon;
-    }
-
-    @Override
-    public Icon getDisabledIcon() {
-        return null;
-    }
-
-    @Override
-    public String getDescription() {
-        return "Time travel debugger";
-    }
-
-    @Override
-    public @NotNull String getActionName() {
-        return "InsidiousTimeTravel";
-    }
-
-    @Override
-    public @NotNull @NonNls String getId() {
-        return "InsidiousTimeTravel";
-    }
-
-    @Override
-    public @NotNull @Nls(capitalization = Nls.Capitalization.Title) String getStartActionText() {
-        return "Start time travel";
-    }
-
-    @Override
-    public @NonNls String getContextActionId() {
-        return "InsidiousTimeTravel";
-    }
-
-    @Override
-    public @NonNls String getHelpId() {
-        return null;
-    }
-
-    @Override
-    public boolean isApplicable(@NotNull Project project) {
-        return false;
-    }
+//    private final @NotNull Icon icon = IconLoader.getIcon("/icons/videobug.svg", InsidiousRunConfigTypeInterface.class);
+//
+//    @Override
+//    public @NotNull String getToolWindowId() {
+//        return ToolWindowId.DEBUG;
+//    }
+//
+//    @Override
+//    public @NotNull Icon getToolWindowIcon() {
+//        return icon;
+//    }
+//
+//    @Override
+//    public @NotNull Icon getIcon() {
+//        return icon;
+//    }
+//
+//    @Override
+//    public Icon getDisabledIcon() {
+//        return null;
+//    }
+//
+//    @Override
+//    public String getDescription() {
+//        return "Time travel debugger";
+//    }
+//
+//    @Override
+//    public @NotNull String getActionName() {
+//        return "InsidiousTimeTravel";
+//    }
+//
+//    @Override
+//    public @NotNull @NonNls String getId() {
+//        return "InsidiousTimeTravel";
+//    }
+//
+//    @Override
+//    public @NotNull @Nls(capitalization = Nls.Capitalization.Title) String getStartActionText() {
+//        return "Start time travel";
+//    }
+//
+//    @Override
+//    public @NonNls String getContextActionId() {
+//        return "InsidiousTimeTravel";
+//    }
+//
+//    @Override
+//    public @NonNls String getHelpId() {
+//        return null;
+//    }
+//
+//    @Override
+//    public boolean isApplicable(@NotNull Project project) {
+//        return false;
+//    }
 }
