@@ -32,8 +32,10 @@ public class AtomicTestContainer {
         if (method != null) {
             lastSelectedMethod = method;
         }
+        if (this.currentState != null && this.currentState.equals(state)) {
+            return;
+        }
         System.out.println("Loading Component for state : " + state);
-        this.currentState = state;
         if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
             this.borderParent.removeAll();
             AgentConfigComponent component = new AgentConfigComponent(this.insidiousService);
@@ -53,6 +55,7 @@ public class AtomicTestContainer {
             this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
             this.borderParent.revalidate();
         }
+        this.currentState = state;
     }
 
     public void loadExecutionFlow() {

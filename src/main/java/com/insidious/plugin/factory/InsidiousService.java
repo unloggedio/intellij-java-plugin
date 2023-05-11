@@ -29,7 +29,6 @@ import com.insidious.plugin.ui.GutterClickNavigationStates.AtomicTestContainer;
 import com.insidious.plugin.ui.InsidiousCaretListener;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import com.insidious.plugin.ui.UnloggedGPT;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
@@ -49,13 +48,15 @@ import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffManager;
 import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.SimpleDiffRequest;
-import com.intellij.execution.RunManager;
-import com.intellij.execution.RunnerAndConfigurationSettings;
+import com.intellij.execution.*;
 import com.intellij.execution.application.ApplicationConfiguration;
+import com.intellij.execution.impl.ExecutionManagerImpl;
+import com.intellij.ide.DataManager;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.compiler.CompileStatusNotification;
@@ -94,7 +95,6 @@ import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.util.FileContentUtil;
-import com.intellij.util.indexing.FileBasedIndex;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
 import org.apache.commons.io.IOUtils;
@@ -113,9 +113,9 @@ import java.util.List;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Storage("insidious.xml")
 final public class InsidiousService implements Disposable,
@@ -159,7 +159,7 @@ final public class InsidiousService implements Disposable,
     private SessionInstance sessionInstance;
     private boolean initiated = false;
     private Content testDesignerContent;
-//    private UnloggedGPT gptWindow;
+    //    private UnloggedGPT gptWindow;
 //    private Content gptContent;
     private InsidiousInlayHintsCollector inlayHintsCollector;
     private MethodExecutorComponent methodExecutorToolWindow;
@@ -201,8 +201,6 @@ final public class InsidiousService implements Disposable,
 
 
         RunManager runManager = project.getService(RunManager.class);
-//        List<RunnerAndConfigurationSettings> allSettings = runManager.getAllSettings();
-
         RunnerAndConfigurationSettings selectedConfig = runManager.getSelectedConfiguration();
 
         if (selectedConfig.getConfiguration() instanceof ApplicationConfiguration) {
@@ -211,8 +209,8 @@ final public class InsidiousService implements Disposable,
             String newVmOptions = currentVMParams;
             newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
             applicationConfiguration.setVMParameters(newVmOptions.trim());
-            InsidiousNotification.notifyMessage(
-                    "Updated VM parameter for " + selectedConfig.getName(), NotificationType.INFORMATION
+            InsidiousNotification.notifyMessage("Updated VM parameter for " + selectedConfig.getName(),
+                    NotificationType.INFORMATION
             );
         } else {
             InsidiousNotification.notifyMessage("Current run configuration [" + selectedConfig.getName() + "] is not " +
@@ -261,7 +259,7 @@ final public class InsidiousService implements Disposable,
         StringSelection selection = new StringSelection(string);
         Clipboard clipboard = Toolkit.getDefaultToolkit()
                 .getSystemClipboard();
-        clipboard.setContents(selection, selection);
+        clipboard.setContents(selection, null);
         System.out.println(selection);
     }
 
@@ -789,6 +787,10 @@ final public class InsidiousService implements Disposable,
     public boolean hasProgramRunning() {
         return false;
 //        return programRunners.size() > 0;
+    }
+
+    public MethodAdapter getCurrentMethod() {
+        return currentMethod;
     }
 
     public void methodFocussedHandler(final MethodAdapter method) {
@@ -1382,6 +1384,43 @@ final public class InsidiousService implements Disposable,
 
     public String fetchVersionFromLibName(String name, String dependency) {
         return stateProvider.fetchVersionFromLibName(name, dependency);
+    }
+
+    public void startProjectWithUnloggedAgent(String javaAgentString) {
+        RunManager runManager = RunManagerEx.getInstance(project);
+
+        RunnerAndConfigurationSettings selectedConfig = runManager.getSelectedConfiguration();
+
+        if (selectedConfig != null && selectedConfig.getConfiguration() instanceof ApplicationConfiguration) {
+            ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) selectedConfig.getConfiguration();
+            String currentVMParams = applicationConfiguration.getVMParameters();
+            String newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
+            applicationConfiguration.setVMParameters(newVmOptions.trim());
+
+//            ExecutionManager executionManager = ExecutionManager.getInstance(project);
+
+//            ExecutionManagerImpl executionManagerImpl = ExecutionManagerImpl.getInstance(project);
+
+            DataManager.getInstance().getDataContextFromFocusAsync().onSuccess(dataContext -> {
+                ExecutorRegistry executorRegistry = ExecutorRegistryImpl.getInstance();
+                @Nullable Executor debugExecutor = executorRegistry.getExecutorById("Debug");
+                ExecutorRegistryImpl.RunnerHelper.run(
+                        project, selectedConfig.getConfiguration(), selectedConfig, dataContext, debugExecutor
+                );
+            });
+
+        } else {
+            if (selectedConfig == null) {
+                InsidiousNotification.notifyMessage("Please configure a JAVA Application Run configuration in intellij",
+                        NotificationType.WARNING);
+            } else {
+                InsidiousNotification.notifyMessage(
+                        "Current run configuration [" + selectedConfig.getName() + "] is not " +
+                                "a java application run configuration. Failed to start.",
+                        NotificationType.WARNING);
+            }
+        }
+
     }
 
 

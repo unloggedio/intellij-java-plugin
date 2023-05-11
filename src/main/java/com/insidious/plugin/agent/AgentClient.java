@@ -3,6 +3,7 @@ package com.insidious.plugin.agent;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import okhttp3.*;
 
@@ -103,10 +104,13 @@ public class AgentClient {
                 if (newState && !currentState) {
                     currentState = true;
                     AgentClient.this.serverMetadata = response.getMethodReturnValue();
-                    connectionStateListener.onConnectedToAgentServer(AgentClient.this.serverMetadata);
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        connectionStateListener.onConnectedToAgentServer(AgentClient.this.serverMetadata);
+                    });
                 } else if (!newState && currentState) {
                     currentState = false;
-                    connectionStateListener.onDisconnectedFromAgentServer();
+                    ApplicationManager.getApplication().invokeLater(connectionStateListener::onDisconnectedFromAgentServer);
+
                 }
                 try {
                     Thread.sleep(1000);

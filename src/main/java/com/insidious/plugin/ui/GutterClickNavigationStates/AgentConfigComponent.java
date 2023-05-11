@@ -5,15 +5,22 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.VMoptionsConstructionService;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
+import com.insidious.plugin.ui.GutterClickNavigationStates.configpanels.CliConfigPanel;
+import com.insidious.plugin.ui.GutterClickNavigationStates.configpanels.GradleConfigPanel;
+import com.insidious.plugin.ui.GutterClickNavigationStates.configpanels.IntellijRunConfig;
+import com.insidious.plugin.ui.GutterClickNavigationStates.configpanels.MavenConfigPanel;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.project.DumbService;
+import com.intellij.pom.java.LanguageLevel;
+import com.intellij.psi.util.PsiUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.util.ui.JBUI;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.MouseAdapter;
@@ -21,39 +28,30 @@ import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
 
 public class AgentConfigComponent {
     public static final String CALENDLY_UNLOGGED_LINK_STRING = "https://calendly.com/unlogged/unlogged-onboarding";
+    private final InsidiousService insidiousService;
+    private final VMoptionsConstructionService vmoptsConstructionService = new VMoptionsConstructionService();
+    private LanguageLevel currentSelectedLanguageLevel;
     private URI calendlyUri;
     private JPanel mainPanel;
     private JPanel aligner;
     private JPanel topPanel;
     private JLabel iconLabel;
-    private JTextArea messagearea1;
     private JPanel selectionsParent;
     private JPanel javaVersionSelectorPanel;
-    private JPanel runModeSelectorPanel;
-    private JComboBox moduleCombobox;
     private JLabel jvsplabel;
-    private JComboBox javaComboBox;
-    private JLabel rmspLabel;
-    private JComboBox<ProjectTypeInfo.RUN_TYPES> runComboBox;
-    private JTextField basePackageTextField;
-    private JPanel vmparamsSection;
-    private JTextArea vmparamsArea;
-    private JButton copyToClipboardButton;
-    //    private JEditorPane imagePane;
+    private JComboBox<LanguageLevel> javaComboBox;
     private JPanel supportPanel;
     private JButton discordButton;
-    private JButton addToCurrentRunConfigButton;
     private JPanel calendlyLinkPanel;
-    private InsidiousService insidiousService;
-    private String currentModuleName;
-    private VMoptionsConstructionService vmoptsConstructionService = new VMoptionsConstructionService();
-    private boolean addOpens = false;
-    private ProjectTypeInfo.RUN_TYPES currentType = ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION;
+    private JButton startApplicationWithUnloggedButton;
+    private JPanel manualConfigurationStepsPanel;
+    private JButton showManualConfigurationStepsButton;
+    private JTabbedPane configTabsPanel;
+    private JPanel tabbedConfigPanelContainer;
 
     public AgentConfigComponent(InsidiousService insidiousService) {
         try {
@@ -65,46 +63,41 @@ public class AgentConfigComponent {
         this.insidiousService = insidiousService;
         DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
         dumbService.runWhenSmart(() -> {
-//            setModuleList();
-            //vmoptsConstructionService.setBasePackage(insidiousService.fetchBasePackage());
-            setRunModes();
-            updateVMParams();
+            @NotNull LanguageLevel projectLanguageLevel = PsiUtil.getLanguageLevel(
+                    insidiousService.getProject());
+            currentSelectedLanguageLevel = projectLanguageLevel;
+            javaComboBox.getModel().setSelectedItem(currentSelectedLanguageLevel);
+            updateConfigTabs(currentSelectedLanguageLevel);
         });
 
-        //loadHintGif();
-//        moduleCombobox.addItemListener(event -> {
-//            if (event.getStateChange() == ItemEvent.SELECTED) {
-//                String moduleName = event.getItem()
-//                        .toString();
-//                this.currentModuleName = moduleName;
-//                updateVMParams();
-//            }
-//        });
 
-        addToCurrentRunConfigButton.addActionListener(
+        manualConfigurationStepsPanel.setVisible(false);
+
+        showManualConfigurationStepsButton.addActionListener(e -> manualConfigurationStepsPanel.setVisible(true));
+
+
+        startApplicationWithUnloggedButton.addActionListener(
                 e -> {
-                    UsageInsightTracker.getInstance().RecordEvent("ADD_AGENT_TO_RUN_CONFIG", new JSONObject());
-                    insidiousService.addAgentToRunConfig(
-                            getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION));
+                    insidiousService.startProjectWithUnloggedAgent(
+                            getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION,
+                                    currentSelectedLanguageLevel));
                 });
+
+
+
+        javaComboBox.addItem(LanguageLevel.JDK_1_8);
+        javaComboBox.addItem(LanguageLevel.JDK_11);
+        javaComboBox.addItem(LanguageLevel.JDK_17);
+        javaComboBox.addItem(LanguageLevel.JDK_18);
 
         javaComboBox.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {
-                int javaVersion = Integer.parseInt(event.getItem().toString());
-                this.addOpens = javaVersion >= 17;
-                updateVMParams();
+                LanguageLevel selectedLanguageLevel = (LanguageLevel) javaComboBox.getSelectedItem();
+                currentSelectedLanguageLevel = selectedLanguageLevel;
+                updateConfigTabs(selectedLanguageLevel);
             }
         });
 
-        runComboBox.addItemListener(event -> {
-            if (event.getStateChange() == ItemEvent.SELECTED) {
-                Object type = event.getItem();
-                if (type instanceof ProjectTypeInfo.RUN_TYPES) {
-                    currentType = (ProjectTypeInfo.RUN_TYPES) type;
-                }
-                updateVMParams();
-            }
-        });
         discordButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -112,16 +105,6 @@ public class AgentConfigComponent {
             }
         });
 
-        copyToClipboardButton.addActionListener(e -> {
-            UsageInsightTracker.getInstance().RecordEvent("COPY_VM_PARAMS", new JSONObject());
-            Toolkit.getDefaultToolkit()
-                    .getSystemClipboard()
-                    .setContents(
-                            new StringSelection(vmparamsArea.getText()),
-                            null
-                    );
-            InsidiousNotification.notifyMessage("Copied JVM param to clipboard", NotificationType.INFORMATION);
-        });
 
         JButton button = new JButton();
         button.setText("<HTML>" +
@@ -147,58 +130,71 @@ public class AgentConfigComponent {
         calendlyLinkPanel.add(button, BorderLayout.CENTER);
     }
 
+    private void updateConfigTabs(LanguageLevel projectLanguageLevel) {
+
+        configTabsPanel.removeAll();
+
+        MavenConfigPanel mavenConfigPanel =
+                new MavenConfigPanel(getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.MAVEN_CLI, projectLanguageLevel),
+                        () -> {
+                            UsageInsightTracker.getInstance().RecordEvent("COPY_VM_PARAMS_MAVEN", new JSONObject());
+                            insidiousService.copyToClipboard(
+                                    getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.MAVEN_CLI, projectLanguageLevel));
+                        });
+
+        GradleConfigPanel gradleConfigPanel = new GradleConfigPanel(
+                getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.GRADLE_CLI, projectLanguageLevel),
+                () -> {
+                    UsageInsightTracker.getInstance().RecordEvent("COPY_VM_PARAMS_GRADLE", new JSONObject());
+                    insidiousService.copyToClipboard(
+                            getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.GRADLE_CLI, projectLanguageLevel));
+                    InsidiousNotification.notifyMessage("Copied Gradle Configuration to clipboard",
+                            NotificationType.INFORMATION);
+
+                });
+
+        IntellijRunConfig intellijRunConfigPanel = new IntellijRunConfig(
+                getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION, projectLanguageLevel),
+                () -> {
+                    UsageInsightTracker.getInstance().RecordEvent("COPY_VM_PARAMS_INTELLIJ", new JSONObject());
+                    insidiousService.copyToClipboard(
+                            getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION, projectLanguageLevel));
+                    InsidiousNotification.notifyMessage("Copied VM param to clipboard", NotificationType.INFORMATION);
+
+                },
+                () -> {
+                    UsageInsightTracker.getInstance().RecordEvent("ADD_AGENT_TO_RUN_CONFIG", new JSONObject());
+                    insidiousService.addAgentToRunConfig(
+                            getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION, projectLanguageLevel));
+
+                });
+
+        CliConfigPanel cliConfigPanel = new CliConfigPanel(
+                getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.JAVA_JAR_CLI, projectLanguageLevel),
+                () -> {
+                    UsageInsightTracker.getInstance().RecordEvent("COPY_VM_PARAMS_CLI", new JSONObject());
+                    insidiousService.copyToClipboard(
+                            getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.JAVA_JAR_CLI, projectLanguageLevel));
+                    InsidiousNotification.notifyMessage("Copied ¡1to clipboard", NotificationType.INFORMATION);
+                });
+
+
+        configTabsPanel.addTab("IntelliJ", UIUtils.INTELLIJ_ICON, intellijRunConfigPanel.getComponent());
+        configTabsPanel.addTab("Maven", UIUtils.MAVEN_ICON, mavenConfigPanel.getComponent());
+        configTabsPanel.addTab("Gradle", UIUtils.GRADLE_ICON, gradleConfigPanel.getComponent());
+        configTabsPanel.addTab("CLI", UIUtils.JAVA_ICON, cliConfigPanel.getComponent());
+
+    }
+
     public JPanel getComponent() {
         return this.mainPanel;
     }
 
-    public void updateVMParams() {
-        this.vmparamsArea.setText(getCurrentJVMOpts(currentType));
+
+    public String getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES currentType1, LanguageLevel languageLevel) {
+        return vmoptsConstructionService.getVMOptionsForRunType(currentType1, languageLevel,
+                Collections.singletonList(insidiousService.fetchBasePackage()));
     }
-
-//    private void setModuleList() {
-//        List<String> modules = insidiousService.fetchModules();
-//        DefaultComboBoxModel module_model = new DefaultComboBoxModel();
-//        module_model.addAll(modules);
-//        moduleCombobox.setModel(module_model);
-//        moduleCombobox.revalidate();
-//        if (this.currentModuleName == null) {
-//            this.currentModuleName = modules.get(0);
-//            moduleCombobox.setSelectedIndex(0);
-//        }
-//    }
-
-    private void setRunModes() {
-        ProjectTypeInfo.RUN_TYPES[] types = ProjectTypeInfo.RUN_TYPES.values();
-        List<ProjectTypeInfo.RUN_TYPES> listTypes = Arrays.asList(types);
-        DefaultComboBoxModel<ProjectTypeInfo.RUN_TYPES> run_model = new DefaultComboBoxModel<>();
-        run_model.addAll(listTypes);
-        runComboBox.setModel(run_model);
-        runComboBox.revalidate();
-        runComboBox.setSelectedIndex(0);
-    }
-
-    public void copyParamsToClipboard() {
-//        insidiousService.copyToClipboard(getCurrentVMopts());
-    }
-
-    public String getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES currentType1) {
-        String basePackage = insidiousService.fetchBasePackage();
-
-        //String basePackage = insidiousService.fetchBasePackageForModule(this.currentModuleName);
-//        this.basePackageTextField.setText(basePackage);
-
-        vmoptsConstructionService.setBasePackage(basePackage);
-        vmoptsConstructionService.setAddopens(addOpens);
-        return vmoptsConstructionService.getVMOptionsForRunType(currentType1);
-    }
-
-//    public void loadHintGif() {
-//        imagePane.setContentType("text/html");
-//        String htmlString = "<html><body>" +
-//                "<div align=\"left\"><img src=\"" + this.getClass().getClassLoader()
-//                .getResource("icons/gif/not_running.gif").toString() + "\" /></div></body></html>";
-//        imagePane.setText(htmlString);
-//    }
 
     private void routeToDiscord(String link) {
         if (Desktop.isDesktopSupported()) {

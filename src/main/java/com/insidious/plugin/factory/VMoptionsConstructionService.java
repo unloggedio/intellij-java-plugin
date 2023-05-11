@@ -2,19 +2,24 @@ package com.insidious.plugin.factory;
 
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
+import com.intellij.pom.java.LanguageLevel;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class VMoptionsConstructionService {
 
-    private final String addOpensOption = "--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED";
+    private static final String addOpensOption = "--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java" +
+            ".base/java" +
+            ".lang=ALL-UNNAMED";
     //private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH;
-    public boolean addopens = false;
-    public String basePackage = "your.package";
-    String quoute_type = "\""; // use "\"" or "'"
-    private String JVMoptionsBase = "";
+//    public boolean addOpens = false;
+//    public String basePackage = "your.package";
+//    String quoteType = "\""; // use "\"" or "'"
+//    private String JVMoptionsBase = "";
     private Map<ProjectTypeInfo.RUN_TYPES, String> runType_CommandMap = new TreeMap<>();
-    private Set<String> included_packages = new TreeSet<>();
+//    private Set<String> included_packages = new TreeSet<>();
 
     public VMoptionsConstructionService() {
         runType_CommandMap.put(ProjectTypeInfo.RUN_TYPES.MAVEN_CLI,
@@ -33,102 +38,65 @@ public class VMoptionsConstructionService {
                 "java {PARAMS} " +
                         "{OPENS} -jar {target.jar}");
 
-        this.JVMoptionsBase = getJVMoptionsBase();
+//        this.JVMoptionsBase = getJVMoptionsBase(quoteType);
 
     }
 
-    public String getVMParametersFull() {
-        StringBuilder newVMParams = new StringBuilder();
-        newVMParams.append(JVMoptionsBase);
-        List<String> packages = new ArrayList<>(this.included_packages);
-        for (String pack : packages) {
-            newVMParams.append("i=" + pack + ",");
-        }
-        newVMParams.deleteCharAt(newVMParams.length() - 1);
-        newVMParams.append(quoute_type);
-        if (this.addopens) {
-            newVMParams.append(" " + addOpensOption);
-        }
-        return newVMParams.toString();
-    }
+//    public String getVMParametersFull(boolean addOpens) {
+//        StringBuilder newVMParams = new StringBuilder();
+//        newVMParams.append(JVMoptionsBase);
+//        List<String> packages = new ArrayList<>(this.included_packages);
+//        for (String pack : packages) {
+//            newVMParams.append("i=" + pack + ",");
+//        }
+//        newVMParams.deleteCharAt(newVMParams.length() - 1);
+//        newVMParams.append(quoteType);
+//        if (addOpens) {
+//            newVMParams.append(" " + addOpensOption);
+//        }
+//        return newVMParams.toString();
+//    }
 
-    public String getVMParameters() {
-        StringBuilder newVMParams = new StringBuilder();
-        newVMParams.append(JVMoptionsBase);
-        List<String> packages = new ArrayList<>(this.included_packages);
-        for (String pack : packages) {
-            newVMParams.append("i=" + pack + ",");
-        }
-        newVMParams.deleteCharAt(newVMParams.length() - 1);
-        newVMParams.append(quoute_type);
-        return newVMParams.toString();
-    }
+//    public String getVMParameters() {
+//        StringBuilder newVMParams = new StringBuilder();
+//        newVMParams.append(JVMoptionsBase);
+//        List<String> packages = new ArrayList<>(this.included_packages);
+//        for (String pack : packages) {
+//            newVMParams.append("i=").append(pack).append(",");
+//        }
+//        newVMParams.deleteCharAt(newVMParams.length() - 1);
+//        newVMParams.append(quoute_type);
+//        return newVMParams.toString();
+//    }
 
-    public String getVMParametersWithQuoteType(String quoteSample) {
+    public String getVMParametersWithQuoteType(String quoteSample, List<String> packages) {
         StringBuilder newVMParams = new StringBuilder();
         newVMParams.append(getJVMoptionsBase(quoteSample));
-        List<String> packages = new ArrayList<>(this.included_packages);
         for (String pack : packages) {
-            newVMParams.append("i=" + pack + ",");
+            newVMParams.append("i=").append(pack).append(",");
         }
         newVMParams.deleteCharAt(newVMParams.length() - 1);
         newVMParams.append(quoteSample);
         return newVMParams.toString();
     }
 
-    private String getJVMoptionsBase() {
-        String vmoptions = "-javaagent:" + quoute_type + Constants.AGENT_PATH + "=";
-        return vmoptions;
+    private String getJVMoptionsBase(String quoteType) {
+        return "-javaagent:" + quoteType + Constants.AGENT_PATH + "=";
     }
 
-    private String getJVMoptionsBase(String quoute_type) {
-        String vmoptions = "-javaagent:" + quoute_type + Constants.AGENT_PATH + "=";
-        return vmoptions;
-    }
 
-    public String getPrettyVMtext() {
-        StringBuilder newVMParams = new StringBuilder();
-        newVMParams.append(JVMoptionsBase);
-        List<String> packages = new ArrayList<>(this.included_packages);
-        for (String pack : packages) {
-            newVMParams.append("\ni=" + pack + ",");
-        }
-        newVMParams.deleteCharAt(newVMParams.length() - 1);
-        newVMParams.append(quoute_type);
-        if (this.addopens) {
-            newVMParams.append("\n" + addOpensOption);
-        }
-        return newVMParams.toString();
-    }
-
-    public void setAddopens(boolean addopens) {
-        this.addopens = addopens;
-    }
-
-    public String getOpensStringIfNeeded() {
-        if (this.addopens) {
+    public String getOpensStringIfNeeded(boolean addOpens) {
+        if (addOpens) {
             return addOpensOption;
         }
         return "";
     }
 
-    public String getBasePackage() {
-        return basePackage;
-    }
-
-    public void setBasePackage(String basePackage) {
-
-        this.basePackage = basePackage.trim();
-        if (basePackage.contains(",")) {
-            String[] parts = basePackage.trim().split(",");
-            this.included_packages = new TreeSet<>(Arrays.asList(parts));
-        } else {
-            this.included_packages = new TreeSet<>();
-            this.included_packages.add(basePackage);
-        }
-    }
-
-    public String getVMOptionsForRunType(ProjectTypeInfo.RUN_TYPES runType) {
+    public String getVMOptionsForRunType(
+            ProjectTypeInfo.RUN_TYPES runType,
+            LanguageLevel languageLevel,
+            List<String> includedPackages) {
+        boolean addOpens = languageLevel.isAtLeast(LanguageLevel.JDK_11);
         String quoteType = "\"";
         if (runType.equals(ProjectTypeInfo.RUN_TYPES.MAVEN_CLI)) {
             quoteType = "\\\"";
@@ -136,8 +104,8 @@ public class VMoptionsConstructionService {
             quoteType = "";
         }
         String command = runType_CommandMap.get(runType);
-        command = command.replace("{PARAMS}", getVMParametersWithQuoteType(quoteType));
-        command = command.replace("{OPENS}", getOpensStringIfNeeded());
+        command = command.replace("{PARAMS}", getVMParametersWithQuoteType(quoteType, includedPackages));
+        command = command.replace("{OPENS}", getOpensStringIfNeeded(addOpens));
         return command.trim();
     }
 }
