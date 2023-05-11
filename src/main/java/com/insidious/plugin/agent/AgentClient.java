@@ -20,7 +20,8 @@ public class AgentClient {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String agentUrl;
     private final OkHttpClient client = new OkHttpClient.Builder()
-            .callTimeout(Duration.of(2, ChronoUnit.MINUTES))
+            .callTimeout(Duration.of(5, ChronoUnit.MINUTES))
+            .readTimeout(Duration.of(5, ChronoUnit.MINUTES))
             .connectTimeout(Duration.of(500, ChronoUnit.MILLIS)).build();
     private final Request pingRequest;
     private final ConnectionChecker connectionChecker;
