@@ -1341,7 +1341,9 @@ final public class InsidiousService implements Disposable,
             }
             if (state.equals(GutterState.NO_AGENT)) {
                 System.out.println("Promoting to PROCESS_NOT_RUNNING");
-                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING, null);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING, null);
+                });
             }
             if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
                 System.out.println("Promoting to PROCESS_RUNNING");

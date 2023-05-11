@@ -183,8 +183,8 @@ public class GenericNavigationComponent {
             }
 //            logger.info("[Agent download complete]");
             if (md5Check(fetchVersionFromUrl(url), agentFile)) {
-                InsidiousNotification.notifyMessage("Agent downloaded. Now configure the VM parameter for your " +
-                                "application and start in debug mode",
+                InsidiousNotification.notifyMessage("Agent downloaded. Start your application with Unlogged JAVA " +
+                                "agent to start using AtomicRuns and DirectInvoke",
                         NotificationType.INFORMATION);
 
             } else {
