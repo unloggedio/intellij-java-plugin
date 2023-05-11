@@ -45,6 +45,8 @@ public class SessionEventReader implements Runnable {
 
     @Override
     public void run() {
+        long startTime = new Date().getTime();
+        int totalFilesToRead = logFilesToRead.size();
         while (logFilesToRead.size() > 0) {
             try {
                 if (currentBufferSize > eventBufferSize) {
@@ -64,10 +66,10 @@ public class SessionEventReader implements Runnable {
                 throw new RuntimeException(e);
             }
         }
-    }
+        long endTime = new Date().getTime();
 
-    public boolean hasRemaining() {
-        return logFilesToRead.size() > 0;
+        logger.warn("Finished reading events [" + totalFilesToRead + "] log files in [" + (endTime - startTime) + " " +
+                "ms ]");
     }
 
     public EventSet getNextEventSet() throws InterruptedException {
@@ -113,8 +115,7 @@ public class SessionEventReader implements Runnable {
                     ZipEntry entry;
                     while ((entry = indexArchive.getNextEntry()) != null) {
                         String entryName = entry.getName();
-//                        logger.info(String.format("file entry in archive [%s] -> [%s]", sessionFile.getName(),
-//                                entryName));
+
                         if (entryName.contains(pathName)) {
                             byte[] fileBytes = IOUtils.toByteArray(indexArchive);
 

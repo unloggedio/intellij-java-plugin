@@ -3938,15 +3938,12 @@ public class SessionInstance {
     }
 
     public void close() throws Exception {
+        logger.warn("Closing session instance: " + executionSession.getPath());
         try {
             if (zipConsumer != null) {
                 zipConsumer.close();
             }
-//            if (databasePipe != null) {
-//                databasePipe.close();
-//            }
         } catch (Exception e) {
-//            e.printStackTrace();
             logger.error("Failed to close database pipe", e);
             InsidiousNotification.notifyMessage("Failed to close database pipe: " + e.getMessage(),
                     NotificationType.ERROR);
@@ -3956,7 +3953,6 @@ public class SessionInstance {
                 executorPool.shutdownNow();
             }
         } catch (Exception e) {
-//            e.printStackTrace();
             logger.error("Failed to close executor pool", e);
             InsidiousNotification.notifyMessage("Failed to close executor pool: " + e.getMessage(),
                     NotificationType.ERROR);
@@ -3964,7 +3960,6 @@ public class SessionInstance {
         try {
             daoService.close();
         } catch (Exception e) {
-//            e.printStackTrace();
             logger.error("Failed to close database", e);
             InsidiousNotification.notifyMessage("Failed to close database: " + e.getMessage(),
                     NotificationType.ERROR);
@@ -3988,10 +3983,6 @@ public class SessionInstance {
             archiveIndex.close();
             archiveIndex = null;
         }
-    }
-
-    public void submitTask(Runnable testCaseService) {
-        executorPool.submit(testCaseService);
     }
 
     public void setTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener) {
@@ -4022,25 +4013,7 @@ public class SessionInstance {
         return project;
     }
 
-    public boolean hasNewZips() {
-        try {
-            return daoService.getPendingLogFilesToProcessCount() > 0;
-        } catch (Exception e) {
-            System.out.println("Error checking for new zips: " + e);
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public Date getLastScannedTimeStamp() {
-        return lastScannedTimeStamp;
-    }
-
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
         return daoService.getClassMethodCallAggregates(qualifiedName);
-    }
-
-    public ArchiveIndex getArchiveIndex() {
-        return archiveIndex;
     }
 }

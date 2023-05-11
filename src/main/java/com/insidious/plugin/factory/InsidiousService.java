@@ -709,6 +709,7 @@ final public class InsidiousService implements Disposable,
 
     @Override
     public void dispose() {
+        logger.warn("Disposing InsidiousService for project: " + project.getName());
         threadPoolExecutor.shutdownNow();
         if (this.client != null) {
             this.client.close();

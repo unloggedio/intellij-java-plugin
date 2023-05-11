@@ -14,7 +14,6 @@ import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
 import com.insidious.plugin.pojo.*;
-import com.insidious.plugin.ui.RefreshButtonStateManager;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
@@ -35,13 +34,10 @@ import javax.lang.model.element.Modifier;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class TestCaseService implements Runnable {
+public class TestCaseService {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseService.class);
     private final SessionInstance sessionInstance;
     private final Project project;
-    private boolean pauseCheckingForNewLogs;
-    private boolean isProcessing;
-    private RefreshButtonStateManager refreshButtonStateManager;
 
     public TestCaseService(SessionInstance sessionInstance) {
         this.sessionInstance = sessionInstance;
@@ -158,25 +154,14 @@ public class TestCaseService implements Runnable {
                 testClassSpec);
     }
 
-    public void startRun() {
-        this.sessionInstance.submitTask(this);
-    }
-
-    public RefreshButtonStateManager getRefreshButtonStateManager() {
-        return refreshButtonStateManager;
-    }
-
-    public void setRefreshButtonStateManager(RefreshButtonStateManager refreshButtonStateManager) {
-        this.refreshButtonStateManager = refreshButtonStateManager;
-    }
-
     @NotNull
     public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
 
         ParameterNameFactory parameterNameFactory = new ParameterNameFactory();
         TestGenerationState testGenerationState = new TestGenerationState(parameterNameFactory);
 
-        Parameter targetTestSubject = generationConfiguration.getTestCandidateMetadataList()
+        Parameter targetTestSubject = generationConfiguration
+                .getTestCandidateMetadataList()
                 .get(0)
                 .getTestSubject();
 
@@ -326,69 +311,8 @@ public class TestCaseService implements Runnable {
 
     }
 
-    public void processLogFiles() throws Exception {
-        if (isProcessing) {
-            return;
-        }
-        isProcessing = true;
-        long startTime = new Date().getTime();
-        sessionInstance.scanDataAndBuildReplay();
-        long endTime = new Date().getTime();
-        logger.warn("Scan took: " + (endTime - startTime) + " ms");
-        isProcessing = false;
-    }
-
     public List<TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName, boolean loadCalls) {
         return sessionInstance.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
     }
 
-    //    @Override
-//    public void run_old() {
-//        while (true) {
-//            try {
-//                Thread.sleep(2000);
-//                if (this.pauseCheckingForNewLogs) {
-//                    continue;
-//                }
-//                processLogFiles();
-//            } catch (InterruptedException e) {
-//                logger.warn("test case service scanner shutting down", e);
-//                throw new RuntimeException(e);
-//            } catch (Exception e) {
-//                logger.error("exception in testcase service scanner shutting down", e);
-//                throw new RuntimeException(e);
-//            }
-//        }
-//    }
-
-    public boolean isPauseCheckingForNewLogs() {
-        return pauseCheckingForNewLogs;
-    }
-
-    public void setPauseCheckingForNewLogs(boolean pauseCheckingForNewLogs) {
-        this.pauseCheckingForNewLogs = pauseCheckingForNewLogs;
-    }
-
-    @Override
-    public void run() {
-        while (true) {
-            try {
-                Thread.sleep(2000);
-                if (this.refreshButtonStateManager.isProcessing()) {
-                    continue;
-                }
-                if (sessionInstance.hasNewZips()) {
-//                    processLogFiles();
-                    //set state to new logs
-                    this.refreshButtonStateManager.setState_NewLogs(sessionInstance.getLastScannedTimeStamp());
-                } else {
-                    //set state to no new logs
-                    this.refreshButtonStateManager.setState_NoNewLogs(sessionInstance.getLastScannedTimeStamp());
-                }
-            } catch (Exception e) {
-                logger.error("exception in testcase service scanner shutting down", e);
-                throw new RuntimeException(e);
-            }
-        }
-    }
 }
