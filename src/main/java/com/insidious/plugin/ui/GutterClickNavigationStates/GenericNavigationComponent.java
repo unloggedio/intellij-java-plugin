@@ -149,7 +149,7 @@ public class GenericNavigationComponent {
 
     private void downloadAgent(String version) {
 //        agentDownloadInitiated = true;
-        String host = "https://builds.bug.video/unlogged-java-agent-1.13.6-SNAPSHOT-";
+        String host = "https://builds.bug.video/unlogged-java-agent-1.13.7-SNAPSHOT-";
         String type = version;
         String extention = ".jar";
 
