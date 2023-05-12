@@ -8,6 +8,7 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
@@ -367,8 +368,7 @@ public class MethodCallExpression implements Expression, Serializable {
         }
         if (returnValue != null) {
 
-            String returnValueType = returnValue.getType() == null ? "" : ClassName.bestGuess(returnValue.getType())
-                    .simpleName();
+            String returnValueType = returnValue.getType() == null ? "" : ClassTypeUtils.createTypeFromNameString(returnValue.getType()).toString();
             objectRoutine.addComment(
                     returnValueType + " " + nameFactory.getNameForUse(returnValue, getMethodName())
                             + " = " + subjectName + "." + getMethodName() + "(" + callArgumentsString + ");");

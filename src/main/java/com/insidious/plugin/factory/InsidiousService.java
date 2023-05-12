@@ -51,11 +51,14 @@ import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.execution.*;
 import com.intellij.execution.application.ApplicationConfiguration;
 import com.intellij.execution.impl.ExecutionManagerImpl;
+import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.ide.DataManager;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
@@ -1399,19 +1402,28 @@ final public class InsidiousService implements Disposable,
             String newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
             applicationConfiguration.setVMParameters(newVmOptions.trim());
 
-//            ExecutionManager executionManager = ExecutionManager.getInstance(project);
+            ExecutionManager executionManager = ExecutionManager.getInstance(project);
 
 //            ExecutionManagerImpl executionManagerImpl = ExecutionManagerImpl.getInstance(project);
 
             DataManager.getInstance().getDataContextFromFocusAsync().onSuccess(dataContext -> {
                 ExecutorRegistry executorRegistry = ExecutorRegistryImpl.getInstance();
                 @Nullable Executor debugExecutor = executorRegistry.getExecutorById("Debug");
-                ExecutorRegistryImpl.RunnerHelper.run(
-                        project, selectedConfig.getConfiguration(), selectedConfig, dataContext, debugExecutor
-                );
+                if (debugExecutor == null) {
+                    InsidiousNotification.notifyMessage("Debug run config not found for: " + selectedConfig.getName()
+                            + ". Failed to start process in debug mode", NotificationType.ERROR);
+                    return;
+                }
+
+                ExecutionEnvironmentBuilder builder = ExecutionEnvironmentBuilder.createOrNull(debugExecutor, selectedConfig);
+
+                executionManager.restartRunProfile(builder.activeTarget().dataContext(dataContext).build());
+                UsageInsightTracker.getInstance().RecordEvent("START_WITH_UNLOGGED_SUCCESS", new JSONObject());
+
             });
 
         } else {
+            UsageInsightTracker.getInstance().RecordEvent("START_WITH_UNLOGGED_NO_CONFIG", new JSONObject());
             if (selectedConfig == null) {
                 InsidiousNotification.notifyMessage("Please configure a JAVA Application Run configuration in intellij",
                         NotificationType.WARNING);

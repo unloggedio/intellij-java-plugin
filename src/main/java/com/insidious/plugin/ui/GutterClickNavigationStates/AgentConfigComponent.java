@@ -73,22 +73,33 @@ public class AgentConfigComponent {
 
         manualConfigurationStepsPanel.setVisible(false);
 
-        showManualConfigurationStepsButton.addActionListener(e -> manualConfigurationStepsPanel.setVisible(true));
+        showManualConfigurationStepsButton.addActionListener(e -> {
+            UsageInsightTracker.getInstance().RecordEvent("SHOW_MANUAL_CONFIGURATION", new JSONObject());
+            manualConfigurationStepsPanel.setVisible(true);
+        });
 
 
         startApplicationWithUnloggedButton.addActionListener(
                 e -> {
+                    JSONObject eventProperties = new JSONObject();
+                    eventProperties.put("languageLevel", currentSelectedLanguageLevel.toString());
+                    UsageInsightTracker.getInstance().RecordEvent("START_WITH_UNLOGGED", eventProperties);
+                    String currentJVMOpts = getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION,
+                            currentSelectedLanguageLevel);
                     insidiousService.startProjectWithUnloggedAgent(
-                            getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION,
-                                    currentSelectedLanguageLevel));
+                            currentJVMOpts);
                 });
 
 
+        for (LanguageLevel value : LanguageLevel.values()) {
+            javaComboBox.addItem(value);
+        }
 
-        javaComboBox.addItem(LanguageLevel.JDK_1_8);
-        javaComboBox.addItem(LanguageLevel.JDK_11);
-        javaComboBox.addItem(LanguageLevel.JDK_17);
-        javaComboBox.addItem(LanguageLevel.JDK_18);
+
+//        javaComboBox.addItem(LanguageLevel.JDK_1_8);
+//        javaComboBox.addItem(LanguageLevel.JDK_11);
+//        javaComboBox.addItem(LanguageLevel.JDK_17);
+//        javaComboBox.addItem(LanguageLevel.JDK_18);
 
         javaComboBox.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {
