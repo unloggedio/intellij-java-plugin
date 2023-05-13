@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceInstance;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
@@ -23,9 +24,16 @@ public class DiffUtils {
             TestCandidateMetadata testCandidateMetadata,
             AgentCommandResponse<String> agentCommandResponse
     ) {
+        Parameter returnValueParameter = testCandidateMetadata.getMainMethod().getReturnValue();
         byte[] serializedValue = testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue();
         String originalString = serializedValue.length > 0 ? new String(serializedValue) :
                 String.valueOf(testCandidateMetadata.getMainMethod().getReturnDataEvent().getValue());
+
+        if (returnValueParameter != null && returnValueParameter.isBooleanType()) {
+            originalString = "0".equals(originalString) ? "false" : "true";
+        }
+
+
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
         System.out.println("Is Exception from session : "+testCandidateMetadata.getMainMethod().getReturnValue().isException());
         if (testCandidateMetadata.getMainMethod().getReturnValue().isException() ||

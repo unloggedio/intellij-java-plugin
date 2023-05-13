@@ -32,9 +32,6 @@ public class AtomicTestContainer {
         if (method != null) {
             lastSelectedMethod = method;
         }
-        if (this.currentState != null && this.currentState.equals(state)) {
-            return;
-        }
         System.out.println("Loading Component for state : " + state);
         if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
             this.borderParent.removeAll();
