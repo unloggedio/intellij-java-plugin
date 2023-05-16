@@ -578,14 +578,10 @@ public class PendingStatement {
             Object existingValue = variableExistingParameter.getValue();
             Object newValue = lhsExpression.getValue();
 
-            if (variableExistingParameter.getProb()
-                    .getSerializedValue() != null
-                    && variableExistingParameter.getProb()
-                    .getSerializedValue().length > 0) {
-                existingValue = new String(variableExistingParameter.getProb()
-                        .getSerializedValue());
-                newValue = new String(lhsExpression.getProb()
-                        .getSerializedValue());
+            if (variableExistingParameter.getProb().getSerializedValue() != null &&
+                    variableExistingParameter.getProb().getSerializedValue().length > 0) {
+                existingValue = new String(variableExistingParameter.getProb().getSerializedValue());
+                newValue = new String(lhsExpression.getProb().getSerializedValue());
             }
 
             if (Objects.equals(existingValue, newValue)) {

@@ -26,7 +26,6 @@ public class TestCandidateUtils {
         List<String> inputs = buildArgumentValuesFromTestCandidate(metadata);
         String output = new String(metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
         String concat = inputs + output;
-        int hash = concat.toString().hashCode();
-        return hash;
+        return concat.hashCode();
     }
 }

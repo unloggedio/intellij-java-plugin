@@ -78,17 +78,13 @@ public class TestCaseWriter {
     ) {
 
         String serializedValue = "";
-        if (parameter.getProb() != null
-                && parameter.getProb()
-                .getSerializedValue().length > 0)
-            serializedValue = new String(parameter.getProb()
-                    .getSerializedValue());
+        if (parameter.getProb() != null &&
+                parameter.getProb().getSerializedValue().length > 0)
+            serializedValue = new String(parameter.getProb().getSerializedValue());
 
-        if (parameter.getType() != null && parameter.getType()
-                .endsWith("[]")) {
+        if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
             // if the type of parameter is array like int[], long[] (i.e J[])
-            String nameUsed = testGenerationState.getParameterNameFactory()
-                    .getNameForUse(parameter, null);
+            String nameUsed = testGenerationState.getParameterNameFactory().getNameForUse(parameter, null);
             parameterStringBuilder.append(nameUsed == null ? "any()" : nameUsed);
             return true;
         }

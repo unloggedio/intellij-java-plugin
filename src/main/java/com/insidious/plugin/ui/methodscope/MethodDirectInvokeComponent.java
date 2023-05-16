@@ -83,14 +83,14 @@ public class MethodDirectInvokeComponent {
         if (!insidiousService.doesAgentExist()) {
             InsidiousNotification.notifyMessage("Start your application with Unlogged JAVA agent to start using " +
                     "method DirectInvoke", NotificationType.INFORMATION);
-            insidiousService.updateScaffoldForState(GutterState.NO_AGENT, methodElement);
+            insidiousService.updateScaffoldForState(GutterState.NO_AGENT);
             return;
         }
 
         if (!insidiousService.isAgentRunning()) {
             InsidiousNotification.notifyMessage("Start your application with Unlogged JAVA agent to start using " +
                     "method DirectInvoke", NotificationType.INFORMATION);
-            insidiousService.updateScaffoldForState(GutterState.PROCESS_NOT_RUNNING, methodElement);
+            insidiousService.updateScaffoldForState(GutterState.PROCESS_NOT_RUNNING);
             return;
         }
 

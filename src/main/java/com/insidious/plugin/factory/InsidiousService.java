@@ -50,16 +50,12 @@ import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.execution.*;
 import com.intellij.execution.application.ApplicationConfiguration;
-import com.intellij.execution.impl.ExecutionManagerImpl;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.ide.DataManager;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.compiler.CompileStatusNotification;
@@ -116,7 +112,6 @@ import java.util.List;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -668,11 +663,11 @@ final public class InsidiousService implements Disposable,
         contentManager.addContent(atomicTestContent);
 
         if (stateProvider.isAgentRunning()) {
-            atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING, null);
+            atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
         } else if (doesAgentExist()) {
-            atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING, null);
+            atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
         } else {
-            atomicTestContainerWindow.loadComponentForState(GutterState.NO_AGENT, null);
+            atomicTestContainerWindow.loadComponentForState(GutterState.NO_AGENT);
         }
 
 
@@ -1003,7 +998,7 @@ final public class InsidiousService implements Disposable,
         for (Editor editor : currentOpenEditorsList) {
             VirtualFile virtualFile = FileDocumentManager.getInstance().getFile(editor.getDocument());
             if (virtualFile instanceof LightVirtualFile) {
-                return;
+                continue;
             }
 
             @Nullable PsiFile psiFile = ApplicationManager.getApplication().runReadAction(
@@ -1029,7 +1024,7 @@ final public class InsidiousService implements Disposable,
 
         if (atomicTestContainerWindow != null) {
             //promoteState();
-            atomicTestContainerWindow.refresh();
+            atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
         }
 
     }
@@ -1223,9 +1218,9 @@ final public class InsidiousService implements Disposable,
         DaemonCodeAnalyzer.getInstance(project).restart();
     }
 
-    public void updateScaffoldForState(GutterState state, MethodAdapter method) {
+    public void updateScaffoldForState(GutterState state) {
         if (this.atomicTestContainerWindow != null) {
-            atomicTestContainerWindow.loadComponentForState(state, method);
+            atomicTestContainerWindow.loadComponentForState(state);
             if (this.atomicTestContent != null) {
                 this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent);
             }
@@ -1345,12 +1340,12 @@ final public class InsidiousService implements Disposable,
             if (state.equals(GutterState.NO_AGENT)) {
                 System.out.println("Promoting to PROCESS_NOT_RUNNING");
                 ApplicationManager.getApplication().invokeLater(() -> {
-                    atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING, null);
+                    atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
                 });
             }
             if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
                 System.out.println("Promoting to PROCESS_RUNNING");
-                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING, null);
+                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
             }
 //            if (state.equals(GutterState.PROCESS_RUNNING)) {
 //                System.out.println("Promoting to DATA_AVAILABLE");
@@ -1368,7 +1363,7 @@ final public class InsidiousService implements Disposable,
             }
             if (state.equals(GutterState.PROCESS_RUNNING)) {
                 System.out.println("Demoting to PROCESS_NOT_RUNNING");
-                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING, null);
+                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
             }
         }
     }
@@ -1378,9 +1373,9 @@ final public class InsidiousService implements Disposable,
         atomicTestContainerWindow.triggerCompileAndExecute();
     }
 
-    public void loadMethodInAtomicTests(JavaMethodAdapter methodAdapter) {
-        atomicTestContainerWindow.triggerMethodExecutorRefresh(methodAdapter);
-    }
+//    public void loadMethodInAtomicTests(JavaMethodAdapter methodAdapter) {
+//        atomicTestContainerWindow.triggerMethodExecutorRefresh(methodAdapter);
+//    }
 
     public void showNewTestCandidateGotIt() {
 //        new GotItTooltip("io.unlogged.newtestcase." + new Date().getTime(), "New test candidate found",
@@ -1415,7 +1410,8 @@ final public class InsidiousService implements Disposable,
                     return;
                 }
 
-                ExecutionEnvironmentBuilder builder = ExecutionEnvironmentBuilder.createOrNull(debugExecutor, selectedConfig);
+                ExecutionEnvironmentBuilder builder = ExecutionEnvironmentBuilder.createOrNull(debugExecutor,
+                        selectedConfig);
 
                 executionManager.restartRunProfile(builder.activeTarget().dataContext(dataContext).build());
                 UsageInsightTracker.getInstance().RecordEvent("START_WITH_UNLOGGED_SUCCESS", new JSONObject());

@@ -1,7 +1,6 @@
 package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.adapter.MethodAdapter;
-import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
@@ -190,23 +189,21 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     }
 
-    public void refresh() {
+    public void refresh(MethodAdapter currentMethod, List<TestCandidateMetadata> candidates) {
         if (methodElement == null) {
             return;
         }
-        ApplicationManager.getApplication().runReadAction(() -> refreshAndReloadCandidates(methodElement));
+        ApplicationManager.getApplication().runReadAction(() -> refreshAndReloadCandidates(currentMethod, candidates));
     }
 
-    public void refreshAndReloadCandidates(MethodAdapter method) {
+    public void refreshAndReloadCandidates(MethodAdapter method, List<TestCandidateMetadata> candidates) {
         clearBoard();
         this.methodElement = method;
+        this.methodTestCandidates = candidates;
 
-        List<TestCandidateMetadata> candidates = this.insidiousService.getTestCandidateMetadata(method);
-        this.methodTestCandidates = deDuplicateList(candidates);
         if (this.methodTestCandidates.size() == 0) {
-            //moving to differnet view as this is not the intended screen for no available data.
-            insidiousService.updateScaffoldForState(GutterState.PROCESS_RUNNING,
-                    new JavaMethodAdapter(method.getPsiMethod()));
+            //moving to different view as this is not the intended screen for no available data.
+            insidiousService.updateScaffoldForState(GutterState.PROCESS_RUNNING);
         } else {
             loadMethodCandidates();
             executeAndShowDifferencesButton.setEnabled(true);
@@ -233,17 +230,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         diffContentPanel.revalidate();
         centerParent.revalidate();
         centerParent.repaint();
-    }
-
-    public List<TestCandidateMetadata> deDuplicateList(List<TestCandidateMetadata> list) {
-        Map<Integer, TestCandidateMetadata> candidateHashMap = new TreeMap<>();
-        for (TestCandidateMetadata metadata : list) {
-            int candidateHash = TestCandidateUtils.getCandidateSimilarityHash(metadata);
-            if (!candidateHashMap.containsKey(candidateHash)) {
-                candidateHashMap.put(candidateHash, metadata);
-            }
-        }
-        return new ArrayList<>(candidateHashMap.values());
     }
 
     @Override
@@ -326,8 +312,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             TestCandidateMetadata testCandidateMetadata,
             AgentCommandResponse<String> agentCommandResponse
     ) {
-        if(testCandidateMetadata.getMainMethod().getReturnValue().isException())
-        {
+        if (testCandidateMetadata.getMainMethod().getReturnValue().isException()) {
             return new AgentExceptionResponseComponent(
                     testCandidateMetadata, agentCommandResponse, insidiousService);
         }

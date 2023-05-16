@@ -441,8 +441,7 @@ public class DaoService {
                             Optional<com.insidious.plugin.pojo.MethodCallExpression> bodyResponseParameter
                                     = callsOnReturnParameter
                                     .stream()
-                                    .filter(e -> e.getMethodName()
-                                            .equals("body"))
+                                    .filter(e -> e.getMethodName().equals("body"))
                                     .findFirst();
 
                             if (!bodyResponseParameter.isPresent()) {

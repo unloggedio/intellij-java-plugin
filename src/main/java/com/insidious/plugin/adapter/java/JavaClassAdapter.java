@@ -3,7 +3,9 @@ package com.insidious.plugin.adapter.java;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.FieldAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiField;
@@ -64,7 +66,8 @@ public class JavaClassAdapter implements ClassAdapter {
 
     @Override
     public ClassAdapter[] getInterfaces() {
-        PsiClass[] interfacesList = psiClass.getInterfaces();
+        PsiClass[] interfacesList = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiClass[]>) psiClass::getInterfaces);
         ClassAdapter[] interfacesArray = new ClassAdapter[interfacesList.length];
         for (int i = 0; i < interfacesList.length; i++) {
             PsiClass aClass = interfacesList[i];

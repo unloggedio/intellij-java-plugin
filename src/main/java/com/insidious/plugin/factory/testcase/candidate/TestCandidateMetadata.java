@@ -1,17 +1,15 @@
 package com.insidious.plugin.factory.testcase.candidate;
 
-import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 
-public class TestCandidateMetadata {
+public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> {
+    private final List<TestAssertion> assertionList = new ArrayList<>();
     private List<MethodCallExpression> methodCallExpressions = new LinkedList<>();
     private VariableContainer fields = new VariableContainer();
     private MethodCallExpression mainMethod;
@@ -19,8 +17,6 @@ public class TestCandidateMetadata {
     private long callTimeNanoSecond;
     private long entryProbeIndex;
     private long exitProbeIndex;
-    private final List<TestAssertion> assertionList = new ArrayList<>();
-
     private boolean isUIselected = false;
 
     public boolean isUIselected() {
@@ -122,4 +118,22 @@ public class TestCandidateMetadata {
         return assertionList;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TestCandidateMetadata that = (TestCandidateMetadata) o;
+        return entryProbeIndex == that.entryProbeIndex && exitProbeIndex == that.exitProbeIndex && testSubject.equals(
+                that.testSubject);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(testSubject, entryProbeIndex, exitProbeIndex);
+    }
+
+    @Override
+    public int compareTo(@NotNull TestCandidateMetadata o) {
+        return Long.compare(this.entryProbeIndex, o.entryProbeIndex);
+    }
 }

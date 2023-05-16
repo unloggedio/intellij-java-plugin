@@ -6,18 +6,23 @@ import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
+import com.insidious.plugin.util.TestCandidateUtils;
+import org.apache.commons.collections.ListUtils;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class AtomicTestContainer {
+    private final InsidiousService insidiousService;
+    private final MethodExecutorComponent methodExecutorComponent;
     private JPanel mainPanel;
     private JPanel borderParent;
-    private InsidiousService insidiousService;
-    private MethodExecutorComponent methodExecutorComponent;
     private GutterState currentState;
-    private MethodAdapter lastSelectedMethod;
+//    private MethodAdapter lastSelectedMethod;
 
     public AtomicTestContainer(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -28,10 +33,10 @@ public class AtomicTestContainer {
         return this.mainPanel;
     }
 
-    public void loadComponentForState(GutterState state, MethodAdapter method) {
-        if (method != null) {
-            lastSelectedMethod = method;
-        }
+    public void loadComponentForState(GutterState state) {
+//        if (method != null) {
+//            lastSelectedMethod = method;
+//        }
         System.out.println("Loading Component for state : " + state);
         if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
             this.borderParent.removeAll();
@@ -64,13 +69,11 @@ public class AtomicTestContainer {
     public void triggerMethodExecutorRefresh(MethodAdapter method) {
         if (GutterState.EXECUTE.equals(this.currentState) ||
                 GutterState.DATA_AVAILABLE.equals(this.currentState)) {
-            if (methodExecutorComponent != null) {
-                methodExecutorComponent.refreshAndReloadCandidates(method);
-            }
+            methodExecutorComponent.refreshAndReloadCandidates(method, new ArrayList<>());
         } else {
             SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
             if (sessionInstance == null) {
-                loadComponentForState(this.currentState, method);
+                loadComponentForState(this.currentState);
                 return;
             }
 
@@ -78,23 +81,26 @@ public class AtomicTestContainer {
 
             if (methodTestCandidates.size() > 0) {
                 loadExecutionFlow();
-                methodExecutorComponent.refreshAndReloadCandidates(method);
+                methodExecutorComponent.refreshAndReloadCandidates(method, deDuplicateList(methodTestCandidates));
             } else {
-                loadComponentForState(this.currentState, method);
+                loadComponentForState(this.currentState);
             }
         }
 
 
     }
 
-    public void refresh() {
-        if (GutterState.EXECUTE.equals(this.currentState)
-                || GutterState.DATA_AVAILABLE.equals(this.currentState)) {
-            if (methodExecutorComponent != null) {
-                methodExecutorComponent.refresh();
+    public List<TestCandidateMetadata> deDuplicateList(List<TestCandidateMetadata> list) {
+        Map<Integer, TestCandidateMetadata> candidateHashMap = new TreeMap<>();
+        for (TestCandidateMetadata metadata : list) {
+            int candidateHash = TestCandidateUtils.getCandidateSimilarityHash(metadata);
+            if (!candidateHashMap.containsKey(candidateHash)) {
+                candidateHashMap.put(candidateHash, metadata);
             }
         }
+        return new ArrayList<>(candidateHashMap.values());
     }
+
 
     public GutterState getCurrentState() {
         return this.currentState;
