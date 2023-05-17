@@ -50,6 +50,7 @@ import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.execution.*;
 import com.intellij.execution.application.ApplicationConfiguration;
+import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.ide.DataManager;
 import com.intellij.ide.highlighter.JavaFileType;
@@ -706,6 +707,7 @@ final public class InsidiousService implements Disposable,
 
     @Override
     public void dispose() {
+        UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_DISPOSED", null);
         logger.warn("Disposing InsidiousService for project: " + project.getName());
         threadPoolExecutor.shutdownNow();
         if (this.client != null) {
@@ -1418,15 +1420,26 @@ final public class InsidiousService implements Disposable,
                 ExecutionEnvironmentBuilder builder = ExecutionEnvironmentBuilder.createOrNull(debugExecutor,
                         selectedConfig);
 
-                executionManager.restartRunProfile(builder.activeTarget().dataContext(dataContext).build());
+                executionManager.restartRunProfile(
+                        builder.activeTarget().dataContext(dataContext).build());
                 UsageInsightTracker.getInstance().RecordEvent("START_WITH_UNLOGGED_SUCCESS", new JSONObject());
 
             });
 
         } else {
-            UsageInsightTracker.getInstance().RecordEvent("START_WITH_UNLOGGED_NO_CONFIG", new JSONObject());
+
+            List<RunConfiguration> allConfigurations = runManager.getAllConfigurationsList();
+
+            JSONObject eventProperties = new JSONObject();
+            for (RunConfiguration allConfiguration : allConfigurations) {
+                eventProperties.put(allConfiguration.getName(), allConfiguration.getType().getDisplayName());
+            }
+
+
+            UsageInsightTracker.getInstance().RecordEvent("START_WITH_UNLOGGED_NO_CONFIG", eventProperties);
             if (selectedConfig == null) {
-                InsidiousNotification.notifyMessage("Please configure a JAVA Application Run configuration in intellij",
+                InsidiousNotification.notifyMessage("Please select or configure a JAVA Application Run configuration " +
+                                "in IntelliJ",
                         NotificationType.WARNING);
             } else {
                 InsidiousNotification.notifyMessage(

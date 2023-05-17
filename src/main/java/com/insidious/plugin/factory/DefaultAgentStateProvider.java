@@ -18,6 +18,7 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiPackage;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.util.Arrays;
@@ -82,6 +83,10 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
             includedPackageName = includedPackageName.split(",")[0];
         }
         logger.warn("connected to agent: " + serverMetadata);
+        JSONObject properties = new JSONObject();
+        properties.put("version", serverMetadata.getAgentVersion());
+        properties.put("package", serverMetadata.getIncludePackageName());
+        UsageInsightTracker.getInstance().RecordEvent("AGENT_CONNECTED", properties);
 
         String finalIncludedPackageName = includedPackageName;
         @Nullable PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
