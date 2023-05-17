@@ -87,6 +87,11 @@ public class AtomicTestContainer {
                 GutterState.DATA_AVAILABLE.equals(this.currentState)) {
             methodExecutorComponent.refreshAndReloadCandidates(method, new ArrayList<>());
         } else {
+            if(this.currentState.equals(GutterState.NO_AGENT) ||
+            this.currentState.equals(GutterState.PROCESS_NOT_RUNNING))
+            {
+                loadComponentForState(this.currentState);
+            }
             SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
             if (sessionInstance == null) {
                 loadComponentForState(this.currentState);
