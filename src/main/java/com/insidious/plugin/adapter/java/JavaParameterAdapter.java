@@ -2,6 +2,8 @@ package com.insidious.plugin.adapter.java;
 
 import com.insidious.plugin.adapter.ParameterAdapter;
 import com.intellij.lang.jvm.JvmParameter;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiType;
 
 public class JavaParameterAdapter implements ParameterAdapter {
@@ -13,11 +15,12 @@ public class JavaParameterAdapter implements ParameterAdapter {
 
     @Override
     public String getName() {
-        return jvmParameters.getName();
+        return ApplicationManager.getApplication().runReadAction((Computable<String>) jvmParameters::getName);
     }
 
     @Override
     public PsiType getType() {
-        return (PsiType) jvmParameters.getType();
+        return ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiType>) () -> (PsiType) jvmParameters.getType());
     }
 }

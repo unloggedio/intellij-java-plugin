@@ -53,7 +53,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     private JPanel borderParent;
     private List<TestCandidateMetadata> methodTestCandidates;
     private int componentCounter = 0;
-    private int mockCallCount = 1;
     private int callCount = 0;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
@@ -62,7 +61,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         executeAndShowDifferencesButton.addActionListener(e -> {
             if (methodTestCandidates == null || methodTestCandidates.size() == 0) {
                 InsidiousNotification.notifyMessage(
-                        "Please use the agent to record values for replay. No candidates found for " + methodElement.getName(),
+                        "Please use the agent to record values for replay. " +
+                                "No candidates found for " + methodElement.getName(),
                         NotificationType.WARNING
                 );
                 return;

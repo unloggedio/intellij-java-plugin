@@ -7,6 +7,8 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
 import com.insidious.plugin.util.TestCandidateUtils;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.util.Computable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -91,7 +93,9 @@ public class AtomicTestContainer {
                 return;
             }
 
-            List<TestCandidateMetadata> methodTestCandidates = this.insidiousService.getTestCandidateMetadata(method);
+            List<TestCandidateMetadata> methodTestCandidates =
+                    ApplicationManager.getApplication().runReadAction((Computable<List<TestCandidateMetadata>>) () ->
+                            this.insidiousService.getTestCandidateMetadata(method));
 
             if (methodTestCandidates.size() > 0) {
                 loadExecutionFlow();

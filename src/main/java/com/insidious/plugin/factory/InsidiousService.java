@@ -809,7 +809,6 @@ final public class InsidiousService implements Disposable,
         }
 
         DumbService dumbService = project.getService(DumbService.class);
-        String methodName = method.getName();
 
         if (dumbService.isDumb() && !hasShownIndexWaitNotification) {
             hasShownIndexWaitNotification = true;
@@ -817,7 +816,7 @@ final public class InsidiousService implements Disposable,
                     NotificationType.WARNING);
             dumbService.runWhenSmart(() -> {
                 if (testCaseDesignerWindow == null) {
-                    logger.warn("test case designer window is not ready to create test case for " + methodName);
+                    logger.warn("test case designer window is not ready to create test case");
                     return;
                 }
                 methodFocussedHandler(method);
@@ -830,7 +829,7 @@ final public class InsidiousService implements Disposable,
 //        }
 
         if (testCaseDesignerWindow == null || !this.toolWindow.isVisible()) {
-            logger.warn("test case designer window is not ready to create test case for " + methodName);
+            logger.warn("test case designer window is not ready to create test case");
             return;
         }
 
@@ -1081,7 +1080,8 @@ final public class InsidiousService implements Disposable,
             return GutterState.PROCESS_NOT_RUNNING;
         }
 
-        List<TestCandidateMetadata> candidates = getTestCandidateMetadata(method);
+        List<TestCandidateMetadata> candidates = ApplicationManager.getApplication().runReadAction(
+                (Computable<List<TestCandidateMetadata>>) () -> getTestCandidateMetadata(method));
 
         // process is running, but no test candidates for this method
         if (candidates.size() == 0) {
@@ -1096,13 +1096,14 @@ final public class InsidiousService implements Disposable,
 
         // we havent checked anything for this method earlier
         // store method hash for diffs
+        String methodText = method.getText();
         if (!this.methodHash.containsKey(hashKey)) {
             //register new hash
-            this.methodHash.put(hashKey, method.getText().hashCode());
+            this.methodHash.put(hashKey, methodText.hashCode());
         }
 
         int lastHash = this.methodHash.get(hashKey);
-        int currentHash = method.getText().hashCode();
+        int currentHash = methodText.hashCode();
 
         if (lastHash != currentHash) {
             //re-execute as there are hash diffs
@@ -1141,8 +1142,8 @@ final public class InsidiousService implements Disposable,
         for (ClassAdapter classInterface : interfaceList) {
             boolean hasMethod = false;
             for (MethodAdapter interfaceMethod : classInterface.getMethods()) {
-                if (interfaceMethod.getName().equals(methodName) && interfaceMethod.getJVMSignature()
-                        .equals(method.getJVMSignature())) {
+                if (interfaceMethod.getName().equals(methodName) &&
+                        interfaceMethod.getJVMSignature().equals(method.getJVMSignature())) {
                     hasMethod = true;
                 }
             }

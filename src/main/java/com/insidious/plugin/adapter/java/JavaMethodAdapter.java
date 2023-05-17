@@ -41,7 +41,7 @@ public class JavaMethodAdapter implements MethodAdapter {
 
     @Override
     public String getName() {
-        return psiMethod.getName();
+        return ApplicationManager.getApplication().runReadAction((Computable<String>) psiMethod::getName);
     }
 
     @Override

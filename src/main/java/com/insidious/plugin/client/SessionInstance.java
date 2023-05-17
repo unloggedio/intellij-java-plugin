@@ -3691,9 +3691,7 @@ public class SessionInstance {
     public List<TestCandidateMetadata> getTestCandidatesForAllMethod(String className, String methodName,
                                                                      boolean loadCalls) {
         try {
-            List<TestCandidateMetadata> testCandidatesForAllMethod = daoService.getTestCandidatesForAllMethod(className,
-                    methodName, loadCalls);
-            return testCandidatesForAllMethod;
+            return daoService.getTestCandidatesForAllMethod(className, methodName, loadCalls);
         } catch (Exception e) {
             return new ArrayList<>();
         }

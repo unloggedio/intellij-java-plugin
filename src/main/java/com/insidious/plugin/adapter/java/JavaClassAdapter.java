@@ -22,17 +22,18 @@ public class JavaClassAdapter implements ClassAdapter {
 
     @Override
     public String getName() {
-        return psiClass.getName();
+        return ApplicationManager.getApplication().runReadAction((Computable<String>) psiClass::getName);
     }
 
     @Override
     public String getQualifiedName() {
-        return psiClass.getQualifiedName();
+        return ApplicationManager.getApplication().runReadAction((Computable<String>) psiClass::getQualifiedName);
     }
 
     @Override
     public FieldAdapter[] getFields() {
-        PsiField[] fields = psiClass.getFields();
+        PsiField[] fields = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiField[]>) psiClass::getFields);
         FieldAdapter[] fieldsArray = new FieldAdapter[fields.length];
         for (int i = 0; i < fields.length; i++) {
             PsiField field = fields[i];
@@ -44,7 +45,8 @@ public class JavaClassAdapter implements ClassAdapter {
 
     @Override
     public MethodAdapter[] getConstructors() {
-        PsiMethod[] methodItems = psiClass.getConstructors();
+        PsiMethod[] methodItems = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiMethod[]>) psiClass::getConstructors);
         MethodAdapter[] methodArray = new MethodAdapter[methodItems.length];
         for (int i = 0; i < methodItems.length; i++) {
             PsiMethod methodItem = methodItems[i];
@@ -56,12 +58,13 @@ public class JavaClassAdapter implements ClassAdapter {
 
     @Override
     public Project getProject() {
-        return psiClass.getProject();
+        return ApplicationManager.getApplication().runReadAction((Computable<Project>) psiClass::getProject);
     }
 
     @Override
     public PsiJavaFileImpl getContainingFile() {
-        return (PsiJavaFileImpl) psiClass.getContainingFile();
+        return ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiJavaFileImpl>) () -> (PsiJavaFileImpl) psiClass.getContainingFile());
     }
 
     @Override
@@ -79,7 +82,8 @@ public class JavaClassAdapter implements ClassAdapter {
 
     @Override
     public ClassAdapter[] getSupers() {
-        PsiClass[] interfacesList = psiClass.getSupers();
+        PsiClass[] interfacesList = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiClass[]>) psiClass::getSupers);
         ClassAdapter[] interfacesArray = new ClassAdapter[interfacesList.length];
         for (int i = 0; i < interfacesList.length; i++) {
             PsiClass aClass = interfacesList[i];
@@ -91,7 +95,8 @@ public class JavaClassAdapter implements ClassAdapter {
 
     @Override
     public MethodAdapter[] getMethods() {
-        PsiMethod[] interfacesList = psiClass.getMethods();
+        PsiMethod[] interfacesList = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiMethod[]>) psiClass::getMethods);
         MethodAdapter[] interfacesArray = new MethodAdapter[interfacesList.length];
         for (int i = 0; i < interfacesList.length; i++) {
             PsiMethod aClass = interfacesList[i];
@@ -103,17 +108,18 @@ public class JavaClassAdapter implements ClassAdapter {
 
     @Override
     public boolean isInterface() {
-        return psiClass.isInterface();
+        return ApplicationManager.getApplication().runReadAction((Computable<Boolean>) psiClass::isInterface);
     }
 
     @Override
     public boolean isEnum() {
-        return psiClass.isEnum();
+        return ApplicationManager.getApplication().runReadAction((Computable<Boolean>) psiClass::isEnum);
     }
 
     @Override
     public boolean isAnnotationType() {
-        return psiClass.isAnnotationType();
+        return ApplicationManager.getApplication().runReadAction(
+                (Computable<Boolean>) psiClass::isAnnotationType);
     }
 
     @Override

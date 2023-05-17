@@ -2,6 +2,8 @@ package com.insidious.plugin.adapter.java;
 
 import com.insidious.plugin.adapter.FieldAdapter;
 import com.intellij.lang.jvm.JvmModifier;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiType;
 
@@ -14,16 +16,17 @@ public class JavaFieldAdapter implements FieldAdapter {
 
     @Override
     public boolean hasModifier(JvmModifier aStatic) {
-        return psiField.hasModifier(aStatic);
+        return ApplicationManager.getApplication().runReadAction(
+                (Computable<Boolean>) () -> psiField.hasModifier(aStatic));
     }
 
     @Override
     public String getName() {
-        return psiField.getName();
+        return ApplicationManager.getApplication().runReadAction((Computable<String>) psiField::getName);
     }
 
     @Override
     public PsiType getType() {
-        return psiField.getType();
+        return ApplicationManager.getApplication().runReadAction((Computable<PsiType>) psiField::getType);
     }
 }

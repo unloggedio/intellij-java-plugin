@@ -108,7 +108,8 @@ public class MethodDirectInvokeComponent {
                 ParameterInputComponent parameterInputComponent = parameterInputComponents.get(i);
                 ParameterAdapter parameter = parameters[i];
                 String parameterValue = parameterInputComponent.getParameterValue();
-                if (parameter.getType().equals("java.lang.String") && !parameterValue.startsWith("\"")) {
+                if ("java.lang.String".equals(parameter.getType().getCanonicalText()) &&
+                        !parameterValue.startsWith("\"")) {
                     try {
                         parameterValue = objectMapper.writeValueAsString(parameterValue);
                     } catch (JsonProcessingException e) {

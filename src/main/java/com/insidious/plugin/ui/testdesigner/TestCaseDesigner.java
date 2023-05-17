@@ -30,6 +30,7 @@ import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -38,6 +39,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.*;
@@ -280,7 +282,9 @@ public class TestCaseDesigner implements Disposable {
 
     public void updatePreviewTestCase() {
 
-        List<TestCandidateMetadata> testCandidateMetadataList = createTestCandidate();
+        List<TestCandidateMetadata> testCandidateMetadataList =
+                ApplicationManager.getApplication().runReadAction(
+                        (Computable<List<TestCandidateMetadata>>) this::createTestCandidate);
 
         String testMethodName = "testMethod" + ClassTypeUtils.upperInstanceName(currentMethod.getName());
         TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
@@ -392,19 +396,22 @@ public class TestCaseDesigner implements Disposable {
                 continue;
             }
             Parameter fieldParameter = new Parameter();
-            fieldParameter.setName(field.getName());
-            if (!(field.getType() instanceof PsiClassReferenceType)
-                    || field.getType().getCanonicalText().equals("java.lang.String")
-                    || field.getType().getCanonicalText().startsWith("org.apache.commons.logging")
-                    || field.getType().getCanonicalText().startsWith("org.slf4j")
+            String fieldName = field.getName();
+            fieldParameter.setName(fieldName);
+
+            PsiType fieldType = field.getType();
+            if (!(fieldType instanceof PsiClassReferenceType)
+                    || fieldType.getCanonicalText().equals("java.lang.String")
+                    || fieldType.getCanonicalText().startsWith("org.apache.commons.logging")
+                    || fieldType.getCanonicalText().startsWith("org.slf4j")
             ) {
                 continue;
             }
-            setParameterTypeFromPsiType(fieldParameter, field.getType(), false);
+            setParameterTypeFromPsiType(fieldParameter, fieldType, false);
             fieldParameter.setValue(random.nextLong());
             fieldParameter.setProb(new DataEventWithSessionId());
             fieldContainer.add(fieldParameter);
-            fieldMapByName.put(field.getName(), fieldParameter);
+            fieldMapByName.put(fieldName, fieldParameter);
         }
 
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
@@ -450,10 +457,11 @@ public class TestCaseDesigner implements Disposable {
 
             DataEventWithSessionId parameterProbe = new DataEventWithSessionId();
             argumentParameter.setProb(parameterProbe);
-            argumentParameter.setName(parameter.getName());
+            String parameterName = parameter.getName();
+            argumentParameter.setName(parameterName);
 
             if (argumentParameter.getType().equals("java.lang.String")) {
-                argumentParameter.getProb().setSerializedValue(("\"" + parameter.getName() + "\"").getBytes());
+                argumentParameter.getProb().setSerializedValue(("\"" + parameterName + "\"").getBytes());
             } else if (argumentParameter.isPrimitiveType()) {
                 argumentParameter.getProb().setSerializedValue(("0").getBytes());
             } else {
@@ -788,8 +796,10 @@ public class TestCaseDesigner implements Disposable {
 
         for (ParameterAdapter parameter : selectedConstructor.getParameters()) {
 
-            List<Parameter> fieldParameterByType = fieldContainer.getParametersByType(
-                    parameter.getType().getCanonicalText());
+            PsiType parameterType = parameter.getType();
+            List<Parameter> fieldParameterByType = fieldContainer
+                    .getParametersByType(parameterType.getCanonicalText());
+            String parameterName = parameter.getName();
 
             if (fieldParameterByType.size() > 0) {
 
@@ -797,7 +807,7 @@ public class TestCaseDesigner implements Disposable {
                 int currentDistance = Integer.MAX_VALUE;
 
                 for (Parameter fieldParameter : fieldParameterByType) {
-                    int distance = StringUtils.getLevenshteinDistance(fieldParameter.getName(), parameter.getName());
+                    int distance = StringUtils.getLevenshteinDistance(fieldParameter.getName(), parameterName);
                     if (distance < currentDistance) {
                         closestNameMatch = fieldParameter;
                         currentDistance = distance;
@@ -807,8 +817,8 @@ public class TestCaseDesigner implements Disposable {
 
             } else {
                 Parameter methodArgumentParameter = new Parameter();
-                methodArgumentParameter.setName(parameter.getName());
-                setParameterTypeFromPsiType(methodArgumentParameter, parameter.getType(), false);
+                methodArgumentParameter.setName(parameterName);
+                setParameterTypeFromPsiType(methodArgumentParameter, parameterType, false);
                 methodArgumentParameter.setValue(random.nextLong());
 //                methodArgumentParameter.setProbeInfo(new DataInfo());
                 DataEventWithSessionId argumentProbe = new DataEventWithSessionId();
@@ -819,15 +829,15 @@ public class TestCaseDesigner implements Disposable {
                     argumentProbe.setSerializedValue("\"\"".getBytes());
                 } else {
 
-                    String parameterClassName = parameter.getType().getCanonicalText();
-                    if (parameter.getType() instanceof PsiClassReferenceType) {
-                        parameterClassName = ((PsiClassReferenceType) parameter.getType()).rawType().getCanonicalText();
+                    String parameterClassName = parameterType.getCanonicalText();
+                    if (parameterType instanceof PsiClassReferenceType) {
+                        parameterClassName = ((PsiClassReferenceType) parameterType).rawType().getCanonicalText();
                     }
                     ClassAdapter parameterClassReference = getClassByName(parameterClassName);
 
                     if (parameterClassReference == null) {
                         logger.warn("did not find class reference: " + parameterClassName +
-                                " for parameter: " + parameter.getName() +
+                                " for parameter: " + parameterName +
                                 " in class " + currentClass.getQualifiedName());
                         continue;
                     }

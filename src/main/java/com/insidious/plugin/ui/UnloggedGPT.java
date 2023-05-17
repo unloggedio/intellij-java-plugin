@@ -340,14 +340,6 @@ public class UnloggedGPT implements UnloggedGptListener {
 //        insidiousService.refreshGPTWindow();
     }
 
-    public void updateUI(ClassAdapter psiClass, MethodAdapter method) {
-        this.currentMethod = method;
-        this.currentClass = psiClass;
-        if (this.navigationBar != null) {
-            this.navigationBar.updateSelection(psiClass.getName() + "." + method.getName() + "()");
-        }
-    }
-
     private void routeToDiscord() {
         String link = "https://discord.gg/Hhwvay8uTa";
         if (Desktop.isDesktopSupported()) {
