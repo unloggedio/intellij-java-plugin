@@ -7,7 +7,6 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
 import com.insidious.plugin.util.TestCandidateUtils;
-import org.apache.commons.collections.ListUtils;
 
 import javax.swing.*;
 import java.awt.*;
@@ -34,28 +33,43 @@ public class AtomicTestContainer {
     }
 
     public void loadComponentForState(GutterState state) {
-//        if (method != null) {
-//            lastSelectedMethod = method;
-//        }
         System.out.println("Loading Component for state : " + state);
-        if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
-            this.borderParent.removeAll();
-            AgentConfigComponent component = new AgentConfigComponent(this.insidiousService);
-            this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
-            this.borderParent.revalidate();
-        } else if (state.equals(GutterState.EXECUTE) || state.equals(GutterState.DATA_AVAILABLE)) {
-            loadExecutionFlow();
-        } else if (state.equals(GutterState.PROCESS_RUNNING)) {
-            insidiousService.focusDirectInvokeTab();
-            this.borderParent.removeAll();
-            GenericNavigationComponent component = new GenericNavigationComponent(state, insidiousService);
-            this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
-            this.borderParent.revalidate();
-        } else {
-            this.borderParent.removeAll();
-            GenericNavigationComponent component = new GenericNavigationComponent(state, insidiousService);
-            this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
-            this.borderParent.revalidate();
+        switch (state) {
+            case PROCESS_NOT_RUNNING: {
+                if (this.currentState != null && this.currentState.equals(state)) {
+                    return;
+                }
+                this.borderParent.removeAll();
+                AgentConfigComponent component = new AgentConfigComponent(this.insidiousService);
+                this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
+                this.borderParent.revalidate();
+                break;
+            }
+            case EXECUTE:
+            case DATA_AVAILABLE:
+                loadExecutionFlow();
+                break;
+            case PROCESS_RUNNING: {
+                insidiousService.focusDirectInvokeTab();
+                if (this.currentState != null && this.currentState.equals(state)) {
+                    return;
+                }
+                this.borderParent.removeAll();
+                GenericNavigationComponent component = new GenericNavigationComponent(state, insidiousService);
+                this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
+                this.borderParent.revalidate();
+                break;
+            }
+            default: {
+                if (this.currentState != null && this.currentState.equals(state)) {
+                    return;
+                }
+                this.borderParent.removeAll();
+                GenericNavigationComponent component = new GenericNavigationComponent(state, insidiousService);
+                this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
+                this.borderParent.revalidate();
+                break;
+            }
         }
         this.currentState = state;
     }

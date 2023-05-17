@@ -189,13 +189,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     }
 
-    public void refresh(MethodAdapter currentMethod, List<TestCandidateMetadata> candidates) {
-        if (methodElement == null) {
-            return;
-        }
-        ApplicationManager.getApplication().runReadAction(() -> refreshAndReloadCandidates(currentMethod, candidates));
-    }
-
     public void refreshAndReloadCandidates(MethodAdapter method, List<TestCandidateMetadata> candidates) {
         clearBoard();
         this.methodElement = method;

@@ -14,6 +14,8 @@ import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedInputStream;
@@ -35,11 +37,11 @@ public class GenericNavigationComponent {
     private JTextArea topStatusText;
     private JButton actionButton;
     private JTextArea mainContentText;
-    private GutterState currentState;
+    private final GutterState currentState;
     private JEditorPane imagePane;
     private JButton discordButton;
     private JPanel supportPanel;
-    private InsidiousService insidiousService;
+    private final InsidiousService insidiousService;
 
     public GenericNavigationComponent(GutterState state, InsidiousService insidiousService) {
         this.currentState = state;
@@ -71,6 +73,7 @@ public class GenericNavigationComponent {
             actionButton.setVisible(false);
         }
         //loadimageForCurrentState();
+        discordButton.addActionListener(e -> routeToDiscord());
         discordButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {

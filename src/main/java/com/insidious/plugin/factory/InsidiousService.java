@@ -168,6 +168,7 @@ final public class InsidiousService implements Disposable,
     private AtomicTestContainer atomicTestContainerWindow;
     private MethodAdapter currentMethod;
     private boolean hasShownIndexWaitNotification = false;
+    private String basePackage = null;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -1279,7 +1280,11 @@ final public class InsidiousService implements Disposable,
         toolWindow.getContentManager().setSelectedContent(directMethodInvokeContent, true);
     }
 
-    public String fetchBasePackage() {
+    public synchronized String fetchBasePackage() {
+        if (basePackage != null) {
+            return basePackage;
+        }
+
         Collection<VirtualFile> virtualFiles = FileTypeIndex.getFiles(JavaFileType.INSTANCE,
                 GlobalSearchScope.projectScope(project));
 
@@ -1304,7 +1309,7 @@ final public class InsidiousService implements Disposable,
                 }
             }
         }
-        String basePackage = buildPackageNameFromList(components);
+        basePackage = buildPackageNameFromList(components);
         return basePackage;
     }
 
