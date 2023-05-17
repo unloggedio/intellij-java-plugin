@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.methodscope;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
@@ -182,14 +183,15 @@ public class MethodDirectInvokeComponent {
         executeButton.setEnabled(true);
 
         String methodName = methodElement.getName();
-        String classQualifiedName = methodElement.getContainingClass().getQualifiedName();
+        ClassAdapter containingClass = methodElement.getContainingClass();
+        String classQualifiedName = containingClass.getQualifiedName();
 
         logger.warn("render method executor for: " + methodName);
         this.methodElement = methodElement;
         String methodNameForLabel = methodName.length() > 25 ? methodName.substring(0, 25) : methodName;
         methodNameLabel.setText(methodNameForLabel);
         TitledBorder titledBorder = (TitledBorder) actionControlPanel.getBorder();
-        titledBorder.setTitle(methodElement.getContainingClass().getName());
+        titledBorder.setTitle(containingClass.getName());
 
 
         ParameterAdapter[] methodParameters = methodElement.getParameters();
@@ -198,7 +200,7 @@ public class MethodDirectInvokeComponent {
 //        TestCandidateMetadata mostRecentTestCandidate = null;
         List<String> methodArgumentValues = null;
         AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(methodElement,
-                (PsiClass) methodElement.getContainingClass().getSource(), methodArgumentValues);
+                (PsiClass) containingClass.getSource(), methodArgumentValues);
 
         AgentCommandRequest existingRequests = insidiousService.getAgentCommandRequests(agentCommandRequest);
         if (existingRequests != null) {

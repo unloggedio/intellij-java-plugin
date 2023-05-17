@@ -35,7 +35,8 @@ public class JavaMethodAdapter implements MethodAdapter {
 
     @Override
     public ClassAdapter getContainingClass() {
-        return new JavaClassAdapter(psiMethod.getContainingClass());
+        return new JavaClassAdapter(ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiClass>) psiMethod::getContainingClass));
     }
 
     @Override
@@ -45,7 +46,7 @@ public class JavaMethodAdapter implements MethodAdapter {
 
     @Override
     public String getText() {
-        return psiMethod.getText();
+        return ApplicationManager.getApplication().runReadAction((Computable<String>) psiMethod::getText);
     }
 
     @Override

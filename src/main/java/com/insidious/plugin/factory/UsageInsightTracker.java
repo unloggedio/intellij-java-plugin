@@ -15,9 +15,7 @@ public class UsageInsightTracker {
     private static final String OS_NAME = System.getProperty("os.name");
     private static final String OS_VERSION = System.getProperty("os.version");
     private static final String LANGUAGE = Locale.getDefault().getLanguage();
-    private static final String JAVA_VERSION = Locale.getDefault().getLanguage();
     private static final String OS_TAG = OS_NAME + ":" + OS_VERSION;
-    private static final Object lock = new Object();
     private static UsageInsightTracker instance;
     private final Amplitude amplitudeClient;
     private final VersionManager versionManager;
@@ -36,7 +34,7 @@ public class UsageInsightTracker {
         if (instance != null) {
             return instance;
         }
-        synchronized (lock) {
+        synchronized (UsageInsightTracker.class) {
             if (instance != null) {
                 return instance;
             }
