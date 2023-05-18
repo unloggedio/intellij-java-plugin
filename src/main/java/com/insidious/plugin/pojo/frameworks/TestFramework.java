@@ -1,6 +1,7 @@
-package com.insidious.plugin.pojo;
+package com.insidious.plugin.pojo.frameworks;
 
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
+import com.insidious.plugin.pojo.Parameter;
 import com.squareup.javapoet.ClassName;
 
 public enum TestFramework {

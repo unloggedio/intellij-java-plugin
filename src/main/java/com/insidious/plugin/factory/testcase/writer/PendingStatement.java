@@ -1,12 +1,5 @@
 package com.insidious.plugin.factory.testcase.writer;
 
-import com.github.javaparser.JavaParser;
-import com.github.javaparser.ParseResult;
-import com.github.javaparser.ParserConfiguration;
-import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.expr.SimpleName;
-import com.github.javaparser.ast.type.ClassOrInterfaceType;
-import com.github.javaparser.ast.type.Type;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -17,12 +10,10 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
+import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ParameterUtils;
-import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,11 +26,7 @@ import java.util.stream.Collectors;
 import static com.insidious.plugin.factory.testcase.util.ClassTypeUtils.createTypeFromTypeDeclaration;
 
 public class PendingStatement {
-    public static final ClassName GSON_TYPE_TOKEN_CLASS = ClassName.bestGuess("com.google.gson.reflect.TypeToken");
-    public static final ClassName JACKSON_TYPE_REFERENCE_CLASS = ClassName.bestGuess(
-            "com.fasterxml.jackson.core.type.TypeReference");
     private static final Pattern anyRegexPicker = Pattern.compile("[( ,]any\\(([^)]+.class)\\)");
-    private static final Logger logger = LoggerUtil.getInstance(PendingStatement.class);
     private final ObjectRoutineScript objectRoutine;
     private final List<Expression> expressionList = new ArrayList<>();
     private final TestGenerationState testGenerationState;
@@ -57,21 +44,21 @@ public class PendingStatement {
 
     private void writeCallStatement(
             MethodCallExpression methodCallExpression, StringBuilder statementBuilder,
-            List<Object> statementParameters, int i
+            List<Object> statementParameters, int chainedCallNumber
     ) {
         String parameterString = TestCaseWriter.createMethodParametersString(methodCallExpression.getArguments(),
                 testGenerationState);
         ParameterNameFactory nameFactory = testGenerationState.getParameterNameFactory();
         final String methodName = methodCallExpression.getMethodName();
+        Parameter methodCallSubject = methodCallExpression.getSubject();
         if (methodName.equals("<init>")) {
-            assert i == 0;
+            assert chainedCallNumber == 0;
             statementBuilder.append("new $T(")
                     .append(parameterString)
                     .append(")");
-            statementParameters.add(ClassName.bestGuess(methodCallExpression.getSubject()
-                    .getType()));
-        } else if (methodName.equals("fromJson")
-                && methodCallExpression.getSubject().equals(MethodCallExpressionFactory.GsonClass)) {
+            statementParameters.add(ClassName.bestGuess(methodCallSubject.getType()));
+        } else if (methodName.equals(JsonFramework.Gson.getFromJsonMethodName())
+                && methodCallSubject.equals(JsonFramework.Gson.getInstance())) {
 
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();
@@ -100,12 +87,12 @@ public class PendingStatement {
                         .append("$L.$L($S, new $T<$T<")
                         .append(templateString)
                         .append(">>(){}.getType())");
-                statementParameters.add(nameFactory.getNameForUse(methodCallExpression.getSubject(), null));  // 1
+                statementParameters.add(nameFactory.getNameForUse(methodCallSubject, null));  // 1
                 statementParameters.add(methodName); // 2
 
                 statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue())); // 3
 
-                statementParameters.add(GSON_TYPE_TOKEN_CLASS); // 4
+                statementParameters.add(JsonFramework.Gson.getTokenTypeClass()); // 4
                 statementParameters.add(ClassName.bestGuess(objectToDeserialize.getType())); // 5
 
                 for (String templateKey : templateKeys) {
@@ -122,7 +109,7 @@ public class PendingStatement {
 
             } else {
                 statementBuilder.append("$L.$L($S, $T.class)");
-                statementParameters.add(nameFactory.getNameForUse(methodCallExpression.getSubject(), null));
+                statementParameters.add(nameFactory.getNameForUse(methodCallSubject, null));
                 statementParameters.add(methodName);
 
                 statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue()));
@@ -130,7 +117,67 @@ public class PendingStatement {
 
             }
 
-        } else if (methodName.equals("ValueOf") && methodCallExpression.getSubject() == null) {
+        } else if (methodName.equals(JsonFramework.Jackson.getFromJsonMethodName())
+                && methodCallSubject.equals(JsonFramework.Jackson.getInstance())) {
+
+
+            List<? extends Parameter> variables = methodCallExpression.getArguments();
+
+            Parameter objectToDeserialize = variables.get(0);
+
+            List<Parameter> templateMap = objectToDeserialize.getTemplateMap();
+            if (objectToDeserialize.isContainer() && templateMap.size() > 0) {
+                List<String> templateKeys = templateMap
+                        .stream()
+                        .map(Parameter::getName)
+                        .sorted()
+                        .collect(Collectors.toList());
+                int templateParameterCount = templateKeys.size();
+
+
+                StringBuilder templateString = new StringBuilder();
+                for (int j = 0; j < templateParameterCount; j++) {
+                    if (j > 0) {
+                        templateString.append(", ");
+                    }
+                    templateString.append("$T");
+                }
+                //                1, 2, 3,      4, 5, 6
+                statementBuilder
+                        .append("$L.$L($S, new $T<$T<")
+                        .append(templateString)
+                        .append(">>(){}.getType())");
+                statementParameters.add(nameFactory.getNameForUse(methodCallSubject, null));  // 1
+                statementParameters.add(methodName); // 2
+
+                statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue())); // 3
+
+                statementParameters.add(JsonFramework.Jackson.getTokenTypeClass()); // 4
+                statementParameters.add(ClassName.bestGuess(objectToDeserialize.getType())); // 5
+
+                for (String templateKey : templateKeys) {
+                    Optional<Parameter> templateParameter = templateMap
+                            .stream()
+                            .filter(e -> e.getName().equals(templateKey))
+                            .findFirst();
+                    assert templateParameter.isPresent();
+                    String templateParameterType = templateParameter.get().getType();
+                    TypeName parameterClassName = createTypeFromTypeDeclaration(templateParameterType);
+                    statementParameters.add(parameterClassName); // 6
+                }
+
+
+            } else {
+                statementBuilder.append("$L.$L($S, $T.class)");
+                statementParameters.add(nameFactory.getNameForUse(methodCallSubject, null));
+                statementParameters.add(methodName);
+
+                statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue()));
+                statementParameters.add(ClassTypeUtils.createTypeFromNameString(objectToDeserialize.getType()));
+
+            }
+
+        } else if (methodName.equals("ValueOf") && methodCallSubject == null) {
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();
             Parameter objectToDeserialize = variables.get(0);
@@ -144,9 +191,9 @@ public class PendingStatement {
 
                 // todo : this if can be used for all the jackson serialization eventually
                 if (objectToDeserialize.isOptionalType())
-                    statementParameters.add(JACKSON_TYPE_REFERENCE_CLASS); // 3
+                    statementParameters.add(JsonFramework.Jackson.getTokenTypeClass()); // 3
                 else
-                    statementParameters.add(GSON_TYPE_TOKEN_CLASS); // 3
+                    statementParameters.add(JsonFramework.Gson.getTokenTypeClass()); // 3
 
                 Parameter deepCopyParam = Parameter.cloneParameter(objectToDeserialize);
                 ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder, statementParameters);
@@ -173,10 +220,8 @@ public class PendingStatement {
             }
         } else if (methodName.equals("injectField")
                 && methodCallExpression.isStaticCall()
-                && methodCallExpression.getSubject() != null
-                && methodCallExpression.getSubject()
-                .getType()
-                .equals("io.unlogged.UnloggedTestUtils")
+                && methodCallSubject != null
+                && methodCallSubject.getType().equals("io.unlogged.UnloggedTestUtils")
         ) {
 
 
@@ -184,8 +229,7 @@ public class PendingStatement {
 
 
             Parameter injectionTarget = variables.get(0);
-            statementParameters.add(ClassName.bestGuess(methodCallExpression.getSubject()
-                    .getType()));
+            statementParameters.add(ClassName.bestGuess(methodCallSubject.getType()));
             String targetNameForScript = nameFactory.getNameForUse(injectionTarget, null);
             if (targetNameForScript != null) {
                 statementBuilder.append("$T.injectField($L, $S, $L)");
@@ -200,8 +244,7 @@ public class PendingStatement {
             statementParameters.add(secondArgumentNameForUse);
             statementParameters.add(secondArgumentNameForUse);
 
-        } else if (methodName.equals("thenThrow")
-                && methodCallExpression.getSubject() == null) {
+        } else if (methodName.equals("thenThrow") && methodCallSubject == null) {
 
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();
@@ -212,26 +255,25 @@ public class PendingStatement {
                     .getType())));
 
         } else if (methodName.equals("assertEquals")) {
-            Parameter callExpressionSubject = methodCallExpression.getSubject();
-            if (callExpressionSubject != null) {
+            if (methodCallSubject != null) {
                 parameterString = TestCaseWriter.createMethodParametersStringWithNames(
                         methodCallExpression.getArguments(), testGenerationState);
                 if (methodCallExpression.isStaticCall()) {
                     statementBuilder.append("$T.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
+                    statementParameters.add(ClassName.bestGuess(methodCallSubject.getType()));
                     statementParameters.add(methodName);
                 } else {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(nameFactory.getNameForUse(callExpressionSubject, null));
+                    statementParameters.add(nameFactory.getNameForUse(methodCallSubject, null));
                     statementParameters.add(methodName);
 
                 }
             } else {
-                if (i > 0) {
+                if (chainedCallNumber > 0) {
                     statementBuilder.append(".");
                 }
                 statementBuilder.append("$L(")
@@ -259,25 +301,24 @@ public class PendingStatement {
 //                parameterString = parameterString.replaceFirst(matchedString, "$T.class");
                 trailingParameters.add(classNameType);
             }
-            Parameter callExpressionSubject = methodCallExpression.getSubject();
-            if (callExpressionSubject != null) {
+            if (methodCallSubject != null) {
 
                 if (methodCallExpression.isStaticCall()) {
                     statementBuilder.append("$T.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
+                    statementParameters.add(ClassName.bestGuess(methodCallSubject.getType()));
                     statementParameters.add(methodName);
                 } else {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(nameFactory.getNameForUse(callExpressionSubject, null));
+                    statementParameters.add(nameFactory.getNameForUse(methodCallSubject, null));
                     statementParameters.add(methodName);
 
                 }
             } else {
-                if (i > 0) {
+                if (chainedCallNumber > 0) {
                     statementBuilder.append(".");
                 }
                 statementBuilder.append("$L(")
@@ -287,15 +328,14 @@ public class PendingStatement {
             }
             statementParameters.addAll(trailingParameters);
         } else if (methodName.equals("mockStatic")) {
-            Parameter callExpressionSubject = methodCallExpression.getSubject();
             parameterString = parameterString + ", $T.CALLS_REAL_METHODS";
-            if (callExpressionSubject != null) {
+            if (methodCallSubject != null) {
 
                 if (methodCallExpression.isStaticCall()) {
                     statementBuilder.append("$T.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
+                    statementParameters.add(ClassName.bestGuess(methodCallSubject.getType()));
                     statementParameters.add(methodName);
 
                     // TODO: need to pick from test generation config and not
@@ -309,7 +349,7 @@ public class PendingStatement {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(nameFactory.getNameForUse(callExpressionSubject, null));
+                    statementParameters.add(nameFactory.getNameForUse(methodCallSubject, null));
                     statementParameters.add(methodName);
                     statementParameters.add(methodName);
                     statementParameters.add(ClassName.bestGuess(
@@ -320,7 +360,7 @@ public class PendingStatement {
                     ));
                 }
             } else {
-                if (i > 0) {
+                if (chainedCallNumber > 0) {
                     statementBuilder.append(".");
                 }
                 statementBuilder.append("$L(")
@@ -329,34 +369,32 @@ public class PendingStatement {
                 statementParameters.add(methodName);
             }
         } else if (methodName.equals("mock")) {
-            Parameter callExpressionSubject = methodCallExpression.getSubject();
             statementBuilder.append("$T.$L(")
                     .append("$T.class")
                     .append(")");
-            statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
+            statementParameters.add(ClassName.bestGuess(methodCallSubject.getType()));
             statementParameters.add(methodName);
             statementParameters.add(ClassName.bestGuess(parameterString));
 
         } else {
-            Parameter callExpressionSubject = methodCallExpression.getSubject();
-            if (callExpressionSubject != null) {
+            if (methodCallSubject != null) {
 
                 if (methodCallExpression.isStaticCall()) {
                     statementBuilder.append("$T.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
+                    statementParameters.add(ClassName.bestGuess(methodCallSubject.getType()));
                     statementParameters.add(methodName);
                 } else {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(nameFactory.getNameForUse(callExpressionSubject, null));
+                    statementParameters.add(nameFactory.getNameForUse(methodCallSubject, null));
                     statementParameters.add(methodName);
 
                 }
             } else {
-                if (i > 0) {
+                if (chainedCallNumber > 0) {
                     statementBuilder.append(".");
                 }
                 statementBuilder.append("$L(")
@@ -412,7 +450,8 @@ public class PendingStatement {
                     // creating a deep copy of the lhsExpression type and templateMap only
                     // for handling generic type
                     Parameter deepCopyParam = Parameter.cloneParameter(lhsExpression);
-                    ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder, statementParameters);
+                    ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder,
+                            statementParameters);
 
                     statementBuilder.append(" ");
                 } else {
@@ -647,7 +686,7 @@ public class PendingStatement {
             // non primitive variable types need to be reconstructed from the JSON values
             if (generationConfiguration.getResourceEmbedMode()
                     .equals(ResourceEmbedMode.IN_CODE)) {
-                this.expressionList.add(MethodCallExpressionFactory.FromJson(lhsExpression));
+                this.expressionList.add(MethodCallExpressionFactory.FromJson(lhsExpression, generationConfiguration));
             } else if (generationConfiguration.getResourceEmbedMode()
                     .equals(ResourceEmbedMode.IN_FILE)) {
                 // for enum type equate to EnumClass.ENUM and not ValueOf("ENUM0",Class.class)

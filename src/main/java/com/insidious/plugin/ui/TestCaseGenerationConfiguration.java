@@ -2,6 +2,9 @@ package com.insidious.plugin.ui;
 
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.pojo.frameworks.JsonFramework;
+import com.insidious.plugin.pojo.frameworks.MockFramework;
+import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.squareup.javapoet.ClassName;
 
 import java.util.HashSet;

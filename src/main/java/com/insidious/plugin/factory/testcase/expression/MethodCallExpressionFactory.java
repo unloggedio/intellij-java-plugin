@@ -9,12 +9,12 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
-import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Arrays;
@@ -25,13 +25,13 @@ public class MethodCallExpressionFactory {
 
     //    public static final Parameter MockitoClass;
     //    public static final Parameter AssertClass;
-    public static final Parameter GsonClass;
+//    public static final Parameter GsonClass;
     private static final Logger logger = LoggerUtil.getInstance(MethodCallExpressionFactory.class);
 
     static {
 //        MockitoClass = makeParameter("Mockito", "org.mockito.Mockito");
 //        AssertClass = makeParameter("Assert", "org.junit.Assert");
-        GsonClass = makeParameter("gson", "com.google.gson.Gson");
+//        GsonClass = makeParameter("gson", "com.google.gson.Gson");
     }
 
     public static Parameter makeParameter(String name, String type) {
@@ -135,8 +135,8 @@ public class MethodCallExpressionFactory {
 
 
         MethodCallExpression mockStatic = new MethodCallExpression("mockStatic",
-                configuration.getMockFramework()
-                        .getMockClassParameter(), Collections.singletonList(whenExpression), null, 0);
+                configuration.getMockFramework().getMockClassParameter(),
+                Collections.singletonList(whenExpression), null, 0);
         mockStatic.setMethodAccess(Opcodes.ACC_PUBLIC);
         mockStatic.setStaticCall(true);
         return mockStatic;
@@ -163,8 +163,7 @@ public class MethodCallExpressionFactory {
     public static Expression MockitoThenThrow(Parameter exceptionValue) {
 
         MethodCallExpression thenThrow = MethodCallExpression("thenThrow", null,
-                VariableContainer.from(Collections.singletonList(exceptionValue)),
-                null);
+                VariableContainer.from(Collections.singletonList(exceptionValue)), null);
         thenThrow.setMethodAccess(Opcodes.ACC_PUBLIC);
         return thenThrow;
 
@@ -172,9 +171,10 @@ public class MethodCallExpressionFactory {
 //        return parameter;
     }
 
-    public static Expression ToJson(Parameter object) {
-        MethodCallExpression toJson = MethodCallExpression("toJson", GsonClass,
-                VariableContainer.from(Collections.singletonList(object)),
+    public static Expression ToJson(Parameter object, TestCaseGenerationConfiguration testConfiguration) {
+        JsonFramework jsonFramework = testConfiguration.getJsonFramework();
+        MethodCallExpression toJson = MethodCallExpression(jsonFramework.getToJsonMethodName(),
+                jsonFramework.getInstance(), VariableContainer.from(Collections.singletonList(object)),
                 null);
         toJson.setMethodAccess(Opcodes.ACC_PUBLIC);
 
@@ -186,10 +186,8 @@ public class MethodCallExpressionFactory {
             Parameter returnSubjectInstanceName,
             TestCaseGenerationConfiguration testConfiguration) {
         MethodCallExpression assertEquals = MethodCallExpression(
-                testConfiguration.getTestFramework()
-                        .AssertEqualMethod(),
-                testConfiguration.getTestFramework()
-                        .AssertClassParameter(),
+                testConfiguration.getTestFramework().AssertEqualMethod(),
+                testConfiguration.getTestFramework().AssertClassParameter(),
                 VariableContainer.from(Arrays.asList(returnValue, returnSubjectInstanceName)), null
         );
         assertEquals.setStaticCall(true);
@@ -202,10 +200,8 @@ public class MethodCallExpressionFactory {
             Parameter returnSubjectInstanceName,
             TestCaseGenerationConfiguration testConfiguration) {
         MethodCallExpression assertArrayEquals = MethodCallExpression(
-                testConfiguration.getTestFramework()
-                        .AssertArrayEqualsMethod(),
-                testConfiguration.getTestFramework()
-                        .AssertClassParameter(),
+                testConfiguration.getTestFramework().AssertArrayEqualsMethod(),
+                testConfiguration.getTestFramework().AssertClassParameter(),
                 VariableContainer.from(Arrays.asList(returnValue, returnSubjectInstanceName)), null
         );
 
@@ -215,13 +211,10 @@ public class MethodCallExpressionFactory {
     }
 
     public static Expression MockitoAssertFalse(
-            Parameter paramInstanceName,
-            TestCaseGenerationConfiguration testConfiguration) {
+            Parameter paramInstanceName, TestCaseGenerationConfiguration testConfiguration) {
         MethodCallExpression assertFalse = MethodCallExpression(
-                testConfiguration.getTestFramework()
-                        .AssertFalseMethod(),
-                testConfiguration.getTestFramework()
-                        .AssertClassParameter(),
+                testConfiguration.getTestFramework().AssertFalseMethod(),
+                testConfiguration.getTestFramework().AssertClassParameter(),
                 VariableContainer.from(Collections.singletonList(paramInstanceName)), null
         );
 
@@ -230,8 +223,10 @@ public class MethodCallExpressionFactory {
         return assertFalse;
     }
 
-    public static MethodCallExpression FromJson(Parameter object) {
-        MethodCallExpression fromJson = MethodCallExpression("fromJson", GsonClass,
+    public static MethodCallExpression FromJson(Parameter object, TestCaseGenerationConfiguration testConfiguration) {
+        JsonFramework jsonFramework = testConfiguration.getJsonFramework();
+        MethodCallExpression fromJson = MethodCallExpression(jsonFramework.getFromJsonMethodName(),
+                jsonFramework.getInstance(),
                 VariableContainer.from(Collections.singletonList(object)), null);
         fromJson.setMethodAccess(Opcodes.ACC_PUBLIC);
         return fromJson;
@@ -239,8 +234,7 @@ public class MethodCallExpressionFactory {
 
     public static MethodCallExpression FromJsonFetchedFromFile(Parameter object) {
         MethodCallExpression valueOf = MethodCallExpression("ValueOf", null,
-                VariableContainer.from(Collections.singletonList(object)),
-                null);
+                VariableContainer.from(Collections.singletonList(object)), null);
         valueOf.setStaticCall(true);
         valueOf.setMethodAccess(Opcodes.ACC_PUBLIC);
         return valueOf;
@@ -248,7 +242,7 @@ public class MethodCallExpressionFactory {
 
     public static Expression createEnumExpression(Parameter enumParam) {
 
-        @Nullable TypeName enumTypeName = ClassTypeUtils.createTypeFromNameString(
+        TypeName enumTypeName = ClassTypeUtils.createTypeFromNameString(
                 ClassTypeUtils.getJavaClassName(enumParam.getType()));
 
         String value = new String(enumParam.getProb()

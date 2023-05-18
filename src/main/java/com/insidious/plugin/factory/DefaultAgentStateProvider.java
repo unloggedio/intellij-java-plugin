@@ -14,7 +14,6 @@ import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiPackage;
 import org.jetbrains.annotations.Nullable;
@@ -87,6 +86,13 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
         properties.put("version", serverMetadata.getAgentVersion());
         properties.put("package", serverMetadata.getIncludePackageName());
         UsageInsightTracker.getInstance().RecordEvent("AGENT_CONNECTED", properties);
+        if ("?".equals(includedPackageName)) {
+            InsidiousNotification.notifyMessage("A process running with unlogged agent was discovered, but the " +
+                    "package to be captured is set to [?]. This means that no class is being captured. Please fix the" +
+                    " i= parameter in the JVM parameters and specify the correct package to be captured and restart " +
+                    "the process", NotificationType.WARNING);
+            return;
+        }
 
         String finalIncludedPackageName = includedPackageName;
         @Nullable PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(

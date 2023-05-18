@@ -1,5 +1,6 @@
-package com.insidious.plugin.pojo;
+package com.insidious.plugin.pojo.frameworks;
 
+import com.insidious.plugin.pojo.Parameter;
 import com.squareup.javapoet.ClassName;
 
 import static com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory.makeParameter;
@@ -7,9 +8,11 @@ import static com.insidious.plugin.factory.testcase.expression.MethodCallExpress
 public enum MockFramework {
     Mockito(ClassName.bestGuess("org.mockito.Mockito"), makeParameter("Mockito", "org.mockito.Mockito"));
 
-    private Parameter mockClassParameter;
+    private final ClassName className;
+    private final Parameter mockClassParameter;
 
-    MockFramework(ClassName bestGuess, Parameter parameter) {
+    MockFramework(ClassName className, Parameter parameter) {
+        this.className = className;
         this.mockClassParameter = parameter;
     }
 
@@ -17,7 +20,7 @@ public enum MockFramework {
         return mockClassParameter;
     }
 
-    public void setMockClassParameter(Parameter mockClassParameter) {
-        this.mockClassParameter = mockClassParameter;
+    public ClassName getClassName() {
+        return className;
     }
 }

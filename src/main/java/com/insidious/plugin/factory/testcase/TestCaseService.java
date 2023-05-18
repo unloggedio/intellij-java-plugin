@@ -13,7 +13,12 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
-import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.pojo.ResourceEmbedMode;
+import com.insidious.plugin.pojo.TestCaseUnit;
+import com.insidious.plugin.pojo.frameworks.JsonFramework;
+import com.insidious.plugin.pojo.frameworks.MockFramework;
+import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
@@ -95,10 +100,13 @@ public class TestCaseService {
         }
         if (testGenerationConfig.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE)) {
 
-            ClassName gsonClassName = ClassName.bestGuess("com.google.gson.Gson");
-            FieldSpec.Builder gsonField = FieldSpec.builder(gsonClassName, "gson", Modifier.PRIVATE);
-            gsonField.initializer("new $T()", gsonClassName);
-            testClassSpecBuilder.addField(gsonField.build());
+            JsonFramework jsonFramework = testGenerationConfig.getJsonFramework();
+            ClassName jsonMapperClassName = ClassName.bestGuess(jsonFramework.getInstance().getType());
+            FieldSpec.Builder jsonMapperField = FieldSpec.builder(jsonMapperClassName, jsonFramework.getInstance().getName(),
+                    Modifier.PRIVATE);
+            jsonMapperField.initializer("new $T()", jsonMapperClassName);
+            testClassSpecBuilder.addField(jsonMapperField.build());
+
 
         }
 

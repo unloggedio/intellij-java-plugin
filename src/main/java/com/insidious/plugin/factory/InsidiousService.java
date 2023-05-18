@@ -174,6 +174,10 @@ final public class InsidiousService implements Disposable,
     public InsidiousService(Project project) {
         this.project = project;
         logger.info("starting insidious service: " + project);
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("projectName", project.getName());
+        UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_INIT", eventProperties);
+
 
         String pathToSessions = Constants.HOME_PATH + "/sessions";
         FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
@@ -707,7 +711,9 @@ final public class InsidiousService implements Disposable,
 
     @Override
     public void dispose() {
-        UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_DISPOSED", null);
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("projectName", project.getName());
+        UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_DISPOSED", eventProperties);
         logger.warn("Disposing InsidiousService for project: " + project.getName());
         threadPoolExecutor.shutdownNow();
         if (this.client != null) {
@@ -1408,6 +1414,8 @@ final public class InsidiousService implements Disposable,
             ExecutionManager executionManager = ExecutionManager.getInstance(project);
 
 //            ExecutionManagerImpl executionManagerImpl = ExecutionManagerImpl.getInstance(project);
+
+
 
             DataManager.getInstance().getDataContextFromFocusAsync().onSuccess(dataContext -> {
                 ExecutorRegistry executorRegistry = ExecutorRegistryImpl.getInstance();

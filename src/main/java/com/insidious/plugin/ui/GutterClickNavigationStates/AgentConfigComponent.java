@@ -82,12 +82,12 @@ public class AgentConfigComponent {
         startApplicationWithUnloggedButton.addActionListener(
                 e -> {
                     JSONObject eventProperties = new JSONObject();
+                    eventProperties.put("package", insidiousService.fetchBasePackage());
                     eventProperties.put("languageLevel", currentSelectedLanguageLevel.toString());
                     UsageInsightTracker.getInstance().RecordEvent("START_WITH_UNLOGGED", eventProperties);
                     String currentJVMOpts = getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION,
                             currentSelectedLanguageLevel);
-                    insidiousService.startProjectWithUnloggedAgent(
-                            currentJVMOpts);
+                    insidiousService.startProjectWithUnloggedAgent(currentJVMOpts);
                 });
 
 

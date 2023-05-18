@@ -23,6 +23,9 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.pojo.frameworks.JsonFramework;
+import com.insidious.plugin.pojo.frameworks.MockFramework;
+import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.AssertionType;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
@@ -82,6 +85,7 @@ public class TestCaseDesigner implements Disposable {
     private JPanel testFrameWorkPanel;
     private JComboBox<TestFramework> testFrameworkComboBox;
     private JComboBox<MockFramework> mockFrameworkComboBox;
+    private JComboBox<JsonFramework> jsonFrameworkComboBox;
     private JLabel mockFrameworkLabel;
     private JLabel testFrameworkLabel;
     private JPanel mockFrameworkPanel;
@@ -102,10 +106,12 @@ public class TestCaseDesigner implements Disposable {
         saveTestCaseButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         testFrameworkComboBox.setModel(new DefaultComboBoxModel<>(TestFramework.values()));
         mockFrameworkComboBox.setModel(new DefaultComboBoxModel<>(MockFramework.values()));
+        jsonFrameworkComboBox.setModel(new DefaultComboBoxModel<>(JsonFramework.values()));
 
         addFieldMocksCheckBox.addActionListener(e -> updatePreviewTestCase());
         testFrameworkComboBox.addActionListener(e -> updatePreviewTestCase());
         mockFrameworkComboBox.addActionListener(e -> updatePreviewTestCase());
+        jsonFrameworkComboBox.addActionListener(e -> updatePreviewTestCase());
         useMockitoAnnotationsMockCheckBox.addActionListener((e) -> updatePreviewTestCase());
 
 
@@ -290,7 +296,7 @@ public class TestCaseDesigner implements Disposable {
         TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
                 (TestFramework) testFrameworkComboBox.getSelectedItem(),
                 (MockFramework) mockFrameworkComboBox.getSelectedItem(),
-                JsonFramework.GSON,
+                (JsonFramework) jsonFrameworkComboBox.getSelectedItem(),
                 ResourceEmbedMode.IN_CODE
         );
 
@@ -384,6 +390,10 @@ public class TestCaseDesigner implements Disposable {
     }
 
     private List<TestCandidateMetadata> createTestCandidate() {
+
+        if (currentClass == null) {
+            return new ArrayList<>();
+        }
 
         List<TestCandidateMetadata> testCandidateMetadataList = new ArrayList<>();
 

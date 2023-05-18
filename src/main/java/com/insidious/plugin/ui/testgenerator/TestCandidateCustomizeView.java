@@ -6,6 +6,9 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.pojo.frameworks.JsonFramework;
+import com.insidious.plugin.pojo.frameworks.MockFramework;
+import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.CustomizeViewTreeCellRenderer;
 import com.insidious.plugin.ui.TestCandidateTreeModel;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
@@ -51,7 +54,7 @@ public class TestCandidateCustomizeView {
         this.sessionInstance = sessionInstance;
         this.testActionListener = testActionListener;
         this.testGenerationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.GSON, ResourceEmbedMode.IN_FILE);
+                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Gson, ResourceEmbedMode.IN_FILE);
 
         UsageInsightTracker.getInstance().
                 RecordEvent("CustomizeViewLoaded", null);
