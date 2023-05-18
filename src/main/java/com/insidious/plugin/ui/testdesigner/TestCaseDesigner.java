@@ -7,6 +7,8 @@ import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.Descriptor;
+import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.FieldAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
@@ -22,7 +24,9 @@ import com.insidious.plugin.factory.testcase.candidate.TestAssertion;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
-import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
@@ -591,6 +595,8 @@ public class TestCaseDesigner implements Disposable {
 
                         List<Parameter> methodArguments = new ArrayList<>();
                         Parameter methodReturnValue = new Parameter();
+                        methodReturnValue.setProbeInfo(new DataInfo(0, 0, 0, 0, 0, EventType.LOCAL_LOAD,
+                                Descriptor.Void, null));
 
                         ClassAdapter calledMethodClassReference = getClassByName(fieldByName.getType());
                         if (calledMethodClassReference == null) {
@@ -618,7 +624,7 @@ public class TestCaseDesigner implements Disposable {
                             Parameter callParameter = new Parameter();
                             callParameter.setValue(random.nextLong());
                             PsiType typeToAssignFrom = parameterExpression.getType();
-                            if (typeToAssignFrom == null ||  typeToAssignFrom.getCanonicalText().equals("null")) {
+                            if (typeToAssignFrom == null || typeToAssignFrom.getCanonicalText().equals("null")) {
                                 typeToAssignFrom = parameter.getType();
                             }
                             setParameterTypeFromPsiType(callParameter, typeToAssignFrom, false);
@@ -693,7 +699,7 @@ public class TestCaseDesigner implements Disposable {
 
         logger.debug("Find matching method for [" + methodName + "] - " + classReference.getName());
 
-        Set<ClassAdapter> classesToCheck = new HashSet<>();
+        List<ClassAdapter> classesToCheck = new ArrayList<>();
         classesToCheck.add(classReference);
         Set<ClassAdapter> interfaces = getInterfaces(classReference);
         classesToCheck.addAll(interfaces);

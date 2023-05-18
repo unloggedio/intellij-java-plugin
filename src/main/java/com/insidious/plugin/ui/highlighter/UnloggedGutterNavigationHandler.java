@@ -8,7 +8,6 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiIdentifier;
 import com.intellij.psi.PsiMethod;
@@ -50,7 +49,7 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
         if (this.state == GutterState.EXECUTE) {
             insidiousService.compileAndExecuteWithAgentForMethod(methodAdapter);
         } else {
-//            insidiousService.loadMethodInAtomicTests(methodAdapter);
+            insidiousService.focusAtomicTestsWindow();
         }
 
     }

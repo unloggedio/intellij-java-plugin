@@ -946,9 +946,10 @@ final public class InsidiousService implements Disposable,
 
     public TestCaseService getTestCaseService() {
         if (testCaseService == null) {
-            InsidiousNotification.notifyMessage(
-                    "Session isn't loaded yet, loading session", NotificationType.WARNING);
-            return null;
+//            InsidiousNotification.notifyMessage(
+//                    "Session isn't loaded yet, loading session", NotificationType.WARNING);
+            loadDefaultSession();
+//            return testCaseService;
         }
         return testCaseService;
     }
@@ -1442,6 +1443,9 @@ final public class InsidiousService implements Disposable,
             JSONObject eventProperties = new JSONObject();
             for (RunConfiguration allConfiguration : allConfigurations) {
                 eventProperties.put(allConfiguration.getName(), allConfiguration.getType().getDisplayName());
+//                if (allConfiguration instanceof ApplicationConfiguration) {
+//                    OkCancelDialogBuilder.okCancel()
+//                }
             }
 
 
@@ -1458,6 +1462,12 @@ final public class InsidiousService implements Disposable,
             }
         }
 
+    }
+
+    public void focusAtomicTestsWindow() {
+        if (this.atomicTestContent != null) {
+            this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent);
+        }
     }
 
 

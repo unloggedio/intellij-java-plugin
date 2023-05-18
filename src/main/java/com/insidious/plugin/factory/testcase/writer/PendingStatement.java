@@ -146,7 +146,7 @@ public class PendingStatement {
                 statementBuilder
                         .append("$L.$L($S, new $T<$T<")
                         .append(templateString)
-                        .append(">>(){}.getType())");
+                        .append(">>(){})");
                 statementParameters.add(nameFactory.getNameForUse(methodCallSubject, null));  // 1
                 statementParameters.add(methodName); // 2
 
