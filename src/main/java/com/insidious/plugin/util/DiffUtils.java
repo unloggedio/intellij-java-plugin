@@ -121,7 +121,7 @@ public class DiffUtils {
                 return new DifferenceResult(differenceInstances, DiffResultType.DIFF, leftOnly, rightOnly);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.warn("Failed to read old or new value", e);
             if ((originalString == null && actualString == null) || Objects.equals(originalString, actualString)) {
                 return new DifferenceResult(new LinkedList<>(), DiffResultType.SAME, null, null);
             }

@@ -234,7 +234,8 @@ public class MethodDirectInvokeComponent {
                     parameterValue = methodArgumentValues.get(i);
                 } else {
                     PsiType parameterType = methodParameter.getType();
-                    parameterValue = createDummyValue(parameterType);
+                    parameterValue = ClassUtils.createDummyValue(parameterType, new LinkedList<>(),
+                            insidiousService.getProject());
                     creationStack.clear();
                 }
 
@@ -266,100 +267,6 @@ public class MethodDirectInvokeComponent {
         mainContainer.repaint();
     }
 
-    private String createDummyValue(PsiType parameterType) {
-        String creationKey = parameterType.getCanonicalText();
-        if (creationStack.contains(creationKey)) {
-            return "";
-        }
-
-        try {
-            creationStack.add(creationKey);
-            StringBuilder dummyValue = new StringBuilder();
-            if (parameterType.getCanonicalText().equals("java.lang.String")) {
-                return "\"string\"";
-            }
-            if (parameterType.getCanonicalText().startsWith("java.lang.")) {
-                return "0";
-            }
-
-            if (parameterType.getCanonicalText().equals("java.util.Random")) {
-                return "";
-            }
-            if (parameterType.getCanonicalText().equals("java.util.Date")) {
-//                try {
-                return "\"" + new Date().toGMTString() + "\"";
-//                } catch (JsonProcessingException e) {
-//                     should never happen
-//                }
-            }
-            if (parameterType instanceof PsiArrayType) {
-                PsiArrayType arrayType = (PsiArrayType) parameterType;
-                dummyValue.append("[");
-                dummyValue.append(createDummyValue(arrayType.getComponentType()));
-                dummyValue.append("]");
-                return dummyValue.toString();
-            }
-
-            if (parameterType instanceof PsiClassReferenceType) {
-                PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
-                if (classReferenceType.rawType().getCanonicalText().equals("java.util.List") ||
-                        classReferenceType.rawType().getCanonicalText().equals("java.util.Set")
-                ) {
-                    dummyValue.append("[");
-                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0]));
-                    dummyValue.append("]");
-                    return dummyValue.toString();
-                }
-
-                PsiClass resolvedClass = JavaPsiFacade.getInstance(
-                                insidiousService.getProject())
-                        .findClass(classReferenceType.getCanonicalText(), parameterType.getResolveScope());
-
-                if (resolvedClass == null) {
-                    // class not resolved
-                    return dummyValue.toString();
-                }
-
-                if (resolvedClass.isEnum()) {
-                    PsiField[] enumValues = resolvedClass.getAllFields();
-                    if (enumValues.length == 0) {
-                        return "";
-                    }
-                    return "\"" + enumValues[0].getName() + "\"";
-                }
-
-                PsiField[] parameterObjectFieldList = resolvedClass.getAllFields();
-//                Map<String, String> fieldValueMap = new HashMap<>();
-                dummyValue.append("{");
-                boolean firstField = true;
-                for (PsiField psiField : parameterObjectFieldList) {
-                    if (!firstField) {
-                        dummyValue.append(", ");
-                    }
-//                    fieldValueMap.put(psiField.getName(), createDummyValue(psiField.getType()));
-                    dummyValue.append("\"");
-                    dummyValue.append(psiField.getName());
-                    dummyValue.append("\"");
-                    dummyValue.append(": ");
-                    dummyValue.append(createDummyValue(psiField.getType()));
-                    firstField = false;
-                }
-                dummyValue.append("}");
-            } else if (parameterType instanceof PsiPrimitiveType) {
-                PsiPrimitiveType primitiveType = (PsiPrimitiveType) parameterType;
-                switch (primitiveType.getName()) {
-                    case "boolean":
-                        return "true";
-                }
-                return "0";
-            }
-            return dummyValue.toString();
-
-        } finally {
-            creationStack.remove(creationKey);
-        }
-
-    }
 
     public JComponent getContent() {
         return mainContainer;

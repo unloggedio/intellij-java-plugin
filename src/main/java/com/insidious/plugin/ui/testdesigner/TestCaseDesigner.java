@@ -32,6 +32,7 @@ import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.AssertionType;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.JvmModifier;
@@ -51,6 +52,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
+import com.intellij.psi.impl.source.PsiImmediateClassType;
 import com.intellij.psi.impl.source.PsiJavaFileImpl;
 import com.intellij.psi.impl.source.tree.java.PsiExpressionListImpl;
 import com.intellij.psi.impl.source.tree.java.PsiJavaTokenImpl;
@@ -387,7 +389,7 @@ public class TestCaseDesigner implements Disposable {
         testCasePreviewPanel.add(editor.getComponent(), BorderLayout.CENTER);
         editor.getCaretModel().getCurrentCaret().moveToOffset(offset);
         logger.info("scroll to line: " + scrollIndex);
-        editor.getScrollingModel().scrollVertically(scrollIndex);
+        editor.getScrollingModel().scroll(1, offset);
         testCasePreviewPanel.revalidate();
         testCasePreviewPanel.repaint();
 
@@ -540,6 +542,7 @@ public class TestCaseDesigner implements Disposable {
 
     private List<MethodCallExpression> extractMethodCalls(MethodAdapter method) {
         List<MethodCallExpression> collectedMceList = new ArrayList<>();
+        Map<Object, Boolean> valueUsed = new HashMap<>();
 
         List<PsiMethodCallExpression> mceList = collectMethodCallExpressions(method.getBody());
         for (PsiMethodCallExpression psiMethodCallExpression : mceList) {
@@ -622,21 +625,67 @@ public class TestCaseDesigner implements Disposable {
                             PsiExpression parameterExpression = actualParameterExpressions[i];
 
                             Parameter callParameter = new Parameter();
-                            callParameter.setValue(random.nextLong());
                             PsiType typeToAssignFrom = parameterExpression.getType();
                             if (typeToAssignFrom == null || typeToAssignFrom.getCanonicalText().equals("null")) {
                                 typeToAssignFrom = parameter.getType();
                             }
                             setParameterTypeFromPsiType(callParameter, typeToAssignFrom, false);
+
+
+                            long nextValue;
+
+                            if (!(typeToAssignFrom instanceof PsiPrimitiveType)) {
+                                nextValue = random.nextLong();
+                            } else {
+                                PsiPrimitiveType primitiveType = ((PsiPrimitiveType) typeToAssignFrom);
+                                switch (primitiveType.getName()) {
+                                    case "int":
+                                        nextValue = random.nextInt();
+                                        break;
+                                    case "long":
+                                        nextValue = random.nextLong();
+                                        break;
+                                    case "short":
+                                        nextValue = random.nextInt();
+                                        break;
+                                    case "byte":
+                                        nextValue = random.nextInt();
+                                        break;
+                                    case "boolean":
+                                        nextValue = random.nextBoolean() ? 1L : 0L;
+                                        break;
+                                    case "float":
+                                        nextValue = Float.floatToIntBits(random.nextFloat());
+                                        break;
+                                    case "double":
+                                        nextValue = Double.doubleToLongBits(random.nextDouble());
+                                        break;
+                                    default:
+                                        nextValue = random.nextInt();
+                                        break;
+                                }
+                            }
+                            valueUsed.put(nextValue, true);
+
+                            callParameter.setValue(nextValue);
                             DataEventWithSessionId prob = new DataEventWithSessionId();
                             if (callParameter.isPrimitiveType()) {
                                 prob.setSerializedValue("0".getBytes());
                             } else if (callParameter.isStringType()) {
-                                prob.setSerializedValue("\"\"".getBytes());
+                                prob.setSerializedValue(("\"" + parameter.getName() + "\"").getBytes());
+                            } else {
+                                String serializedStringValue = ClassUtils.createDummyValue(
+                                        typeToAssignFrom, new LinkedList<>(), currentClass.getProject()
+                                );
+                                prob.setSerializedValue(serializedStringValue.getBytes());
+
                             }
                             callParameter.setProb(prob);
                             callParameter.setName(parameter.getName());
-                            callParameter.setProbeInfo(new DataInfo());
+                            DataInfo probeInfo = new DataInfo(
+                                    0, 0, 0, 0, 0, EventType.ARRAY_LENGTH, Descriptor.Boolean, ""
+                            );
+                            callParameter.setProbeInfo(probeInfo);
                             methodArguments.add(callParameter);
                         }
 
@@ -644,17 +693,21 @@ public class TestCaseDesigner implements Disposable {
 
                         methodReturnValue.setValue(random.nextLong());
                         setParameterTypeFromPsiType(methodReturnValue, methodReturnPsiReference, true);
-                        methodReturnValue.setProbeInfo(new DataInfo());
-                        methodReturnValue.setProb(new DataEventWithSessionId());
+                        DataInfo probeInfo = new DataInfo(
+                                0, 0, 0, 0, 0, EventType.ARRAY_LENGTH, Descriptor.Boolean, ""
+                        );
+                        methodReturnValue.setProbeInfo(probeInfo);
+                        DataEventWithSessionId returnValueDataEvent = new DataEventWithSessionId();
+                        returnValueDataEvent.setSerializedValue(ClassUtils.createDummyValue(methodReturnPsiReference,
+                                new LinkedList<>(), currentClass.getProject()).getBytes());
+                        methodReturnValue.setProb(returnValueDataEvent);
 
 
                         MethodCallExpression mce = new MethodCallExpression(
                                 methodName, fieldByName, methodArguments, methodReturnValue, 0
                         );
                         int methodAccess = buildMethodAccessModifier(matchedMethod.getModifierList());
-//                        if (calledMethodClassReference.isInterface()) {
                         methodAccess = methodAccess | Opcodes.ACC_PUBLIC;
-//                        }
                         mce.setMethodAccess(methodAccess);
 
                         collectedMceList.add(mce);

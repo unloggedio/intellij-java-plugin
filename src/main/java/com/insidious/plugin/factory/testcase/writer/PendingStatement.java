@@ -684,11 +684,10 @@ public class PendingStatement {
 
         } else {
             // non primitive variable types need to be reconstructed from the JSON values
-            if (generationConfiguration.getResourceEmbedMode()
-                    .equals(ResourceEmbedMode.IN_CODE)) {
+            ResourceEmbedMode resourceEmbedMode = generationConfiguration.getResourceEmbedMode();
+            if (resourceEmbedMode.equals(ResourceEmbedMode.IN_CODE)) {
                 this.expressionList.add(MethodCallExpressionFactory.FromJson(lhsExpression, generationConfiguration));
-            } else if (generationConfiguration.getResourceEmbedMode()
-                    .equals(ResourceEmbedMode.IN_FILE)) {
+            } else if (resourceEmbedMode.equals(ResourceEmbedMode.IN_FILE)) {
                 // for enum type equate to EnumClass.ENUM and not ValueOf("ENUM0",Class.class)
                 if (lhsExpression.getIsEnum()) {
                     this.expressionList.add(MethodCallExpressionFactory.createEnumExpression(lhsExpression));

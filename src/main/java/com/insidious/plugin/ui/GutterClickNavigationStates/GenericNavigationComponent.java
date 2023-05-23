@@ -14,8 +14,6 @@ import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedInputStream;
@@ -30,6 +28,8 @@ import java.security.MessageDigest;
 import java.util.Objects;
 
 public class GenericNavigationComponent {
+    private final GutterState currentState;
+    private final InsidiousService insidiousService;
     private JPanel mainPanel;
     private JPanel topAligner;
     private JPanel topTextPanel;
@@ -37,11 +37,9 @@ public class GenericNavigationComponent {
     private JTextArea topStatusText;
     private JButton actionButton;
     private JTextArea mainContentText;
-    private final GutterState currentState;
     private JEditorPane imagePane;
     private JButton discordButton;
     private JPanel supportPanel;
-    private final InsidiousService insidiousService;
 
     public GenericNavigationComponent(GutterState state, InsidiousService insidiousService) {
         this.currentState = state;
@@ -117,17 +115,20 @@ public class GenericNavigationComponent {
             System.out.println("Download Agent triggered");
             String agentVersion = insidiousService.suggestAgentVersion();
             System.out.println("Agent suggested : " + agentVersion);
-            downloadAgentinBackground(agentVersion);
+            downloadAgentInBackground(agentVersion);
         }
     }
 
-    public void downloadAgentinBackground(String version) {
+    /**
+     * @param jacksonVersion eg "jackson-2.13" or "jackson-2.9" or "gson"
+     */
+    public void downloadAgentInBackground(String jacksonVersion) {
         Task.Backgroundable dl_task =
                 new Task.Backgroundable(insidiousService.getProject(), "Unlogged, Inc.", true) {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         checkProgressIndicator("Downloading Unlogged agent", null);
-                        downloadAgent(version);
+                        downloadAgent(jacksonVersion);
                     }
                 };
         ProgressManager.getInstance().run(dl_task);
@@ -150,14 +151,16 @@ public class GenericNavigationComponent {
         }
     }
 
-    private void downloadAgent(String version) {
+    private void downloadAgent(String jsonMapperVersion) {
 //        agentDownloadInitiated = true;
-        String host = "https://builds.bug.video/unlogged-java-agent-"+ Constants.AGENT_VERSION +"-";
-        String type = version;
-        String extention = ".jar";
+        // deprecating downloads from s3 bucket and switching to maven repository
+//        String host = "https://builds.bug.video/unlogged-java-agent-"+ Constants.AGENT_VERSION +"-";
+        String host = "https://s01.oss.sonatype.org/service/local/repositories/releases/content/video/bug/unlogged" +
+                "-java-agent/" + Constants.AGENT_VERSION + "/unlogged-java-agent-" + Constants.AGENT_VERSION;
+        String extension = ".jar";
 
-        checkProgressIndicator("Downloading Unlogged agent", "version : " + type);
-        String url = (host + type + extention).trim();
+        checkProgressIndicator("Downloading Unlogged agent", "version : " + jsonMapperVersion);
+        String url = (host + extension).trim();
 //        logger.info("[Downloading from] " + url);
         InsidiousNotification.notifyMessage(
                 "Downloading Unlogged JAVA agent to $HOME/.unlogged/unlogged-java-agent.jar",
@@ -221,7 +224,7 @@ public class GenericNavigationComponent {
         if (url.contains("gson")) {
             return "gson";
         } else {
-            return url.substring(url.indexOf("-jackson-") + 1, url.indexOf(".jar"));
+            return "jackson-2.13";
         }
     }
 
@@ -236,46 +239,46 @@ public class GenericNavigationComponent {
                 checksum = "0" + checksum;
             }
             switch (agentVersion) {
-                case "gson":
-                    if (checksum.equals(Checksums.AGENT_GSON)) {
-                        return true;
-                    }
-                    break;
-                case "jackson-2.8":
-                    if (checksum.equals(Checksums.AGENT_JACKSON_2_8)) {
-                        return true;
-                    }
-                    break;
-                case "jackson-2.9":
-                    if (checksum.equals(Checksums.AGENT_JACKSON_2_9)) {
-                        return true;
-                    }
-                    break;
-                case "jackson-2.10":
-                    if (checksum.equals(Checksums.AGENT_JACKSON_2_10)) {
-                        return true;
-                    }
-                    break;
-                case "jackson-2.11":
-                    if (checksum.equals(Checksums.AGENT_JACKSON_2_11)) {
-                        return true;
-                    }
-                    break;
-                case "jackson-2.12":
-                    if (checksum.equals(Checksums.AGENT_JACKSON_2_12)) {
-                        return true;
-                    }
-                    break;
+//                case "gson":
+//                    if (checksum.equals(Checksums.AGENT_GSON)) {
+//                        return true;
+//                    }
+//                    break;
+//                case "jackson-2.8":
+//                    if (checksum.equals(Checksums.AGENT_JACKSON_2_8)) {
+//                        return true;
+//                    }
+//                    break;
+//                case "jackson-2.9":
+//                    if (checksum.equals(Checksums.AGENT_JACKSON_2_9)) {
+//                        return true;
+//                    }
+//                    break;
+//                case "jackson-2.10":
+//                    if (checksum.equals(Checksums.AGENT_JACKSON_2_10)) {
+//                        return true;
+//                    }
+//                    break;
+//                case "jackson-2.11":
+//                    if (checksum.equals(Checksums.AGENT_JACKSON_2_11)) {
+//                        return true;
+//                    }
+//                    break;
+//                case "jackson-2.12":
+//                    if (checksum.equals(Checksums.AGENT_JACKSON_2_12)) {
+//                        return true;
+//                    }
+//                    break;
                 case "jackson-2.13":
                     if (checksum.equals(Checksums.AGENT_JACKSON_2_13)) {
                         return true;
                     }
                     break;
-                case "jackson-2.14":
-                    if (checksum.equals(Checksums.AGENT_JACKSON_2_14)) {
-                        return true;
-                    }
-                    break;
+//                case "jackson-2.14":
+//                    if (checksum.equals(Checksums.AGENT_JACKSON_2_14)) {
+//                        return true;
+//                    }
+//                    break;
             }
         } catch (Exception e) {
 //            logger.info("Failed to get checksum of downloaded file.");

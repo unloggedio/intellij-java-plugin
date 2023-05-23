@@ -17,7 +17,7 @@ public enum JsonFramework {
     private final Parameter instance;
     private final String fromJsonMethodName;
     private final String toJsonMethodName;
-    private ClassName tokenTypeClass;
+    private final ClassName tokenTypeClass;
 
     JsonFramework(Parameter instance, String fromJsonMethodName, String toJsonMethodName, ClassName tokenTypeClass) {
         this.instance = instance;

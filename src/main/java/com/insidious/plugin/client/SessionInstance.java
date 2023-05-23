@@ -2539,8 +2539,7 @@ public class SessionInstance {
                         ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                         if (objectInfo != null) {
                             TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                            if (!typeInfo.getTypeName()
-                                    .startsWith("com.sun.proxy")) {
+                            if (!typeInfo.getTypeName().startsWith("com.sun.proxy")) {
                                 existingParameter.setType(typeInfo.getTypeName());
                             } else {
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -2581,8 +2580,7 @@ public class SessionInstance {
                         ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                         if (objectInfo != null) {
                             TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                            if (!typeInfo.getTypeName()
-                                    .startsWith("com.sun.proxy")) {
+                            if (!typeInfo.getTypeName().startsWith("com.sun.proxy")) {
                                 existingParameter.setType(typeInfo.getTypeName());
                             } else {
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -2603,8 +2601,7 @@ public class SessionInstance {
                     break;
 
                 case GET_STATIC_FIELD:
-                    String fieldType1 = ClassTypeUtils.getDottedClassName(
-                            probeInfo.getAttribute("Type", null));
+                    String fieldType1 = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null));
                     if (fieldType1.startsWith("org.slf4j")
                             || fieldType1.startsWith("com.google")
                             || fieldType1.startsWith("org.joda.time")) {
@@ -2615,8 +2612,7 @@ public class SessionInstance {
                         }
                         ClassInfo classInfo = classInfoIndexByName.get(fieldType1);
                         if (classInfo != null && !classInfo.isEnum()) {
-                            threadState.getTopCall()
-                                    .setUsesFields(true);
+                            threadState.getTopCall().setUsesFields(true);
                         }
                     }
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
@@ -2632,8 +2628,7 @@ public class SessionInstance {
                             ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                             if (objectInfo != null) {
                                 TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                                if (!typeInfo.getTypeName()
-                                        .startsWith("com.sun.proxy")) {
+                                if (!typeInfo.getTypeName().startsWith("com.sun.proxy")) {
                                     existingParameter.setType(typeInfo.getTypeName());
                                 } else {
                                     existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -2668,8 +2663,7 @@ public class SessionInstance {
                         isModified = true;
                         existingParameter.addName(nameFromProbe);
                     }
-                    typeFromProbe = ClassTypeUtils.getDottedClassName(
-                            probeInfo.getAttribute("Type", "V"));
+                    typeFromProbe = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"));
                     existingParameterType = existingParameter.getType();
                     if (existingParameterType == null
                             || existingParameterType.equals("java.lang.Object")
@@ -2680,8 +2674,7 @@ public class SessionInstance {
                         ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                         if (objectInfo != null) {
                             TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                            if (!typeInfo.getTypeName()
-                                    .startsWith("com.sun.proxy")) {
+                            if (!typeInfo.getTypeName().startsWith("com.sun.proxy")) {
                                 existingParameter.setType(typeInfo.getTypeName());
                             } else {
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
@@ -2695,17 +2688,14 @@ public class SessionInstance {
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
                     existingParameter.setProbeInfo(probeInfo);
                     existingParameter.setProb(dataEvent);
-//                        testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields()
-//                                .add(existingParameter);
-                    threadState.getTopCandidate()
-                            .addField(existingParameter.getValue());
+
+                    threadState.getTopCandidate().addField(existingParameter.getValue());
                     if (typeFromProbe.startsWith("org.slf4j") || typeFromProbe.startsWith("com.google")) {
                         // nothing to do
                     } else {
                         ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
                         if (!classInfo.isEnum()) {
-                            threadState.getTopCall()
-                                    .setUsesFields(true);
+                            threadState.getTopCall().setUsesFields(true);
                         }
                     }
                     if (!isModified) {
@@ -2721,13 +2711,12 @@ public class SessionInstance {
                     threadState.pushValue(eventValue);
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                     if (existingParameter != null && existingParameter.getProb() != null) {
-                        if (existingParameter.getType() == null || existingParameter.getType()
-                                .contains(".Object")) {
+                        if (existingParameter.getType() == null ||
+                                existingParameter.getType().contains(".Object")) {
                             ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                             if (objectInfo != null) {
                                 TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                                if (!typeInfo.getTypeName()
-                                        .startsWith("com.sun.proxy")) {
+                                if (!typeInfo.getTypeName().startsWith("com.sun.proxy")) {
                                     existingParameter.setType(typeInfo.getTypeName());
                                 } else {
                                     existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -2735,8 +2724,7 @@ public class SessionInstance {
                                 }
                             } else {
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                        ClassTypeUtils.getDottedClassName(
-                                                probeInfo.getAttribute("Owner", null))));
+                                        probeInfo.getAttribute("Owner", null)));
                             }
 
                         } else {
@@ -2750,7 +2738,7 @@ public class SessionInstance {
                         existingParameter.setProbeInfo(probeInfo);
                         existingParameter.setProb(dataEvent);
                         existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"))));
+                                probeInfo.getAttribute("Type", "V")));
 
                         existingParameter.addName(
                                 probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
@@ -2782,13 +2770,11 @@ public class SessionInstance {
                             ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                             if (objectInfo != null) {
                                 TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                                if (!typeInfo.getTypeName()
-                                        .startsWith("com.sun.proxy")) {
+                                if (!typeInfo.getTypeName().startsWith("com.sun.proxy")) {
                                     existingParameter.setType(typeInfo.getTypeName());
                                 } else {
                                     existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                            ClassTypeUtils.getDottedClassName(
-                                                    probeInfo.getAttribute("Type", null))));
+                                            probeInfo.getAttribute("Type", null)));
                                 }
                             } else {
                                 existingParameter.setType(
@@ -2838,8 +2824,7 @@ public class SessionInstance {
                             existingParameter.addName(probeInfo.getAttribute("Name",
                                     probeInfo.getAttribute("FieldName", null)));
                             existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                    ClassTypeUtils.getDottedClassName(
-                                            probeInfo.getAttribute("Type", "V"))));
+                                    probeInfo.getAttribute("Type", "V")));
 
                             existingParameter.setProbeInfo(probeInfo);
                             existingParameter.setProb(dataEvent);
@@ -2855,8 +2840,8 @@ public class SessionInstance {
                             }
                             typeFromProbe = ClassTypeUtils.getDottedClassName(
                                     probeInfo.getAttribute("Type", "V"));
-                            if (existingParameter.getType() == null || !existingParameter.getType()
-                                    .equals(typeFromProbe)) {
+                            if (existingParameter.getType() == null ||
+                                    !existingParameter.getType().equals(typeFromProbe)) {
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
                                 isModified = true;
                             }
@@ -2957,13 +2942,11 @@ public class SessionInstance {
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
                     topCall = threadState.getTopCall();
                     isModified = false;
-                    if ((existingParameter.getType() == null || existingParameter.getType()
-                            .endsWith(".Object"))) {
+                    if ((existingParameter.getType() == null || existingParameter.getType().endsWith(".Object"))) {
                         ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                         if (objectInfo != null) {
                             TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                            if (!typeInfo.getTypeName()
-                                    .startsWith("com.sun.proxy")) {
+                            if (!typeInfo.getTypeName().startsWith("com.sun.proxy")) {
                                 existingParameter.setType(typeInfo.getTypeName());
                             } else {
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -2987,11 +2970,11 @@ public class SessionInstance {
                         // (and so mock the calls on those parameters)
                         // maybe we need to restructure the parameter class to store this information
                         // instead of storing the event/probe
-                        if (existingParameter.getProbeInfo() == null || (!existingParameter.getProbeInfo()
-                                .getEventType()
-                                .equals(PUT_INSTANCE_FIELD_VALUE) && !existingParameter.getProbeInfo()
-                                .getEventType()
-                                .equals(GET_INSTANCE_FIELD_RESULT))) {
+                        if (existingParameter.getProbeInfo() == null || (
+                                !existingParameter.getProbeInfo().getEventType().equals(PUT_INSTANCE_FIELD_VALUE) &&
+                                        !existingParameter.getProbeInfo().getEventType()
+                                                .equals(GET_INSTANCE_FIELD_RESULT)
+                        )) {
                             existingParameter.setProbeInfo(probeInfo);
                             existingParameter.setProb(dataEvent);
                             isModified = true;
@@ -3016,15 +2999,14 @@ public class SessionInstance {
                         @NotNull String expectedClassName = ClassTypeUtils.getDottedClassName(
                                 methodInfo.getClassName());
                         String owner = ClassTypeUtils.getDottedClassName(
-                                probeInfoIndex.get(methodCall.getEntryProbeInfo_id())
-                                        .getAttribute("Owner", null));
+                                probeInfoIndex.get(methodCall.getEntryProbeInfo_id()).getAttribute("Owner", null));
                         if (owner == null) {
                             methodCall = null;
                         } else {
                             // sometimes we can enter a method_entry without a call
                             if (
-                                    methodCall.getEntryProbe_id() == eventBlock.eventId() - methodCall.getArgumentProbes()
-                                            .size() - 1
+                                    methodCall.getEntryProbe_id() ==
+                                            (eventBlock.eventId() - methodCall.getArgumentProbes().size() - 1)
                                             && methodCall.getSubject() == dataEvent.getValue()
                             ) {
                                 // we are inside a method call on a class intercepted by spring or cglib companions
@@ -3033,8 +3015,7 @@ public class SessionInstance {
                                 // we are not setting methodCall to null since else we will create a new call for
                                 // this methodEntry and eventually bad things will happen (while popping calls)
                             } else if (!methodCallSubjectTypeMap.get(methodCall.getId()).startsWith(expectedClassName)
-                                    || !methodInfo.getMethodName()
-                                    .equals(methodCall.getMethodName())) {
+                                    || !methodInfo.getMethodName().equals(methodCall.getMethodName())) {
                                 methodCall = null;
                             }
                         }
@@ -3056,7 +3037,7 @@ public class SessionInstance {
                             String ownerClass = ClassTypeUtils.getJavaClassName(
                                     classInfoIndex.get(probeInfo.getClassId())
                                             .getClassName());
-                            existingParameter.setValue((long) ownerClass.hashCode());
+                            existingParameter.setValue(ownerClass.hashCode());
                             isModified = true;
                             existingParameter.setType(ownerClass);
                             existingParameter.setProbeInfo(probeInfo);
@@ -3067,14 +3048,12 @@ public class SessionInstance {
                             existingParameter.setProbeInfo(probeInfo);
                             existingParameter.setProb(dataEvent);
 
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                    ClassTypeUtils.getDottedClassName(methodInfo.getClassName())));
+                            existingParameter.setType(ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
                             isModified = true;
                         }
-                        if (existingParameter.getType() == null || existingParameter.getType()
-                                .equals("java.lang.Object")) {
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                    ClassTypeUtils.getDottedClassName(methodInfo.getClassName())));
+                        if (existingParameter.getType() == null ||
+                                existingParameter.getType().equals("java.lang.Object")) {
+                            existingParameter.setType(ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
 
 
                             isModified = true;
@@ -3083,8 +3062,8 @@ public class SessionInstance {
 
 //                            logger.warn("Method " + methodInfo.getMethodName() + ": " + currentCallId);
                         methodCall = new com.insidious.plugin.pojo.dao.MethodCallExpression(methodInfo.getMethodName(),
-                                existingParameter.getValue(),
-                                new LinkedList<>(), 0, threadState.getCallStackSize());
+                                existingParameter.getValue(), new LinkedList<>(),
+                                0, threadState.getCallStackSize());
 
                         saveProbe = true;
                         methodCall.setThreadId(threadId);
@@ -3096,14 +3075,13 @@ public class SessionInstance {
                         currentCallId++;
                         methodCall.setId(currentCallId);
                         methodCallMap.put(currentCallId, methodCall);
-                        methodCallSubjectTypeMap.put(currentCallId, ClassTypeUtils.getJavaClassName(
-                                methodInfo.getClassName()));
+                        methodCallSubjectTypeMap.put(currentCallId,
+                                ClassTypeUtils.getJavaClassName(methodInfo.getClassName()));
 //                            if (threadState.candidateSize() > 0) {
 //                                addMethodToCandidate(threadState, methodCall);
 //                            }
                         if (threadState.getCallStackSize() > 0) {
-                            methodCall.setParentId(threadState.getTopCall()
-                                    .getId());
+                            methodCall.setParentId(threadState.getTopCall().getId());
                         }
 
                         threadState.pushCall(methodCall);
@@ -3162,8 +3140,7 @@ public class SessionInstance {
 
                     topCall = threadState.getTopCall();
 
-                    EventType entryProbeEventType = probeInfoIndex.get(topCall.getEntryProbeInfo_id())
-                            .getEventType();
+                    EventType entryProbeEventType = probeInfoIndex.get(topCall.getEntryProbeInfo_id()).getEventType();
                     if (entryProbeEventType == EventType.CALL) {
                         // not adding these since we will record method_params only for cases in which we dont have a method_entry probe
                     } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
@@ -3179,17 +3156,14 @@ public class SessionInstance {
 
                 case CATCH:
                     ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
-                    String topCallSubjectType = methodCallSubjectTypeMap.get(threadState.getTopCall()
-                            .getId());
+                    String topCallSubjectType = methodCallSubjectTypeMap.get(threadState.getTopCall().getId());
 //                            parameterContainer.getParameterByValue(threadState.getTopCall().getSubject()).getType();
 //                    String topCallSubjectType = topCallSubject.getType();
                     String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(classInfo.getClassName());
 
 
                     if (!topCallSubjectType.equals(currentProbeClassOwner)
-                            && threadState.getTopCandidate()
-                            .getMainMethod() != threadState.getTopCall()
-                            .getId()) {
+                            && threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
                                 existingParameter);
@@ -3398,7 +3372,7 @@ public class SessionInstance {
                         existingParameter.setProb(dataEvent);
                         saveProbe = true;
                         existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"))));
+                                probeInfo.getAttribute("Type", "V")));
 
                         isModified = true;
                     }
@@ -3485,13 +3459,13 @@ public class SessionInstance {
         logger.warn(
                 "[3466] Took [" + timeInMs + " ms] for [" + eventsSublist.size() + " events" +
                         "]  => " + eventsPerSecond + " EPS");
-        logger.debug("parameterContainer = " + parameterContainer.all()
-                .size() + ",  eventsToSave = " + eventsToSave.size() + ",  probesToSave = " + probesToSave.size());
+        logger.debug("parameterContainer = " + parameterContainer.all().size()
+                + ",  eventsToSave = " + eventsToSave.size()
+                + ",  probesToSave = " + probesToSave.size());
         daoService.createOrUpdateProbeInfo(probesToSave);
 
 
-        if (threadState.getCallStack()
-                .size() > 50) {
+        if (threadState.getCallStack().size() > 50) {
             StringBuilder infiniteRecursionDetectedMessage = new StringBuilder(
                     "<html>There was an infinite recursion " +
                             "detected. Events cannot be processed further for thread [" + threadId + "]. " +
@@ -3500,20 +3474,24 @@ public class SessionInstance {
                             "<br/><br/>");
             int internalCounter = 0;
             Map<Long, Integer> matchedProbe = new HashMap<>();
-            for (int j = 0; j < threadState.getCallStack()
-                    .size(); j++) {
-                com.insidious.plugin.pojo.dao.MethodCallExpression call = threadState.getCallStack()
-                        .get(j);
-                long dataId = probeInfoIndex.get(call.getEntryProbeInfo_id())
-                        .getDataId();
+            for (int j = 0; j < threadState.getCallStack().size(); j++) {
+                com.insidious.plugin.pojo.dao.MethodCallExpression call = threadState.getCallStack().get(j);
+                long dataId = probeInfoIndex.get(call.getEntryProbeInfo_id()).getDataId();
+                Parameter subjectParameter = parameterContainer.getParameterByValue(call.getSubject());
                 infiniteRecursionDetectedMessage
-                        .append("Probe [")
+                        .append("[")
                         .append(dataId)
                         .append("][")
                         .append(call.getEntryProbe_id())
-                        .append("] call to ")
-                        .append(call.toString())
-                        .append("<br />");
+                        .append("]").append(" call: ");
+
+                if (subjectParameter.getType() != null && subjectParameter.getType().length() > 0) {
+                    infiniteRecursionDetectedMessage.append(subjectParameter.getType()).append(".");
+                }
+                infiniteRecursionDetectedMessage.append(call.getMethodName()).append("(")
+                        .append(call.getArguments().size()).append(" args").append(")");
+
+                infiniteRecursionDetectedMessage.append("<br />");
                 internalCounter++;
                 if (matchedProbe.containsKey(dataId) && matchedProbe.get(dataId) > 3) {
                     break;
@@ -3528,11 +3506,9 @@ public class SessionInstance {
             }
             infiniteRecursionDetectedMessage.append("</html>");
             logger.warn("infinite recursion detected: " + infiniteRecursionDetectedMessage.toString());
-            logger.warn("was going to save: [" + threadState.getCallStack()
-                    .size() + " calls ]");
-            InsidiousNotification.notifyMessage(infiniteRecursionDetectedMessage.toString(),
-                    NotificationType.ERROR);
-            return newTestCaseIdentified;
+            logger.warn("was going to save: [" + threadState.getCallStack().size() + " calls ]");
+            InsidiousNotification.notifyMessage(infiniteRecursionDetectedMessage.toString(), NotificationType.ERROR);
+//            return newTestCaseIdentified;
         }
 
         daoService.createOrUpdateDataEvent(eventsToSave);
