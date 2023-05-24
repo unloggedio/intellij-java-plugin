@@ -117,7 +117,7 @@ public class SessionInstance {
     private NewTestCandidateIdentifiedListener testCandidateListener;
     private File currentSessionArchiveBeingProcessed;
     private ChronicleVariableContainer parameterContainer;
-    private Date lastScannedTimeStamp;
+//    private Date lastScannedTimeStamp;
     private boolean isSessionCorrupted = false;
     private boolean hasShownCorruptedNotification = false;
 
@@ -2277,10 +2277,6 @@ public class SessionInstance {
     public void scanDataAndBuildReplay() {
         if (isSessionCorrupted) {
             if (!hasShownCorruptedNotification) {
-                JSONObject properties = new JSONObject();
-                properties.put("project", this.project.getName());
-                properties.put("session", executionSession.getPath());
-                UsageInsightTracker.getInstance().RecordEvent("SESSSION_CORRUPT", properties);
                 hasShownCorruptedNotification = true;
                 InsidiousNotification.notifyMessage(
                         "Session is corrupted, please restart application or contact us" +
@@ -2332,19 +2328,22 @@ public class SessionInstance {
             }
 
 
-            this.lastScannedTimeStamp = new Date();
-            long scanEndTime = System.currentTimeMillis();
-            float scanTime = ((float) scanEndTime - (float) scanStart) / (float) 1000;
-            File sessionDir = new File(this.sessionDirectory.getParent());
-            long size_folder = getFolderSize(sessionDir);
-            JSONObject eventProperties = new JSONObject();
-            eventProperties.put("session_scan_time", scanTime);
-            eventProperties.put("session_folder_size", (size_folder / 1000000));
-            UsageInsightTracker.getInstance().RecordEvent("ScanMetrics", eventProperties);
+//            long scanEndTime = System.currentTimeMillis();
+//            float scanTime = ((float) scanEndTime - (float) scanStart) / (float) 1000;
+//            File sessionDir = new File(this.sessionDirectory.getParent());
+//            long size_folder = getFolderSize(sessionDir);
+//            JSONObject eventProperties = new JSONObject();
+//            eventProperties.put("session_scan_time", scanTime);
+//            eventProperties.put("session_folder_size", (size_folder / 1000000));
+//            UsageInsightTracker.getInstance().RecordEvent("ScanMetrics", eventProperties);
         } catch (Exception e) {
             isSessionCorrupted = true;
-            e.printStackTrace();
-            logger.warn("Exception in scan and build session : " + e);
+            JSONObject properties = new JSONObject();
+            properties.put("project", this.project.getName());
+            properties.put("session", executionSession.getPath());
+            properties.put("message", e.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent("SESSSION_CORRUPT", properties);
+            logger.warn("Exception in scan and build session", e);
         }
     }
 
