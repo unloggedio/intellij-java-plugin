@@ -11,6 +11,7 @@ import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.factory.AgentStateProvider;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -81,14 +82,15 @@ public class MethodDirectInvokeComponent {
 
     private void executeMethodWithParameters() {
 
-        if (!insidiousService.doesAgentExist()) {
+        AgentStateProvider agentStateProvider = insidiousService.getAgentStateProvider();
+        if (!agentStateProvider.doesAgentExist()) {
             InsidiousNotification.notifyMessage("Start your application with Unlogged JAVA agent to start using " +
                     "method DirectInvoke", NotificationType.INFORMATION);
             insidiousService.updateScaffoldForState(GutterState.NO_AGENT);
             return;
         }
 
-        if (!insidiousService.isAgentRunning()) {
+        if (!agentStateProvider.isAgentRunning()) {
             InsidiousNotification.notifyMessage("Start your application with Unlogged JAVA agent to start using " +
                     "method DirectInvoke", NotificationType.INFORMATION);
             insidiousService.updateScaffoldForState(GutterState.PROCESS_NOT_RUNNING);

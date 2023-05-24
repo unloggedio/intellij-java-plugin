@@ -101,7 +101,7 @@ public class LiveViewWindow implements TreeSelectionListener,
 
     private void copyVMParameter() {
         InsidiousService insidiousService = project.getService(InsidiousService.class);
-        String vmParamString = insidiousService.getJavaAgentString();
+        String vmParamString = insidiousService.getAgentStateProvider().getJavaAgentString();
         insidiousService.copyToClipboard(vmParamString);
         InsidiousNotification.notifyMessage("VM options copied to clipboard.",
                 NotificationType.INFORMATION);

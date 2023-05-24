@@ -49,23 +49,13 @@ public class GenericNavigationComponent {
             //display button
             this.actionButton.setVisible(true);
             this.actionButton.setText("Download Agent");
-            actionButton.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    triggerAgentDownload();
-                }
-            });
+            actionButton.addActionListener((e) -> triggerAgentDownload());
             actionButton.setIcon(UIUtils.DOWNLOAD_WHITE);
         } else if (state.equals(GutterState.PROCESS_RUNNING)) {
             this.actionButton.setVisible(true);
             this.actionButton.setText("Execute method");
-            loadimageForCurrentState();
-            actionButton.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    insidiousService.openDirectExecuteWindow();
-                }
-            });
+            loadImageForCurrentState();
+            actionButton.addActionListener((e) -> insidiousService.openDirectExecuteWindow());
             actionButton.setIcon(UIUtils.GENERATE_ICON);
         } else {
             actionButton.setVisible(false);
@@ -80,7 +70,7 @@ public class GenericNavigationComponent {
         });
     }
 
-    public void loadimageForCurrentState() {
+    public void loadImageForCurrentState() {
         this.imagePane.setVisible(true);
         String gif = "postman_gif.gif";
         loadHintGif(gif);
@@ -113,7 +103,7 @@ public class GenericNavigationComponent {
     public void triggerAgentDownload() {
         if (this.currentState.equals(GutterState.NO_AGENT)) {
             System.out.println("Download Agent triggered");
-            String agentVersion = insidiousService.suggestAgentVersion();
+            String agentVersion = insidiousService.getAgentStateProvider().suggestAgentVersion();
             System.out.println("Agent suggested : " + agentVersion);
             downloadAgentInBackground(agentVersion);
         }
@@ -155,8 +145,8 @@ public class GenericNavigationComponent {
 //        agentDownloadInitiated = true;
         // deprecating downloads from s3 bucket and switching to maven repository
 //        String host = "https://builds.bug.video/unlogged-java-agent-"+ Constants.AGENT_VERSION +"-";
-        String host = "https://s01.oss.sonatype.org/service/local/repositories/releases/content/video/bug/unlogged" +
-                "-java-agent/" + Constants.AGENT_VERSION + "/unlogged-java-agent-" + Constants.AGENT_VERSION;
+//        String host = "https://s01.oss.sonatype.org/service/local/repositories/releases/content/video/bug/unlogged-java-agent/" + Constants.AGENT_VERSION + "/unlogged-java-agent-" + Constants.AGENT_VERSION;
+        String host = "https://repo1.maven.org/maven2/video/bug/unlogged-java-agent/" + Constants.AGENT_VERSION + "/unlogged-java-agent-" + Constants.AGENT_VERSION;
         String extension = ".jar";
 
         checkProgressIndicator("Downloading Unlogged agent", "version : " + jsonMapperVersion);

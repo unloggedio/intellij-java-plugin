@@ -51,17 +51,7 @@ public class AtomicTestContainer {
             case DATA_AVAILABLE:
                 loadExecutionFlow();
                 break;
-            case PROCESS_RUNNING: {
-                insidiousService.focusDirectInvokeTab();
-                if (this.currentState != null && this.currentState.equals(state)) {
-                    return;
-                }
-                this.borderParent.removeAll();
-                GenericNavigationComponent component = new GenericNavigationComponent(state, insidiousService);
-                this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
-                this.borderParent.revalidate();
-                break;
-            }
+            case PROCESS_RUNNING:
             default: {
                 if (this.currentState != null && this.currentState.equals(state)) {
                     return;

@@ -5,19 +5,19 @@ import java.util.List;
 public class AgentCommandRequest {
     private AgentCommand command;
     private String className;
-    private List<String> alternateClassNames;
+//    private List<String> alternateClassNames;
     private String methodName;
     private String methodSignature;
     private List<String> methodParameters;
     private AgentCommandRequestType requestType;
 
-    public List<String> getAlternateClassNames() {
-        return alternateClassNames;
-    }
-
-    public void setAlternateClassNames(List<String> alternateClassNames) {
-        this.alternateClassNames = alternateClassNames;
-    }
+//    public List<String> getAlternateClassNames() {
+//        return alternateClassNames;
+//    }
+//
+//    public void setAlternateClassNames(List<String> alternateClassNames) {
+//        this.alternateClassNames = alternateClassNames;
+//    }
 
     public AgentCommand getCommand() {
         return command;

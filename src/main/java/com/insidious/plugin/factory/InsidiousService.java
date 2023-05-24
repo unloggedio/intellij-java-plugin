@@ -118,7 +118,7 @@ import java.util.regex.Pattern;
 
 @Storage("insidious.xml")
 final public class InsidiousService implements Disposable,
-        NewTestCandidateIdentifiedListener, BranchChangeListener, GutterStateProvider, AgentStateProvider {
+        NewTestCandidateIdentifiedListener, BranchChangeListener, GutterStateProvider {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -133,7 +133,7 @@ final public class InsidiousService implements Disposable,
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
     final private int TOOL_WINDOW_HEIGHT = 430;
     final private int TOOL_WINDOW_WIDTH = 600;
-    final private AgentStateProvider stateProvider;
+    final private AgentStateProvider agentStateProvider;
     private Project project;
     private VideobugClientInterface client;
     private Module currentModule;
@@ -189,8 +189,8 @@ final public class InsidiousService implements Disposable,
         EditorEventMulticaster multicaster = EditorFactory.getInstance().getEventMulticaster();
         InsidiousCaretListener listener = new InsidiousCaretListener(project);
         multicaster.addEditorMouseListener(listener, this);
-        stateProvider = new DefaultAgentStateProvider(this);
-        agentClient = new AgentClient("http://localhost:12100", (ConnectionStateListener) stateProvider);
+        agentStateProvider = new DefaultAgentStateProvider(this);
+        agentClient = new AgentClient("http://localhost:12100", (ConnectionStateListener) agentStateProvider);
 //        multicaster.add
 
     }
@@ -668,9 +668,9 @@ final public class InsidiousService implements Disposable,
         atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
         contentManager.addContent(atomicTestContent);
 
-        if (stateProvider.isAgentRunning()) {
+        if (agentStateProvider.isAgentRunning()) {
             atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
-        } else if (doesAgentExist()) {
+        } else if (agentStateProvider.doesAgentExist()) {
             atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
         } else {
             atomicTestContainerWindow.loadComponentForState(GutterState.NO_AGENT);
@@ -1077,13 +1077,13 @@ final public class InsidiousService implements Disposable,
     public GutterState getGutterStateFor(MethodAdapter method) {
 
         //check for agent here before other comps
-        if (!stateProvider.doesAgentExist()) {
+        if (!agentStateProvider.doesAgentExist()) {
             return GutterState.NO_AGENT;
         }
 
         // agent exists but cannot connect with agent server
         // so no process is running with the agent
-        if (!stateProvider.isAgentRunning() || sessionInstance == null) {
+        if (!agentStateProvider.isAgentRunning() || sessionInstance == null) {
             return GutterState.PROCESS_NOT_RUNNING;
         }
 
@@ -1179,30 +1179,30 @@ final public class InsidiousService implements Disposable,
         }
     }
 
-    @Override
-    public String getJavaAgentString() {
-        return null;
-    }
-
-    @Override
-    public String getVideoBugAgentPath() {
-        return null;
-    }
-
-    @Override
-    public String suggestAgentVersion() {
-        return "jackson-2.13";
-    }
-
-    @Override
-    public boolean doesAgentExist() {
-        return stateProvider.doesAgentExist();
-    }
-
-    @Override
-    public boolean isAgentRunning() {
-        return stateProvider.isAgentRunning();
-    }
+//    @Override
+//    public String getJavaAgentString() {
+//        return null;
+//    }
+//
+//    @Override
+//    public String getVideoBugAgentPath() {
+//        return null;
+//    }
+//
+//    @Override
+//    public String suggestAgentVersion() {
+//        return "jackson-2.13";
+//    }
+//
+//    @Override
+//    public boolean doesAgentExist() {
+//        return agentStateProvider.doesAgentExist();
+//    }
+//
+//    @Override
+//    public boolean isAgentRunning() {
+//        return agentStateProvider.isAgentRunning();
+//    }
 
     @Override
     public void branchWillChange(@NotNull String branchName) {
@@ -1398,7 +1398,7 @@ final public class InsidiousService implements Disposable,
     }
 
     public String fetchVersionFromLibName(String name, String dependency) {
-        return stateProvider.fetchVersionFromLibName(name, dependency);
+        return agentStateProvider.fetchVersionFromLibName(name, dependency);
     }
 
     public void startProjectWithUnloggedAgent(String javaAgentString) {
@@ -1468,6 +1468,10 @@ final public class InsidiousService implements Disposable,
         if (this.atomicTestContent != null) {
             this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent);
         }
+    }
+
+    public AgentStateProvider getAgentStateProvider() {
+        return agentStateProvider;
     }
 
 
