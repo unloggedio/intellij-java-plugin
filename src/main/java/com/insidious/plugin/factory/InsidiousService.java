@@ -1103,6 +1103,7 @@ final public class InsidiousService implements Disposable,
 
         // we havent checked anything for this method earlier
         // store method hash for diffs
+        // use pojo to store this info instead of string
         String methodText = method.getText();
         if (!this.methodHash.containsKey(hashKey)) {
             //register new hash
@@ -1133,6 +1134,31 @@ final public class InsidiousService implements Disposable,
                 return GutterState.NO_DIFF;
             default:
                 return GutterState.DIFF;
+        }
+    }
+
+    public void getReportForClass(ClassAdapter classAdapter)
+    {
+        String path = classAdapter.getQualifiedName();
+        Map<String,String> res = new TreeMap<>();
+        MethodAdapter[] methods = classAdapter.getMethods();
+        System.out.println("Report for Class : "+path);
+        for(int i=0;i<methods.length;i++)
+        {
+            String hashkey = methods[i].getContainingClass().getQualifiedName() + "#" +
+                    methods[i].getName();
+            if(executionRecord.containsKey(hashkey))
+            {
+                DifferenceResult differenceResult = executionRecord.get(hashkey);
+                res.put(methods[i].getName(),differenceResult.getDiffResultType().toString());
+            }
+            else {
+                res.put(methods[i].getName(), "Not executed");
+            }
+        }
+        for(String key : res.keySet())
+        {
+            System.out.println("-> "+key+" : "+res.get(key));
         }
     }
 
