@@ -17,8 +17,6 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Pair;
 import com.squareup.javapoet.ClassName;
-import lombok.AllArgsConstructor;
-import org.jetbrains.annotations.NotNull;
 
 import javax.lang.model.element.Modifier;
 import java.util.*;
@@ -29,7 +27,6 @@ import java.util.stream.Collectors;
  * statements and dependent variables along with their own object routines (the whole hierarchy
  * should be available to recreate this object inside a test case)
  */
-@AllArgsConstructor
 public class ObjectRoutine {
     private final static Logger logger = LoggerUtil.getInstance(ObjectRoutine.class);
     private final String routineName;
@@ -40,7 +37,6 @@ public class ObjectRoutine {
         this.routineName = routineName;
     }
 
-    @NotNull
     public static List<Parameter> getNonPojoParameters(List<TestCandidateMetadata> testCandidateList1,
                                                        SessionInstance sessionInstance) {
         Map<String, ClassInfo> classIndex = sessionInstance.getClassIndex();

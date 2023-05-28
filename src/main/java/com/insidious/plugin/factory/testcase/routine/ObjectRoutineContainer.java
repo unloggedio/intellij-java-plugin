@@ -15,7 +15,6 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.squareup.javapoet.ClassName;
-import lombok.AllArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
 import javax.lang.model.element.Modifier;
@@ -27,7 +26,6 @@ import java.util.stream.Collectors;
  * the object, which is always named &lt;init&gt; and the other methods have proper names. Add
  * statements is redirected to most recently created object routine.
  */
-@AllArgsConstructor
 public class ObjectRoutineContainer {
     private final List<ObjectRoutine> objectRoutines = new ArrayList<>();
     private final Parameter testSubject;

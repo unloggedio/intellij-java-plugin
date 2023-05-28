@@ -139,7 +139,6 @@ public class TracePoint {
         filteredDataEventsRequest.setNanotime(this.getRecordedAt());
         filteredDataEventsRequest.setValueId(Collections.singletonList(this.getMatchedValueId()));
         filteredDataEventsRequest.setPageInfo(new PageInfo(0, 50000, PageInfo.Order.DESC));
-        filteredDataEventsRequest.setDebugPoints(Collections.emptyList());
         return filteredDataEventsRequest;
     }
 

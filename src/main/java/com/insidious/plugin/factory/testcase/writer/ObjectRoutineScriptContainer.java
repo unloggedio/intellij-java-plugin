@@ -9,7 +9,6 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Pair;
-import lombok.AllArgsConstructor;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -19,7 +18,6 @@ import java.util.List;
  * the object, which is always named &lt;init&gt; and the other methods have proper names. Add
  * statements is redirected to most recently created object routine.
  */
-@AllArgsConstructor
 public class ObjectRoutineScriptContainer {
 
     private final static Logger logger = LoggerUtil.getInstance(ObjectRoutineScript.class);
