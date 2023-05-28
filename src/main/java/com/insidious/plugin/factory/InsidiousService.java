@@ -51,7 +51,10 @@ import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.execution.*;
 import com.intellij.execution.application.ApplicationConfiguration;
 import com.intellij.execution.configurations.RunConfiguration;
+import com.intellij.execution.configurations.RunConfigurationModule;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
+import com.intellij.execution.ui.RunToolbarWidgetKt;
+import com.intellij.icons.AllIcons;
 import com.intellij.ide.DataManager;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
@@ -74,6 +77,7 @@ import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.MessageType;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.ThrowableComputable;
@@ -217,8 +221,14 @@ final public class InsidiousService implements Disposable,
                     NotificationType.INFORMATION
             );
         } else {
+//            ToolWindowManager.getInstance(project)
+//                    .notifyByBalloon("Unlogged", MessageType.ERROR, "Current run configuration [" + selectedConfig.getName() + "] is not " +
+//                            "a Java application run configuration. Select an existing Java Application in RunConfig of create" +
+//                            " new. Cannot add VM parameter.");
             InsidiousNotification.notifyMessage("Current run configuration [" + selectedConfig.getName() + "] is not " +
-                    "a java application run configuration. Cannot add VM parameter.", NotificationType.WARNING);
+                    "a Java application run configuration. Select an existing Java Application in RunConfig of create" +
+                            " new. Cannot add VM parameter.",
+                    NotificationType.WARNING);
         }
     }
 
