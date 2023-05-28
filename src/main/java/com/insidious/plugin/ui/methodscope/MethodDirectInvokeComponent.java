@@ -22,6 +22,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import org.json.JSONObject;
@@ -31,9 +32,8 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -51,7 +51,6 @@ public class MethodDirectInvokeComponent {
     private JPanel methodParameterScrollContainer;
     private JPanel scrollerContainer;
     private JLabel methodNameLabel;
-    private JButton generateReportButton;
     private MethodAdapter methodElement;
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
@@ -79,12 +78,6 @@ public class MethodDirectInvokeComponent {
             }
         });
 
-        generateReportButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                insidiousService.getReportForClass(methodElement.getContainingClass());
-            }
-        });
     }
 
     private void executeMethodWithParameters() {
