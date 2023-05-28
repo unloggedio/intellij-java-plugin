@@ -36,15 +36,17 @@ public class TestCaseWriter {
     }
 
     // handling order: [ array(name), null, boolean, primitive,]  name,    all ,
-    public static void makeParameterValueString(StringBuilder parameterStringBuilder, Parameter parameter,
-                                                TestGenerationState testGenerationState) {
+    public static void makeParameterValueString(
+            StringBuilder parameterStringBuilder,
+            Parameter parameter,
+            TestGenerationState testGenerationState
+    ) {
 
         if (handleValueBlockString(parameterStringBuilder, parameter, testGenerationState)) {
             return;
         }
 
-        String nameUsed = testGenerationState.getParameterNameFactory()
-                .getNameForUse(parameter, null);
+        String nameUsed = testGenerationState.getParameterNameFactory().getNameForUse(parameter, null);
         if (nameUsed != null) {
             parameterStringBuilder.append(nameUsed);
             return;
@@ -59,7 +61,11 @@ public class TestCaseWriter {
             serializedValue = ParameterUtils.addParameterTypeSuffix(serializedValue, parameter.getType());
             valueBuilder.append(serializedValue);
         } else {
-            valueBuilder.append(ParameterUtils.makeParameterValueForPrimitiveType(parameter));
+            if (serializedValue.isEmpty()) {
+                valueBuilder.append(ParameterUtils.makeParameterValueForPrimitiveType(parameter));
+            } else {
+                valueBuilder.append(serializedValue);
+            }
         }
 
         return valueBuilder.toString();
@@ -72,17 +78,13 @@ public class TestCaseWriter {
     ) {
 
         String serializedValue = "";
-        if (parameter.getProb() != null
-                && parameter.getProb()
-                .getSerializedValue().length > 0)
-            serializedValue = new String(parameter.getProb()
-                    .getSerializedValue());
+        if (parameter.getProb() != null &&
+                parameter.getProb().getSerializedValue().length > 0)
+            serializedValue = new String(parameter.getProb().getSerializedValue());
 
-        if (parameter.getType() != null && parameter.getType()
-                .endsWith("[]")) {
+        if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
             // if the type of parameter is array like int[], long[] (i.e J[])
-            String nameUsed = testGenerationState.getParameterNameFactory()
-                    .getNameForUse(parameter, null);
+            String nameUsed = testGenerationState.getParameterNameFactory().getNameForUse(parameter, null);
             parameterStringBuilder.append(nameUsed == null ? "any()" : nameUsed);
             return true;
         }
@@ -144,17 +146,15 @@ public class TestCaseWriter {
             } else if (parameterType.equals("java.lang.Class")) {
                 compareAgainst = new String(parameter.getProb().getSerializedValue());
             } else if (parameter.getProb() != null
-                    && parameter.getProb()
-                    .getSerializedValue().length > 0
-                    && (new String(parameter.getProb()
-                    .getSerializedValue())).equals("null")) {
+                    && parameter.getProb().getSerializedValue().length > 0
+                    && (new String(parameter.getProb().getSerializedValue())).equals("null")
+            ) {
 
                 // if the serialized value is null just append null
                 compareAgainst = "null";
             } else if (parameter.isPrimitiveType()) {
                 if (parameter.isBoxedPrimitiveType()) {
-                    String serialisedValue = new String(parameter.getProb()
-                            .getSerializedValue());
+                    String serialisedValue = new String(parameter.getProb().getSerializedValue());
                     if (serialisedValue.length() > 0) {
                         compareAgainst = serialisedValue;
                     } else {
@@ -167,19 +167,14 @@ public class TestCaseWriter {
                     compareAgainst = ParameterUtils.makeParameterValueForPrimitiveType(parameter);
                 }
 
-            } else if (testGenerationState.getParameterNameFactory()
-                    .getNameForUse(parameter, null) != null) {
-                compareAgainst = testGenerationState.getParameterNameFactory()
-                        .getNameForUse(parameter, null);
+            } else if (testGenerationState.getParameterNameFactory().getNameForUse(parameter, null) != null) {
+                compareAgainst = testGenerationState.getParameterNameFactory().getNameForUse(parameter, null);
             } else {
                 compareAgainst = parameter.getValue();
                 if (parameter.isStringType()) {
-                    if (parameter.getProb()
-                            .getSerializedValue() != null &&
-                            parameter.getProb()
-                                    .getSerializedValue().length > 0) {
-                        compareAgainst = new String(parameter.getProb()
-                                .getSerializedValue());
+                    if (parameter.getProb().getSerializedValue() != null &&
+                            parameter.getProb().getSerializedValue().length > 0) {
+                        compareAgainst = new String(parameter.getProb().getSerializedValue());
                     } else if (parameter.getValue() == 0L) {
                         compareAgainst = "null";
                     }

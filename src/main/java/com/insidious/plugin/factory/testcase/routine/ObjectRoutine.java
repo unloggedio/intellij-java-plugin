@@ -16,7 +16,6 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Pair;
-import com.intellij.openapi.util.text.StringUtil;
 import com.squareup.javapoet.ClassName;
 import lombok.AllArgsConstructor;
 import org.jetbrains.annotations.NotNull;
@@ -47,20 +46,15 @@ public class ObjectRoutine {
         Map<String, ClassInfo> classIndex = sessionInstance.getClassIndex();
 
         return testCandidateList1.stream()
-                .map(e -> (MethodCallExpression) e.getMainMethod())
-                .filter(e -> !e.getMethodName()
-                        .equals("mock"))
+                .map(TestCandidateMetadata::getMainMethod)
+                .filter(e -> !e.getMethodName().equals("mock"))
                 .map(MethodCallExpression::getArguments)
                 .flatMap(Collection::stream)
                 .filter(e -> (classIndex.get(e.getType()) != null
-                        && !classIndex.get(e.getType())
-                        .isPojo()
-                        && !classIndex.get(e.getType())
-                        .isEnum())
-                        || (!e.isPrimitiveType() && e.getProb()
-                        .getSerializedValue().length == 0)
-                )
-                .collect(Collectors.toList());
+                        && !classIndex.get(e.getType()).isPojo()
+                        && !classIndex.get(e.getType()).isEnum())
+                        || (!e.isPrimitiveType() && e.getProb().getSerializedValue().length == 0)
+                ).collect(Collectors.toList());
     }
 
     public List<TestCandidateMetadata> getTestCandidateList() {
@@ -92,19 +86,16 @@ public class ObjectRoutine {
             SessionInstance sessionInstance,
             VariableContainer fieldsContainer
     ) {
-        TestCandidateMetadata lastCandidate = generationConfiguration
-                .getTestCandidateMetadataList()
-                .get(generationConfiguration.getTestCandidateMetadataList()
-                        .size() - 1);
+//        TestCandidateMetadata lastCandidate = generationConfiguration.getTestCandidateMetadataList()
+//                .get(generationConfiguration.getTestCandidateMetadataList().size() - 1);
 
-        MethodCallExpression lastCandidateMainMethod = (MethodCallExpression) lastCandidate.getMainMethod();
+//        MethodCallExpression lastCandidateMainMethod = (MethodCallExpression) lastCandidate.getMainMethod();
         ObjectRoutineScript scriptContainer = new ObjectRoutineScript(
-                "testMethod" + StringUtil.toTitleCase(lastCandidateMainMethod.getMethodName()),
+                generationConfiguration.getTestMethodName(),
                 generationConfiguration, testGenerationState
         );
 
-        scriptContainer.setCreatedVariables(testGenerationState.getVariableContainer()
-                .clone());
+        scriptContainer.setCreatedVariables(testGenerationState.getVariableContainer().clone());
 
         List<ClassName> annotations = Collections.singletonList(generationConfiguration.getTestAnnotationType());
         if (getRoutineName().equals("<init>")) {
@@ -119,8 +110,7 @@ public class ObjectRoutine {
         List<MethodCallExpression> callsList = new ArrayList<>();
 
         List<TestCandidateMetadata> mockCreatorCalls = this.testCandidateList.stream()
-                .filter(e -> ((MethodCallExpression) e.getMainMethod()).getMethodName()
-                        .equals("mock"))
+                .filter(e -> e.getMainMethod().getMethodName().equals("mock"))
                 .collect(Collectors.toList());
 
 
@@ -132,46 +122,45 @@ public class ObjectRoutine {
         // nonPojo parameters will calls on them mocked as well
         List<Parameter> nonPojoParameters = getNonPojoParameters(this.testCandidateList, sessionInstance);
 
-        if (getRoutineName().equals("<init>")) {
-            for (Parameter nonPojoParameter : nonPojoParameters) {
-                testGenerationState.getVariableContainer()
-                        .add(nonPojoParameter);
-            }
-        }
+//        if (getRoutineName().equals("<init>")) {
+//            for (Parameter nonPojoParameter : nonPojoParameters) {
+//                testGenerationState.getVariableContainer()
+//                        .add(nonPojoParameter);
+//            }
+//        }
+
+        List<Long> testCandidateSubjectValues = testCandidateList.stream().map(e -> e.getTestSubject().getValue())
+                .collect(Collectors.toList());
 
         for (Parameter nonPojoParameter : nonPojoParameters) {
+            if (fieldsContainer.getParameterByValue(nonPojoParameter.getValue()) != null) {
+                continue;
+            }
+            if (testCandidateSubjectValues.contains(nonPojoParameter.getValue())) {
+                continue;
+            }
+
             TestCandidateMetadata metadata = MockFactory.createParameterMock(nonPojoParameter, generationConfiguration);
             if (metadata == null) {
                 logger.warn("unable to create a initializer for non pojo parameter: " + nonPojoParameter);
                 continue;
             }
+            mockCreatorCalls.add(metadata);
             fieldsContainer.add(nonPojoParameter);
-            ObjectRoutineScript script1 = CandidateMetadataFactory
-                    .mainMethodToObjectScript(metadata, testGenerationState, generationConfiguration);
-
-            scriptContainer.getStatements()
-                    .addAll(script1.getStatements());
-            scriptContainer.getStaticMocks()
-                    .addAll(script1.getStaticMocks());
-            scriptContainer.getCreatedVariables()
-                    .add(nonPojoParameter);
         }
 
 
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
             VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
-            candidateVariables.all()
-                    .forEach(variableContainer::add);
+            candidateVariables.all().forEach(variableContainer::add);
             callsList.addAll(testCandidateMetadata.getCallsList());
         }
 
         ObjectRoutineScript script = CandidateMetadataFactory
                 .callMocksToObjectScript(testGenerationState, generationConfiguration, callsList, fieldsContainer);
 
-        scriptContainer.getStatements()
-                .addAll(script.getStatements());
-        scriptContainer.getStaticMocks()
-                .addAll(script.getStaticMocks());
+        scriptContainer.getStatements().addAll(script.getStatements());
+        scriptContainer.getStaticMocks().addAll(script.getStaticMocks());
 
         VariableContainer createdVariables = script.getCreatedVariables();
         VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
@@ -179,26 +168,18 @@ public class ObjectRoutine {
             candidateVariables.add(parameter);
         }
 
-        candidateVariables.all()
-                .forEach(variableContainer::add);
+        candidateVariables.all().forEach(variableContainer::add);
 
         for (TestCandidateMetadata testCandidateMetadata : mockCreatorCalls) {
-            MethodCallExpression mce = (MethodCallExpression) testCandidateMetadata.getMainMethod();
-            long returnValue = mce.getReturnValue()
-                    .getValue();
-
-            if (nonPojoParameters.stream()
-                    .anyMatch(e -> e.getValue() == returnValue)) {
-                continue;
-            }
+//            MethodCallExpression mce = (MethodCallExpression) testCandidateMetadata.getMainMethod();
+//            long returnValue = mce.getReturnValue().getValue();
 
             ObjectRoutineScript script1 = CandidateMetadataFactory
                     .mainMethodToObjectScript(testCandidateMetadata, testGenerationState, generationConfiguration);
 
-            scriptContainer.getStatements()
-                    .addAll(script1.getStatements());
-            scriptContainer.getStaticMocks()
-                    .addAll(script1.getStaticMocks());
+            scriptContainer.getStatements().addAll(script1.getStatements());
+            scriptContainer.getStaticMocks().addAll(script1.getStaticMocks());
+            scriptContainer.getCreatedVariables().add(testCandidateMetadata.getTestSubject());
 
         }
 
@@ -222,9 +203,9 @@ public class ObjectRoutine {
                 .equals(ResourceEmbedMode.IN_FILE)) {
             if (testGenerationState.getValueResourceMap()
                     .size() > 0) {
-                String resourceFileName = ((MethodCallExpression) this.testCandidateList.get(
-                                this.testCandidateList.size() - 1)
-                        .getMainMethod()).getMethodName();
+                String resourceFileName = this.testCandidateList
+                        .get(this.testCandidateList.size() - 1)
+                        .getMainMethod().getMethodName();
                 if (resourceFileName.equals("<init>")) {
                     resourceFileName = "setup";
                     testGenerationState.setSetupNeedsJsonResources(true);

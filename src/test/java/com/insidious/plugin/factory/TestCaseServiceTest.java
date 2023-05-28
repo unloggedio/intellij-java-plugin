@@ -1,11 +1,11 @@
 package com.insidious.plugin.factory;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.DaoService;
+import com.insidious.plugin.client.ParameterProvider;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
@@ -16,12 +16,14 @@ import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.pojo.frameworks.JsonFramework;
+import com.insidious.plugin.pojo.frameworks.MockFramework;
+import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.intellij.openapi.project.Project;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.deft.Obj;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -39,52 +41,16 @@ public class TestCaseServiceTest {
 
     private final static Logger logger = Logger.getLogger(TestCaseServiceTest.class.getName());
 
-//    @Test
-//    void testGenerationUsingClassWeave() throws APICallException, IOException, InterruptedException {
-//        Project project = Mockito.mock(Project.class);
-//        Mockito.when(project.getBasePath()).thenReturn("./");
-//
-//        VideobugLocalClient client = new VideobugLocalClient(
-//                System.getenv("USERPROFILE") + "/.videobug/sessions");
-//
-//        TestCaseService testCaseService = new TestCaseService(project, client);
-//
-//        List<TestCandidate> testCandidateList = new LinkedList<>();
-//        BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
-//        testCaseService.getTestCandidates(
-//                new ClientCallBack<>() {
-//                    @Override
-//                    public void error(ExceptionResponse errorResponse) {
-//                        assert false;
-//                    }
-//
-//                    @Override
-//                    public void success(Collection<TestCandidate> testCandidates) {
-//
-//                        if (testCandidates.size() == 0) {
-//                            return;
-//                        }
-//                        testCandidateList.addAll(testCandidates);
-//
-//                    }
-//
-//                    public void completed() {
-//                        waiter.offer("ok");
-//                    }
-//                }
-//        );
-//        waiter.take();
-//
-//        TestSuite testSuite = null;
-//        testSuite = testCaseService.generateTestCase(testCandidateList);
-//        System.out.println(testSuite);
-//
-//    }
 
     @NotNull
     private static DaoService getDaoService(String url) throws SQLException {
         ConnectionSource connectionSource = new JdbcConnectionSource(url);
-        DaoService daoService = new DaoService(connectionSource);
+        DaoService daoService = new DaoService(connectionSource, new ParameterProvider() {
+            @Override
+            public com.insidious.plugin.pojo.dao.Parameter getParameterByValue(Long value) {
+                return null;
+            }
+        });
         return daoService;
     }
 
@@ -186,10 +152,10 @@ public class TestCaseServiceTest {
         for (int i = 0; i < dataEvents.size(); i++) {
             DataEventWithSessionId dataEvent = dataEvents.get(i);
 
-            DataInfo probeInfo = replayData.getProbeInfo(dataEvent.getDataId());
+            DataInfo probeInfo = replayData.getProbeInfo(dataEvent.getProbeId());
 
             ClassInfo classInfo = replayData.getClassInfo(probeInfo.getClassId());
-            String logLine = "#" + i + ": [" + dataEvent.getNanoTime() + "]["
+            String logLine = "#" + i + ": [" + dataEvent.getEventId() + "]["
                     + probeInfo.getEventType() + "] ["
                     + classInfo.getClassName()
                     .replaceAll("/", ".") + ":" + probeInfo.getLine() + "]" +
@@ -472,13 +438,13 @@ public class TestCaseServiceTest {
         testCandidateMetadata = sessionInstance.getTestCandidateById(testCandidateMetadata.getEntryProbeIndex(), false);
 
         List<TestCandidateMetadata> list =
-                sessionInstance.getTestCandidatesForMethod(
+                testCaseService.getTestCandidatesForMethod(
                         testCandidateMetadata.getTestSubject()
                                 .getType(), "<init>", true);
 
         list.add(testCandidateMetadata);
         TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
+                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Gson, ResourceEmbedMode.IN_FILE
         );
         generationConfiguration.getTestCandidateMetadataList()
                 .addAll(list);

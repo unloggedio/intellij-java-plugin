@@ -5,6 +5,7 @@ import com.insidious.plugin.client.MultipartUtility;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.util.StreamUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
@@ -14,6 +15,7 @@ import com.intellij.openapi.project.ProjectManager;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +42,8 @@ public class DiagnosticService {
     public void generateAndUploadReport() {
 
 
-        VideobugLocalClient localClient = new VideobugLocalClient(Objects.requireNonNull(project.getBasePath()), project);
+        VideobugLocalClient localClient = new VideobugLocalClient(Objects.requireNonNull(project.getBasePath()),
+                project);
         StringBuilder reportBuilder = new StringBuilder();
         reportBuilder.append("hostname: ").append(HOSTNAME).append("\n");
         reportBuilder.append("version: ").append(versionManager.getVersion()).append("\n");
@@ -63,7 +66,7 @@ public class DiagnosticService {
         reportBuilder.append("default project: ").append(projectManager.getDefaultProject().getName()).append("\n");
 
 
-        File agentJarFile = Constants.VIDEOBUG_AGENT_PATH.toFile();
+        File agentJarFile = Constants.AGENT_PATH.toFile();
         if (agentJarFile.exists()) {
             reportBuilder.append("agent jar exists at: ").append(agentJarFile.getAbsolutePath()).append("\n");
             reportBuilder.append("agent jar downloaded at: ").append(agentJarFile.lastModified()).append("\n");
@@ -98,7 +101,8 @@ public class DiagnosticService {
             } else {
                 for (String fileInRootPath : folderContentList) {
                     if (fileInRootPath.startsWith("selogger")) {
-                        Path logFolder = Path.of(selectedProject.getBasePath(), fileInRootPath);
+                        Path logFolder = FileSystems.getDefault()
+                                .getPath(selectedProject.getBasePath(), fileInRootPath);
                         logFolderToReport(reportBuilder, logFolder.toFile());
                     }
                 }
@@ -192,7 +196,8 @@ public class DiagnosticService {
             return;
         } else {
             for (String loggedFile : loggedFiles) {
-                File loggedFileInstance = Path.of(logFolder.getAbsolutePath(), loggedFile).toFile();
+                File loggedFileInstance = FileSystems.getDefault().getPath(logFolder.getAbsolutePath(), loggedFile)
+                        .toFile();
                 reportBuilder.append("file in [").append(fileInRootPath).append("]: ")
                         .append(loggedFile).append(" == Size ==> ").append(loggedFileInstance.length()).append("\n");
                 if (loggedFile.endsWith(".zip")) {
@@ -202,7 +207,7 @@ public class DiagnosticService {
         }
 
 
-        Path logFilePath = Path.of(logFolder.getAbsolutePath(), fileInRootPath, "log.txt");
+        Path logFilePath = FileSystems.getDefault().getPath(logFolder.getAbsolutePath(), fileInRootPath, "log.txt");
         File logFile = logFilePath.toFile();
         if (!logFile.exists()) {
             reportBuilder.append("log.txt does not exist in [").append(fileInRootPath).append("]").append("\n");
@@ -210,7 +215,7 @@ public class DiagnosticService {
             FileInputStream logFileInputStream = null;
             try {
                 logFileInputStream = new FileInputStream(logFile);
-                String logFileContents = streamToString(logFileInputStream);
+                String logFileContents = StreamUtil.streamToString(logFileInputStream);
                 reportBuilder.append("===== BEGIN  LOG.TXT ======").append("\n");
                 reportBuilder.append(logFileContents).append("\n");
                 reportBuilder.append("===== END OF LOG.TXT ======").append("\n");
@@ -263,15 +268,5 @@ public class DiagnosticService {
 
     }
 
-    private String streamToString(InputStream stream) throws IOException {
-        int bufferSize = 1024;
-        char[] buffer = new char[bufferSize];
-        StringBuilder out = new StringBuilder();
-        Reader in = new InputStreamReader(stream, StandardCharsets.UTF_8);
-        for (int numRead; (numRead = in.read(buffer, 0, buffer.length)) > 0; ) {
-            out.append(buffer, 0, numRead);
-        }
-        return out.toString();
-    }
 
 }

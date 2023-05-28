@@ -36,11 +36,9 @@ public class BreakpointUtil {
             return null;
         }
         try {
-            String signature = JVMNameUtil.getJVMSignature(method).getName(proxy);
-            return signature;
+            return JVMNameUtil.getJVMSignature(method).getName(proxy);
         } catch (EvaluateException e) {
             e.printStackTrace();
-
             return null;
         }
     }

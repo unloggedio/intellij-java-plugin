@@ -2,6 +2,7 @@ package com.insidious.plugin.client.cache;
 
 import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.IndexedCollection;
+import com.googlecode.cqengine.persistence.disk.DiskPersistence;
 import com.googlecode.cqengine.query.Query;
 import com.googlecode.cqengine.resultset.ResultSet;
 import com.insidious.common.cqengine.ObjectInfoDocument;
@@ -322,8 +323,14 @@ public class ArchiveIndex {
         logger.info("type query [" + searchQuery + "] matched [" + typeIds.size() + "] items");
 
         if (typeIds.size() == 0) {
-            return Set.of();
+            return new HashSet<>();
         }
         return typeIds;
+    }
+
+    public void close() {
+        DiskPersistence typeInfoIndexPersistence = (DiskPersistence) typeInfoIndex.getPersistence();
+        typeInfoIndexPersistence.close();
+
     }
 }

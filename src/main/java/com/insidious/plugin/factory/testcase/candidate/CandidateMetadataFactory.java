@@ -81,14 +81,14 @@ public class CandidateMetadataFactory {
 
 
             if (returnValue.getType() == null || returnValue.getType().equals("V")
-                            || returnValue.getProb() == null
+                    || returnValue.getProb() == null
             ) {
                 // either the function has no return value (need not be mocked) or
                 // we failed to identify the return value in the scan, in that case this is a bug
                 continue;
             }
 
-            if (fields.getParametersById(callSubject.getProb().getValue()) == null) {
+            if (fields.getParametersById(callSubject.getValue()) == null) {
                 // the subject should ideally be one of the already identified fields.
                 continue;
             }
@@ -107,12 +107,8 @@ public class CandidateMetadataFactory {
             for (Map.Entry<String, List<MethodCallExpression>> stringListEntry : grouped.entrySet()) {
                 List<MethodCallExpression> callsOnSubject = stringListEntry.getValue();
                 callsOnSubject.sort((e1, e2) ->
-                        Math.toIntExact(e1.getEntryProbe()
-                                .getNanoTime() - e2.getEntryProbe()
-                                .getNanoTime()));
-                Parameter subject = callsOnSubject
-                        .get(0)
-                        .getSubject();
+                        Math.toIntExact(e1.getEntryProbe().getEventId() - e2.getEntryProbe().getEventId()));
+                Parameter subject = callsOnSubject.get(0).getSubject();
                 boolean firstCall = true;
                 PendingStatement pendingStatement = null;
                 Parameter previousReturnValue = null;
@@ -129,12 +125,14 @@ public class CandidateMetadataFactory {
                         continue;
                     }
                     previousReturnValue = newReturnValue;
-                    nameFactory.getNameForUse(newReturnValue, methodCallExpression.getMethodName());
+                    String nameForUse = nameFactory.getNameForUse(newReturnValue, methodCallExpression.getMethodName());
 
-                    testGenerationState.generateParameterName(
-                            methodCallExpression.getReturnValue(),
-                            methodCallExpression.getMethodName()
-                    );
+                    if (nameForUse == null) {
+                        testGenerationState.generateParameterName(
+                                methodCallExpression.getReturnValue(),
+                                methodCallExpression.getMethodName()
+                        );
+                    }
 
                     methodCallExpression.writeReturnValue(objectRoutineScript, testConfiguration, testGenerationState);
                     if (firstCall) {
@@ -178,9 +176,7 @@ public class CandidateMetadataFactory {
             for (Map.Entry<String, List<MethodCallExpression>> stringListEntry : grouped.entrySet()) {
                 List<MethodCallExpression> callsOnSubject = stringListEntry.getValue();
                 callsOnSubject.sort((e1, e2) ->
-                        Math.toIntExact(e1.getEntryProbe()
-                                .getNanoTime() - e2.getEntryProbe()
-                                .getNanoTime()));
+                        Math.toIntExact(e1.getEntryProbe().getEventId() - e2.getEntryProbe().getEventId()));
 
                 boolean firstCall = true;
                 PendingStatement pendingStatement = null;
@@ -264,14 +260,12 @@ public class CandidateMetadataFactory {
         ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(testGenerationState.getVariableContainer(),
                 testConfiguration, testGenerationState);
 
-        if (testCandidateMetadata.getMainMethod() instanceof MethodCallExpression) {
+        if (testCandidateMetadata.getMainMethod() != null) {
 
-            MethodCallExpression mainMethod = (MethodCallExpression) testCandidateMetadata.getMainMethod();
+            MethodCallExpression mainMethod = testCandidateMetadata.getMainMethod();
 
-            if (mainMethod.getMethodName()
-                    .equals("<init>")) {
-                objectRoutineScript.getCreatedVariables()
-                        .add(mainMethod.getSubject());
+            if (mainMethod.getMethodName().equals("<init>")) {
+                objectRoutineScript.getCreatedVariables().add(mainMethod.getSubject());
                 mainMethod.setReturnValue(mainMethod.getSubject());
             }
 
@@ -279,10 +273,14 @@ public class CandidateMetadataFactory {
                 mainMethod.writeTo(objectRoutineScript, testConfiguration, testGenerationState);
             }
 
+            for (TestAssertion testAssertion : testCandidateMetadata.getAssertionList()) {
+                testAssertion.writeTo(objectRoutineScript, testConfiguration, testGenerationState);
+            }
+
 
         } else {
-            testCandidateMetadata.getMainMethod()
-                    .writeTo(objectRoutineScript, testConfiguration, testGenerationState);
+            logger.error("MCE cannot be null: " + testCandidateMetadata);
+            testCandidateMetadata.getMainMethod().writeTo(objectRoutineScript, testConfiguration, testGenerationState);
         }
         return objectRoutineScript;
 

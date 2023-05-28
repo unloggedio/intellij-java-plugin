@@ -2,13 +2,9 @@ package com.insidious.plugin.factory;
 
 import com.insidious.plugin.pojo.InsidiousOnboardingStatus;
 import com.insidious.plugin.pojo.SearchRecord;
-import com.insidious.plugin.ui.Components.OnboardingScaffoldV3;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
-import com.intellij.openapi.project.Project;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

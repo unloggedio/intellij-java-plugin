@@ -8,11 +8,13 @@ import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.factory.testcase.candidate.TestAssertion;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.dao.*;
+import com.insidious.plugin.ui.AssertionType;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.Strings;
 import com.intellij.notification.NotificationType;
@@ -20,7 +22,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.dao.GenericRawResults;
-import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import org.apache.commons.lang.StringUtils;
@@ -35,55 +36,63 @@ import java.util.stream.Collectors;
 public class DaoService {
 
 
-    public static final String TEST_CANDIDATE_AGGREGATE_QUERY = "select p.type, p.value, count(*)\n" +
+    public static final String TEST_CANDIDATE_AGGREGATE_QUERY = "select md.ownerType, count(*)\n" +
             "from test_candidate tc\n" +
-            "         join parameter p on p.value = testSubject_id and p.type != 'java.lang.Object' and length(p.type) > 1\n" +
             "         join method_call mce on mce.id = tc.mainMethod_id\n" +
-            "where (mce.methodAccess & 1 == 1) and mce.methodName != '<init>'\n" +
-            "group by p.type, p.value\n" +
+            "         join method_definition md on md.id = mce.methodDefinitionId\n" +
+            "where (mce.methodAccess & 1 == 1)\n" +
+            "  and mce.methodName != '<init>'\n" +
+            "  and md.ownerType != 'java.lang.Object'\n" +
+            "group by md.ownerType, md.ownerType\n" +
             "having count(*) > 0\n" +
-            "order by p.type";
+            "order by md.ownerType";
     public static final String TEST_CANDIDATE_METHOD_AGGREGATE_QUERY = "select mc.methodName, count(*)\n" +
             "from test_candidate tc\n" +
-            "         join parameter p on p.value = testSubject_id\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
-            "where p.type = ? and (mc.methodAccess & 1 == 1)\n" +
-            "and mc.methodName != '<init>'\n" +
+            "         join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "where md.ownerType = ? \n" +
+            "  and (mc.methodAccess & 1 == 1)\n" +
+            "  and mc.methodName != '<init>'\n" +
             "group by mc.methodName\n" +
             "order by mc.methodName;";
 
 
     public static final String CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT = "select mc.*\n" +
             "from method_call mc\n" +
-            "         left join parameter subject on subject.value == mc.subject_id\n" +
-            "         left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
-            "where (subject.type is null or subject.type not like 'java.lang%')\n" +
-            "    and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
-            "    and (mc.id = ? or mc.parentId = ?)";
+            "         left join method_definition md on md.id == mc.methodDefinitionId\n" +
+            "where (md.ownerType is null or md.ownerType not like 'java.lang%')\n" +
+            "  and (mc.methodAccess & 1 == 1 or mc.methodAccess & 4 == 4)\n" +
+            "  and (mc.id = ? or mc.parentId = ?)";
 
     public static final String CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT_CHILD_CALLS = "select mc.*\n" +
             "from method_call mc\n" +
-            "         left join parameter subject on subject.value == mc.subject_id\n" +
-            "         left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
-            "where (subject.type is null or subject.type not like 'java.lang%')\n" +
-            "  and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
+            "         left join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "where (md.ownerType is null or md.ownerType not like 'java.lang%')\n" +
+            "  and (mc.methodAccess & 1 == 1 or mc.methodAccess & 4 == 4)\n" +
             "  and mc.parentId in (select mc.id\n" +
             "                      from method_call mc\n" +
-            "                               left join parameter subject on subject.value == mc.subject_id\n" +
-            "                               left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
-            "                      where (subject.type is null or subject.type not like 'java.lang%')\n" +
+            "                               left join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "                      where (md.ownerType is null or md.ownerType not like 'java.lang%')\n" +
             "                        and ((mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
             "                              mc.subject_id = ? and mc.threadId = ?)\n" +
             "                          or (mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
-            "                              mc.isStaticCall = true and mc.usesFields = true and mc.subject_id != 0 and mc.threadId = ?)))";
-    public static final String TEST_CANDIDATE_BY_METHOD_SELECT = "select tc.*\n" +
+            "                              mc.isStaticCall = true and mc.usesFields = true and mc.subject_id != 0 and\n" +
+            "                              mc.threadId = ?)))";
+    public static final String TEST_CANDIDATE_BY_PUBLIC_METHOD_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
-            "         join parameter p on p.value = testSubject_id\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
-            "where p.type = ?\n" +
-            "  and mc.methodName = ?" +
+            "join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "where md.ownerType = ?\n" +
+            "  and mc.methodName = ?\n" +
             "  and mc.methodAccess & 1 == 1\n" +
-            "order by mc.methodName asc, tc.entryProbeIndex desc limit 50;";
+            "order by mc.methodName asc, tc.entryProbeIndex desc limit 50";
+    public static final String TEST_CANDIDATE_BY_ALL_METHOD_SELECT = "select tc.*\n" +
+            "from test_candidate tc\n" +
+            "         join method_call mc on mc.id = mainMethod_id\n" +
+            "join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "where md.ownerType = ?\n" +
+            "  and mc.methodName = ?\n" +
+            "order by tc.entryProbeIndex desc limit 50;";
     public static final Type LIST_STRING_TYPE = new TypeToken<ArrayList<String>>() {
     }.getType();
     public static final Type LIST_CANDIDATE_TYPE = new TypeToken<ArrayList<TestCandidateMetadata>>() {
@@ -99,21 +108,22 @@ public class DaoService {
     private final Dao<MethodDefinition, Long> methodDefinitionsDao;
     private final Dao<ClassDefinition, Long> classDefinitionsDao;
     private final Dao<IncompleteMethodCallExpression, Long> incompleteMethodCallExpressionDao;
-    private final Dao<Parameter, Long> parameterDao;
+    //    private final Dao<Parameter, Long> parameterDao;
     private final Dao<LogFile, Long> logFilesDao;
     private final Dao<ArchiveFile, String> archiveFileDao;
     private final Dao<ThreadState, Integer> threadStateDao;
     private final Dao<ProbeInfo, Long> probeInfoDao;
     private final Dao<TestCandidateMetadata, Long> testCandidateDao;
-    private String fieldA;
+    private final ParameterProvider parameterProvider;
 
-    public DaoService(ConnectionSource connectionSource) throws SQLException {
+    public DaoService(ConnectionSource connectionSource, ParameterProvider parameterProvider) throws SQLException {
         this.connectionSource = connectionSource;
+        this.parameterProvider = parameterProvider;
 
         // instantiate the DAO to handle Account with String id
         testCandidateDao = DaoManager.createDao(connectionSource, TestCandidateMetadata.class);
         probeInfoDao = DaoManager.createDao(connectionSource, ProbeInfo.class);
-        parameterDao = DaoManager.createDao(connectionSource, Parameter.class);
+//        parameterDao = DaoManager.createDao(connectionSource, Parameter.class);
         logFilesDao = DaoManager.createDao(connectionSource, LogFile.class);
         archiveFileDao = DaoManager.createDao(connectionSource, ArchiveFile.class);
         methodCallExpressionDao = DaoManager.createDao(connectionSource, MethodCallExpression.class);
@@ -145,7 +155,7 @@ public class DaoService {
         for (TestCandidateMetadata testCandidateMetadata : candidateList) {
             com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
                     convertTestCandidateMetadata(testCandidateMetadata, true);
-            com.insidious.plugin.pojo.MethodCallExpression mainMethod = (com.insidious.plugin.pojo.MethodCallExpression) converted.getMainMethod();
+            com.insidious.plugin.pojo.MethodCallExpression mainMethod = converted.getMainMethod();
             if (!mainMethod.getMethodName()
                     .equals("<init>")) {
                 if (!mainMethod.isMethodPublic()) {
@@ -173,7 +183,6 @@ public class DaoService {
 
         converted.setTestSubject(getParameterByValue(testCandidateMetadata.getTestSubject()));
 
-        Set<Long> calls = new HashSet<>(testCandidateMetadata.getCallsList());
         List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new ArrayList<>(0);
         if (loadCalls) {
             List<com.insidious.plugin.pojo.MethodCallExpression> methodCallsFromDb =
@@ -203,9 +212,8 @@ public class DaoService {
 //            logger.warn("Add call [" + methodCallExpressionById.getMethodName() + "] - " + methodCallExpressionById);
                 if (methodCallExpressionById.isMethodPublic()
                         || methodCallExpressionById.isMethodProtected()
-                        || "INVOKEVIRTUAL".equals(
-                        methodCallExpressionById.getEntryProbeInfo()
-                                .getAttribute("Instruction", ""))
+                        || "INVOKEVIRTUAL".equals(methodCallExpressionById.getEntryProbeInfo()
+                        .getAttribute("Instruction", ""))
                 ) {
                     callsList.add(methodCallExpressionById);
                 } else {
@@ -223,37 +231,53 @@ public class DaoService {
 
 
         } else {
-            for (Long call : calls) {
-                com.insidious.plugin.pojo.MethodCallExpression mce = new com.insidious.plugin.pojo.MethodCallExpression();
-                mce.setId(call);
-                callsList.add(mce);
-            }
             List<MethodCallExpressionInterface> mces = new ArrayList<>();
             mces.add(getMethodCallExpressionById(testCandidateMetadata.getMainMethod()));
             converted.setMainMethod(buildFromDbMce(mces).get(0));
         }
 
         List<Long> fieldParameters = testCandidateMetadata.getFields();
-//        logger.warn("\tloading " + fieldParameters.size() + " fields");
+
         for (Long fieldParameterValue : fieldParameters) {
             if (fieldParameterValue == 0L) {
                 continue;
             }
             if (loadCalls) {
-                Optional<com.insidious.plugin.pojo.MethodCallExpression> callOnField = callsList.stream()
-                        .filter(e -> e.getSubject()
-                                .getValue() == fieldParameterValue)
+                Optional<com.insidious.plugin.pojo.MethodCallExpression> callOnField = callsList
+                        .stream()
+                        .filter(e -> e.getSubject().getValue() == fieldParameterValue)
                         .findFirst();
                 if (callOnField.isPresent()) {
-                    converted.getFields()
-                            .add(callOnField.get()
-                                    .getSubject());
+                    converted.getFields().add(callOnField.get().getSubject());
                     continue;
                 }
             }
             com.insidious.plugin.pojo.Parameter fieldParameter = getParameterByValue(fieldParameterValue);
-            converted.getFields()
-                    .add(fieldParameter);
+            converted.getFields().add(fieldParameter);
+        }
+
+        if (converted.getMainMethod() != null && !converted.getMainMethod().getMethodName().equals("<init>")) {
+            com.insidious.plugin.pojo.MethodCallExpression mainMethodCall = converted.getMainMethod();
+            com.insidious.plugin.pojo.Parameter mainMethodReturnValue = mainMethodCall.getReturnValue();
+            if (mainMethodReturnValue != null && mainMethodReturnValue.getType() != null && !mainMethodReturnValue.getType()
+                    .equals("V")) {
+
+                // deserialize and compare objects
+                byte[] serializedBytes = mainMethodReturnValue.getProb().getSerializedValue();
+                com.insidious.plugin.pojo.Parameter expectedValue;
+                String expectedParameterName = mainMethodReturnValue.getName() + "Expected";
+                expectedValue = com.insidious.plugin.pojo.Parameter.cloneParameter(mainMethodReturnValue);
+                expectedValue.clearNames();
+                expectedValue.setName(expectedParameterName);
+                DataEventWithSessionId expectedValueProbe = new DataEventWithSessionId();
+                expectedValueProbe.setSerializedValue(serializedBytes);
+                expectedValue.setProb(expectedValueProbe);
+
+
+                TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, expectedValue,
+                        mainMethodReturnValue);
+                converted.getAssertionList().add(testAssertion);
+            }
         }
 
 
@@ -362,7 +386,7 @@ public class DaoService {
             for (int i = 0; i < argumentParameters.size(); i++) {
                 Long argumentParameter = argumentParameters.get(i);
                 DataEventWithSessionId dataEvent = this.getDataEventById(argumentProbes.get(i));
-                DataInfo eventProbe = this.getProbeInfoById(dataEvent.getDataId());
+                DataInfo eventProbe = this.getProbeInfoById(dataEvent.getProbeId());
                 com.insidious.plugin.pojo.Parameter argument = this.getParameterByValue(argumentParameter);
                 if (argument == null) {
                     argument = new com.insidious.plugin.pojo.Parameter(0L);
@@ -393,7 +417,7 @@ public class DaoService {
 
                 DataEventWithSessionId returnDataEvent = this.getDataEventById(dbMce.getReturnDataEvent());
                 returnParam.setProb(returnDataEvent);
-                DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getDataId());
+                DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getProbeId());
 
                 String returnParamType = returnParam.getType();
                 if ((returnParamType == null || returnParamType == "" || returnParam.isPrimitiveType()) && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
@@ -417,8 +441,7 @@ public class DaoService {
                             Optional<com.insidious.plugin.pojo.MethodCallExpression> bodyResponseParameter
                                     = callsOnReturnParameter
                                     .stream()
-                                    .filter(e -> e.getMethodName()
-                                            .equals("body"))
+                                    .filter(e -> e.getMethodName().equals("body"))
                                     .findFirst();
 
                             if (!bodyResponseParameter.isPresent()) {
@@ -480,6 +503,43 @@ public class DaoService {
         return convertedCallExpression;
     }
 
+    public ClassMethodAggregates getClassMethodCallAggregates(String className) {
+
+        ClassMethodAggregates methodClassAggregates = new ClassMethodAggregates();
+
+        try {
+            GenericRawResults<String[]> queryResult = methodCallExpressionDao.queryRaw(
+                    "select mc.methodName,\n" +
+                            "       count(*) as count,\n" +
+                            "       min(mc.callTimeNano / 1000) as minimum,\n" +
+                            "       max(mc.callTimeNano / 1000) as maximum,\n" +
+                            "       median(mc.callTimeNano / 1000) as median,\n" +
+                            "       stdev(mc.callTimeNano / 1000) as stddev,\n" +
+                            "       avg(mc.callTimeNano / 1000) as avg\n" +
+                            "from method_call mc\n" +
+                            " join method_definition md on md.id = mc.methodDefinitionId\n" +
+                            "where md.ownerType = ?\n" +
+                            "group by mc.methodName\n" +
+                            "order by mc.methodName;", className
+            );
+            for (String[] result : queryResult.getResults()) {
+                MethodCallAggregate callAggregate = new MethodCallAggregate();
+                callAggregate.setMethodName(result[0]);
+                callAggregate.setCount(Integer.valueOf(result[1]));
+                callAggregate.setMinimum(Float.valueOf(result[2]));
+                callAggregate.setMaximum(Float.valueOf(result[3]));
+                callAggregate.setMedian(Float.valueOf(result[4]));
+                callAggregate.setStdDev(Float.valueOf(result[5]));
+                callAggregate.setAverage(Float.valueOf(result[6]));
+                methodClassAggregates.addMethodAggregate(callAggregate);
+            }
+
+        } catch (SQLException e) {
+        }
+
+        return methodClassAggregates;
+    }
+
 
     @NotNull
     private List<com.insidious.plugin.pojo.MethodCallExpression> buildFromDbMce(
@@ -504,8 +564,7 @@ public class DaoService {
                 .collect(Collectors.toSet());
 
         GenericRawResults<MethodDefinition> methodDefinitionsResultSet = methodDefinitionsDao.queryRaw(
-                METHOD_DEFINITIONS_BY_ID_IN.replace("IDS", Strings.join(methodDefinitionIds
-                        , ", ")),
+                METHOD_DEFINITIONS_BY_ID_IN.replace("IDS", Strings.join(methodDefinitionIds, ", ")),
                 methodDefinitionsDao.getRawRowMapper());
         List<MethodDefinition> methodDefinitionList = methodDefinitionsResultSet.getResults();
 
@@ -530,20 +589,20 @@ public class DaoService {
         List<Parameter> dbParameters = getParameterByValue(parametersToLoad);
 
         for (Parameter parameter : dbParameters) {
-            probesToLoad.add(parameter.getProb_id());
+            probesToLoad.add(parameter.getEventId());
             probeInfoToLoad.add(parameter.getProbeInfo_id());
         }
 
         List<DataEventWithSessionId> allProbes = getProbes(probesToLoad);
         for (DataEventWithSessionId allProbe : allProbes) {
-            probeInfoToLoad.add((int) allProbe.getDataId());
+            probeInfoToLoad.add((int) allProbe.getProbeId());
         }
 
 
         List<DataInfo> allProbesInfo = getProbesInfo(probeInfoToLoad);
 
         Map<Long, DataEventWithSessionId> probesMap = allProbes.stream()
-                .collect(Collectors.toMap(DataEventWithSessionId::getNanoTime, e -> e));
+                .collect(Collectors.toMap(DataEventWithSessionId::getEventId, e -> e));
 
         Map<Integer, DataInfo> probeInfoMap = allProbesInfo.stream()
                 .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
@@ -557,7 +616,7 @@ public class DaoService {
 
         for (com.insidious.plugin.pojo.Parameter parameter : parameters) {
             Parameter dbParameter = dbParameterMap.get(parameter.getValue());
-            parameter.setProb(probesMap.get(dbParameter.getProb_id()));
+            parameter.setProb(probesMap.get(dbParameter.getEventId()));
             if (probeInfoMap.get(dbParameter.getProbeInfo_id()) != null) {
                 parameter.setProbeInfo(probeInfoMap.get(dbParameter.getProbeInfo_id()));
             }
@@ -588,30 +647,24 @@ public class DaoService {
                 );
             }
             com.insidious.plugin.pojo.Parameter subjectParameter = methodCallExpression.getSubject();
-            if (subjectParameter.getType() == null) {
-                logger.warn(
-                        "type for subject of method call [" + dbMce + "] is null [" + subjectParameter + "]");
+            String subjectParameterType = subjectParameter.getType();
+            if (subjectParameterType == null) {
+                logger.warn("type for subject of method call [" + dbMce + "] is null [" + subjectParameter + "]");
                 continue;
             }
-            if (subjectParameter.getType()
-                    .startsWith("java.util.")) {
+            if (subjectParameterType.startsWith("java.util.")) {
                 continue;
             }
-            if (subjectParameter.getType()
-                    .startsWith("org.slf4j.Logger")) {
+            if (subjectParameterType.startsWith("org.slf4j.Logger")) {
                 continue;
             }
-            if (subjectParameter.getType()
-                    .startsWith("org.apache.commons.")) {
+            if (subjectParameterType.startsWith("org.apache.commons.")) {
                 continue;
             }
-            if (subjectParameter.getType()
-                    .startsWith("org.springframework.cglib")) {
+            if (subjectParameterType.startsWith("org.springframework.cglib")) {
                 continue;
             }
-
-            if (subjectParameter.getType()
-                    .startsWith("org.springframework.aop")) {
+            if (subjectParameterType.startsWith("org.springframework.aop")) {
                 continue;
             }
 
@@ -625,10 +678,9 @@ public class DaoService {
             methodCallExpression.setEntryProbe(probesMap.get(dbMce.getEntryProbe_id()));
             methodCallExpression.setEntryProbeInfo(probeInfoMap.get(dbMce.getEntryProbeInfo_id()));
 
-            if (subjectParameter.getType()
-                    .contains(".$")) {
+            if (subjectParameterType.contains(".$")) {
                 logger.warn(
-                        "call subject type contains '.$', replacing with type from somewhere else: " + subjectParameter.getType());
+                        "call subject type contains '.$', replacing with type from somewhere else: " + subjectParameterType);
                 // this comes up when a proxy for an object is created
                 // eg jdk.proxy2.$Proxy127
                 String subjectTypeFromMethodDefinition = null;
@@ -685,7 +737,7 @@ public class DaoService {
                 Long argument = dbMceArguments.get(i);
                 DataEventWithSessionId dataEvent = probesMap.get(dbMce.getArgumentProbes()
                         .get(i));
-                DataInfo probeInfo = probeInfoMap.get((int) dataEvent.getDataId());
+                DataInfo probeInfo = probeInfoMap.get((int) dataEvent.getProbeId());
                 com.insidious.plugin.pojo.Parameter paramArgument = parameterMap.get(argument);
                 if (paramArgument == null) {
                     paramArgument = new com.insidious.plugin.pojo.Parameter(0L);
@@ -704,7 +756,8 @@ public class DaoService {
                         && !paramArgTypeFromProbe.equals("Ljava/lang/Object;"))) {
                     paramArgument.setTypeForced(argumentTypeFromProbe);
                 }
-                if (argumentTypeFromProbe.equals(argumentTypeFromMethodDefinition) && (existingType == null || existingType.contains("$"))) {
+                if (argumentTypeFromProbe.equals(
+                        argumentTypeFromMethodDefinition) && (existingType == null || existingType.contains("$"))) {
                     paramArgument.setTypeForced(argumentTypeFromMethodDefinition);
                 }
 
@@ -733,7 +786,7 @@ public class DaoService {
 
             DataEventWithSessionId returnDataEvent = probesMap.get(dbMce.getReturnDataEvent());
             returnParam.setProb(returnDataEvent);
-            DataInfo eventProbe = probeInfoMap.get((int) returnDataEvent.getDataId());
+            DataInfo eventProbe = probeInfoMap.get((int) returnDataEvent.getProbeId());
 
             String returnParamType = returnParam.getType();
             if ((returnParamType == null || returnParamType.equals("") || returnParam.isPrimitiveType())
@@ -822,21 +875,26 @@ public class DaoService {
     }
 
     public List<Parameter>
-    getParameterByValue(Collection<Long> values) throws Exception {
+    getParameterByValue(Collection<Long> values) {
         if (values.size() == 0) {
             return Collections.emptyList();
         }
 
-        String query = "select * from parameter where value in (" + StringUtils.join(values, ",") + ")";
+//        String query = "select * from parameter where value in (" + StringUtils.join(values, ",") + ")";
 
-        GenericRawResults<Parameter> queryResult = parameterDao.queryRaw(query, parameterDao.getRawRowMapper());
-        List<Parameter> resultList = queryResult.getResults();
-        queryResult.close();
-        if (resultList.size() == 0) {
-            return Collections.emptyList();
-        }
+        return values.stream()
+                .filter(e -> e != 0)
+                .map(parameterProvider::getParameterByValue)
+                .collect(Collectors.toList());
 
-        return new ArrayList<>(resultList);
+//        GenericRawResults<Parameter> queryResult = parameterDao.queryRaw(query, parameterDao.getRawRowMapper());
+//        List<Parameter> resultList = queryResult.getResults();
+//        queryResult.close();
+//        if (resultList.size() == 0) {
+//            return Collections.emptyList();
+//        }
+
+//        return new ArrayList<>(resultList);
     }
 
     public List<DataEventWithSessionId>
@@ -845,7 +903,7 @@ public class DaoService {
             return Collections.emptyList();
         }
 
-        String query = "select * from data_event where nanotime in (" + StringUtils.join(values, ",") + ")";
+        String query = "select * from data_event where eventId in (" + StringUtils.join(values, ",") + ")";
 
         GenericRawResults<DataEventWithSessionId> queryResult = dataEventDao.queryRaw(query,
                 dataEventDao.getRawRowMapper());
@@ -864,7 +922,7 @@ public class DaoService {
             return Collections.emptyList();
         }
 
-        String query = "select * from probe_info where dataid in (" + StringUtils.join(values, ",") + ")";
+        String query = "select * from probe_info where probeId in (" + StringUtils.join(values, ",") + ")";
 
         GenericRawResults<ProbeInfo> queryResult = probeInfoDao.queryRaw(query, probeInfoDao.getRawRowMapper());
         List<DataInfo> resultList = queryResult.getResults()
@@ -920,14 +978,14 @@ public class DaoService {
         if (value == 0) {
             return null;
         }
-        List<Parameter> parameterList = parameterDao.queryForEq("value", value);
-        if (parameterList.size() == 0) {
-            return null;
-        }
-        Parameter parameter = parameterList.get(0);
+//        List<Parameter> parameterList = parameterDao.queryForEq("value", value);
+//        if (parameterList.size() == 0) {
+//            return null;
+//        }
+        Parameter parameter = parameterProvider.getParameterByValue(value);
         com.insidious.plugin.pojo.Parameter convertedParameter = Parameter.toParameter(parameter);
 
-        DataEventWithSessionId dataEvent = this.getDataEventById(parameter.getProb_id());
+        DataEventWithSessionId dataEvent = this.getDataEventById(parameter.getEventId());
         if (dataEvent != null) {
             DataInfo probeInfo = getProbeInfoById(parameter.getProbeInfo_id());
             convertedParameter.setProbeInfo(probeInfo);
@@ -937,8 +995,8 @@ public class DaoService {
         return convertedParameter;
     }
 
-    private DataInfo getProbeInfoById(long dataId) throws SQLException {
-        ProbeInfo dataInfo = probeInfoDao.queryForId(dataId);
+    private DataInfo getProbeInfoById(long probeId) throws SQLException {
+        ProbeInfo dataInfo = probeInfoDao.queryForId(probeId);
         return ProbeInfo.ToProbeInfo(dataInfo);
     }
 
@@ -957,10 +1015,10 @@ public class DaoService {
 
     public List<Integer> getProbes() throws SQLException {
         return probeInfoDao.queryBuilder()
-                .selectColumns("dataId")
+                .selectColumns("probeId")
                 .query()
                 .stream()
-                .map(ProbeInfo::getDataId)
+                .map(ProbeInfo::getProbeId)
                 .collect(Collectors.toList());
     }
 
@@ -985,7 +1043,9 @@ public class DaoService {
             throw new RuntimeException(e);
         } finally {
             long end = new Date().getTime();
-            logger.warn("saving " + callsToSave.size() + " calls took: " + (end - start) + " ms");
+            if (end - start > 200) {
+                logger.warn("saving " + callsToSave.size() + " calls took: " + (end - start) + " ms");
+            }
         }
     }
 
@@ -1037,70 +1097,6 @@ public class DaoService {
     }
 
 
-    public void createOrUpdateParameter(Collection<com.insidious.plugin.pojo.Parameter> parameterList) {
-        try {
-            int i = 0;
-            int total = parameterList.size();
-            Parameter newParam = new Parameter();
-            long start = new Date().getTime();
-
-
-            List<Parameter> daoParamList = parameterList.stream()
-                    .map(Parameter::fromParameter)
-                    .collect(Collectors.toList());
-            try {
-                parameterDao.executeRaw("DELETE FROM parameter");
-            } catch (Exception e) {
-                logger.warn("Failed to truncate parameter table: " + e.getMessage(), e);
-                return;
-            }
-            int createdCount = parameterDao.create(daoParamList);
-//            for (com.insidious.plugin.pojo.Parameter parameter : parameterList) {
-//                if (i % 100 == 0) {
-//                    checkProgressIndicator(null, i + " / " + total);
-//                }
-//                i++;
-//                newParam.setContainer(parameter.isContainer());
-//                newParam.setException(parameter.isException());
-//                newParam.setProb_id(parameter.getProb());
-//                newParam.setType(parameter.getType());
-//                List<com.insidious.plugin.pojo.Parameter> templateMap1 = parameter.getTemplateMap();
-//                List<Parameter> transformedTemplateMap = new ArrayList<>();
-//                for (com.insidious.plugin.pojo.Parameter param : templateMap1) {
-//                    transformedTemplateMap.add(Parameter.fromParameter(param));
-//                }
-//                newParam.setNames(parameter.getNames());
-//                newParam.setTemplateMap(transformedTemplateMap);
-//                newParam.setProbeInfo_id(parameter.getProbeInfo());
-//                newParam.setValue(parameter.getValue());
-//
-//                parameterDao.createOrUpdate(newParam);
-//            }
-            long end = new Date().getTime();
-            long timeInSeconds = (end - start) / 1000;
-            if (timeInSeconds == 0) {
-                timeInSeconds = 1;
-            }
-            logger.warn("updated " + parameterList.size() + " parameters took [" + timeInSeconds + "] seconds" +
-                    " => " + parameterList.size() / timeInSeconds + " params/second");
-        } catch (Exception e) {
-            logger.error("failed to save parameters: " + e.getMessage(), e);
-            e.printStackTrace();
-        }
-    }
-
-    public List<com.insidious.plugin.pojo.Parameter> getParametersByType(String typeName) {
-        try {
-            return parameterDao.queryForEq("type", typeName)
-                    .stream()
-                    .map(Parameter::toParameter)
-                    .collect(Collectors.toList());
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return Collections.emptyList();
-        }
-    }
-
     public long getMaxCallId() {
         try {
             long result = methodCallExpressionDao.queryRawValue("select max(id) from method_call");
@@ -1113,27 +1109,6 @@ public class DaoService {
 
     public void close() throws Exception {
         connectionSource.close();
-    }
-
-    public List<String> getPackageNames() {
-        List<String> packageList = new LinkedList<>();
-
-        try {
-            GenericRawResults<Object[]> parameterIdList = parameterDao
-                    .queryRaw("select distinct(type) from parameter order by type;", new DataType[]{DataType.STRING});
-
-            for (Object[] objects : parameterIdList) {
-                String className = (String) objects[0];
-                packageList.add(className);
-            }
-            parameterIdList.close();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Collections.emptyList();
-        }
-
-        return packageList;
     }
 
     public List<LogFile> getLogFiles() {
@@ -1154,46 +1129,63 @@ public class DaoService {
         }
     }
 
-    public List<ThreadProcessingState> getThreadList() {
-        try {
-            return threadStateDao.queryForAll()
-                    .stream()
-                    .map(e -> new ThreadProcessingState(1))
-                    .collect(Collectors.toList());
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return Collections.emptyList();
-        }
-    }
+//    public List<ThreadProcessingState> getThreadList() {
+//        try {
+//            return threadStateDao.queryForAll()
+//                    .stream()
+//                    .map(e -> new ThreadProcessingState(1))
+//                    .collect(Collectors.toList());
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//            return Collections.emptyList();
+//        }
+//    }
 
-    public void updateArchiveFile(ArchiveFile archiveFile) {
+    public void createArchiveFileEntry(ArchiveFile archiveFile) {
         try {
-            archiveFileDao.createOrUpdate(archiveFile);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void updateLogFile(LogFile logFile) {
-        try {
-            logFilesDao.createOrUpdate(logFile);
+            archiveFileDao.create(archiveFile);
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-    getTestCandidatesForClass(String className) {
+    public void updateArchiveFileEntry(ArchiveFile archiveFile) {
         try {
-            long result = parameterDao.queryRawValue("select value from parameter where type = '" + className + "'");
-
-            return getTestCandidateForSubjectId(result);
-
-        } catch (Exception e) {
+            archiveFileDao.update(archiveFile);
+        } catch (SQLException e) {
             e.printStackTrace();
-            throw new RuntimeException(e);
         }
     }
+
+    public void createLogFileEntry(LogFile logFile) {
+        logger.warn("Create log file entry: " + logFile);
+        try {
+            logFilesDao.create(logFile);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void updateLogFileEntry(LogFile logFile) {
+        try {
+            logFilesDao.update(logFile);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+//    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
+//    getTestCandidatesForClass(String className) {
+//        try {
+//            long result = parameterDao.queryRawValue("select value from parameter where type = '" + className + "'");
+//
+//            return getTestCandidateForSubjectId(result);
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            throw new RuntimeException(e);
+//        }
+//    }
 
     public List<VideobugTreeClassAggregateNode> getTestCandidateAggregates() {
         try {
@@ -1240,12 +1232,38 @@ public class DaoService {
     }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-    getTestCandidatesForMethod(String className, String methodName, boolean loadCalls) {
+    getTestCandidatesForPublicMethod(String className, String methodName, boolean loadCalls) {
 
         try {
 
-            GenericRawResults<TestCandidateMetadata> parameterIds = parameterDao
-                    .queryRaw(TEST_CANDIDATE_BY_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className,
+            GenericRawResults<TestCandidateMetadata> parameterIds = testCandidateDao
+                    .queryRaw(TEST_CANDIDATE_BY_PUBLIC_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className,
+                            methodName);
+
+            List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> resultList = new LinkedList<>();
+
+            List<TestCandidateMetadata> testCandidates = parameterIds.getResults();
+            for (TestCandidateMetadata testCandidate : testCandidates) {
+                com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
+                        convertTestCandidateMetadata(testCandidate, loadCalls);
+                resultList.add(converted);
+            }
+
+            parameterIds.close();
+            return resultList;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
+    getTestCandidatesForAllMethod(String className, String methodName, boolean loadCalls) {
+
+        try {
+
+            GenericRawResults<TestCandidateMetadata> parameterIds = testCandidateDao
+                    .queryRaw(TEST_CANDIDATE_BY_ALL_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className,
                             methodName);
 
             List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> resultList = new LinkedList<>();
@@ -1282,7 +1300,8 @@ public class DaoService {
         // for static classes we wont have a constructor call captured
         if (callListFromDb.size() == 0) {
 
-            List<Parameter> parametersOfSameType = parameterDao.queryForEq("type", parameter.getType());
+//            List<Parameter> parametersOfSameType = parameterDao.queryForEq("type", parameter.getType());
+            List<Parameter> parametersOfSameType = new ArrayList<>();
             if (parametersOfSameType.size() > 1) {
 
                 List<Parameter> theOtherParameter = parametersOfSameType.stream()
@@ -1311,10 +1330,8 @@ public class DaoService {
                         com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata constructorCandidate
                                 = convertTestCandidateMetadata(testCandidate, true);
                         constructorCandidate.setTestSubject(parameter);
-                        ((com.insidious.plugin.pojo.MethodCallExpression) constructorCandidate.getMainMethod()).setSubject(
-                                parameter);
-                        ((com.insidious.plugin.pojo.MethodCallExpression) constructorCandidate.getMainMethod()).setReturnValue(
-                                parameter);
+                        constructorCandidate.getMainMethod().setSubject(parameter);
+                        constructorCandidate.getMainMethod().setReturnValue(parameter);
                         return constructorCandidate;
                     }
                 }
@@ -1332,11 +1349,8 @@ public class DaoService {
         testCandidate.setEntryProbeIndex(constructorMethodExpression.getEntryProbe_id());
         testCandidate.setMainMethod(constructorMethodExpression.getId());
 
-        com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata constructorCandidate
-                = convertTestCandidateMetadata(testCandidate, true);
 
-
-        return constructorCandidate;
+        return convertTestCandidateMetadata(testCandidate, true);
 
 
     }
@@ -1472,16 +1486,9 @@ public class DaoService {
         threadStateDao.createOrUpdate(daoThreadState);
     }
 
-    public String getFieldA() {
-        return fieldA;
-    }
-
-    public void setFieldA(String fieldA) {
-        this.fieldA = fieldA;
-    }
-
     public void createOrUpdateClassDefinitions(Collection<ClassDefinition> classDefinitions) {
         try {
+            logger.warn("create [" + classDefinitions.size() + "] class definitons");
             classDefinitionsDao.executeRaw("delete from class_definition");
             classDefinitionsDao.create(classDefinitions);
         } catch (SQLException e) {

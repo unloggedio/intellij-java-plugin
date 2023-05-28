@@ -48,8 +48,6 @@ public class BasicStepMethodFilter implements NamedMethodFilter {
                 JVMNameUtil.getJVMQualifiedName(psiMethod.getContainingClass()),
                 JVMNameUtil.getJVMMethodName(psiMethod),
                 JVMNameUtil.getJVMSignature(psiMethod), ordinal, callingExpressionLines,
-
-
                 checkCaller(psiMethod));
     }
 

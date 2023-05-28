@@ -52,7 +52,6 @@ public class LiveViewTestCandidateListTree implements TreeModel {
                     }
                 });
 
-//        videobugTreeClassAggregateNodes = sessionInstance.getTestCandidateAggregates();
 
         packageAggregates = new LinkedList<>();
 
@@ -200,7 +199,7 @@ public class LiveViewTestCandidateListTree implements TreeModel {
             List<TestCandidateMetadata> existingList = sessionMethodTestCandidateMap.get(classNode.getClassName());
             return (int) existingList
                     .stream()
-                    .filter(e -> !((MethodCallExpression) e.getMainMethod()).getMethodName().startsWith("<"))
+                    .filter(e -> !e.getMainMethod().getMethodName().startsWith("<"))
                     .count();
 
         }

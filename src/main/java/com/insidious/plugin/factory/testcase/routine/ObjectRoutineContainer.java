@@ -32,6 +32,7 @@ public class ObjectRoutineContainer {
     private final List<ObjectRoutine> objectRoutines = new ArrayList<>();
     private final Parameter testSubject;
     private final TestCaseGenerationConfiguration generationConfiguration;
+    private final String testMethodName;
     private String packageName;
     private ObjectRoutine currentRoutine;
     private VariableContainer fieldsContainer = new VariableContainer();
@@ -43,40 +44,37 @@ public class ObjectRoutineContainer {
 
     public ObjectRoutineContainer(TestCaseGenerationConfiguration generationConfiguration) {
         this.generationConfiguration = generationConfiguration;
-        Parameter parameter = generationConfiguration.getTestCandidateMetadataList()
-                .get(0)
-                .getTestSubject();
+        List<TestCandidateMetadata> testCandidateMetadataList = generationConfiguration.getTestCandidateMetadataList();
+        Parameter parameter = testCandidateMetadataList.get(testCandidateMetadataList.size() - 1).getTestSubject();
         ClassName targetClassName = ClassName.bestGuess(parameter.getType());
 
         this.testSubject = parameter;
         assert parameter.getType() != null;
         this.packageName = targetClassName.packageName();
         this.name = targetClassName.simpleName();
+        this.testMethodName = generationConfiguration.getTestMethodName();
         newRoutine("test" + targetClassName.simpleName());
 
         boolean hasTargetInstanceClassConstructor = false;
-        for (TestCandidateMetadata testCandidateMetadata : generationConfiguration.getTestCandidateMetadataList()) {
+        for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
 
-            MethodCallExpression methodInfo = (MethodCallExpression) testCandidateMetadata.getMainMethod();
-//            if (methodInfo.getReturnValue() == null || methodInfo.getReturnValue().getProb() == null) {
-//                continue;
-//            }
-            if (methodInfo.getMethodName()
-                    .equals("<init>")) {
-                constructor.setTestCandidateList(testCandidateMetadata);
+            MethodCallExpression methodInfo = testCandidateMetadata.getMainMethod();
+            if (methodInfo.getMethodName().equals("<init>")
+                    && methodInfo.getReturnValue().getType().equals(testCandidateMetadata.getTestSubject().getType())
+            ) {
                 hasTargetInstanceClassConstructor = true;
-            } else {
-                addMetadata(testCandidateMetadata);
             }
+            addMetadata(testCandidateMetadata);
         }
         if (!hasTargetInstanceClassConstructor) {
             TestCandidateMetadata newTestCaseMetadata = new TestCandidateMetadata();
-            MethodCallExpression constructorMethod = new MethodCallExpression("<init>", testSubject, List.of(),
+            MethodCallExpression constructorMethod = new MethodCallExpression("<init>", testSubject,
+                    Collections.emptyList(),
                     testSubject, 0);
             constructorMethod.setMethodAccess(1);
             newTestCaseMetadata.setMainMethod(constructorMethod);
             newTestCaseMetadata.setTestSubject(testSubject);
-            newTestCaseMetadata.setFields(VariableContainer.from(List.of()));
+            newTestCaseMetadata.setFields(VariableContainer.from(Collections.emptyList()));
             constructor.setTestCandidateList(newTestCaseMetadata);
         }
 
@@ -122,8 +120,7 @@ public class ObjectRoutineContainer {
     }
 
     public void addMetadata(TestCandidateMetadata newTestCaseMetadata) {
-        if (((MethodCallExpression) (newTestCaseMetadata.getMainMethod())).getMethodName()
-                .equals("<init>")) {
+        if (newTestCaseMetadata.getMainMethod().getMethodName().equals("<init>")) {
             constructor.addMetadata(newTestCaseMetadata);
         } else {
             currentRoutine.addMetadata(newTestCaseMetadata);
@@ -144,17 +141,13 @@ public class ObjectRoutineContainer {
 //                    .collect(Collectors.toList());
 
             for (TestCandidateMetadata metadata : objectRoutine.getTestCandidateList()) {
-                Expression mainMethod = metadata.getMainMethod();
-                if (mainMethod instanceof MethodCallExpression) {
-                    List<Parameter> variables = extractVariableOfType(className, (MethodCallExpression) mainMethod);
-                    dependentImports.addAll(variables);
-                }
+                MethodCallExpression mainMethod = metadata.getMainMethod();
+                List<Parameter> mainMethodVariables = extractVariableOfType(className, mainMethod);
+                dependentImports.addAll(mainMethodVariables);
 
                 for (MethodCallExpression methodCallExpression : metadata.getCallsList()) {
-                    if (mainMethod instanceof MethodCallExpression) {
-                        List<Parameter> variables = extractVariableOfType(className, methodCallExpression);
-                        dependentImports.addAll(variables);
-                    }
+                    List<Parameter> variables = extractVariableOfType(className, methodCallExpression);
+                    dependentImports.addAll(variables);
                 }
             }
         }
@@ -210,23 +203,32 @@ public class ObjectRoutineContainer {
 
         ObjectRoutine constructorRoutine = getConstructor();
         ObjectRoutineScript builderMethodScript = constructorRoutine
-                .toObjectRoutineScript(generationConfiguration, testGenerationState, sessionInstance, fieldsContainer.clone());
-
-        @NotNull List<Parameter> constructorNonPojoParams =
-                ObjectRoutine.getNonPojoParameters(constructorRoutine.getTestCandidateList(), sessionInstance);
-
-        container.getObjectRoutines().add(builderMethodScript);
+                .toObjectRoutineScript(generationConfiguration, testGenerationState, sessionInstance,
+                        fieldsContainer.clone());
 
         builderMethodScript.setRoutineName("setup");
         builderMethodScript.addAnnotation(generationConfiguration.getTestBeforeAnnotationType());
         builderMethodScript.addException(Exception.class);
         builderMethodScript.addModifiers(Modifier.PUBLIC);
 
+
+        if (!generationConfiguration.useMockitoAnnotations()) {
+            container.getObjectRoutines().add(builderMethodScript);
+        }
+
+
+        @NotNull List<Parameter> constructorNonPojoParams =
+                ObjectRoutine.getNonPojoParameters(constructorRoutine.getTestCandidateList(), sessionInstance);
+
+
         for (Parameter parameter : fieldsContainer.all()) {
             container.addField(parameter);
         }
-        for (Parameter parameter : constructorNonPojoParams) {
-            container.addField(parameter);
+
+        if (!generationConfiguration.useMockitoAnnotations()) {
+            for (Parameter parameter : constructorNonPojoParams) {
+                container.addField(parameter);
+            }
         }
 
 
@@ -244,36 +246,36 @@ public class ObjectRoutineContainer {
         testUtilClassSubject.setType("io.unlogged.UnloggedTestUtils");
         testUtilClassSubject.setName("UnloggedTestUtils");
 
-        for (Parameter parameter : fieldsContainer.all()) {
+        if (!generationConfiguration.useMockitoAnnotations()) {
+            for (Parameter parameter : fieldsContainer.all()) {
 
-            if (constructorNonPojoParams.stream()
-                    .anyMatch(e -> e.getValue() == parameter.getValue())) {
-                continue;
+                if (constructorNonPojoParams.stream().anyMatch(e -> e.getValue() == parameter.getValue())) {
+                    continue;
+                }
+
+                classVariableContainer.add(parameter);
+                MethodCallExpression injectMethodCall = new MethodCallExpression(
+                        "injectField", testUtilClassSubject, Arrays.asList(mainSubject, parameter),
+                        null, 0);
+                injectMethodCall.setStaticCall(true);
+                PendingStatement.in(builderMethodScript, testGenerationState)
+                        .writeExpression(injectMethodCall)
+                        .endStatement();
+
             }
-
-            classVariableContainer.add(parameter);
-            MethodCallExpression injectMethodCall = new MethodCallExpression(
-                    "injectField", testUtilClassSubject,
-                    List.of(mainSubject, parameter), null, 0);
-            injectMethodCall.setStaticCall(true);
-            PendingStatement.in(builderMethodScript, testGenerationState)
-                    .writeExpression(injectMethodCall)
-                    .endStatement();
 
         }
 
         Map<String, Parameter> staticMocks = new HashMap<>();
         for (ObjectRoutine objectRoutine : this.objectRoutines) {
-            if (objectRoutine.getRoutineName()
-                    .equals("<init>")) {
+            if (objectRoutine.getRoutineName().equals("<init>")) {
                 continue;
             }
 
             ObjectRoutineScript objectScript =
-                    objectRoutine.toObjectRoutineScript(
-                            generationConfiguration, testGenerationState, sessionInstance, fieldsContainer.clone());
-            container.getObjectRoutines()
-                    .add(objectScript);
+                    objectRoutine.toObjectRoutineScript(generationConfiguration, testGenerationState, sessionInstance,
+                            fieldsContainer.clone());
+            container.getObjectRoutines().add(objectScript);
 
             List<Parameter> staticMockList = objectScript.getStaticMocks();
             for (Parameter staticMock : staticMockList) {
@@ -284,12 +286,14 @@ public class ObjectRoutineContainer {
             }
 
 
-            String testMethodName = ((MethodCallExpression) objectRoutine.getTestCandidateList()
-                    .get(objectRoutine.getTestCandidateList()
-                            .size() - 1)
-                    .getMainMethod()).getMethodName();
-
-            container.setTestMethodName(testMethodName);
+            if (testMethodName != null) {
+                container.setTestMethodName(testMethodName);
+            } else {
+                String testMethodNameFromMethod = objectRoutine.getTestCandidateList()
+                        .get(objectRoutine.getTestCandidateList().size() - 1)
+                        .getMainMethod().getMethodName();
+                container.setTestMethodName(testMethodNameFromMethod);
+            }
         }
 
         for (Parameter staticMock : staticMocks.values()) {
@@ -307,16 +311,13 @@ public class ObjectRoutineContainer {
 
             PendingStatement.in(builderMethodScript, testGenerationState)
                     .assignVariable(staticMock)
-                    .writeExpression(
-                            MethodCallExpressionFactory.MockStaticClass(
-                                    ClassName.bestGuess(staticMock.getTemplateMap()
-                                            .get(0)
-                                            .getType()),
-                                    generationConfiguration))
+                    .writeExpression(MethodCallExpressionFactory.MockStaticClass(
+                            ClassName.bestGuess(staticMock.getTemplateMap().get(0).getType()),
+                            generationConfiguration))
                     .endStatement();
         }
 
-        if (staticMocks.size() > 0) {
+        if (staticMocks.size() > 0 && !generationConfiguration.useMockitoAnnotations()) {
             // For setting the method with @After / @AfterEach Annotation
             VariableContainer finishedVariableContainer = new VariableContainer();
             ObjectRoutineScript afterEachMethodScript = new ObjectRoutineScript(finishedVariableContainer,
@@ -331,16 +332,13 @@ public class ObjectRoutineContainer {
             // Close Static Mock functions
             for (Parameter staticMock : staticMocks.values()) {
                 PendingStatement.in(afterEachMethodScript, testGenerationState)
-                        .writeExpression(
-                                MethodCallExpressionFactory.CloseStaticMock(staticMock))
+                        .writeExpression(MethodCallExpressionFactory.CloseStaticMock(staticMock))
                         .endStatement();
             }
 
             // Only add to test file only if the @AfterEach is not empty statements
-            if (afterEachMethodScript.getStatements()
-                    .size() > 0) {
-                container.getObjectRoutines()
-                        .add(afterEachMethodScript);
+            if (afterEachMethodScript.getStatements().size() > 0) {
+                container.getObjectRoutines().add(afterEachMethodScript);
             }
         }
 
@@ -349,49 +347,37 @@ public class ObjectRoutineContainer {
 
     @NotNull
     public Set<? extends Parameter> collectFieldsFromRoutines() {
+
         Set<Parameter> fieldParametersFromAllCandidates = getObjectRoutines().stream()
                 .map(ObjectRoutine::getTestCandidateList)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(e -> e.getFields()
-                        .all())
+                .filter(e -> e.getTestSubject().getValue() == testSubject.getValue())
+                .map(e -> e.getFields().all())
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
 
         Set<Parameter> fields = new HashSet<>();
 
         for (Parameter fieldParameter : fieldParametersFromAllCandidates) {
-            boolean isPresent = false;
-
-            Optional<MethodCallExpression> foundUsage = getObjectRoutines()
-                    .stream()
-                    .map(ObjectRoutine::getTestCandidateList)
-                    .flatMap(Collection::stream)
-                    .map(TestCandidateMetadata::getCallsList)
-                    .flatMap(Collection::stream)
-                    .filter(e -> e.getSubject()
-                            .getValue() == fieldParameter.getValue())
-                    .findAny();
-            if (foundUsage.isEmpty()) {
-                // field is not actually used anywhere, so we dont want to create it
-                continue;
-            }
-
-
-//            for (Parameter tempP : fields) {
-//                if (tempP.getValue() == fieldParameter.getValue() && tempP.getType()
-//                        .equals(fieldParameter.getType())
-//                        && tempP.getTemplateMap()
-//                        .toString()
-//                        .equals(fieldParameter.getTemplateMap()
-//                                .toString())) {
-//                    isPresent = true;
-//                    break;
-//                }
+//            boolean isPresent = false;
+//
+//            Optional<MethodCallExpression> foundUsage = getObjectRoutines()
+//                    .stream()
+//                    .map(ObjectRoutine::getTestCandidateList)
+//                    .flatMap(Collection::stream)
+//                    .map(TestCandidateMetadata::getCallsList)
+//                    .flatMap(Collection::stream)
+//                    .filter(e -> e.getSubject().getValue() == fieldParameter.getValue())
+//                    .findAny();
+//            if (!foundUsage.isPresent()) {
+//                // field is not actually used anywhere, so we dont want to create it
+//                continue;
 //            }
-            if (!isPresent) {
-                fields.add(fieldParameter);
-            }
+
+//            if (!isPresent) {
+            fields.add(fieldParameter);
+//            }
         }
 
         return fields;

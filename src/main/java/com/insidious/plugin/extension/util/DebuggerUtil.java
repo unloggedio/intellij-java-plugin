@@ -37,17 +37,6 @@ import java.util.*;
 public class DebuggerUtil {
     private static final Logger logger = LoggerUtil.getInstance(DebuggerUtil.class);
 
-    public static <T> List<List<T>> partition(List<T> list, int size) {
-        List<List<T>> res = new ArrayList<>();
-        int loaded = 0, total = list.size();
-        while (loaded < total) {
-            int chunkSize = Math.min(size, total - loaded);
-            res.add(list.subList(loaded, loaded + chunkSize));
-            loaded += chunkSize;
-        }
-        return res;
-    }
-
 
     public static boolean methodMatches(@NotNull Method m, @NotNull String name, @NotNull String signature) {
         return (name.equals(m.name()) && signature.equals(m.signature()));

@@ -35,66 +35,66 @@ class DatabasePipe implements Runnable {
 
     @Override
     public void run() {
-        isRunning = true;
-        try {
-            while (!stop) {
-                Parameter param;
-                try {
-                    param = parameterQueue.poll(1, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    logger.warn("database pipe interrupted - " + e.getMessage());
-                    throw new RuntimeException(e);
-                }
-
-                if (dataInfoList.size() > 0) {
-                    Collection<DataInfo> saving = new LinkedList<>();
-                    dataInfoList.removeAll(saving);
-                    daoService.createOrUpdateProbeInfo(saving);
-                }
-
-                if (eventsToSave.size() > 0) {
-                    Collection<DataEventWithSessionId> saving = new LinkedList<>();
-                    eventsToSave.removeAll(saving);
-                    daoService.createOrUpdateDataEvent(saving);
-                }
-
-                if (param == null) {
-                    continue;
-                }
-                List<Parameter> batch = new LinkedList<>();
-                parameterQueue.drainTo(batch);
-                batch.add(param);
-                logger.warn("Saving " + batch.size() + " parameters");
-                daoService.createOrUpdateParameter(batch);
-            }
-
-        } finally {
-            isRunning = false;
-        }
-        isSaving.offer(true);
+//        isRunning = true;
+//        try {
+//            while (!stop) {
+//                Parameter param;
+//                try {
+//                    param = parameterQueue.poll(1, TimeUnit.SECONDS);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                    logger.warn("database pipe interrupted - " + e.getMessage());
+//                    throw new RuntimeException(e);
+//                }
+//
+//                if (dataInfoList.size() > 0) {
+//                    Collection<DataInfo> saving = new LinkedList<>();
+//                    dataInfoList.removeAll(saving);
+//                    daoService.createOrUpdateProbeInfo(saving);
+//                }
+//
+//                if (eventsToSave.size() > 0) {
+//                    Collection<DataEventWithSessionId> saving = new LinkedList<>();
+//                    eventsToSave.removeAll(saving);
+//                    daoService.createOrUpdateDataEvent(saving);
+//                }
+//
+//                if (param == null) {
+//                    continue;
+//                }
+//                List<Parameter> batch = new LinkedList<>();
+//                parameterQueue.drainTo(batch);
+//                batch.add(param);
+//                logger.warn("Saving " + batch.size() + " parameters");
+//                daoService.createOrUpdateParameter(batch);
+//            }
+//
+//        } finally {
+//            isRunning = false;
+//        }
+//        isSaving.offer(true);
     }
 
     public void close() throws InterruptedException {
-        if (isRunning) {
-            stop = true;
-            isSaving.take();
-        }
-        logger.warn("saving after close");
-        List<Parameter> batch = new LinkedList<>();
-        parameterQueue.drainTo(batch);
-        daoService.createOrUpdateParameter(batch);
-        if (dataInfoList.size() > 0) {
-            Collection<DataInfo> saving = new LinkedList<>();
-            dataInfoList.removeAll(saving);
-            daoService.createOrUpdateProbeInfo(saving);
-        }
-
-        if (eventsToSave.size() > 0) {
-            Collection<DataEventWithSessionId> saving = new LinkedList<>();
-            eventsToSave.removeAll(saving);
-            daoService.createOrUpdateDataEvent(saving);
-        }
+//        if (isRunning) {
+//            stop = true;
+//            isSaving.take();
+//        }
+//        logger.warn("saving after close");
+//        List<Parameter> batch = new LinkedList<>();
+//        parameterQueue.drainTo(batch);
+//        daoService.createOrUpdateParameter(batch);
+//        if (dataInfoList.size() > 0) {
+//            Collection<DataInfo> saving = new LinkedList<>();
+//            dataInfoList.removeAll(saving);
+//            daoService.createOrUpdateProbeInfo(saving);
+//        }
+//
+//        if (eventsToSave.size() > 0) {
+//            Collection<DataEventWithSessionId> saving = new LinkedList<>();
+//            eventsToSave.removeAll(saving);
+//            daoService.createOrUpdateDataEvent(saving);
+//        }
 
     }
 

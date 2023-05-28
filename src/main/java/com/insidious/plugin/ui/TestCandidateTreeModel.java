@@ -31,10 +31,11 @@ public class TestCandidateTreeModel implements TreeModel {
         this.sessionInstance = sessionInstance;
         this.testGenerationConfiguration = testGenerationConfiguration;
         String testSubjectType = selectedCandidate.getTestSubject().getType();
-        MethodCallExpression mainMethod = (MethodCallExpression) selectedCandidate.getMainMethod();
+        MethodCallExpression mainMethod = selectedCandidate.getMainMethod();
         this.rootNode = createRootNode(testSubjectType, mainMethod);
 
-        List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesUntil(selectedCandidate.getTestSubject().getValue(),
+        List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesUntil(
+                selectedCandidate.getTestSubject().getValue(),
                 selectedCandidate.getEntryProbeIndex(), mainMethod.getId(), false);
 
         for (TestCandidateMetadata candidate : candidates) {
@@ -138,7 +139,8 @@ public class TestCandidateTreeModel implements TreeModel {
         }
 
         text.append("• Using the checkboxes on the left, select the methods to assert.\n");
-        text.append("• Using the checkboxes in the dropdown, select the calls to mock so that the parent method can be tested.\n\n");
+        text.append(
+                "• Using the checkboxes in the dropdown, select the calls to mock so that the parent method can be tested.\n\n");
 
         return text.toString();
     }

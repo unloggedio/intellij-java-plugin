@@ -6,7 +6,9 @@ import com.insidious.plugin.util.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -21,13 +23,13 @@ public class Parameter {
      * Value is either a long number or a string value if the value was actually a Ljava/lang/String
      */
     @DatabaseField(id = true)
-    Long value;
+    long value;
     @DatabaseField
     String type;
     @DatabaseField
     boolean exception;
     @DatabaseField
-    long prob_id;
+    long eventId;
     /**
      * name should be a valid java variable name. this will be used inside the generated test cases
      */
@@ -42,10 +44,13 @@ public class Parameter {
         if (e == null) {
             return null;
         }
+        if (e.getValue() == 0) {
+            return new Parameter();
+        }
         Parameter newParam = new Parameter();
         newParam.setContainer(e.isContainer());
         newParam.setException(e.isException());
-        newParam.setProb_id(e.getProb());
+        newParam.setEventId(e.getProb());
         newParam.setType(e.getType());
         List<com.insidious.plugin.pojo.Parameter> templateMap1 = e.getTemplateMap();
         List<Parameter> transformedTemplateMap = new ArrayList<>();
@@ -117,7 +122,7 @@ public class Parameter {
                         (type == null ? "" : "new " + type.substring(type.lastIndexOf('.') + 1) + "(); // ") +
                         "{" + "value=" + value +
                         ", probeInfo=" + probeInfo_id +
-                        ", prob=" + prob_id +
+                        ", prob=" + eventId +
                         '}';
     }
 
@@ -147,7 +152,7 @@ public class Parameter {
         this.names = Strings.join(names.stream().filter(e -> e.length() > 1).collect(Collectors.toList()), ",");
     }
 
-    public Long getValue() {
+    public long getValue() {
         return value;
     }
 
@@ -155,12 +160,12 @@ public class Parameter {
         this.value = value;
     }
 
-    public long getProb_id() {
-        return prob_id;
+    public long getEventId() {
+        return eventId;
     }
 
-    public void setProb_id(DataEventWithSessionId prob_id) {
-        this.prob_id = prob_id.getNanoTime();
+    public void setEventId(DataEventWithSessionId dataEvent) {
+        this.eventId = dataEvent.getEventId();
     }
 
     public int getProbeInfo_id() {
@@ -178,13 +183,13 @@ public class Parameter {
 
         Parameter parameter = (Parameter) o;
 
-        if (value != null ? !value.equals(parameter.value) : parameter.value != null) return false;
+        if (value != parameter.value) return false;
         return type != null ? type.equals(parameter.type) : parameter.type == null;
     }
 
     @Override
     public int hashCode() {
-        int result = value != null ? value.hashCode() : 0;
+        int result = (int) value;
         result = 31 * result + (type != null ? type.hashCode() : 0);
         return result;
     }

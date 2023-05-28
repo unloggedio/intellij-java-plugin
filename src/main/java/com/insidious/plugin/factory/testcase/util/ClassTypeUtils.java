@@ -1,11 +1,16 @@
 package com.insidious.plugin.factory.testcase.util;
 
-import com.insidious.common.weaver.DataInfo;
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParseResult;
+import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.ast.type.Type;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -13,6 +18,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ClassTypeUtils {
+
+    private static final JavaParser javaParser = new JavaParser(new ParserConfiguration());
 
     public static String upperInstanceName(String methodName) {
         return methodName.substring(0, 1)
@@ -183,52 +190,78 @@ public class ClassTypeUtils {
             return returnValueSquareClass;
         }
 
-        TypeName returnParamType = getClassFromDescriptor(typeName);
-        if (returnParamType != null && typeName.endsWith("[]")) {
-            return ArrayTypeName.of(returnParamType);
+        TypeName returnParamType = getTypeNameFromDescriptor(typeName);
+        while (returnParamType != null && typeName.contains("[]")) {
+            typeName = typeName.substring(typeName.indexOf("[]") + 2);
+            returnParamType = ArrayTypeName.of(returnParamType);
         }
 
         return returnParamType;
     }
 
-    private static TypeName constructClassName(String methodReturnValueType) {
-        char firstChar = methodReturnValueType.charAt(0);
+    public static TypeName createTypeFromTypeDeclaration(String templateParameterType) {
+        TypeName parameterClassName;
+        if (templateParameterType.contains("<")) {
+            ParseResult<ClassOrInterfaceType> parsedJavaTypeDeclaration =
+                    javaParser.parseClassOrInterfaceType(
+                            templateParameterType);
+
+            ClassOrInterfaceType parseResult = parsedJavaTypeDeclaration.getResult().get();
+            String rawClassName = parseResult.getNameWithScope();
+            NodeList<Type> typeArguments = parseResult.getTypeArguments().get();
+            TypeName[] typeArgumentsArray = new TypeName[typeArguments.size()];
+            for (int j = 0; j < typeArguments.size(); j++) {
+                Type typeArgument = typeArguments.get(j);
+                typeArgumentsArray[j] = createTypeFromTypeDeclaration(typeArgument.asClassOrInterfaceType().getNameWithScope());
+            }
+
+
+            parameterClassName =
+                    ParameterizedTypeName.get(ClassName.bestGuess(rawClassName), typeArgumentsArray);
+        } else {
+            parameterClassName = ClassName.bestGuess(templateParameterType);
+        }
+        return parameterClassName;
+    }
+
+
+    private static TypeName constructClassName(String typeName) {
+        char firstChar = typeName.charAt(0);
         switch (firstChar) {
             case 'V':
-                return ClassName.get(void.class);
+                return TypeName.get(void.class);
             case 'Z':
-                return ClassName.get(boolean.class);
+                return TypeName.get(boolean.class);
             case 'B':
-                return ClassName.get(byte.class);
+                return TypeName.get(byte.class);
             case 'C':
-                return ClassName.get(char.class);
+                return TypeName.get(char.class);
             case 'S':
-                return ClassName.get(short.class);
+                return TypeName.get(short.class);
             case 'I':
-                return ClassName.get(int.class);
+                return TypeName.get(int.class);
             case 'J':
-                return ClassName.get(long.class);
+                return TypeName.get(long.class);
             case 'F':
-                return ClassName.get(float.class);
+                return TypeName.get(float.class);
             case 'D':
-                return ClassName.get(double.class);
+                return TypeName.get(double.class);
             case 'L':
-                String returnValueClass = methodReturnValueType.substring(1)
+                String returnValueClass = typeName.substring(1)
                         .split(";")[0];
                 return ClassName.bestGuess(returnValueClass.replace("/", "."));
             case '[':
 //                String returnValueClass1 = methodReturnValueType.substring(1);
-                return ArrayTypeName.of(constructClassName(methodReturnValueType.substring(1)));
-
+                return ArrayTypeName.of(constructClassName(typeName.substring(1)));
             default:
-                assert false;
+                return ClassName.bestGuess(typeName);
 
         }
 //        assert false;
-        return null;
+//        return null;
     }
 
-    private static TypeName getClassFromDescriptor(String descriptor) {
+    private static TypeName getTypeNameFromDescriptor(String descriptor) {
         char firstChar = descriptor.charAt(0);
         switch (firstChar) {
             case 'V':
@@ -249,6 +282,33 @@ public class ClassTypeUtils {
                 return TypeName.FLOAT;
             case 'D':
                 return TypeName.DOUBLE;
+        }
+        if (descriptor.startsWith("byte")) {
+            return TypeName.BYTE;
+        }
+        if (descriptor.startsWith("boolean")) {
+            return TypeName.BOOLEAN;
+        }
+        if (descriptor.startsWith("long")) {
+            return TypeName.LONG;
+        }
+        if (descriptor.startsWith("float")) {
+            return TypeName.FLOAT;
+        }
+        if (descriptor.startsWith("short")) {
+            return TypeName.SHORT;
+        }
+        if (descriptor.startsWith("int")) {
+            return TypeName.INT;
+        }
+        if (descriptor.startsWith("double")) {
+            return TypeName.DOUBLE;
+        }
+        if (descriptor.startsWith("void")) {
+            return TypeName.VOID;
+        }
+        if (descriptor.startsWith("char")) {
+            return TypeName.CHAR;
         }
         return null;
 

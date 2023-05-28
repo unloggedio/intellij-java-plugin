@@ -1,5 +1,6 @@
 package com.insidious.plugin.pojo;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.MethodInfo;

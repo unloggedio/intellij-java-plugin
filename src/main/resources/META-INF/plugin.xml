@@ -7,15 +7,25 @@
 
     <description>
         <![CDATA[
-            Unlogged records code execution and auto generates unit tests for your JAVA code.
-            Developers spend ~2 hours every day writing unit tests, and we aim to help developers save this time.
-              <br/>
-            Install this plugin, and run your APIs. Unlogged will record the code execution as it happens.
-              <br/>
-            Click “Process Logs”, Unlogged will present test candidates to you.
-              <br/>
-            These test candidates show the input and return value of each method.
-            Click  "Assert Equal" to generate positive test cases or "Assert Not Equal" to generate negative test cases instantly.
+            The ultimate tool for Java developers who want to speed up their testing workflow. <br />
+            With Unlogged automated test case generator, you can instantly generate JUnit and Mockito test case boilerplate for any method in your codebase. <br />
+
+            <ul>
+            <li>Generate test case boilerplate instantly as you navigate to a method</li>
+            <li>Mock method calls in test cases <pre>when(some.Method()).then(answer))</pre></li>
+            <li>Support @Mock/@MockExtension for Mockito</li>
+            <li>JUnit4 and JUnit 5 flavours</li>
+            </ul>
+
+            Simply open the Unlogged plugin and navigate to the method you want to test in your editor.
+            Then, with just a few clicks, Unlogged test generator will create a complete test case for you,
+            including all necessary imports, annotations, and method stubs. <br /> <br />
+
+            But that's not all. Save the test case with one click and easily navigate to the generated test case
+             and start writing your test code right away.
+            No more wasting time setting up your testing environment - Unlogged test generator does it all for you.  <br /> <br />
+
+            Download Unlogged today and start writing better tests in less time.  <br />
         ]]>
     </description>
 
@@ -24,6 +34,7 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.xdebugger</depends>
     <depends>com.intellij.modules.java</depends>
+    <depends>org.jetbrains.kotlin</depends>
     <depends>org.jetbrains.idea.maven</depends>
     <depends>org.jetbrains.plugins.gradle</depends>
     <depends>org.jetbrains.plugins.gradle.maven</depends>
@@ -34,19 +45,19 @@
             <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F9"/>
         </action>
 
-        <action icon="AllIcons.Actions.Back" text="Step Back" id="Debugger.ReverseResume"
-                class="com.insidious.plugin.actions.JumpBack">
-            <add-to-group relative-to-action="StepOver" group-id="XDebugger.ToolWindow.TopToolbar" anchor="before"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="alt R" second-keystroke="F9"/>
-        </action>
+        <!--        <action icon="AllIcons.Actions.Back" text="Step Back" id="Debugger.ReverseResume"-->
+        <!--                class="com.insidious.plugin.actions.JumpBack">-->
+        <!--            <add-to-group relative-to-action="StepOver" group-id="XDebugger.ToolWindow.TopToolbar" anchor="before"/>-->
+        <!--            <keyboard-shortcut keymap="$default" first-keystroke="alt R" second-keystroke="F9"/>-->
+        <!--        </action>-->
 
 
-        <group id="Demo.BackStatement" text="Go back in time using this" description="Jump backwards using this button">
-            <add-to-group group-id="MainToolBar" anchor="last"/>
-            <action class="com.insidious.plugin.actions.JumpBack" description="Test Description" id="jumpBack"
-                    text="Jump Back"
-                    icon="AllIcons.Actions.Back"/>
-        </group>
+        <!--        <group id="Demo.BackStatement" text="Go back in time using this" description="Jump backwards using this button">-->
+        <!--            <add-to-group group-id="MainToolBar" anchor="last"/>-->
+        <!--            <action class="com.insidious.plugin.actions.JumpBack" description="Test Description" id="jumpBack"-->
+        <!--                    text="Jump Back"-->
+        <!--                    icon="AllIcons.Actions.Back"/>-->
+        <!--        </group>-->
 
         <!--        <group id="Demo.NextStatement" text="Go Forward in time using this"-->
         <!--               description="Jump forward using this button">-->
@@ -61,13 +72,28 @@
     <extensions defaultExtensionNs="com.intellij">
         <!--        <notificationGroup id="com.insidious" displayType="BALLOON"/>-->
         <!--        <postStartupActivity implementation="com.insidious.plugin.factory.InsidiousService"/>-->
-        <toolWindow id="Unlogged" secondary="false" icon="/icons/png/logo_unlogged.png" anchor="bottom"
+        <toolWindow id="Unlogged" canCloseContents="false" secondary="false" icon="/icons/png/logo_unlogged.png"
+                    anchor="right"
                     factoryClass="com.insidious.plugin.factory.DebuggerFactory"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
-        <programRunner implementation="com.insidious.plugin.extension.InsidiousProgramRunner"/>
-        <configurationType implementation="com.insidious.plugin.extension.InsidiousRunConfigType"/>
-        <executor implementation="com.insidious.plugin.extension.InsidiousExecutor"/>
+        <!--        <programRunner implementation="com.insidious.plugin.extension.InsidiousProgramRunner"/>-->
+        <!--        <configurationType implementation="com.insidious.plugin.extension.InsidiousRunConfigType"/>-->
+        <!--        <executor implementation="com.insidious.plugin.extension.InsidiousExecutor"/>-->
     </extensions>
 
+    <extensions defaultExtensionNs="com.intellij">
+        <codeInsight.lineMarkerProvider
+                language="JAVA"
+                implementationClass="com.insidious.plugin.ui.highlighter.LineHighlighter"/>
+        <codeInsight.lineMarkerProvider
+                language="kotlin"
+                implementationClass="com.insidious.plugin.ui.highlighter.KotlinLineHighlighter"/>
+        <codeInsight.inlayProvider implementationClass="com.insidious.plugin.inlay.InsidiousInlayHintsProvider"
+                                   language="JAVA"/>
+    </extensions>
+    <projectListeners>
+        <listener class="com.insidious.plugin.factory.InsidiousService"
+                  topic="com.intellij.openapi.vcs.BranchChangeListener"/>
+    </projectListeners>
 </idea-plugin>

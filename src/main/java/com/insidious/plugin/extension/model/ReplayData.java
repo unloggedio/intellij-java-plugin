@@ -96,7 +96,7 @@ public class ReplayData {
         paginationOlder.setBufferSize(0);
         FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
         filterRequest.setThreadId(event.getThreadId());
-        filterRequest.setNanotime(event.getNanoTime());
+        filterRequest.setNanotime(event.getEventId());
         filterRequest.setPageInfo(paginationOlder);
         return client.fetchObjectHistoryByObjectId(filterRequest);
     }
@@ -107,7 +107,7 @@ public class ReplayData {
         pageNext.setBufferSize(0);
         FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
         filterRequest.setThreadId(event.getThreadId());
-        filterRequest.setNanotime(event.getNanoTime());
+        filterRequest.setNanotime(event.getEventId());
         filterRequest.setPageInfo(pageNext);
         return client.fetchObjectHistoryByObjectId(filterRequest);
     }
@@ -148,7 +148,7 @@ public class ReplayData {
         Integer searchRequestCallStack = scanRequest.getCallStack();
 
         DataEventWithSessionId firstEvent = dataEvents.get(callReturnIndex);
-        DataInfo probeInfo = probeInfoMap.get(firstEvent.getDataId());
+        DataInfo probeInfo = probeInfoMap.get(firstEvent.getProbeId());
         ClassInfo firstClass = classInfoMap.get(Long.valueOf(probeInfo.getClassId()));
         TypeInfo typeInfo = getTypeInfoByName(firstClass.getClassName());
         List<String> typeLadder = buildHierarchyFromType(typeInfo);
@@ -159,7 +159,7 @@ public class ReplayData {
             Set<EventType> matchUntilEvent = scanRequest.getMatchUntilEvent();
             while (callReturnIndex > -1 && callReturnIndex < dataEvents.size()) {
                 DataEventWithSessionId event = dataEvents.get(callReturnIndex);
-                probeInfo = probeInfoMap.get(event.getDataId());
+                probeInfo = probeInfoMap.get(event.getProbeId());
                 EventType eventType = probeInfo.getEventType();
                 ClassInfo classInfo = classInfoMap.get(Long.valueOf(probeInfo.getClassId()));
                 boolean stackMatch = callStack == 0;
@@ -208,7 +208,7 @@ public class ReplayData {
                 Set<EventType> matchUntilEvent = scanRequest.getMatchUntilEvent();
                 while (callReturnIndex > -1 && callReturnIndex < dataEvents.size()) {
                     DataEventWithSessionId event = dataEvents.get(callReturnIndex);
-                    probeInfo = probeInfoMap.get(event.getDataId());
+                    probeInfo = probeInfoMap.get(event.getProbeId());
                     EventType eventType = probeInfo.getEventType();
 
                     scanRequest.onAllEvent(callStack, callReturnIndex);
@@ -239,7 +239,7 @@ public class ReplayData {
                 Set<EventType> matchUntilEvent = scanRequest.getMatchUntilEvent();
                 while (callReturnIndex > -1 && callReturnIndex < dataEvents.size()) {
                     DataEventWithSessionId event = dataEvents.get(callReturnIndex);
-                    probeInfo = probeInfoMap.get(event.getDataId());
+                    probeInfo = probeInfoMap.get(event.getProbeId());
                     EventType eventType = probeInfo.getEventType();
 
                     if (callStack == 0 && matchUntilEvent.contains(eventType) || scanRequest.isAborted()) {
@@ -304,7 +304,7 @@ public class ReplayData {
         Integer searchRequestCallStack = scanRequest.getCallStack();
 
         DataEventWithSessionId firstEvent = dataEvents.get(callReturnIndex);
-        DataInfo probeInfo = probeInfoMap.get(firstEvent.getDataId());
+        DataInfo probeInfo = probeInfoMap.get(firstEvent.getProbeId());
         ClassInfo firstClass = classInfoMap.get(Long.valueOf(probeInfo.getClassId()));
         TypeInfo typeInfo = getTypeInfoByName(firstClass.getClassName());
         List<String> typeLadder = buildHierarchyFromType(typeInfo);
@@ -313,7 +313,7 @@ public class ReplayData {
         Set<EventType> matchUntilEvent = scanRequest.getMatchUntilEvent();
         while (callReturnIndex > -1 && callReturnIndex < dataEvents.size()) {
             DataEventWithSessionId event = dataEvents.get(callReturnIndex);
-            probeInfo = probeInfoMap.get(event.getDataId());
+            probeInfo = probeInfoMap.get(event.getProbeId());
             EventType eventType = probeInfo.getEventType();
             ClassInfo classInfo = classInfoMap.get(Long.valueOf(probeInfo.getClassId()));
             boolean stackMatch = callStack == 0;
@@ -501,7 +501,7 @@ public class ReplayData {
 
         while (callReturnIndex > -1 && callReturnIndex < dataEvents.size()) {
             DataEventWithSessionId event = dataEvents.get(callReturnIndex);
-            DataInfo probeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
+            DataInfo probeInfo = probeInfoMap.get(String.valueOf(event.getProbeId()));
             EventType eventType = probeInfo.getEventType();
             ClassInfo classInfo = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
             MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));

@@ -1,12 +1,9 @@
 package com.insidious.plugin.factory.testcase;
 
 import com.insidious.common.weaver.TypeInfo;
-import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.InsidiousNotification;
-import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.mock.MockFactory;
@@ -17,8 +14,11 @@ import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.TestCaseUnit;
-import com.insidious.plugin.ui.RefreshButtonStateManager;
+import com.insidious.plugin.pojo.frameworks.JsonFramework;
+import com.insidious.plugin.pojo.frameworks.MockFramework;
+import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
@@ -28,11 +28,9 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiField;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.search.GlobalSearchScope;
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
@@ -41,85 +39,95 @@ import javax.lang.model.element.Modifier;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class TestCaseService implements Runnable {
+public class TestCaseService {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseService.class);
     private final SessionInstance sessionInstance;
     private final Project project;
-    private boolean pauseCheckingForNewLogs;
-    private boolean isProcessing;
-    private RefreshButtonStateManager refreshButtonStateManager;
-
-    private boolean runThread = true;
 
     public TestCaseService(SessionInstance sessionInstance) {
         this.sessionInstance = sessionInstance;
         this.project = sessionInstance.getProject();
-//        this.sessionInstance.submitTask(this);
-    }
-
-    public void startRun() {
-        this.sessionInstance.submitTask(this);
-    }
-
-    public RefreshButtonStateManager getRefreshButtonStateManager() {
-        return refreshButtonStateManager;
-    }
-
-    public void setRefreshButtonStateManager(RefreshButtonStateManager refreshButtonStateManager) {
-        this.refreshButtonStateManager = refreshButtonStateManager;
     }
 
     @NotNull
-    private static TestCaseUnit buildTestUnitFromScript(
-            ObjectRoutineContainer objectRoutineContainer,
-            ObjectRoutineScriptContainer testCaseScript
-    ) {
+    private static TestCaseUnit
+    buildTestUnitFromScript(ObjectRoutineContainer objectRoutineContainer, ObjectRoutineScriptContainer testCaseScript) {
         String generatedTestClassName = "Test" + testCaseScript.getName() + "V";
 
-        TypeSpec.Builder typeSpecBuilder = TypeSpec
-                .classBuilder(generatedTestClassName)
-                .addModifiers(
-                        Modifier.PUBLIC,
-                        Modifier.FINAL
-                );
+        TestCaseGenerationConfiguration testGenerationConfig = objectRoutineContainer.getGenerationConfiguration();
+        TypeSpec.Builder testClassSpecBuilder = TypeSpec.classBuilder(generatedTestClassName)
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL);
+        if (testGenerationConfig.useMockitoAnnotations()
+                && testGenerationConfig.getMockFramework().equals(MockFramework.Mockito)
+        ) {
+            if (testGenerationConfig.getTestFramework().equals(TestFramework.JUnit4)) {
+                AnnotationSpec.Builder annotationSpec = AnnotationSpec.builder(
+                        ClassName.bestGuess("org.junit.runner.RunWith"));
+                annotationSpec.addMember("value", "$T.class",
+                        ClassName.bestGuess("org.mockito.junit.MockitoJUnitRunner"));
+                testClassSpecBuilder.addAnnotation(annotationSpec.build());
+            } else if (testGenerationConfig.getTestFramework().equals(TestFramework.JUnit5)) {
+                AnnotationSpec.Builder annotationSpec = AnnotationSpec.builder(
+                        ClassName.bestGuess("org.junit.jupiter.api.extension.ExtendWith"));
+                annotationSpec.addMember("value", "$T.class",
+                        ClassName.bestGuess("org.mockito.junit.jupiter.MockitoExtension"));
+                testClassSpecBuilder.addAnnotation(annotationSpec.build());
+            }
+        }
 
 
-        typeSpecBuilder.addField(testCaseScript.getTestGenerationState()
-                .toFieldSpec(objectRoutineContainer.getTestSubject())
-                .build());
+        FieldSpec.Builder testTargetSubjectField = testCaseScript
+                .getTestGenerationState()
+                .toFieldSpec(objectRoutineContainer.getTestSubject());
+        if (testGenerationConfig.useMockitoAnnotations()) {
+            testTargetSubjectField.addAnnotation(ClassName.bestGuess("org.mockito.InjectMocks"));
+        }
+
+        testClassSpecBuilder.addField(testTargetSubjectField.build());
+
         for (Parameter field : testCaseScript.getFields()) {
             if (field == null) {
                 continue;
             }
 
-            typeSpecBuilder.addField(testCaseScript.getTestGenerationState()
-                    .toFieldSpec(field)
-                    .build());
+            FieldSpec.Builder fieldBuilder = testCaseScript.getTestGenerationState().toFieldSpec(field);
+
+            if (testGenerationConfig.useMockitoAnnotations()) {
+                fieldBuilder.addAnnotation(ClassName.bestGuess("org.mockito.Mock"));
+            }
+
+            testClassSpecBuilder.addField(fieldBuilder.build());
+        }
+        if (testGenerationConfig.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE)) {
+
+            JsonFramework jsonFramework = testGenerationConfig.getJsonFramework();
+            ClassName jsonMapperClassName = ClassName.bestGuess(jsonFramework.getInstance().getType());
+            FieldSpec.Builder jsonMapperField = FieldSpec.builder(jsonMapperClassName, jsonFramework.getInstance().getName(),
+                    Modifier.PRIVATE);
+            jsonMapperField.initializer("new $T()", jsonMapperClassName);
+            testClassSpecBuilder.addField(jsonMapperField.build());
+
+
         }
 
 
-        logger.info("Convert test case script to methods with: " + testCaseScript.getObjectRoutines()
-                .size());
-        logger.info("Test case script: " + testCaseScript);
+        logger.info("Convert test case script to methods with: " + testCaseScript.getObjectRoutines().size());
+//        logger.info("Test case script: " + testCaseScript);
         for (ObjectRoutineScript objectRoutine : testCaseScript.getObjectRoutines()) {
-            if (objectRoutine.getName()
-                    .equalsIgnoreCase("<init>")) {
+            if (objectRoutine.getName().equalsIgnoreCase("<init>")) {
                 continue;
             }
-            MethodSpec methodSpec = objectRoutine.toMethodSpec()
-                    .build();
-            typeSpecBuilder.addMethod(methodSpec);
-        }
-
-//        typeSpecBuilder.addMethod(MethodSpecUtil.createInjectFieldMethod());
-
-        if (objectRoutineContainer.getVariablesOfType("okhttp3.")
-                .size() > 0) {
-            typeSpecBuilder.addMethod(MethodSpecUtil.createOkHttpMockCreator());
+            MethodSpec methodSpec = objectRoutine.toMethodSpec().build();
+            testClassSpecBuilder.addMethod(methodSpec);
         }
 
 
-        TypeSpec testClassSpec = typeSpecBuilder.build();
+        if (objectRoutineContainer.getVariablesOfType("okhttp3.").size() > 0) {
+            testClassSpecBuilder.addMethod(MethodSpecUtil.createOkHttpMockCreator());
+        }
+
+
+        TypeSpec testClassSpec = testClassSpecBuilder.build();
 
         JavaFile javaFile = JavaFile.builder(objectRoutineContainer.getPackageName(), testClassSpec)
                 .addStaticImport(ClassName.bestGuess("org.mockito.ArgumentMatchers"), "*")
@@ -136,28 +144,22 @@ public class TestCaseService implements Runnable {
 
             eventProperties.put("test_case_lines", number_of_lines);
             if (number_of_lines <= 1) {
-                UsageInsightTracker.getInstance()
-                        .RecordEvent("EmptyTestCaseGenerated", eventProperties);
+                UsageInsightTracker.getInstance().RecordEvent("EmptyTestCaseGenerated", eventProperties);
             } else {
-                UsageInsightTracker.getInstance()
-                        .RecordEvent("TestCaseGenerated", null);
-                UsageInsightTracker.getInstance()
-                        .RecordEvent("TestCaseSize", eventProperties);
+                UsageInsightTracker.getInstance().RecordEvent("TestCaseSize", eventProperties);
             }
         } catch (Exception e) {
             System.out.println("Failed to record number of lines. Statements length : " +
                     testCaseScript.getObjectRoutines()
-                            .get(testCaseScript.getObjectRoutines()
-                                    .size() - 1)
+                            .get(testCaseScript.getObjectRoutines().size() - 1)
                             .getStatements()
                             .size());
         }
 
-        TestCaseUnit testCaseUnit = new TestCaseUnit(javaFile.toString(),
+        return new TestCaseUnit(javaFile.toString(),
                 objectRoutineContainer.getPackageName(),
                 generatedTestClassName, testCaseScript.getTestMethodName(), testCaseScript.getTestGenerationState(),
                 testClassSpec);
-        return testCaseUnit;
     }
 
     @NotNull
@@ -166,15 +168,15 @@ public class TestCaseService implements Runnable {
         ParameterNameFactory parameterNameFactory = new ParameterNameFactory();
         TestGenerationState testGenerationState = new TestGenerationState(parameterNameFactory);
 
-        Parameter targetTestSubject = generationConfiguration.getTestCandidateMetadataList()
+        Parameter targetTestSubject = generationConfiguration
+                .getTestCandidateMetadataList()
                 .get(0)
                 .getTestSubject();
 
         TestCandidateMetadata constructorCandidate = sessionInstance.getConstructorCandidate(targetTestSubject);
         // this can be null for static classes
         if (constructorCandidate != null) {
-            generationConfiguration.getTestCandidateMetadataList()
-                    .add(0, constructorCandidate);
+            generationConfiguration.getTestCandidateMetadataList().add(0, constructorCandidate);
         }
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
@@ -184,6 +186,10 @@ public class TestCaseService implements Runnable {
         ObjectRoutine constructorRoutine = objectRoutineContainer.getConstructor();
         for (TestCandidateMetadata mockCreatorCandidate : mockCreatorCandidates) {
             Parameter subjectParameter = mockCreatorCandidate.getTestSubject();
+            if (subjectParameter == null) {
+                logger.warn("subject parameter is null for mock creator candidate: " + mockCreatorCandidate);
+                continue;
+            }
             String subjectParameterType = subjectParameter.getType();
             if (subjectParameterType.startsWith("org.springframework.cglib.proxy.")) {
                 continue;
@@ -231,12 +237,10 @@ public class TestCaseService implements Runnable {
         // gotta mock'em all
         for (Parameter fieldParameter : fields) {
 
-            if (fieldParameter.getType()
-                    .startsWith("org.slf4j.Logger")) {
+            if (fieldParameter.getType().startsWith("org.slf4j.Logger")) {
                 continue;
             }
-            if (fieldParameter.getType()
-                    .startsWith("org.springframework.cglib.proxy.MethodInterceptor")) {
+            if (fieldParameter.getType().startsWith("org.springframework.cglib.proxy.MethodInterceptor")) {
                 continue;
             }
 
@@ -252,8 +256,14 @@ public class TestCaseService implements Runnable {
 
             if (classPsiInstance != null) {
                 List<PsiField> fieldMatchingParameterType = Arrays.stream(classPsiInstance.getFields())
-                        .filter(e -> typeNames.contains(e.getType()
-                                .getCanonicalText()))
+                        .filter(e -> {
+                            if (e.getType() instanceof PsiClassReferenceType) {
+                                PsiClassReferenceType classType = (PsiClassReferenceType) e.getType();
+                                return typeNames.contains(classType.rawType().getCanonicalText());
+                            } else {
+                                return typeNames.contains(e.getType().getCanonicalText());
+                            }
+                        })
                         .collect(Collectors.toList());
                 if (fieldMatchingParameterType.size() > 0) {
 
@@ -282,10 +292,8 @@ public class TestCaseService implements Runnable {
                     if (!nameChosen && fieldMatchingParameterType.size() == 1) {
                         // if we didn't find a field with matching name
                         // but we have only 1 field with matching type, then we will use the name of that field
-                        fieldParameter.getNames()
-                                .clear();
-                        fieldParameter.setName(fieldMatchingParameterType.get(0)
-                                .getName());
+                        fieldParameter.getNames().clear();
+                        fieldParameter.setName(fieldMatchingParameterType.get(0).getName());
                     }
 
                 } else {
@@ -299,7 +307,8 @@ public class TestCaseService implements Runnable {
             TestCandidateMetadata metadata = MockFactory.createParameterMock(fieldParameter,
                     objectRoutineContainer.getGenerationConfiguration());
             if (metadata == null) {
-                logger.warn("unable to create a initializer for field: " + fieldParameter);
+                logger.warn(
+                        "unable to create a initializer for field: " + fieldParameter.getType() + " - " + fieldParameter.getName());
                 continue;
             }
             mockCreatorCandidates.add(metadata);
@@ -310,125 +319,8 @@ public class TestCaseService implements Runnable {
 
     }
 
-    public void processLogFiles() throws Exception {
-        if (isProcessing) {
-            return;
-        }
-        isProcessing = true;
-        long startTime = new Date().getTime();
-        sessionInstance.scanDataAndBuildReplay();
-        long endTime = new Date().getTime();
-        logger.warn("Scan took: " + (endTime - startTime) + " ms");
-        isProcessing = false;
-    }
-
     public List<TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName, boolean loadCalls) {
-        return sessionInstance.getTestCandidatesForMethod(className, methodName, loadCalls);
+        return sessionInstance.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
     }
 
-    //    @Override
-    public void run_old() {
-        while (true) {
-            try {
-                Thread.sleep(2000);
-                if (this.pauseCheckingForNewLogs) {
-                    continue;
-                }
-                processLogFiles();
-            } catch (InterruptedException e) {
-                logger.warn("test case service scanner shutting down", e);
-                throw new RuntimeException(e);
-            } catch (Exception e) {
-                logger.error("exception in testcase service scanner shutting down", e);
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    public boolean isPauseCheckingForNewLogs() {
-        return pauseCheckingForNewLogs;
-    }
-
-    public void setPauseCheckingForNewLogs(boolean pauseCheckingForNewLogs) {
-        this.pauseCheckingForNewLogs = pauseCheckingForNewLogs;
-    }
-
-    @Override
-    public void run() {
-        while (runThread) {
-            try {
-                Thread.sleep(2000);
-                if(!runThread)
-                {
-                    return;
-                }
-                if (this.refreshButtonStateManager.isProcessing()) {
-                    continue;
-                }
-                if(hasNewSession())
-                {
-                    this.refreshButtonStateManager.setState_NewSession();
-                }
-                else
-                {
-                    if (sessionInstance.hasNewZips()) {
-                        //set state to new logs
-                        this.refreshButtonStateManager.setState_NewLogs(sessionInstance.getLastScannedTimeStamp());
-                    } else {
-                        //set state to no new logs
-                        this.refreshButtonStateManager.setState_NoNewLogs(sessionInstance.getLastScannedTimeStamp());
-                    }
-                }
-            } catch (InterruptedException ex) {
-                logger.warn("Thread interrupted scanning a new session.", ex);
-            } catch (Exception e) {
-                logger.error("Exception in testcase service, scanner shutting down", e);
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    public void stopThread()
-    {
-        this.runThread=false;
-    }
-
-    private boolean hasNewSession() {
-        final boolean[] hasNew = {false};
-        project.getService(InsidiousService.class).getClient()
-                .getProjectSessions(new GetProjectSessionsCallback() {
-                    @Override
-                    public void error(String message) {
-                        hasNew[0] =false;
-                    }
-
-                    @Override
-                    public void success(List<ExecutionSession> executionSessionList) {
-                        if(executionSessionList.size()==0)
-                        {
-                            hasNew[0] = false;
-                        }
-                        else
-                        {
-//                            System.out.println("Exec Current ID "+executionSessionList.get(0).getSessionId() +
-//                                    " Created : "+executionSessionList.get(0).getCreatedAt());
-//                            System.out.println("Current Session ID : "+sessionInstance.getExecutionSession().getSessionId() +
-//                                    " Created session : "+sessionInstance.getExecutionSession().getCreatedAt());
-                            if(!executionSessionList.get(0).getSessionId().equals(sessionInstance.getExecutionSession().getSessionId()))
-                            {
-                                if(executionSessionList.get(0).getCreatedAt().compareTo(sessionInstance.getExecutionSession().getCreatedAt())>0)
-                                {
-                                    hasNew[0]=true;
-                                }
-                                else if(executionSessionList.size()==1)
-                                {
-                                    hasNew[0]=true;
-                                }
-                            }
-                        }
-                    }
-                });
-//        System.out.println("Has new sessions check : "+hasNew[0]);
-        return hasNew[0];
-    }
 }

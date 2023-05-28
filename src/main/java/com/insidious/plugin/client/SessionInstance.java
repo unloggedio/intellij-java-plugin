@@ -71,6 +71,7 @@ import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -78,7 +79,6 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -94,7 +94,7 @@ public class SessionInstance {
     private final File sessionDirectory;
     private final ExecutionSession executionSession;
     private final Map<String, String> cacheEntries = new HashMap<>();
-    private final DatabasePipe databasePipe;
+    //    private final DatabasePipe databasePipe;
     private final DaoService daoService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private final ExecutorService executorPool;
@@ -102,6 +102,9 @@ public class SessionInstance {
     private final ZipConsumer zipConsumer;
     private final Project project;
     private final Map<String, Boolean> classNotFound = new HashMap<>();
+    private final Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
+    private final Map<Long, com.insidious.plugin.pojo.dao.MethodCallExpression> methodCallMap = new HashMap<>();
+    private final Map<Long, String> methodCallSubjectTypeMap = new HashMap<>();
     private List<File> sessionArchives;
     private ArchiveIndex archiveIndex;
     private ChronicleMap<Long, ObjectInfoDocument> objectInfoIndex;
@@ -110,20 +113,17 @@ public class SessionInstance {
     private ChronicleMap<Integer, MethodInfo> methodInfoIndex;
     private ChronicleMap<String, MethodInfo> methodInfoByNameIndex;
     private ChronicleMap<Integer, ClassInfo> classInfoIndex;
-    private Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexCollection;
     private NewTestCandidateIdentifiedListener testCandidateListener;
     private File currentSessionArchiveBeingProcessed;
-    private Map<Long, com.insidious.plugin.pojo.dao.MethodCallExpression> methodCallMap = new HashMap<>();
-    private Map<Long, String> methodCallSubjectTypeMap = new HashMap<>();
     private ChronicleVariableContainer parameterContainer;
-    private Date lastScannedTimeStamp;
+//    private Date lastScannedTimeStamp;
+    private boolean isSessionCorrupted = false;
+    private boolean hasShownCorruptedNotification = false;
 
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
-        this.sessionDirectory = FileSystems.getDefault()
-                .getPath(executionSession.getPath())
-                .toFile();
+        this.sessionDirectory = FileSystems.getDefault().getPath(executionSession.getPath()).toFile();
         File cacheDir = new File(this.sessionDirectory + "/cache/");
         cacheDir.mkdirs();
         this.executionSession = executionSession;
@@ -133,7 +133,12 @@ public class SessionInstance {
                 .toFile()
                 .exists();
         ConnectionSource connectionSource = new JdbcConnectionSource(executionSession.getDatabaseConnectionString());
-        daoService = new DaoService(connectionSource);
+        ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
+        parameterContainer = new ChronicleVariableContainer(parameterIndex);
+
+        ParameterProvider parameterProvider = value -> com.insidious.plugin.pojo.dao.
+                Parameter.fromParameter(parameterContainer.getParameterByValue(value));
+        daoService = new DaoService(connectionSource, parameterProvider);
 
         if (!dbFileExists) {
             try {
@@ -150,15 +155,13 @@ public class SessionInstance {
             }
         }
 
-        databasePipe = new DatabasePipe(new LinkedTransferQueue<>(), daoService);
+//        databasePipe = new DatabasePipe(new LinkedTransferQueue<>(), daoService);
 
         checkProgressIndicator("Opening Zip Files", null);
-        zipConsumer = new ZipConsumer(daoService, sessionDirectory);
+        zipConsumer = new ZipConsumer(daoService, sessionDirectory, this);
         executorPool = Executors.newFixedThreadPool(4);
 
-        this.sessionArchives = refreshSessionArchivesList();
-        zipConsumer.checkNewFiles();
-        executorPool.submit(databasePipe);
+        this.sessionArchives = refreshSessionArchivesList(false);
         executorPool.submit(zipConsumer);
 
     }
@@ -170,8 +173,8 @@ public class SessionInstance {
     @NotNull
     private static DataEventWithSessionId createDataEventFromBlock(int fileThreadId, KaitaiInsidiousEventParser.DetailedEventBlock eventBlock) {
         DataEventWithSessionId dataEvent = new DataEventWithSessionId(fileThreadId);
-        dataEvent.setDataId(eventBlock.probeId());
-        dataEvent.setNanoTime(eventBlock.eventId());
+        dataEvent.setProbeId(eventBlock.probeId());
+        dataEvent.setEventId(eventBlock.eventId());
         dataEvent.setRecordedAt(eventBlock.timestamp());
         dataEvent.setValue(eventBlock.valueId());
         dataEvent.setSerializedValue(eventBlock.serializedData());
@@ -179,6 +182,55 @@ public class SessionInstance {
         //         dataEvent.setSerializedValue(Base64.getEncoder().encodeToString(eventBlock.serializedData()).getBytes(
         //                StandardCharsets.UTF_8));
         return dataEvent;
+    }
+
+    public static void
+    extractTemplateMap(PsiClassReferenceType classReferenceType, List<Parameter> templateMap) {
+        char templateChar = 'D';
+        boolean hasGenericTemplate = false;
+        PsiType[] typeTemplateParameters = classReferenceType.getParameters();
+        for (PsiType typeTemplateParameter : typeTemplateParameters) {
+            templateChar++;
+            Parameter value = new Parameter();
+            String canonicalText = typeTemplateParameter.getCanonicalText();
+            // <? super ClassName>
+            if (canonicalText.contains(" super ")) {
+                canonicalText = canonicalText.substring(
+                        canonicalText.indexOf(" super ") + " super ".length());
+            }
+
+            // <? extends ClassName>
+            if (canonicalText.contains(" extends ")) {
+                canonicalText = canonicalText.substring(
+                        canonicalText.indexOf(" extends ") + " extends ".length());
+            }
+            if (canonicalText.length() == 1) {
+                hasGenericTemplate = true;
+                break;
+            }
+//            logger.warn("Setting template type for parameter[" + templateChar + "]: "
+//                    + canonicalText + " for parameter: [" + classReferenceType);
+            value.setType(canonicalText);
+            String templateKey = String.valueOf(templateChar);
+            value.setName(templateKey);
+            Optional<Parameter> existingTemplateOptional = templateMap.stream()
+                    .filter(e -> e.getName()
+                            .equals(templateKey))
+                    .findFirst();
+            if (existingTemplateOptional.isPresent()) {
+                Parameter existingValue = existingTemplateOptional.get();
+                if (existingValue.getType()
+                        .length() < 2) {
+                    templateMap.remove(existingTemplateOptional.get());
+                    templateMap.add(value);
+                }
+            } else {
+                templateMap.add(value);
+            }
+        }
+        if (hasGenericTemplate) {
+            templateMap.clear();
+        }
     }
 
     @NotNull
@@ -195,24 +247,21 @@ public class SessionInstance {
         return executionSession;
     }
 
-    private List<File> refreshSessionArchivesList() throws IOException {
+    private List<File> refreshSessionArchivesList(boolean forceRefresh) throws IOException {
+        long start = new Date().getTime();
         if (sessionDirectory.listFiles() == null) {
             return Collections.emptyList();
         }
-        logger.info("refresh session archives list");
         List<File> sessionFiles = Arrays.stream(Objects.requireNonNull(sessionDirectory.listFiles()))
-                .sorted((a, b) -> -1 * a.getName()
-                        .compareTo(b.getName()))
-                .filter(e -> e.getName()
-                        .endsWith(".zip") && e.getName()
-                        .startsWith("index-"))
+                .sorted((a, b) -> -1 * a.getName().compareTo(b.getName()))
+                .filter(e -> e.getName().endsWith(".zip") && e.getName().startsWith("index-"))
                 .collect(Collectors.toList());
         logger.info("found [" + sessionFiles.size() + "] session archives");
 
         List<File> filesToRemove = new LinkedList<>();
         int i;
         KaitaiInsidiousClassWeaveParser classWeaveInfo = null;
-        if (typeInfoIndex != null && typeInfoIndex.size() > 0) {
+        if (typeInfoIndex != null && typeInfoIndex.size() > 0 && !forceRefresh) {
             return sessionFiles;
         }
 
@@ -224,10 +273,8 @@ public class SessionInstance {
         methodInfoByNameIndex = createMethodInfoByNameIndex();
         classInfoIndex = createClassInfoIndex();
         try {
-            classInfoIndex.values()
-                    .forEach(classInfo1 -> classInfoIndexByName.put(
-                            ClassTypeUtils.getDottedClassName(classInfo1.getClassName()),
-                            classInfo1));
+            classInfoIndex.values().forEach(classInfo1 ->
+                    classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()), classInfo1));
 
         } catch (Throwable e) {
 //            e.printStackTrace();
@@ -266,8 +313,9 @@ public class SessionInstance {
             try {
                 readClassWeaveInfoStream(sessionFiles.get(i));
                 break;
-            } catch (FailedToReadClassWeaveException e) {
+            } catch (FailedToReadClassWeaveException | EOFException e) {
 //                e.printStackTrace();
+                logger.warn("failed to read class weave info from: " + sessionFiles.get(i) + " => " + e.getMessage());
                 filesToRemove.add(sessionFiles.get(i));
             }
         }
@@ -275,6 +323,8 @@ public class SessionInstance {
 
         sessionFiles.removeAll(filesToRemove);
         Collections.sort(sessionFiles);
+        long end = new Date().getTime();
+        logger.info("refresh session archives list in  [" + (end - start) + "] ms");
         return sessionFiles;
     }
 
@@ -298,8 +348,7 @@ public class SessionInstance {
             ClassInfo classInfo1 = KaitaiUtils.toClassInfo(classInfo);
 
 
-            final String className = classInfo.className()
-                    .value();
+            final String className = classInfo.className().value();
 
             List<DataInfo> dataInfoList = classInfo.probeList()
                     .stream()
@@ -385,10 +434,8 @@ public class SessionInstance {
                 for (int i = 0; i < dataInfoList.size(); i++) {
                     DataInfo dataInfo = dataInfoList.get(i);
                     if (dataInfo.getEventType() == CALL) {
-                        if (dataInfoList.get(i - 1)
-                                .getEventType() == GET_INSTANCE_FIELD_RESULT
-                                || dataInfoList.get(i - 1)
-                                .getEventType() == GET_STATIC_FIELD) {
+                        if (dataInfoList.get(i - 1).getEventType() == GET_INSTANCE_FIELD_RESULT
+                                || dataInfoList.get(i - 1).getEventType() == GET_STATIC_FIELD) {
                             methodDefinition.setUsesFields(true);
                             break;
                         }
@@ -406,21 +453,24 @@ public class SessionInstance {
 
         daoService.createOrUpdateClassDefinitions(classDefinitionList);
         daoService.createOrUpdateMethodDefinitions(methodDefinitionList);
-        classWeaveInfo._io()
-                .close();
+        classWeaveInfo._io().close();
     }
 
     private void refreshWeaveInformationStream(String fileName) throws IOException {
+        long start = new Date().getTime();
         AtomicInteger counter = new AtomicInteger(0);
 
         checkProgressIndicator("Loading class mappings to scan events", null);
 
-        List<MethodDefinition> methodDefinitionList = new ArrayList<>();
-        List<ClassDefinition> classDefinitionList = new ArrayList<>();
+        FileInputStream classWeaverReader = new FileInputStream(fileName);
+        ByteBuffer wrap = ByteBuffer.wrap(classWeaverReader.readAllBytes());
         KaitaiInsidiousClassWeaveParser classWeaveInfo = new KaitaiInsidiousClassWeaveParser(
-                new RandomAccessFileKaitaiStream(fileName));
-        long totalClassCount = classWeaveInfo.classInfo()
-                .size();
+                new ByteBufferKaitaiStream(wrap));
+        classWeaverReader.close();
+        logger.warn(
+                "reading class weave info took: " + (new Date().getTime() - start) + " ms => "
+                        + classWeaveInfo.classInfo().size() + " classes");
+        long totalClassCount = classWeaveInfo.classInfo().size();
 
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
             int current = counter.addAndGet(1);
@@ -531,7 +581,7 @@ public class SessionInstance {
                     }
                 }
 
-                methodDefinitionList.add(methodDefinition);
+//                methodDefinitionList.add(methodDefinition);
             }
 //            classDefinitionList.add(ClassDefinition.fromClassInfo(classInfo1));
 
@@ -540,16 +590,16 @@ public class SessionInstance {
             probeInfoIndex.putAll(probesMap);
         }
 
-        daoService.createOrUpdateClassDefinitions(classInfoIndex.values()
-                .stream()
+        daoService.createOrUpdateClassDefinitions(classInfoIndex.values().stream()
                 .map(ClassDefinition::fromClassInfo)
                 .collect(Collectors.toList()));
-        daoService.createOrUpdateMethodDefinitions(methodInfoIndex.values()
-                .stream()
+        daoService.createOrUpdateMethodDefinitions(methodInfoIndex.values().stream()
                 .map(e -> MethodDefinition.fromMethodInfo(e, classInfoIndex.get(e.getClassId()), false))
                 .collect(Collectors.toList()));
-        classWeaveInfo._io()
-                .close();
+        classWeaveInfo._io().close();
+        long end = new Date().getTime();
+        logger.warn("refresh weave information took: " + (end - start) + " ms");
+
     }
 
     private ChronicleMap<Integer, DataInfo> createProbeInfoIndex() throws IOException {
@@ -566,7 +616,6 @@ public class SessionInstance {
         return probeInfoMapBuilder.createPersistedTo(probeIndexFile);
 
     }
-
 
     private ChronicleMap<Long, DataEventWithSessionId> createEventIndex() throws IOException {
 
@@ -585,7 +634,6 @@ public class SessionInstance {
 
     }
 
-
     private ChronicleMap<Integer, TypeInfoDocument> createTypeInfoIndex() throws IOException {
 
         checkProgressIndicator(null, "Loading type info index");
@@ -601,7 +649,6 @@ public class SessionInstance {
         return probeInfoMapBuilder.createPersistedTo(typeIndexFile);
 
     }
-
 
     private ChronicleMap<Long, ObjectInfoDocument> createObjectInfoIndex() throws IOException {
 
@@ -619,7 +666,6 @@ public class SessionInstance {
 
     }
 
-
     private ChronicleMap<Long, Parameter> createParameterIndex() throws IOException {
 
         File parameterIndexFile = FileSystems.getDefault()
@@ -631,10 +677,10 @@ public class SessionInstance {
         averageValue.setProbeInfo(new DataInfo(1, 2, 3, 4, 5,
                 EventType.CALL, Descriptor.Boolean, "some=attributes,here=fornothing,here=fornothing,here=fornothing"));
         DataEventWithSessionId prob = new DataEventWithSessionId(1L);
-        prob.setNanoTime(1L);
-        prob.setSerializedValue(new byte[3000]);
+        prob.setEventId(1L);
+        prob.setSerializedValue(new byte[2000]);
         prob.setRecordedAt(1L);
-        prob.setDataId(1);
+        prob.setProbeId(1);
         prob.setThreadId(1L);
         averageValue.setProb(prob);
 
@@ -661,11 +707,10 @@ public class SessionInstance {
                         Parameter.class)
                 .name("parameter-info-map")
                 .averageValue(averageValue)
-                .entries(500_000);
+                .entries(1_500_000);
         return parameterInfoMapBuilder.createPersistedTo(parameterIndexFile);
 
     }
-
 
     private ChronicleMap<Integer, MethodInfo> createMethodInfoIndex() throws IOException {
 
@@ -684,7 +729,6 @@ public class SessionInstance {
 
     }
 
-
     private ChronicleMap<String, MethodInfo> createMethodInfoByNameIndex() throws IOException {
 
         checkProgressIndicator(null, "Loading method info by name index");
@@ -702,7 +746,6 @@ public class SessionInstance {
         return probeInfoMapBuilder.createPersistedTo(methodIndexFile);
 
     }
-
 
     private ChronicleMap<Integer, ClassInfo> createClassInfoIndex() throws IOException {
 
@@ -740,7 +783,6 @@ public class SessionInstance {
         return probeInfoMapBuilder.createPersistedTo(classIndexFile);
 
     }
-
 
     public Collection<TracePoint> queryTracePointsByValue(SearchQuery searchQuery) {
         List<TracePoint> tracePointList = new LinkedList<>();
@@ -892,9 +934,9 @@ public class SessionInstance {
 
                             try {
                                 List<DataInfo> dataInfoList = getProbeInfo(new HashSet<>(
-                                        Collections.singletonList(e1.getDataId())));
+                                        Collections.singletonList(e1.getProbeId())));
                                 logger.debug(
-                                        "data info list by data id [" + e1.getDataId() + "] => [" + dataInfoList + "]");
+                                        "data info list by data id [" + e1.getProbeId() + "] => [" + dataInfoList + "]");
 
                                 if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
                                     if (ProgressIndicatorProvider.getGlobalProgressIndicator()
@@ -916,7 +958,7 @@ public class SessionInstance {
                                         threadId, e1.getValue(), classInfo.fileName()
                                         .value(), classInfo.className()
                                         .value(),
-                                        typeInfo.getTypeNameFromClass(), timestamp, e1.getNanoTime());
+                                        typeInfo.getTypeNameFromClass(), timestamp, e1.getEventId());
                                 tracePoint.setExecutionSession(executionSession);
                                 return tracePoint;
                             } catch (ClassInfoNotFoundException | Exception ex) {
@@ -970,7 +1012,7 @@ public class SessionInstance {
     private KaitaiInsidiousClassWeaveParser readClassWeaveInfo(@NotNull File sessionFile) throws IOException {
 
         KaitaiInsidiousClassWeaveParser classWeaveInfo1;
-        logger.warn("creating class weave info from scratch from file: " + sessionFile.getName());
+        logger.warn("creating class weave info from scratch from file [1012]: " + sessionFile.getName());
         NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionFile, WEAVE_DAT_FILE.getFileName());
         if (fileBytes == null) {
             logger.debug("failed to read class weave info from " + "sessionFile [" + sessionFile.getName() + "]");
@@ -984,24 +1026,24 @@ public class SessionInstance {
 
     private void readClassWeaveInfoStream(@NotNull File sessionFile) throws IOException, FailedToReadClassWeaveException {
 
-        logger.warn("creating class weave info from scratch from file: " + sessionFile.getName());
-        String classWeaveFileStream = getFileStreamFromArchive(sessionFile, WEAVE_DAT_FILE.getFileName());
-        refreshWeaveInformationStream(classWeaveFileStream);
-
-        NameWithBytes typeIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionFile,
-                INDEX_TYPE_DAT_FILE.getFileName());
-        if (typeIndexBytes == null) {
-            throw new FailedToReadClassWeaveException("index.type.dat not found in: " + sessionFile.getName());
-        }
-
         try {
+            logger.warn("creating class weave info from scratch from file [1026]: " + sessionFile.getName());
+            String classWeaveFileStream = getFileStreamFromArchive(sessionFile, WEAVE_DAT_FILE.getFileName());
+            refreshWeaveInformationStream(classWeaveFileStream);
+
+            NameWithBytes typeIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionFile,
+                    INDEX_TYPE_DAT_FILE.getFileName());
+            if (typeIndexBytes == null) {
+                throw new FailedToReadClassWeaveException("index.type.dat not found in: " + sessionFile.getName());
+            }
+
             archiveIndex = readArchiveIndex(typeIndexBytes.getBytes(), INDEX_TYPE_DAT_FILE);
             ConcurrentIndexedCollection<TypeInfoDocument> typeIndex = archiveIndex.getTypeInfoIndex();
-            typeIndex.parallelStream()
-                    .forEach(e -> typeInfoIndex.put(e.getTypeId(), e));
-        } catch (IOException e) {
-//            e.printStackTrace();
-            logger.warn("failed to read archive for types index: " + e.getMessage());
+            typeIndex.parallelStream().forEach(e -> typeInfoIndex.put(e.getTypeId(), e));
+        } catch (Exception e) {
+            logger.warn("failed to read archive for types index: " + e.getMessage(), e);
+            throw new FailedToReadClassWeaveException("Failed to read " + INDEX_TYPE_DAT_FILE + " in "
+                    + sessionFile.getPath() + " -> " + e.getMessage());
         }
     }
 
@@ -1037,9 +1079,9 @@ public class SessionInstance {
                             .timestamp();
 
                     DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-                    dataEvent.setDataId(probeId);
+                    dataEvent.setProbeId(probeId);
                     dataEvent.setValue(valueId);
-                    dataEvent.setNanoTime(eventId);
+                    dataEvent.setEventId(eventId);
                     dataEvent.setRecordedAt(timestamp);
                     return dataEvent;
                 })
@@ -1058,9 +1100,11 @@ public class SessionInstance {
 
     public TypeInfo getTypeInfo(String name) {
 
-        TypeInfo result = archiveIndex.getTypesByName(name);
-        if (result != null) {
-            return result;
+        if (archiveIndex != null) {
+            TypeInfo result = archiveIndex.getTypesByName(name);
+            if (result != null) {
+                return result;
+            }
         }
 
         return new TypeInfo(-1, name, "", 0, 0, "", new int[0]);
@@ -1113,8 +1157,7 @@ public class SessionInstance {
         Path path = FileSystems.getDefault()
                 .getPath(this.sessionDirectory.getAbsolutePath(), cacheKey, indexFilterType.getFileName());
         Path parentPath = path.getParent();
-        parentPath.toFile()
-                .mkdirs();
+        parentPath.toFile().mkdirs();
 
         if (!path.toFile()
                 .exists()) {
@@ -1130,23 +1173,23 @@ public class SessionInstance {
         }
 
 
-        ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex = null;
+        ConcurrentIndexedCollection<StringInfoDocument> sII = null;
         if (indexFilterType.equals(INDEX_STRING_DAT_FILE)) {
             DiskPersistence<StringInfoDocument, Long> stringInfoDocumentStringDiskPersistence = DiskPersistence.onPrimaryKeyInFile(
                     StringInfoDocument.STRING_ID, path.toFile());
-            stringInfoIndex = new ConcurrentIndexedCollection<>(stringInfoDocumentStringDiskPersistence);
+            sII = new ConcurrentIndexedCollection<>(stringInfoDocumentStringDiskPersistence);
 
-            stringInfoIndex.addIndex(InvertedRadixTreeIndex.onAttribute(StringInfoDocument.STRING_VALUE));
+            sII.addIndex(InvertedRadixTreeIndex.onAttribute(StringInfoDocument.STRING_VALUE));
         }
 
-        ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex = null;
+        ConcurrentIndexedCollection<ObjectInfoDocument> oII = null;
         if (indexFilterType.equals(INDEX_OBJECT_DAT_FILE)) {
             DiskPersistence<ObjectInfoDocument, Long> objectInfoDocumentIntegerDiskPersistence = DiskPersistence.onPrimaryKeyInFile(
                     ObjectInfoDocument.OBJECT_ID, path.toFile());
 
-            objectInfoIndex = new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
-            objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_TYPE_ID));
-            objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_ID));
+            oII = new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
+            oII.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_TYPE_ID));
+            oII.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_ID));
         }
 
         if (indexFilterType.equals(WEAVE_DAT_FILE)) {
@@ -1158,7 +1201,7 @@ public class SessionInstance {
 //            }
         }
 
-        return new ArchiveIndex(typeInfoIndex, stringInfoIndex, objectInfoIndex, null);
+        return new ArchiveIndex(typeInfoIndex, sII, oII, null);
     }
 
     @NotNull
@@ -1272,18 +1315,17 @@ public class SessionInstance {
 
     private void checkProgressIndicator(String text1, String text2) {
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            if (ProgressIndicatorProvider.getGlobalProgressIndicator()
-                    .isCanceled()) {
-                try {
-                    // we want a close call here, otherwise the chronicle map might remain locked, and we will not be
-                    // able ot read it on next refresh/load
-                    close();
-                } catch (Exception e) {
-                    // now this is just very weird
-                    throw new RuntimeException(e);
-                }
-                throw new ProcessCanceledException();
-            }
+//            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+//                try {
+//                    // we want a close call here, otherwise the chronicle map might remain locked, and we will not be
+//                    // able ot read it on next refresh/load
+//                    close();
+//                } catch (Exception e) {
+//                    // now this is just very weird
+//                    throw new RuntimeException(e);
+//                }
+//                throw new ProcessCanceledException();
+//            }
             if (text2 != null) {
                 ProgressIndicatorProvider.getGlobalProgressIndicator()
                         .setText2(text2);
@@ -1446,9 +1488,9 @@ public class SessionInstance {
 
                             try {
                                 List<DataInfo> dataInfoList = getProbeInfo(new HashSet<>(
-                                        Collections.singletonList(e1.getDataId())));
+                                        Collections.singletonList(e1.getProbeId())));
                                 logger.debug(
-                                        "data info list by data id [" + e1.getDataId() + "] => [" + dataInfoList + "]");
+                                        "data info list by data id [" + e1.getProbeId() + "] => [" + dataInfoList + "]");
 
                                 if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
                                     if (ProgressIndicatorProvider.getGlobalProgressIndicator()
@@ -1474,7 +1516,7 @@ public class SessionInstance {
                                         threadId, e1.getValue(), classInfo.fileName()
                                         .value(), classInfo.className()
                                         .value(),
-                                        typeName, timestamp, e1.getNanoTime());
+                                        typeName, timestamp, e1.getEventId());
 
                                 tracePoint.setExecutionSession(executionSession);
                                 return tracePoint;
@@ -1525,9 +1567,9 @@ public class SessionInstance {
                             .timestamp();
 
                     DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-                    dataEvent.setDataId(probeId);
+                    dataEvent.setProbeId(probeId);
                     dataEvent.setValue(valueId);
-                    dataEvent.setNanoTime(eventId);
+                    dataEvent.setEventId(eventId);
                     dataEvent.setRecordedAt(timestamp);
                     return dataEvent;
 
@@ -1582,9 +1624,9 @@ public class SessionInstance {
                             .timestamp();
 
                     DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-                    dataEvent.setDataId(probeId);
+                    dataEvent.setProbeId(probeId);
                     dataEvent.setValue(valueId);
-                    dataEvent.setNanoTime(eventId);
+                    dataEvent.setEventId(eventId);
                     dataEvent.setRecordedAt(timestamp);
                     return dataEvent;
                 })
@@ -1755,7 +1797,7 @@ public class SessionInstance {
 
     private List<KaitaiInsidiousEventParser.Block> getEventsFromFile(File sessionArchive, String archiveFile) throws IOException {
         long start = new Date().getTime();
-        logger.warn("Read events from file: " + archiveFile);
+        logger.warn("Read events from file [1799]: " + archiveFile);
         String eventFile = createFileOnDiskFromSessionArchiveFileV2(sessionArchive, archiveFile);
         RandomAccessFileKaitaiStream io = new RandomAccessFileKaitaiStream(eventFile);
         KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(io);
@@ -1769,7 +1811,7 @@ public class SessionInstance {
 
     private List<KaitaiInsidiousEventParser.Block> getEventsFromFileOld(File sessionArchive, String archiveFile) throws IOException {
         long start = new Date().getTime();
-        logger.warn("Read events from file: " + archiveFile);
+        logger.warn("Read events from file [1813]: " + archiveFile);
         NameWithBytes nameWithBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, archiveFile);
         assert nameWithBytes != null;
         KaitaiInsidiousEventParser eventsContainer =
@@ -1782,18 +1824,20 @@ public class SessionInstance {
     }
 
     private String getFileStreamFromArchive(File sessionArchive, String archiveFile) throws IOException, FailedToReadClassWeaveException {
-        logger.warn("Read events from file: " + archiveFile);
+        long start = new Date().getTime();
         String eventFile = createFileOnDiskFromSessionArchiveFileV2(sessionArchive, archiveFile);
         if (eventFile == null) {
             throw new FailedToReadClassWeaveException(archiveFile + " not found in " + sessionArchive.getName());
         }
+
+        long end = new Date().getTime();
+        logger.warn("Read events from file [1826]: " + archiveFile + " took " + (end - start) + " ms");
         return eventFile;
     }
 
-
     private List<KaitaiInsidiousEventParser.Block> getEventsFromFileV2(File sessionArchive, String archiveFile) throws IOException {
         long start = new Date().getTime();
-        logger.warn("Read events from file: " + archiveFile);
+        logger.warn("Read events from file [1836]: " + archiveFile);
 //        ZipInputStream stream = readEventFile(sessionArchive, archiveFile);
         NameWithBytes bytesWithName = createFileOnDiskFromSessionArchiveFile(sessionArchive, archiveFile);
         assert bytesWithName != null;
@@ -1809,7 +1853,6 @@ public class SessionInstance {
         logger.warn("Read events took: " + ((end - start) / 1000));
         return events;
     }
-
 
     public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
 
@@ -2231,24 +2274,36 @@ public class SessionInstance {
 
     }
 
-    public void scanDataAndBuildReplay() throws Exception {
+    public void scanDataAndBuildReplay() {
+        if (isSessionCorrupted) {
+            if (!hasShownCorruptedNotification) {
+                hasShownCorruptedNotification = true;
+                InsidiousNotification.notifyMessage(
+                        "Session is corrupted, please restart application or contact us" +
+                                " at Discord [ https://discord.gg/Hhwvay8uTa ] if the issue persists",
+                        NotificationType.ERROR);
+            }
 
-//        this.sessionArchives = refreshSessionArchivesList();
-        long scanStart = System.currentTimeMillis();
-//        executorPool.submit(databasePipe);
-//        executorPool.submit(zipConsumer);
-
-        List<LogFile> logFilesToProcess = daoService.getPendingLogFilesToProcess();
-
-        Map<Integer, List<LogFile>> logFilesByThreadMap = logFilesToProcess.stream()
-                .collect(Collectors.groupingBy(LogFile::getThreadId));
-        if (logFilesByThreadMap.size() == 0) {
-            InsidiousNotification.notifyMessage("No new logs to process", NotificationType.INFORMATION);
             return;
         }
+        try {
 
-        try (ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex()) {
-            parameterContainer = new ChronicleVariableContainer(parameterIndex);
+            long scanStart = System.currentTimeMillis();
+
+            List<LogFile> logFilesToProcess = daoService.getPendingLogFilesToProcess();
+
+            Map<Integer, List<LogFile>> logFilesByThreadMap = logFilesToProcess.stream()
+                    .collect(Collectors.groupingBy(LogFile::getThreadId));
+            if (logFilesByThreadMap.size() == 0) {
+                return;
+            }
+
+            if (parameterContainer == null) {
+                ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
+                parameterContainer = new ChronicleVariableContainer(parameterIndex);
+            }
+
+            boolean newCandidateIdentified = false;
 
             Set<Integer> allThreads = logFilesByThreadMap.keySet();
             int i = 0;
@@ -2258,40 +2313,39 @@ public class SessionInstance {
                 checkProgressIndicator("Processing files for thread " + i + " / " + allThreads.size(), null);
                 List<LogFile> logFiles = logFilesByThreadMap.get(threadId);
                 ThreadProcessingState threadState = daoService.getThreadState(threadId);
-                boolean newCandidateIdentified = processPendingThreadFiles(threadState, logFiles, parameterContainer);
+                boolean newCandidateIdentifiedNew = processPendingThreadFiles(threadState, logFiles,
+                        parameterContainer);
+                newCandidateIdentified = newCandidateIdentified | newCandidateIdentifiedNew;
                 processedCount += logFiles.size();
-                if (newCandidateIdentified) {
-                    testCandidateListener.onNewTestCandidateIdentified(processedCount, logFilesToProcess.size());
-                }
             }
 
 
-            Collection<Parameter> allParameters = new ArrayList<>(parameterIndex.values());
-            checkProgressIndicator("Saving " + allParameters.size() + " parameters", "");
-            daoService.createOrUpdateParameter(allParameters);
+//            Collection<Parameter> allParameters = new ArrayList<>(parameterIndex.values());
+//            checkProgressIndicator("Saving " + allParameters.size() + " parameters", "");
+//            daoService.createOrUpdateParameter(allParameters);
+            if (newCandidateIdentified && testCandidateListener != null) {
+                testCandidateListener.onNewTestCandidateIdentified(processedCount, logFilesToProcess.size());
+            }
 
-        } catch (FailedToReadClassWeaveException e) {
-            InsidiousNotification.notifyMessage("Failed to scan logs: " + e.getMessage(), NotificationType.ERROR);
-            throw new RuntimeException(e);
-        }
 
-        this.lastScannedTimeStamp = new Date();
-        try {
-            long scanEndTime = System.currentTimeMillis();
-            float scanTime = ((float) scanEndTime - (float) scanStart) / (float) 1000;
-            File sessionDir = new File(this.sessionDirectory.getParent());
-            long size_folder = getFolderSize(sessionDir);
-            JSONObject eventProperties = new JSONObject();
-            eventProperties.put("session_scan_time", scanTime);
-            eventProperties.put("session_folder_size", (size_folder / 1000000));
-            UsageInsightTracker.getInstance()
-                    .RecordEvent("ScanMetrics", eventProperties);
+//            long scanEndTime = System.currentTimeMillis();
+//            float scanTime = ((float) scanEndTime - (float) scanStart) / (float) 1000;
+//            File sessionDir = new File(this.sessionDirectory.getParent());
+//            long size_folder = getFolderSize(sessionDir);
+//            JSONObject eventProperties = new JSONObject();
+//            eventProperties.put("session_scan_time", scanTime);
+//            eventProperties.put("session_folder_size", (size_folder / 1000000));
+//            UsageInsightTracker.getInstance().RecordEvent("ScanMetrics", eventProperties);
         } catch (Exception e) {
-            logger.error("Exception recording folder size and scan time : " + e);
-//            e.printStackTrace();
+            isSessionCorrupted = true;
+            JSONObject properties = new JSONObject();
+            properties.put("project", this.project.getName());
+            properties.put("session", executionSession.getPath());
+            properties.put("message", e.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent("SESSSION_CORRUPT", properties);
+            logger.warn("Exception in scan and build session", e);
         }
     }
-
 
     private boolean processPendingThreadFiles(
             ThreadProcessingState threadState,
@@ -2303,10 +2357,50 @@ public class SessionInstance {
 
         Set<Integer> existingProbes = new HashSet<>(daoService.getProbes());
 
-//        List<String> archiveList = archiveLogFiles.stream()
-//                .map(LogFile::getArchiveName)
-//                .sorted()
-//                .collect(Collectors.toList());
+        updateObjectInfoIndex();
+
+        int eventBufferSize = 10000;
+        SessionEventReader eventsReader = new SessionEventReader(executionSession, archiveLogFiles, cacheEntries,
+                eventBufferSize);
+        executorPool.submit(eventsReader);
+
+        int totalFile = archiveLogFiles.size();
+        int currentFileIndex = 0;
+        List<KaitaiInsidiousEventParser.Block> eventsList = new ArrayList<>();
+        while (currentFileIndex < totalFile) {
+            eventsList.clear();
+            checkProgressIndicator(null, "Processing file " + currentFileIndex + " / " + archiveLogFiles.size());
+
+            LogFile currentLogFile = null;
+            List<LogFile> logFiles = new ArrayList<>();
+            while (eventsList.size() < eventBufferSize && currentFileIndex < totalFile) {
+                EventSet eventSet = eventsReader.getNextEventSet();
+                currentLogFile = eventSet.getLogFile();
+                logFiles.add(currentLogFile);
+                List<KaitaiInsidiousEventParser.Block> events = eventSet.getEvents();
+                eventsList.addAll(events);
+                currentFileIndex++;
+            }
+
+            this.currentSessionArchiveBeingProcessed = FileSystems.getDefault()
+                    .getPath(executionSession.getPath(), currentLogFile.getArchiveName())
+                    .toFile();
+
+//            List<KaitaiInsidiousEventParser.Block> eventsFromFileOld =
+//                    getEventsFromFileOld(sessionArchive, logFile.getName());
+            try {
+                newTestCaseIdentified = processLogFile(logFiles, threadState, parameterContainer, existingProbes,
+                        eventsList);
+            } catch (NeedMoreLogsException e) {
+                return newTestCaseIdentified;
+            }
+        }
+
+        return newTestCaseIdentified;
+
+    }
+
+    private void updateObjectInfoIndex() throws IOException {
         List<String> archiveList = this.sessionArchives.stream()
                 .map(File::getName)
                 .collect(Collectors.toList());
@@ -2354,42 +2448,6 @@ public class SessionInstance {
                 break;
             }
         }
-
-        int eventBufferSize = 10000;
-        SessionEventReader eventsReader = new SessionEventReader(executionSession, archiveLogFiles, cacheEntries,
-                eventBufferSize);
-        executorPool.submit(eventsReader);
-
-        int totalFile = archiveLogFiles.size();
-        int currentFileIndex = 0;
-        List<KaitaiInsidiousEventParser.Block> eventsList = new ArrayList<>();
-        while (currentFileIndex < totalFile) {
-            eventsList.clear();
-            checkProgressIndicator(null, "Processing file " + currentFileIndex + " / " + archiveLogFiles.size());
-
-            LogFile currentLogFile = null;
-            List<LogFile> logFiles = new ArrayList<>();
-            while (eventsList.size() < eventBufferSize && currentFileIndex < totalFile) {
-                EventSet eventSet = eventsReader.getNextEventSet();
-                currentLogFile = eventSet.getLogFile();
-                logFiles.add(currentLogFile);
-                List<KaitaiInsidiousEventParser.Block> events = eventSet.getEvents();
-                eventsList.addAll(events);
-                currentFileIndex++;
-            }
-
-            this.currentSessionArchiveBeingProcessed = FileSystems.getDefault()
-                    .getPath(executionSession.getPath(), currentLogFile.getArchiveName())
-                    .toFile();
-
-//            List<KaitaiInsidiousEventParser.Block> eventsFromFileOld =
-//                    getEventsFromFileOld(sessionArchive, logFile.getName());
-            newTestCaseIdentified = processLogFile(logFiles, threadState, parameterContainer, existingProbes,
-                    eventsList);
-        }
-
-        return newTestCaseIdentified;
-
     }
 
     private boolean processLogFile(
@@ -2398,7 +2456,7 @@ public class SessionInstance {
             ChronicleVariableContainer parameterContainer,
             Set<Integer> existingProbes,
             List<KaitaiInsidiousEventParser.Block> eventsSublist
-    ) throws IOException, SQLException, FailedToReadClassWeaveException {
+    ) throws IOException, SQLException, FailedToReadClassWeaveException, NeedMoreLogsException {
         boolean newTestCaseIdentified = false;
         int threadId = threadState.getThreadId();
         long currentCallId = daoService.getMaxCallId();
@@ -2407,7 +2465,7 @@ public class SessionInstance {
         if (eventsSublist.size() == 0) {
             logFileList.forEach(logFile -> {
                 logFile.setStatus(Constants.COMPLETED);
-                daoService.updateLogFile(logFile);
+                daoService.updateLogFileEntry(logFile);
             });
             return newTestCaseIdentified;
         }
@@ -2439,6 +2497,8 @@ public class SessionInstance {
             DataInfo probeInfo = probeInfoIndex.get(eventBlock.probeId());
             if (probeInfo == null) {
                 try {
+                    logger.warn(
+                            "probe info is null, reading latest classWeaveInfo: " + currentSessionArchiveBeingProcessed.getName());
                     readClassWeaveInfoStream(currentSessionArchiveBeingProcessed);
                     probeInfo = probeInfoIndex.get(eventBlock.probeId());
                 } catch (FailedToReadClassWeaveException ex) {
@@ -2478,8 +2538,7 @@ public class SessionInstance {
                         ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                         if (objectInfo != null) {
                             TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                            if (!typeInfo.getTypeName()
-                                    .startsWith("com.sun.proxy")) {
+                            if (!typeInfo.getTypeName().startsWith("com.sun.proxy")) {
                                 existingParameter.setType(typeInfo.getTypeName());
                             } else {
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -2520,8 +2579,7 @@ public class SessionInstance {
                         ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                         if (objectInfo != null) {
                             TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                            if (!typeInfo.getTypeName()
-                                    .startsWith("com.sun.proxy")) {
+                            if (!typeInfo.getTypeName().startsWith("com.sun.proxy")) {
                                 existingParameter.setType(typeInfo.getTypeName());
                             } else {
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -2542,8 +2600,7 @@ public class SessionInstance {
                     break;
 
                 case GET_STATIC_FIELD:
-                    String fieldType1 = ClassTypeUtils.getDottedClassName(
-                            probeInfo.getAttribute("Type", null));
+                    String fieldType1 = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null));
                     if (fieldType1.startsWith("org.slf4j")
                             || fieldType1.startsWith("com.google")
                             || fieldType1.startsWith("org.joda.time")) {
@@ -2554,8 +2611,7 @@ public class SessionInstance {
                         }
                         ClassInfo classInfo = classInfoIndexByName.get(fieldType1);
                         if (classInfo != null && !classInfo.isEnum()) {
-                            threadState.getTopCall()
-                                    .setUsesFields(true);
+                            threadState.getTopCall().setUsesFields(true);
                         }
                     }
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
@@ -2571,8 +2627,7 @@ public class SessionInstance {
                             ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                             if (objectInfo != null) {
                                 TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                                if (!typeInfo.getTypeName()
-                                        .startsWith("com.sun.proxy")) {
+                                if (!typeInfo.getTypeName().startsWith("com.sun.proxy")) {
                                     existingParameter.setType(typeInfo.getTypeName());
                                 } else {
                                     existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -2607,8 +2662,7 @@ public class SessionInstance {
                         isModified = true;
                         existingParameter.addName(nameFromProbe);
                     }
-                    typeFromProbe = ClassTypeUtils.getDottedClassName(
-                            probeInfo.getAttribute("Type", "V"));
+                    typeFromProbe = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"));
                     existingParameterType = existingParameter.getType();
                     if (existingParameterType == null
                             || existingParameterType.equals("java.lang.Object")
@@ -2619,8 +2673,7 @@ public class SessionInstance {
                         ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                         if (objectInfo != null) {
                             TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                            if (!typeInfo.getTypeName()
-                                    .startsWith("com.sun.proxy")) {
+                            if (!typeInfo.getTypeName().startsWith("com.sun.proxy")) {
                                 existingParameter.setType(typeInfo.getTypeName());
                             } else {
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
@@ -2634,17 +2687,14 @@ public class SessionInstance {
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
                     existingParameter.setProbeInfo(probeInfo);
                     existingParameter.setProb(dataEvent);
-//                        testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields()
-//                                .add(existingParameter);
-                    threadState.getTopCandidate()
-                            .addField(existingParameter.getValue());
+
+                    threadState.getTopCandidate().addField(existingParameter.getValue());
                     if (typeFromProbe.startsWith("org.slf4j") || typeFromProbe.startsWith("com.google")) {
                         // nothing to do
                     } else {
                         ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
                         if (!classInfo.isEnum()) {
-                            threadState.getTopCall()
-                                    .setUsesFields(true);
+                            threadState.getTopCall().setUsesFields(true);
                         }
                     }
                     if (!isModified) {
@@ -2660,13 +2710,12 @@ public class SessionInstance {
                     threadState.pushValue(eventValue);
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                     if (existingParameter != null && existingParameter.getProb() != null) {
-                        if (existingParameter.getType() == null || existingParameter.getType()
-                                .contains(".Object")) {
+                        if (existingParameter.getType() == null ||
+                                existingParameter.getType().contains(".Object")) {
                             ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                             if (objectInfo != null) {
                                 TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                                if (!typeInfo.getTypeName()
-                                        .startsWith("com.sun.proxy")) {
+                                if (!typeInfo.getTypeName().startsWith("com.sun.proxy")) {
                                     existingParameter.setType(typeInfo.getTypeName());
                                 } else {
                                     existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -2674,8 +2723,7 @@ public class SessionInstance {
                                 }
                             } else {
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                        ClassTypeUtils.getDottedClassName(
-                                                probeInfo.getAttribute("Owner", null))));
+                                        probeInfo.getAttribute("Owner", null)));
                             }
 
                         } else {
@@ -2689,7 +2737,7 @@ public class SessionInstance {
                         existingParameter.setProbeInfo(probeInfo);
                         existingParameter.setProb(dataEvent);
                         existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"))));
+                                probeInfo.getAttribute("Type", "V")));
 
                         existingParameter.addName(
                                 probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
@@ -2721,13 +2769,11 @@ public class SessionInstance {
                             ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                             if (objectInfo != null) {
                                 TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                                if (!typeInfo.getTypeName()
-                                        .startsWith("com.sun.proxy")) {
+                                if (!typeInfo.getTypeName().startsWith("com.sun.proxy")) {
                                     existingParameter.setType(typeInfo.getTypeName());
                                 } else {
                                     existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                            ClassTypeUtils.getDottedClassName(
-                                                    probeInfo.getAttribute("Type", null))));
+                                            probeInfo.getAttribute("Type", null)));
                                 }
                             } else {
                                 existingParameter.setType(
@@ -2777,8 +2823,7 @@ public class SessionInstance {
                             existingParameter.addName(probeInfo.getAttribute("Name",
                                     probeInfo.getAttribute("FieldName", null)));
                             existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                    ClassTypeUtils.getDottedClassName(
-                                            probeInfo.getAttribute("Type", "V"))));
+                                    probeInfo.getAttribute("Type", "V")));
 
                             existingParameter.setProbeInfo(probeInfo);
                             existingParameter.setProb(dataEvent);
@@ -2794,8 +2839,8 @@ public class SessionInstance {
                             }
                             typeFromProbe = ClassTypeUtils.getDottedClassName(
                                     probeInfo.getAttribute("Type", "V"));
-                            if (existingParameter.getType() == null || !existingParameter.getType()
-                                    .equals(typeFromProbe)) {
+                            if (existingParameter.getType() == null ||
+                                    !existingParameter.getType().equals(typeFromProbe)) {
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
                                 isModified = true;
                             }
@@ -2851,7 +2896,8 @@ public class SessionInstance {
                     methodCallSubjectTypeMap.put(currentCallId, ClassTypeUtils.getJavaClassName(
                             probeInfo.getAttribute("Owner", null)));
                     methodCall.setEntryProbeInfoId(probeInfo.getDataId());
-                    methodCall.setEntryProbeId(dataEvent.getNanoTime());
+                    methodCall.setEntryProbeId(dataEvent.getEventId());
+                    methodCall.setEnterNanoTime(dataEvent.getRecordedAt());
 
                     MethodInfo methodDescription = methodInfoByNameIndex.get(
                             probeInfo.getAttribute("Owner", null) + probeInfo.getAttribute("Name",
@@ -2895,13 +2941,11 @@ public class SessionInstance {
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
                     topCall = threadState.getTopCall();
                     isModified = false;
-                    if ((existingParameter.getType() == null || existingParameter.getType()
-                            .endsWith(".Object"))) {
+                    if ((existingParameter.getType() == null || existingParameter.getType().endsWith(".Object"))) {
                         ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                         if (objectInfo != null) {
                             TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                            if (!typeInfo.getTypeName()
-                                    .startsWith("com.sun.proxy")) {
+                            if (!typeInfo.getTypeName().startsWith("com.sun.proxy")) {
                                 existingParameter.setType(typeInfo.getTypeName());
                             } else {
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -2925,11 +2969,11 @@ public class SessionInstance {
                         // (and so mock the calls on those parameters)
                         // maybe we need to restructure the parameter class to store this information
                         // instead of storing the event/probe
-                        if (existingParameter.getProbeInfo() == null || (!existingParameter.getProbeInfo()
-                                .getEventType()
-                                .equals(PUT_INSTANCE_FIELD_VALUE) && !existingParameter.getProbeInfo()
-                                .getEventType()
-                                .equals(GET_INSTANCE_FIELD_RESULT))) {
+                        if (existingParameter.getProbeInfo() == null || (
+                                !existingParameter.getProbeInfo().getEventType().equals(PUT_INSTANCE_FIELD_VALUE) &&
+                                        !existingParameter.getProbeInfo().getEventType()
+                                                .equals(GET_INSTANCE_FIELD_RESULT)
+                        )) {
                             existingParameter.setProbeInfo(probeInfo);
                             existingParameter.setProb(dataEvent);
                             isModified = true;
@@ -2937,7 +2981,7 @@ public class SessionInstance {
                     }
                     saveProbe = true;
                     topCall.addArgument(existingParameter.getValue());
-                    topCall.addArgumentProbe(dataEvent.getNanoTime());
+                    topCall.addArgumentProbe(dataEvent.getEventId());
                     if (!isModified) {
                         existingParameter = null;
                     }
@@ -2954,15 +2998,14 @@ public class SessionInstance {
                         @NotNull String expectedClassName = ClassTypeUtils.getDottedClassName(
                                 methodInfo.getClassName());
                         String owner = ClassTypeUtils.getDottedClassName(
-                                probeInfoIndex.get(methodCall.getEntryProbeInfo_id())
-                                        .getAttribute("Owner", null));
+                                probeInfoIndex.get(methodCall.getEntryProbeInfo_id()).getAttribute("Owner", null));
                         if (owner == null) {
                             methodCall = null;
                         } else {
                             // sometimes we can enter a method_entry without a call
                             if (
-                                    methodCall.getEntryProbe_id() == eventBlock.eventId() - methodCall.getArgumentProbes()
-                                            .size() - 1
+                                    methodCall.getEntryProbe_id() ==
+                                            (eventBlock.eventId() - methodCall.getArgumentProbes().size() - 1)
                                             && methodCall.getSubject() == dataEvent.getValue()
                             ) {
                                 // we are inside a method call on a class intercepted by spring or cglib companions
@@ -2970,10 +3013,8 @@ public class SessionInstance {
                                 // the current methodCall on stack is the actual one we have entered in
                                 // we are not setting methodCall to null since else we will create a new call for
                                 // this methodEntry and eventually bad things will happen (while popping calls)
-                            } else if (!methodCallSubjectTypeMap.get(methodCall.getId())
-                                    .startsWith(expectedClassName)
-                                    || !methodInfo.getMethodName()
-                                    .equals(methodCall.getMethodName())) {
+                            } else if (!methodCallSubjectTypeMap.get(methodCall.getId()).startsWith(expectedClassName)
+                                    || !methodInfo.getMethodName().equals(methodCall.getMethodName())) {
                                 methodCall = null;
                             }
                         }
@@ -2990,14 +3031,12 @@ public class SessionInstance {
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         if (existingParameter.getValue() == 0
                                 && ((methodInfo.getAccess() & 8) == 8)
-                                && !methodInfo.getMethodName()
-                                .startsWith("<")
-                                && !methodInfo.getMethodName()
-                                .contains("$")) {
+                                && !methodInfo.getMethodName().startsWith("<")
+                                && !methodInfo.getMethodName().contains("$")) {
                             String ownerClass = ClassTypeUtils.getJavaClassName(
                                     classInfoIndex.get(probeInfo.getClassId())
                                             .getClassName());
-                            existingParameter.setValue((long) ownerClass.hashCode());
+                            existingParameter.setValue(ownerClass.hashCode());
                             isModified = true;
                             existingParameter.setType(ownerClass);
                             existingParameter.setProbeInfo(probeInfo);
@@ -3008,14 +3047,12 @@ public class SessionInstance {
                             existingParameter.setProbeInfo(probeInfo);
                             existingParameter.setProb(dataEvent);
 
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                    ClassTypeUtils.getDottedClassName(methodInfo.getClassName())));
+                            existingParameter.setType(ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
                             isModified = true;
                         }
-                        if (existingParameter.getType() == null || existingParameter.getType()
-                                .equals("java.lang.Object")) {
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                    ClassTypeUtils.getDottedClassName(methodInfo.getClassName())));
+                        if (existingParameter.getType() == null ||
+                                existingParameter.getType().equals("java.lang.Object")) {
+                            existingParameter.setType(ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
 
 
                             isModified = true;
@@ -3024,27 +3061,26 @@ public class SessionInstance {
 
 //                            logger.warn("Method " + methodInfo.getMethodName() + ": " + currentCallId);
                         methodCall = new com.insidious.plugin.pojo.dao.MethodCallExpression(methodInfo.getMethodName(),
-                                existingParameter.getValue(),
-                                new LinkedList<>(), 0, threadState.getCallStackSize());
+                                existingParameter.getValue(), new LinkedList<>(),
+                                0, threadState.getCallStackSize());
 
                         saveProbe = true;
                         methodCall.setThreadId(threadId);
                         methodCall.setEntryProbeInfoId(probeInfo.getDataId());
-                        methodCall.setEntryProbeId(dataEvent.getNanoTime());
+                        methodCall.setEntryProbeId(dataEvent.getEventId());
                         methodCall.setMethodDefinitionId(probeInfo.getMethodId());
                         methodCall.setStaticCall((methodInfo.getAccess() & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC);
 
                         currentCallId++;
                         methodCall.setId(currentCallId);
                         methodCallMap.put(currentCallId, methodCall);
-                        methodCallSubjectTypeMap.put(currentCallId, ClassTypeUtils.getJavaClassName(
-                                methodInfo.getClassName()));
+                        methodCallSubjectTypeMap.put(currentCallId,
+                                ClassTypeUtils.getJavaClassName(methodInfo.getClassName()));
 //                            if (threadState.candidateSize() > 0) {
 //                                addMethodToCandidate(threadState, methodCall);
 //                            }
                         if (threadState.getCallStackSize() > 0) {
-                            methodCall.setParentId(threadState.getTopCall()
-                                    .getId());
+                            methodCall.setParentId(threadState.getTopCall().getId());
                         }
 
                         threadState.pushCall(methodCall);
@@ -3103,13 +3139,12 @@ public class SessionInstance {
 
                     topCall = threadState.getTopCall();
 
-                    EventType entryProbeEventType = probeInfoIndex.get(topCall.getEntryProbeInfo_id())
-                            .getEventType();
+                    EventType entryProbeEventType = probeInfoIndex.get(topCall.getEntryProbeInfo_id()).getEventType();
                     if (entryProbeEventType == EventType.CALL) {
                         // not adding these since we will record method_params only for cases in which we dont have a method_entry probe
                     } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
                         topCall.addArgument(existingParameter.getValue());
-                        topCall.addArgumentProbe(dataEvent.getNanoTime());
+                        topCall.addArgumentProbe(dataEvent.getEventId());
                     } else {
                         throw new RuntimeException("unexpected entry probe event type");
                     }
@@ -3120,23 +3155,19 @@ public class SessionInstance {
 
                 case CATCH:
                     ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
-                    String topCallSubjectType = methodCallSubjectTypeMap.get(threadState.getTopCall()
-                            .getId());
+                    String topCallSubjectType = methodCallSubjectTypeMap.get(threadState.getTopCall().getId());
 //                            parameterContainer.getParameterByValue(threadState.getTopCall().getSubject()).getType();
 //                    String topCallSubjectType = topCallSubject.getType();
                     String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(classInfo.getClassName());
 
 
                     if (!topCallSubjectType.equals(currentProbeClassOwner)
-                            && threadState.getTopCandidate()
-                            .getMainMethod() != threadState.getTopCall()
-                            .getId()) {
+                            && threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
                                 existingParameter);
                         if (existingParameter.getType() == null) {
-                            ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(
-                                    existingParameter.getValue());
+                            ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
                             if (objectInfoDocument != null) {
                                 TypeInfoDocument typeInfoDocument = getTypeFromTypeIndex(
                                         objectInfoDocument.getTypeId());
@@ -3149,7 +3180,7 @@ public class SessionInstance {
                         existingParameter.setProb(dataEvent);
                         topCall = threadState.popCall();
                         topCall.setReturnValue_id(existingParameter.getValue());
-                        topCall.setReturnDataEvent(dataEvent.getNanoTime());
+                        topCall.setReturnDataEvent(dataEvent.getEventId());
                         callsToSave.add(topCall);
                         methodCallMap.remove(topCall.getId());
                         methodCallSubjectTypeMap.remove(topCall.getId());
@@ -3168,12 +3199,21 @@ public class SessionInstance {
 
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                     if (existingParameter.getType() == null) {
-                        ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(
-                                existingParameter.getValue());
+                        ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
                         if (objectInfoDocument == null) {
-                            logger.error("object info document is null for [" + existingParameter.getValue() + "] in " +
-                                    "log file: [" + "] in archive [" +
-                                    "]");
+                            this.sessionArchives = refreshSessionArchivesList(true);
+                            updateObjectInfoIndex();
+                            objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
+                            if (objectInfoDocument == null) {
+                                logger.error(
+                                        "object info document is null for [" + existingParameter.getValue() + "] in " +
+                                                "log file: [" + "] in archive [" +
+                                                "]");
+                                throw new NeedMoreLogsException(
+                                        "object info document is null for [" + existingParameter.getValue() + "] in " +
+                                                "log file: [" + "] in archive [" +
+                                                "]");
+                            }
                         }
                         TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(objectInfoDocument.getTypeId());
                         String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
@@ -3189,7 +3229,7 @@ public class SessionInstance {
 //                    if (entryProbeEventType == EventType.METHOD_ENTRY) {
                     topCall = threadState.popCall();
                     topCall.setReturnValue_id(existingParameter.getValue());
-                    topCall.setReturnDataEvent(dataEvent.getNanoTime());
+                    topCall.setReturnDataEvent(dataEvent.getEventId());
                     callsToSave.add(topCall);
                     threadState.setMostRecentReturnedCall(topCall);
 //                    }
@@ -3197,7 +3237,7 @@ public class SessionInstance {
 
                     completedExceptional = threadState.popTopCandidate();
 
-                    completedExceptional.setExitProbeIndex(dataEvent.getNanoTime());
+                    completedExceptional.setExitProbeIndex(dataEvent.getEventId());
                     com.insidious.plugin.pojo.dao.MethodCallExpression completedMainMethod =
                             methodCallMap.get(completedExceptional.getMainMethod());
 
@@ -3266,7 +3306,7 @@ public class SessionInstance {
                         } else {
                             topCall.setReturnValue_id(existingParameter.getValue());
                         }
-                        topCall.setReturnDataEvent(dataEvent.getNanoTime());
+                        topCall.setReturnDataEvent(dataEvent.getEventId());
                         callsToSave.add(topCall);
 
                         threadState.setMostRecentReturnedCall(topCall);
@@ -3331,7 +3371,7 @@ public class SessionInstance {
                         existingParameter.setProb(dataEvent);
                         saveProbe = true;
                         existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"))));
+                                probeInfo.getAttribute("Type", "V")));
 
                         isModified = true;
                     }
@@ -3344,7 +3384,8 @@ public class SessionInstance {
 
                         topCall = threadState.popCall();
                         topCall.setReturnValue_id(existingParameter.getValue());
-                        topCall.setReturnDataEvent(dataEvent.getNanoTime());
+                        topCall.setReturnDataEvent(dataEvent.getEventId());
+                        topCall.setReturnNanoTime(dataEvent.getRecordedAt());
                         callsToSave.add(topCall);
                         methodCallMap.remove(topCall.getId());
                         methodCallSubjectTypeMap.remove(topCall.getId());
@@ -3415,15 +3456,15 @@ public class SessionInstance {
         long timeInMs = (new Date().getTime() - start.getTime()) + 1;
         long eventsPerSecond = 1000 * (eventsSublist.size() / timeInMs);
         logger.warn(
-                "[" + "] Took [" + timeInMs + " ms] for [" + eventsSublist.size() + " events" +
+                "[3466] Took [" + timeInMs + " ms] for [" + eventsSublist.size() + " events" +
                         "]  => " + eventsPerSecond + " EPS");
-        logger.debug("parameterContainer = " + parameterContainer.all()
-                .size() + ",  eventsToSave = " + eventsToSave.size() + ",  probesToSave = " + probesToSave.size());
+        logger.debug("parameterContainer = " + parameterContainer.all().size()
+                + ",  eventsToSave = " + eventsToSave.size()
+                + ",  probesToSave = " + probesToSave.size());
         daoService.createOrUpdateProbeInfo(probesToSave);
 
 
-        if (threadState.getCallStack()
-                .size() > 50) {
+        if (threadState.getCallStack().size() > 50) {
             StringBuilder infiniteRecursionDetectedMessage = new StringBuilder(
                     "<html>There was an infinite recursion " +
                             "detected. Events cannot be processed further for thread [" + threadId + "]. " +
@@ -3432,20 +3473,24 @@ public class SessionInstance {
                             "<br/><br/>");
             int internalCounter = 0;
             Map<Long, Integer> matchedProbe = new HashMap<>();
-            for (int j = 0; j < threadState.getCallStack()
-                    .size(); j++) {
-                com.insidious.plugin.pojo.dao.MethodCallExpression call = threadState.getCallStack()
-                        .get(j);
-                long dataId = probeInfoIndex.get(call.getEntryProbeInfo_id())
-                        .getDataId();
+            for (int j = 0; j < threadState.getCallStack().size(); j++) {
+                com.insidious.plugin.pojo.dao.MethodCallExpression call = threadState.getCallStack().get(j);
+                long dataId = probeInfoIndex.get(call.getEntryProbeInfo_id()).getDataId();
+                Parameter subjectParameter = parameterContainer.getParameterByValue(call.getSubject());
                 infiniteRecursionDetectedMessage
-                        .append("Probe [")
+                        .append("[")
                         .append(dataId)
                         .append("][")
                         .append(call.getEntryProbe_id())
-                        .append("] call to ")
-                        .append(call.toString())
-                        .append("<br />");
+                        .append("]").append(" call: ");
+
+                if (subjectParameter.getType() != null && subjectParameter.getType().length() > 0) {
+                    infiniteRecursionDetectedMessage.append(subjectParameter.getType()).append(".");
+                }
+                infiniteRecursionDetectedMessage.append(call.getMethodName()).append("(")
+                        .append(call.getArguments().size()).append(" args").append(")");
+
+                infiniteRecursionDetectedMessage.append("<br />");
                 internalCounter++;
                 if (matchedProbe.containsKey(dataId) && matchedProbe.get(dataId) > 3) {
                     break;
@@ -3460,11 +3505,9 @@ public class SessionInstance {
             }
             infiniteRecursionDetectedMessage.append("</html>");
             logger.warn("infinite recursion detected: " + infiniteRecursionDetectedMessage.toString());
-            logger.warn("was going to save: [" + threadState.getCallStack()
-                    .size() + " calls ]");
-            InsidiousNotification.notifyMessage(infiniteRecursionDetectedMessage.toString(),
-                    NotificationType.ERROR);
-            return newTestCaseIdentified;
+            logger.warn("was going to save: [" + threadState.getCallStack().size() + " calls ]");
+            InsidiousNotification.notifyMessage(infiniteRecursionDetectedMessage.toString(), NotificationType.ERROR);
+//            return newTestCaseIdentified;
         }
 
         daoService.createOrUpdateDataEvent(eventsToSave);
@@ -3478,7 +3521,7 @@ public class SessionInstance {
 
         logFileList.forEach(logFile -> {
             logFile.setStatus(Constants.COMPLETED);
-            daoService.updateLogFile(logFile);
+            daoService.updateLogFileEntry(logFile);
         });
 
         daoService.createOrUpdateThreadState(threadState);
@@ -3521,6 +3564,8 @@ public class SessionInstance {
     private TypeInfoDocument getTypeFromTypeIndex(int typeId) throws FailedToReadClassWeaveException, IOException {
         TypeInfoDocument typeInfoDocument = typeInfoIndex.get(typeId);
         if (typeInfoDocument == null) {
+            logger.warn(
+                    "typeInfo is null for [" + typeId + "] reading latest classWeaveInfo from: " + currentSessionArchiveBeingProcessed.getName());
             readClassWeaveInfoStream(this.currentSessionArchiveBeingProcessed);
             typeInfoDocument = typeInfoIndex.get(typeId);
             if (typeInfoDocument == null) {
@@ -3528,10 +3573,6 @@ public class SessionInstance {
             }
         }
         return typeInfoDocument;
-    }
-
-    private ObjectInfoDocument getObjectInfoDocument(long parameterValue) {
-        return objectInfoIndex.get(parameterValue);
     }
 
 //    private ObjectInfoDocument getObjectInfoDocumentRaw(long parameterValue) {
@@ -3544,6 +3585,10 @@ public class SessionInstance {
 //        result.close();
 //        return objectInfo;
 //    }
+
+    private ObjectInfoDocument getObjectInfoDocument(long parameterValue) {
+        return objectInfoIndex.get(parameterValue);
+    }
 
     private long getFolderSize(File folder) {
         long length = 0;
@@ -3614,8 +3659,17 @@ public class SessionInstance {
         return daoService.getTestCandidateAggregatesForType(className);
     }
 
-    public List<TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName, boolean loadCalls) {
-        return daoService.getTestCandidatesForMethod(className, methodName, loadCalls);
+    public List<TestCandidateMetadata> getTestCandidatesForPublicMethod(String className, String methodName, boolean loadCalls) {
+        return daoService.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
+    }
+
+    public List<TestCandidateMetadata> getTestCandidatesForAllMethod(String className, String methodName,
+                                                                     boolean loadCalls) {
+        try {
+            return daoService.getTestCandidatesForAllMethod(className, methodName, loadCalls);
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
     }
 
     public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception {
@@ -3628,9 +3682,9 @@ public class SessionInstance {
 
     public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
         TestCandidateMetadata testCandidateMetadata = daoService.getTestCandidateById(testCandidateId, loadCalls);
-        resolveTemplatesInCall((MethodCallExpression) testCandidateMetadata.getMainMethod());
+        resolveTemplatesInCall(testCandidateMetadata.getMainMethod());
         // check if the param are ENUM
-        createParamEnumPropertyTrueIfTheyAre((MethodCallExpression) testCandidateMetadata.getMainMethod());
+        createParamEnumPropertyTrueIfTheyAre(testCandidateMetadata.getMainMethod());
 
         if (loadCalls) {
             for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
@@ -3652,7 +3706,6 @@ public class SessionInstance {
         // check for the return value type if its enum
         checkAndSetParameterEnumIfYesMakeNameCamelCase(methodCallExpression.getReturnValue());
     }
-
 
     private void checkAndSetParameterEnumIfYesMakeNameCamelCase(Parameter param) {
         if (param == null || param.getType() == null)
@@ -3772,53 +3825,9 @@ public class SessionInstance {
                     }
 
                     if (classReferenceType.hasParameters()) {
-                        PsiType[] typeTemplateParameters = classReferenceType.getParameters();
                         parameterFromProbe.setContainer(true);
                         List<Parameter> templateMap = parameterFromProbe.getTemplateMap();
-                        char templateChar = 'D';
-                        boolean hasGenericTemplate = false;
-                        for (PsiType typeTemplateParameter : typeTemplateParameters) {
-                            templateChar++;
-                            Parameter value = new Parameter();
-                            String canonicalText = typeTemplateParameter.getCanonicalText();
-                            // <? super ClassName>
-                            if (canonicalText.contains(" super ")) {
-                                canonicalText = canonicalText.substring(
-                                        canonicalText.indexOf(" super ") + " super ".length());
-                            }
-
-                            // <? extends ClassName>
-                            if (canonicalText.contains(" extends ")) {
-                                canonicalText = canonicalText.substring(
-                                        canonicalText.indexOf(" extends ") + " extends ".length());
-                            }
-                            if (canonicalText.length() == 1) {
-                                hasGenericTemplate = true;
-                                break;
-                            }
-                            logger.warn("Setting template type for parameter[" + templateChar + "]: "
-                                    + canonicalText + " for parameter: [" + classReferenceType);
-                            value.setType(canonicalText);
-                            String templateKey = String.valueOf(templateChar);
-                            value.setName(templateKey);
-                            Optional<Parameter> existingTemplateOptional = templateMap.stream()
-                                    .filter(e -> e.getName()
-                                            .equals(templateKey))
-                                    .findFirst();
-                            if (existingTemplateOptional.isPresent()) {
-                                Parameter existingValue = existingTemplateOptional.get();
-                                if (existingValue.getType()
-                                        .length() < 2) {
-                                    templateMap.remove(existingTemplateOptional.get());
-                                    templateMap.add(value);
-                                }
-                            } else {
-                                templateMap.add(value);
-                            }
-                        }
-                        if (hasGenericTemplate) {
-                            templateMap.clear();
-                        }
+                        extractTemplateMap(classReferenceType, templateMap);
                     }
                 }
             }
@@ -3902,18 +3911,21 @@ public class SessionInstance {
     }
 
     public void close() throws Exception {
+        logger.warn("Closing session instance: " + executionSession.getPath());
         try {
-            databasePipe.close();
+            if (zipConsumer != null) {
+                zipConsumer.close();
+            }
         } catch (Exception e) {
-//            e.printStackTrace();
             logger.error("Failed to close database pipe", e);
             InsidiousNotification.notifyMessage("Failed to close database pipe: " + e.getMessage(),
                     NotificationType.ERROR);
         }
         try {
-            executorPool.shutdownNow();
+            if (executorPool != null && !executorPool.isShutdown()) {
+                executorPool.shutdownNow();
+            }
         } catch (Exception e) {
-//            e.printStackTrace();
             logger.error("Failed to close executor pool", e);
             InsidiousNotification.notifyMessage("Failed to close executor pool: " + e.getMessage(),
                     NotificationType.ERROR);
@@ -3921,22 +3933,29 @@ public class SessionInstance {
         try {
             daoService.close();
         } catch (Exception e) {
-//            e.printStackTrace();
             logger.error("Failed to close database", e);
             InsidiousNotification.notifyMessage("Failed to close database: " + e.getMessage(),
                     NotificationType.ERROR);
         }
-        classInfoIndex.close();
-        probeInfoIndex.close();
-        methodInfoIndex.close();
-        typeInfoIndex.close();
-        objectInfoIndex.close();
-
-        archiveIndex = null;
-    }
-
-    public void submitTask(Runnable testCaseService) {
-        executorPool.submit(testCaseService);
+        if (classInfoIndex != null) {
+            classInfoIndex.close();
+        }
+        if (probeInfoIndex != null) {
+            probeInfoIndex.close();
+        }
+        if (methodInfoIndex != null) {
+            methodInfoIndex.close();
+        }
+        if (typeInfoIndex != null) {
+            typeInfoIndex.close();
+        }
+        if (objectInfoIndex != null) {
+            objectInfoIndex.close();
+        }
+        if (archiveIndex != null) {
+            archiveIndex.close();
+            archiveIndex = null;
+        }
     }
 
     public void setTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener) {
@@ -3967,17 +3986,7 @@ public class SessionInstance {
         return project;
     }
 
-    public boolean hasNewZips() {
-        try {
-            return daoService.getPendingLogFilesToProcessCount() > 0 ? true : false;
-        } catch (Exception e) {
-            System.out.println("Error checking for new zips. " + e);
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public Date getLastScannedTimeStamp() {
-        return lastScannedTimeStamp;
+    public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
+        return daoService.getClassMethodCallAggregates(qualifiedName);
     }
 }

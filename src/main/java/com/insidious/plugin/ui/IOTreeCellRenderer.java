@@ -18,7 +18,9 @@ public class IOTreeCellRenderer implements TreeCellRenderer {
         defaultTreeCellRenderer.setClosedIcon(null);
         defaultTreeCellRenderer.setOpenIcon(null);
         defaultTreeCellRenderer.setLeafIcon(null);
-        return defaultTreeCellRenderer.getTreeCellRendererComponent(tree,
+        Component treeCellRendererComponent = defaultTreeCellRenderer.getTreeCellRendererComponent(tree,
                 value, selected, expanded, leaf, row, hasFocus);
+        treeCellRendererComponent.setPreferredSize(new Dimension(-1, 10));
+        return treeCellRendererComponent;
     }
 }

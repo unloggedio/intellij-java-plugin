@@ -17,6 +17,7 @@ import com.squareup.javapoet.TypeName;
 import javax.lang.model.element.Modifier;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * ObjectRoutine is representing a block of code, a method, containing all the
@@ -35,22 +36,6 @@ public class ObjectRoutineScript {
     private VariableContainer createdVariables = new VariableContainer();
     private List<Parameter> staticMocks = new ArrayList<>();
 
-    @Override
-    public String toString() {
-        return "ObjectRoutineScript{" +
-                "statements=" + statements +
-                ", exceptions=" + exceptions +
-                ", annotations=" + annotations +
-                ", modifiers=" + modifiers +
-                ", routineName='" + routineName + '\'' +
-                ", createdVariables=" + createdVariables +
-                '}';
-    }
-
-    public TestCaseGenerationConfiguration getGenerationConfiguration() {
-        return generationConfiguration;
-    }
-
     public ObjectRoutineScript(
             String routineName,
             TestCaseGenerationConfiguration generationConfiguration,
@@ -61,10 +46,6 @@ public class ObjectRoutineScript {
         this.testGenerationState = testGenerationState;
     }
 
-    public TestGenerationState getTestGenerationState() {
-        return testGenerationState;
-    }
-
     public ObjectRoutineScript(
             VariableContainer createdVariables,
             TestCaseGenerationConfiguration testConfiguration,
@@ -73,6 +54,22 @@ public class ObjectRoutineScript {
         this.createdVariables = createdVariables;
         this.generationConfiguration = testConfiguration;
         this.testGenerationState = testGenerationState;
+    }
+
+    @Override
+    public String toString() {
+        return annotations + " " + modifiers + " " + routineName + "() throws " + exceptions + " {" +
+                "body {" + statements + " } " +
+                "createdVariables=" + createdVariables +
+                '}';
+    }
+
+    public TestCaseGenerationConfiguration getGenerationConfiguration() {
+        return generationConfiguration;
+    }
+
+    public TestGenerationState getTestGenerationState() {
+        return testGenerationState;
     }
 
     public void addStatement(String s, Object... args) {
@@ -158,4 +155,6 @@ public class ObjectRoutineScript {
     public void addStaticMock(Parameter staticCallSubjectMockInstance) {
         this.staticMocks.add(staticCallSubjectMockInstance);
     }
+
+
 }

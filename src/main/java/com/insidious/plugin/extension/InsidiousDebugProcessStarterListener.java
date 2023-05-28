@@ -42,11 +42,8 @@ public final class InsidiousDebugProcessStarterListener
 //        TimelineManager.getTimeline(this.debugProcess.getSession().getSessionName()).refreshBookmarks(suspendContext);
         if (this.state.getCommandSender() != null && suspendContext instanceof InsidiousXSuspendContext) {
             InsidiousXSuspendContext InsidiousXSuspendContext = (InsidiousXSuspendContext) suspendContext;
-            this.state.getCommandSender()
-                    .setLastThreadId(
-
-
-                            (int) InsidiousXSuspendContext.getThreadReferenceProxy().getThreadReference().uniqueID());
+            int lastThreadId = (int) InsidiousXSuspendContext.getThreadReferenceProxy().getThreadReference().uniqueID();
+            this.state.getCommandSender().setLastThreadId(lastThreadId);
         }
         ApplicationManager.getApplication().invokeLater(this::repaintTimelineToolWindow);
         this.debugProcess.stopPerformanceTiming();

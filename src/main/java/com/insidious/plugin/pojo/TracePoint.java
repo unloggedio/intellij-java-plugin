@@ -53,7 +53,7 @@ public class TracePoint {
 
     public static TracePoint fromDataEvent(DataEventWithSessionId dataEvent, DataResponse<DataEventWithSessionId> traceResponse) {
 
-        DataInfo dataInfoObject = traceResponse.getDataInfo(String.valueOf(dataEvent.getDataId()));
+        DataInfo dataInfoObject = traceResponse.getDataInfo(String.valueOf(dataEvent.getProbeId()));
         if (dataInfoObject != null) {
 
             ClassInfo classInfo = traceResponse.getClassInfo(String.valueOf(dataInfoObject.getClassId()));
@@ -77,14 +77,14 @@ public class TracePoint {
 
             TracePoint tracePoint = new TracePoint(dataInfoObject.getClassId(),
                     dataInfoObject.getLine(),
-                    dataEvent.getDataId(),
+                    dataEvent.getProbeId(),
                     dataEvent.getThreadId(),
                     dataEvent.getValue(),
                     classInfo.getFilename(),
                     classInfo.getClassName(),
                     exceptionClass,
                     dataEvent.getRecordedAt(),
-                    dataEvent.getNanoTime());
+                    dataEvent.getEventId());
             ExecutionSession executionSession1 = new ExecutionSession();
             executionSession1.setSessionId(dataEvent.getSessionId());
             tracePoint.setExecutionSession(executionSession1);

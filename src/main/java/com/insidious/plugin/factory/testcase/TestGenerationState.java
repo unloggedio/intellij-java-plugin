@@ -15,8 +15,6 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.bouncycastle.crypto.digests.MD5Digest;
-import org.bouncycastle.jcajce.provider.digest.MD5;
 
 import javax.lang.model.element.Modifier;
 import java.util.HashMap;
@@ -86,7 +84,7 @@ public class TestGenerationState {
         for (int i = 0; i < 100; i++) {
             referenceNameForValue = targetObjectName + i;
             if (!valueResourceMap.containsKey(referenceNameForValue)) {
-                Object value1 = null;
+                Object value1;
                 try {
                     value1 = gson.fromJson(value, JsonElement.class);
                 } catch (JsonSyntaxException jse) {
@@ -109,16 +107,17 @@ public class TestGenerationState {
         }
         TypeName fieldTypeName = ClassName.bestGuess(fieldType);
         if (parameter.isContainer()) {
-            fieldTypeName = ParameterizedTypeName.get((ClassName) fieldTypeName,
-                    ClassName.bestGuess(parameter.getTemplateMap()
-                            .get(0)
-                            .getType()));
+            TypeName[] typeArguments =
+                    parameter.getTemplateMap()
+                            .stream()
+                            .map(e -> ClassTypeUtils.createTypeFromNameString(e.getType()))
+                            .toArray(TypeName[]::new);
+            fieldTypeName = ParameterizedTypeName.get((ClassName) fieldTypeName, typeArguments);
         }
 
-        FieldSpec.Builder builder = FieldSpec.builder(
+        return FieldSpec.builder(
                 fieldTypeName, parameterNameFactory.getNameForUse(parameter, null), Modifier.PRIVATE
         );
-        return builder;
     }
 
     public void generateParameterName(Parameter returnValue, String methodName) {
@@ -141,11 +140,11 @@ public class TestGenerationState {
 
     }
 
-    public void setSetupNeedsJsonResources(boolean setupNeedsJsonResources) {
-        this.setupNeedsJsonResources = setupNeedsJsonResources;
-    }
-
     public boolean isSetupNeedsJsonResources() {
         return setupNeedsJsonResources;
+    }
+
+    public void setSetupNeedsJsonResources(boolean setupNeedsJsonResources) {
+        this.setupNeedsJsonResources = setupNeedsJsonResources;
     }
 }

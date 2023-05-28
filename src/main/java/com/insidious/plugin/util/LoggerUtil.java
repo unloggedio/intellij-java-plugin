@@ -28,8 +28,8 @@ public class LoggerUtil {
             MethodInfo methodInfoLocal
     ) {
         logger.warn("[" + tag + "] #" + i +
-                ", T=" + historyEvent.getNanoTime() +
-                ", P=" + String.format("%-7s", historyEvent.getDataId()) +
+                ", T=" + historyEvent.getEventId() +
+                ", P=" + String.format("%-7s", historyEvent.getProbeId()) +
                 ", V=" + String.format("%-10s", historyEvent.getValue()) +
                 " [Stack:" + callStack + "]" +
                 " " + String.format("%-25s", historyEventProbe.getEventType())

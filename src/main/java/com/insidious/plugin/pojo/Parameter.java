@@ -189,10 +189,11 @@ public class Parameter implements Serializable, BytesMarshallable {
     @Override
     public String toString() {
         return
-                names.stream()
+                (names != null ? names.stream()
                         .findFirst()
-                        .orElse("<n/a>") +
-                        (type == null ? "</na>" : " = new " + type.substring(type.lastIndexOf('.') + 1) + "(); // ") +
+                        .orElse("<n/a>") : "<n/a>") +
+                        (type == null ? "</na>" : " = new " + (type != null ?
+                                type.substring(type.lastIndexOf('.') + 1) : "naType") + "(); // ") +
                         "{" + "value=" + value +
                         ", index=" + index +
                         ", probeInfo=" + dataInfo +
@@ -267,7 +268,7 @@ public class Parameter implements Serializable, BytesMarshallable {
         return value;
     }
 
-    public void setValue(Long value) {
+    public void setValue(long value) {
         this.value = value;
     }
 
@@ -304,10 +305,8 @@ public class Parameter implements Serializable, BytesMarshallable {
 
     public void setProbeInfo(DataInfo probeInfo) {
         if (this.dataInfo == null
-                || !this.dataInfo.getEventType()
-                .equals(EventType.METHOD_EXCEPTIONAL_EXIT)
-                || probeInfo.getEventType()
-                .equals(EventType.METHOD_EXCEPTIONAL_EXIT)
+                || !this.dataInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT)
+                || probeInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT)
         ) {
             this.dataInfo = probeInfo;
         }
@@ -329,11 +328,6 @@ public class Parameter implements Serializable, BytesMarshallable {
         this.creatorExpression = createrExpression;
     }
 
-
-    public void setTemplateParameter(Parameter nextValueParam) {
-        isContainer = true;
-        this.templateMap.add(nextValueParam);
-    }
 
     public void addName(String nameForParameter) {
         if (nameForParameter == null || this.names.contains(nameForParameter) || nameForParameter.startsWith(
@@ -374,8 +368,11 @@ public class Parameter implements Serializable, BytesMarshallable {
 
     public boolean isPrimitiveType() {
         // types which are java can build just using their values
-        return type != null &&
-                (type.length() == 1 || isBoxedPrimitiveType());
+        String typeCopy = type;
+        while (typeCopy != null && typeCopy.startsWith("[") && typeCopy.length() > 1) {
+            typeCopy = typeCopy.substring(1);
+        }
+        return type != null && (typeCopy.length() == 1 || isBoxedPrimitiveType());
 
     }
 

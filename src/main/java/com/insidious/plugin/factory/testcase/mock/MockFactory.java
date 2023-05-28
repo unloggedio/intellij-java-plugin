@@ -7,6 +7,7 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.TypeName;
 
 import java.util.LinkedList;
 
@@ -80,7 +81,7 @@ public class MockFactory {
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
 
 
-        ClassName targetClassname = ClassName.bestGuess(parameterTypeName);
+        TypeName targetClassname = ClassTypeUtils.createTypeFromNameString(parameterTypeName);
         testCandidateMetadata.setTestSubject(parameter);
 
 //        testCandidateMetadata.setFullyQualifiedClassname(targetClassname.canonicalName());
