@@ -138,9 +138,9 @@ public class TestCandidateTreeModel implements TreeModel {
             text.append(candidateList.get(candidateList.size() - 1).toString() + "\n\n");
         }
 
-        text.append("• Using the checkboxes on the left, select the methods to assert.\n");
-        text.append(
-                "• Using the checkboxes in the dropdown, select the calls to mock so that the parent method can be tested.\n\n");
+        text.append("Using the checkboxes on the left, select the methods to assert.\n");
+        text.append("Using the checkboxes in the dropdown, select the calls to mock" +
+                " so that the parent method can be tested.\n\n");
 
         return text.toString();
     }

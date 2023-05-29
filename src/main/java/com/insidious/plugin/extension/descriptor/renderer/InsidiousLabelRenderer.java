@@ -79,7 +79,7 @@ public class InsidiousLabelRenderer extends InsidiousReferenceRenderer implement
 
     @NotNull
     public String getLinkText() {
-        return "… " + getLabelExpression().getText();
+        return "... " + getLabelExpression().getText();
     }
 
 

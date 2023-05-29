@@ -22,7 +22,6 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
-import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import org.json.JSONObject;
@@ -33,7 +32,6 @@ import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -45,12 +43,12 @@ public class MethodDirectInvokeComponent {
     private final List<String> creationStack = new LinkedList<>();
     private JPanel mainContainer;
     private JPanel actionControlPanel;
-    private JButton executeButton;
     private JScrollPane returnValuePanel;
     private JTextArea returnValueTextArea;
     private JPanel methodParameterScrollContainer;
     private JPanel scrollerContainer;
     private JLabel methodNameLabel;
+    private JButton executeButton;
     private MethodAdapter methodElement;
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
@@ -94,6 +92,11 @@ public class MethodDirectInvokeComponent {
             InsidiousNotification.notifyMessage("Start your application with Unlogged JAVA agent to start using " +
                     "method DirectInvoke", NotificationType.INFORMATION);
             insidiousService.updateScaffoldForState(GutterState.PROCESS_NOT_RUNNING);
+            return;
+        }
+
+        if (methodElement == null) {
+            InsidiousNotification.notifyMessage("No method selected in editor.", NotificationType.WARNING);
             return;
         }
 
@@ -182,8 +185,10 @@ public class MethodDirectInvokeComponent {
             return;
         }
 
-        executeButton.setToolTipText("");
-        executeButton.setEnabled(true);
+//        executeButton.setToolTipText("");
+//        executeButton.setEnabled(true);
+        executeButton.revalidate();
+        executeButton.repaint();
 
         String methodName = methodElement.getName();
         ClassAdapter containingClass = methodElement.getContainingClass();

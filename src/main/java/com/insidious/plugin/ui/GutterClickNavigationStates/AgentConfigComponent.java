@@ -186,7 +186,7 @@ public class AgentConfigComponent {
                     UsageInsightTracker.getInstance().RecordEvent("COPY_VM_PARAMS_CLI", new JSONObject());
                     insidiousService.copyToClipboard(
                             getCurrentJVMOpts(ProjectTypeInfo.RUN_TYPES.JAVA_JAR_CLI, projectLanguageLevel));
-                    InsidiousNotification.notifyMessage("Copied ¡1to clipboard", NotificationType.INFORMATION);
+                    InsidiousNotification.notifyMessage("Copied to clipboard", NotificationType.INFORMATION);
                 });
 
 
