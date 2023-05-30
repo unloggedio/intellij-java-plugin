@@ -13,6 +13,7 @@ public interface MethodExecutionListener {
     void executeCandidate(
             List<TestCandidateMetadata> metadata,
             PsiClass psiClass,
+            String source,
             AgentCommandResponseListener<String> stringAgentCommandResponseListener
     );
 

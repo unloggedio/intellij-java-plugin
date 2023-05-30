@@ -51,7 +51,6 @@ public class MethodDirectInvokeComponent {
     private JPanel methodParameterScrollContainer;
     private JPanel scrollerContainer;
     private JLabel methodNameLabel;
-    private JButton generateReportButton;
     private MethodAdapter methodElement;
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
@@ -76,13 +75,6 @@ public class MethodDirectInvokeComponent {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     executeMethodWithParameters();
                 }
-            }
-        });
-
-        generateReportButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                insidiousService.getReportForClass(methodElement.getContainingClass());
             }
         });
     }
@@ -178,6 +170,16 @@ public class MethodDirectInvokeComponent {
                             panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);
                             returnValueTextArea.setText(responseMessage + methodReturnValue);
                         }
+                        ResponseType responseType1 = agentCommandResponse.getResponseType();
+                        DifferenceResult diffResult = new DifferenceResult(null,
+                                responseType1.equals(ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION,
+                                null,
+                                DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
+                        diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
+                        diffResult.setMethodAdapter(methodElement);
+                        diffResult.setResponse(agentCommandResponse);
+                        diffResult.setCommand(agentCommandRequest);
+                        insidiousService.addExecutionRecord(diffResult);
                     });
         });
 

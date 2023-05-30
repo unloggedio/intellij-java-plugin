@@ -174,6 +174,7 @@ final public class InsidiousService implements Disposable,
     private MethodAdapter currentMethod;
     private boolean hasShownIndexWaitNotification = false;
     private String basePackage = null;
+    private ReportingService reportingService = new ReportingService(this);
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -1147,31 +1148,6 @@ final public class InsidiousService implements Disposable,
         }
     }
 
-    public void getReportForClass(ClassAdapter classAdapter)
-    {
-        String path = classAdapter.getQualifiedName();
-        Map<String,String> res = new TreeMap<>();
-        MethodAdapter[] methods = classAdapter.getMethods();
-        System.out.println("Report for Class : "+path);
-        for(int i=0;i<methods.length;i++)
-        {
-            String hashkey = methods[i].getContainingClass().getQualifiedName() + "#" +
-                    methods[i].getName();
-            if(executionRecord.containsKey(hashkey))
-            {
-                DifferenceResult differenceResult = executionRecord.get(hashkey);
-                res.put(methods[i].getName(),differenceResult.getDiffResultType().toString());
-            }
-            else {
-                res.put(methods[i].getName(), "Not executed");
-            }
-        }
-        for(String key : res.keySet())
-        {
-            System.out.println("-> "+key+" : "+res.get(key));
-        }
-    }
-
     public List<TestCandidateMetadata> getTestCandidateMetadata(MethodAdapter method) {
 
         String methodName = method.getName();
@@ -1320,6 +1296,12 @@ final public class InsidiousService implements Disposable,
         if (existing.getDiffResultType() == DiffResultType.SAME) {
             executionRecord.put(keyName, newDiffRecord);
         }
+        addExecutionRecord(newDiffRecord);
+    }
+
+    public void addExecutionRecord(DifferenceResult result)
+    {
+        reportingService.addRecord(result);
     }
 
     public void openDirectExecuteWindow() {
@@ -1508,6 +1490,10 @@ final public class InsidiousService implements Disposable,
 
     public AgentStateProvider getAgentStateProvider() {
         return agentStateProvider;
+    }
+
+    public void toggleReportGeneration() {
+        this.reportingService.toggleReportMode();
     }
 
 

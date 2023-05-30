@@ -135,7 +135,7 @@ public class DiffUtils {
         }
     }
 
-    static private Map<String, Object> getFlatMapFor(String s1) {
+    static public Map<String, Object> getFlatMapFor(String s1) {
         ObjectMapper om = new ObjectMapper();
         try {
             Map<String, Object> m1;

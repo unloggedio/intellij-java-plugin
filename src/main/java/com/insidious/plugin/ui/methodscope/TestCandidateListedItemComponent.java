@@ -64,7 +64,7 @@ public class TestCandidateListedItemComponent {
                     eventProperties.put("methodName", candidateMetadata.getMainMethod().getMethodName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
                     listener.executeCandidate(
-                            Collections.singletonList(candidateMetadata), psiClass,
+                            Collections.singletonList(candidateMetadata), psiClass, "individual",
                             (testCandidate, agentCommandResponse, diffResult) -> {
                                 insidiousService.updateMethodHashForExecutedMethod(method);
                                 setAndDisplayResponse(agentCommandResponse, diffResult);

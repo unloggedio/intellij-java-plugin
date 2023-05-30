@@ -31,7 +31,7 @@ public class SupportForm {
     public SupportForm(Project project)
     {
         this.project = project;
-        this.submitButton.setIcon(UIUtils.CHECK_MARK_SVG);
+        //this.submitButton.setIcon(UIUtils.CHECK_MARK_SVG);
         submitButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
