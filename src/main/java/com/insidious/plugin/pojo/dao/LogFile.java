@@ -13,7 +13,8 @@ public class LogFile implements Comparable<LogFile> {
     String archiveName;
     @DatabaseField
     String status;
-
+    @DatabaseField
+    String processorId;
     @DatabaseField
     private int threadId;
 
@@ -24,6 +25,14 @@ public class LogFile implements Comparable<LogFile> {
         this.name = name;
         this.archiveName = archiveName;
         this.status = status;
+    }
+
+    public String getProcessorId() {
+        return processorId;
+    }
+
+    public void setProcessorId(String processorId) {
+        this.processorId = processorId;
     }
 
     public String getName() {
@@ -55,12 +64,12 @@ public class LogFile implements Comparable<LogFile> {
         return this.name.compareTo(o.name);
     }
 
-    public void setThreadId(int threadId) {
-        this.threadId = threadId;
-    }
-
     public int getThreadId() {
         return threadId;
+    }
+
+    public void setThreadId(int threadId) {
+        this.threadId = threadId;
     }
 
     @Override

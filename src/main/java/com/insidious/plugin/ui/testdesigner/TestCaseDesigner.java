@@ -52,7 +52,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
-import com.intellij.psi.impl.source.PsiImmediateClassType;
 import com.intellij.psi.impl.source.PsiJavaFileImpl;
 import com.intellij.psi.impl.source.tree.java.PsiExpressionListImpl;
 import com.intellij.psi.impl.source.tree.java.PsiJavaTokenImpl;
@@ -603,8 +602,8 @@ public class TestCaseDesigner implements Disposable {
 
                         ClassAdapter calledMethodClassReference = getClassByName(fieldByName.getType());
                         if (calledMethodClassReference == null) {
-                            logger.error("called class reference for method not found ["
-                                    + psiMethodCallExpression + "]");
+                            logger.warn("Class reference[" + fieldByName.getType() + "] for method call expression " +
+                                    "not found ["+ psiMethodCallExpression.getMethodExpression() + "]");
                             continue;
                         }
 

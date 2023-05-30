@@ -10,6 +10,7 @@ public class AgentCommandRequest {
     private String methodSignature;
     private List<String> methodParameters;
     private AgentCommandRequestType requestType;
+    private List<String> parameterTypes;
 
 //    public List<String> getAlternateClassNames() {
 //        return alternateClassNames;
@@ -76,5 +77,13 @@ public class AgentCommandRequest {
 
     public void setRequestType(AgentCommandRequestType requestType) {
         this.requestType = requestType;
+    }
+
+    public void setParameterTypes(List<String> parameterTypes) {
+        this.parameterTypes = parameterTypes;
+    }
+
+    public List<String> getParameterTypes() {
+        return parameterTypes;
     }
 }

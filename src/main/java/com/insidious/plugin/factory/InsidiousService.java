@@ -51,10 +51,7 @@ import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.execution.*;
 import com.intellij.execution.application.ApplicationConfiguration;
 import com.intellij.execution.configurations.RunConfiguration;
-import com.intellij.execution.configurations.RunConfigurationModule;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
-import com.intellij.execution.ui.RunToolbarWidgetKt;
-import com.intellij.icons.AllIcons;
 import com.intellij.ide.DataManager;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
@@ -77,7 +74,6 @@ import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.MessageType;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.ThrowableComputable;
@@ -226,7 +222,7 @@ final public class InsidiousService implements Disposable,
 //                            "a Java application run configuration. Select an existing Java Application in RunConfig of create" +
 //                            " new. Cannot add VM parameter.");
             InsidiousNotification.notifyMessage("Current run configuration [" + selectedConfig.getName() + "] is not " +
-                    "a Java application run configuration. Select an existing Java Application in RunConfig of create" +
+                            "a Java application run configuration. Select an existing Java Application in RunConfig of create" +
                             " new. Cannot add VM parameter.",
                     NotificationType.WARNING);
         }
@@ -981,10 +977,12 @@ final public class InsidiousService implements Disposable,
         }
         this.executionRecord.clear();
         logger.warn("Loading session: " + executionSession.getSessionId());
+
         sessionInstance = new SessionInstance(executionSession, project);
         sessionInstance.setTestCandidateListener(this);
         client.setSessionInstance(sessionInstance);
         testCaseService = new TestCaseService(sessionInstance);
+
     }
 
     public void openTestCaseDesigner(Project project) {
@@ -1356,40 +1354,10 @@ final public class InsidiousService implements Disposable,
         return list;
     }
 
-    public void promoteState() {
+    public void promoteState(GutterState newState) {
         if (this.atomicTestContainerWindow != null) {
-            GutterState state = this.atomicTestContainerWindow.getCurrentState();
-            if (state == null) {
-                return;
-            }
-            if (state.equals(GutterState.NO_AGENT)) {
-                System.out.println("Promoting to PROCESS_NOT_RUNNING");
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
-                });
-            }
-            if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
-                System.out.println("Promoting to PROCESS_RUNNING");
-                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
-            }
-//            if (state.equals(GutterState.PROCESS_RUNNING)) {
-//                System.out.println("Promoting to DATA_AVAILABLE");
-//                atomicTestContainerWindow.loadComponentForState(GutterState.DATA_AVAILABLE,null);
-//                atomicTestContainerWindow.refresh();
-//            }
-        }
-    }
-
-    public void demoteState() {
-        if (this.atomicTestContainerWindow != null) {
-            GutterState state = this.atomicTestContainerWindow.getCurrentState();
-            if (state == null) {
-                return;
-            }
-            if (state.equals(GutterState.PROCESS_RUNNING)) {
-                System.out.println("Demoting to PROCESS_NOT_RUNNING");
-                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
-            }
+            System.out.println("Promoting to: " + newState);
+            atomicTestContainerWindow.loadComponentForState(newState);
         }
     }
 
@@ -1423,10 +1391,6 @@ final public class InsidiousService implements Disposable,
             applicationConfiguration.setVMParameters(newVmOptions.trim());
 
             ExecutionManager executionManager = ExecutionManager.getInstance(project);
-
-//            ExecutionManagerImpl executionManagerImpl = ExecutionManagerImpl.getInstance(project);
-
-
 
             DataManager.getInstance().getDataContextFromFocusAsync().onSuccess(dataContext -> {
                 ExecutorRegistry executorRegistry = ExecutorRegistryImpl.getInstance();

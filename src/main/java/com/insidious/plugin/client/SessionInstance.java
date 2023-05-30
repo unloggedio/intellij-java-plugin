@@ -105,6 +105,8 @@ public class SessionInstance {
     private final Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
     private final Map<Long, com.insidious.plugin.pojo.dao.MethodCallExpression> methodCallMap = new HashMap<>();
     private final Map<Long, String> methodCallSubjectTypeMap = new HashMap<>();
+    private final String processorId;
+    private boolean scanEnable = false;
     private List<File> sessionArchives;
     private ArchiveIndex archiveIndex;
     private ChronicleMap<Long, ObjectInfoDocument> objectInfoIndex;
@@ -117,13 +119,27 @@ public class SessionInstance {
     private NewTestCandidateIdentifiedListener testCandidateListener;
     private File currentSessionArchiveBeingProcessed;
     private ChronicleVariableContainer parameterContainer;
-//    private Date lastScannedTimeStamp;
+    //    private Date lastScannedTimeStamp;
     private boolean isSessionCorrupted = false;
     private boolean hasShownCorruptedNotification = false;
 
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
         this.sessionDirectory = FileSystems.getDefault().getPath(executionSession.getPath()).toFile();
+        this.processorId = UUID.randomUUID().toString();
+
+        File sessionLockFile = FileSystems.getDefault().getPath(executionSession.getPath(), "lock").toFile();
+        try {
+            boolean created = sessionLockFile.createNewFile();
+            if (created) {
+                scanEnable = true;
+            }
+        } catch (IOException e) {
+            // lockFile failed to create, probably already exists
+            // no scanning to be done from this session instance
+
+        }
+
         File cacheDir = new File(this.sessionDirectory + "/cache/");
         cacheDir.mkdirs();
         this.executionSession = executionSession;
@@ -158,11 +174,16 @@ public class SessionInstance {
 //        databasePipe = new DatabasePipe(new LinkedTransferQueue<>(), daoService);
 
         checkProgressIndicator("Opening Zip Files", null);
-        zipConsumer = new ZipConsumer(daoService, sessionDirectory, this);
-        executorPool = Executors.newFixedThreadPool(4);
-
+        if (scanEnable) {
+            logger.warn("Starting zip consumer: " + processorId);
+            zipConsumer = new ZipConsumer(daoService, sessionDirectory, this);
+            executorPool = Executors.newFixedThreadPool(4);
+            executorPool.submit(zipConsumer);
+        } else {
+            zipConsumer = null;
+            executorPool = null;
+        }
         this.sessionArchives = refreshSessionArchivesList(false);
-        executorPool.submit(zipConsumer);
 
     }
 
@@ -472,6 +493,7 @@ public class SessionInstance {
                         + classWeaveInfo.classInfo().size() + " classes");
         long totalClassCount = classWeaveInfo.classInfo().size();
 
+        Map<Integer, DataInfo> probeListCache = new HashMap<>();
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
             int current = counter.addAndGet(1);
             checkProgressIndicator(null, "Loading " + current + " / " + totalClassCount + " class information");
@@ -587,7 +609,12 @@ public class SessionInstance {
 
             Map<Integer, DataInfo> probesMap = dataInfoList.stream()
                     .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
-            probeInfoIndex.putAll(probesMap);
+            logger.warn("Add [" + probesMap.size() + "] probes for class: " + counter.get() + "/" + totalClassCount);
+            probeListCache.putAll(probesMap);
+            if (probeListCache.size() > 10000) {
+                probeInfoIndex.putAll(probeListCache);
+                probeListCache.clear();
+            }
         }
 
         daoService.createOrUpdateClassDefinitions(classInfoIndex.values().stream()
@@ -2275,6 +2302,11 @@ public class SessionInstance {
     }
 
     public void scanDataAndBuildReplay() {
+        if (!scanEnable) {
+            // there is another session which created the lock file and will do the scanning
+            // this happens when multiple ide windows open, so each one creates a sessionInstance
+            return;
+        }
         if (isSessionCorrupted) {
             if (!hasShownCorruptedNotification) {
                 hasShownCorruptedNotification = true;
@@ -2290,7 +2322,7 @@ public class SessionInstance {
 
             long scanStart = System.currentTimeMillis();
 
-            List<LogFile> logFilesToProcess = daoService.getPendingLogFilesToProcess();
+            List<LogFile> logFilesToProcess = daoService.getPendingLogFilesToProcess(processorId);
 
             Map<Integer, List<LogFile>> logFilesByThreadMap = logFilesToProcess.stream()
                     .collect(Collectors.groupingBy(LogFile::getThreadId));
@@ -2527,12 +2559,12 @@ public class SessionInstance {
 
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                     if (existingParameter != null) {
-                        nameFromProbe = probeInfo.getAttribute("Name",
-                                probeInfo.getAttribute("FieldName", null));
-                        if (!existingParameter.hasName(nameFromProbe)) {
-                            existingParameter.addName(nameFromProbe);
-                            isModified = true;
-                        }
+//                        nameFromProbe = probeInfo.getAttribute("Name",
+//                                probeInfo.getAttribute("FieldName", null));
+//                        if (!existingParameter.hasName(nameFromProbe)) {
+//                            existingParameter.addName(nameFromProbe);
+//                            isModified = true;
+//                        }
                     }
                     if (existingParameter.getType() == null) {
                         ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
@@ -2563,12 +2595,12 @@ public class SessionInstance {
                     }
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
 
-                    String nameForParameter = probeInfo.getAttribute("Name",
-                            probeInfo.getAttribute("FieldName", null));
-                    if (!existingParameter.hasName(nameForParameter)) {
-                        existingParameter.addName(nameForParameter);
-                        isModified = true;
-                    }
+//                    String nameForParameter = probeInfo.getAttribute("Name",
+//                            probeInfo.getAttribute("FieldName", null));
+//                    if (!existingParameter.hasName(nameForParameter)) {
+//                        existingParameter.addName(nameForParameter);
+//                        isModified = true;
+//                    }
                     existingParameterType = existingParameter.getType();
                     if (existingParameterType == null
                             || existingParameterType.equals("java.lang.Object")
@@ -2616,13 +2648,13 @@ public class SessionInstance {
                     }
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                     if (existingParameter != null) {
-                        nameFromProbe = probeInfo.getAttribute("Name",
-                                probeInfo.getAttribute("FieldName", null));
+//                        nameFromProbe = probeInfo.getAttribute("Name",
+//                                probeInfo.getAttribute("FieldName", null));
                         isModified = false;
-                        if (!existingParameter.hasName(nameFromProbe)) {
-                            existingParameter.addName(nameFromProbe);
-                            isModified = true;
-                        }
+//                        if (!existingParameter.hasName(nameFromProbe)) {
+//                            existingParameter.addName(nameFromProbe);
+//                            isModified = true;
+//                        }
                         if (existingParameter.getProbeInfo() == null) {
                             ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
                             if (objectInfo != null) {
@@ -2655,13 +2687,13 @@ public class SessionInstance {
 
                 case GET_INSTANCE_FIELD_RESULT:
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-                    nameFromProbe = probeInfo.getAttribute("Name",
-                            probeInfo.getAttribute("FieldName", null));
+//                    nameFromProbe = probeInfo.getAttribute("Name",
+//                            probeInfo.getAttribute("FieldName", null));
                     isModified = false;
-                    if (!existingParameter.hasName(nameFromProbe)) {
-                        isModified = true;
-                        existingParameter.addName(nameFromProbe);
-                    }
+//                    if (!existingParameter.hasName(nameFromProbe)) {
+//                        isModified = true;
+//                        existingParameter.addName(nameFromProbe);
+//                    }
                     typeFromProbe = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"));
                     existingParameterType = existingParameter.getType();
                     if (existingParameterType == null
@@ -2739,8 +2771,8 @@ public class SessionInstance {
                         existingParameter.setType(ClassTypeUtils.getDottedClassName(
                                 probeInfo.getAttribute("Type", "V")));
 
-                        existingParameter.addName(
-                                probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
+//                        existingParameter.addName(
+//                                probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
                     }
 
                     break;
@@ -2753,12 +2785,12 @@ public class SessionInstance {
 
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                     if (existingParameter != null) {
-                        nameFromProbe = probeInfo.getAttribute("Name",
-                                probeInfo.getAttribute("FieldName", null));
-                        if (!existingParameter.hasName(nameFromProbe)) {
-                            existingParameter.addName(nameFromProbe);
-                            isModified = true;
-                        }
+//                        nameFromProbe = probeInfo.getAttribute("Name",
+//                                probeInfo.getAttribute("FieldName", null));
+//                        if (!existingParameter.hasName(nameFromProbe)) {
+//                            existingParameter.addName(nameFromProbe);
+//                            isModified = true;
+//                        }
                         existingParameterType = existingParameter.getType();
                         if (existingParameterType == null
                                 || existingParameterType.equals("java.lang.Object")
@@ -2789,8 +2821,8 @@ public class SessionInstance {
                         existingParameter.setType(
                                 ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
 
-                        existingParameter.addName(
-                                probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
+//                        existingParameter.addName(
+//                                probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
                         existingParameter.setProbeInfo(probeInfo);
                         existingParameter.setProb(dataEvent);
 
@@ -2820,8 +2852,8 @@ public class SessionInstance {
                             dataEvent = createDataEventFromBlock(threadId, eventBlock);
                             existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
                                     existingParameter);
-                            existingParameter.addName(probeInfo.getAttribute("Name",
-                                    probeInfo.getAttribute("FieldName", null)));
+//                            existingParameter.addName(probeInfo.getAttribute("Name",
+//                                    probeInfo.getAttribute("FieldName", null)));
                             existingParameter.setType(ClassTypeUtils.getDottedClassName(
                                     probeInfo.getAttribute("Type", "V")));
 
@@ -2831,12 +2863,12 @@ public class SessionInstance {
                             saveProbe = true;
 
                         } else {
-                            nameFromProbe = probeInfo.getAttribute("Name",
-                                    probeInfo.getAttribute("FieldName", null));
-                            if (!existingParameter.hasName(nameFromProbe)) {
-                                existingParameter.addName(nameFromProbe);
-                                isModified = true;
-                            }
+//                            nameFromProbe = probeInfo.getAttribute("Name",
+//                                    probeInfo.getAttribute("FieldName", null));
+//                            if (!existingParameter.hasName(nameFromProbe)) {
+//                                existingParameter.addName(nameFromProbe);
+//                                isModified = true;
+//                            }
                             typeFromProbe = ClassTypeUtils.getDottedClassName(
                                     probeInfo.getAttribute("Type", "V"));
                             if (existingParameter.getType() == null ||
@@ -3321,8 +3353,7 @@ public class SessionInstance {
 
                     completed.setExitProbeIndex(eventBlock.eventId());
                     if (completed.getMainMethod() != 0) {
-                        completed.setTestSubject(methodCallMap.get(completed.getMainMethod())
-                                .getSubject());
+                        completed.setTestSubject(methodCallMap.get(completed.getMainMethod()).getSubject());
                     }
 
                     if (threadState.candidateSize() > 0) {

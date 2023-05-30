@@ -31,13 +31,12 @@ class ZipConsumer implements Runnable {
     private AtomicBoolean isChecking = new AtomicBoolean(false);
     private boolean stop;
 
-    ZipConsumer(DaoService daoService, File sessionDirectory, SessionInstance sessionInstance) throws IOException {
+    ZipConsumer(DaoService daoService, File sessionDirectory, SessionInstance sessionInstance) {
         this.daoService = daoService;
         this.sessionInstance = sessionInstance;
         this.sessionDirectory = sessionDirectory;
         this.archiveFileMap = daoService.getArchiveFileMap();
-        existingLogFilesMap = daoService.getLogFiles().stream()
-                .collect(Collectors.toMap(LogFile::getName, e -> e));
+        existingLogFilesMap = daoService.getLogFiles().stream().collect(Collectors.toMap(LogFile::getName, e -> e));
         checkedArchivesList = new HashSet<String>();
         for (LogFile value : existingLogFilesMap.values()) {
             checkedArchivesList.add(value.getArchiveName());
@@ -115,11 +114,9 @@ class ZipConsumer implements Runnable {
                     daoService.createArchiveFileEntry(dbEntry);
 
 
+                    String archiveName = sessionArchive.getName();
                     for (String logFileName : logFilesNameList) {
-                        LogFile logFile = new LogFile();
-                        logFile.setName(logFileName);
-                        logFile.setArchiveName(sessionArchive.getName());
-                        logFile.setStatus(PENDING);
+                        LogFile logFile = new LogFile(logFileName, archiveName, PENDING);
                         int threadId = getThreadIdFromFileName(logFileName);
                         logFile.setThreadId(threadId);
                         daoService.createLogFileEntry(logFile);

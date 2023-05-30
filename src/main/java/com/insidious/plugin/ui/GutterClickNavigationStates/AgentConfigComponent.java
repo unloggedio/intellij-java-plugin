@@ -81,6 +81,11 @@ public class AgentConfigComponent {
 
         startApplicationWithUnloggedButton.addActionListener(
                 e -> {
+                    if (currentSelectedLanguageLevel == null) {
+                        InsidiousNotification.notifyMessage(
+                                "Please wait for project indexing to complete.", NotificationType.WARNING);
+                        return;
+                    }
                     JSONObject eventProperties = new JSONObject();
                     eventProperties.put("package", insidiousService.fetchBasePackage());
                     eventProperties.put("languageLevel", currentSelectedLanguageLevel.toString());

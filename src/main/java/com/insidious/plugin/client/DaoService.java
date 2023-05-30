@@ -1162,7 +1162,7 @@ public class DaoService {
         try {
             logFilesDao.create(logFile);
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.warn("log file entry already exists: " + logFile, e);
         }
     }
 
@@ -1405,13 +1405,27 @@ public class DaoService {
         return archiveFileMap;
     }
 
-    public List<LogFile> getPendingLogFilesToProcess() throws SQLException {
-        return logFilesDao.queryForEq("status", Constants.PENDING);
+    public List<LogFile> getPendingLogFilesToProcess(String processorId) throws SQLException {
+        logger.info("query for log files by processor: " + processorId);
+        int modifiedCount = logFilesDao.executeRaw(
+                "update log_file set processorId=? where status=? and processorId=null",
+                processorId,
+                Constants.PENDING);
+        if (modifiedCount == 0) {
+            return Collections.emptyList();
+        }
+
+        return logFilesDao
+                .queryBuilder()
+                .where()
+                .eq("processorId", processorId)
+                .and()
+                .eq("status", Constants.PENDING)
+                .query();
     }
 
     public long getPendingLogFilesToProcessCount() throws SQLException {
-        return logFilesDao.queryBuilder()
-                .where().eq("status", Constants.PENDING).countOf();
+        return logFilesDao.queryBuilder().where().eq("status", Constants.PENDING).countOf();
     }
 
     public ThreadProcessingState getThreadState(Integer threadId) throws Exception {

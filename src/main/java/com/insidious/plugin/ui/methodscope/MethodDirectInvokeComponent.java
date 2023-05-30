@@ -21,9 +21,15 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Computable;
-import com.intellij.psi.*;
+import com.intellij.psi.JavaPsiFacade;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiPrimitiveType;
+import com.intellij.psi.PsiType;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.components.JBTextArea;
+import com.intellij.ui.components.JBTextField;
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -174,6 +180,8 @@ public class MethodDirectInvokeComponent {
                             panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);
                             returnValueTextArea.setText(responseMessage + methodReturnValue);
                         }
+                        scrollerContainer.revalidate();
+                        scrollerContainer.repaint();
                     });
         });
 
@@ -187,8 +195,8 @@ public class MethodDirectInvokeComponent {
 
 //        executeButton.setToolTipText("");
 //        executeButton.setEnabled(true);
-        executeButton.revalidate();
-        executeButton.repaint();
+//        executeButton.revalidate();
+//        executeButton.repaint();
 
         String methodName = methodElement.getName();
         ClassAdapter containingClass = methodElement.getContainingClass();
@@ -246,8 +254,34 @@ public class MethodDirectInvokeComponent {
                     creationStack.clear();
                 }
 
-                ParameterInputComponent parameterContainer =
-                        new ParameterInputComponent(methodParameter, parameterValue);
+                ParameterInputComponent parameterContainer;
+                String typeCanonicalName = methodParameter.getType().getCanonicalText();
+                if (methodParameters.length > 1
+                        || methodParameter.getType() instanceof PsiPrimitiveType
+                        || typeCanonicalName.equals("java.lang.String")
+                        || typeCanonicalName.equals("java.lang.Integer")
+                        || typeCanonicalName.equals("java.lang.Long")
+                        || typeCanonicalName.equals("java.lang.Double")
+                        || typeCanonicalName.equals("java.lang.Short")
+                        || typeCanonicalName.equals("java.lang.Float")
+                        || typeCanonicalName.equals("java.lang.Byte")
+                        || typeCanonicalName.equals("java.math.BigDecimal")
+                ) {
+                    parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
+                            JBTextField.class);
+                } else {
+                    @Nullable PsiClass typeClassReference = JavaPsiFacade
+                            .getInstance(containingClass.getProject())
+                            .findClass(typeCanonicalName, methodParameter.getType().getResolveScope());
+                    if (typeClassReference != null && typeClassReference.isEnum()) {
+                        parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
+                                JBTextField.class);
+                    } else {
+                        parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
+                                JBTextArea.class);
+                    }
+                }
+
                 parameterInputComponents.add(parameterContainer);
                 JPanel content = parameterContainer.getContent();
                 content.setMinimumSize(new Dimension(-1, 150));

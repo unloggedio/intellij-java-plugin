@@ -23,7 +23,6 @@ public class AtomicTestContainer {
     private JPanel mainPanel;
     private JPanel borderParent;
     private GutterState currentState;
-//    private MethodAdapter lastSelectedMethod;
 
     public AtomicTestContainer(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -73,14 +72,13 @@ public class AtomicTestContainer {
     }
 
     public void triggerMethodExecutorRefresh(MethodAdapter method) {
-        if (GutterState.EXECUTE.equals(this.currentState) ||
-                GutterState.DATA_AVAILABLE.equals(this.currentState)) {
+        if (GutterState.EXECUTE.equals(this.currentState) || GutterState.DATA_AVAILABLE.equals(this.currentState)) {
             methodExecutorComponent.refreshAndReloadCandidates(method, new ArrayList<>());
         } else {
-            if(this.currentState.equals(GutterState.NO_AGENT) ||
-            this.currentState.equals(GutterState.PROCESS_NOT_RUNNING))
-            {
+            if (this.currentState.equals(GutterState.NO_AGENT) ||
+                    this.currentState.equals(GutterState.PROCESS_NOT_RUNNING)) {
                 loadComponentForState(this.currentState);
+                return;
             }
             SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
             if (sessionInstance == null) {

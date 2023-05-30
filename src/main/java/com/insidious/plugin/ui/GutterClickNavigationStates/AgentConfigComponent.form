@@ -31,7 +31,7 @@
                 <properties>
                   <icon value="icons/png/yellow_exclaim.png"/>
                   <iconTextGap value="4"/>
-                  <text value="Application is not running with Unlogged JAVA agent"/>
+                  <text value="Application is not running with Unlogged Java agent"/>
                 </properties>
               </component>
               <component id="d0ce8" class="javax.swing.JButton" binding="startApplicationWithUnloggedButton" default-binding="true">

@@ -1,30 +1,16 @@
 package com.insidious.plugin.ui.GutterClickNavigationStates;
 
-import com.insidious.plugin.Checksums;
-import com.insidious.plugin.Constants;
-import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.util.UIUtils;
-import com.intellij.notification.NotificationType;
-import com.intellij.openapi.progress.*;
-import org.jetbrains.annotations.NotNull;
-import org.json.JSONObject;
+import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.progress.ProgressIndicatorProvider;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.math.BigInteger;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.MessageDigest;
 import java.util.Objects;
 
 public class GenericNavigationComponent {
@@ -49,7 +35,7 @@ public class GenericNavigationComponent {
             //display button
             this.actionButton.setVisible(true);
             this.actionButton.setText("Download Agent");
-            actionButton.addActionListener((e) -> triggerAgentDownload());
+            actionButton.addActionListener((e) -> insidiousService.getAgentStateProvider().triggerAgentDownload());
             actionButton.setIcon(UIUtils.DOWNLOAD_WHITE);
         } else if (state.equals(GutterState.PROCESS_RUNNING)) {
             this.actionButton.setVisible(true);
@@ -100,182 +86,6 @@ public class GenericNavigationComponent {
         this.iconLabel.setIcon(icon);
     }
 
-    public void triggerAgentDownload() {
-        if (this.currentState.equals(GutterState.NO_AGENT)) {
-            System.out.println("Download Agent triggered");
-            String agentVersion = insidiousService.getAgentStateProvider().suggestAgentVersion();
-            System.out.println("Agent suggested : " + agentVersion);
-            downloadAgentInBackground(agentVersion);
-        }
-    }
-
-    /**
-     * @param jacksonVersion eg "jackson-2.13" or "jackson-2.9" or "gson"
-     */
-    public void downloadAgentInBackground(String jacksonVersion) {
-        Task.Backgroundable dl_task =
-                new Task.Backgroundable(insidiousService.getProject(), "Unlogged, Inc.", true) {
-                    @Override
-                    public void run(@NotNull ProgressIndicator indicator) {
-                        checkProgressIndicator("Downloading Unlogged agent", null);
-                        downloadAgent(jacksonVersion);
-                    }
-                };
-        ProgressManager.getInstance().run(dl_task);
-    }
-
-    private void checkProgressIndicator(String text1, String text2) {
-        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            if (ProgressIndicatorProvider.getGlobalProgressIndicator()
-                    .isCanceled()) {
-                throw new ProcessCanceledException();
-            }
-            if (text2 != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator()
-                        .setText2(text2);
-            }
-            if (text1 != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator()
-                        .setText(text1);
-            }
-        }
-    }
-
-    private void downloadAgent(String jsonMapperVersion) {
-//        agentDownloadInitiated = true;
-        // deprecating downloads from s3 bucket and switching to maven repository
-//        String host = "https://builds.bug.video/unlogged-java-agent-"+ Constants.AGENT_VERSION +"-";
-//        String host = "https://s01.oss.sonatype.org/service/local/repositories/releases/content/video/bug/unlogged-java-agent/" + Constants.AGENT_VERSION + "/unlogged-java-agent-" + Constants.AGENT_VERSION;
-        String host = "https://repo1.maven.org/maven2/video/bug/unlogged-java-agent/" + Constants.AGENT_VERSION + "/unlogged-java-agent-" + Constants.AGENT_VERSION;
-        String extension = ".jar";
-
-        checkProgressIndicator("Downloading Unlogged agent", "version : " + jsonMapperVersion);
-        String url = (host + extension).trim();
-//        logger.info("[Downloading from] " + url);
-        InsidiousNotification.notifyMessage(
-                "Downloading Unlogged JAVA agent to $HOME/.unlogged/unlogged-java-agent.jar",
-                NotificationType.INFORMATION);
-        downloadAgent(url, true);
-    }
-
-    private void downloadAgent(String url, boolean overwrite) {
-//        logger.info("[Starting agent download]");
-        UsageInsightTracker.getInstance()
-                .RecordEvent("AgentDownloadStart", null);
-        Path fileURiString = Constants.AGENT_PATH;
-        String absolutePath = fileURiString.toAbsolutePath()
-                .toString();
-
-        File agentFile = new File(absolutePath);
-        if (agentFile.exists() && !overwrite) {
-            return;
-        }
-        try (BufferedInputStream inputStream = new BufferedInputStream(new URL(url).openStream());
-             FileOutputStream fileOS = new FileOutputStream(absolutePath)) {
-            byte[] data = new byte[1024];
-            int byteContent;
-            while ((byteContent = inputStream.read(data, 0, 1024)) != -1) {
-                fileOS.write(data, 0, byteContent);
-            }
-//            logger.info("[Agent download complete]");
-            if (md5Check(fetchVersionFromUrl(url), agentFile)) {
-                InsidiousNotification.notifyMessage("Agent downloaded. Start your application with Unlogged JAVA " +
-                                "agent to start using AtomicRuns and DirectInvoke",
-                        NotificationType.INFORMATION);
-
-            } else {
-                InsidiousNotification.notifyMessage(
-                        "Agent md5 check failed."
-                                + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
-                        NotificationType.ERROR);
-//                logger.info("Agent MD5 check failed, checksums are different.");
-                UsageInsightTracker.getInstance()
-                        .RecordEvent("MD5checkFailed", null);
-            }
-            JSONObject eventProperties = new JSONObject();
-            eventProperties.put("agent_version", fetchVersionFromUrl(url));
-            UsageInsightTracker.getInstance()
-                    .RecordEvent("AgentDownloadDone", eventProperties);
-        } catch (Exception e) {
-//            logger.info("[Agent download failed]");
-            InsidiousNotification.notifyMessage(
-                    "Failed to download agent."
-                            + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
-                    NotificationType.ERROR);
-
-            JSONObject eventProperties = new JSONObject();
-            eventProperties.put("exception", e.getMessage());
-            UsageInsightTracker.getInstance()
-                    .RecordEvent("AgentDownloadException", eventProperties);
-        }
-    }
-
-    public String fetchVersionFromUrl(String url) {
-        if (url.contains("gson")) {
-            return "gson";
-        } else {
-            return "jackson-2.13";
-        }
-    }
-
-    public boolean md5Check(String agentVersion, File agent) {
-        checkProgressIndicator("Checking md5 checksum", null);
-        try {
-            byte[] data = Files.readAllBytes(Paths.get(agent.getPath()));
-            byte[] hash = MessageDigest.getInstance("MD5")
-                    .digest(data);
-            String checksum = new BigInteger(1, hash).toString(16);
-            while (checksum.length() < 32) {
-                checksum = "0" + checksum;
-            }
-            switch (agentVersion) {
-//                case "gson":
-//                    if (checksum.equals(Checksums.AGENT_GSON)) {
-//                        return true;
-//                    }
-//                    break;
-//                case "jackson-2.8":
-//                    if (checksum.equals(Checksums.AGENT_JACKSON_2_8)) {
-//                        return true;
-//                    }
-//                    break;
-//                case "jackson-2.9":
-//                    if (checksum.equals(Checksums.AGENT_JACKSON_2_9)) {
-//                        return true;
-//                    }
-//                    break;
-//                case "jackson-2.10":
-//                    if (checksum.equals(Checksums.AGENT_JACKSON_2_10)) {
-//                        return true;
-//                    }
-//                    break;
-//                case "jackson-2.11":
-//                    if (checksum.equals(Checksums.AGENT_JACKSON_2_11)) {
-//                        return true;
-//                    }
-//                    break;
-//                case "jackson-2.12":
-//                    if (checksum.equals(Checksums.AGENT_JACKSON_2_12)) {
-//                        return true;
-//                    }
-//                    break;
-                case "jackson-2.13":
-                    if (checksum.equals(Checksums.AGENT_JACKSON_2_13)) {
-                        return true;
-                    }
-                    break;
-//                case "jackson-2.14":
-//                    if (checksum.equals(Checksums.AGENT_JACKSON_2_14)) {
-//                        return true;
-//                    }
-//                    break;
-            }
-        } catch (Exception e) {
-//            logger.info("Failed to get checksum of downloaded file.");
-        }
-        return false;
-    }
-
     public void loadHintGif(String gif) {
         imagePane.setContentType("text/html");
         imagePane.setOpaque(false);
@@ -314,7 +124,7 @@ public class GenericNavigationComponent {
                 header = "Application is running but no recordings found for this method";
                 break;
             case NO_AGENT:
-                header = "Unlogged JAVA Agent not found.";
+                header = "Unlogged Java Agent not found";
                 break;
         }
         return header;
@@ -324,15 +134,14 @@ public class GenericNavigationComponent {
         String link = "https://discord.gg/Hhwvay8uTa";
         if (Desktop.isDesktopSupported()) {
             try {
-                java.awt.Desktop.getDesktop()
-                        .browse(java.net.URI.create(link));
+                java.awt.Desktop.getDesktop().browse(java.net.URI.create(link));
             } catch (Exception e) {
             }
         } else {
             //no browser
         }
         UsageInsightTracker.getInstance().RecordEvent(
-                "routeToDiscord_EXE", null);
+                "ROUTE_TO_DISCORD", null);
     }
 
     public void setButtonText(String text) {

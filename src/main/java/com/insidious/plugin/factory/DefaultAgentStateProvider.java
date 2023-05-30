@@ -1,27 +1,33 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.Checksums;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.agent.ConnectionStateListener;
 import com.insidious.plugin.agent.ServerMetadata;
 import com.insidious.plugin.extension.InsidiousNotification;
-import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.roots.libraries.Library;
-import com.intellij.openapi.roots.libraries.LibraryTable;
-import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
+import com.intellij.openapi.progress.*;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiPackage;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.math.BigInteger;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,7 +51,11 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
                     System.out.println("Found agent jar.");
                     agentJarExists = true;
                     insidiousService.triggerGutterIconReload();
-                    insidiousService.promoteState();
+                    if (this.isAgentServerRunning) {
+                        insidiousService.promoteState(GutterState.PROCESS_RUNNING);
+                    } else {
+                        insidiousService.promoteState(GutterState.PROCESS_NOT_RUNNING);
+                    }
                     break;
                 }
                 try {
@@ -61,11 +71,6 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
     @Override
     public String getJavaAgentString() {
         return javaAgentString;
-    }
-
-    @Override
-    public String getVideoBugAgentPath() {
-        return Constants.AGENT_PATH.toAbsolutePath().toString();
     }
 
 
@@ -112,12 +117,17 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
         }
         this.isAgentServerRunning = true;
 
-        insidiousService.triggerGutterIconReload();
-        insidiousService.promoteState();
-        InsidiousNotification.notifyMessage("New session identified " + finalIncludedPackageName
-                        + ", connected, agent version: " + serverMetadata.getAgentVersion(),
+        InsidiousNotification.notifyMessage("New session identified tracking package [" + finalIncludedPackageName
+                        + "] connected, agent version: " + serverMetadata.getAgentVersion(),
                 NotificationType.INFORMATION);
-        insidiousService.focusDirectInvokeTab();
+
+
+        if (agentJarExists) {
+            insidiousService.triggerGutterIconReload();
+            insidiousService.promoteState(GutterState.PROCESS_RUNNING);
+            insidiousService.focusDirectInvokeTab();
+        }
+
 
     }
 
@@ -128,33 +138,13 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
         this.isAgentServerRunning = false;
         ApplicationManager.getApplication().invokeLater(() -> {
             insidiousService.triggerGutterIconReload();
-            insidiousService.demoteState();
+            if (agentJarExists) {
+                insidiousService.promoteState(GutterState.PROCESS_NOT_RUNNING);
+            } else {
+                insidiousService.promoteState(GutterState.NO_AGENT);
+            }
         });
 
-    }
-
-
-    @Override
-    public String suggestAgentVersion() {
-        String version = null;
-        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance().getLibraryTable(insidiousService.getProject());
-        Iterator<Library> libraryTableIterator = libraryTable.getLibraryIterator();
-        int count = libraryTable.getLibraries().length;
-        ProjectTypeInfo projectTypeInfo = insidiousService.getProjectTypeInfo();
-        if (count == 0) {
-            return projectTypeInfo.DEFAULT_PREFERRED_JSON_MAPPER();
-        }
-        while (libraryTableIterator.hasNext()) {
-            Library lib = libraryTableIterator.next();
-            if (lib.getName().contains("jackson-databind:")) {
-                version = fetchVersionFromLibName(lib.getName(), "jackson-databind");
-            }
-        }
-        if (version == null) {
-            return projectTypeInfo.DEFAULT_PREFERRED_JSON_MAPPER();
-        } else {
-            return "jackson-" + version;
-        }
     }
 
     @Override
@@ -181,4 +171,121 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
     public boolean isAgentRunning() {
         return isAgentServerRunning;
     }
+
+    @Override
+    public void triggerAgentDownload() {
+        logger.info("Download Agent triggered");
+        downloadAgentInBackground();
+    }
+
+    /**
+     *
+     */
+    public void downloadAgentInBackground() {
+        Task.Backgroundable downloadTask =
+                new Task.Backgroundable(insidiousService.getProject(), "Unlogged Inc.", true) {
+                    @Override
+                    public void run(@NotNull ProgressIndicator indicator) {
+                        checkProgressIndicator("Downloading Unlogged agent", null);
+                        downloadAgent();
+                    }
+                };
+        ProgressManager.getInstance().run(downloadTask);
+    }
+
+    private void downloadAgent() {
+//        agentDownloadInitiated = true;
+        // deprecating downloads from s3 bucket and switching to maven repository
+//        String host = "https://builds.bug.video/unlogged-java-agent-"+ Constants.AGENT_VERSION +"-";
+//        String host = "https://s01.oss.sonatype.org/service/local/repositories/releases/content/video/bug/unlogged-java-agent/" + Constants.AGENT_VERSION + "/unlogged-java-agent-" + Constants.AGENT_VERSION;
+        String host = "https://repo1.maven.org/maven2/video/bug/unlogged-java-agent/" + Constants.AGENT_VERSION + "/unlogged-java-agent-" + Constants.AGENT_VERSION;
+        String extension = ".jar";
+
+        checkProgressIndicator("Downloading Unlogged Java Agent", "Version: " + Constants.AGENT_VERSION);
+        String url = (host + extension).trim();
+
+        InsidiousNotification.notifyMessage(
+                "Downloading Unlogged Java agent to $HOME/.unlogged/unlogged-java-agent.jar",
+                NotificationType.INFORMATION);
+        downloadAgent(url);
+    }
+
+    private void downloadAgent(String url) {
+        UsageInsightTracker.getInstance().RecordEvent("AgentDownloadStart", null);
+        Path fileURiString = Constants.AGENT_PATH;
+        String absolutePath = fileURiString.toAbsolutePath().toString();
+
+        File agentFile = new File(absolutePath);
+        if (agentFile.exists()) {
+            return;
+        }
+        try (BufferedInputStream inputStream = new BufferedInputStream(new URL(url).openStream());
+             FileOutputStream fileOS = new FileOutputStream(absolutePath)) {
+            byte[] data = new byte[1024];
+            int byteContent;
+            while ((byteContent = inputStream.read(data, 0, 1024)) != -1) {
+                fileOS.write(data, 0, byteContent);
+            }
+
+            if (md5Check(agentFile)) {
+                InsidiousNotification.notifyMessage("Agent downloaded. Start your application with Unlogged Java " +
+                                "agent to start using AtomicRuns and DirectInvoke",
+                        NotificationType.INFORMATION);
+
+            } else {
+                InsidiousNotification.notifyMessage(
+                        "Agent md5 check failed."
+                                + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
+                        NotificationType.ERROR);
+                UsageInsightTracker.getInstance().RecordEvent("MD5checkFailed", null);
+            }
+            UsageInsightTracker.getInstance().RecordEvent("AgentDownloadDone", null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            InsidiousNotification.notifyMessage(
+                    "Failed to download agent."
+                            + "\n Need help ? <br /><a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
+                    NotificationType.ERROR);
+
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("exception", e.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent("AgentDownloadException", eventProperties);
+        }
+    }
+
+
+    private void checkProgressIndicator(String text1, String text2) {
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator()
+                    .isCanceled()) {
+                throw new ProcessCanceledException();
+            }
+            if (text2 != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(text2);
+            }
+            if (text1 != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText(text1);
+            }
+        }
+    }
+
+    public boolean md5Check(File agent) {
+        checkProgressIndicator("Checking md5 checksum", null);
+        try {
+            byte[] data = Files.readAllBytes(Paths.get(agent.getPath()));
+            byte[] hash = MessageDigest.getInstance("MD5").digest(data);
+            String checksum = new BigInteger(1, hash).toString(16);
+            while (checksum.length() < 32) {
+                checksum = "0" + checksum;
+            }
+            return Checksums.AGENT_JACKSON_2_13.equals(checksum);
+        } catch (Exception e) {
+            JSONObject properties = new JSONObject();
+            properties.put("message", e.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent("FAILED_AGNET_HASH_CHECK", properties);
+            logger.error("Failed to get checksum of downloaded file.", e);
+        }
+        return false;
+    }
+
 }
