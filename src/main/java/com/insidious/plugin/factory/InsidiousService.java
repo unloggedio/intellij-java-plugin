@@ -23,8 +23,10 @@ import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.inlay.InsidiousInlayHintsCollector;
-import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.pojo.ModuleInformation;
+import com.insidious.plugin.pojo.ProjectTypeInfo;
+import com.insidious.plugin.pojo.TestCaseUnit;
+import com.insidious.plugin.pojo.TestSuite;
 import com.insidious.plugin.ui.GutterClickNavigationStates.AtomicTestContainer;
 import com.insidious.plugin.ui.InsidiousCaretListener;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
@@ -33,7 +35,6 @@ import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
-import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
 import com.insidious.plugin.ui.testgenerator.LiveViewWindow;
 import com.insidious.plugin.util.LoggerUtil;
@@ -118,7 +119,7 @@ import java.util.regex.Pattern;
 
 @Storage("insidious.xml")
 final public class InsidiousService implements Disposable,
-        NewTestCandidateIdentifiedListener, BranchChangeListener, GutterStateProvider {
+        NewTestCandidateIdentifiedListener, BranchChangeListener, GutterStateProvider, ConnectionStateListener {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -134,35 +135,23 @@ final public class InsidiousService implements Disposable,
     final private int TOOL_WINDOW_HEIGHT = 430;
     final private int TOOL_WINDOW_WIDTH = 600;
     final private AgentStateProvider agentStateProvider;
+    private final Map<String, ModuleInformation> moduleMap = new TreeMap<>();
     private Project project;
     private VideobugClientInterface client;
     private Module currentModule;
-    private SingleWindowView singleWindowView;
     private InsidiousJavaDebugProcess debugProcess;
     private ToolWindow toolWindow;
-    private String appToken;
-    private TracePoint pendingTrace;
-    private TracePoint pendingSelectTrace;
     private LiveViewWindow liveViewWindow;
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
-    private Content onboardingConfigurationWindowContent;
     private boolean liveViewAdded = false;
     private Content liveWindowContent;
-    private Content onboardingContent;
-    private Map<String, ModuleInformation> moduleMap = new TreeMap<>();
     private String selectedModule = null;
-    //    private List<ProgramRunner> programRunners = new ArrayList<>();
     private TestCaseDesigner testCaseDesignerWindow;
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
     private boolean initiated = false;
     private Content testDesignerContent;
-    //    private UnloggedGPT gptWindow;
-//    private Content gptContent;
-    private InsidiousInlayHintsCollector inlayHintsCollector;
-    private MethodExecutorComponent methodExecutorToolWindow;
-    private Content methodExecutorWindow;
     private MethodDirectInvokeComponent methodDirectInvokeComponent;
     private Content directMethodInvokeContent;
     private Content atomicTestContent;
@@ -190,9 +179,8 @@ final public class InsidiousService implements Disposable,
         InsidiousCaretListener listener = new InsidiousCaretListener(project);
         multicaster.addEditorMouseListener(listener, this);
         agentStateProvider = new DefaultAgentStateProvider(this);
+        threadPoolExecutor.submit(agentStateProvider);
         agentClient = new AgentClient("http://localhost:12100", (ConnectionStateListener) agentStateProvider);
-//        multicaster.add
-
     }
 
     @NotNull
@@ -207,11 +195,10 @@ final public class InsidiousService implements Disposable,
         RunManager runManager = project.getService(RunManager.class);
         RunnerAndConfigurationSettings selectedConfig = runManager.getSelectedConfiguration();
 
-        if (selectedConfig.getConfiguration() instanceof ApplicationConfiguration) {
+        if (selectedConfig != null && selectedConfig.getConfiguration() instanceof ApplicationConfiguration) {
             ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) selectedConfig.getConfiguration();
             String currentVMParams = applicationConfiguration.getVMParameters();
-            String newVmOptions = currentVMParams;
-            newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
+            String newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
             applicationConfiguration.setVMParameters(newVmOptions.trim());
             InsidiousNotification.notifyMessage("Updated VM parameter for " + selectedConfig.getName(),
                     NotificationType.INFORMATION
@@ -221,10 +208,19 @@ final public class InsidiousService implements Disposable,
 //                    .notifyByBalloon("Unlogged", MessageType.ERROR, "Current run configuration [" + selectedConfig.getName() + "] is not " +
 //                            "a Java application run configuration. Select an existing Java Application in RunConfig of create" +
 //                            " new. Cannot add VM parameter.");
-            InsidiousNotification.notifyMessage("Current run configuration [" + selectedConfig.getName() + "] is not " +
-                            "a Java application run configuration. Select an existing Java Application in RunConfig of create" +
-                            " new. Cannot add VM parameter.",
-                    NotificationType.WARNING);
+            if (selectedConfig != null) {
+                InsidiousNotification.notifyMessage(
+                        "Current run configuration [" + selectedConfig.getName() + "] is not " +
+                                "a Java application run configuration. Select an existing Java Application in RunConfig of create" +
+                                " new. Cannot add VM parameter.",
+                        NotificationType.WARNING);
+
+            } else {
+                InsidiousNotification.notifyMessage("Please select an existing Java " +
+                                "Application in RunConfig of create new.",
+                        NotificationType.WARNING);
+
+            }
         }
     }
 
@@ -658,18 +654,16 @@ final public class InsidiousService implements Disposable,
         // test case designer form
         testCaseDesignerWindow = new TestCaseDesigner();
         Disposer.register(this, testCaseDesignerWindow);
-        @NotNull Content testCaseCreatorWindowContent =
+        testDesignerContent =
                 contentFactory.createContent(testCaseDesignerWindow.getContent(), "TestCase Boilerplate", false);
-        this.testDesignerContent = testCaseCreatorWindowContent;
-        testCaseCreatorWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        testCaseCreatorWindowContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
-        contentManager.addContent(testCaseCreatorWindowContent);
+        testDesignerContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        testDesignerContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
+        contentManager.addContent(testDesignerContent);
 
         // method executor window
         atomicTestContainerWindow = new AtomicTestContainer(this);
         atomicTestContent =
                 contentFactory.createContent(atomicTestContainerWindow.getComponent(), "Atomic Tests", false);
-        //this.methodExecutorWindow = methodExecutorWindow;
         atomicTestContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
         contentManager.addContent(atomicTestContent);
@@ -689,6 +683,10 @@ final public class InsidiousService implements Disposable,
         this.directMethodInvokeContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         this.directMethodInvokeContent.setIcon(UIUtils.EXECUTE_METHOD);
         contentManager.addContent(this.directMethodInvokeContent);
+
+        SingleWindowView singleWindowView = new SingleWindowView(project, this);
+        singleWindowContent = contentFactory.createContent(singleWindowView.getContent(),
+                "Raw Cases", false);
 
 
 //        gptWindow = new UnloggedGPT(this);
@@ -776,13 +774,6 @@ final public class InsidiousService implements Disposable,
         }
     }
 
-    public void setCurrentModule(String module) {
-        this.selectedModule = module;
-    }
-
-    public ModuleInformation getSelectedModuleInstance() {
-        return moduleMap.get(selectedModule);
-    }
 
     public boolean moduleHasFileOfType(String module, String key) {
         Collection<VirtualFile> searchResult = FilenameIndex.getVirtualFilesByName(project, key,
@@ -796,15 +787,6 @@ final public class InsidiousService implements Disposable,
         return false;
     }
 
-
-    public boolean hasProgramRunning() {
-        return false;
-//        return programRunners.size() > 0;
-    }
-
-    public MethodAdapter getCurrentMethod() {
-        return currentMethod;
-    }
 
     public void methodFocussedHandler(final MethodAdapter method) {
 
@@ -822,17 +804,17 @@ final public class InsidiousService implements Disposable,
 
         DumbService dumbService = project.getService(DumbService.class);
 
-        if (dumbService.isDumb() && !hasShownIndexWaitNotification) {
-            hasShownIndexWaitNotification = true;
-            InsidiousNotification.notifyMessage("Please wait for IDE indexing to finish to start creating tests",
-                    NotificationType.WARNING);
-            dumbService.runWhenSmart(() -> {
-                if (testCaseDesignerWindow == null) {
-                    logger.warn("test case designer window is not ready to create test case");
-                    return;
-                }
-                methodFocussedHandler(method);
-            });
+        if (dumbService.isDumb()) {
+//            hasShownIndexWaitNotification = true;
+//            InsidiousNotification.notifyMessage("Please wait for IDE indexing to finish to start creating tests",
+//                    NotificationType.WARNING);
+//            dumbService.runWhenSmart(() -> {
+//                if (testCaseDesignerWindow == null) {
+//                    logger.warn("test case designer window is not ready to create test case");
+//                    return;
+//                }
+//                methodFocussedHandler(method);
+//            });
             return;
         }
 
@@ -1053,9 +1035,6 @@ final public class InsidiousService implements Disposable,
         return sessionInstance.getClassMethodAggregates(qualifiedName);
     }
 
-    public InsidiousInlayHintsCollector getInlayHintsCollector() {
-        return inlayHintsCollector;
-    }
 
     public void loadDefaultSession() {
         String pathToSessions = Constants.HOME_PATH + "/sessions/na";
@@ -1446,6 +1425,16 @@ final public class InsidiousService implements Disposable,
 
     public AgentStateProvider getAgentStateProvider() {
         return agentStateProvider;
+    }
+
+    @Override
+    public void onConnectedToAgentServer(ServerMetadata serverMetadata) {
+
+    }
+
+    @Override
+    public void onDisconnectedFromAgentServer() {
+
     }
 
 

@@ -256,16 +256,9 @@ public class MethodDirectInvokeComponent {
 
                 ParameterInputComponent parameterContainer;
                 String typeCanonicalName = methodParameter.getType().getCanonicalText();
-                if (methodParameters.length > 1
+                if (methodParameters.length > 3
                         || methodParameter.getType() instanceof PsiPrimitiveType
-                        || typeCanonicalName.equals("java.lang.String")
-                        || typeCanonicalName.equals("java.lang.Integer")
-                        || typeCanonicalName.equals("java.lang.Long")
-                        || typeCanonicalName.equals("java.lang.Double")
-                        || typeCanonicalName.equals("java.lang.Short")
-                        || typeCanonicalName.equals("java.lang.Float")
-                        || typeCanonicalName.equals("java.lang.Byte")
-                        || typeCanonicalName.equals("java.math.BigDecimal")
+                        || isBoxedPrimitive(typeCanonicalName)
                 ) {
                     parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
                             JBTextField.class);
@@ -306,6 +299,17 @@ public class MethodDirectInvokeComponent {
 //        methodParameterScrollContainer.repaint();
         mainContainer.revalidate();
         mainContainer.repaint();
+    }
+
+    private boolean isBoxedPrimitive(String typeCanonicalName) {
+        return typeCanonicalName.equals("java.lang.String")
+                || typeCanonicalName.equals("java.lang.Integer")
+                || typeCanonicalName.equals("java.lang.Long")
+                || typeCanonicalName.equals("java.lang.Double")
+                || typeCanonicalName.equals("java.lang.Short")
+                || typeCanonicalName.equals("java.lang.Float")
+                || typeCanonicalName.equals("java.lang.Byte")
+                || typeCanonicalName.equals("java.math.BigDecimal");
     }
 
 

@@ -19,7 +19,7 @@ public class SingleWindowView {
     private JPanel mainPanel;
     private JPanel filterPanel;
     private JPanel eventViewerPanel;
-    private EventLogWindow eventViewer;
+    private final EventLogWindow eventViewer;
 
     public SingleWindowView(Project project, InsidiousService insidiousService) {
 

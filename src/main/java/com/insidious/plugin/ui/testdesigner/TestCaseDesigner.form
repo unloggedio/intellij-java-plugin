@@ -50,7 +50,7 @@
               <editable value="false"/>
               <foreground color="-16659211"/>
               <margin top="8" left="8" bottom="8" right="8"/>
-              <text value="Navigate to a method in your editor."/>
+              <text value="Test case generation will be work after IDE indexing is completed"/>
             </properties>
           </component>
         </children>

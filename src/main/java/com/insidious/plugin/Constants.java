@@ -14,8 +14,11 @@ public class Constants {
     public static final Path HOME_PATH = FileSystems.getDefault()
             .getPath(System.getProperty("user.home"), ".unlogged");
     public static final String AGENT_JAR_NAME = "unlogged-java-agent.jar";
+    public static final String AGENT_INFO_NAME = "agent.txt";
     public static final Path AGENT_PATH = FileSystems.getDefault()
             .getPath(HOME_PATH.toAbsolutePath().toString(), AGENT_JAR_NAME);
+    public static final Path AGENT_INFO_PATH = FileSystems.getDefault()
+            .getPath(HOME_PATH.toAbsolutePath().toString(), AGENT_INFO_NAME);
     public static final Path SESSIONS_PATH = FileSystems.getDefault()
             .getPath(HOME_PATH.toAbsolutePath().toString(),"sessions");
     public static final String COMPLETED = "completed";
