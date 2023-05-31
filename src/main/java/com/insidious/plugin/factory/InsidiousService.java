@@ -1206,6 +1206,9 @@ final public class InsidiousService implements Disposable,
     }
 
     public void triggerGutterIconReload() {
+        if (project.isDisposed()) {
+            return;
+        }
 
         DumbService instance = DumbService.getInstance(project);
         if (instance.isDumb()) {

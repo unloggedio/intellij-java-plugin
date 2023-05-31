@@ -22,7 +22,9 @@ public class ClassUtils {
 
     public static String createDummyValue(
             PsiType parameterType,
-            List<String> creationStack, Project project) {
+            List<String> creationStack,
+            Project project
+    ) {
         String creationKey = parameterType.getCanonicalText();
         if (creationStack.contains(creationKey)) {
             return "null";
@@ -105,26 +107,29 @@ public class ClassUtils {
                 PsiField[] parameterObjectFieldList = resolvedClass.getAllFields();
 
                 dummyValue.append("{");
-                boolean firstField = true;
-                for (PsiField psiField : parameterObjectFieldList) {
-                    if (psiField.getName().equals("serialVersionUID")) {
-                        continue;
-                    }
-                    if (psiField.hasModifier(JvmModifier.STATIC)) {
-                        continue;
-                    }
-                    if (!firstField) {
-                        dummyValue.append(", ");
-                    }
+                if (creationStack.size() < 3) {
+                    boolean firstField = true;
+                    for (PsiField psiField : parameterObjectFieldList) {
+                        if (psiField.getName().equals("serialVersionUID")) {
+                            continue;
+                        }
+                        if (psiField.hasModifier(JvmModifier.STATIC)) {
+                            continue;
+                        }
+                        if (!firstField) {
+                            dummyValue.append(", ");
+                        }
 
-                    dummyValue.append("\"");
-                    dummyValue.append(psiField.getName());
-                    dummyValue.append("\"");
-                    dummyValue.append(": ");
-                    dummyValue.append(createDummyValue(psiField.getType(), creationStack, project));
-                    firstField = false;
+                        dummyValue.append("\"");
+                        dummyValue.append(psiField.getName());
+                        dummyValue.append("\"");
+                        dummyValue.append(": ");
+                        dummyValue.append(createDummyValue(psiField.getType(), creationStack, project));
+                        firstField = false;
+                    }
                 }
                 dummyValue.append("}");
+
             } else if (parameterType instanceof PsiPrimitiveType) {
                 PsiPrimitiveType primitiveType = (PsiPrimitiveType) parameterType;
                 if ("boolean".equals(primitiveType.getName())) {

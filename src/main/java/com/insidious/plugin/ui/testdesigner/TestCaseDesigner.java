@@ -603,7 +603,7 @@ public class TestCaseDesigner implements Disposable {
                         ClassAdapter calledMethodClassReference = getClassByName(fieldByName.getType());
                         if (calledMethodClassReference == null) {
                             logger.warn("Class reference[" + fieldByName.getType() + "] for method call expression " +
-                                    "not found ["+ psiMethodCallExpression.getMethodExpression() + "]");
+                                    "not found [" + psiMethodCallExpression.getMethodExpression() + "]");
                             continue;
                         }
 

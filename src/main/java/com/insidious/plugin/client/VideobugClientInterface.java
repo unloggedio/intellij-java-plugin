@@ -56,7 +56,7 @@ public interface VideobugClientInterface {
 
     ClassWeaveInfo getSessionClassWeave(String sessionId);
 
-    void queryTracePointsByEventType(SearchQuery searchQuery, String sessionid,
+    void queryTracePointsByEventType(SearchQuery searchQuery, String sessionId,
                                      ClientCallBack<TracePoint> tracePointsCallback);
 
     ReplayData fetchObjectHistoryByObjectId(

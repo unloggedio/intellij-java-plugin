@@ -160,9 +160,9 @@ public class VideobugLocalClient implements VideobugClientInterface {
             SearchQuery searchQuery,
             String sessionId,
             ClientCallBack<TracePoint> getProjectSessionErrorsCallback) {
-        logger.info("trace by string value: " + searchQuery);
-        checkSession(sessionId);
-        this.sessionInstance.queryTracePointsByValue(searchQuery, getProjectSessionErrorsCallback);
+//        logger.info("trace by string value: " + searchQuery);
+//        checkSession(sessionId);
+//        this.sessionInstance.queryTracePointsByValue(searchQuery, getProjectSessionErrorsCallback);
 
     }
 
@@ -187,9 +187,9 @@ public class VideobugLocalClient implements VideobugClientInterface {
     public void queryTracePointsByTypes(SearchQuery searchQuery,
                                         String sessionId, int historyDepth,
                                         ClientCallBack<TracePoint> clientCallBack) {
-        logger.info("get trace by object type: " + searchQuery.getQuery());
-        checkSession(sessionId);
-        this.sessionInstance.queryTracePointsByTypes(searchQuery, clientCallBack);
+//        logger.info("get trace by object type: " + searchQuery.getQuery());
+//        checkSession(sessionId);
+//        this.sessionInstance.queryTracePointsByTypes(searchQuery, clientCallBack);
 
 
     }
@@ -327,10 +327,10 @@ public class VideobugLocalClient implements VideobugClientInterface {
             SearchQuery searchQuery,
             String sessionId,
             ClientCallBack<TracePoint> tracePointsCallback) {
-        checkSession(sessionId);
-        logger.info("trace by probe ids: " + searchQuery);
-        checkProgressIndicator("Searching locally by value [" + searchQuery.getQuery() + "]", null);
-        this.sessionInstance.queryTracePointsByEventType(searchQuery, tracePointsCallback);
+//        checkSession(sessionId);
+//        logger.info("trace by probe ids: " + searchQuery);
+//        checkProgressIndicator("Searching locally by value [" + searchQuery.getQuery() + "]", null);
+//        this.sessionInstance.queryTracePointsByEventType(searchQuery, tracePointsCallback);
 
 
     }

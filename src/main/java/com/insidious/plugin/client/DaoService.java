@@ -1408,7 +1408,7 @@ public class DaoService {
     public List<LogFile> getPendingLogFilesToProcess(String processorId) throws SQLException {
         logger.info("query for log files by processor: " + processorId);
         int modifiedCount = logFilesDao.executeRaw(
-                "update log_file set processorId=? where status=? and processorId=null",
+                "update log_file set processorId=? where status=? and processorId is null",
                 processorId,
                 Constants.PENDING);
         if (modifiedCount == 0) {

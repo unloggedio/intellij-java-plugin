@@ -133,6 +133,7 @@ public class SessionInstance {
             boolean created = sessionLockFile.createNewFile();
             if (created) {
                 scanEnable = true;
+                sessionLockFile.deleteOnExit();
             }
         } catch (IOException e) {
             // lockFile failed to create, probably already exists
@@ -616,6 +617,8 @@ public class SessionInstance {
                 probeListCache.clear();
             }
         }
+        probeInfoIndex.putAll(probeListCache);
+        probeListCache.clear();
 
         daoService.createOrUpdateClassDefinitions(classInfoIndex.values().stream()
                 .map(ClassDefinition::fromClassInfo)
@@ -811,218 +814,218 @@ public class SessionInstance {
 
     }
 
-    public Collection<TracePoint> queryTracePointsByValue(SearchQuery searchQuery) {
-        List<TracePoint> tracePointList = new LinkedList<>();
-        for (File sessionArchive : this.sessionArchives) {
+//    public Collection<TracePoint> queryTracePointsByValue(SearchQuery searchQuery) {
+//        List<TracePoint> tracePointList = new LinkedList<>();
+//        for (File sessionArchive : this.sessionArchives) {
+//
+//            NameWithBytes bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
+//                    INDEX_STRING_DAT_FILE.getFileName());
+//            if (bytes == null) {
+//                logger.warn("archive [" + sessionArchive.getAbsolutePath() + "] is not complete or is corrupt.");
+//                continue;
+//            }
+//            logger.info("initialize index for archive: " + sessionArchive.getAbsolutePath());
+//
+//
+//            ArchiveIndex index;
+//            try {
+//                index = readArchiveIndex(bytes.getBytes(), INDEX_STRING_DAT_FILE);
+//            } catch (Exception e) {
+////                e.printStackTrace();
+//                logger.error("failed to read type index file  [" + sessionArchive.getName() + "]", e);
+//                continue;
+//            }
+//            Set<Long> valueIds = new HashSet<>(index.getStringIdsFromStringValues((String) searchQuery.getQuery()));
+//
+//
+//            checkProgressIndicator(null,
+//                    "Loaded " + valueIds.size() + " strings from archive " + sessionArchive.getName());
+//
+//            if (valueIds.size() > 0) {
+//                tracePointList.addAll(getTracePointsByValueIds(sessionArchive, valueIds));
+//            }
+//        }
+//        tracePointList.forEach(e -> e.setExecutionSession(executionSession));
+//        return tracePointList;
+//    }
 
-            NameWithBytes bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
-                    INDEX_STRING_DAT_FILE.getFileName());
-            if (bytes == null) {
-                logger.warn("archive [" + sessionArchive.getAbsolutePath() + "] is not complete or is corrupt.");
-                continue;
-            }
-            logger.info("initialize index for archive: " + sessionArchive.getAbsolutePath());
-
-
-            ArchiveIndex index;
-            try {
-                index = readArchiveIndex(bytes.getBytes(), INDEX_STRING_DAT_FILE);
-            } catch (Exception e) {
-//                e.printStackTrace();
-                logger.error("failed to read type index file  [" + sessionArchive.getName() + "]", e);
-                continue;
-            }
-            Set<Long> valueIds = new HashSet<>(index.getStringIdsFromStringValues((String) searchQuery.getQuery()));
-
-
-            checkProgressIndicator(null,
-                    "Loaded " + valueIds.size() + " strings from archive " + sessionArchive.getName());
-
-            if (valueIds.size() > 0) {
-                tracePointList.addAll(getTracePointsByValueIds(sessionArchive, valueIds));
-            }
-        }
-        tracePointList.forEach(e -> e.setExecutionSession(executionSession));
-        return tracePointList;
-    }
-
-    private List<TracePoint> getTracePointsByValueIds(File sessionArchive, Set<Long> valueIds) {
-        logger.info("Query for valueIds [" + valueIds.toString() + "]");
-        List<TracePoint> tracePointList = new LinkedList<>();
-        NameWithBytes bytes;
-        ArchiveFilesIndex eventsIndex = null;
-        ArchiveIndex objectIndex;
-        Map<String, TypeInfo> typeInfoMap;
-        Map<Long, ObjectInfo> objectInfoMap = new HashMap<>();
-        try {
-            checkProgressIndicator(null,
-                    "Loading events index " + sessionArchive.getName() + " " + "to match against " + valueIds.size() + " values");
-
-
-            bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE.getFileName());
-            assert bytes != null;
-            eventsIndex = readEventIndex(bytes.getBytes());
-
-
-            checkProgressIndicator(null,
-                    "Loading objects from " + sessionArchive.getName() + " to match against " + valueIds.size() + " values");
-            NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
-                    INDEX_OBJECT_DAT_FILE.getFileName());
-            assert objectIndexBytes != null;
-            objectIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
-            logger.info("object index has [" + objectIndex.Objects()
-                    .size() + "] objects");
-            objectInfoMap = objectIndex.getObjectsByObjectId(valueIds);
-
-            Set<Integer> types = objectInfoMap.values()
-                    .stream()
-                    .map(ObjectInfo::getTypeId)
-                    .collect(Collectors.toSet());
-
-            checkProgressIndicator(null, "Loading types from " + sessionArchive.getName());
-            typeInfoMap = archiveIndex.getTypesById(types);
-            logger.info("[" + typeInfoMap.size() + "] typeInfo found");
-
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-
-
-        ArchiveFilesIndex finalEventsIndex = eventsIndex;
-        HashMap<String, UploadFile> matchedFiles = new HashMap<>();
-        AtomicInteger counter = new AtomicInteger();
-        valueIds.forEach(valueId -> {
-            int currentIndex = counter.addAndGet(1);
-            assert finalEventsIndex != null;
-
-            checkProgressIndicator(null, "Matching events for item " + currentIndex + " of " + valueIds.size());
-
-            boolean archiveHasSeenValue = finalEventsIndex.hasValueId(valueId);
-            List<UploadFile> matchedFilesForString;
-            logger.info("value [" + valueId + "] found in archive: [" + archiveHasSeenValue + "]");
-
-            if (archiveHasSeenValue) {
-                checkProgressIndicator(null, "Events matched in " + sessionArchive.getName());
-                matchedFilesForString = finalEventsIndex.querySessionFilesByValueId(valueId);
-                for (UploadFile uploadFile : matchedFilesForString) {
-                    String filePath = uploadFile.getPath();
-                    int threadId = getThreadIdFromFileName(FileSystems.getDefault()
-                            .getPath(filePath)
-                            .getFileName()
-                            .toString());
-                    UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
-                    uploadFileToAdd.setValueIds(new Long[]{valueId});
-                    matchedFiles.put(filePath, uploadFile);
-                }
-            }
-        });
-        Map<Long, ObjectInfo> finalObjectInfoMap = objectInfoMap;
-        logger.info("matched [" + matchedFiles.size() + "] files");
-
-        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            ProgressIndicatorProvider.getGlobalProgressIndicator()
-                    .setText("Found " + matchedFiles.size() + " archives with matching values");
-            if (ProgressIndicatorProvider.getGlobalProgressIndicator()
-                    .isCanceled()) {
-                throw new ProcessCanceledException();
-            }
-        }
-
-
-        for (UploadFile matchedFile : matchedFiles.values()) {
-            try {
-
-                checkProgressIndicator(null, "Loading events data from " + matchedFile.getPath());
-                String fileName = FileSystems.getDefault()
-                        .getPath(matchedFile.getPath())
-                        .getFileName()
-                        .toString();
-
-                NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, fileName);
-                if (fileBytes == null) {
-                    List<String> fileList = listArchiveFiles(sessionArchive);
-                    logger.error(
-                            String.format("matched file not found " + "inside the session archive [%s] -> [%s] -> [%s]",
-                                    fileName, sessionArchive, fileList));
-                    throw new RuntimeException("matched file not found inside the session archive -> " + fileList);
-                }
-                long timestamp = Long.parseLong(fileBytes.getName()
-                        .split("@")[0]);
-                int threadId = Integer.parseInt(fileBytes.getName()
-                        .split("-")[2].split("\\.")[0]);
-
-
-                List<DataEventWithSessionId> dataEvents = getDataEventsFromPathByValueIds(fileBytes.getBytes(),
-                        matchedFile.getValueIds());
-                checkProgressIndicator(null,
-                        "Filtering " + dataEvents.size() + " events from file " + matchedFile.getPath());
-                List<TracePoint> matchedTracePoints = dataEvents.stream()
-                        .map(e1 -> {
-
-                            try {
-                                List<DataInfo> dataInfoList = getProbeInfo(new HashSet<>(
-                                        Collections.singletonList(e1.getProbeId())));
-                                logger.debug(
-                                        "data info list by data id [" + e1.getProbeId() + "] => [" + dataInfoList + "]");
-
-                                if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                                    if (ProgressIndicatorProvider.getGlobalProgressIndicator()
-                                            .isCanceled()) {
-                                        return null;
-                                    }
-                                }
-
-
-                                DataInfo dataInfo = dataInfoList.get(0);
-                                int classId = dataInfo.getClassId();
-                                KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = getClassInfo(classId);
-
-                                ObjectInfo objectInfo = finalObjectInfoMap.get(e1.getValue());
-                                TypeInfo typeInfo = getTypeInfo(objectInfo.getTypeId());
-
-                                TracePoint tracePoint = new TracePoint(classId, dataInfo.getLine(),
-                                        dataInfo.getDataId(),
-                                        threadId, e1.getValue(), classInfo.fileName()
-                                        .value(), classInfo.className()
-                                        .value(),
-                                        typeInfo.getTypeNameFromClass(), timestamp, e1.getEventId());
-                                tracePoint.setExecutionSession(executionSession);
-                                return tracePoint;
-                            } catch (ClassInfoNotFoundException | Exception ex) {
-                                ex.printStackTrace();
-                                logger.error("failed to get data probe information", ex);
-                            }
-                            return null;
-
-
-                        })
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toList());
-                tracePointList.addAll(matchedTracePoints);
-
-                if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                    if (tracePointList.size() > 0) {
-                        ProgressIndicatorProvider.getGlobalProgressIndicator()
-                                .setText(tracePointList.size() + " matched...");
-                    }
-                    if (ProgressIndicatorProvider.getGlobalProgressIndicator()
-                            .isCanceled()) {
-                        return tracePointList;
-                    }
-                }
-
-
-            } catch (IOException ex) {
-//                ex.printStackTrace();
-            } catch (Exception e) {
-//                e.printStackTrace();
-                throw e;
-            }
-
-        }
-
-        return tracePointList;
-    }
+//    private List<TracePoint> getTracePointsByValueIds(File sessionArchive, Set<Long> valueIds) {
+//        logger.info("Query for valueIds [" + valueIds.toString() + "]");
+//        List<TracePoint> tracePointList = new LinkedList<>();
+//        NameWithBytes bytes;
+//        ArchiveFilesIndex eventsIndex = null;
+//        ArchiveIndex objectIndex;
+//        Map<String, TypeInfo> typeInfoMap;
+//        Map<Long, ObjectInfo> objectInfoMap = new HashMap<>();
+//        try {
+//            checkProgressIndicator(null,
+//                    "Loading events index " + sessionArchive.getName() + " " + "to match against " + valueIds.size() + " values");
+//
+//
+//            bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE.getFileName());
+//            assert bytes != null;
+//            eventsIndex = readEventIndex(bytes.getBytes());
+//
+//
+//            checkProgressIndicator(null,
+//                    "Loading objects from " + sessionArchive.getName() + " to match against " + valueIds.size() + " values");
+//            NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
+//                    INDEX_OBJECT_DAT_FILE.getFileName());
+//            assert objectIndexBytes != null;
+//            objectIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
+//            logger.info("object index has [" + objectIndex.Objects()
+//                    .size() + "] objects");
+//            objectInfoMap = objectIndex.getObjectsByObjectId(valueIds);
+//
+//            Set<Integer> types = objectInfoMap.values()
+//                    .stream()
+//                    .map(ObjectInfo::getTypeId)
+//                    .collect(Collectors.toSet());
+//
+//            checkProgressIndicator(null, "Loading types from " + sessionArchive.getName());
+//            typeInfoMap = archiveIndex.getTypesById(types);
+//            logger.info("[" + typeInfoMap.size() + "] typeInfo found");
+//
+//        } catch (IOException ex) {
+//            ex.printStackTrace();
+//        }
+//
+//
+//        ArchiveFilesIndex finalEventsIndex = eventsIndex;
+//        HashMap<String, UploadFile> matchedFiles = new HashMap<>();
+//        AtomicInteger counter = new AtomicInteger();
+//        valueIds.forEach(valueId -> {
+//            int currentIndex = counter.addAndGet(1);
+//            assert finalEventsIndex != null;
+//
+//            checkProgressIndicator(null, "Matching events for item " + currentIndex + " of " + valueIds.size());
+//
+//            boolean archiveHasSeenValue = finalEventsIndex.hasValueId(valueId);
+//            List<UploadFile> matchedFilesForString;
+//            logger.info("value [" + valueId + "] found in archive: [" + archiveHasSeenValue + "]");
+//
+//            if (archiveHasSeenValue) {
+//                checkProgressIndicator(null, "Events matched in " + sessionArchive.getName());
+//                matchedFilesForString = finalEventsIndex.querySessionFilesByValueId(valueId);
+//                for (UploadFile uploadFile : matchedFilesForString) {
+//                    String filePath = uploadFile.getPath();
+//                    int threadId = getThreadIdFromFileName(FileSystems.getDefault()
+//                            .getPath(filePath)
+//                            .getFileName()
+//                            .toString());
+//                    UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
+//                    uploadFileToAdd.setValueIds(new Long[]{valueId});
+//                    matchedFiles.put(filePath, uploadFile);
+//                }
+//            }
+//        });
+//        Map<Long, ObjectInfo> finalObjectInfoMap = objectInfoMap;
+//        logger.info("matched [" + matchedFiles.size() + "] files");
+//
+//        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+//            ProgressIndicatorProvider.getGlobalProgressIndicator()
+//                    .setText("Found " + matchedFiles.size() + " archives with matching values");
+//            if (ProgressIndicatorProvider.getGlobalProgressIndicator()
+//                    .isCanceled()) {
+//                throw new ProcessCanceledException();
+//            }
+//        }
+//
+//
+//        for (UploadFile matchedFile : matchedFiles.values()) {
+//            try {
+//
+//                checkProgressIndicator(null, "Loading events data from " + matchedFile.getPath());
+//                String fileName = FileSystems.getDefault()
+//                        .getPath(matchedFile.getPath())
+//                        .getFileName()
+//                        .toString();
+//
+//                NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, fileName);
+//                if (fileBytes == null) {
+//                    List<String> fileList = listArchiveFiles(sessionArchive);
+//                    logger.error(
+//                            String.format("matched file not found " + "inside the session archive [%s] -> [%s] -> [%s]",
+//                                    fileName, sessionArchive, fileList));
+//                    throw new RuntimeException("matched file not found inside the session archive -> " + fileList);
+//                }
+//                long timestamp = Long.parseLong(fileBytes.getName()
+//                        .split("@")[0]);
+//                int threadId = Integer.parseInt(fileBytes.getName()
+//                        .split("-")[2].split("\\.")[0]);
+//
+//
+//                List<DataEventWithSessionId> dataEvents = getDataEventsFromPathByValueIds(fileBytes.getBytes(),
+//                        matchedFile.getValueIds());
+//                checkProgressIndicator(null,
+//                        "Filtering " + dataEvents.size() + " events from file " + matchedFile.getPath());
+//                List<TracePoint> matchedTracePoints = dataEvents.stream()
+//                        .map(e1 -> {
+//
+//                            try {
+//                                List<DataInfo> dataInfoList = getProbeInfo(new HashSet<>(
+//                                        Collections.singletonList(e1.getProbeId())));
+//                                logger.debug(
+//                                        "data info list by data id [" + e1.getProbeId() + "] => [" + dataInfoList + "]");
+//
+//                                if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+//                                    if (ProgressIndicatorProvider.getGlobalProgressIndicator()
+//                                            .isCanceled()) {
+//                                        return null;
+//                                    }
+//                                }
+//
+//
+//                                DataInfo dataInfo = dataInfoList.get(0);
+//                                int classId = dataInfo.getClassId();
+//                                KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = getClassInfo(classId);
+//
+//                                ObjectInfo objectInfo = finalObjectInfoMap.get(e1.getValue());
+//                                TypeInfo typeInfo = getTypeInfo(objectInfo.getTypeId());
+//
+//                                TracePoint tracePoint = new TracePoint(classId, dataInfo.getLine(),
+//                                        dataInfo.getDataId(),
+//                                        threadId, e1.getValue(), classInfo.fileName()
+//                                        .value(), classInfo.className()
+//                                        .value(),
+//                                        typeInfo.getTypeNameFromClass(), timestamp, e1.getEventId());
+//                                tracePoint.setExecutionSession(executionSession);
+//                                return tracePoint;
+//                            } catch (ClassInfoNotFoundException | Exception ex) {
+//                                ex.printStackTrace();
+//                                logger.error("failed to get data probe information", ex);
+//                            }
+//                            return null;
+//
+//
+//                        })
+//                        .filter(Objects::nonNull)
+//                        .collect(Collectors.toList());
+//                tracePointList.addAll(matchedTracePoints);
+//
+//                if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+//                    if (tracePointList.size() > 0) {
+//                        ProgressIndicatorProvider.getGlobalProgressIndicator()
+//                                .setText(tracePointList.size() + " matched...");
+//                    }
+//                    if (ProgressIndicatorProvider.getGlobalProgressIndicator()
+//                            .isCanceled()) {
+//                        return tracePointList;
+//                    }
+//                }
+//
+//
+//            } catch (IOException ex) {
+////                ex.printStackTrace();
+//            } catch (Exception e) {
+////                e.printStackTrace();
+//                throw e;
+//            }
+//
+//        }
+//
+//        return tracePointList;
+//    }
 
     private List<DataInfo> getProbeInfo(Set<Long> dataId) throws IOException {
 
@@ -1068,7 +1071,7 @@ public class SessionInstance {
             ConcurrentIndexedCollection<TypeInfoDocument> typeIndex = archiveIndex.getTypeInfoIndex();
             typeIndex.parallelStream().forEach(e -> typeInfoIndex.put(e.getTypeId(), e));
         } catch (Exception e) {
-            logger.warn("failed to read archive for types index: " + e.getMessage(), e);
+            logger.warn("failed to read archive for types index: " + e.getMessage());
             throw new FailedToReadClassWeaveException("Failed to read " + INDEX_TYPE_DAT_FILE + " in "
                     + sessionFile.getPath() + " -> " + e.getMessage());
         }
@@ -1377,31 +1380,31 @@ public class SessionInstance {
 
     }
 
-    public void queryTracePointsByEventType(SearchQuery searchQuery, ClientCallBack<TracePoint> tracePointsCallback) {
-
-
-        List<DataInfo> probeIds = null;
-        for (File sessionArchive : sessionArchives) {
-            logger.info("check archive [" + sessionArchive.getName() + "] for " + "probes");
-            if (probeIds == null || probeIds.size() == 0) {
-                Collection<EventType> eventTypes = (Collection<EventType>) searchQuery.getQuery();
-                probeIds = queryProbeFromFileByEventType(sessionArchive, eventTypes);
-            }
-
-            checkProgressIndicator(null,
-                    "Loaded " + probeIds.size() + " objects from archive " + sessionArchive.getName());
-
-
-            if (probeIds.size() > 0) {
-                getTracePointsByProbeIds(sessionArchive,
-                        probeIds.stream()
-                                .map(DataInfo::getDataId)
-                                .collect(Collectors.toSet()), tracePointsCallback);
-            }
-        }
-        tracePointsCallback.completed();
-
-    }
+//    public void queryTracePointsByEventType(SearchQuery searchQuery, ClientCallBack<TracePoint> tracePointsCallback) {
+//
+//
+//        List<DataInfo> probeIds = null;
+//        for (File sessionArchive : sessionArchives) {
+//            logger.info("check archive [" + sessionArchive.getName() + "] for " + "probes");
+//            if (probeIds == null || probeIds.size() == 0) {
+//                Collection<EventType> eventTypes = (Collection<EventType>) searchQuery.getQuery();
+//                probeIds = queryProbeFromFileByEventType(sessionArchive, eventTypes);
+//            }
+//
+//            checkProgressIndicator(null,
+//                    "Loaded " + probeIds.size() + " objects from archive " + sessionArchive.getName());
+//
+//
+//            if (probeIds.size() > 0) {
+//                getTracePointsByProbeIds(sessionArchive,
+//                        probeIds.stream()
+//                                .map(DataInfo::getDataId)
+//                                .collect(Collectors.toSet()), tracePointsCallback);
+//            }
+//        }
+//        tracePointsCallback.completed();
+//
+//    }
 
     private void getTracePointsByProbeIds(File sessionArchive, Set<Integer> probeIds, ClientCallBack<TracePoint> tracePointsCallback) {
         logger.info("Query for probeIds [" + probeIds.toString() + "]");
@@ -1749,49 +1752,49 @@ public class SessionInstance {
                 stringInfo, objectInfo, typeInfo, methodInfoIndex);
     }
 
-    private Set<ObjectInfoDocument> queryObjectsByTypeFromSessionArchive(SearchQuery searchQuery, File sessionArchive) {
-
-        checkProgressIndicator(null, "querying type names from: " + sessionArchive.getName());
-
-
-        Set<Integer> typeIds = archiveIndex.queryTypeIdsByName(searchQuery);
-
-
-        checkProgressIndicator(null, "Loading matched objects");
-
-
-        NameWithBytes objectIndexFileBytes;
-        objectIndexFileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
-                INDEX_OBJECT_DAT_FILE.getFileName());
-        if (objectIndexFileBytes == null) {
-            logger.warn("object index file bytes are empty, skipping");
-            return new HashSet<>();
-        }
-
-
-        ArchiveIndex objectIndex;
-        try {
-            objectIndex = readArchiveIndex(objectIndexFileBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
-        } catch (IOException e) {
-//            e.printStackTrace();
-            logger.warn("failed to read object index file: " + e.getMessage());
-            return new HashSet<>();
-
-        }
-        Query<ObjectInfoDocument> query = in(ObjectInfoDocument.OBJECT_TYPE_ID, typeIds);
-        ResultSet<ObjectInfoDocument> typeInfoSearchResult = objectIndex.Objects()
-                .retrieve(query);
-        Set<ObjectInfoDocument> objects = typeInfoSearchResult.stream()
-                .collect(Collectors.toSet());
-        typeInfoSearchResult.close();
-
-        checkProgressIndicator(null,
-                sessionArchive.getName() + " matched " + objects.size() + " objects of total " + objectIndex.Objects()
-                        .size());
-
-
-        return objects;
-    }
+//    private Set<ObjectInfoDocument> queryObjectsByTypeFromSessionArchive(SearchQuery searchQuery, File sessionArchive) {
+//
+//        checkProgressIndicator(null, "querying type names from: " + sessionArchive.getName());
+//
+//
+//        Set<Integer> typeIds = archiveIndex.queryTypeIdsByName(searchQuery);
+//
+//
+//        checkProgressIndicator(null, "Loading matched objects");
+//
+//
+//        NameWithBytes objectIndexFileBytes;
+//        objectIndexFileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
+//                INDEX_OBJECT_DAT_FILE.getFileName());
+//        if (objectIndexFileBytes == null) {
+//            logger.warn("object index file bytes are empty, skipping");
+//            return new HashSet<>();
+//        }
+//
+//
+//        ArchiveIndex objectIndex;
+//        try {
+//            objectIndex = readArchiveIndex(objectIndexFileBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
+//        } catch (IOException e) {
+////            e.printStackTrace();
+//            logger.warn("failed to read object index file: " + e.getMessage());
+//            return new HashSet<>();
+//
+//        }
+//        Query<ObjectInfoDocument> query = in(ObjectInfoDocument.OBJECT_TYPE_ID, typeIds);
+//        ResultSet<ObjectInfoDocument> typeInfoSearchResult = objectIndex.Objects()
+//                .retrieve(query);
+//        Set<ObjectInfoDocument> objects = typeInfoSearchResult.stream()
+//                .collect(Collectors.toSet());
+//        typeInfoSearchResult.close();
+//
+//        checkProgressIndicator(null,
+//                sessionArchive.getName() + " matched " + objects.size() + " objects of total " + objectIndex.Objects()
+//                        .size());
+//
+//
+//        return objects;
+//    }
 
     public ClassWeaveInfo getClassWeaveInfo() {
 
@@ -2369,6 +2372,7 @@ public class SessionInstance {
 //            eventProperties.put("session_folder_size", (size_folder / 1000000));
 //            UsageInsightTracker.getInstance().RecordEvent("ScanMetrics", eventProperties);
         } catch (Exception e) {
+            e.printStackTrace();
             isSessionCorrupted = true;
             JSONObject properties = new JSONObject();
             properties.put("project", this.project.getName());
@@ -3237,7 +3241,7 @@ public class SessionInstance {
                             updateObjectInfoIndex();
                             objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
                             if (objectInfoDocument == null) {
-                                logger.error(
+                                logger.warn(
                                         "object info document is null for [" + existingParameter.getValue() + "] in " +
                                                 "log file: [" + "] in archive [" +
                                                 "]");
@@ -3639,48 +3643,48 @@ public class SessionInstance {
         return eventBlock.eventId();
     }
 
-    public void queryTracePointsByTypes(SearchQuery searchQuery, ClientCallBack<TracePoint> clientCallBack) {
+//    public void queryTracePointsByTypes(SearchQuery searchQuery, ClientCallBack<TracePoint> clientCallBack) {
+//
+//        int totalMatched = 0;
+//
+//        for (File sessionArchive : sessionArchives) {
+//
+//            checkProgressIndicator("Checking archive " + sessionArchive.getName(), null);
+//
+//            Collection<Long> objectIds = queryObjectsByTypeFromSessionArchive(searchQuery, sessionArchive).stream()
+//                    .map(ObjectInfoDocument::getObjectId)
+//                    .collect(Collectors.toSet());
+//
+//            try {
+//                Thread.sleep(100);
+//            } catch (InterruptedException e) {
+//                break;
+//            }
+//
+//
+//            if (objectIds.size() > 0) {
+//                List<TracePoint> tracePointsByValueIds = getTracePointsByValueIds(sessionArchive,
+//                        new HashSet<>(objectIds));
+//                tracePointsByValueIds.forEach(e -> e.setExecutionSession(executionSession));
+//                clientCallBack.success(tracePointsByValueIds);
+//                totalMatched += tracePointsByValueIds.size();
+//
+//                checkProgressIndicator("Matched " + totalMatched + " events", null);
+//            }
+//
+//        }
+//        clientCallBack.completed();
+//    }
 
-        int totalMatched = 0;
-
-        for (File sessionArchive : sessionArchives) {
-
-            checkProgressIndicator("Checking archive " + sessionArchive.getName(), null);
-
-            Collection<Long> objectIds = queryObjectsByTypeFromSessionArchive(searchQuery, sessionArchive).stream()
-                    .map(ObjectInfoDocument::getObjectId)
-                    .collect(Collectors.toSet());
-
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                break;
-            }
-
-
-            if (objectIds.size() > 0) {
-                List<TracePoint> tracePointsByValueIds = getTracePointsByValueIds(sessionArchive,
-                        new HashSet<>(objectIds));
-                tracePointsByValueIds.forEach(e -> e.setExecutionSession(executionSession));
-                clientCallBack.success(tracePointsByValueIds);
-                totalMatched += tracePointsByValueIds.size();
-
-                checkProgressIndicator("Matched " + totalMatched + " events", null);
-            }
-
-        }
-        clientCallBack.completed();
-    }
-
-    public void queryTracePointsByValue(SearchQuery searchQuery, ClientCallBack<TracePoint> getProjectSessionErrorsCallback) {
-        checkProgressIndicator("Searching locally by value [" + searchQuery.getQuery() + "]", null);
-        Collection<TracePoint> tracePointList;
-
-        tracePointList = queryTracePointsByValue(searchQuery);
-
-        getProjectSessionErrorsCallback.success(tracePointList);
-
-    }
+//    public void queryTracePointsByValue(SearchQuery searchQuery, ClientCallBack<TracePoint> getProjectSessionErrorsCallback) {
+//        checkProgressIndicator("Searching locally by value [" + searchQuery.getQuery() + "]", null);
+//        Collection<TracePoint> tracePointList;
+//
+//        tracePointList = queryTracePointsByValue(searchQuery);
+//
+//        getProjectSessionErrorsCallback.success(tracePointList);
+//
+//    }
 
     public List<VideobugTreeClassAggregateNode> getTestCandidateAggregates() {
         return daoService.getTestCandidateAggregates();

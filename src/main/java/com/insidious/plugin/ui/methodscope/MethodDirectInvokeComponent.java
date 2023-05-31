@@ -20,16 +20,17 @@ import com.insidious.plugin.util.*;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiPrimitiveType;
 import com.intellij.psi.PsiType;
+import com.intellij.psi.search.ProjectAndLibrariesScope;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
-import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -238,6 +239,8 @@ public class MethodDirectInvokeComponent {
         JPanel methodParameterContainer = new JPanel();
 
         parameterInputComponents.clear();
+        Project project = containingClass.getProject();
+        ProjectAndLibrariesScope projectAndLibrariesScope = new ProjectAndLibrariesScope(project);
 
         if (methodParameters.length > 0) {
             methodParameterContainer.setLayout(new GridLayout(0, 1));
@@ -245,27 +248,27 @@ public class MethodDirectInvokeComponent {
                 ParameterAdapter methodParameter = methodParameters[i];
 
                 String parameterValue = "";
+                PsiType methodParameterType = methodParameter.getType();
                 if (methodArgumentValues != null && i < methodArgumentValues.size()) {
                     parameterValue = methodArgumentValues.get(i);
                 } else {
-                    PsiType parameterType = methodParameter.getType();
-                    parameterValue = ClassUtils.createDummyValue(parameterType, new LinkedList<>(),
+                    parameterValue = ClassUtils.createDummyValue(methodParameterType, new ArrayList<>(4),
                             insidiousService.getProject());
                     creationStack.clear();
                 }
 
                 ParameterInputComponent parameterContainer;
-                String typeCanonicalName = methodParameter.getType().getCanonicalText();
+                String typeCanonicalName = methodParameterType.getCanonicalText();
                 if (methodParameters.length > 3
-                        || methodParameter.getType() instanceof PsiPrimitiveType
+                        || methodParameterType instanceof PsiPrimitiveType
                         || isBoxedPrimitive(typeCanonicalName)
                 ) {
                     parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
                             JBTextField.class);
                 } else {
-                    @Nullable PsiClass typeClassReference = JavaPsiFacade
-                            .getInstance(containingClass.getProject())
-                            .findClass(typeCanonicalName, methodParameter.getType().getResolveScope());
+                    PsiClass typeClassReference = JavaPsiFacade
+                            .getInstance(project)
+                            .findClass(typeCanonicalName, projectAndLibrariesScope);
                     if (typeClassReference != null && typeClassReference.isEnum()) {
                         parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
                                 JBTextField.class);
@@ -295,8 +298,7 @@ public class MethodDirectInvokeComponent {
 
         methodParameterScrollContainer.setMinimumSize(new Dimension(-1, Math.min(methodParameters.length * 150, 150)));
         methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
-//        methodParameterScrollContainer.revalidate();
-//        methodParameterScrollContainer.repaint();
+
         mainContainer.revalidate();
         mainContainer.repaint();
     }
