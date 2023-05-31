@@ -156,8 +156,13 @@ public class MethodDirectInvokeComponent {
                         if (responseType.equals(ResponseType.NORMAL)) {
                             String returnTypePresentableText = ApplicationManager.getApplication()
                                     .runReadAction(
-                                            (Computable<String>) () -> methodElement.getReturnType()
-                                                    .getPresentableText());
+                                            (Computable<String>) () -> {
+                                                PsiType returnType = methodElement.getReturnType();
+                                                if (returnType == null) {
+                                                    return "void";
+                                                }
+                                                return returnType.getPresentableText();
+                                            });
                             panelTitledBoarder.setTitle("Method response: " + returnTypePresentableText);
                             ObjectMapper objectMapper = insidiousService.getObjectMapper();
                             try {
@@ -243,7 +248,7 @@ public class MethodDirectInvokeComponent {
         ProjectAndLibrariesScope projectAndLibrariesScope = new ProjectAndLibrariesScope(project);
 
         if (methodParameters.length > 0) {
-            methodParameterContainer.setLayout(new GridLayout(0, 1));
+            methodParameterContainer.setLayout(new GridLayout(methodParameters.length, 1));
             for (int i = 0; i < methodParameters.length; i++) {
                 ParameterAdapter methodParameter = methodParameters[i];
 
@@ -258,6 +263,7 @@ public class MethodDirectInvokeComponent {
                 }
 
                 ParameterInputComponent parameterContainer;
+                JPanel content;
                 String typeCanonicalName = methodParameterType.getCanonicalText();
                 if (methodParameters.length > 3
                         || methodParameterType instanceof PsiPrimitiveType
@@ -279,8 +285,9 @@ public class MethodDirectInvokeComponent {
                 }
 
                 parameterInputComponents.add(parameterContainer);
-                JPanel content = parameterContainer.getContent();
+                content = parameterContainer.getContent();
                 content.setMinimumSize(new Dimension(-1, 150));
+                content.setMaximumSize(new Dimension(-1, 300));
                 methodParameterContainer.add(content);
             }
         } else {

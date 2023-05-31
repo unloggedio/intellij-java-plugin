@@ -3703,6 +3703,8 @@ public class SessionInstance {
         try {
             return daoService.getTestCandidatesForAllMethod(className, methodName, loadCalls);
         } catch (Exception e) {
+            // probably database doesnt exist
+            logger.warn("failed to get test candidates for method [" + className + "." + methodName + "()]", e);
             return new ArrayList<>();
         }
     }
