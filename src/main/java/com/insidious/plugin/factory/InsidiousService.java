@@ -952,6 +952,7 @@ final public class InsidiousService implements Disposable,
 
         if (sessionInstance != null) {
             try {
+                logger.info("Closing existing session: " + sessionInstance.getExecutionSession().getSessionId());
                 sessionInstance.close();
             } catch (Exception e) {
                 logger.error("Failed to close existing session before opening new session: " + e.getMessage());
@@ -959,8 +960,7 @@ final public class InsidiousService implements Disposable,
             }
         }
         this.executionRecord.clear();
-        logger.warn("Loading session: " + executionSession.getSessionId());
-
+        logger.info("Loading new session: " + executionSession.getSessionId());
         sessionInstance = new SessionInstance(executionSession, project);
         sessionInstance.setTestCandidateListener(this);
         client.setSessionInstance(sessionInstance);

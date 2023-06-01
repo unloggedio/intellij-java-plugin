@@ -46,6 +46,7 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
     public void success(List<ExecutionSession> executionSessionList) {
         try {
             if (executionSessionList.size() == 0) {
+                logger.debug("no sessions found");
                 // the currently loaded session has been deleted
                 if (currentSession != null && currentSession.getSessionId().equals("na")) {
                     // already na is set
@@ -57,7 +58,9 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
                 return;
 
             }
-            ExecutionSession mostRecentSession = executionSessionList.get(executionSessionList.size() - 1);
+            ExecutionSession mostRecentSession = executionSessionList.get(0);
+            logger.debug("New session: [" + mostRecentSession.getSessionId() + "] vs existing session: " + currentSession);
+
             if (currentSession == null) {
                 // no session currently loaded and we can load a new sessions
                 if (!checkSessionBelongsToProject(mostRecentSession, insidiousService.getProject())) {
@@ -122,8 +125,8 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
                             .findPackage(finalIncludedPackagedName));
             if (locatedPackage == null) {
                 logger.warn("Package for agent [" + finalIncludedPackagedName + "] NOTFOUND in current " +
-                                "project [" + project.getName() + "]" +
-                                " -> " + mostRecentSession.getLogFilePath());
+                        "project [" + project.getName() + "]" +
+                        " -> " + mostRecentSession.getLogFilePath());
                 checkCache.put(mostRecentSession.getSessionId(), false);
                 return false;
             }
@@ -147,8 +150,10 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
         while (true) {
             try {
                 Thread.sleep(3000);
+                logger.debug("Check for new sessions");
                 client.getProjectSessions(this);
             } catch (InterruptedException ie) {
+                logger.warn("Session loader interrupted: " + ie.getMessage());
                 break;
             }
         }

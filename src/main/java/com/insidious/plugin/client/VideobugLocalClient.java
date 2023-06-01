@@ -93,7 +93,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     private List<ExecutionSession> getLocalSessions() {
         List<ExecutionSession> list = new ArrayList<>();
-        logger.debug(String.format("looking for sessions in [%s]", pathToSessions));
+        logger.warn(String.format("looking for sessions in [%s]", pathToSessions));
         File currentDir = new File(pathToSessions);
         if (!currentDir.exists()) {
             currentDir.mkdirs();
@@ -115,9 +115,14 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
         }
 
+        logger.debug("Session list: " + list);
+
         if (list.size() > 1) {
             list.sort(Comparator.comparing(ExecutionSession::getSessionId));
+            logger.debug("Session list after sort by session id: " + list);
             Collections.reverse(list);
+            logger.debug("Session list after reverse: " + list);
+
             int i = -1;
             if (list.size() > 0) {
 
@@ -126,8 +131,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     if (i == 0) {
                         continue;
                     }
-                    deleteDirectory(
-                            FileSystems.getDefault()
+                    logger.debug("Deleting session: " + executionSession.getSessionId());
+                    deleteDirectory(FileSystems.getDefault()
                                     .getPath(this.pathToSessions, executionSession.getSessionId())
                                     .toFile());
                 }
