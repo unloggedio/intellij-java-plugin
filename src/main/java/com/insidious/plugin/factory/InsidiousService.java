@@ -159,6 +159,7 @@ final public class InsidiousService implements Disposable,
     private MethodAdapter currentMethod;
     private boolean hasShownIndexWaitNotification = false;
     private String basePackage = null;
+    private ReportingService reportingService = new ReportingService(this);
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -1274,6 +1275,12 @@ final public class InsidiousService implements Disposable,
         if (existing.getDiffResultType() == DiffResultType.SAME) {
             executionRecord.put(keyName, newDiffRecord);
         }
+        addExecutionRecord(newDiffRecord);
+    }
+
+    public void addExecutionRecord(DifferenceResult result)
+    {
+        reportingService.addRecord(result);
     }
 
     public void openDirectExecuteWindow() {
@@ -1440,6 +1447,9 @@ final public class InsidiousService implements Disposable,
 
     }
 
-
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
+
+    public void toggleReportGeneration() {
+        this.reportingService.toggleReportMode();
+    }
 }

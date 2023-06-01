@@ -172,7 +172,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 callCount = candidateComponentMap.size();
                 componentCounter = 0;
 
-                executeCandidate(methodTestCandidates, psiClass1,
+                executeCandidate(methodTestCandidates, psiClass1, "all",
                         (testCandidate, agentCommandResponse, diffResult) -> {
                             componentCounter++;
                             if (componentCounter == callCount) {
@@ -229,6 +229,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     public void executeCandidate(
             List<TestCandidateMetadata> testCandidateList,
             PsiClass psiClass,
+            String source,
             AgentCommandResponseListener<String> agentCommandResponseListener
     ) {
 
@@ -243,6 +244,18 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                         candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
                         DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate,
                                 agentCommandResponse);
+
+                        if(source.equals("all")) {
+                            diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_REPLAY);
+                        }
+                        else
+                        {
+                            diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_INDIVIDUAL);
+                        }
+                        diffResult.setMethodAdapter(methodElement);
+                        diffResult.setResponse(agentCommandResponse);
+                        diffResult.setCommand(agentCommandRequest);
+
                         insidiousService.addDiffRecord(methodElement, diffResult);
 
                         TestCandidateListedItemComponent candidateComponent =
