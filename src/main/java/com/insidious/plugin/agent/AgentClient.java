@@ -120,7 +120,7 @@ public class AgentClient {
         public void run() {
             while (true) {
                 AgentCommandResponse<ServerMetadata> response = agentClient.ping();
-                logger.warn("Agent ping response: " + response.getResponseType());
+                logger.debug("Agent ping response: " + response.getResponseType());
                 boolean newState = response.getResponseType().equals(ResponseType.NORMAL);
                 if (newState && !currentState) {
                     currentState = true;

@@ -1158,7 +1158,7 @@ public class DaoService {
     }
 
     public void createLogFileEntry(LogFile logFile) {
-        logger.warn("Create log file entry: " + logFile);
+        logger.info("Create log file entry: " + logFile);
         try {
             logFilesDao.create(logFile);
         } catch (SQLException e) {

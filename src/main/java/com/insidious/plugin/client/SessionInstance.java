@@ -610,7 +610,7 @@ public class SessionInstance {
 
             Map<Integer, DataInfo> probesMap = dataInfoList.stream()
                     .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
-            logger.warn("Add [" + probesMap.size() + "] probes for class: " + counter.get() + "/" + totalClassCount);
+            logger.debug("Add [" + probesMap.size() + "] probes for class: " + counter.get() + "/" + totalClassCount);
             probeListCache.putAll(probesMap);
             if (probeListCache.size() > 10000) {
                 probeInfoIndex.putAll(probeListCache);

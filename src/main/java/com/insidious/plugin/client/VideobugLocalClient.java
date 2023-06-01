@@ -93,7 +93,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     private List<ExecutionSession> getLocalSessions() {
         List<ExecutionSession> list = new ArrayList<>();
-        logger.warn(String.format("looking for sessions in [%s]", pathToSessions));
+        logger.debug(String.format("looking for sessions in [%s]", pathToSessions));
         File currentDir = new File(pathToSessions);
         if (!currentDir.exists()) {
             currentDir.mkdirs();
