@@ -59,8 +59,17 @@ public class AgentClient {
             AgentCommandResponse<String> agentCommandResponse = objectMapper.readValue(responseBody,
                     new TypeReference<AgentCommandResponse<String>>() {
                     });
+            JSONObject eventProperties = new JSONObject();
+            if (
+                    agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION) ||
+                            agentCommandResponse.getResponseType().equals(ResponseType.FAILED)
+
+            ) {
+                eventProperties.put("response", agentCommandResponse.getMethodReturnValue());
+                eventProperties.put("responseClass", agentCommandResponse.getResponseClassName());
+            }
             UsageInsightTracker.getInstance().RecordEvent(
-                    "AGENT_RESPONSE_" + agentCommandResponse.getResponseType(), null);
+                    "AGENT_RESPONSE_" + agentCommandResponse.getResponseType(), eventProperties);
             return agentCommandResponse;
         } catch (Throwable e) {
             JSONObject properties = new JSONObject();
