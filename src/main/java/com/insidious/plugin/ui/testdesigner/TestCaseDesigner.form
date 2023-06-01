@@ -3,7 +3,7 @@
   <grid id="27dc6" binding="mainContainer" layout-manager="GridLayoutManager" row-count="5" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="1" left="1" bottom="1" right="1"/>
     <constraints>
-      <xy x="20" y="20" width="628" height="596"/>
+      <xy x="20" y="20" width="739" height="6335"/>
     </constraints>
     <properties/>
     <border type="none"/>
@@ -49,8 +49,9 @@
               <background color="-14671840"/>
               <editable value="false"/>
               <foreground color="-16659211"/>
+              <lineWrap value="false"/>
               <margin top="8" left="8" bottom="8" right="8"/>
-              <text value="Test case generation will be work after IDE indexing is completed"/>
+              <text value="Test case generation will be work after IDE indexing is completed&#10;&#10;Changelog (1.14.3): &#10;- Fix &quot;Direct Invoke&quot; button not visible in New IntelliJ UI&#10;- Fixed bugs affecting Windows workflow (session not identified)&#10;- Improved support for Generic method arguments&#10;- Performance improvements in both Plugin and Agent (Please report us if you face freezes)"/>
             </properties>
           </component>
         </children>
