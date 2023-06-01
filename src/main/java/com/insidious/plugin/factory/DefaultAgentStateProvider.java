@@ -157,8 +157,10 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         checkProgressIndicator("Downloading Unlogged agent", null);
-                        Constants.AGENT_INFO_PATH.toFile().delete();
-                        Constants.AGENT_PATH.toFile().delete();
+                        if (!agentDownloadService.isDownloading()) {
+                            Constants.AGENT_INFO_PATH.toFile().delete();
+                            Constants.AGENT_PATH.toFile().delete();
+                        }
                         downloadAgent();
                     }
                 };

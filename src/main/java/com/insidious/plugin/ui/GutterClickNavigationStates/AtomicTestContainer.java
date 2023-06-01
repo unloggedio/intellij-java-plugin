@@ -6,8 +6,10 @@ import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
+import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.TestCandidateUtils;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Computable;
 
 import javax.swing.*;
@@ -18,6 +20,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class AtomicTestContainer {
+    private static final Logger logger = LoggerUtil.getInstance(AtomicTestContainer.class);
     private final InsidiousService insidiousService;
     private final MethodExecutorComponent methodExecutorComponent;
     private JPanel mainPanel;
@@ -30,20 +33,25 @@ public class AtomicTestContainer {
     }
 
     public JComponent getComponent() {
-        return this.mainPanel;
+        return mainPanel;
     }
 
-    public void loadComponentForState(GutterState state) {
-        System.out.println("Loading Component for state : " + state);
+    public synchronized void loadComponentForState(GutterState state) {
+        logger.info("Loading Component for state : " + state);
         switch (state) {
             case PROCESS_NOT_RUNNING: {
-                if (this.currentState != null && this.currentState.equals(state)) {
+                if (currentState != null && currentState.equals(state)) {
                     return;
                 }
-                this.borderParent.removeAll();
-                AgentConfigComponent component = new AgentConfigComponent(this.insidiousService);
-                this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
-                this.borderParent.revalidate();
+                borderParent.removeAll();
+                AgentConfigComponent component = new AgentConfigComponent(insidiousService);
+                borderParent.add(component.getComponent(), BorderLayout.CENTER);
+                borderParent.revalidate();
+                borderParent.repaint();
+                mainPanel.revalidate();
+                mainPanel.repaint();
+
+
                 break;
             }
             case EXECUTE:
@@ -52,49 +60,55 @@ public class AtomicTestContainer {
                 break;
             case PROCESS_RUNNING:
             default: {
-                if (this.currentState != null && this.currentState.equals(state)) {
+                if (currentState != null && currentState.equals(state)) {
                     return;
                 }
-                this.borderParent.removeAll();
+                borderParent.removeAll();
                 GenericNavigationComponent component = new GenericNavigationComponent(state, insidiousService);
-                this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
-                this.borderParent.revalidate();
+                JPanel component1 = component.getComponent();
+                borderParent.add(component1, BorderLayout.CENTER);
+                component1.validate();
+                component1.repaint();
+                borderParent.setVisible(false);
+                borderParent.setVisible(true);
+                borderParent.validate();
+                borderParent.repaint();
                 break;
             }
         }
-        this.currentState = state;
+        currentState = state;
     }
 
     public void loadExecutionFlow() {
-        this.borderParent.removeAll();
-        this.borderParent.add(methodExecutorComponent.getComponent(), BorderLayout.CENTER);
-        this.borderParent.revalidate();
+        borderParent.removeAll();
+        borderParent.add(methodExecutorComponent.getComponent(), BorderLayout.CENTER);
+        borderParent.revalidate();
     }
 
     public void triggerMethodExecutorRefresh(MethodAdapter method) {
-        if (GutterState.EXECUTE.equals(this.currentState) || GutterState.DATA_AVAILABLE.equals(this.currentState)) {
+        if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
             methodExecutorComponent.refreshAndReloadCandidates(method, new ArrayList<>());
         } else {
-            if (this.currentState.equals(GutterState.NO_AGENT) ||
-                    this.currentState.equals(GutterState.PROCESS_NOT_RUNNING)) {
-                loadComponentForState(this.currentState);
+            if (currentState.equals(GutterState.NO_AGENT) ||
+                    currentState.equals(GutterState.PROCESS_NOT_RUNNING)) {
+                loadComponentForState(currentState);
                 return;
             }
-            SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
+            SessionInstance sessionInstance = insidiousService.getSessionInstance();
             if (sessionInstance == null) {
-                loadComponentForState(this.currentState);
+                loadComponentForState(currentState);
                 return;
             }
 
             List<TestCandidateMetadata> methodTestCandidates =
                     ApplicationManager.getApplication().runReadAction((Computable<List<TestCandidateMetadata>>) () ->
-                            this.insidiousService.getTestCandidateMetadata(method));
+                            insidiousService.getTestCandidateMetadata(method));
 
             if (methodTestCandidates.size() > 0) {
                 loadExecutionFlow();
                 methodExecutorComponent.refreshAndReloadCandidates(method, deDuplicateList(methodTestCandidates));
             } else {
-                loadComponentForState(this.currentState);
+                loadComponentForState(currentState);
             }
         }
 
@@ -114,7 +128,7 @@ public class AtomicTestContainer {
 
 
     public GutterState getCurrentState() {
-        return this.currentState;
+        return currentState;
     }
 
     public void triggerCompileAndExecute() {

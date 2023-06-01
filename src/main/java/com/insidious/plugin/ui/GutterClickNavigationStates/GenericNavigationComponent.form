@@ -3,110 +3,127 @@
   <grid id="66d51" binding="mainPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="0" left="8" bottom="8" right="8"/>
     <constraints>
-      <xy x="6" y="15" width="419" height="342"/>
+      <xy x="6" y="15" width="557" height="612"/>
     </constraints>
     <properties/>
     <border type="none"/>
     <children>
-      <grid id="87fdc" binding="topAligner" layout-manager="GridLayoutManager" row-count="7" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+      <grid id="87fdc" binding="topAligner" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
         <margin top="0" left="0" bottom="0" right="0"/>
         <constraints>
-          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="1" fill="1" indent="0" use-parent-layout="false">
+            <minimum-size width="-1" height="400"/>
+            <preferred-size width="-1" height="600"/>
+          </grid>
         </constraints>
         <properties/>
         <border type="empty"/>
         <children>
-          <grid id="d5844" binding="topTextPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="4" left="4" bottom="4" right="4"/>
+          <grid id="99022" layout-manager="GridLayoutManager" row-count="4" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+            <margin top="0" left="0" bottom="0" right="0"/>
             <constraints>
-              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties/>
             <border type="none"/>
             <children>
-              <component id="81443" class="javax.swing.JLabel" binding="iconLabel">
+              <grid id="d5844" binding="topTextPanel" layout-manager="GridLayoutManager" row-count="2" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                <margin top="4" left="4" bottom="4" right="4"/>
                 <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false">
+                    <preferred-size width="140" height="55"/>
+                  </grid>
+                </constraints>
+                <properties/>
+                <border type="none"/>
+                <children>
+                  <component id="81443" class="javax.swing.JLabel" binding="iconLabel">
+                    <constraints>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                    <properties>
+                      <text value=""/>
+                    </properties>
+                  </component>
+                  <component id="b4c72" class="javax.swing.JButton" binding="actionButton">
+                    <constraints>
+                      <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                    <properties>
+                      <background color="-105256"/>
+                      <borderPainted value="false"/>
+                      <contentAreaFilled value="false"/>
+                      <foreground color="-1"/>
+                      <opaque value="true"/>
+                      <text value="Action"/>
+                      <visible value="true"/>
+                    </properties>
+                  </component>
+                  <hspacer id="1c10e">
+                    <constraints>
+                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                  </hspacer>
+                  <grid id="69c3c" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                    <margin top="0" left="0" bottom="0" right="0"/>
+                    <constraints>
+                      <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                    <properties/>
+                    <border type="none"/>
+                    <children/>
+                  </grid>
+                </children>
+              </grid>
+              <grid id="9c801" binding="supportPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                <margin top="0" left="0" bottom="0" right="0"/>
+                <constraints>
+                  <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
-                  <text value=""/>
+                  <name value="helpPanel"/>
+                </properties>
+                <border type="none" title="Get support"/>
+                <children>
+                  <component id="664d" class="javax.swing.JButton" binding="discordButton">
+                    <constraints>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                    <properties>
+                      <borderPainted value="true"/>
+                      <contentAreaFilled value="false"/>
+                      <icon value="icons/png/discordIcon.png"/>
+                      <label value="Reach out to us on Discord"/>
+                      <text value="Reach out to us on Discord"/>
+                    </properties>
+                  </component>
+                </children>
+              </grid>
+              <component id="3f962" class="javax.swing.JEditorPane" binding="imagePane">
+                <constraints>
+                  <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                    <preferred-size width="150" height="50"/>
+                  </grid>
+                </constraints>
+                <properties>
+                  <editable value="false"/>
+                  <enabled value="true"/>
+                  <visible value="false"/>
                 </properties>
               </component>
-            </children>
-          </grid>
-          <component id="4ef72" class="javax.swing.JSeparator">
-            <constraints>
-              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
-            </constraints>
-            <properties/>
-          </component>
-          <component id="b4c72" class="javax.swing.JButton" binding="actionButton">
-            <constraints>
-              <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-            </constraints>
-            <properties>
-              <background color="-105256"/>
-              <borderPainted value="false"/>
-              <contentAreaFilled value="false"/>
-              <foreground color="-1"/>
-              <opaque value="true"/>
-              <text value="Action"/>
-              <visible value="true"/>
-            </properties>
-          </component>
-          <component id="37df9" class="javax.swing.JTextArea" binding="mainContentText">
-            <constraints>
-              <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                <preferred-size width="150" height="50"/>
-              </grid>
-            </constraints>
-            <properties>
-              <background color="-14671840"/>
-              <editable value="false"/>
-              <foreground color="-16659211"/>
-              <lineWrap value="true"/>
-              <margin top="4" left="4" bottom="4" right="4"/>
-              <wrapStyleWord value="true"/>
-            </properties>
-          </component>
-          <component id="15042" class="javax.swing.JSeparator">
-            <constraints>
-              <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-            </constraints>
-            <properties/>
-          </component>
-          <component id="aa656" class="javax.swing.JEditorPane" binding="imagePane">
-            <constraints>
-              <grid row="5" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                <preferred-size width="150" height="50"/>
-              </grid>
-            </constraints>
-            <properties>
-              <editable value="false"/>
-              <enabled value="true"/>
-              <visible value="false"/>
-            </properties>
-          </component>
-          <grid id="9c801" binding="supportPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="0" bottom="0" right="0"/>
-            <constraints>
-              <grid row="6" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-            </constraints>
-            <properties>
-              <name value="helpPanel"/>
-            </properties>
-            <border type="none" title="Get support"/>
-            <children>
-              <component id="664d" class="javax.swing.JButton" binding="discordButton">
+              <component id="37df9" class="javax.swing.JTextArea" binding="mainContentText">
                 <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                    <preferred-size width="150" height="50"/>
+                  </grid>
                 </constraints>
                 <properties>
-                  <borderPainted value="true"/>
-                  <contentAreaFilled value="false"/>
-                  <icon value="icons/png/discordIcon.png"/>
-                  <label value="Reach out to us on Discord"/>
-                  <text value="Reach out to us on Discord"/>
+                  <background color="-14671840"/>
+                  <editable value="false"/>
+                  <foreground color="-16659211"/>
+                  <lineWrap value="true"/>
+                  <margin top="4" left="4" bottom="4" right="4"/>
+                  <wrapStyleWord value="true"/>
                 </properties>
               </component>
             </children>

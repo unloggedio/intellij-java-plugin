@@ -27,6 +27,7 @@ public class AgentDownloadService {
     private static final Logger logger = LoggerUtil.getInstance(AgentDownloadService.class);
     private final String id;
     private boolean isDownloading;
+    private boolean downloadCompleted;
 
     public AgentDownloadService() {
         this.id = UUID.randomUUID().toString();
@@ -43,6 +44,9 @@ public class AgentDownloadService {
 
     public synchronized boolean downloadAgent(String url) {
         logger.warn("Download unlogged java agent from: " + url);
+        if (downloadCompleted) {
+            return true;
+        }
         isDownloading = true;
         try {
 
@@ -81,6 +85,7 @@ public class AgentDownloadService {
                     InsidiousNotification.notifyMessage("Agent downloaded. Start your application with Unlogged Java " +
                                     "agent to start using AtomicRuns and DirectInvoke",
                             NotificationType.INFORMATION);
+                    downloadCompleted = true;
                     return true;
                 } else {
                     agentInfoFile.delete();

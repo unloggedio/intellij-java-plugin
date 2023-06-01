@@ -4,8 +4,6 @@ import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.util.UIUtils;
-import com.intellij.openapi.progress.ProcessCanceledException;
-import com.intellij.openapi.progress.ProgressIndicatorProvider;
 
 import javax.swing.*;
 import java.awt.*;
@@ -33,13 +31,13 @@ public class GenericNavigationComponent {
         setTextAndIcons();
         if (state.equals(GutterState.NO_AGENT)) {
             //display button
-            this.actionButton.setVisible(true);
-            this.actionButton.setText("Download Agent");
+            actionButton.setVisible(true);
+            actionButton.setText("Download Agent");
             actionButton.addActionListener((e) -> insidiousService.getAgentStateProvider().triggerAgentDownload());
             actionButton.setIcon(UIUtils.DOWNLOAD_WHITE);
         } else if (state.equals(GutterState.PROCESS_RUNNING)) {
-            this.actionButton.setVisible(true);
-            this.actionButton.setText("Execute method");
+            actionButton.setVisible(true);
+            actionButton.setText("Execute method");
             loadImageForCurrentState();
             actionButton.addActionListener((e) -> insidiousService.openDirectExecuteWindow());
             actionButton.setIcon(UIUtils.GENERATE_ICON);
@@ -144,7 +142,4 @@ public class GenericNavigationComponent {
                 "ROUTE_TO_DISCORD", null);
     }
 
-    public void setButtonText(String text) {
-        this.actionButton.setText(text);
-    }
 }
