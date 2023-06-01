@@ -2,10 +2,12 @@ package com.insidious.plugin.agent;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import okhttp3.*;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -54,9 +56,18 @@ public class AgentClient {
 
         try (Response response = client.newCall(request).execute()) {
             String responseBody = response.body().string();
-            return objectMapper.readValue(responseBody, new TypeReference<AgentCommandResponse<String>>() {
-            });
+            AgentCommandResponse<String> agentCommandResponse = objectMapper.readValue(responseBody,
+                    new TypeReference<AgentCommandResponse<String>>() {
+                    });
+            UsageInsightTracker.getInstance().RecordEvent(
+                    "AGENT_RESPONSE_" + agentCommandResponse.getResponseType(), null);
+            return agentCommandResponse;
         } catch (Throwable e) {
+            JSONObject properties = new JSONObject();
+            properties.put("exception", e.getClass());
+            properties.put("message", e.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent("AGENT_RESPONSE_THROW", properties);
+
             logger.warn("Failed to invoke call to agent server: " + e.getMessage());
             AgentCommandResponse<String> agentCommandResponse = new AgentCommandResponse<String>(ResponseType.FAILED);
             agentCommandResponse.setMessage(NO_SERVER_CONNECT_ERROR_MESSAGE + e.getMessage());
@@ -109,7 +120,8 @@ public class AgentClient {
                     });
                 } else if (!newState && currentState) {
                     currentState = false;
-                    ApplicationManager.getApplication().invokeLater(connectionStateListener::onDisconnectedFromAgentServer);
+                    ApplicationManager.getApplication()
+                            .invokeLater(connectionStateListener::onDisconnectedFromAgentServer);
 
                 }
                 try {
