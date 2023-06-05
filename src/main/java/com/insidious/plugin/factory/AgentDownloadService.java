@@ -67,6 +67,9 @@ public class AgentDownloadService {
 
             } catch (IOException e) {
                 // failed to create agent info file
+                JSONObject prop = new JSONObject();
+                prop.put("message", e.getMessage());
+                UsageInsightTracker.getInstance().RecordEvent("AgentDownloadException1", prop);
                 logger.error("Failed to create agent file", e);
                 return false;
             }
@@ -107,6 +110,10 @@ public class AgentDownloadService {
                 eventProperties.put("exception", e.getMessage());
                 UsageInsightTracker.getInstance().RecordEvent("AgentDownloadException", eventProperties);
             }
+        } catch(Exception e) {
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("exception", e.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent("AgentDownloadException2", eventProperties);
         } finally {
             isDownloading = false;
         }

@@ -23,5 +23,5 @@ public class Constants {
             .getPath(HOME_PATH.toAbsolutePath().toString(),"sessions");
     public static final String COMPLETED = "completed";
     public static final String PENDING = "pending";
-    public static final String AGENT_VERSION = "1.14.2";
+    public static final String AGENT_VERSION = "1.14.3";
 }

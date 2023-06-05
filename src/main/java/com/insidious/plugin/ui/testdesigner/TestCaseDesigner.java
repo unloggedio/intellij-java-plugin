@@ -94,7 +94,7 @@ public class TestCaseDesigner implements Disposable {
     private JLabel mockFrameworkLabel;
     private JLabel testFrameworkLabel;
     private JPanel mockFrameworkPanel;
-    private JPanel useMocktoConfigPanel;
+    private JPanel useMockitoConfigPanel;
     private JPanel addFieldMocksConfigPanel;
     private JTable assertionTable;
     //    private JButton addNewAssertionButton;

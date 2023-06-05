@@ -9,5 +9,5 @@ public class Checksums {
 //    public static String AGENT_JACKSON_2_11 = "4a0c581f55f7fbecf6a3dd9fb3c0a745";
 //    public static String AGENT_JACKSON_2_12 = "34105f910531a78850d5ace2446f2e96";
 //    public static String AGENT_JACKSON_2_14 = "a85b0764fa9960f1669d51d9bd946eaf";
-    public static String AGENT_MD5 = "3ae9ab71223fb98820b4ed9f48fed06a";
+    public static String AGENT_MD5 = "e97b0f8c3e4254d47530b5072e5fb7c6";
 }

@@ -37,6 +37,7 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
     private final AgentDownloadService agentDownloadService;
     private boolean isAgentServerRunning;
     private boolean agentJarExists;
+    private boolean downloadFailed;
 
     public DefaultAgentStateProvider(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -161,6 +162,7 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
                             Constants.AGENT_INFO_PATH.toFile().delete();
                             Constants.AGENT_PATH.toFile().delete();
                         }
+                        downloadFailed = false;
                         downloadAgent();
                     }
                 };
@@ -172,6 +174,9 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
         // deprecating downloads from s3 bucket and switching to maven repository
 //        String host = "https://builds.bug.video/unlogged-java-agent-"+ Constants.AGENT_VERSION +"-";
 //        String host = "https://s01.oss.sonatype.org/service/local/repositories/releases/content/video/bug/unlogged-java-agent/" + Constants.AGENT_VERSION + "/unlogged-java-agent-" + Constants.AGENT_VERSION;
+        if (downloadFailed) {
+            return false;
+        }
         String host = "https://repo1.maven.org/maven2/video/bug/unlogged-java-agent/" + Constants.AGENT_VERSION + "/unlogged-java-agent-" + Constants.AGENT_VERSION;
         String extension = ".jar";
 
@@ -240,6 +245,8 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
                             if (downloadAgent()) {
                                 jarFound();
                                 break;
+                            } else {
+                                downloadFailed = true;
                             }
                         }
                     } else {
@@ -283,6 +290,8 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
                 if (downloadAgent()) {
                     jarFound();
                     break;
+                } else {
+                    downloadFailed = true;
                 }
             }
 
