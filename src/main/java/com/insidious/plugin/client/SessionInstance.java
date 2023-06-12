@@ -4,8 +4,6 @@ import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.index.hash.HashIndex;
 import com.googlecode.cqengine.index.radixinverted.InvertedRadixTreeIndex;
 import com.googlecode.cqengine.persistence.disk.DiskPersistence;
-import com.googlecode.cqengine.query.Query;
-import com.googlecode.cqengine.resultset.ResultSet;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.UploadFile;
@@ -45,7 +43,6 @@ import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.IndexNotReadyException;
 import com.intellij.openapi.project.Project;
@@ -85,7 +82,6 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static com.googlecode.cqengine.query.QueryFactory.in;
 import static com.insidious.common.weaver.EventType.*;
 import static com.insidious.plugin.client.DatFileType.*;
 
@@ -134,8 +130,12 @@ public class SessionInstance {
             if (created) {
                 scanEnable = true;
                 sessionLockFile.deleteOnExit();
+            } else {
+                logger.warn("scan lock file wasn't created, scanning is disabled: " + project.getName());
             }
         } catch (IOException e) {
+            logger.warn("exception while trying to create scan lock file, scanning is disabled " + project.getName(),
+                    e);
             // lockFile failed to create, probably already exists
             // no scanning to be done from this session instance
 
@@ -2306,11 +2306,13 @@ public class SessionInstance {
 
     public void scanDataAndBuildReplay() {
         if (!scanEnable) {
+            logger.warn("scan is not enabled: " + project.getName());
             // there is another session which created the lock file and will do the scanning
             // this happens when multiple ide windows open, so each one creates a sessionInstance
             return;
         }
         if (isSessionCorrupted) {
+            logger.warn("session is corrupted, not scanning new files: " + project.getName());
             if (!hasShownCorruptedNotification) {
                 hasShownCorruptedNotification = true;
                 InsidiousNotification.notifyMessage(
@@ -3164,8 +3166,7 @@ public class SessionInstance {
                         ObjectInfoDocument objectInfo = objectInfoIndex.get(existingParameter.getValue());
                         if (objectInfo != null) {
                             TypeInfoDocument typeInfo = getTypeFromTypeIndex(objectInfo.getTypeId());
-                            if (!typeInfo.getTypeName()
-                                    .contains(".$")) {
+                            if (!typeInfo.getTypeName().contains(".$")) {
                                 existingParameter.setType(typeInfo.getTypeName());
                             }
                             isModified = true;
