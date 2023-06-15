@@ -4,6 +4,7 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.LoggerUtil;
@@ -93,6 +94,7 @@ public class AtomicRecordService {
                             ,obj);
                 }
             }
+            UsageInsightTracker.getInstance().RecordEvent("Candidate_Added",null);
         }
         catch (Exception e)
         {
@@ -298,6 +300,7 @@ public class AtomicRecordService {
             list.remove(candidateToRemove);
         }
         writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json"),records);
+        UsageInsightTracker.getInstance().RecordEvent("Candidate_Deleted",null);
         insidiousService.triggerGutterIconReload();
         insidiousService.triggerAtomicTestsWindowRefresh();
     }
