@@ -6,7 +6,6 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.ui.GutterClickNavigationStates.AtomicTestContainer;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
@@ -111,7 +110,7 @@ public class AtomicRecordService {
         candidates.add(candidate);
         record.setStoredCandidateList(candidates);
 
-        List<AtomicRecord> records = new ArrayList<>();
+        List<AtomicRecord> records = this.storedRecords.get(classname);
         records.add(record);
         writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
                 ,records);
@@ -266,6 +265,7 @@ public class AtomicRecordService {
     }
 
     public void deleteStoredCandidate(String classname, String method, String candidateId) {
+//        System.out.println("In delete for : "+candidateId);
         if(classname == null || method == null)
         {
             return;
@@ -284,7 +284,7 @@ public class AtomicRecordService {
             {
                 for(StoredCandidate candidate : record.getStoredCandidateList())
                 {
-                    if(candidate.getCandidateId().equals(candidateId))
+                    if(candidate.getCandidateId()!=null && candidate.getCandidateId().equals(candidateId))
                     {
                         candidateToRemove = candidate;
                         list = record.getStoredCandidateList();
@@ -292,6 +292,8 @@ public class AtomicRecordService {
                 }
             }
         }
+//        System.out.println("[DEL] list : "+list!=null ? list.toString() : null);
+//        System.out.println("[DEL] CANDIDATE : "+candidateToRemove!=null ? candidateToRemove.toString() : null);
         if(list!=null && candidateToRemove!=null) {
             list.remove(candidateToRemove);
         }

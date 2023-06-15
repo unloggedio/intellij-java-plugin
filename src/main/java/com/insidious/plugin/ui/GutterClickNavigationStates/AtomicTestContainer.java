@@ -96,13 +96,18 @@ public class AtomicTestContainer {
     }
 
     public void triggerMethodExecutorRefresh(MethodAdapter method) {
+        final MethodAdapter m;
         if(method==null)
         {
-            methodExecutorComponent.getCurrentMethod();
+            m = methodExecutorComponent.getCurrentMethod();
+        }
+        else
+        {
+            m = method;
         }
         if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
             System.out.println("[EXECUTION FLOW] ATW");
-            methodExecutorComponent.refreshAndReloadCandidates(method, new ArrayList<>());
+            methodExecutorComponent.refreshAndReloadCandidates(m, new ArrayList<>());
         } else {
             if (currentState.equals(GutterState.NO_AGENT) ||
                     currentState.equals(GutterState.PROCESS_NOT_RUNNING)) {
@@ -119,15 +124,15 @@ public class AtomicTestContainer {
 
             List<TestCandidateMetadata> methodTestCandidates =
                     ApplicationManager.getApplication().runReadAction((Computable<List<TestCandidateMetadata>>) () ->
-                            insidiousService.getTestCandidateMetadata(method));
-            String methodKey = method.getName() +"#"+method.getJVMSignature();
+                            insidiousService.getTestCandidateMetadata(m));
+            String methodKey = m.getName() +"#"+m.getJVMSignature();
             if (methodTestCandidates.size() > 0 ||
-                    insidiousService.getAtomicRecordService().hasStoredCandidateForMethod(method.getContainingClass().getQualifiedName(),methodKey)) {
+                    insidiousService.getAtomicRecordService().hasStoredCandidateForMethod(m.getContainingClass().getQualifiedName(),methodKey)) {
                 System.out.println("[EXECUTION FLOW 2] ATW");
                 loadExecutionFlow();
-                List<StoredCandidate> candidates = getStoredCandidateListForMethod(deDuplicateList(methodTestCandidates),method.getContainingClass().getQualifiedName(),
+                List<StoredCandidate> candidates = getStoredCandidateListForMethod(deDuplicateList(methodTestCandidates),m.getContainingClass().getQualifiedName(),
                         methodKey);
-                methodExecutorComponent.refreshAndReloadCandidates(method, candidates);
+                methodExecutorComponent.refreshAndReloadCandidates(m, candidates);
             } else {
                 //no candidates, calc state
                 System.out.println("[DEFAULT FLOW] ATW");
