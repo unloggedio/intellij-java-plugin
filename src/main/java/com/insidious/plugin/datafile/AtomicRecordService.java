@@ -113,6 +113,10 @@ public class AtomicRecordService {
         record.setStoredCandidateList(candidates);
 
         List<AtomicRecord> records = this.storedRecords.get(classname);
+        if(records==null)
+        {
+            records = new ArrayList<>();
+        }
         records.add(record);
         writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
                 ,records);
