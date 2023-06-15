@@ -83,6 +83,13 @@ public class MethodDirectInvokeComponent {
             }
         });
 
+//        methodNameLabel.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                SaveForm s = new SaveForm(null,null);
+//                s.setVisible(true);
+//            }
+//        });
     }
 
     private void executeMethodWithParameters() {

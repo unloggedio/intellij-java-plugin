@@ -6,6 +6,7 @@ import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.util.ClassUtils;
@@ -18,6 +19,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -26,7 +28,7 @@ import java.util.List;
 import java.util.*;
 
 public class TestCandidateListedItemComponent {
-    private final TestCandidateMetadata candidateMetadata;
+    private final StoredCandidate candidateMetadata;
     private final MethodAdapter method;
     private final List<String> methodArgumentValues;
     private final MethodExecutionListener listener;
@@ -37,9 +39,11 @@ public class TestCandidateListedItemComponent {
     private JPanel mainContentPanel;
     private JLabel executeLabel;
     private JPanel controlPanel;
+    private int clicks=0;
+    private int calls=0;
 
     public TestCandidateListedItemComponent(
-            TestCandidateMetadata candidateMetadata,
+            StoredCandidate candidateMetadata,
             MethodAdapter method,
             MethodExecutionListener listener,
             CandidateSelectedListener candidateSelectedListener,
@@ -48,27 +52,33 @@ public class TestCandidateListedItemComponent {
         this.insidiousService = insidiousService;
         this.method = method;
         this.listener = listener;
-        this.methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata);
+        this.methodArgumentValues = candidateMetadata.getMethodArguments();
         this.parameterMap = generateParameterMap(method.getParameters());
 
+        //saved candidate check
+        if(candidateMetadata.getName()!=null)
+        {
+            setTitledBorder(candidateMetadata.getName());
+        }
         mainPanel.revalidate();
 
         loadInputTree();
         executeLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-
+                clicks++;
                 ClassUtils.chooseClassImplementation(method.getContainingClass(), psiClass -> {
                     JSONObject eventProperties = new JSONObject();
                     eventProperties.put("className", psiClass.getQualifiedName());
-                    eventProperties.put("methodName", candidateMetadata.getMainMethod().getMethodName());
+                    eventProperties.put("methodName", method.getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
                     listener.executeCandidate(
                             Collections.singletonList(candidateMetadata), psiClass, "individual",
-                            (testCandidate, agentCommandResponse, diffResult) -> {
+                            (candidateMetadata, agentCommandResponse, diffResult) -> {
+                                calls++;
                                 insidiousService.updateMethodHashForExecutedMethod(method);
                                 setAndDisplayResponse(agentCommandResponse, diffResult);
-                                candidateSelectedListener.onCandidateSelected(testCandidate);
+                                candidateSelectedListener.onCandidateSelected(candidateMetadata);
                             }
                     );
                 });
@@ -98,7 +108,7 @@ public class TestCandidateListedItemComponent {
         return this.mainPanel;
     }
 
-    public TestCandidateMetadata getCandidateMetadata() {
+    public StoredCandidate getCandidateMetadata() {
         return candidateMetadata;
     }
 
@@ -254,27 +264,27 @@ public class TestCandidateListedItemComponent {
     }
 
 
-    public void setResponseComponent(Boolean status) {
-//        this.responseComponent = responseComponent;
-//        Boolean status = this.responseComponent.computeDifferences();
-        if (status == null) {
-            this.statusLabel.setText("Exception");
-            this.statusLabel.setForeground(UIUtils.orange);
-            this.statusLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
-            return;
-        }
-        if (!status) {
-            //no diff
-            this.statusLabel.setText("Same");
-            this.statusLabel.setForeground(UIUtils.green);
-            this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
-        } else {
-            //diff
-            this.statusLabel.setText("Different");
-            this.statusLabel.setForeground(UIUtils.red);
-            this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
-        }
-    }
+//    public void setResponseComponent(Boolean status) {
+////        this.responseComponent = responseComponent;
+////        Boolean status = this.responseComponent.computeDifferences();
+//        if (status == null) {
+//            this.statusLabel.setText("Exception");
+//            this.statusLabel.setForeground(UIUtils.orange);
+//            this.statusLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
+//            return;
+//        }
+//        if (!status) {
+//            //no diff
+//            this.statusLabel.setText("Same");
+//            this.statusLabel.setForeground(UIUtils.green);
+//            this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
+//        } else {
+//            //diff
+//            this.statusLabel.setText("Different");
+//            this.statusLabel.setForeground(UIUtils.red);
+//            this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
+//        }
+//    }
 
     public void setAndDisplayResponse(
             AgentCommandResponse<String> agentCommandResponse,
@@ -305,12 +315,21 @@ public class TestCandidateListedItemComponent {
     public int getHash() {
         int hash = -1;
         if (this.candidateMetadata != null && this.methodArgumentValues != null) {
-            String output = new String(
-                    this.candidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+            String output = this.candidateMetadata.getReturnValue();
             String concat = this.methodArgumentValues.toString() + output;
             hash = concat.toString().hashCode();
         }
         return hash;
+    }
+
+    public void setTitledBorder(String title) {
+        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
+        titledBorder.setTitle(title);
+    }
+
+    public String getExecutionStatus()
+    {
+        return  this.statusLabel.getText();
     }
 
 }

@@ -7,6 +7,7 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.DateUtils;
 import com.insidious.plugin.util.ExceptionUtils;
@@ -24,7 +25,7 @@ import java.util.stream.Stream;
 public class AgentExceptionResponseComponent implements Supplier<Component> {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     final private InsidiousService insidiousService;
-    final private TestCandidateMetadata metadata;
+    final private StoredCandidate metadata;
     final private AgentCommandResponse<String> response;
     private JPanel mainPanel;
     private JPanel contentPanel;
@@ -32,7 +33,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
     private JPanel beforeSection;
 
     public AgentExceptionResponseComponent(
-            TestCandidateMetadata metadata,
+            StoredCandidate metadata,
             AgentCommandResponse<String> agentCommandResponse,
             InsidiousService insidiousService
     ) {
@@ -41,15 +42,15 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
         this.metadata = metadata;
         this.response = agentCommandResponse;
         setupDefLayout();
-        String simpleClassName = metadata.getFullyQualifiedClassname();
+        String simpleClassName = metadata.getReturnValueClassname();
         simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
-        String methodLabel = simpleClassName + "." + metadata.getMainMethod().getMethodName() + "()";
+        String methodLabel = simpleClassName + "." + metadata.getMethodName() + "()";
         setInfoLabel(methodLabel + " at " + DateUtils.formatDate(new Date(agentCommandResponse.getTimestamp())));
     }
 
 
     public void setupDefLayout() {
-        final byte[] mainMethodReturnValue = metadata.getMainMethod().getReturnDataEvent().getSerializedValue();
+        final byte[] mainMethodReturnValue = metadata.getReturnDataEventSerializedValue();
         final String originalString = new String(mainMethodReturnValue);
         final String actualString = String.valueOf(response.getMethodReturnValue());
         JPanel panel = new JPanel();
@@ -80,12 +81,11 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
             afterSection.add(comp.getComponent(), BorderLayout.CENTER);
         }
 
-        Parameter returnValue = metadata.getMainMethod().getReturnValue();
-        if (returnValue.isException()) {
-            String prettyException = ExceptionUtils.prettyPrintException(returnValue.getProb().getSerializedValue());
+        if (metadata.isException()) {
+            String prettyException = ExceptionUtils.prettyPrintException(metadata.getProbSerializedValue());
             String exceptionMessage = "Exception message";
             try {
-                JsonNode jsonNode = objectMapper.readValue(returnValue.getProb().getSerializedValue(), JsonNode.class);
+                JsonNode jsonNode = objectMapper.readValue(metadata.getProbSerializedValue(), JsonNode.class);
                 if (jsonNode.has("message")) {
                     exceptionMessage = jsonNode.get("message").asText();
                 }

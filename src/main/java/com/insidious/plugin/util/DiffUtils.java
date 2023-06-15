@@ -7,6 +7,7 @@ import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceInstance;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
@@ -21,25 +22,25 @@ public class DiffUtils {
     static final private ObjectMapper objectMapper = new ObjectMapper();
 
     static public DifferenceResult calculateDifferences(
-            TestCandidateMetadata testCandidateMetadata,
+            StoredCandidate testCandidateMetadata,
             AgentCommandResponse<String> agentCommandResponse
     ) {
-        Parameter returnValueParameter = testCandidateMetadata.getMainMethod().getReturnValue();
-        byte[] serializedValue = testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue();
+//        byte[] serializedValue = testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue();
+        byte[] serializedValue = testCandidateMetadata.getReturnDataEventSerializedValue();
         String originalString = serializedValue.length > 0 ? new String(serializedValue) :
-                String.valueOf(testCandidateMetadata.getMainMethod().getReturnDataEvent().getValue());
+                String.valueOf(testCandidateMetadata.getReturnDataEventValue());
+//                String.valueOf(testCandidateMetadata.getMainMethod().getReturnDataEvent().getValue());
 
-        if (returnValueParameter != null && returnValueParameter.isBooleanType()) {
+        if (testCandidateMetadata.isBooleanType()) {
             originalString = "0".equals(originalString) ? "false" : "true";
         }
 
-
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
-        System.out.println("Is Exception from session : "+testCandidateMetadata.getMainMethod().getReturnValue().isException());
-        if (testCandidateMetadata.getMainMethod().getReturnValue().isException() ||
+        System.out.println("Is Exception from session : "+testCandidateMetadata.isException());
+        if (testCandidateMetadata.isException() ||
                 (agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
             //exception flow wip
-            if (testCandidateMetadata.getMainMethod().getReturnValue().isException()) {
+            if (testCandidateMetadata.isException()) {
                 //load before as exception
                 DifferenceResult res = calculateDifferences(originalString, actualString,
                         agentCommandResponse.getResponseType());
@@ -62,7 +63,7 @@ public class DiffUtils {
         if (agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION)) {
             try {
                 String responseClassName = agentCommandResponse.getResponseClassName();
-                String expectedClassName = testCandidateMetadata.getMainMethod().getReturnValue().getType();
+                String expectedClassName = testCandidateMetadata.getReturnValueClassname();
 
                 isDifferent = responseClassName.equals(expectedClassName);
                 if (!isDifferent) {

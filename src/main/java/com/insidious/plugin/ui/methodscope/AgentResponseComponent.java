@@ -1,9 +1,16 @@
 package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.agent.AgentCommandResponse;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.agent.ResponseType;
+import com.insidious.plugin.datafile.AtomicRecordService;
+import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
+import com.insidious.plugin.ui.Components.AtomicRecord.AtomicRecordListener;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
+import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
 import com.insidious.plugin.util.*;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -14,13 +21,12 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.Date;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Supplier;
+import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
 
-public class AgentResponseComponent implements Supplier<Component> {
+public class AgentResponseComponent implements Supplier<Component>, AtomicRecordListener {
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
     private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = true;
     private final AgentCommandResponse<String> agentCommandResponse;
@@ -41,19 +47,28 @@ public class AgentResponseComponent implements Supplier<Component> {
     private JScrollPane scrollParent;
     private JPanel topPanel;
     private JPanel topAlign;
+    private JButton deleteButton;
     private JButton hideButton;
-
-    private TestCandidateMetadata metadata;
+    private StoredCandidate metadata;
+    private SaveForm lastRef;
+    private AgentResponseComponent self = this;
+    private String methodHash;
+    private String methodSignature;
+    private AtomicRecordService atomicRecordService;
+    private String classname;
+    private String methodName;
 
     public AgentResponseComponent(
             AgentCommandResponse<String> agentCommandResponse,
-            TestCandidateMetadata metadata,
+            StoredCandidate metadata,
             boolean showAcceptButton,
-            FullViewEventListener fullViewEventListener
+            FullViewEventListener fullViewEventListener,
+            AtomicRecordService atomicRecordService
     ) {
         this.agentCommandResponse = agentCommandResponse;
         this.showAcceptButton = showAcceptButton;
         this.metadata = metadata;
+        this.atomicRecordService = atomicRecordService;
 
         if (!showAcceptButton) {
             this.bottomControlPanel.setVisible(false);
@@ -63,9 +78,9 @@ public class AgentResponseComponent implements Supplier<Component> {
         computeDifferences(differences);
 
 
-        byte[] serializedValue = metadata.getMainMethod().getReturnDataEvent().getSerializedValue();
+        byte[] serializedValue = metadata.getReturnDataEventSerializedValue();
         String originalString = serializedValue.length > 0 ? new String(serializedValue) :
-                String.valueOf(metadata.getMainMethod().getReturnDataEvent().getValue());
+                String.valueOf(metadata.getReturnDataEventValue());
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
         String simpleClassName = agentCommandResponse.getTargetClassName();
@@ -132,6 +147,65 @@ public class AgentResponseComponent implements Supplier<Component> {
 //                }
 //            });
 //        }
+        deleteButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                InsidiousNotification.notifyMessage("Removing this candidate. ",
+                        NotificationType.INFORMATION);
+            }
+        });
+        acceptButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if(lastRef!=null)
+                {
+                    lastRef.dispose();
+                }
+                lastRef = new SaveForm(self);
+                lastRef.setVisible(true);
+            }
+        });
+        if(metadata.getCandidateId()==null)
+        {
+            deleteButton.setVisible(false);
+        }
+        deleteButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if(metadata.getCandidateId()!=null)
+                {
+                    atomicRecordService.deleteStoredCandidate(classname,
+                            methodName+"#"+methodSignature, metadata.getCandidateId());
+                }
+            }
+        });
+    }
+
+    public StoredCandidate getCurrentResponseAsStoredCandidate()
+    {
+        StoredCandidate candidate = new StoredCandidate();
+        candidate.setCandidateId(UUID.randomUUID().toString());
+        candidate.setMethodHash(methodHash);
+        candidate.setMethodArguments(metadata.getMethodArguments());
+        candidate.setException(agentCommandResponse.getResponseType().equals(ResponseType.NORMAL) ?
+                false : true);
+        candidate.setReturnValue(agentCommandResponse.getMethodReturnValue());
+        //to be updated
+        candidate.setProbSerializedValue(metadata.getProbSerializedValue());
+        //to be updated
+        candidate.setReturnDataEventValue(metadata.getReturnDataEventValue());
+        candidate.setReturnDataEventSerializedValue(agentCommandResponse.getMethodReturnValue().getBytes());
+        candidate.setMethodName(metadata.getMethodName());
+        candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
+        candidate.setBooleanType(metadata.isBooleanType());
+
+        StoredCandidateMetadata metadata1 = new StoredCandidateMetadata();
+        metadata1.setCandidateStatus(null);
+        metadata1.setTimestamp(agentCommandResponse.getTimestamp());
+        metadata1.setRecordedBy(HOSTNAME);
+        metadata1.setHostMachineName(HOSTNAME);
+        candidate.setMetadata(metadata1);
+        return candidate;
     }
 
     public void setInfoLabel(String info) {
@@ -140,12 +214,13 @@ public class AgentResponseComponent implements Supplier<Component> {
 //        this.infoLabel.setText(info);
     }
 
-
     public void computeDifferences(DifferenceResult differenceResult) {
 
         switch (differenceResult.getDiffResultType()) {
             case DIFF:
                 this.statusLabel.setText("Differences Found.");
+                this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
+                this.statusLabel.setForeground(UIUtils.red);
                 renderTableWithDifferences(differenceResult.getDifferenceInstanceList());
                 break;
             case NO_ORIGINAL:
@@ -165,7 +240,7 @@ public class AgentResponseComponent implements Supplier<Component> {
                 this.tableParent.setVisible(false);
                 showExceptionTrace(
                         ExceptionUtils.prettyPrintException(
-                                this.metadata.getMainMethod().getReturnDataEvent().getSerializedValue())
+                                this.metadata.getReturnDataEventSerializedValue())
                 );
                 break;
         }
@@ -257,5 +332,38 @@ public class AgentResponseComponent implements Supplier<Component> {
     @Override
     public Component get() {
         return this.mainPanel;
+    }
+
+    @Override
+    public void triggerRecordAddition(String name, String description, StoredCandidate.AssertionType type) {
+        StoredCandidate candidate = getCurrentResponseAsStoredCandidate();
+        candidate.setName(name);
+        candidate.setDescription(description);
+        candidate.setAssertionType(type);
+        System.out.println("CANDIDATE to SAVE : "+candidate.toString());
+        atomicRecordService.addStoredCandidate(classname,methodName,methodSignature,candidate);
+    }
+
+    @Override
+    public void deleteCandidateRecord(String candidateID) {
+
+    }
+
+    @Override
+    public String getSaveLocation() {
+        return atomicRecordService.getSaveLocation();
+    }
+
+    public void setMethodName(String name) {this.methodName = name;}
+    public void setMethodHash(String methodHash) {
+        this.methodHash = methodHash;
+    }
+
+    public void setMethodSignature(String methodSignature) {
+        this.methodSignature = methodSignature;
+    }
+
+    public void setClassname(String qualifiedName) {
+        this.classname = qualifiedName;
     }
 }

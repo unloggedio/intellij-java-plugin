@@ -19,6 +19,7 @@ import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.datafile.AtomicRecordService;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.TestCaseService;
@@ -160,6 +161,7 @@ final public class InsidiousService implements Disposable,
     private boolean hasShownIndexWaitNotification = false;
     private String basePackage = null;
     private ReportingService reportingService = new ReportingService(this);
+    private AtomicRecordService atomicRecordService = new AtomicRecordService(this);
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -888,7 +890,6 @@ final public class InsidiousService implements Disposable,
                                         compileStatusNotification.finished(false, 1, warnings, compileContext);
                                     }
                                 });
-
                     }
             );
         });
@@ -925,7 +926,6 @@ final public class InsidiousService implements Disposable,
             } catch (IOException e) {
                 logger.warn("failed to execute command - " + e.getMessage(), e);
             }
-
         });
     }
 
@@ -1078,8 +1078,12 @@ final public class InsidiousService implements Disposable,
         List<TestCandidateMetadata> candidates = ApplicationManager.getApplication().runReadAction(
                 (Computable<List<TestCandidateMetadata>>) () -> getTestCandidateMetadata(method));
 
+        //check for stored candidates here
+        boolean hasStoredCandidates = atomicRecordService.hasStoredCandidateForMethod(method.getContainingClass().getQualifiedName(),
+                method.getName()+"#"+method.getJVMSignature());
+
         // process is running, but no test candidates for this method
-        if (candidates.size() == 0) {
+        if (candidates.size() == 0 && hasStoredCandidates==false) {
             return GutterState.PROCESS_RUNNING;
         }
 
@@ -1107,11 +1111,25 @@ final public class InsidiousService implements Disposable,
             return GutterState.EXECUTE;
         }
 
-        if (!executionRecord.containsKey(hashKey)) {
+        if (!executionRecord.containsKey(hashKey) ||
+                (hasStoredCandidates && !executionRecord.containsKey(hashKey))) {
             return GutterState.DATA_AVAILABLE;
         }
 
         DifferenceResult differenceResult = executionRecord.get(hashKey);
+        if(differenceResult.getGutterStatus()!=null)
+        {
+            System.out.println("[GUTTER STATE IND] "+differenceResult.getGutterStatus());
+            switch (differenceResult.getGutterStatus())
+            {
+                case "Diff":
+                    return GutterState.DIFF;
+                case "NoRun":
+                    return GutterState.EXECUTE;
+                default:
+                    return GutterState.NO_DIFF;
+            }
+        }
         switch (differenceResult.getDiffResultType()) {
             case DIFF:
                 return GutterState.DIFF;
@@ -1121,6 +1139,22 @@ final public class InsidiousService implements Disposable,
                 return GutterState.NO_DIFF;
             default:
                 return GutterState.DIFF;
+        }
+    }
+
+    public GutterState getGutterStateBasedOnAgentState()
+    {
+        if(!agentStateProvider.doesAgentExist())
+        {
+            return GutterState.NO_AGENT;
+        }
+        if(agentStateProvider.isAgentRunning())
+        {
+            return GutterState.PROCESS_RUNNING;
+        }
+        else
+        {
+            return GutterState.PROCESS_NOT_RUNNING;
         }
     }
 
@@ -1447,9 +1481,19 @@ final public class InsidiousService implements Disposable,
 
     }
 
+    public void triggerAtomicTestsWindowRefresh() {
+        System.out.println("[REFRESH] ATW");
+        atomicTestContainerWindow.triggerMethodExecutorRefresh(null);
+    }
+
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
 
     public void toggleReportGeneration() {
         this.reportingService.toggleReportMode();
+    }
+
+    public AtomicRecordService getAtomicRecordService()
+    {
+        return this.atomicRecordService;
     }
 }
