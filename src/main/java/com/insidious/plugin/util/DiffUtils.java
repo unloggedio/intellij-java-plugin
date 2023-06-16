@@ -26,7 +26,7 @@ public class DiffUtils {
             AgentCommandResponse<String> agentCommandResponse
     ) {
 //        byte[] serializedValue = testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue();
-        byte[] serializedValue = testCandidateMetadata.getReturnDataEventSerializedValue();
+        byte[] serializedValue = testCandidateMetadata.getReturnDataEventSerializedValue().getBytes();
         String originalString = serializedValue.length > 0 ? new String(serializedValue) :
                 String.valueOf(testCandidateMetadata.getReturnDataEventValue());
 //                String.valueOf(testCandidateMetadata.getMainMethod().getReturnDataEvent().getValue());

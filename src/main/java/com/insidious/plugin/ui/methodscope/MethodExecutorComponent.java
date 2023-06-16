@@ -335,6 +335,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
 
     public void displayResponse(Supplier<Component> component) {
+        scrollParent.setMinimumSize(new Dimension(-1,700));
         this.diffContentPanel.removeAll();
         this.diffContentPanel.setLayout(new GridLayout(1, 1));
 //        GridConstraints constraints = new GridConstraints();
@@ -343,6 +344,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         Component comp = component.get();
         comp.setMinimumSize(new Dimension(-1, 700));
         this.diffContentPanel.add(comp);
+        this.scrollParent.revalidate();
+        this.scrollParent.repaint();
         this.diffContentPanel.revalidate();
         this.diffContentPanel.repaint();
     }
@@ -370,15 +373,27 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             AgentCommandResponse<String> agentCommandResponse
     ) {
         if (testCandidateMetadata.isException()) {
-            return new AgentExceptionResponseComponent(
+            AgentExceptionResponseComponent comp = new AgentExceptionResponseComponent(
                     testCandidateMetadata, agentCommandResponse, insidiousService);
+            comp.setMethodHash(methodElement.getJVMSignature());
+            comp.setMethodName(methodElement.getName());
+            comp.setMethodHash(methodElement.getText().hashCode()+"");
+            comp.setClassname(methodElement.getContainingClass().getQualifiedName());
+            comp.setMethodSignature(methodElement.getJVMSignature());
+            return comp;
         }
         if (agentCommandResponse.getResponseType() != null &&
                 (agentCommandResponse.getResponseType().equals(ResponseType.FAILED) ||
                         agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
             System.out.println("Returning exception");
-            return new AgentExceptionResponseComponent(
+            AgentExceptionResponseComponent comp = new AgentExceptionResponseComponent(
                     testCandidateMetadata, agentCommandResponse, insidiousService);
+            comp.setMethodHash(methodElement.getJVMSignature());
+            comp.setMethodName(methodElement.getName());
+            comp.setMethodHash(methodElement.getText().hashCode()+"");
+            comp.setClassname(methodElement.getContainingClass().getQualifiedName());
+            comp.setMethodSignature(methodElement.getJVMSignature());
+            return comp;
         } else {
             System.out.println("Returning Diff view");
             AgentResponseComponent component = new AgentResponseComponent(

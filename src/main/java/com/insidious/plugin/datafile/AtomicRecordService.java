@@ -73,7 +73,7 @@ public class AtomicRecordService {
                                 storedCandidate.setDescription(candidate.getDescription());
                                 storedCandidate.setAssertionType(candidate.getAssertionType());
                                 storedCandidate.setReturnValue(candidate.getReturnValue());
-                                storedCandidate.setReturnDataEventSerializedValue(candidate.getReturnDataEventSerializedValue());
+                                storedCandidate.setReturnDataEventSerializedValue(new String(candidate.getReturnDataEventSerializedValue()));
                                 storedCandidate.setReturnDataEventValue(candidate.getReturnDataEventValue());
                                 storedCandidate.setEntryProbeIndex(candidate.getEntryProbeIndex());
                                 storedCandidate.setBooleanType(candidate.isBooleanType());

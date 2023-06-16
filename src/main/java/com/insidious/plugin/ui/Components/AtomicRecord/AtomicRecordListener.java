@@ -6,7 +6,7 @@ public interface AtomicRecordListener {
 
     void triggerRecordAddition(String name, String description, StoredCandidate.AssertionType type);
 
-    void deleteCandidateRecord(String candidateID);
+    void deleteCandidateRecord();
 
     String getSaveLocation();
 }

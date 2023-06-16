@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
+import com.insidious.plugin.ui.Components.AtomicRecord.AtomicRecordListener;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.DateUtils;
 import com.insidious.plugin.util.ExceptionUtils;
@@ -22,7 +22,9 @@ import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class AgentExceptionResponseComponent implements Supplier<Component> {
+import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
+
+public class AgentExceptionResponseComponent implements Supplier<Component>, AtomicRecordListener {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     final private InsidiousService insidiousService;
     final private StoredCandidate metadata;
@@ -31,6 +33,10 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
     private JPanel contentPanel;
     private JPanel afterSection;
     private JPanel beforeSection;
+    private String methodHash;
+    private String methodName;
+    private String classname;
+    private String methodSignature;
 
     public AgentExceptionResponseComponent(
             StoredCandidate metadata,
@@ -50,7 +56,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
 
 
     public void setupDefLayout() {
-        final byte[] mainMethodReturnValue = metadata.getReturnDataEventSerializedValue();
+        final byte[] mainMethodReturnValue = metadata.getReturnDataEventSerializedValue().getBytes();
         final String originalString = new String(mainMethodReturnValue);
         final String actualString = String.valueOf(response.getMethodReturnValue());
         JPanel panel = new JPanel();
@@ -71,7 +77,8 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
             } else {
                 stacktrace = String.valueOf(actualString);
             }
-            options = new ExceptionPreviewComponent(responseMessage, stacktrace, insidiousService);
+            options = new ExceptionPreviewComponent(responseMessage, stacktrace, insidiousService,
+                    this,true,false);
             options.setBorderTitle("After");
             JPanel component = options.getComponent();
             afterSection.add(component, BorderLayout.CENTER);
@@ -92,8 +99,13 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
             } catch (IOException e) {
                 // failed to read return value as json node
             }
+            boolean showDelete = false;
+            if(metadata.getCandidateId()!=null)
+            {
+                showDelete = true;
+            }
             ExceptionPreviewComponent options = new ExceptionPreviewComponent(exceptionMessage,
-                    prettyException, insidiousService);
+                    prettyException, insidiousService,this,false,showDelete);
             options.setBorderTitle("Before");
             beforeSection.add(options.getComponent(), BorderLayout.CENTER);
         } else {
@@ -162,5 +174,74 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
         TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
         titledBorder.setTitle(info);
 //        this.infoLabel.setText(info);
+    }
+
+    public StoredCandidate getCurrentResponseAsStoredCandidate()
+    {
+        StoredCandidate candidate = new StoredCandidate();
+        candidate.setCandidateId(UUID.randomUUID().toString());
+        candidate.setMethodHash(methodHash);
+        candidate.setMethodArguments(metadata.getMethodArguments());
+        candidate.setException(response.getResponseType().equals(ResponseType.NORMAL) ?
+                false : true);
+        candidate.setReturnValue(response.getMethodReturnValue());
+        //to be updated
+        candidate.setProbSerializedValue(metadata.getProbSerializedValue());
+        //to be updated
+        candidate.setReturnDataEventValue(metadata.getReturnDataEventValue());
+        candidate.setReturnDataEventSerializedValue(new String(response.getMethodReturnValue().getBytes()));
+        candidate.setMethodName(metadata.getMethodName());
+        candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
+        candidate.setBooleanType(metadata.isBooleanType());
+        candidate.setException(response.getResponseType().equals(ResponseType.EXCEPTION) ? true : false);
+        candidate.setReturnValueClassname(response.getResponseClassName());
+
+        StoredCandidateMetadata metadata1 = new StoredCandidateMetadata();
+        metadata1.setCandidateStatus(null);
+        metadata1.setTimestamp(response.getTimestamp());
+        metadata1.setRecordedBy(HOSTNAME);
+        metadata1.setHostMachineName(HOSTNAME);
+        candidate.setMetadata(metadata1);
+        return candidate;
+    }
+
+    public void setMethodHash(String methodHash) {
+        this.methodHash = methodHash;
+    }
+
+    @Override
+    public void triggerRecordAddition(String name, String description, StoredCandidate.AssertionType type) {
+        StoredCandidate candidate = getCurrentResponseAsStoredCandidate();
+        candidate.setName(name);
+        candidate.setDescription(description);
+        candidate.setAssertionType(type);
+        System.out.println("CANDIDATE to SAVE : "+candidate.toString());
+        insidiousService.getAtomicRecordService().addStoredCandidate(classname,methodName,methodSignature,candidate);
+    }
+
+    @Override
+    public void deleteCandidateRecord() {
+        if(metadata.getCandidateId()!=null)
+        {
+            insidiousService.getAtomicRecordService().deleteStoredCandidate(classname,
+                    methodName+"#"+methodSignature, metadata.getCandidateId());
+        }
+    }
+
+    @Override
+    public String getSaveLocation() {
+        return insidiousService.getAtomicRecordService().getSaveLocation();
+    }
+
+    public void setMethodName(String name) {
+        this.methodName = name;
+    }
+
+    public void setClassname(String qualifiedName) {
+        this.classname = qualifiedName;
+    }
+
+    public void setMethodSignature(String jvmSignature) {
+        this.methodSignature = jvmSignature;
     }
 }

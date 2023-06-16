@@ -78,7 +78,7 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
         computeDifferences(differences);
 
 
-        byte[] serializedValue = metadata.getReturnDataEventSerializedValue();
+        byte[] serializedValue = metadata.getReturnDataEventSerializedValue().getBytes();
         String originalString = serializedValue.length > 0 ? new String(serializedValue) :
                 String.valueOf(metadata.getReturnDataEventValue());
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
@@ -194,7 +194,7 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
         candidate.setProbSerializedValue(metadata.getProbSerializedValue());
         //to be updated
         candidate.setReturnDataEventValue(metadata.getReturnDataEventValue());
-        candidate.setReturnDataEventSerializedValue(agentCommandResponse.getMethodReturnValue().getBytes());
+        candidate.setReturnDataEventSerializedValue(new String(agentCommandResponse.getMethodReturnValue().getBytes()));
         candidate.setMethodName(metadata.getMethodName());
         candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
         candidate.setBooleanType(metadata.isBooleanType());
@@ -345,8 +345,7 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
     }
 
     @Override
-    public void deleteCandidateRecord(String candidateID) {
-
+    public void deleteCandidateRecord() {
     }
 
     @Override

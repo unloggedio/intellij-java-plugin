@@ -18,7 +18,7 @@ public class StoredCandidate {
     public enum AssertionType {EQUAL, NOT_EQUAL}
     private AssertionType assertionType;
     private long entryProbeIndex;
-    private byte[] returnDataEventSerializedValue;
+    private String returnDataEventSerializedValue;
     private long returnDataEventValue;
     private String methodName;
     private byte[] probSerializedValue;
@@ -117,11 +117,11 @@ public class StoredCandidate {
         BooleanType = booleanType;
     }
 
-    public byte[] getReturnDataEventSerializedValue() {
+    public String getReturnDataEventSerializedValue() {
         return returnDataEventSerializedValue;
     }
 
-    public void setReturnDataEventSerializedValue(byte[] returnDataEventSerializedValue) {
+    public void setReturnDataEventSerializedValue(String returnDataEventSerializedValue) {
         this.returnDataEventSerializedValue = returnDataEventSerializedValue;
     }
 
@@ -164,7 +164,7 @@ public class StoredCandidate {
                 ", BooleanType=" + BooleanType +
                 ", assertionType=" + assertionType +
                 ", entryProbeIndex=" + entryProbeIndex +
-                ", returnDataEventSerializedValue=" + Arrays.toString(returnDataEventSerializedValue) +
+                ", returnDataEventSerializedValue=" + returnDataEventSerializedValue +
                 ", returnDataEventValue=" + returnDataEventValue +
                 ", methodName='" + methodName + '\'' +
                 ", probSerializedValue=" + Arrays.toString(probSerializedValue) +

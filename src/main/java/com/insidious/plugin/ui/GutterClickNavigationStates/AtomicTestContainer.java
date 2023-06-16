@@ -167,7 +167,8 @@ public class AtomicTestContainer {
             candidate.setMethodArguments(TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata));
             candidate.setReturnValueClassname(candidateMetadata.getMainMethod().getReturnValue().getType());
             candidate.setBooleanType(candidateMetadata.getMainMethod().getReturnValue().isBooleanType());
-            candidate.setReturnDataEventSerializedValue(candidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+            candidate.setReturnDataEventSerializedValue(new String(candidateMetadata.getMainMethod()
+                    .getReturnDataEvent().getSerializedValue()));
             candidate.setReturnDataEventValue(candidateMetadata.getMainMethod().getReturnDataEvent().getValue());
             candidate.setMethodName(candidateMetadata.getMainMethod().getMethodName());
             candidate.setProbSerializedValue(candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue());
