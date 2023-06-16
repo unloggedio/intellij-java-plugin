@@ -152,7 +152,28 @@ public class AtomicTestContainer {
         List<StoredCandidate> convertedCandidates = convertToStoredcandidates(testCandidateMetadataList);
         storedCandidates.addAll(convertedCandidates);
         return storedCandidates;
+    }
 
+    private List<StoredCandidate> filterStoredCandidates(List<StoredCandidate> candidates)
+    {
+        Map<Long,StoredCandidate> selectedCandidates = new TreeMap<>();
+        for(StoredCandidate candidate : candidates)
+        {
+            if(!selectedCandidates.containsKey(candidate.getEntryProbeIndex()))
+            {
+                selectedCandidates.put(candidate.getEntryProbeIndex(),candidate);
+            }
+            else
+            {
+                //saved candidate
+                if(candidate.getCandidateId()!=null)
+                {
+                    selectedCandidates.put(candidate.getEntryProbeIndex(),candidate);
+                }
+            }
+        }
+        List<StoredCandidate> candidatesFiltered = new ArrayList<>(selectedCandidates.values());
+        return candidatesFiltered;
     }
 
     private List<StoredCandidate> convertToStoredcandidates(List<TestCandidateMetadata> testCandidateMetadataList)

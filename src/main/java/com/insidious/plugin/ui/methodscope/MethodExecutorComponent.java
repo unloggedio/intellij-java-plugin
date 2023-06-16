@@ -190,8 +190,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                             }
                         });
             });
-
-
         });
 
     }
@@ -224,7 +222,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 //        this.candidateListScroller.removeAll();
         candidateComponentMap.clear();
         centerParent.removeAll();
-
         diffContentPanel.removeAll();
         diffContentPanel.revalidate();
         centerParent.revalidate();
@@ -289,10 +286,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
                         agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
                     });
-
         }
-
-
     }
 
     public String getExecutionStatusFromCandidates(long excludeKey)

@@ -51,20 +51,24 @@ public class AtomicRecordService {
             else
             {
                 //read as array of AtomicRecords
+                System.out.println("[ATRS] creating a new record");
                 boolean found=false;
                 for(AtomicRecord record : obj)
                 {
                     if(record.getMethod().equals(methodName+"#"+signature))
                     {
-                        found = true;
                         List<StoredCandidate> candidates = record.getStoredCandidateList();
                         for(StoredCandidate storedCandidate : candidates)
                         {
                             if (storedCandidate.getMethodArguments().equals(candidate.getMethodArguments()))
                             {
+                                found = true;
+                                System.out.println("[ATRS] Replace existing "+storedCandidate.getMethodArguments().toString());
+                                System.out.println("[ATRS] Replace new "+candidate.getMethodArguments().toString());
                                 //replace
                                 InsidiousNotification.notifyMessage("Replacing existing record", NotificationType.INFORMATION);
                                 logger.info("[ATRS] Replacing existing record");
+                                System.out.println("[ATRS] Replacing existing record");
                                 if(storedCandidate.getCandidateId()==null)
                                 {
                                     storedCandidate.setCandidateId(candidate.getCandidateId());
@@ -86,10 +90,12 @@ public class AtomicRecordService {
                 }
                 if(!found)
                 {
+                    System.out.println("[ATRS] Adding new record");
                     addNewRecord(methodName+"#"+signature,classname,candidate);
                 }
                 else
                 {
+                    System.out.println("[ATRS] Replacing existing record (found)");
                     writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
                             ,obj);
                 }
