@@ -99,6 +99,7 @@ public class AtomicTestContainer {
         final MethodAdapter m;
         if(method==null)
         {
+            logger.info("[ATW] Atomic window update call post ADD/DELETE");
             m = methodExecutorComponent.getCurrentMethod();
         }
         else
@@ -151,6 +152,8 @@ public class AtomicTestContainer {
         }
         List<StoredCandidate> convertedCandidates = convertToStoredcandidates(testCandidateMetadataList);
         storedCandidates.addAll(convertedCandidates);
+        storedCandidates = filterStoredCandidates(storedCandidates);
+        logger.info("[ATW] StoredCandidates after Filter : "+storedCandidates.toString());
         return storedCandidates;
     }
 

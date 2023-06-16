@@ -52,6 +52,7 @@ public class AtomicRecordService {
             {
                 //read as array of AtomicRecords
                 System.out.println("[ATRS] creating a new record");
+                logger.info("[ATRS] creating a new record");
                 boolean found=false;
                 for(AtomicRecord record : obj)
                 {
@@ -91,16 +92,19 @@ public class AtomicRecordService {
                 if(!found)
                 {
                     System.out.println("[ATRS] Adding new record");
+                    logger.info("[ATRS] Adding new record");
                     addNewRecord(methodName+"#"+signature,classname,candidate);
                 }
                 else
                 {
                     System.out.println("[ATRS] Replacing existing record (found)");
+                    logger.info("[ATRS] Replacing existing record (found)");
                     writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
                             ,obj);
                 }
             }
             UsageInsightTracker.getInstance().RecordEvent("Candidate_Added",null);
+            insidiousService.triggerAtomicTestsWindowRefresh();
         }
         catch (Exception e)
         {
@@ -135,7 +139,7 @@ public class AtomicRecordService {
         try (FileOutputStream resourceFile = new FileOutputStream(file)) {
             resourceFile.write(json.getBytes(StandardCharsets.UTF_8));
             logger.info("[ATRS] file write successful");
-//            InsidiousNotification.notifyMessage("Added record", NotificationType.INFORMATION);
+            InsidiousNotification.notifyMessage("Record updated.", NotificationType.INFORMATION);
             resourceFile.close();
         }
         catch (Exception e)
