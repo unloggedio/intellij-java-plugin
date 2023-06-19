@@ -31,4 +31,13 @@ public class AtomicRecord {
     public void setStoredCandidateList(List<StoredCandidate> storedCandidateList) {
         this.storedCandidateList = storedCandidateList;
     }
+
+    @Override
+    public String toString() {
+        return "AtomicRecord{" +
+                "classname='" + classname + '\'' +
+                ", method='" + method + '\'' +
+                ", storedCandidateList=" + storedCandidateList +
+                '}';
+    }
 }

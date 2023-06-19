@@ -1487,6 +1487,10 @@ final public class InsidiousService implements Disposable,
         atomicTestContainerWindow.triggerMethodExecutorRefresh(null);
     }
 
+    public void intiAtomicRecordService() {
+        this.atomicRecordService = new AtomicRecordService(this);
+    }
+
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
 
     public void toggleReportGeneration() {

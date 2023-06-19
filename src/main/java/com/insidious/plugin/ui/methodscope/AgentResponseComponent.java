@@ -162,6 +162,7 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
                     lastRef.dispose();
                 }
                 lastRef = new SaveForm(self);
+                lastRef.setStoredCandidate(metadata);
                 lastRef.setVisible(true);
             }
         });

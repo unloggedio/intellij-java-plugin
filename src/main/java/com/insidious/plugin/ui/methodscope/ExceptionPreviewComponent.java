@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.Components.AtomicRecord.AtomicRecordListener;
 import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
 import com.insidious.plugin.util.UIUtils;
@@ -28,12 +29,15 @@ public class ExceptionPreviewComponent {
     private JPanel topAligner;
     private JButton deleteButton;
     private SaveForm saveForm;
+    private StoredCandidate candidate;
     public ExceptionPreviewComponent(String message, String stacktrace, InsidiousService insidiousService,
-                                     AtomicRecordListener listener, boolean showSave, boolean showDelete) {
+                                     AtomicRecordListener listener, boolean showSave, boolean showDelete,
+                                     StoredCandidate candidate) {
         this.message = message;
         this.stackTrace = stacktrace;
         this.service = insidiousService;
-
+        this.candidate=candidate;
+        
         this.exceptionArea.setText(message);
         if(!showSave)
         {
@@ -57,6 +61,7 @@ public class ExceptionPreviewComponent {
                     saveForm.dispose();
                 }
                 saveForm = new SaveForm(listener);
+                saveForm.setStoredCandidate(candidate);
                 saveForm.setVisible(true);
             }
         });

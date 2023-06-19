@@ -50,7 +50,6 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
         } else {
             insidiousService.focusAtomicTestsWindow();
         }
-
     }
 
     private void recordAnalyticEvent()

@@ -93,6 +93,8 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
             });
         }
         this.isAgentServerRunning = true;
+        //reset atomicRecordMap
+        insidiousService.intiAtomicRecordService();
 
         InsidiousNotification.notifyMessage("New session identified tracking package [" + finalIncludedPackageName
                         + "] connected, agent version: " + serverMetadata.getAgentVersion(),
@@ -121,7 +123,6 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
                 insidiousService.promoteState(GutterState.NO_AGENT);
             }
         });
-
     }
 
     @Override

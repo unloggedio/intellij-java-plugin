@@ -29,9 +29,11 @@ public class AtomicRecordService {
         this.insidiousService = service;
     }
     private static final Logger logger = LoggerUtil.getInstance(AtomicRecordService.class);
+    private enum FileUpdateType {ADD,UPDATE,DELETE}
 
     public void addStoredCandidate(String classname,String methodName, String signature, StoredCandidate candidate)
     {
+//        System.out.println("#ADD RECORD");
         if(basePath==null) {
             setProjectBasePath();
         }
@@ -52,7 +54,7 @@ public class AtomicRecordService {
             else
             {
                 //read as array of AtomicRecords
-                System.out.println("[ATRS] creating a new record");
+//                System.out.println("[ATRS] creating a new record");
                 logger.info("[ATRS] creating a new record");
                 boolean found=false;
                 for(AtomicRecord record : obj)
@@ -65,17 +67,17 @@ public class AtomicRecordService {
                         {
                             if(storedCandidate.getCandidateId()==null)
                             {
-                                System.out.println("[NO ID CASE] CANDIDATE : "+storedCandidate.toString());
+//                                System.out.println("[NO ID CASE] CANDIDATE : "+storedCandidate.toString());
                             }
                             if (storedCandidate.getMethodArguments().equals(candidate.getMethodArguments()))
                             {
                                 found = true;
-                                System.out.println("[ATRS] Replace existing "+storedCandidate.getMethodArguments().toString());
-                                System.out.println("[ATRS] Replace new "+candidate.getMethodArguments().toString());
+//                                System.out.println("[ATRS] Replace existing "+storedCandidate.getMethodArguments().toString());
+//                                System.out.println("[ATRS] Replace new "+candidate.getMethodArguments().toString());
                                 //replace
                                 InsidiousNotification.notifyMessage("Replacing existing record", NotificationType.INFORMATION);
                                 logger.info("[ATRS] Replacing existing record");
-                                System.out.println("[ATRS] Replacing existing record");
+//                                System.out.println("[ATRS] Replacing existing record");
                                 if(storedCandidate.getCandidateId()==null)
                                 {
                                     System.out.println("No ID Case");
@@ -98,7 +100,7 @@ public class AtomicRecordService {
                 }
                 if(!found)
                 {
-                    System.out.println("[ATRS] Adding new record");
+//                    System.out.println("[ATRS] Adding new record");
                     logger.info("[ATRS] Adding new record");
                     if(existingRecord!=null) {
                         existingRecord.setStoredCandidateList(filterCandidates(existingRecord.getStoredCandidateList()));
@@ -107,11 +109,11 @@ public class AtomicRecordService {
                 }
                 else
                 {
-                    System.out.println("[ATRS] Replacing existing record (found)");
+//                    System.out.println("[ATRS] Replacing existing record (found)");
                     logger.info("[ATRS] Replacing existing record (found)");
                     existingRecord.setStoredCandidateList(filterCandidates(existingRecord.getStoredCandidateList()));
                     writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
-                            ,obj);
+                            ,obj,FileUpdateType.UPDATE);
                 }
             }
             UsageInsightTracker.getInstance().RecordEvent("Candidate_Added",null);
@@ -167,29 +169,31 @@ public class AtomicRecordService {
         }
         records.add(record);
         writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
-                ,records);
+                ,records,FileUpdateType.ADD);
     }
 
-    private void writeToFile(File file, List<AtomicRecord> atomicRecords)
+    private void writeToFile(File file, List<AtomicRecord> atomicRecords, FileUpdateType type)
     {
         logger.info("[ATRS] writing to file : "+file.getName());
         String json = gson.toJson(atomicRecords);
         try (FileOutputStream resourceFile = new FileOutputStream(file)) {
             resourceFile.write(json.getBytes(StandardCharsets.UTF_8));
             logger.info("[ATRS] file write successful");
-            InsidiousNotification.notifyMessage("Record updated.", NotificationType.INFORMATION);
+            InsidiousNotification.notifyMessage("Completed Operation :  "+type.toString(), NotificationType.INFORMATION);
             resourceFile.close();
         }
         catch (Exception e)
         {
             logger.info("[ATRS] Failed to write to file : "+e);
             e.printStackTrace();
+            InsidiousNotification.notifyMessage("Exception in : "+type.toString(), NotificationType.ERROR);
         }
     }
 
     //called once in start, when map is null, updated after that.
     public void updateMap()
     {
+//        System.out.println("#UPDATE MAP");
         if(basePath==null)
         {
             basePath = insidiousService.getProject().getBasePath();
@@ -212,6 +216,7 @@ public class AtomicRecordService {
                 this.storedRecords.put(classname,records);
             }
         }
+//        System.out.println("#POST UPDATE : "+storedRecords.toString());
     }
 
     public Boolean hasStoredCandidateForMethod(String classname, String method)
@@ -221,7 +226,7 @@ public class AtomicRecordService {
             updateMap();
         }
         ensureUnloggedFolder();
-
+//        System.out.println("#ICON FETCH : "+storedRecords.toString());
         List<AtomicRecord> records = this.storedRecords.get(classname);
         if(records==null)
         {
@@ -299,10 +304,12 @@ public class AtomicRecordService {
     }
 
     public List<StoredCandidate> getStoredCandidatesForMethod(String classname, String method) {
+
         if(this.storedRecords==null)
         {
             updateMap();
         }
+//        System.out.println("#FETCH STORED CANDIDATES : "+storedRecords.toString());
         List<AtomicRecord> records = this.storedRecords.get(classname);
         if(records == null)
         {
@@ -351,7 +358,7 @@ public class AtomicRecordService {
         if(list!=null && candidateToRemove!=null) {
             list.remove(candidateToRemove);
         }
-        writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json"),records);
+        writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json"),records,FileUpdateType.DELETE);
         UsageInsightTracker.getInstance().RecordEvent("Candidate_Deleted",null);
         insidiousService.triggerGutterIconReload();
         insidiousService.triggerAtomicTestsWindowRefresh();

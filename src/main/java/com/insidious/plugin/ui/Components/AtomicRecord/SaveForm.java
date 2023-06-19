@@ -4,6 +4,7 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.util.NlsContexts;
 import com.intellij.ui.components.JBScrollPane;
 
 import javax.swing.*;
@@ -25,6 +26,10 @@ public class SaveForm extends JFrame {
     private JLabel assertionLabel;
     private ButtonGroup radioGroup = new ButtonGroup();
     private String selectedType = "Assert Equals";
+    private StoredCandidate storedCandidate;
+    private JRadioButton b1;
+    private JRadioButton b2;
+
     public SaveForm(AtomicRecordListener listener)
     {
         this.listener = listener;
@@ -56,7 +61,9 @@ public class SaveForm extends JFrame {
             @Override
             public void focusGained(FocusEvent e) {
                 nameField.setForeground(UIManager.getColor("TextArea.foreground"));
-                nameField.setText("");
+                if(nameField.getText().equals("Optional")) {
+                    nameField.setText("");
+                }
             }
 
             @Override
@@ -84,7 +91,9 @@ public class SaveForm extends JFrame {
             @Override
             public void focusGained(FocusEvent e) {
                 description.setForeground(UIManager.getColor("TextArea.foreground"));
-                description.setText("");
+                if(description.getText().equals("Optional")) {
+                    description.setText("");
+                }
             }
 
             @Override
@@ -110,14 +119,14 @@ public class SaveForm extends JFrame {
         assertionLabel.setLocation(50, 325);
         c.add(assertionLabel);
 
-        JRadioButton b1 = new JRadioButton("Assert Equals");
+        b1 = new JRadioButton("Assert Equals");
         b1.setActionCommand("Assert Equals");
         b1.setSize(150,30);
         b1.setLocation(150,325);
         c.add(b1);
         radioGroup.add(b1);
 
-        JRadioButton b2 = new JRadioButton("Assert Not Equals");
+        b2 = new JRadioButton("Assert Not Equals");
         b2.setActionCommand("Assert Not Equals");
         b2.setSize(150,30);
         b2.setLocation(300,325);
@@ -127,20 +136,20 @@ public class SaveForm extends JFrame {
         b1.setSelected(true);
 
         JLabel infoLabel = new JLabel("Case will be saved here : ");
-        infoLabel.setFont(new Font("Verdana", Font.PLAIN, 8));
-        infoLabel.setSize(400, 10);
-        infoLabel.setLocation(50, 355);
+        infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
+        infoLabel.setSize(400, 12);
+        infoLabel.setLocation(50, 360);
         c.add(infoLabel);
 
-        infoLabel = new JLabel(listener.getSaveLocation());
-        infoLabel.setFont(new Font("Verdana", Font.PLAIN, 8));
-        infoLabel.setSize(400, 10);
-        infoLabel.setLocation(50, 365);
+        infoLabel = new JLabel(formatLocation(listener.getSaveLocation()));
+        infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
+        infoLabel.setSize(400, 15);
+        infoLabel.setLocation(50, 375);
         c.add(infoLabel);
 
         saveButton = new JButton("Save and Close");
         saveButton.setSize(150, 30);
-        saveButton.setLocation(305, 385);
+        saveButton.setLocation(305, 410);
         saveButton.setIcon(UIUtils.SAVE_CANDIDATE_GREY);
         saveButton.addMouseListener(new MouseAdapter() {
         @Override
@@ -152,7 +161,7 @@ public class SaveForm extends JFrame {
 
         cancelButton = new JButton("Cancel");
         cancelButton.setSize(100, 30);
-        cancelButton.setLocation(200, 385);
+        cancelButton.setLocation(200, 410);
         cancelButton.addMouseListener(new MouseAdapter() {
         @Override
         public void mouseClicked(MouseEvent e) {
@@ -185,6 +194,66 @@ public class SaveForm extends JFrame {
         else
         {
             return source.trim();
+        }
+    }
+
+    public void setStoredCandidate(StoredCandidate storedCandidate)
+    {
+        this.storedCandidate = storedCandidate;
+        setInfo();
+    }
+
+    private void setInfo()
+    {
+        boolean updated=false;
+        if(this.storedCandidate!=null)
+        {
+            String name = storedCandidate.getName();
+            String description = storedCandidate.getDescription();
+            StoredCandidate.AssertionType assertionType = storedCandidate.getAssertionType();
+
+            if(name!=null)
+            {
+                this.nameField.setText(name);
+                updated = true;
+            }
+            if(description!=null)
+            {
+                this.description.setText(description);
+                updated = true;
+            }
+            if(assertionType!=null)
+            {
+                switch (assertionType)
+                {
+                    case EQUAL:
+                        b1.setSelected(true);
+                        updated=true;
+                        break;
+                    default:
+                        b2.setSelected(true);
+                        updated = true;
+                }
+            }
+            if(updated)
+            {
+                saveButton.setText("Update");
+            }
+        }
+    }
+
+    private String formatLocation(String location)
+    {
+        if(location.length()<=59)
+        {
+            return location;
+        }
+        else
+        {
+            String left = location.substring(0,47);
+            left = left.substring(0,left.lastIndexOf("/")+1);
+            left+=".../.unlogged/";
+            return left;
         }
     }
 }
