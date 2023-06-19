@@ -831,8 +831,9 @@ final public class InsidiousService implements Disposable,
         }
 
         //methodExecutorToolWindow.refreshAndReloadCandidates(method);
-        atomicTestContainerWindow.triggerMethodExecutorRefresh(method);
         methodDirectInvokeComponent.renderForMethod(method);
+        atomicTestContainerWindow.triggerMethodExecutorRefresh(method);
+//        methodDirectInvokeComponent.renderForMethod(method);
         testCaseDesignerWindow.renderTestDesignerInterface(method);
     }
 

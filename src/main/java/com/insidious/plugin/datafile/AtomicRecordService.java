@@ -37,6 +37,7 @@ public class AtomicRecordService {
         }
         ensureUnloggedFolder();
         try {
+            AtomicRecord existingRecord = null;
             if(this.storedRecords == null)
             {
                 updateMap();
@@ -58,9 +59,14 @@ public class AtomicRecordService {
                 {
                     if(record.getMethod().equals(methodName+"#"+signature))
                     {
+                        existingRecord = record;
                         List<StoredCandidate> candidates = record.getStoredCandidateList();
                         for(StoredCandidate storedCandidate : candidates)
                         {
+                            if(storedCandidate.getCandidateId()==null)
+                            {
+                                System.out.println("[NO ID CASE] CANDIDATE : "+storedCandidate.toString());
+                            }
                             if (storedCandidate.getMethodArguments().equals(candidate.getMethodArguments()))
                             {
                                 found = true;
@@ -72,8 +78,9 @@ public class AtomicRecordService {
                                 System.out.println("[ATRS] Replacing existing record");
                                 if(storedCandidate.getCandidateId()==null)
                                 {
-                                    storedCandidate.setCandidateId(candidate.getCandidateId());
+                                    System.out.println("No ID Case");
                                 }
+                                storedCandidate.setCandidateId(candidate.getCandidateId());
                                 storedCandidate.setName(candidate.getName());
                                 storedCandidate.setDescription(candidate.getDescription());
                                 storedCandidate.setAssertionType(candidate.getAssertionType());
@@ -93,12 +100,16 @@ public class AtomicRecordService {
                 {
                     System.out.println("[ATRS] Adding new record");
                     logger.info("[ATRS] Adding new record");
+                    if(existingRecord!=null) {
+                        existingRecord.setStoredCandidateList(filterCandidates(existingRecord.getStoredCandidateList()));
+                    }
                     addNewRecord(methodName+"#"+signature,classname,candidate);
                 }
                 else
                 {
                     System.out.println("[ATRS] Replacing existing record (found)");
                     logger.info("[ATRS] Replacing existing record (found)");
+                    existingRecord.setStoredCandidateList(filterCandidates(existingRecord.getStoredCandidateList()));
                     writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
                             ,obj);
                 }
@@ -111,6 +122,33 @@ public class AtomicRecordService {
             System.out.println("Exception  : "+e);
             e.printStackTrace();
         }
+    }
+
+    private List<StoredCandidate> filterCandidates(List<StoredCandidate> candidates)
+    {
+        if(candidates==null || candidates.size()==0)
+        {
+            return null;
+        }
+        Map<Integer,StoredCandidate> storedCandidateMap = new TreeMap<>();
+        for(StoredCandidate candidate : candidates)
+        {
+            if(candidate.getName()!=null)
+            {
+                int hash = candidate.getMethodArguments().hashCode()+(candidate.getMethodName().hashCode());
+                if(storedCandidateMap.containsKey(hash))
+                {
+                    if(storedCandidateMap.get(hash).getMetadata().getTimestamp()<candidate.getMetadata().getTimestamp())
+                    {
+                        storedCandidateMap.put(hash,candidate);
+                    }
+                }
+                else {
+                    storedCandidateMap.put(hash, candidate);
+                }
+            }
+        }
+        return new ArrayList<>(storedCandidateMap.values());
     }
 
     private void addNewRecord(String method, String classname, StoredCandidate candidate)

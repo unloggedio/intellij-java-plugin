@@ -154,6 +154,7 @@ public class AtomicTestContainer {
         storedCandidates.addAll(convertedCandidates);
         storedCandidates = filterStoredCandidates(storedCandidates);
         logger.info("[ATW] StoredCandidates after Filter : "+storedCandidates.toString());
+        System.out.println("[ATW] StoredCandidates after Filter : "+storedCandidates.toString());
         return storedCandidates;
     }
 
