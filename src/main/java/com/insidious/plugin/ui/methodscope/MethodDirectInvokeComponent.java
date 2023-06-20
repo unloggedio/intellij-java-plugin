@@ -323,11 +323,17 @@ public class MethodDirectInvokeComponent {
 
         methodParameterScrollContainer.setMinimumSize(new Dimension(-1, Math.min(methodParameters.length * 150, 150)));
         methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
-
+        clearOutputSection();
         mainContainer.revalidate();
         mainContainer.repaint();
     }
 
+    private void clearOutputSection()
+    {
+        TitledBorder panelTitledBoarder = (TitledBorder) scrollerContainer.getBorder();
+        panelTitledBoarder.setTitle("Method Response");
+        returnValueTextArea.setText("");
+    }
     private boolean isBoxedPrimitive(String typeCanonicalName) {
         return typeCanonicalName.equals("java.lang.String")
                 || typeCanonicalName.equals("java.lang.Integer")

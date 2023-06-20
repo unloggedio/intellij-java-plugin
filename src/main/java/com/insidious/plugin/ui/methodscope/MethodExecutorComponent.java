@@ -184,8 +184,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                             componentCounter++;
                             if (componentCounter == callCount) {
                                 insidiousService.updateMethodHashForExecutedMethod(methodElement);
-                                DaemonCodeAnalyzer.getInstance(insidiousService.getProject())
-                                        .restart(methodElement.getContainingFile());
+                                insidiousService.triggerGutterIconReload();
                                 ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
                             }
                         });
@@ -280,9 +279,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
                         agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
 
-                        DaemonCodeAnalyzer
-                                .getInstance(insidiousService.getProject())
-                                .restart(methodElement.getContainingFile());
+                        insidiousService.triggerGutterIconReload();
 
                         agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
                     });

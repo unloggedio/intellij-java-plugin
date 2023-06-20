@@ -1307,9 +1307,7 @@ final public class InsidiousService implements Disposable,
             return;
         }
         DifferenceResult existing = executionRecord.get(keyName);
-        if (existing.getDiffResultType() == DiffResultType.SAME) {
-            executionRecord.put(keyName, newDiffRecord);
-        }
+        executionRecord.put(keyName,newDiffRecord);
         addExecutionRecord(newDiffRecord);
     }
 

@@ -87,6 +87,7 @@ public class DifferenceResult {
         return "DifferenceResult{" +
                 "differenceInstanceList=" + differenceInstanceList +
                 ", diffResultType=" + diffResultType +
+                ", gutterStatus='" + gutterStatus + '\'' +
                 ", leftOnly=" + leftOnly +
                 ", rightOnly=" + rightOnly +
                 ", methodAdapter=" + methodAdapter +

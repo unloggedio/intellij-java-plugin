@@ -79,6 +79,7 @@ public class TestCandidateListedItemComponent {
                                 insidiousService.updateMethodHashForExecutedMethod(method);
                                 setAndDisplayResponse(agentCommandResponse, diffResult);
                                 candidateSelectedListener.onCandidateSelected(candidateMetadata);
+                                insidiousService.triggerGutterIconReload();
                             }
                     );
                 });
