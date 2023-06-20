@@ -4,10 +4,12 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
@@ -30,6 +32,66 @@ public class AtomicRecordService {
         this.insidiousService = service;
     }
     private static final Logger logger = LoggerUtil.getInstance(AtomicRecordService.class);
+
+    public GutterState computeGutterState(String classname, String method) {
+        if(this.storedRecords==null)
+        {
+            updateMap();
+        }
+        ensureUnloggedFolder();
+//        System.out.println("#STATE FETCH : "+storedRecords.toString());
+        List<AtomicRecord> records = this.storedRecords.get(classname);
+        if(records==null)
+        {
+            return null;
+        }
+        List<StoredCandidate> candidates = new ArrayList<>();
+        for(AtomicRecord record : records)
+        {
+            if(record.getMethod().equals(method))
+            {
+                if(record.getStoredCandidateList()!=null && record.getStoredCandidateList().size()>0)
+                {
+                    candidates.addAll(record.getStoredCandidateList());
+                }
+            }
+        }
+        if(records.size()==0)
+        {
+            return null;
+        }
+        else
+        {
+            StoredCandidateMetadata.CandidateStatus status = null;
+            for(StoredCandidate candidate : candidates)
+            {
+                if(status==null) {
+                    status = candidate.getMetadata().getCandidateStatus();
+                }
+                else
+                {
+                    if(candidate.getMetadata().getCandidateStatus()
+                            .equals(StoredCandidateMetadata.CandidateStatus.FAILING))
+                    {
+                        status = StoredCandidateMetadata.CandidateStatus.FAILING;
+                    }
+                }
+            }
+            if(status.equals(StoredCandidateMetadata.CandidateStatus.FAILING))
+            {
+                return GutterState.DIFF;
+            }
+            else if(status.equals(StoredCandidateMetadata.CandidateStatus.PASSING))
+            {
+                return GutterState.NO_DIFF;
+            }
+            else
+            {
+                return GutterState.DATA_AVAILABLE;
+            }
+        }
+    }
+
     private enum FileUpdateType {ADD,UPDATE,DELETE}
 
     public void addStoredCandidate(String classname,String methodName, String signature, StoredCandidate candidate)

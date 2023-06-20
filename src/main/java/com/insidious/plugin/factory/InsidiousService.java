@@ -1083,6 +1083,9 @@ final public class InsidiousService implements Disposable,
         boolean hasStoredCandidates = atomicRecordService.hasStoredCandidateForMethod(method.getContainingClass().getQualifiedName(),
                 method.getName()+"#"+method.getJVMSignature());
 
+        GutterState gutterState = atomicRecordService.computeGutterState(method.getContainingClass().getQualifiedName(),
+                method.getName()+"#"+method.getJVMSignature());
+
         // process is running, but no test candidates for this method
         if (candidates.size() == 0 && hasStoredCandidates==false) {
             return GutterState.PROCESS_RUNNING;
@@ -1113,8 +1116,21 @@ final public class InsidiousService implements Disposable,
         }
 
         if (!executionRecord.containsKey(hashKey) ||
-                (hasStoredCandidates && !executionRecord.containsKey(hashKey))) {
-            return GutterState.DATA_AVAILABLE;
+                (hasStoredCandidates)) {
+            if(!executionRecord.containsKey(hashKey) &&
+                    gutterState.equals(GutterState.DATA_AVAILABLE)) {
+                return GutterState.DATA_AVAILABLE;
+            }
+            if(!executionRecord.containsKey(hashKey) &&
+                    gutterState.equals(GutterState.NO_DIFF))
+            {
+                return GutterState.NO_DIFF;
+            }
+            if(!executionRecord.containsKey(hashKey) &&
+                    gutterState.equals(GutterState.DIFF))
+            {
+                return GutterState.DIFF;
+            }
         }
 
         DifferenceResult differenceResult = executionRecord.get(hashKey);

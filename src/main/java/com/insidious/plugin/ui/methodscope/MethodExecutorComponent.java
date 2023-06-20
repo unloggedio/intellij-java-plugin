@@ -12,6 +12,7 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
@@ -271,6 +272,14 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
                         insidiousService.addDiffRecord(methodElement, diffResult);
 
+                        StoredCandidateMetadata meta = testCandidate.getMetadata();
+                        if(meta==null)
+                        {
+                            meta = new StoredCandidateMetadata();
+                        }
+                        meta.setTimestamp(agentCommandResponse.getTimestamp());
+                        meta.setCandidateStatus(getStatusForState(diffResult.getDiffResultType()));
+
                         //possible bug vector, equal case check
                         TestCandidateListedItemComponent candidateComponent =
                                 candidateComponentMap.get(testCandidate.getEntryProbeIndex());
@@ -283,6 +292,18 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
                         agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
                     });
+        }
+    }
+
+    private StoredCandidateMetadata.CandidateStatus getStatusForState(DiffResultType type)
+    {
+        switch (type)
+        {
+            case SAME:
+            case NO_ORIGINAL:
+                return StoredCandidateMetadata.CandidateStatus.PASSING;
+            default:
+                return StoredCandidateMetadata.CandidateStatus.FAILING;
         }
     }
 

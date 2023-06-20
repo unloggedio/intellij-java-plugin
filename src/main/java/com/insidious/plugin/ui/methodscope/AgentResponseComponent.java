@@ -200,12 +200,21 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
         candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
         candidate.setBooleanType(metadata.isBooleanType());
 
-        StoredCandidateMetadata metadata1 = new StoredCandidateMetadata();
-        metadata1.setCandidateStatus(null);
-        metadata1.setTimestamp(agentCommandResponse.getTimestamp());
-        metadata1.setRecordedBy(HOSTNAME);
-        metadata1.setHostMachineName(HOSTNAME);
-        candidate.setMetadata(metadata1);
+
+        if(metadata.getMetadata()!=null)
+        {
+            candidate.setMetadata(metadata.getMetadata());
+            candidate.getMetadata().setHostMachineName(HOSTNAME);
+            candidate.getMetadata().setRecordedBy(HOSTNAME);
+        }
+        else {
+            StoredCandidateMetadata metadata1 = new StoredCandidateMetadata();
+            metadata1.setCandidateStatus(null);
+            metadata1.setTimestamp(agentCommandResponse.getTimestamp());
+            metadata1.setRecordedBy(HOSTNAME);
+            metadata1.setHostMachineName(HOSTNAME);
+            candidate.setMetadata(metadata1);
+        }
         return candidate;
     }
 

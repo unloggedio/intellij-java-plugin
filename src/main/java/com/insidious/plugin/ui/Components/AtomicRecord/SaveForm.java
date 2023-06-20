@@ -1,10 +1,7 @@
 package com.insidious.plugin.ui.Components.AtomicRecord;
 
-import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.UIUtils;
-import com.intellij.notification.NotificationType;
-import com.intellij.openapi.util.NlsContexts;
 import com.intellij.ui.components.JBScrollPane;
 
 import javax.swing.*;
