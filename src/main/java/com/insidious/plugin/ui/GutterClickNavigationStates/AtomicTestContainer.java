@@ -146,7 +146,10 @@ public class AtomicTestContainer {
                                                      String classname, String method)
     {
         List<StoredCandidate> storedCandidates = new ArrayList<>();
-        storedCandidates.addAll(insidiousService.getAtomicRecordService().getStoredCandidatesForMethod(classname, method));
+        List<StoredCandidate> candidates = insidiousService.getAtomicRecordService().getStoredCandidatesForMethod(classname, method);
+        if(candidates!=null) {
+            storedCandidates.addAll(candidates);
+        }
         if(storedCandidates == null)
         {
             storedCandidates = new ArrayList<>();
@@ -155,7 +158,7 @@ public class AtomicTestContainer {
         storedCandidates.addAll(convertedCandidates);
         storedCandidates = filterStoredCandidates(storedCandidates);
         logger.info("[ATW] StoredCandidates after Filter : "+storedCandidates.toString());
-//        System.out.println("[ATW] StoredCandidates after Filter : "+storedCandidates.toString());
+        System.out.println("[ATW] StoredCandidates after Filter : "+storedCandidates.toString());
         return storedCandidates;
     }
 

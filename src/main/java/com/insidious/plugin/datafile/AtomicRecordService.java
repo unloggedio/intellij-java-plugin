@@ -2,6 +2,7 @@ package com.insidious.plugin.datafile;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -22,8 +23,8 @@ public class AtomicRecordService {
     InsidiousService insidiousService;
     private String basePath;
     private final String unloggedFolderName = ".unlogged";
-    private Gson gson = new Gson();
-    private Map<String,List<AtomicRecord>> storedRecords;
+    private Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private Map<String,List<AtomicRecord>> storedRecords=null;
     public AtomicRecordService(InsidiousService service)
     {
         this.insidiousService = service;
@@ -33,7 +34,7 @@ public class AtomicRecordService {
 
     public void addStoredCandidate(String classname,String methodName, String signature, StoredCandidate candidate)
     {
-//        System.out.println("#ADD RECORD");
+        System.out.println("#ADD RECORD");
         if(basePath==null) {
             setProjectBasePath();
         }
@@ -49,18 +50,21 @@ public class AtomicRecordService {
             {
                 //create record
                 logger.info("[ATRS] creating a new record");
+                System.out.println("[ATRS] creating a new record");
                 addNewRecord(methodName+"#"+signature,classname,candidate);
             }
             else
             {
                 //read as array of AtomicRecords
-//                System.out.println("[ATRS] creating a new record");
+                System.out.println("[ATRS] creating a new record");
                 logger.info("[ATRS] creating a new record");
-                boolean found=false;
+                boolean foundMethod=false;
+                boolean foundCandidate=false;
                 for(AtomicRecord record : obj)
                 {
                     if(record.getMethod().equals(methodName+"#"+signature))
                     {
+                        foundMethod = true;
                         existingRecord = record;
                         List<StoredCandidate> candidates = record.getStoredCandidateList();
                         for(StoredCandidate storedCandidate : candidates)
@@ -71,9 +75,9 @@ public class AtomicRecordService {
                             }
                             if (storedCandidate.getMethodArguments().equals(candidate.getMethodArguments()))
                             {
-                                found = true;
-//                                System.out.println("[ATRS] Replace existing "+storedCandidate.getMethodArguments().toString());
-//                                System.out.println("[ATRS] Replace new "+candidate.getMethodArguments().toString());
+                                foundCandidate = true;
+                                System.out.println("[ATRS] Replace existing "+storedCandidate.getMethodArguments().toString());
+                                System.out.println("[ATRS] Replace new "+candidate.getMethodArguments().toString());
                                 //replace
                                 InsidiousNotification.notifyMessage("Replacing existing record", NotificationType.INFORMATION);
                                 logger.info("[ATRS] Replacing existing record");
@@ -98,18 +102,30 @@ public class AtomicRecordService {
                         }
                     }
                 }
-                if(!found)
+                if(!foundMethod)
                 {
-//                    System.out.println("[ATRS] Adding new record");
+                    System.out.println("[ATRS] Adding new record");
                     logger.info("[ATRS] Adding new record");
                     if(existingRecord!=null) {
                         existingRecord.setStoredCandidateList(filterCandidates(existingRecord.getStoredCandidateList()));
                     }
                     addNewRecord(methodName+"#"+signature,classname,candidate);
                 }
+                else if(foundMethod && !foundCandidate)
+                {
+                    //add to stored candidates
+                    System.out.println("[ATRS] Adding Candidate");
+                    logger.info("[ATRS] Adding Candidate");
+                    if(existingRecord!=null) {
+                        existingRecord.getStoredCandidateList().add(candidate);
+                        existingRecord.setStoredCandidateList(filterCandidates(existingRecord.getStoredCandidateList()));
+                    }
+                    writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
+                            ,obj,FileUpdateType.UPDATE);
+                }
                 else
                 {
-//                    System.out.println("[ATRS] Replacing existing record (found)");
+                    System.out.println("[ATRS] Replacing existing record (found)");
                     logger.info("[ATRS] Replacing existing record (found)");
                     existingRecord.setStoredCandidateList(filterCandidates(existingRecord.getStoredCandidateList()));
                     writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
@@ -168,6 +184,7 @@ public class AtomicRecordService {
             records = new ArrayList<>();
         }
         records.add(record);
+        this.storedRecords.put(classname,records);
         writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
                 ,records,FileUpdateType.ADD);
     }
@@ -193,7 +210,7 @@ public class AtomicRecordService {
     //called once in start, when map is null, updated after that.
     public void updateMap()
     {
-//        System.out.println("#UPDATE MAP");
+        System.out.println("#UPDATE MAP");
         if(basePath==null)
         {
             basePath = insidiousService.getProject().getBasePath();
@@ -216,7 +233,7 @@ public class AtomicRecordService {
                 this.storedRecords.put(classname,records);
             }
         }
-//        System.out.println("#POST UPDATE : "+storedRecords.toString());
+        System.out.println("#POST UPDATE : "+storedRecords.toString());
     }
 
     public Boolean hasStoredCandidateForMethod(String classname, String method)
@@ -236,7 +253,7 @@ public class AtomicRecordService {
         {
             if(record.getMethod().equals(method))
             {
-                if(record.getStoredCandidateList().size()>0)
+                if(record.getStoredCandidateList()!=null && record.getStoredCandidateList().size()>0)
                 {
                     return true;
                 }
