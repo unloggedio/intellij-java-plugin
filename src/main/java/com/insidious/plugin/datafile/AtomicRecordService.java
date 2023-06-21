@@ -115,10 +115,6 @@ public class AtomicRecordService {
     {
         try {
             AtomicRecord existingRecord = null;
-            if(this.storedRecords == null)
-            {
-                updateMap();
-            }
             List<AtomicRecord> obj = this.storedRecords.get(classname);
             if(obj == null)
             {
@@ -267,14 +263,14 @@ public class AtomicRecordService {
     }
 
     //called once in start, when map is null, updated after that.
-    public void updateMap()
+    public Map<String,List<AtomicRecord>> updateMap()
     {
-        this.storedRecords = new TreeMap<>();
+        Map<String,List<AtomicRecord>> recordsMap = new TreeMap<>();
         File[] files = getFilesInUnloggedFolder();
         if (files==null || files.length==0)
         {
 
-            return;
+            return new TreeMap<>();
         }
         for(int i=0;i< files.length;i++)
         {
@@ -282,9 +278,10 @@ public class AtomicRecordService {
             if(records!=null && records.size()>0)
             {
                 String classname = records.get(0).getClassname();
-                this.storedRecords.put(classname,records);
+                recordsMap.put(classname,records);
             }
         }
+        return recordsMap;
     }
 
     private File[] getFilesInUnloggedFolder()
@@ -454,7 +451,7 @@ public class AtomicRecordService {
         basePath = insidiousService.getProject().getBasePath();
         if(this.storedRecords==null)
         {
-            updateMap();
+            this.storedRecords = updateMap();
         }
     }
 }
