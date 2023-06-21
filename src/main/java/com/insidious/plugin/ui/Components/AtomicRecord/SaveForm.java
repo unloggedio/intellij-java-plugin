@@ -148,22 +148,23 @@ public class SaveForm extends JFrame {
         saveButton.setSize(150, 30);
         saveButton.setLocation(305, 410-30);
         saveButton.setIcon(UIUtils.SAVE_CANDIDATE_GREY);
-        saveButton.addMouseListener(new MouseAdapter() {
-        @Override
-        public void mouseClicked(MouseEvent e) {
-            triggerSave();
-        }
+        saveButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                triggerSave();
+            }
         });
         c.add(saveButton);
 
         cancelButton = new JButton("Cancel");
         cancelButton.setSize(100, 30);
         cancelButton.setLocation(200, 410-30);
-        cancelButton.addMouseListener(new MouseAdapter() {
-        @Override
-        public void mouseClicked(MouseEvent e) {
-            form.dispose();
-        }
+
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                form.dispose();
+            }
         });
         c.add(cancelButton);
     }

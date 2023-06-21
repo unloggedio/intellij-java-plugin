@@ -19,6 +19,8 @@ import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.*;
@@ -90,10 +92,9 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
         String methodLabel = simpleClassName + "." + agentCommandResponse.getTargetMethodName() + "()";
 
         setInfoLabel(methodLabel + " at " + DateUtils.formatDate(new Date(agentCommandResponse.getTimestamp())));
-
-        viewFullButton.addMouseListener(new MouseAdapter() {
+        viewFullButton.addActionListener(new ActionListener() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void actionPerformed(ActionEvent e) {
                 if (MOCK_MODE) {
 //                    GenerateCompareWindows(s1, s2);
                     fullViewEventListener.generateCompareWindows(s1, s2);
@@ -147,16 +148,16 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
 //                }
 //            });
 //        }
-        deleteButton.addMouseListener(new MouseAdapter() {
+        deleteButton.addActionListener(new ActionListener() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void actionPerformed(ActionEvent e) {
                 InsidiousNotification.notifyMessage("Removing this candidate. ",
                         NotificationType.INFORMATION);
             }
         });
-        acceptButton.addMouseListener(new MouseAdapter() {
+        acceptButton.addActionListener(new ActionListener() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void actionPerformed(ActionEvent e) {
                 if(lastRef!=null)
                 {
                     lastRef.dispose();
@@ -170,9 +171,9 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
         {
             deleteButton.setVisible(false);
         }
-        deleteButton.addMouseListener(new MouseAdapter() {
+        deleteButton.addActionListener(new ActionListener() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void actionPerformed(ActionEvent e) {
                 if(metadata.getCandidateId()!=null)
                 {
                     atomicRecordService.deleteStoredCandidate(classname,

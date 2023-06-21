@@ -44,17 +44,17 @@ public class ExceptionPreviewComponent {
 
         this.iconLabel.setIcon(UIUtils.EXCEPTION_CASE);
         this.iconLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
-        showfulltrace.addMouseListener(new MouseAdapter() {
+        showfulltrace.addActionListener(new ActionListener() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void actionPerformed(ActionEvent e) {
                 displayFullStackTrace();
             }
         });
         accept.addKeyListener(new KeyAdapter() {
         });
-        accept.addMouseListener(new MouseAdapter() {
+        accept.addActionListener(new ActionListener() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void actionPerformed(ActionEvent e) {
                 if(saveForm!=null){
                     saveForm.dispose();
                 }
