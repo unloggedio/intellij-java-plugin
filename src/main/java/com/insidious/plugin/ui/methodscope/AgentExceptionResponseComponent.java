@@ -6,7 +6,6 @@ import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.ui.Components.AtomicRecord.AtomicRecordListener;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.AtomicRecordUtils;
@@ -22,8 +21,6 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
-import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
 
 public class AgentExceptionResponseComponent implements Supplier<Component>, AtomicRecordListener {
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -188,7 +185,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component>, Ato
         candidate.setName(name);
         candidate.setDescription(description);
         candidate.setAssertionType(type);
-        insidiousService.getAtomicRecordService().addStoredCandidate(classname,methodName,methodSignature,candidate);
+        insidiousService.getAtomicRecordService().saveCandidate(classname,methodName,methodSignature,candidate);
     }
 
     @Override

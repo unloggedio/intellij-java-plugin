@@ -13,9 +13,6 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbService;
-import com.intellij.pom.java.LanguageLevel;
-import com.intellij.psi.util.PsiUtil;
-import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -111,7 +108,7 @@ public class AtomicRecordService {
 
     private enum FileUpdateType {ADD,UPDATE,DELETE}
 
-    public void addStoredCandidate(String classname,String methodName, String signature, StoredCandidate candidate)
+    public void saveCandidate(String classname, String methodName, String signature, StoredCandidate candidate)
     {
         try {
             AtomicRecord existingRecord = null;

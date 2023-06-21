@@ -1,11 +1,9 @@
 package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.agent.AgentCommandResponse;
-import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.datafile.AtomicRecordService;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.ui.Components.AtomicRecord.AtomicRecordListener;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
@@ -21,12 +19,9 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.*;
 import java.util.List;
 import java.util.function.Supplier;
-import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
 
 public class AgentResponseComponent implements Supplier<Component>, AtomicRecordListener {
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
@@ -312,7 +307,7 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
         candidate.setName(name);
         candidate.setDescription(description);
         candidate.setAssertionType(type);
-        atomicRecordService.addStoredCandidate(classname,methodName,methodSignature,candidate);
+        atomicRecordService.saveCandidate(classname,methodName,methodSignature,candidate);
     }
 
     @Override
