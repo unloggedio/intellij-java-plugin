@@ -269,7 +269,6 @@ public class AtomicRecordService {
     //called once in start, when map is null, updated after that.
     public void updateMap()
     {
-        System.out.println("In Update Map");
         this.storedRecords = new TreeMap<>();
         File rootDir = new File(basePath+File.separator+unloggedFolderName);
         File[] files = rootDir.listFiles();
@@ -385,6 +384,7 @@ public class AtomicRecordService {
                     {
                         candidateToRemove = candidate;
                         list = record.getStoredCandidateList();
+                        break;
                     }
                 }
             }
@@ -445,7 +445,6 @@ public class AtomicRecordService {
 
     private void checkPreRequisits()
     {
-        System.out.println("In SETUP pre req");
         ensureUnloggedFolder();
         basePath = insidiousService.getProject().getBasePath();
         if(this.storedRecords==null)
