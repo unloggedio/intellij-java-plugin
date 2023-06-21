@@ -11,9 +11,7 @@ import com.intellij.testFramework.LightVirtualFile;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
-import java.awt.event.KeyAdapter;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 
 public class ExceptionPreviewComponent {
     private final String message;
@@ -70,9 +68,9 @@ public class ExceptionPreviewComponent {
         {
             this.deleteButton.setVisible(false);
         }
-        deleteButton.addMouseListener(new MouseAdapter() {
+        deleteButton.addActionListener(new ActionListener() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void actionPerformed(ActionEvent e) {
                 listener.deleteCandidateRecord();
             }
         });
