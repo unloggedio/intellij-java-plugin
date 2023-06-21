@@ -40,7 +40,6 @@ public class AtomicTestContainer {
     }
 
     public synchronized void loadComponentForState(GutterState state) {
-        logger.info("Loading Component for state : " + state);
         switch (state) {
             case PROCESS_NOT_RUNNING: {
                 if (currentState != null && currentState.equals(state)) {
@@ -71,7 +70,6 @@ public class AtomicTestContainer {
                 loadGenericComponentForState(state);
             }
         }
-        System.out.println("SET CURRENT STATE TO : "+state.toString());
         currentState = state;
     }
 
@@ -99,7 +97,6 @@ public class AtomicTestContainer {
         final MethodAdapter m;
         if(method==null)
         {
-//            logger.info("[ATW] Atomic window update call post ADD/DELETE");
             m = methodExecutorComponent.getCurrentMethod();
         }
         else
@@ -107,19 +104,16 @@ public class AtomicTestContainer {
             m = method;
         }
         if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
-//            System.out.println("[EXECUTION FLOW] ATW");
             methodExecutorComponent.refreshAndReloadCandidates(m, new ArrayList<>());
         } else {
             if (currentState.equals(GutterState.NO_AGENT) ||
                     currentState.equals(GutterState.PROCESS_NOT_RUNNING)) {
                 loadComponentForState(currentState);
-//                System.out.println("[NO AGENT/PROC FLOW] ATW");
                 return;
             }
             SessionInstance sessionInstance = insidiousService.getSessionInstance();
             if (sessionInstance == null) {
                 loadComponentForState(currentState);
-//                System.out.println("[NO SESSION FLOW] ATW");
                 return;
             }
 
@@ -129,14 +123,12 @@ public class AtomicTestContainer {
             String methodKey = m.getName() +"#"+m.getJVMSignature();
             if (methodTestCandidates.size() > 0 ||
                     insidiousService.getAtomicRecordService().hasStoredCandidateForMethod(m.getContainingClass().getQualifiedName(),methodKey)) {
-//                System.out.println("[EXECUTION FLOW 2] ATW");
                 loadExecutionFlow();
                 List<StoredCandidate> candidates = getStoredCandidateListForMethod(deDuplicateList(methodTestCandidates),m.getContainingClass().getQualifiedName(),
                         methodKey);
                 methodExecutorComponent.refreshAndReloadCandidates(m, candidates);
             } else {
                 //no candidates, calc state
-//                System.out.println("[DEFAULT FLOW] ATW");
                 loadComponentForState(insidiousService.getGutterStateBasedOnAgentState());
             }
         }
@@ -157,8 +149,6 @@ public class AtomicTestContainer {
         List<StoredCandidate> convertedCandidates = convertToStoredcandidates(testCandidateMetadataList);
         storedCandidates.addAll(convertedCandidates);
         storedCandidates = filterStoredCandidates(storedCandidates);
-        logger.info("[ATW] StoredCandidates after Filter : "+storedCandidates.toString());
-        System.out.println("[ATW] StoredCandidates after Filter : "+storedCandidates.toString());
         return storedCandidates;
     }
 

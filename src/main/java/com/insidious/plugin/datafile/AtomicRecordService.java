@@ -64,7 +64,6 @@ public class AtomicRecordService {
             {
                 if(!candidate.getMethodHash().equals(hashcode+""))
                 {
-                    //System.out.println("HASH CHANGE :\ncurrent - "+hashcode+" \nnew - "+candidate.getMethodHash());
                     hashChange = true;
                 }
                 if(status==null) {
@@ -118,13 +117,11 @@ public class AtomicRecordService {
             {
                 //create record
                 logger.info("[ATRS] creating a new record");
-                System.out.println("[ATRS] creating a new record");
                 addNewRecord(methodName+"#"+signature,classname,candidate);
             }
             else
             {
                 //read as array of AtomicRecords
-                System.out.println("[ATRS] creating a new record");
                 logger.info("[ATRS] creating a new record");
                 boolean foundMethod=false;
                 boolean foundCandidate=false;
@@ -137,23 +134,12 @@ public class AtomicRecordService {
                         List<StoredCandidate> candidates = record.getStoredCandidateList();
                         for(StoredCandidate storedCandidate : candidates)
                         {
-                            if(storedCandidate.getCandidateId()==null)
-                            {
-//                                System.out.println("[NO ID CASE] CANDIDATE : "+storedCandidate.toString());
-                            }
                             if (storedCandidate.getMethodArguments().equals(candidate.getMethodArguments()))
                             {
                                 foundCandidate = true;
-                                System.out.println("[ATRS] Replace existing "+storedCandidate.getMethodArguments().toString());
-                                System.out.println("[ATRS] Replace new "+candidate.getMethodArguments().toString());
                                 //replace
                                 InsidiousNotification.notifyMessage("Replacing existing record", NotificationType.INFORMATION);
                                 logger.info("[ATRS] Replacing existing record");
-//                                System.out.println("[ATRS] Replacing existing record");
-                                if(storedCandidate.getCandidateId()==null)
-                                {
-                                    System.out.println("No ID Case");
-                                }
                                 storedCandidate.setCandidateId(candidate.getCandidateId());
                                 storedCandidate.setName(candidate.getName());
                                 storedCandidate.setDescription(candidate.getDescription());
@@ -172,7 +158,6 @@ public class AtomicRecordService {
                 }
                 if(!foundMethod)
                 {
-                    System.out.println("[ATRS] Adding new record");
                     logger.info("[ATRS] Adding new record");
                     if(existingRecord!=null) {
                         existingRecord.setStoredCandidateList(filterCandidates(existingRecord.getStoredCandidateList()));
@@ -182,7 +167,6 @@ public class AtomicRecordService {
                 else if(foundMethod && !foundCandidate)
                 {
                     //add to stored candidates
-                    System.out.println("[ATRS] Adding Candidate");
                     logger.info("[ATRS] Adding Candidate");
                     if(existingRecord!=null) {
                         existingRecord.getStoredCandidateList().add(candidate);
@@ -193,7 +177,6 @@ public class AtomicRecordService {
                 }
                 else
                 {
-                    System.out.println("[ATRS] Replacing existing record (found)");
                     logger.info("[ATRS] Replacing existing record (found)");
                     existingRecord.setStoredCandidateList(filterCandidates(existingRecord.getStoredCandidateList()));
                     writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
@@ -210,8 +193,7 @@ public class AtomicRecordService {
         }
         catch (Exception e)
         {
-            System.out.println("Exception  : "+e);
-            e.printStackTrace();
+            logger.info("Exception adding candidate : "+e);
         }
     }
 
@@ -279,7 +261,6 @@ public class AtomicRecordService {
         catch (Exception e)
         {
             logger.info("[ATRS] Failed to write to file : "+e);
-            e.printStackTrace();
             InsidiousNotification.notifyMessage("Exception in : "+type.toString(), NotificationType.ERROR);
         }
     }
@@ -287,7 +268,6 @@ public class AtomicRecordService {
     //called once in start, when map is null, updated after that.
     public void updateMap()
     {
-        System.out.println("#UPDATE MAP");
         if(basePath==null)
         {
             basePath = insidiousService.getProject().getBasePath();
@@ -310,7 +290,6 @@ public class AtomicRecordService {
                 this.storedRecords.put(classname,records);
             }
         }
-        System.out.println("#POST UPDATE : "+storedRecords.toString());
     }
 
     public Boolean hasStoredCandidateForMethod(String classname, String method)
@@ -360,7 +339,6 @@ public class AtomicRecordService {
         catch (IOException e)
         {
             logger.info("Exception getting atomic records : "+e);
-            e.printStackTrace();
             ensureUnloggedFolder();
             return null;
         }
@@ -378,7 +356,6 @@ public class AtomicRecordService {
         catch (IOException e)
         {
             logger.info("Exception getting atomic records from file: "+e);
-            e.printStackTrace();
             ensureUnloggedFolder();
             return null;
         }

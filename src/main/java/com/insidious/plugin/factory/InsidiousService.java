@@ -276,9 +276,9 @@ final public class InsidiousService implements Disposable,
     public PROJECT_BUILD_SYSTEM findBuildSystemForModule(String modulename) {
         Module module = moduleMap.get(modulename)
                 .getModule();
-        System.out.println("Fetching build system type");
-        System.out.println("MODULE - > " + module.toString());
-        System.out.println("MOD MAP - > " + moduleMap.toString());
+//        System.out.println("Fetching build system type");
+//        System.out.println("MODULE - > " + module.toString());
+//        System.out.println("MOD MAP - > " + moduleMap.toString());
 
         PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml",
                 GlobalSearchScope.moduleScope(module));
@@ -1146,7 +1146,6 @@ final public class InsidiousService implements Disposable,
         DifferenceResult differenceResult = executionRecord.get(hashKey);
         if(differenceResult.getGutterStatus()!=null)
         {
-            System.out.println("[GUTTER STATE IND] "+differenceResult.getGutterStatus());
             switch (differenceResult.getGutterStatus())
             {
                 case "Diff":
@@ -1404,7 +1403,6 @@ final public class InsidiousService implements Disposable,
 
     public void promoteState(GutterState newState) {
         if (this.atomicTestContainerWindow != null) {
-            System.out.println("Promoting to: " + newState);
             atomicTestContainerWindow.loadComponentForState(newState);
         }
     }
@@ -1507,7 +1505,6 @@ final public class InsidiousService implements Disposable,
     }
 
     public void triggerAtomicTestsWindowRefresh() {
-        System.out.println("[REFRESH] ATW");
         atomicTestContainerWindow.triggerMethodExecutorRefresh(null);
     }
 

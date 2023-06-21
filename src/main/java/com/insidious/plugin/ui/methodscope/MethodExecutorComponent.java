@@ -81,7 +81,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     public void compileAndExecuteAll() {
-//        this.isDifferent = false;
 
         ApplicationManager.getApplication().invokeLater(() -> {
             insidiousService.compile(methodElement.getContainingClass(),
@@ -219,7 +218,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     private void clearBoard() {
-//        this.candidateListScroller.removeAll();
         candidateComponentMap.clear();
         centerParent.removeAll();
         diffContentPanel.removeAll();
@@ -256,7 +254,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                             diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_INDIVIDUAL);
                             //check other statuses and add them for individual execution
                             String status = getExecutionStatusFromCandidates(testCandidate.getEntryProbeIndex());
-                            System.out.println("STATUS ALL -> "+status);
                             if(status.equals("Diff") || status.equals("NoRun"))
                             {
                                 diffResult.setGutterStatus(status);
@@ -355,9 +352,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         scrollParent.setMinimumSize(new Dimension(-1,700));
         this.diffContentPanel.removeAll();
         this.diffContentPanel.setLayout(new GridLayout(1, 1));
-//        GridConstraints constraints = new GridConstraints();
         diffContentPanel.setMinimumSize(new Dimension(-1, 700));
-//        constraints.setRow(0);
         Component comp = component.get();
         comp.setMinimumSize(new Dimension(-1, 700));
         this.diffContentPanel.add(comp);
@@ -402,7 +397,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         if (agentCommandResponse.getResponseType() != null &&
                 (agentCommandResponse.getResponseType().equals(ResponseType.FAILED) ||
                         agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
-            System.out.println("Returning exception");
             AgentExceptionResponseComponent comp = new AgentExceptionResponseComponent(
                     testCandidateMetadata, agentCommandResponse, insidiousService);
             comp.setMethodHash(methodElement.getJVMSignature());
@@ -412,7 +406,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             comp.setMethodSignature(methodElement.getJVMSignature());
             return comp;
         } else {
-            System.out.println("Returning Diff view");
             AgentResponseComponent component = new AgentResponseComponent(
                     agentCommandResponse, testCandidateMetadata, true, insidiousService::generateCompareWindows,
                     insidiousService.getAtomicRecordService());
