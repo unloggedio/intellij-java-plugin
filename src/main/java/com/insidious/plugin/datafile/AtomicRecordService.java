@@ -1,8 +1,7 @@
 package com.insidious.plugin.datafile;
 
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
@@ -26,7 +25,7 @@ public class AtomicRecordService {
     InsidiousService insidiousService;
     private String basePath;
     private final String unloggedFolderName = ".unlogged";
-    private Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private ObjectMapper objectMapper = new ObjectMapper();
     private Map<String,List<AtomicRecord>> storedRecords=null;
     public AtomicRecordService(InsidiousService service)
     {
@@ -36,12 +35,7 @@ public class AtomicRecordService {
 
     public GutterState computeGutterState(String classname, String method, int hashcode) {
 
-        if(this.storedRecords==null)
-        {
-            updateMap();
-        }
-        ensureUnloggedFolder();
-//        System.out.println("#STATE FETCH : "+storedRecords.toString());
+        checkPreRequisits();
         List<AtomicRecord> records = this.storedRecords.get(classname);
         if(records==null)
         {
@@ -112,11 +106,7 @@ public class AtomicRecordService {
 
     public void addStoredCandidate(String classname,String methodName, String signature, StoredCandidate candidate)
     {
-        System.out.println("#ADD RECORD");
-        if(basePath==null) {
-            setProjectBasePath();
-        }
-        ensureUnloggedFolder();
+        checkPreRequisits();
         try {
             AtomicRecord existingRecord = null;
             if(this.storedRecords == null)
@@ -276,8 +266,9 @@ public class AtomicRecordService {
                              boolean notify)
     {
         logger.info("[ATRS] writing to file : "+file.getName());
-        String json = gson.toJson(atomicRecords);
         try (FileOutputStream resourceFile = new FileOutputStream(file)) {
+            String json = objectMapper.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(atomicRecords);
             resourceFile.write(json.getBytes(StandardCharsets.UTF_8));
             logger.info("[ATRS] file write successful");
             if(notify) {
@@ -324,12 +315,7 @@ public class AtomicRecordService {
 
     public Boolean hasStoredCandidateForMethod(String classname, String method)
     {
-        if(this.storedRecords==null)
-        {
-            updateMap();
-        }
-        ensureUnloggedFolder();
-//        System.out.println("#ICON FETCH : "+storedRecords.toString());
+        checkPreRequisits();
         List<AtomicRecord> records = this.storedRecords.get(classname);
         if(records==null)
         {
@@ -367,8 +353,9 @@ public class AtomicRecordService {
         try {
             InputStream inputStream = new FileInputStream(basePath + "/" + unloggedFolderName + "/" + classname + ".json");
             String stringSource = toString(inputStream);
-            return gson.fromJson(stringSource, new TypeToken<List<AtomicRecord>>() {
-            }.getType());
+            return objectMapper.readValue(stringSource,
+                    new TypeReference<List<AtomicRecord>>() {
+            });
         }
         catch (IOException e)
         {
@@ -384,8 +371,9 @@ public class AtomicRecordService {
         try {
             InputStream inputStream = new FileInputStream(file);
             String stringSource = toString(inputStream);
-            return gson.fromJson(stringSource, new TypeToken<List<AtomicRecord>>() {
-            }.getType());
+            return objectMapper.readValue(stringSource,
+                    new TypeReference<List<AtomicRecord>>() {
+            });
         }
         catch (IOException e)
         {
@@ -408,11 +396,7 @@ public class AtomicRecordService {
 
     public List<StoredCandidate> getStoredCandidatesForMethod(String classname, String method) {
 
-        if(this.storedRecords==null)
-        {
-            updateMap();
-        }
-//        System.out.println("#FETCH STORED CANDIDATES : "+storedRecords.toString());
+        checkPreRequisits();
         List<AtomicRecord> records = this.storedRecords.get(classname);
         if(records == null)
         {
@@ -429,12 +413,10 @@ public class AtomicRecordService {
     }
 
     public void deleteStoredCandidate(String classname, String method, String candidateId) {
-//        System.out.println("In delete for : "+candidateId);
         if(classname == null || method == null)
         {
             return;
         }
-        //remove from records.
         List<AtomicRecord> records = this.storedRecords.get(classname);
         if(records == null || records.size()==0)
         {
@@ -456,8 +438,6 @@ public class AtomicRecordService {
                 }
             }
         }
-//        System.out.println("[DEL] list : "+list!=null ? list.toString() : null);
-//        System.out.println("[DEL] CANDIDATE : "+candidateToRemove!=null ? candidateToRemove.toString() : null);
         if(list!=null && candidateToRemove!=null) {
             list.remove(candidateToRemove);
         }
@@ -478,12 +458,7 @@ public class AtomicRecordService {
     public void setCandidateStateForCandidate(String candidateID, String classname,
                                               String method, StoredCandidateMetadata.CandidateStatus state)
     {
-        if(this.storedRecords==null)
-        {
-            updateMap();
-        }
-        ensureUnloggedFolder();
-//        System.out.println("#SAVE STATE : "+storedRecords.toString());
+        checkPreRequisits();
         List<AtomicRecord> records = this.storedRecords.get(classname);
         if(records==null)
         {
@@ -509,11 +484,7 @@ public class AtomicRecordService {
     //call to sync at session close
     public void writeAll()
     {
-        if(this.storedRecords==null)
-        {
-            updateMap();
-        }
-        ensureUnloggedFolder();
+        checkPreRequisits();
         if(storedRecords.size()==0)
         {
             return;
@@ -524,5 +495,14 @@ public class AtomicRecordService {
             writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
                     ,recordsForClass,FileUpdateType.UPDATE,false);
         }
+    }
+
+    private void checkPreRequisits()
+    {
+        if(this.storedRecords==null)
+        {
+            updateMap();
+        }
+        ensureUnloggedFolder();
     }
 }
