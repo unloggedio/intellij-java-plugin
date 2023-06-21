@@ -307,11 +307,6 @@ public class AtomicRecordService {
         return false;
     }
 
-    private void setProjectBasePath()
-    {
-        basePath = insidiousService.getProject().getBasePath();
-    }
-
     public void ensureUnloggedFolder()
     {
         File unloggedFolder = new File(basePath+File.separator+unloggedFolderName);
