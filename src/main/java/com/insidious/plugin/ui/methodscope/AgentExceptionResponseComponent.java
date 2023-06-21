@@ -9,6 +9,7 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.ui.Components.AtomicRecord.AtomicRecordListener;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
+import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.DateUtils;
 import com.insidious.plugin.util.ExceptionUtils;
 
@@ -176,54 +177,17 @@ public class AgentExceptionResponseComponent implements Supplier<Component>, Ato
 //        this.infoLabel.setText(info);
     }
 
-    public StoredCandidate getCurrentResponseAsStoredCandidate()
-    {
-        StoredCandidate candidate = new StoredCandidate();
-        candidate.setCandidateId(UUID.randomUUID().toString());
-        candidate.setMethodHash(methodHash);
-        candidate.setMethodArguments(metadata.getMethodArguments());
-        candidate.setException(response.getResponseType().equals(ResponseType.NORMAL) ?
-                false : true);
-        candidate.setReturnValue(response.getMethodReturnValue());
-        //to be updated
-        candidate.setProbSerializedValue(metadata.getProbSerializedValue());
-        //to be updated
-        candidate.setReturnDataEventValue(metadata.getReturnDataEventValue());
-        candidate.setReturnDataEventSerializedValue(new String(response.getMethodReturnValue().getBytes()));
-        candidate.setMethodName(metadata.getMethodName());
-        candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
-        candidate.setBooleanType(metadata.isBooleanType());
-        candidate.setException(response.getResponseType().equals(ResponseType.EXCEPTION) ? true : false);
-        candidate.setReturnValueClassname(response.getResponseClassName());
-
-        if(metadata.getMetadata()!=null)
-        {
-            candidate.setMetadata(metadata.getMetadata());
-            candidate.getMetadata().setHostMachineName(HOSTNAME);
-            candidate.getMetadata().setRecordedBy(HOSTNAME);
-        }
-        else {
-            StoredCandidateMetadata metadata1 = new StoredCandidateMetadata();
-            metadata1.setCandidateStatus(null);
-            metadata1.setTimestamp(response.getTimestamp());
-            metadata1.setRecordedBy(HOSTNAME);
-            metadata1.setHostMachineName(HOSTNAME);
-            candidate.setMetadata(metadata1);
-        }
-        return candidate;
-    }
-
     public void setMethodHash(String methodHash) {
         this.methodHash = methodHash;
     }
 
     @Override
     public void triggerRecordAddition(String name, String description, StoredCandidate.AssertionType type) {
-        StoredCandidate candidate = getCurrentResponseAsStoredCandidate();
+        this.metadata.setMethodHash(methodHash);
+        StoredCandidate candidate = AtomicRecordUtils.createCandidateFor(metadata,response);
         candidate.setName(name);
         candidate.setDescription(description);
         candidate.setAssertionType(type);
-        System.out.println("CANDIDATE to SAVE : "+candidate.toString());
         insidiousService.getAtomicRecordService().addStoredCandidate(classname,methodName,methodSignature,candidate);
     }
 

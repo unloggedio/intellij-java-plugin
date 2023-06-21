@@ -183,42 +183,6 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
         });
     }
 
-    public StoredCandidate getCurrentResponseAsStoredCandidate()
-    {
-        StoredCandidate candidate = new StoredCandidate();
-        candidate.setCandidateId(UUID.randomUUID().toString());
-        candidate.setMethodHash(methodHash);
-        candidate.setMethodArguments(metadata.getMethodArguments());
-        candidate.setException(agentCommandResponse.getResponseType().equals(ResponseType.NORMAL) ?
-                false : true);
-        candidate.setReturnValue(agentCommandResponse.getMethodReturnValue());
-        //to be updated
-        candidate.setProbSerializedValue(metadata.getProbSerializedValue());
-        //to be updated
-        candidate.setReturnDataEventValue(metadata.getReturnDataEventValue());
-        candidate.setReturnDataEventSerializedValue(new String(agentCommandResponse.getMethodReturnValue().getBytes()));
-        candidate.setMethodName(metadata.getMethodName());
-        candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
-        candidate.setBooleanType(metadata.isBooleanType());
-
-
-        if(metadata.getMetadata()!=null)
-        {
-            candidate.setMetadata(metadata.getMetadata());
-            candidate.getMetadata().setHostMachineName(HOSTNAME);
-            candidate.getMetadata().setRecordedBy(HOSTNAME);
-        }
-        else {
-            StoredCandidateMetadata metadata1 = new StoredCandidateMetadata();
-            metadata1.setCandidateStatus(null);
-            metadata1.setTimestamp(agentCommandResponse.getTimestamp());
-            metadata1.setRecordedBy(HOSTNAME);
-            metadata1.setHostMachineName(HOSTNAME);
-            candidate.setMetadata(metadata1);
-        }
-        return candidate;
-    }
-
     public void setInfoLabel(String info) {
         TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
         titledBorder.setTitle(info);
@@ -324,10 +288,6 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
         return root;
     }
 
-    public AgentCommandResponse getAgentCommandResponse() {
-        return agentCommandResponse;
-    }
-
     public void showExceptionTrace(String response) {
         this.tableParent.removeAll();
         JTextArea textArea = new JTextArea();
@@ -347,11 +307,11 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
 
     @Override
     public void triggerRecordAddition(String name, String description, StoredCandidate.AssertionType type) {
-        StoredCandidate candidate = getCurrentResponseAsStoredCandidate();
+        this.metadata.setMethodHash(methodHash);
+        StoredCandidate candidate = AtomicRecordUtils.createCandidateFor(metadata,agentCommandResponse);
         candidate.setName(name);
         candidate.setDescription(description);
         candidate.setAssertionType(type);
-        System.out.println("CANDIDATE to SAVE : "+candidate.toString());
         atomicRecordService.addStoredCandidate(classname,methodName,methodSignature,candidate);
     }
 
