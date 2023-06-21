@@ -161,7 +161,7 @@ final public class InsidiousService implements Disposable,
     private boolean hasShownIndexWaitNotification = false;
     private String basePackage = null;
     private ReportingService reportingService = new ReportingService(this);
-    private AtomicRecordService atomicRecordService = new AtomicRecordService(this);
+    private AtomicRecordService atomicRecordService;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -245,7 +245,7 @@ final public class InsidiousService implements Disposable,
                 currentModule = ModuleManager.getInstance(project).getModules()[0];
                 logger.info("current module - " + currentModule.getName());
             }
-
+            this.atomicRecordService = new AtomicRecordService(this);
             this.initiateUI();
 
         } catch (ServiceNotReadyException snre) {

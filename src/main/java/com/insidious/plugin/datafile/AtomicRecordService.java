@@ -12,6 +12,10 @@ import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.DumbService;
+import com.intellij.pom.java.LanguageLevel;
+import com.intellij.psi.util.PsiUtil;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -30,12 +34,16 @@ public class AtomicRecordService {
     public AtomicRecordService(InsidiousService service)
     {
         this.insidiousService = service;
+        DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
+        dumbService.runWhenSmart(() -> {
+            checkPreRequisits();
+        });
+
     }
     private static final Logger logger = LoggerUtil.getInstance(AtomicRecordService.class);
 
     public GutterState computeGutterState(String classname, String method, int hashcode) {
 
-        checkPreRequisits();
         List<AtomicRecord> records = this.storedRecords.get(classname);
         if(records==null)
         {
@@ -105,7 +113,6 @@ public class AtomicRecordService {
 
     public void addStoredCandidate(String classname,String methodName, String signature, StoredCandidate candidate)
     {
-        checkPreRequisits();
         try {
             AtomicRecord existingRecord = null;
             if(this.storedRecords == null)
@@ -262,11 +269,7 @@ public class AtomicRecordService {
     //called once in start, when map is null, updated after that.
     public void updateMap()
     {
-        if(basePath==null)
-        {
-            basePath = insidiousService.getProject().getBasePath();
-        }
-        ensureUnloggedFolder();
+        System.out.println("In Update Map");
         this.storedRecords = new TreeMap<>();
         File rootDir = new File(basePath+File.separator+unloggedFolderName);
         File[] files = rootDir.listFiles();
@@ -288,7 +291,6 @@ public class AtomicRecordService {
 
     public Boolean hasStoredCandidateForMethod(String classname, String method)
     {
-        checkPreRequisits();
         List<AtomicRecord> records = this.storedRecords.get(classname);
         if(records==null)
         {
@@ -313,6 +315,7 @@ public class AtomicRecordService {
         if(!(unloggedFolder.exists() && unloggedFolder.isDirectory()))
         {
             logger.info(".unlogged directory created");
+            System.out.println(".unlogged directory created");
             unloggedFolder.mkdirs();
         }
     }
@@ -345,8 +348,6 @@ public class AtomicRecordService {
     }
 
     public List<StoredCandidate> getStoredCandidatesForMethod(String classname, String method) {
-
-        checkPreRequisits();
         List<AtomicRecord> records = this.storedRecords.get(classname);
         if(records == null)
         {
@@ -399,16 +400,12 @@ public class AtomicRecordService {
     }
 
     public String getSaveLocation() {
-        if(basePath==null) {
-            basePath = insidiousService.getProject().getBasePath();
-        }
         return basePath+File.separator+unloggedFolderName+File.separator;
     }
 
     public void setCandidateStateForCandidate(String candidateID, String classname,
                                               String method, StoredCandidateMetadata.CandidateStatus state)
     {
-        checkPreRequisits();
         List<AtomicRecord> records = this.storedRecords.get(classname);
         if(records==null)
         {
@@ -434,7 +431,6 @@ public class AtomicRecordService {
     //call to sync at session close
     public void writeAll()
     {
-        checkPreRequisits();
         if(storedRecords.size()==0)
         {
             return;
@@ -449,10 +445,12 @@ public class AtomicRecordService {
 
     private void checkPreRequisits()
     {
+        System.out.println("In SETUP pre req");
+        ensureUnloggedFolder();
+        basePath = insidiousService.getProject().getBasePath();
         if(this.storedRecords==null)
         {
             updateMap();
         }
-        ensureUnloggedFolder();
     }
 }
