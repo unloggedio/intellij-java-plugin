@@ -8,6 +8,7 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
+import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.TestCandidateUtils;
 import com.insidious.plugin.util.TestCaseUtils;
@@ -146,7 +147,7 @@ public class AtomicTestContainer {
         {
             storedCandidates = new ArrayList<>();
         }
-        List<StoredCandidate> convertedCandidates = convertToStoredcandidates(testCandidateMetadataList);
+        List<StoredCandidate> convertedCandidates = AtomicRecordUtils.convertToStoredcandidates(testCandidateMetadataList);
         storedCandidates.addAll(convertedCandidates);
         storedCandidates = filterStoredCandidates(storedCandidates);
         return storedCandidates;
@@ -172,32 +173,6 @@ public class AtomicTestContainer {
         }
         List<StoredCandidate> candidatesFiltered = new ArrayList<>(selectedCandidates.values());
         return candidatesFiltered;
-    }
-
-    private List<StoredCandidate> convertToStoredcandidates(List<TestCandidateMetadata> testCandidateMetadataList)
-    {
-        List<StoredCandidate> candidates = new ArrayList<>();
-        for(TestCandidateMetadata candidateMetadata:testCandidateMetadataList)
-        {
-            StoredCandidate candidate = new StoredCandidate();
-            candidate.setException(candidateMetadata.getMainMethod().getReturnValue().isException());
-            candidate.setReturnValue(new String(
-                    candidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue()));
-            candidate.setMethodArguments(TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata));
-            candidate.setReturnValueClassname(candidateMetadata.getMainMethod().getReturnValue().getType());
-            candidate.setBooleanType(candidateMetadata.getMainMethod().getReturnValue().isBooleanType());
-            candidate.setReturnDataEventSerializedValue(new String(candidateMetadata.getMainMethod()
-                    .getReturnDataEvent().getSerializedValue()));
-            candidate.setReturnDataEventValue(candidateMetadata.getMainMethod().getReturnDataEvent().getValue());
-            candidate.setMethodName(candidateMetadata.getMainMethod().getMethodName());
-            candidate.setProbSerializedValue(candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue());
-            candidate.setEntryProbeIndex(candidateMetadata.getEntryProbeIndex());
-            StoredCandidateMetadata metadata = new StoredCandidateMetadata();
-            metadata.setTimestamp(candidateMetadata.getCallTimeNanoSecond());
-            candidate.setMetadata(metadata);
-            candidates.add(candidate);
-        }
-        return candidates;
     }
 
     public List<TestCandidateMetadata> deDuplicateList(List<TestCandidateMetadata> list) {

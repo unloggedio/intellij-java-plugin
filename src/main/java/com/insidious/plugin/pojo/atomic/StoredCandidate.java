@@ -1,5 +1,8 @@
 package com.insidious.plugin.pojo.atomic;
 
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.util.TestCandidateUtils;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -169,5 +172,42 @@ public class StoredCandidate {
                 ", methodName='" + methodName + '\'' +
                 ", probSerializedValue=" + Arrays.toString(probSerializedValue) +
                 '}';
+    }
+
+    public StoredCandidate(){}
+
+    public StoredCandidate(TestCandidateMetadata candidateMetadata)
+    {
+        this.setException(candidateMetadata.getMainMethod().getReturnValue().isException());
+        this.setReturnValue(new String(
+                candidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue()));
+        this.setMethodArguments(TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata));
+        this.setReturnValueClassname(candidateMetadata.getMainMethod().getReturnValue().getType());
+        this.setBooleanType(candidateMetadata.getMainMethod().getReturnValue().isBooleanType());
+        this.setReturnDataEventSerializedValue(new String(candidateMetadata.getMainMethod()
+                .getReturnDataEvent().getSerializedValue()));
+        this.setReturnDataEventValue(candidateMetadata.getMainMethod().getReturnDataEvent().getValue());
+        this.setMethodName(candidateMetadata.getMainMethod().getMethodName());
+        this.setProbSerializedValue(candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue());
+        this.setEntryProbeIndex(candidateMetadata.getEntryProbeIndex());
+        StoredCandidateMetadata metadata = new StoredCandidateMetadata();
+        metadata.setTimestamp(candidateMetadata.getCallTimeNanoSecond());
+        this.setMetadata(metadata);
+    }
+
+    public void copyFrom(StoredCandidate candidate)
+    {
+        this.setCandidateId(candidate.getCandidateId());
+        this.setName(candidate.getName());
+        this.setDescription(candidate.getDescription());
+        this.setAssertionType(candidate.getAssertionType());
+        this.setReturnValue(candidate.getReturnValue());
+        this.setReturnDataEventSerializedValue(new String(candidate.getReturnDataEventSerializedValue()));
+        this.setReturnDataEventValue(candidate.getReturnDataEventValue());
+        this.setEntryProbeIndex(candidate.getEntryProbeIndex());
+        this.setBooleanType(candidate.isBooleanType());
+        this.setProbSerializedValue(candidate.getProbSerializedValue());
+        this.setException(candidate.isException());
+        this.setReturnValueClassname(candidate.getReturnValueClassname());
     }
 }

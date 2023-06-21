@@ -140,18 +140,7 @@ public class AtomicRecordService {
                                 //replace
                                 InsidiousNotification.notifyMessage("Replacing existing record", NotificationType.INFORMATION);
                                 logger.info("[ATRS] Replacing existing record");
-                                storedCandidate.setCandidateId(candidate.getCandidateId());
-                                storedCandidate.setName(candidate.getName());
-                                storedCandidate.setDescription(candidate.getDescription());
-                                storedCandidate.setAssertionType(candidate.getAssertionType());
-                                storedCandidate.setReturnValue(candidate.getReturnValue());
-                                storedCandidate.setReturnDataEventSerializedValue(new String(candidate.getReturnDataEventSerializedValue()));
-                                storedCandidate.setReturnDataEventValue(candidate.getReturnDataEventValue());
-                                storedCandidate.setEntryProbeIndex(candidate.getEntryProbeIndex());
-                                storedCandidate.setBooleanType(candidate.isBooleanType());
-                                storedCandidate.setProbSerializedValue(candidate.getProbSerializedValue());
-                                storedCandidate.setException(candidate.isException());
-                                storedCandidate.setReturnValueClassname(candidate.getReturnValueClassname());
+                                storedCandidate.copyFrom(candidate);
                             }
                         }
                     }
