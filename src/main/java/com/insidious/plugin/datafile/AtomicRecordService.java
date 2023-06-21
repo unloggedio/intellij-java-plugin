@@ -172,14 +172,14 @@ public class AtomicRecordService {
                         existingRecord.getStoredCandidateList().add(candidate);
                         existingRecord.setStoredCandidateList(filterCandidates(existingRecord.getStoredCandidateList()));
                     }
-                    writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
+                    writeToFile(new File(getFilenameForClass(classname))
                             ,obj,FileUpdateType.UPDATE,true);
                 }
                 else
                 {
                     logger.info("[ATRS] Replacing existing record (found)");
                     existingRecord.setStoredCandidateList(filterCandidates(existingRecord.getStoredCandidateList()));
-                    writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
+                    writeToFile(new File(getFilenameForClass(classname))
                             ,obj,FileUpdateType.UPDATE,true);
                 }
             }
@@ -195,6 +195,11 @@ public class AtomicRecordService {
         {
             logger.info("Exception adding candidate : "+e);
         }
+    }
+
+    private String getFilenameForClass(String classname)
+    {
+        return basePath+File.separator+unloggedFolderName+File.separator+classname+".json";
     }
 
     private List<StoredCandidate> filterCandidates(List<StoredCandidate> candidates)
@@ -240,7 +245,7 @@ public class AtomicRecordService {
         }
         records.add(record);
         this.storedRecords.put(classname,records);
-        writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
+        writeToFile(new File(getFilenameForClass(classname))
                 ,records,FileUpdateType.ADD,true);
     }
 
@@ -274,7 +279,7 @@ public class AtomicRecordService {
         }
         ensureUnloggedFolder();
         this.storedRecords = new TreeMap<>();
-        File rootDir = new File(basePath+"/"+unloggedFolderName);
+        File rootDir = new File(basePath+File.separator+unloggedFolderName);
         File[] files = rootDir.listFiles();
         if (files==null || files.length==0)
         {
@@ -320,27 +325,11 @@ public class AtomicRecordService {
 
     public void ensureUnloggedFolder()
     {
-        File unloggedFolder = new File(basePath+"/"+unloggedFolderName);
+        File unloggedFolder = new File(basePath+File.separator+unloggedFolderName);
         if(!(unloggedFolder.exists() && unloggedFolder.isDirectory()))
         {
             logger.info(".unlogged directory created");
             unloggedFolder.mkdirs();
-        }
-    }
-
-    public List<AtomicRecord> getJsonArrayForClass(String classname) {
-        try {
-            InputStream inputStream = new FileInputStream(basePath + "/" + unloggedFolderName + "/" + classname + ".json");
-            String stringSource = toString(inputStream);
-            return objectMapper.readValue(stringSource,
-                    new TypeReference<List<AtomicRecord>>() {
-            });
-        }
-        catch (IOException e)
-        {
-            logger.info("Exception getting atomic records : "+e);
-            ensureUnloggedFolder();
-            return null;
         }
     }
 
@@ -418,7 +407,7 @@ public class AtomicRecordService {
         if(list!=null && candidateToRemove!=null) {
             list.remove(candidateToRemove);
         }
-        writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
+        writeToFile(new File(getFilenameForClass(classname))
                 ,records,FileUpdateType.DELETE,true);
         UsageInsightTracker.getInstance().RecordEvent("Candidate_Deleted",null);
         insidiousService.triggerGutterIconReload();
@@ -429,7 +418,7 @@ public class AtomicRecordService {
         if(basePath==null) {
             basePath = insidiousService.getProject().getBasePath();
         }
-        return basePath+"/"+unloggedFolderName+"/";
+        return basePath+File.separator+unloggedFolderName+File.separator;
     }
 
     public void setCandidateStateForCandidate(String candidateID, String classname,
@@ -469,7 +458,7 @@ public class AtomicRecordService {
         for(String classname : storedRecords.keySet())
         {
             List<AtomicRecord> recordsForClass = storedRecords.get(classname);
-            writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
+            writeToFile(new File(getFilenameForClass(classname))
                     ,recordsForClass,FileUpdateType.UPDATE,false);
         }
     }
