@@ -114,20 +114,20 @@ public class SaveForm extends JFrame {
         assertionLabel = new JLabel("Assertion : ");
         assertionLabel.setSize(100, 30);
         assertionLabel.setLocation(50, 325);
-        c.add(assertionLabel);
+        //c.add(assertionLabel);
 
         b1 = new JRadioButton("Assert Equals");
         b1.setActionCommand("Assert Equals");
         b1.setSize(150,30);
         b1.setLocation(150,325);
-        c.add(b1);
+        //c.add(b1);
         radioGroup.add(b1);
 
         b2 = new JRadioButton("Assert Not Equals");
         b2.setActionCommand("Assert Not Equals");
         b2.setSize(150,30);
         b2.setLocation(300,325);
-        c.add(b2);
+        //c.add(b2);
         radioGroup.add(b2);
 
         b1.setSelected(true);
@@ -135,18 +135,18 @@ public class SaveForm extends JFrame {
         JLabel infoLabel = new JLabel("Case will be saved here : ");
         infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
         infoLabel.setSize(400, 12);
-        infoLabel.setLocation(50, 360);
+        infoLabel.setLocation(50, 360-30);
         c.add(infoLabel);
 
         infoLabel = new JLabel(formatLocation(listener.getSaveLocation()));
         infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
         infoLabel.setSize(400, 15);
-        infoLabel.setLocation(50, 375);
+        infoLabel.setLocation(50, 375-30);
         c.add(infoLabel);
 
         saveButton = new JButton("Save and Close");
         saveButton.setSize(150, 30);
-        saveButton.setLocation(305, 410);
+        saveButton.setLocation(305, 410-30);
         saveButton.setIcon(UIUtils.SAVE_CANDIDATE_GREY);
         saveButton.addMouseListener(new MouseAdapter() {
         @Override
@@ -158,7 +158,7 @@ public class SaveForm extends JFrame {
 
         cancelButton = new JButton("Cancel");
         cancelButton.setSize(100, 30);
-        cancelButton.setLocation(200, 410);
+        cancelButton.setLocation(200, 410-30);
         cancelButton.addMouseListener(new MouseAdapter() {
         @Override
         public void mouseClicked(MouseEvent e) {
