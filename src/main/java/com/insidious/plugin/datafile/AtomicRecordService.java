@@ -270,8 +270,7 @@ public class AtomicRecordService {
     public void updateMap()
     {
         this.storedRecords = new TreeMap<>();
-        File rootDir = new File(basePath+File.separator+unloggedFolderName);
-        File[] files = rootDir.listFiles();
+        File[] files = getFilesInUnloggedFolder();
         if (files==null || files.length==0)
         {
 
@@ -286,6 +285,12 @@ public class AtomicRecordService {
                 this.storedRecords.put(classname,records);
             }
         }
+    }
+
+    private File[] getFilesInUnloggedFolder()
+    {
+        File rootDir = new File(basePath+File.separator+unloggedFolderName);
+        return rootDir.listFiles();
     }
 
     public Boolean hasStoredCandidateForMethod(String classname, String method)
