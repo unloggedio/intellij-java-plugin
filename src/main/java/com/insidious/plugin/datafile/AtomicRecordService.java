@@ -13,6 +13,7 @@ import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
+import org.json.JSONObject;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -209,7 +210,12 @@ public class AtomicRecordService {
                             ,obj,FileUpdateType.UPDATE,true);
                 }
             }
-            UsageInsightTracker.getInstance().RecordEvent("Candidate_Added",null);
+            JSONObject properties = new JSONObject();
+            properties.put("status", candidate.getMetadata().getCandidateStatus());
+            properties.put("recordedBy", candidate.getMetadata().getRecordedBy());
+            properties.put("hostMachineName", candidate.getMetadata().getHostMachineName());
+            properties.put("timestamp", candidate.getMetadata().getTimestamp());
+            UsageInsightTracker.getInstance().RecordEvent("Candidate_Added",properties);
             insidiousService.triggerAtomicTestsWindowRefresh();
         }
         catch (Exception e)
