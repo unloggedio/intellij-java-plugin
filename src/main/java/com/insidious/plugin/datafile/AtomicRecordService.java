@@ -33,7 +33,8 @@ public class AtomicRecordService {
     }
     private static final Logger logger = LoggerUtil.getInstance(AtomicRecordService.class);
 
-    public GutterState computeGutterState(String classname, String method) {
+    public GutterState computeGutterState(String classname, String method, int hashcode) {
+
         if(this.storedRecords==null)
         {
             updateMap();
@@ -62,9 +63,15 @@ public class AtomicRecordService {
         }
         else
         {
+            boolean hashChange = false;
             StoredCandidateMetadata.CandidateStatus status = null;
             for(StoredCandidate candidate : candidates)
             {
+                if(!candidate.getMethodHash().equals(hashcode+""))
+                {
+                    //System.out.println("HASH CHANGE :\ncurrent - "+hashcode+" \nnew - "+candidate.getMethodHash());
+                    hashChange = true;
+                }
                 if(status==null) {
                     status = candidate.getMetadata().getCandidateStatus();
                 }
@@ -76,6 +83,14 @@ public class AtomicRecordService {
                         status = StoredCandidateMetadata.CandidateStatus.FAILING;
                     }
                 }
+            }
+            if(hashChange)
+            {
+                return GutterState.EXECUTE;
+            }
+            if(status == null)
+            {
+                return GutterState.DATA_AVAILABLE;
             }
             if(status.equals(StoredCandidateMetadata.CandidateStatus.FAILING))
             {
@@ -183,7 +198,7 @@ public class AtomicRecordService {
                         existingRecord.setStoredCandidateList(filterCandidates(existingRecord.getStoredCandidateList()));
                     }
                     writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
-                            ,obj,FileUpdateType.UPDATE);
+                            ,obj,FileUpdateType.UPDATE,true);
                 }
                 else
                 {
@@ -191,7 +206,7 @@ public class AtomicRecordService {
                     logger.info("[ATRS] Replacing existing record (found)");
                     existingRecord.setStoredCandidateList(filterCandidates(existingRecord.getStoredCandidateList()));
                     writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
-                            ,obj,FileUpdateType.UPDATE);
+                            ,obj,FileUpdateType.UPDATE,true);
                 }
             }
             UsageInsightTracker.getInstance().RecordEvent("Candidate_Added",null);
@@ -248,17 +263,20 @@ public class AtomicRecordService {
         records.add(record);
         this.storedRecords.put(classname,records);
         writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
-                ,records,FileUpdateType.ADD);
+                ,records,FileUpdateType.ADD,true);
     }
 
-    private void writeToFile(File file, List<AtomicRecord> atomicRecords, FileUpdateType type)
+    private void writeToFile(File file, List<AtomicRecord> atomicRecords, FileUpdateType type,
+                             boolean notify)
     {
         logger.info("[ATRS] writing to file : "+file.getName());
         String json = gson.toJson(atomicRecords);
         try (FileOutputStream resourceFile = new FileOutputStream(file)) {
             resourceFile.write(json.getBytes(StandardCharsets.UTF_8));
             logger.info("[ATRS] file write successful");
-            InsidiousNotification.notifyMessage("Completed Operation :  "+type.toString(), NotificationType.INFORMATION);
+            if(notify) {
+                InsidiousNotification.notifyMessage("Completed Operation :  " + type.toString(), NotificationType.INFORMATION);
+            }
             resourceFile.close();
         }
         catch (Exception e)
@@ -437,7 +455,8 @@ public class AtomicRecordService {
         if(list!=null && candidateToRemove!=null) {
             list.remove(candidateToRemove);
         }
-        writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json"),records,FileUpdateType.DELETE);
+        writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
+                ,records,FileUpdateType.DELETE,true);
         UsageInsightTracker.getInstance().RecordEvent("Candidate_Deleted",null);
         insidiousService.triggerGutterIconReload();
         insidiousService.triggerAtomicTestsWindowRefresh();
@@ -448,5 +467,56 @@ public class AtomicRecordService {
             basePath = insidiousService.getProject().getBasePath();
         }
         return basePath+"/"+unloggedFolderName+"/";
+    }
+
+    public void setCandidateStateForCandidate(String candidateID, String classname,
+                                              String method, StoredCandidateMetadata.CandidateStatus state)
+    {
+        if(this.storedRecords==null)
+        {
+            updateMap();
+        }
+        ensureUnloggedFolder();
+//        System.out.println("#SAVE STATE : "+storedRecords.toString());
+        List<AtomicRecord> records = this.storedRecords.get(classname);
+        if(records==null)
+        {
+            return;
+        }
+        List<StoredCandidate> candidates = new ArrayList<>();
+        for(AtomicRecord record : records)
+        {
+            if(record.getMethod().equals(method))
+            {
+                candidates.addAll(record.getStoredCandidateList());
+            }
+        }
+        for(StoredCandidate candidate : candidates)
+        {
+            if(candidate.getCandidateId().equals(candidateID))
+            {
+                candidate.getMetadata().setCandidateStatus(state);
+            }
+        }
+    }
+
+    //call to sync at session close
+    public void writeAll()
+    {
+        if(this.storedRecords==null)
+        {
+            updateMap();
+        }
+        ensureUnloggedFolder();
+        if(storedRecords.size()==0)
+        {
+            return;
+        }
+        for(String classname : storedRecords.keySet())
+        {
+            List<AtomicRecord> recordsForClass = storedRecords.get(classname);
+            writeToFile(new File(basePath+"/"+unloggedFolderName+"/"+classname+".json")
+                    ,recordsForClass,FileUpdateType.UPDATE,false);
+        }
     }
 }

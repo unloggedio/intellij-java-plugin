@@ -115,6 +115,7 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
         logger.warn("disconnected from agent");
         // disconnected from agent
         this.isAgentServerRunning = false;
+        insidiousService.getAtomicRecordService().writeAll();
         ApplicationManager.getApplication().invokeLater(() -> {
             insidiousService.triggerGutterIconReload();
             if (agentJarExists) {

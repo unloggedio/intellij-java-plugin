@@ -1084,7 +1084,7 @@ final public class InsidiousService implements Disposable,
                 method.getName()+"#"+method.getJVMSignature());
 
         GutterState gutterState = atomicRecordService.computeGutterState(method.getContainingClass().getQualifiedName(),
-                method.getName()+"#"+method.getJVMSignature());
+                method.getName()+"#"+method.getJVMSignature(),method.getText().hashCode());
 
         // process is running, but no test candidates for this method
         if (candidates.size() == 0 && hasStoredCandidates==false) {
@@ -1115,8 +1115,11 @@ final public class InsidiousService implements Disposable,
             return GutterState.EXECUTE;
         }
 
-        if (!executionRecord.containsKey(hashKey) ||
-                (hasStoredCandidates)) {
+        if (!executionRecord.containsKey(hashKey) && hasStoredCandidates && gutterState!=null) {
+            if(!executionRecord.containsKey(hashKey) &&
+                    gutterState.equals(GutterState.EXECUTE)) {
+                return GutterState.EXECUTE;
+            }
             if(!executionRecord.containsKey(hashKey) &&
                     gutterState.equals(GutterState.DATA_AVAILABLE)) {
                 return GutterState.DATA_AVAILABLE;
@@ -1130,6 +1133,13 @@ final public class InsidiousService implements Disposable,
                     gutterState.equals(GutterState.DIFF))
             {
                 return GutterState.DIFF;
+            }
+        }
+        else
+        {
+            if(!executionRecord.containsKey(hashKey))
+            {
+                return GutterState.DATA_AVAILABLE;
             }
         }
 

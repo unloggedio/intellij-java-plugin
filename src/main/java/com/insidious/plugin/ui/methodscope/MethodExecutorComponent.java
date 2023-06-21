@@ -279,7 +279,12 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                         }
                         meta.setTimestamp(agentCommandResponse.getTimestamp());
                         meta.setCandidateStatus(getStatusForState(diffResult.getDiffResultType()));
-
+                        if(testCandidate.getCandidateId()!=null) {
+                            insidiousService.getAtomicRecordService().setCandidateStateForCandidate(
+                                    testCandidate.getCandidateId(),methodElement.getContainingClass().getQualifiedName(),
+                                    methodElement.getName()+"#"+methodElement.getJVMSignature(),
+                                    testCandidate.getMetadata().getCandidateStatus());
+                        }
                         //possible bug vector, equal case check
                         TestCandidateListedItemComponent candidateComponent =
                                 candidateComponentMap.get(testCandidate.getEntryProbeIndex());
