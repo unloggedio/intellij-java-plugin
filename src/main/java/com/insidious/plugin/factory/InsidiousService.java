@@ -1116,24 +1116,7 @@ final public class InsidiousService implements Disposable,
         }
 
         if (!executionRecord.containsKey(hashKey) && hasStoredCandidates && gutterState!=null) {
-            if(!executionRecord.containsKey(hashKey) &&
-                    gutterState.equals(GutterState.EXECUTE)) {
-                return GutterState.EXECUTE;
-            }
-            if(!executionRecord.containsKey(hashKey) &&
-                    gutterState.equals(GutterState.DATA_AVAILABLE)) {
-                return GutterState.DATA_AVAILABLE;
-            }
-            if(!executionRecord.containsKey(hashKey) &&
-                    gutterState.equals(GutterState.NO_DIFF))
-            {
-                return GutterState.NO_DIFF;
-            }
-            if(!executionRecord.containsKey(hashKey) &&
-                    gutterState.equals(GutterState.DIFF))
-            {
-                return GutterState.DIFF;
-            }
+            return gutterState;
         }
         else
         {
