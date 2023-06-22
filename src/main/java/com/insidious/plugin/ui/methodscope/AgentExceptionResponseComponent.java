@@ -54,8 +54,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component>, Ato
 
 
     public void setupDefLayout() {
-        final byte[] mainMethodReturnValue = metadata.getReturnDataEventSerializedValue().getBytes();
-        final String originalString = new String(mainMethodReturnValue);
+        final String originalString = metadata.getReturnValue();
         final String actualString = String.valueOf(response.getMethodReturnValue());
         JPanel panel = new JPanel();
         panel.setLayout(new GridLayout(2, 1));

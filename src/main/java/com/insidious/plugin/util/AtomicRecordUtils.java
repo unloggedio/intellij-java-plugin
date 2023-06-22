@@ -37,8 +37,6 @@ public class AtomicRecordUtils {
         //to be updated
         candidate.setProbSerializedValue(metadata.getProbSerializedValue());
         //to be updated
-        candidate.setReturnDataEventValue(metadata.getReturnDataEventValue());
-        candidate.setReturnDataEventSerializedValue(new String(response.getMethodReturnValue().getBytes()));
         candidate.setMethodName(metadata.getMethodName());
         candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
         candidate.setBooleanType(metadata.isBooleanType());

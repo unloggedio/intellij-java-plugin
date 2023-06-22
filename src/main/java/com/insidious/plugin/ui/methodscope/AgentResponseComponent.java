@@ -75,9 +75,7 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
         computeDifferences(differences);
 
 
-        byte[] serializedValue = metadata.getReturnDataEventSerializedValue().getBytes();
-        String originalString = serializedValue.length > 0 ? new String(serializedValue) :
-                String.valueOf(metadata.getReturnDataEventValue());
+        String originalString = metadata.getReturnValue();
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
         String simpleClassName = agentCommandResponse.getTargetClassName();
@@ -210,7 +208,7 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
                 this.tableParent.setVisible(false);
                 showExceptionTrace(
                         ExceptionUtils.prettyPrintException(
-                                this.metadata.getReturnDataEventSerializedValue())
+                                this.metadata.getReturnValue())
                 );
                 break;
         }
