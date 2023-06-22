@@ -370,16 +370,6 @@ public class AtomicRecordService {
         }
     }
 
-    private String toString(InputStream stream) throws IOException {
-        char[] buffer = new char[8192];
-        StringBuilder out = new StringBuilder();
-        Reader in = new InputStreamReader(stream, StandardCharsets.UTF_8);
-        for (int numRead; (numRead = in.read(buffer, 0, buffer.length)) > 0; ) {
-            out.append(buffer, 0, numRead);
-        }
-        return out.toString();
-    }
-
     public List<StoredCandidate> getStoredCandidatesForMethod(String classname, String method) {
         List<AtomicRecord> records = this.storedRecords.get(classname);
         if(records == null)
