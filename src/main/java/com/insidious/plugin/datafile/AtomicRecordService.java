@@ -248,14 +248,50 @@ public class AtomicRecordService {
             resourceFile.write(json.getBytes(StandardCharsets.UTF_8));
             logger.info("[ATRS] file write successful");
             if(notify) {
-                InsidiousNotification.notifyMessage("Completed Operation :  " + type.toString(), NotificationType.INFORMATION);
+                InsidiousNotification.notifyMessage(getMessageForOperationType(type,true),
+                        NotificationType.INFORMATION);
             }
             resourceFile.close();
         }
         catch (Exception e)
         {
             logger.info("[ATRS] Failed to write to file : "+e);
-            InsidiousNotification.notifyMessage("Exception in : "+type.toString(), NotificationType.ERROR);
+            InsidiousNotification.notifyMessage(getMessageForOperationType(type,false),
+                    NotificationType.ERROR);
+        }
+    }
+
+    private String getMessageForOperationType(FileUpdateType type, boolean positive)
+    {
+        switch (type)
+        {
+            case ADD:
+                if(positive) {
+                    return "Added Record.";
+                }
+                else
+                {
+                    return "Failed to add record"+
+                            "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.";
+                }
+            case UPDATE:
+                if(positive) {
+                    return "Updated Record.";
+                }
+                else
+                {
+                    return "Failed to update record."+
+                            "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.";
+                }
+            default:
+                if(positive) {
+                    return "Deleted Record.";
+                }
+                else
+                {
+                    return "Failed to delete record."+
+                            "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.";
+                }
         }
     }
 
