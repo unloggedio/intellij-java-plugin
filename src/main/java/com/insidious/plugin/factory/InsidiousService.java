@@ -162,6 +162,7 @@ final public class InsidiousService implements Disposable,
     private String basePackage = null;
     private ReportingService reportingService = new ReportingService(this);
     private AtomicRecordService atomicRecordService;
+    private Map<String,String> candidateIndividualContextMap = new TreeMap<>();
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -1127,9 +1128,15 @@ final public class InsidiousService implements Disposable,
         }
 
         DifferenceResult differenceResult = executionRecord.get(hashKey);
-        if(differenceResult.getGutterStatus()!=null)
+        String methodKey = method.getContainingClass().getQualifiedName()
+                +"#"+method.getName()+"#"+method.getJVMSignature();
+
+        if(this.candidateIndividualContextMap.get(methodKey)!=null &&
+                differenceResult.isUseIndividualContext())
         {
-            switch (differenceResult.getGutterStatus())
+            System.out.println("Using flow ind : "
+                    +this.candidateIndividualContextMap.get(methodKey));
+            switch (this.candidateIndividualContextMap.get(methodKey))
             {
                 case "Diff":
                     return GutterState.DIFF;
@@ -1139,6 +1146,8 @@ final public class InsidiousService implements Disposable,
                     return GutterState.NO_DIFF;
             }
         }
+        System.out.println("Using flow normal : "
+                +differenceResult.getDiffResultType());
         switch (differenceResult.getDiffResultType()) {
             case DIFF:
                 return GutterState.DIFF;
@@ -1315,7 +1324,16 @@ final public class InsidiousService implements Disposable,
             return;
         }
         DifferenceResult existing = executionRecord.get(keyName);
-        executionRecord.put(keyName,newDiffRecord);
+        if(!existing.isUseIndividualContext()) {
+            if(existing.getDiffResultType().equals(DiffResultType.SAME))
+            {
+                executionRecord.put(keyName, newDiffRecord);
+            }
+        }
+        else
+        {
+            executionRecord.put(keyName, newDiffRecord);
+        }
         addExecutionRecord(newDiffRecord);
     }
 
@@ -1504,5 +1522,9 @@ final public class InsidiousService implements Disposable,
     public AtomicRecordService getAtomicRecordService()
     {
         return this.atomicRecordService;
+    }
+
+    public Map<String, String> getIndividualCandidateContextMap() {
+        return candidateIndividualContextMap;
     }
 }

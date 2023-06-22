@@ -10,12 +10,21 @@ import com.insidious.plugin.agent.AgentCommandResponse;
 public class DifferenceResult {
     private final List<DifferenceInstance> differenceInstanceList;
     private DiffResultType diffResultType;
-    private String gutterStatus;
     private final Map<String, Object> leftOnly;
     private final Map<String, Object> rightOnly;
     private MethodAdapter methodAdapter;
     private AgentCommandRequest command;
     private AgentCommandResponse response;
+    private boolean useIndividualContext=false;
+
+    public void setIndividualContext(boolean useIndividualContext) {
+        this.useIndividualContext = useIndividualContext;
+    }
+
+    public boolean isUseIndividualContext() {
+        return useIndividualContext;
+    }
+
     public enum EXECUTION_MODE {DIRECT_INVOKE, ATOMIC_RUN_INDIVIDUAL, ATOMIC_RUN_REPLAY}
     private EXECUTION_MODE executionMode;
 
@@ -87,7 +96,6 @@ public class DifferenceResult {
         return "DifferenceResult{" +
                 "differenceInstanceList=" + differenceInstanceList +
                 ", diffResultType=" + diffResultType +
-                ", gutterStatus='" + gutterStatus + '\'' +
                 ", leftOnly=" + leftOnly +
                 ", rightOnly=" + rightOnly +
                 ", methodAdapter=" + methodAdapter +
@@ -95,13 +103,5 @@ public class DifferenceResult {
                 ", response=" + response +
                 ", executionMode=" + executionMode +
                 '}';
-    }
-
-    public String getGutterStatus() {
-        return gutterStatus;
-    }
-
-    public void setGutterStatus(String gutterStatus) {
-        this.gutterStatus = gutterStatus;
     }
 }

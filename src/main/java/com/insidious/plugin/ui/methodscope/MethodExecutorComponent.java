@@ -245,23 +245,29 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                         candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
                         DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate,
                                 agentCommandResponse);
-
+                        System.out.println("Source [EXEC]: "+source);
                         if(source.equals("all")) {
                             diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_REPLAY);
+                            diffResult.setIndividualContext(false);
                         }
                         else
                         {
                             diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_INDIVIDUAL);
                             //check other statuses and add them for individual execution
                             String status = getExecutionStatusFromCandidates(testCandidate.getEntryProbeIndex());
+                            String methodKey = methodElement.getContainingClass().getQualifiedName()
+                                    +"#"+methodElement.getName()+"#"+methodElement.getJVMSignature();
                             if(status.equals("Diff") || status.equals("NoRun"))
                             {
-                                diffResult.setGutterStatus(status);
+                                System.out.println("Setting status multi run : "+status);
+                                insidiousService.getIndividualCandidateContextMap().put(methodKey,status);
                             }
                             else
                             {
-                                diffResult.setGutterStatus("Same");
+                                System.out.println("Setting status multi run : Same");
+                                insidiousService.getIndividualCandidateContextMap().put(methodKey,"Same");
                             }
+                            diffResult.setIndividualContext(true);
                         }
                         diffResult.setMethodAdapter(methodElement);
                         diffResult.setResponse(agentCommandResponse);
