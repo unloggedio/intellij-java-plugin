@@ -358,8 +358,7 @@ public class AtomicRecordService {
     {
         try {
             InputStream inputStream = new FileInputStream(file);
-            String stringSource = toString(inputStream);
-            return objectMapper.readValue(stringSource,
+            return objectMapper.readValue(inputStream,
                     new TypeReference<List<AtomicRecord>>() {
             });
         }
