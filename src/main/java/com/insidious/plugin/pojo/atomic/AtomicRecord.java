@@ -1,12 +1,12 @@
 package com.insidious.plugin.pojo.atomic;
 
 import java.util.List;
+import java.util.Map;
 
 public class AtomicRecord {
 
     private String classname;
-    private String method;
-    private List<StoredCandidate> storedCandidateList;
+    private Map<String,List<StoredCandidate>> storedCandidateMap;
 
     public String getClassname() {
         return classname;
@@ -16,28 +16,19 @@ public class AtomicRecord {
         this.classname = classname;
     }
 
-    public String getMethod() {
-        return method;
+    public Map<String,List<StoredCandidate>> getStoredCandidateMap() {
+        return storedCandidateMap;
     }
 
-    public void setMethod(String method) {
-        this.method = method;
-    }
-
-    public List<StoredCandidate> getStoredCandidateList() {
-        return storedCandidateList;
-    }
-
-    public void setStoredCandidateList(List<StoredCandidate> storedCandidateList) {
-        this.storedCandidateList = storedCandidateList;
+    public void setStoredCandidateMap(Map<String,List<StoredCandidate>> storedCandidateList) {
+        this.storedCandidateMap = storedCandidateList;
     }
 
     @Override
     public String toString() {
         return "AtomicRecord{" +
                 "classname='" + classname + '\'' +
-                ", method='" + method + '\'' +
-                ", storedCandidateList=" + storedCandidateList +
+                ", storedCandidateList=" + storedCandidateMap +
                 '}';
     }
 }
