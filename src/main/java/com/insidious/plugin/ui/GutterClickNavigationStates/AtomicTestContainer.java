@@ -6,12 +6,10 @@ import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
 import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.TestCandidateUtils;
-import com.insidious.plugin.util.TestCaseUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Computable;
@@ -74,8 +72,7 @@ public class AtomicTestContainer {
         currentState = state;
     }
 
-    public void loadGenericComponentForState(GutterState state)
-    {
+    public void loadGenericComponentForState(GutterState state) {
         borderParent.removeAll();
         GenericNavigationComponent component = new GenericNavigationComponent(state, insidiousService);
         JPanel component1 = component.getComponent();
@@ -95,17 +92,17 @@ public class AtomicTestContainer {
     }
 
     public void triggerMethodExecutorRefresh(MethodAdapter method) {
-        final MethodAdapter m;
-        if(method==null)
-        {
-            m = methodExecutorComponent.getCurrentMethod();
+        final MethodAdapter focussedMethod;
+        if (method == null) {
+            focussedMethod = methodExecutorComponent.getCurrentMethod();
+        } else {
+            focussedMethod = method;
         }
-        else
-        {
-            m = method;
+        if (focussedMethod == null) {
+            return;
         }
         if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
-            methodExecutorComponent.refreshAndReloadCandidates(m, new ArrayList<>());
+            methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, new ArrayList<>());
         } else {
             if (currentState.equals(GutterState.NO_AGENT) ||
                     currentState.equals(GutterState.PROCESS_NOT_RUNNING)) {
@@ -120,14 +117,16 @@ public class AtomicTestContainer {
 
             List<TestCandidateMetadata> methodTestCandidates =
                     ApplicationManager.getApplication().runReadAction((Computable<List<TestCandidateMetadata>>) () ->
-                            insidiousService.getTestCandidateMetadata(m));
-            String methodKey = m.getName() +"#"+m.getJVMSignature();
+                            insidiousService.getTestCandidateMetadata(focussedMethod));
+            String methodKey = focussedMethod.getName() + "#" + focussedMethod.getJVMSignature();
             if (methodTestCandidates.size() > 0 ||
-                    insidiousService.getAtomicRecordService().hasStoredCandidateForMethod(m.getContainingClass().getQualifiedName(),methodKey)) {
+                    insidiousService.getAtomicRecordService()
+                            .hasStoredCandidateForMethod(focussedMethod.getContainingClass().getQualifiedName(), methodKey)) {
                 loadExecutionFlow();
-                List<StoredCandidate> candidates = getStoredCandidateListForMethod(deDuplicateList(methodTestCandidates),m.getContainingClass().getQualifiedName(),
+                List<StoredCandidate> candidates = getStoredCandidateListForMethod(
+                        deDuplicateList(methodTestCandidates), focussedMethod.getContainingClass().getQualifiedName(),
                         methodKey);
-                methodExecutorComponent.refreshAndReloadCandidates(m, candidates);
+                methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, candidates);
             } else {
                 //no candidates, calc state
                 loadComponentForState(insidiousService.getGutterStateBasedOnAgentState());
@@ -136,38 +135,32 @@ public class AtomicTestContainer {
     }
 
     private List<StoredCandidate> getStoredCandidateListForMethod(List<TestCandidateMetadata> testCandidateMetadataList,
-                                                     String classname, String method)
-    {
+                                                                  String classname, String method) {
         List<StoredCandidate> storedCandidates = new ArrayList<>();
-        List<StoredCandidate> candidates = insidiousService.getAtomicRecordService().getStoredCandidatesForMethod(classname, method);
-        if(candidates!=null) {
+        List<StoredCandidate> candidates = insidiousService.getAtomicRecordService()
+                .getStoredCandidatesForMethod(classname, method);
+        if (candidates != null) {
             storedCandidates.addAll(candidates);
         }
-        if(storedCandidates == null)
-        {
+        if (storedCandidates == null) {
             storedCandidates = new ArrayList<>();
         }
-        List<StoredCandidate> convertedCandidates = AtomicRecordUtils.convertToStoredcandidates(testCandidateMetadataList);
+        List<StoredCandidate> convertedCandidates = AtomicRecordUtils.convertToStoredcandidates(
+                testCandidateMetadataList);
         storedCandidates.addAll(convertedCandidates);
         storedCandidates = filterStoredCandidates(storedCandidates);
         return storedCandidates;
     }
 
-    private List<StoredCandidate> filterStoredCandidates(List<StoredCandidate> candidates)
-    {
-        Map<Long,StoredCandidate> selectedCandidates = new TreeMap<>();
-        for(StoredCandidate candidate : candidates)
-        {
-            if(!selectedCandidates.containsKey(candidate.getEntryProbeIndex()))
-            {
-                selectedCandidates.put(candidate.getEntryProbeIndex(),candidate);
-            }
-            else
-            {
+    private List<StoredCandidate> filterStoredCandidates(List<StoredCandidate> candidates) {
+        Map<Long, StoredCandidate> selectedCandidates = new TreeMap<>();
+        for (StoredCandidate candidate : candidates) {
+            if (!selectedCandidates.containsKey(candidate.getEntryProbeIndex())) {
+                selectedCandidates.put(candidate.getEntryProbeIndex(), candidate);
+            } else {
                 //saved candidate
-                if(candidate.getCandidateId()!=null)
-                {
-                    selectedCandidates.put(candidate.getEntryProbeIndex(),candidate);
+                if (candidate.getCandidateId() != null) {
+                    selectedCandidates.put(candidate.getEntryProbeIndex(), candidate);
                 }
             }
         }

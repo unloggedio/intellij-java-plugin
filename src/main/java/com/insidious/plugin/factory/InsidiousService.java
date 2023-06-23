@@ -1177,6 +1177,9 @@ final public class InsidiousService implements Disposable,
     }
 
     public List<TestCandidateMetadata> getTestCandidateMetadata(MethodAdapter method) {
+        if (method == null) {
+            return List.of();
+        }
 
         String methodName = method.getName();
         ClassAdapter containingClass = method.getContainingClass();
