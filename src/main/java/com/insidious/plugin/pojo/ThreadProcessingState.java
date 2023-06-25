@@ -1,8 +1,6 @@
 package com.insidious.plugin.pojo;
 
 
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,6 +12,7 @@ public class ThreadProcessingState {
     private List<String> nextNewObjectType = new LinkedList<>();
     private List<com.insidious.plugin.pojo.dao.TestCandidateMetadata> testCandidateMetadataStack = new ArrayList<>();
     private com.insidious.plugin.pojo.dao.MethodCallExpression mostRecentReturnedCall;
+    private boolean skipTillNextMethodExit;
 
     public ThreadProcessingState(int threadId) {
         this.threadId = threadId;
@@ -107,11 +106,19 @@ public class ThreadProcessingState {
         this.testCandidateMetadataStack = candidateStack;
     }
 
+    public com.insidious.plugin.pojo.dao.MethodCallExpression getMostRecentReturnedCall() {
+        return mostRecentReturnedCall;
+    }
+
     public void setMostRecentReturnedCall(com.insidious.plugin.pojo.dao.MethodCallExpression mostRecentReturnedCall) {
         this.mostRecentReturnedCall = mostRecentReturnedCall;
     }
 
-    public com.insidious.plugin.pojo.dao.MethodCallExpression getMostRecentReturnedCall() {
-        return mostRecentReturnedCall;
+    public boolean isSkipTillNextMethodExit() {
+        return skipTillNextMethodExit;
+    }
+
+    public void setSkipTillNextMethodExit(boolean skipTillNextMethodExit1) {
+        this.skipTillNextMethodExit = skipTillNextMethodExit1;
     }
 }
