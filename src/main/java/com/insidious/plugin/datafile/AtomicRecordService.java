@@ -433,8 +433,8 @@ public class AtomicRecordService {
 
     private void checkPreRequisits()
     {
-        ensureUnloggedFolder();
         basePath = insidiousService.getProject().getBasePath();
+        ensureUnloggedFolder();
         if(this.storedRecords==null)
         {
             this.storedRecords = updateMap();
