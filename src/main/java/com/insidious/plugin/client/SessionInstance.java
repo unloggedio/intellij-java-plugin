@@ -1073,7 +1073,7 @@ public class SessionInstance {
         } catch (Exception e) {
             logger.warn("failed to read archive for types index: " + e.getMessage());
             throw new FailedToReadClassWeaveException("Failed to read " + INDEX_TYPE_DAT_FILE + " in "
-                    + sessionFile.getPath() + " -> " + e.getMessage());
+                    + sessionFile.getPath() + " -> " + e.getMessage(), e);
         }
     }
 
@@ -3721,10 +3721,12 @@ public class SessionInstance {
         return daoService.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
     }
 
-    public List<TestCandidateMetadata> getTestCandidatesForAllMethod(String className, String methodName,
+    public List<TestCandidateMetadata> getTestCandidatesForAllMethod(
+            String className, String methodName, String methodArgumentsClassNames,
                                                                      boolean loadCalls) {
         try {
-            return daoService.getTestCandidatesForAllMethod(className, methodName, loadCalls);
+            return daoService.getTestCandidatesForAllMethod(className, methodName, methodArgumentsClassNames,
+                    loadCalls);
         } catch (Exception e) {
             // probably database doesnt exist
             logger.warn("failed to get test candidates for method [" + className + "." + methodName + "()]", e);
