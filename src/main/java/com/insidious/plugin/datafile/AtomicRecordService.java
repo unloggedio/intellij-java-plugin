@@ -27,14 +27,16 @@ public class AtomicRecordService {
     private final String unloggedFolderName = ".unlogged";
     private ObjectMapper objectMapper = new ObjectMapper();
     private Map<String,AtomicRecord> storedRecords=null;
+    private boolean useNotifications=true;
     public AtomicRecordService(InsidiousService service)
     {
         this.insidiousService = service;
         DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
-        dumbService.runWhenSmart(() -> {
-            checkPreRequisits();
-        });
-
+        if(dumbService!=null) {
+            dumbService.runWhenSmart(() -> {
+                checkPreRequisits();
+            });
+        }
     }
     private static final Logger logger = LoggerUtil.getInstance(AtomicRecordService.class);
 
@@ -96,7 +98,7 @@ public class AtomicRecordService {
         }
     }
 
-    private enum FileUpdateType {ADD,UPDATE,DELETE}
+    public enum FileUpdateType {ADD,UPDATE,DELETE}
 
     public void saveCandidate(String classname, String methodName, String signature, StoredCandidate candidate)
     {
@@ -128,7 +130,9 @@ public class AtomicRecordService {
                         {
                             foundCandidate = true;
                             //replace
-                            InsidiousNotification.notifyMessage("Replacing existing record", NotificationType.INFORMATION);
+                            if(useNotifications) {
+                                InsidiousNotification.notifyMessage("Replacing existing record", NotificationType.INFORMATION);
+                            }
                             logger.info("[ATRS] Replacing existing record");
                             storedCandidate.copyFrom(candidate);
                         }
@@ -151,14 +155,14 @@ public class AtomicRecordService {
                         existingRecord.setStoredCandidateMap(filterCandidates(existingRecord.getStoredCandidateMap()));
                     }
                     writeToFile(new File(getFilenameForClass(classname))
-                            ,obj,FileUpdateType.UPDATE,true);
+                            ,obj,FileUpdateType.UPDATE,(useNotifications) ? true : false);
                 }
                 else
                 {
                     logger.info("[ATRS] Replacing existing record (found)");
                     existingRecord.setStoredCandidateMap(filterCandidates(existingRecord.getStoredCandidateMap()));
                     writeToFile(new File(getFilenameForClass(classname))
-                            ,obj,FileUpdateType.UPDATE,true);
+                            ,obj,FileUpdateType.UPDATE,(useNotifications) ? true : false);
                 }
             }
             JSONObject properties = new JSONObject();
@@ -180,7 +184,7 @@ public class AtomicRecordService {
         return basePath+File.separator+unloggedFolderName+File.separator+classname+".json";
     }
 
-    private Map<String,List<StoredCandidate>> filterCandidates(Map<String,List<StoredCandidate>> candidates)
+    public Map<String,List<StoredCandidate>> filterCandidates(Map<String,List<StoredCandidate>> candidates)
     {
         if(candidates==null || candidates.size()==0)
         {
@@ -226,7 +230,7 @@ public class AtomicRecordService {
 
         this.storedRecords.put(classname,record);
         writeToFile(new File(getFilenameForClass(classname))
-                ,record,FileUpdateType.ADD,true);
+                ,record,FileUpdateType.ADD,(useNotifications) ? true : false);
     }
 
     private void writeToFile(File file, AtomicRecord atomicRecord, FileUpdateType type,
@@ -252,7 +256,7 @@ public class AtomicRecordService {
         }
     }
 
-    private String getMessageForOperationType(FileUpdateType type, boolean positive)
+    public String getMessageForOperationType(FileUpdateType type, boolean positive)
     {
         switch (type)
         {
@@ -262,7 +266,7 @@ public class AtomicRecordService {
                 }
                 else
                 {
-                    return "Failed to add record"+
+                    return "Failed to add record."+
                             "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.";
                 }
             case UPDATE:
@@ -339,7 +343,7 @@ public class AtomicRecordService {
         }
     }
 
-    private AtomicRecord getAtomicRecordFromFile(File file)
+    public AtomicRecord getAtomicRecordFromFile(File file)
     {
         try {
             InputStream inputStream = new FileInputStream(file);
@@ -388,7 +392,7 @@ public class AtomicRecordService {
             list.remove(candidateToRemove);
         }
         writeToFile(new File(getFilenameForClass(classname))
-                ,record,FileUpdateType.DELETE,true);
+                ,record,FileUpdateType.DELETE,(useNotifications) ? true : false);
         UsageInsightTracker.getInstance().RecordEvent("Candidate_Deleted",null);
         insidiousService.triggerGutterIconReload();
         insidiousService.triggerAtomicTestsWindowRefresh();
@@ -431,7 +435,7 @@ public class AtomicRecordService {
         }
     }
 
-    private void checkPreRequisits()
+    public void checkPreRequisits()
     {
         basePath = insidiousService.getProject().getBasePath();
         ensureUnloggedFolder();
@@ -439,5 +443,18 @@ public class AtomicRecordService {
         {
             this.storedRecords = updateMap();
         }
+    }
+
+    public Map<String,AtomicRecord> getStoredRecords()
+    {
+        return this.storedRecords;
+    }
+
+    public boolean isUseNotifications() {
+        return useNotifications;
+    }
+
+    public void setUseNotifications(boolean useNotifications) {
+        this.useNotifications = useNotifications;
     }
 }
