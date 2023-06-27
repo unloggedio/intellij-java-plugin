@@ -103,7 +103,7 @@ public class SessionInstance {
     private final Map<Long, String> methodCallSubjectTypeMap = new HashMap<>();
     private final String processorId;
     private boolean scanEnable = false;
-    private List<File> sessionArchives;
+    private List<File> sessionArchives = new ArrayList<>();
     private ArchiveIndex archiveIndex;
     private ChronicleMap<Long, ObjectInfoDocument> objectInfoIndex;
     private ChronicleMap<Integer, DataInfo> probeInfoIndex;

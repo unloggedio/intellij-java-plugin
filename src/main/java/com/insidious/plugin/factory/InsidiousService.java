@@ -1025,7 +1025,9 @@ final public class InsidiousService implements Disposable,
 
         if (atomicTestContainerWindow != null && currentMethod != null) {
             //promoteState();
-            atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
+            });
         }
 
     }
