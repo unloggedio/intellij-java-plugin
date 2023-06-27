@@ -104,12 +104,12 @@ public class AtomicTestContainer {
                     ApplicationManager.getApplication().runReadAction((Computable<List<TestCandidateMetadata>>) () ->
                             insidiousService.getTestCandidateMetadata(method));
 
-            if (methodTestCandidates.size() > 0) {
+//            if (methodTestCandidates.size() > 0) {
                 loadExecutionFlow();
                 methodExecutorComponent.refreshAndReloadCandidates(method, deDuplicateList(methodTestCandidates));
-            } else {
-                loadComponentForState(currentState);
-            }
+//            } else {
+//                loadComponentForState(currentState);
+//            }
         }
 
 

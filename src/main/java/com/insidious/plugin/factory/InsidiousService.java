@@ -1166,18 +1166,22 @@ final public class InsidiousService implements Disposable,
             if (!first) {
                 methodArgumentsClassnames.append(",");
             }
-            methodArgumentsClassnames.append(methodParam.getType().getCanonicalText());
+            String canonicalText = methodParam.getType().getCanonicalText();
+            if (canonicalText.contains("<")) {
+                canonicalText = canonicalText.substring(0, canonicalText.indexOf("<"));
+            }
+            methodArgumentsClassnames.append(canonicalText);
             first = false;
         }
         return methodArgumentsClassnames.toString();
     }
 
     public void updateMethodHashForExecutedMethod(MethodAdapter method) {
-        Application application = ApplicationManager.getApplication();
         String classMethodHashKey = getClassMethodHashKey(method);
         if (this.executionRecord.containsKey(classMethodHashKey)) {
 
-            String methodBody = application.runReadAction((Computable<String>) method::getText);
+            String methodBody = ApplicationManager.getApplication()
+                    .runReadAction((Computable<String>) method::getText);
             int methodBodyHashCode = methodBody.hashCode();
             this.methodHash.put(classMethodHashKey, methodBodyHashCode);
             DaemonCodeAnalyzer.getInstance(project).restart(method.getContainingFile());
