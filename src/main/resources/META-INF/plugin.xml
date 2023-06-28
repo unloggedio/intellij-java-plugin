@@ -7,25 +7,68 @@
 
     <description>
         <![CDATA[
-            The ultimate tool for Java developers who want to speed up their testing workflow. <br />
-            With Unlogged automated test case generator, you can instantly generate JUnit and Mockito test case boilerplate for any method in your codebase. <br />
-
+            We are excited to introduce the latest release of our IntelliJ Plugin, designed to 10x your unit testing experience. In this version, we have focused on providing a seamless way to save, delete, and update Atomic Tests in JSON format, allowing you to easily collaborate with your team members using Git.
+            <br/>
+            Key Features:
             <ul>
-            <li>Generate test case boilerplate instantly as you navigate to a method</li>
-            <li>Mock method calls in test cases <pre>when(some.Method()).then(answer))</pre></li>
-            <li>Support @Mock/@MockExtension for Mockito</li>
-            <li>JUnit4 and JUnit 5 flavours</li>
+                <li>Save, delete, and update Atomic Tests in JSON format: With this release, you can now create Atomic Tests and save them as JSON files. You have the flexibility to update or delete these tests as per your requirements. This functionality enables easy sharing and collaboration with your teammates.</li>
             </ul>
+            <br/>
 
-            Simply open the Unlogged plugin and navigate to the method you want to test in your editor.
-            Then, with just a few clicks, Unlogged test generator will create a complete test case for you,
-            including all necessary imports, annotations, and method stubs. <br /> <br />
+            How to Use:
+            <br/>
+            <ol>
+                <li> Installation:
+                    <ul>
+                        <li>Install Unlogged Plugin from the marketplace.</li>
+                        <li>Make sure to add our agent to your project by following the instructions in the plugin.</li>
+                    </ul>
+                </li>
 
-            But that's not all. Save the test case with one click and easily navigate to the generated test case
-             and start writing your test code right away.
-            No more wasting time setting up your testing environment - Unlogged test generator does it all for you.  <br /> <br />
+                <li> Running the Application:
+                    <ul>
+                        <li>Run your Java application with the added agent. The agent facilitates the recording of input and return values for each method.</li>
+                    </ul>
+                </li>
 
-            Download Unlogged today and start writing better tests in less time.  <br />
+                <li> Use your application:
+                    <ul>
+                        <li>Use Direct Invoke inside the plugin to call any Java function directly.</li>
+                        <li>Use Postman, Swagger or your UI to send data to your backed application.</li>
+                    </ul>
+                </li>
+
+                <li> Checking Atomic Tests:
+                    <ul>
+                        <li>Atomic Tests tab will show you the input and return values for each method you accessed earlier.</li>
+                    </ul>
+                </li>
+
+                <li> Replay and Evaluate:
+                    <ul>
+                        <li>Replay your Atomic Tests directly from the IntelliJ IDE.</li>
+                        <li>Evaluate the return values of the test to ensure its correctness.</li>
+                    </ul>
+                </li>
+
+                <li> Saving Atomic Tests:
+                    <ul>
+                        <li>After running and validating an Atomic Test, save it using the provided functionality.</li>
+                        <li>The saved test will be stored as a JSON artifact inside the `.unlogged` folder within your project directory.</li>
+                    </ul>
+                </li>
+
+                <li> Collaboration with Teammates:
+                    <ul>
+                        <li>Commit the saved Atomic Tests to your Git repository, enabling your team members to access and utilize the same set of tests.</li>
+                        <li>Teammates can pull the Atomic Tests from the Git repository and run them seamlessly, streamlining the testing process.</li>
+                    </ul>
+                </li>
+            </ol>
+            We believe that these new features will significantly enhance your testing workflow and improve collaboration within your development team. Download the latest version of our IntelliJ Plugin now to take advantage of these exciting enhancements! It’s free and works fully offline.
+            <br/>
+
+            Please note: If you encounter any issues or have suggestions for further improvements, please don't hesitate to reach out to us on our discord channel. We value your feedback and are committed to continuously improving our plugin.
         ]]>
     </description>
 

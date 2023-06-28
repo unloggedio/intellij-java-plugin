@@ -94,7 +94,8 @@ public class JavaMethodAdapter implements MethodAdapter {
 
     @Override
     public String getJVMSignature() {
-        return JVMNameUtil.getJVMSignature(psiMethod).toString();
+        return ApplicationManager.getApplication()
+                .runReadAction((Computable<String>) () -> JVMNameUtil.getJVMSignature(psiMethod).toString());
     }
 
     @Override

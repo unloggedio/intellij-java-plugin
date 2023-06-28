@@ -24,7 +24,6 @@ import java.util.regex.Pattern;
 public class LineHighlighter implements LineMarkerProvider {
 
     private static final Logger logger = LoggerUtil.getInstance(LineHighlighter.class);
-
     private final Pattern testFileNamePattern = Pattern.compile("^Test.*V.java$");
     private final Pattern testMethodNamePattern = Pattern.compile("^test.*");
     private final Supplier<String> accessibleNameProvider = () -> "Execute method";
