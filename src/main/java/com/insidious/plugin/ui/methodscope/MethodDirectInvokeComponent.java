@@ -249,7 +249,8 @@ public class MethodDirectInvokeComponent {
             SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
             if (sessionInstance != null) {
                 List<TestCandidateMetadata> methodTestCandidates = sessionInstance
-                        .getTestCandidatesForAllMethod(classQualifiedName, methodName, false);
+                        .getTestCandidatesForAllMethod(classQualifiedName, methodName,
+                                insidiousService.getMethodArgsDescriptor(methodElement) , false);
                 int candidateCount = methodTestCandidates.size();
                 if (candidateCount > 0) {
                     TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(candidateCount - 1);

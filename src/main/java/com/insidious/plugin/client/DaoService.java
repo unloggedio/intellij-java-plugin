@@ -92,6 +92,7 @@ public class DaoService {
             "join method_definition md on md.id = mc.methodDefinitionId\n" +
             "where md.ownerType = ?\n" +
             "  and mc.methodName = ?\n" +
+            "  and md.argumentTypes = ?\n" +
             "order by tc.entryProbeIndex desc limit 50;";
     public static final Type LIST_STRING_TYPE = new TypeToken<ArrayList<String>>() {
     }.getType();
@@ -1258,13 +1259,14 @@ public class DaoService {
     }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-    getTestCandidatesForAllMethod(String className, String methodName, boolean loadCalls) {
+    getTestCandidatesForAllMethod(
+            String className, String methodName, String methodArgumentsClassNames, boolean loadCalls) {
 
         try {
 
             GenericRawResults<TestCandidateMetadata> parameterIds = testCandidateDao
                     .queryRaw(TEST_CANDIDATE_BY_ALL_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className,
-                            methodName);
+                            methodName, methodArgumentsClassNames);
 
             List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> resultList = new LinkedList<>();
 

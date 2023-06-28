@@ -103,7 +103,7 @@ public class SessionInstance {
     private final Map<Long, String> methodCallSubjectTypeMap = new HashMap<>();
     private final String processorId;
     private boolean scanEnable = false;
-    private List<File> sessionArchives;
+    private List<File> sessionArchives = new ArrayList<>();
     private ArchiveIndex archiveIndex;
     private ChronicleMap<Long, ObjectInfoDocument> objectInfoIndex;
     private ChronicleMap<Integer, DataInfo> probeInfoIndex;
@@ -1074,7 +1074,7 @@ public class SessionInstance {
         } catch (Exception e) {
             logger.warn("failed to read archive for types index: " + e.getMessage());
             throw new FailedToReadClassWeaveException("Failed to read " + INDEX_TYPE_DAT_FILE + " in "
-                    + sessionFile.getPath() + " -> " + e.getMessage());
+                    + sessionFile.getPath() + " -> " + e.getMessage(), e);
         }
     }
 
@@ -2432,6 +2432,8 @@ public class SessionInstance {
                         eventsList);
             } catch (NeedMoreLogsException e) {
                 return newTestCaseIdentified;
+            } catch (StackMismatchException e) {
+                throw new RuntimeException(e);
             }
         }
 
@@ -2501,7 +2503,7 @@ public class SessionInstance {
             ChronicleVariableContainer parameterContainer,
             Set<Integer> existingProbes,
             List<KaitaiInsidiousEventParser.Block> eventsSublist
-    ) throws IOException, SQLException, FailedToReadClassWeaveException, NeedMoreLogsException {
+    ) throws IOException, SQLException, FailedToReadClassWeaveException, NeedMoreLogsException, StackMismatchException {
         boolean newTestCaseIdentified = false;
         int threadId = threadState.getThreadId();
         long currentCallId = daoService.getMaxCallId();
@@ -2559,6 +2561,17 @@ public class SessionInstance {
 //            if (eventBlock.valueId() == 391737481) {
 //                logger.warn("here: " + logFile); // 170446
 //            }
+            if (threadState.isSkipTillNextMethodExit()) {
+                switch (probeInfo.getEventType()) {
+                    case METHOD_NORMAL_EXIT:
+                    case METHOD_EXCEPTIONAL_EXIT:
+                        threadState.setSkipTillNextMethodExit(false);
+                        break;
+                    default:
+                        //nothing
+                }
+                continue;
+            }
             switch (probeInfo.getEventType()) {
 
                 case LABEL:
@@ -3419,6 +3432,15 @@ public class SessionInstance {
 
                         isModified = true;
                     }
+                    if (threadState.getCallStackSize() == 0) {
+                        threadState.setSkipTillNextMethodExit(true);
+                        if ("Lio/unlogged/Runtime;".equals(probeInfo.getAttribute("Type", null))) {
+                            continue;
+                        }
+//                        else {
+//                            throw new StackMismatchException();
+//                        }
+                    }
 
                     com.insidious.plugin.pojo.dao.MethodCallExpression callExpression = threadState.getTopCall();
                     EventType entryEventType = probeInfoIndex.get(callExpression.getEntryProbeInfo_id())
@@ -3707,10 +3729,12 @@ public class SessionInstance {
         return daoService.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
     }
 
-    public List<TestCandidateMetadata> getTestCandidatesForAllMethod(String className, String methodName,
+    public List<TestCandidateMetadata> getTestCandidatesForAllMethod(
+            String className, String methodName, String methodArgumentsClassNames,
                                                                      boolean loadCalls) {
         try {
-            return daoService.getTestCandidatesForAllMethod(className, methodName, loadCalls);
+            return daoService.getTestCandidatesForAllMethod(className, methodName, methodArgumentsClassNames,
+                    loadCalls);
         } catch (Exception e) {
             // probably database doesnt exist
             logger.warn("failed to get test candidates for method [" + className + "." + methodName + "()]", e);

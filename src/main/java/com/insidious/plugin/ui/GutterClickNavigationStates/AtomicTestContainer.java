@@ -187,4 +187,5 @@ public class AtomicTestContainer {
     public void triggerCompileAndExecute() {
         methodExecutorComponent.compileAndExecuteAll();
     }
+    //assertions
 }

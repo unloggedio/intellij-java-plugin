@@ -12,6 +12,7 @@ import com.google.gson.JsonElement;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.*;
 import com.insidious.plugin.client.ClassMethodAggregates;
@@ -1024,9 +1025,11 @@ final public class InsidiousService implements Disposable,
 //        }
 //        GutterActionRenderer
 
-        if (atomicTestContainerWindow != null) {
+        if (atomicTestContainerWindow != null && currentMethod != null) {
             //promoteState();
-            atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
+            });
         }
 
     }
@@ -1178,15 +1181,16 @@ final public class InsidiousService implements Disposable,
 
     public List<TestCandidateMetadata> getTestCandidateMetadata(MethodAdapter method) {
         if (method == null) {
-            return List.of();
+            return new ArrayList<>();
         }
-
         String methodName = method.getName();
         ClassAdapter containingClass = method.getContainingClass();
         String methodClassQualifiedName = containingClass.getQualifiedName();
 
+        String methodArgsDescriptor = getMethodArgsDescriptor(method);
+
         List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesForAllMethod(
-                methodClassQualifiedName, methodName, false);
+                methodClassQualifiedName, methodName, methodArgsDescriptor, false);
 
         ClassAdapter[] interfaceList = containingClass.getInterfaces();
         for (ClassAdapter classInterface : interfaceList) {
@@ -1200,19 +1204,38 @@ final public class InsidiousService implements Disposable,
 
             if (hasMethod) {
                 List<TestCandidateMetadata> interfaceCandidates = sessionInstance.getTestCandidatesForAllMethod(
-                        classInterface.getQualifiedName(), methodName, false);
+                        classInterface.getQualifiedName(), methodName, methodArgsDescriptor, false);
                 candidates.addAll(interfaceCandidates);
             }
         }
         return candidates;
     }
 
+    @NotNull
+    public String getMethodArgsDescriptor(MethodAdapter method) {
+        ParameterAdapter[] methodParams = method.getParameters();
+        StringBuilder methodArgumentsClassnames = new StringBuilder();
+        boolean first = true;
+        for (ParameterAdapter methodParam : methodParams) {
+            if (!first) {
+                methodArgumentsClassnames.append(",");
+            }
+            String canonicalText = methodParam.getType().getCanonicalText();
+            if (canonicalText.contains("<")) {
+                canonicalText = canonicalText.substring(0, canonicalText.indexOf("<"));
+            }
+            methodArgumentsClassnames.append(canonicalText);
+            first = false;
+        }
+        return methodArgumentsClassnames.toString();
+    }
+
     public void updateMethodHashForExecutedMethod(MethodAdapter method) {
-        Application application = ApplicationManager.getApplication();
         String classMethodHashKey = getClassMethodHashKey(method);
         if (this.executionRecord.containsKey(classMethodHashKey)) {
 
-            String methodBody = application.runReadAction((Computable<String>) method::getText);
+            String methodBody = ApplicationManager.getApplication()
+                    .runReadAction((Computable<String>) method::getText);
             int methodBodyHashCode = methodBody.hashCode();
             this.methodHash.put(classMethodHashKey, methodBodyHashCode);
             DaemonCodeAnalyzer.getInstance(project).restart(method.getContainingFile());
@@ -1331,8 +1354,7 @@ final public class InsidiousService implements Disposable,
         addExecutionRecord(newDiffRecord);
     }
 
-    public void addExecutionRecord(DifferenceResult result)
-    {
+    public void addExecutionRecord(DifferenceResult result) {
         reportingService.addRecord(result);
     }
 
