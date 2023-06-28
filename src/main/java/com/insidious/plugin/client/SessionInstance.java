@@ -3730,8 +3730,8 @@ public class SessionInstance {
     }
 
     public List<TestCandidateMetadata> getTestCandidatesForAllMethod(
-            String className, String methodName, String methodArgumentsClassNames,
-                                                                     boolean loadCalls) {
+            String className, String methodName,
+            String methodArgumentsClassNames, boolean loadCalls) {
         try {
             return daoService.getTestCandidatesForAllMethod(className, methodName, methodArgumentsClassNames,
                     loadCalls);

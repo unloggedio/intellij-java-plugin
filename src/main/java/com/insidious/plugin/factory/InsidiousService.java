@@ -86,10 +86,7 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
-import com.intellij.psi.PsiDocumentManager;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiJavaFile;
-import com.intellij.psi.PsiManager;
+import com.intellij.psi.*;
 import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -1220,7 +1217,11 @@ final public class InsidiousService implements Disposable,
             if (!first) {
                 methodArgumentsClassnames.append(",");
             }
-            String canonicalText = methodParam.getType().getCanonicalText();
+            String canonicalText;
+            canonicalText = methodParam.getType().getCanonicalText();
+            if (methodParam.getType() instanceof PsiPrimitiveType) {
+                canonicalText = ((PsiPrimitiveType) methodParam.getType()).getKind().getBinaryName();
+            }
             if (canonicalText.contains("<")) {
                 canonicalText = canonicalText.substring(0, canonicalText.indexOf("<"));
             }
