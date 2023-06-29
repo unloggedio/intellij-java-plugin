@@ -5,7 +5,9 @@ import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
+import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.TestCandidateUtils;
 import com.intellij.openapi.application.ApplicationManager;
@@ -37,7 +39,6 @@ public class AtomicTestContainer {
     }
 
     public synchronized void loadComponentForState(GutterState state) {
-        logger.info("Loading Component for state : " + state);
         switch (state) {
             case PROCESS_NOT_RUNNING: {
                 if (currentState != null && currentState.equals(state)) {
@@ -51,21 +52,13 @@ public class AtomicTestContainer {
                 loadExecutionFlow();
                 break;
             case PROCESS_RUNNING:
+                loadGenericComponentForState(state);
+                break;
             default: {
                 if (currentState != null && currentState.equals(state)) {
                     return;
                 }
-                borderParent.removeAll();
-                GenericNavigationComponent component = new GenericNavigationComponent(state, insidiousService);
-                JPanel component1 = component.getComponent();
-                borderParent.add(component1, BorderLayout.CENTER);
-                component1.validate();
-                component1.repaint();
-                borderParent.setVisible(false);
-                borderParent.setVisible(true);
-                borderParent.validate();
-                borderParent.repaint();
-                break;
+                loadGenericComponentForState(state);
             }
         }
         currentState = state;
@@ -108,8 +101,17 @@ public class AtomicTestContainer {
     }
 
     public void triggerMethodExecutorRefresh(MethodAdapter method) {
+        final MethodAdapter focussedMethod;
+        if (method == null) {
+            focussedMethod = methodExecutorComponent.getCurrentMethod();
+        } else {
+            focussedMethod = method;
+        }
+        if (focussedMethod == null) {
+            return;
+        }
         if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
-            methodExecutorComponent.refreshAndReloadCandidates(method, new ArrayList<>());
+            methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, new ArrayList<>());
         } else {
             if (currentState.equals(GutterState.NO_AGENT) ||
                     currentState.equals(GutterState.PROCESS_NOT_RUNNING)) {
@@ -124,17 +126,55 @@ public class AtomicTestContainer {
 
             List<TestCandidateMetadata> methodTestCandidates =
                     ApplicationManager.getApplication().runReadAction((Computable<List<TestCandidateMetadata>>) () ->
-                            insidiousService.getTestCandidateMetadata(method));
-
-//            if (methodTestCandidates.size() > 0) {
+                            insidiousService.getTestCandidateMetadata(focussedMethod));
+            String methodKey = focussedMethod.getName() + "#" + focussedMethod.getJVMSignature();
+            if (methodTestCandidates.size() > 0 ||
+                    insidiousService.getAtomicRecordService()
+                            .hasStoredCandidateForMethod(focussedMethod.getContainingClass().getQualifiedName(), methodKey)) {
                 loadExecutionFlow();
-                methodExecutorComponent.refreshAndReloadCandidates(method, deDuplicateList(methodTestCandidates));
-//            } else {
-//                loadComponentForState(currentState);
-//            }
+                List<StoredCandidate> candidates = getStoredCandidateListForMethod(
+                        deDuplicateList(methodTestCandidates), focussedMethod.getContainingClass().getQualifiedName(),
+                        methodKey);
+                methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, candidates);
+            } else {
+                //no candidates, calc state
+                loadComponentForState(insidiousService.getGutterStateBasedOnAgentState());
+            }
         }
+    }
 
+    private List<StoredCandidate> getStoredCandidateListForMethod(List<TestCandidateMetadata> testCandidateMetadataList,
+                                                                  String classname, String method) {
+        List<StoredCandidate> storedCandidates = new ArrayList<>();
+        List<StoredCandidate> candidates = insidiousService.getAtomicRecordService()
+                .getStoredCandidatesForMethod(classname, method);
+        if (candidates != null) {
+            storedCandidates.addAll(candidates);
+        }
+        if (storedCandidates == null) {
+            storedCandidates = new ArrayList<>();
+        }
+        List<StoredCandidate> convertedCandidates = AtomicRecordUtils.convertToStoredcandidates(
+                testCandidateMetadataList);
+        storedCandidates.addAll(convertedCandidates);
+        storedCandidates = filterStoredCandidates(storedCandidates);
+        return storedCandidates;
+    }
 
+    private List<StoredCandidate> filterStoredCandidates(List<StoredCandidate> candidates) {
+        Map<Long, StoredCandidate> selectedCandidates = new TreeMap<>();
+        for (StoredCandidate candidate : candidates) {
+            if (!selectedCandidates.containsKey(candidate.getEntryProbeIndex())) {
+                selectedCandidates.put(candidate.getEntryProbeIndex(), candidate);
+            } else {
+                //saved candidate
+                if (candidate.getCandidateId() != null) {
+                    selectedCandidates.put(candidate.getEntryProbeIndex(), candidate);
+                }
+            }
+        }
+        List<StoredCandidate> candidatesFiltered = new ArrayList<>(selectedCandidates.values());
+        return candidatesFiltered;
     }
 
     public List<TestCandidateMetadata> deDuplicateList(List<TestCandidateMetadata> list) {
@@ -156,4 +196,5 @@ public class AtomicTestContainer {
     public void triggerCompileAndExecute() {
         methodExecutorComponent.compileAndExecuteAll();
     }
+    //assertions
 }

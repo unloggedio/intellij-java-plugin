@@ -3,7 +3,7 @@
   <grid id="27dc6" binding="mainContainer" layout-manager="GridLayoutManager" row-count="5" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="1" left="1" bottom="1" right="1"/>
     <constraints>
-      <xy x="20" y="20" width="614" height="640"/>
+      <xy x="20" y="20" width="2360" height="15277"/>
     </constraints>
     <properties/>
     <border type="none"/>
@@ -49,9 +49,10 @@
               <background color="-14671840"/>
               <editable value="false"/>
               <foreground color="-16659211"/>
-              <lineWrap value="false"/>
+              <lineWrap value="true"/>
               <margin top="8" left="8" bottom="8" right="8"/>
-              <text value="Test case generation will be work after IDE indexing is completed&#10;&#10;Changelog (1.14.5):&#10;- Fixed a bug affecting DirectInvoke for static method&#10;&#10;Changelog (1.14.3): &#10;- Fix &quot;Direct Invoke&quot; button not visible in New IntelliJ UI&#10;- Fixed bugs affecting Windows workflow (session not identified)&#10;- Improved support for Generic method arguments&#10;- Performance improvements in both Plugin and Agent &#10;  (Please report us if you face freezes)"/>
+              <text value="Test case generation will be work after IDE indexing is completed&#10;&#10;Changelog (1.15.1):&#10;- Save, delete, and update Atomic Tests in JSON format: &#10;    With this release, you can now create Atomic&#10;    Tests and save them as JSON files. You have the&#10;    flexibility to update or delete these tests as per your requirements.&#10;    This functionality enables easy sharing and collaboration with your teammates.&#10;- Fixed bug affecting DirectInvoke's method updation.&#10;- Selection of a new method in direct invoke clears out previous output.&#10;&#10;Changelog (1.14.5):&#10;- Support executing static method with DirectInvoke&#10;&#10;Changelog (1.14.3): &#10;- Fix &quot;Direct Invoke&quot; button not visible in New IntelliJ UI&#10;- Fixed bugs affecting Windows workflow (session not identified)&#10;- Improved support for Generic method arguments&#10;- Performance improvements in both Plugin and Agent &#10;  (Please report us if you face freezes)"/>
+              <wrapStyleWord value="true"/>
             </properties>
           </component>
         </children>

@@ -93,6 +93,8 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
             });
         }
         this.isAgentServerRunning = true;
+        //reset atomicRecordMap
+        insidiousService.intiAtomicRecordService();
 
         InsidiousNotification.notifyMessage("New session identified tracking package [" + finalIncludedPackageName
                         + "] connected, agent version: " + serverMetadata.getAgentVersion(),
@@ -113,6 +115,7 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
         logger.warn("disconnected from agent");
         // disconnected from agent
         this.isAgentServerRunning = false;
+        insidiousService.getAtomicRecordService().writeAll();
         ApplicationManager.getApplication().invokeLater(() -> {
             insidiousService.triggerGutterIconReload();
             if (agentJarExists) {
@@ -121,7 +124,6 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
                 insidiousService.promoteState(GutterState.NO_AGENT);
             }
         });
-
     }
 
     @Override
