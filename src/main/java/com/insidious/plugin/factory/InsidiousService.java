@@ -1020,15 +1020,9 @@ final public class InsidiousService implements Disposable,
 
         if (atomicTestContainerWindow != null && currentMethod != null) {
             //promoteState();
-            System.out.println("In Identified new candidate 1");
-            System.out.println("IS CM : "+currentMethod.toString());
-            System.out.println("ME CM : "+(atomicTestContainerWindow.getCurrentMethod()==null ? "Null" :
-                    atomicTestContainerWindow.getCurrentMethod().toString()));
             if(currentMethod.equals(atomicTestContainerWindow.getCurrentMethod()))
             {
-                System.out.println("In Identified new candidate 2");
                 ApplicationManager.getApplication().invokeLater(() -> {
-                    System.out.println("Showing full execution flow DA promote");
                     if (this.toolWindow==null)
                     {
                         return;
@@ -1039,7 +1033,6 @@ final public class InsidiousService implements Disposable,
                     manager.addContent(directMethodInvokeContent);
                 });
             }
-            System.out.println("In Identified new candidate 3");
             ApplicationManager.getApplication().invokeLater(() -> {
                 atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
             });
