@@ -38,6 +38,7 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -154,6 +155,13 @@ public class MethodDirectInvokeComponent {
                         TitledBorder panelTitledBoarder = (TitledBorder) scrollerContainer.getBorder();
                         String responseObjectClassName = agentCommandResponse.getResponseClassName();
                         Object methodReturnValue = agentCommandResponse.getMethodReturnValue();
+
+
+                        String targetClassName = agentCommandResponse.getTargetClassName();
+                        targetClassName = targetClassName.substring(targetClassName.lastIndexOf(".") + 1);
+                        returnValueTextArea.setToolTipText("Timestamp: " +
+                                new Timestamp(agentCommandResponse.getTimestamp()).toString() + " from "
+                                + targetClassName + "." + agentCommandResponse.getTargetMethodName() + "( " + " )");
                         if (responseType == null) {
                             panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);
                             returnValueTextArea.setText(responseMessage + methodReturnValue);
@@ -198,7 +206,8 @@ public class MethodDirectInvokeComponent {
 
                         ResponseType responseType1 = agentCommandResponse.getResponseType();
                         DifferenceResult diffResult = new DifferenceResult(null,
-                                responseType1.equals(ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION,
+                                responseType1.equals(
+                                        ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION,
                                 null,
                                 DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
@@ -250,7 +259,7 @@ public class MethodDirectInvokeComponent {
             if (sessionInstance != null) {
                 List<TestCandidateMetadata> methodTestCandidates = sessionInstance
                         .getTestCandidatesForAllMethod(classQualifiedName, methodName,
-                                insidiousService.getMethodArgsDescriptor(methodElement) , false);
+                                insidiousService.getMethodArgsDescriptor(methodElement), false);
                 int candidateCount = methodTestCandidates.size();
                 if (candidateCount > 0) {
                     TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(candidateCount - 1);
@@ -329,12 +338,12 @@ public class MethodDirectInvokeComponent {
         mainContainer.repaint();
     }
 
-    private void clearOutputSection()
-    {
+    private void clearOutputSection() {
         TitledBorder panelTitledBoarder = (TitledBorder) scrollerContainer.getBorder();
         panelTitledBoarder.setTitle("Method Response");
         returnValueTextArea.setText("");
     }
+
     private boolean isBoxedPrimitive(String typeCanonicalName) {
         return typeCanonicalName.equals("java.lang.String")
                 || typeCanonicalName.equals("java.lang.Integer")

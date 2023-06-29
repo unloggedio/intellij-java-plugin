@@ -121,7 +121,8 @@ public class AtomicTestContainer {
             String methodKey = focussedMethod.getName() + "#" + focussedMethod.getJVMSignature();
             if (methodTestCandidates.size() > 0 ||
                     insidiousService.getAtomicRecordService()
-                            .hasStoredCandidateForMethod(focussedMethod.getContainingClass().getQualifiedName(), methodKey)) {
+                            .hasStoredCandidateForMethod(focussedMethod.getContainingClass().getQualifiedName(),
+                                    methodKey)) {
                 loadExecutionFlow();
                 List<StoredCandidate> candidates = getStoredCandidateListForMethod(
                         deDuplicateList(methodTestCandidates), focussedMethod.getContainingClass().getQualifiedName(),
