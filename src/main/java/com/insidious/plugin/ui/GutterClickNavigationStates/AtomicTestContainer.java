@@ -44,15 +44,7 @@ public class AtomicTestContainer {
                 if (currentState != null && currentState.equals(state)) {
                     return;
                 }
-                borderParent.removeAll();
-                AgentConfigComponent component = new AgentConfigComponent(insidiousService);
-                borderParent.add(component.getComponent(), BorderLayout.CENTER);
-                borderParent.revalidate();
-                borderParent.repaint();
-                mainPanel.revalidate();
-                mainPanel.repaint();
-
-
+                  loadSDKOnboarding();
                 break;
             }
             case EXECUTE:
@@ -73,6 +65,7 @@ public class AtomicTestContainer {
     }
 
     public void loadGenericComponentForState(GutterState state) {
+        insidiousService.setAtomicWindowHeading("Get Started");
         borderParent.removeAll();
         GenericNavigationComponent component = new GenericNavigationComponent(state, insidiousService);
         JPanel component1 = component.getComponent();
@@ -85,7 +78,23 @@ public class AtomicTestContainer {
         borderParent.repaint();
     }
 
+    public void loadSDKOnboarding()
+    {
+        insidiousService.setAtomicWindowHeading("Get Started");
+        borderParent.removeAll();
+        UnloggedSDKOnboarding component = new UnloggedSDKOnboarding(insidiousService);
+        JPanel component1 = component.getComponent();
+        borderParent.add(component1, BorderLayout.CENTER);
+        component1.validate();
+        component1.repaint();
+        borderParent.setVisible(false);
+        borderParent.setVisible(true);
+        borderParent.validate();
+        borderParent.repaint();
+    }
+
     public void loadExecutionFlow() {
+        insidiousService.setAtomicWindowHeading("Atomic Tests");
         borderParent.removeAll();
         borderParent.add(methodExecutorComponent.getComponent(), BorderLayout.CENTER);
         borderParent.revalidate();
