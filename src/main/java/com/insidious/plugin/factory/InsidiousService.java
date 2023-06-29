@@ -1020,6 +1020,26 @@ final public class InsidiousService implements Disposable,
 
         if (atomicTestContainerWindow != null && currentMethod != null) {
             //promoteState();
+            System.out.println("In Identified new candidate 1");
+            System.out.println("IS CM : "+currentMethod.toString());
+            System.out.println("ME CM : "+(atomicTestContainerWindow.getCurrentMethod()==null ? "Null" :
+                    atomicTestContainerWindow.getCurrentMethod().toString()));
+            if(currentMethod.equals(atomicTestContainerWindow.getCurrentMethod()))
+            {
+                System.out.println("In Identified new candidate 2");
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    System.out.println("Showing full execution flow DA promote");
+                    if (this.toolWindow==null)
+                    {
+                        return;
+                    }
+                    ContentManager manager = this.toolWindow.getContentManager();
+                    manager.removeAllContents(false);
+                    manager.addContent(atomicTestContent);
+                    manager.addContent(directMethodInvokeContent);
+                });
+            }
+            System.out.println("In Identified new candidate 3");
             ApplicationManager.getApplication().invokeLater(() -> {
                 atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
             });
@@ -1236,36 +1256,8 @@ final public class InsidiousService implements Disposable,
             int methodBodyHashCode = methodBody.hashCode();
             this.methodHash.put(classMethodHashKey, methodBodyHashCode);
             DaemonCodeAnalyzer.getInstance(project).restart(method.getContainingFile());
-        } else {
-            //don't update hash
-            //failed execution
         }
     }
-
-//    @Override
-//    public String getJavaAgentString() {
-//        return null;
-//    }
-//
-//    @Override
-//    public String getVideoBugAgentPath() {
-//        return null;
-//    }
-//
-//    @Override
-//    public String suggestAgentVersion() {
-//        return "jackson-2.13";
-//    }
-//
-//    @Override
-//    public boolean doesAgentExist() {
-//        return agentStateProvider.doesAgentExist();
-//    }
-//
-//    @Override
-//    public boolean isAgentRunning() {
-//        return agentStateProvider.isAgentRunning();
-//    }
 
     @Override
     public void branchWillChange(@NotNull String branchName) {
@@ -1538,6 +1530,10 @@ final public class InsidiousService implements Disposable,
     public void loadSingleWindowForState(GutterState state)
     {
         System.out.println("Loading sw to state : "+state);
+        if (this.toolWindow==null)
+        {
+            return;
+        }
         ContentManager manager = this.toolWindow.getContentManager();
         if(state.equals(GutterState.PROCESS_RUNNING))
         {

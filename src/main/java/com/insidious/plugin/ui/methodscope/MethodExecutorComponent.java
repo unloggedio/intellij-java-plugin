@@ -422,4 +422,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             return component;
         }
     }
+
+    public void setMethod(MethodAdapter lastSelection) {
+        if(lastSelection!=null) {
+            this.methodElement = lastSelection;
+        }
+    }
 }

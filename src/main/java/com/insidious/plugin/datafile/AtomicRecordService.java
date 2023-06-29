@@ -320,6 +320,10 @@ public class AtomicRecordService {
     public Boolean hasStoredCandidateForMethod(String classname, String method)
     {
         AtomicRecord record = this.storedRecords.get(classname);
+        if(this.storedRecords==null)
+        {
+            checkPreRequisits();
+        }
         if(record==null)
         {
             return false;

@@ -28,6 +28,7 @@ public class AtomicTestContainer {
     private JPanel mainPanel;
     private JPanel borderParent;
     private GutterState currentState;
+    private MethodAdapter lastSelection;
 
     public AtomicTestContainer(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -51,15 +52,17 @@ public class AtomicTestContainer {
             case DATA_AVAILABLE:
                 loadExecutionFlow();
                 break;
-            case PROCESS_RUNNING:
-                loadGenericComponentForState(state);
-                break;
-            default: {
-                if (currentState != null && currentState.equals(state)) {
-                    return;
-                }
-                loadGenericComponentForState(state);
-            }
+            default:
+                methodExecutorComponent.setMethod(lastSelection);
+//            case PROCESS_RUNNING:
+//                loadGenericComponentForState(state);
+//                break;
+//            default: {
+//                if (currentState != null && currentState.equals(state)) {
+//                    return;
+//                }
+//                loadGenericComponentForState(state);
+//            }
         }
         currentState = state;
     }
@@ -110,11 +113,11 @@ public class AtomicTestContainer {
         if (focussedMethod == null) {
             return;
         }
+        lastSelection=focussedMethod;
         if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
             methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, new ArrayList<>());
         } else {
-            if (currentState.equals(GutterState.NO_AGENT) ||
-                    currentState.equals(GutterState.PROCESS_NOT_RUNNING)) {
+            if (currentState.equals(GutterState.PROCESS_NOT_RUNNING)) {
                 loadComponentForState(currentState);
                 return;
             }
@@ -195,6 +198,10 @@ public class AtomicTestContainer {
 
     public void triggerCompileAndExecute() {
         methodExecutorComponent.compileAndExecuteAll();
+    }
+
+    public MethodAdapter getCurrentMethod() {
+        return methodExecutorComponent.getCurrentMethod();
     }
     //assertions
 }
