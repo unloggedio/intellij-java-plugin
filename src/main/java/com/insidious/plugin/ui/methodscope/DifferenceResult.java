@@ -15,6 +15,16 @@ public class DifferenceResult {
     private MethodAdapter methodAdapter;
     private AgentCommandRequest command;
     private AgentCommandResponse response;
+    private boolean useIndividualContext=false;
+
+    public void setIndividualContext(boolean useIndividualContext) {
+        this.useIndividualContext = useIndividualContext;
+    }
+
+    public boolean isUseIndividualContext() {
+        return useIndividualContext;
+    }
+
     public enum EXECUTION_MODE {DIRECT_INVOKE, ATOMIC_RUN_INDIVIDUAL, ATOMIC_RUN_REPLAY}
     private EXECUTION_MODE executionMode;
 

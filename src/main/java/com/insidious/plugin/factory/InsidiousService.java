@@ -20,6 +20,7 @@ import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.datafile.AtomicRecordService;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.TestCaseService;
@@ -157,6 +158,8 @@ final public class InsidiousService implements Disposable,
     private boolean hasShownIndexWaitNotification = false;
     private String basePackage = null;
     private ReportingService reportingService = new ReportingService(this);
+    private AtomicRecordService atomicRecordService;
+    private Map<String,String> candidateIndividualContextMap = new TreeMap<>();
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -240,7 +243,7 @@ final public class InsidiousService implements Disposable,
                 currentModule = ModuleManager.getInstance(project).getModules()[0];
                 logger.info("current module - " + currentModule.getName());
             }
-
+            this.atomicRecordService = new AtomicRecordService(this);
             this.initiateUI();
 
         } catch (ServiceNotReadyException snre) {
@@ -271,9 +274,9 @@ final public class InsidiousService implements Disposable,
     public PROJECT_BUILD_SYSTEM findBuildSystemForModule(String modulename) {
         Module module = moduleMap.get(modulename)
                 .getModule();
-        System.out.println("Fetching build system type");
-        System.out.println("MODULE - > " + module.toString());
-        System.out.println("MOD MAP - > " + moduleMap.toString());
+//        System.out.println("Fetching build system type");
+//        System.out.println("MODULE - > " + module.toString());
+//        System.out.println("MOD MAP - > " + moduleMap.toString());
 
         PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml",
                 GlobalSearchScope.moduleScope(module));
@@ -826,8 +829,9 @@ final public class InsidiousService implements Disposable,
         }
 
         //methodExecutorToolWindow.refreshAndReloadCandidates(method);
-        atomicTestContainerWindow.triggerMethodExecutorRefresh(method);
         methodDirectInvokeComponent.renderForMethod(method);
+        atomicTestContainerWindow.triggerMethodExecutorRefresh(method);
+//        methodDirectInvokeComponent.renderForMethod(method);
         testCaseDesignerWindow.renderTestDesignerInterface(method);
     }
 
@@ -885,7 +889,6 @@ final public class InsidiousService implements Disposable,
                                         compileStatusNotification.finished(false, 1, warnings, compileContext);
                                     }
                                 });
-
                     }
             );
         });
@@ -922,7 +925,6 @@ final public class InsidiousService implements Disposable,
             } catch (IOException e) {
                 logger.warn("failed to execute command - " + e.getMessage(), e);
             }
-
         });
     }
 
@@ -1077,8 +1079,15 @@ final public class InsidiousService implements Disposable,
         List<TestCandidateMetadata> candidates = ApplicationManager.getApplication().runReadAction(
                 (Computable<List<TestCandidateMetadata>>) () -> getTestCandidateMetadata(method));
 
+        //check for stored candidates here
+        boolean hasStoredCandidates = atomicRecordService.hasStoredCandidateForMethod(method.getContainingClass().getQualifiedName(),
+                method.getName()+"#"+method.getJVMSignature());
+
+        GutterState gutterState = atomicRecordService.computeGutterState(method.getContainingClass().getQualifiedName(),
+                method.getName()+"#"+method.getJVMSignature(),method.getText().hashCode());
+
         // process is running, but no test candidates for this method
-        if (candidates.size() == 0) {
+        if (candidates.size() == 0 && hasStoredCandidates==false) {
             return GutterState.PROCESS_RUNNING;
         }
 
@@ -1106,11 +1115,38 @@ final public class InsidiousService implements Disposable,
             return GutterState.EXECUTE;
         }
 
-        if (!executionRecord.containsKey(hashKey)) {
-            return GutterState.DATA_AVAILABLE;
+        if (!executionRecord.containsKey(hashKey) && hasStoredCandidates && gutterState!=null) {
+            return gutterState;
+        }
+        else
+        {
+            if(!executionRecord.containsKey(hashKey))
+            {
+                return GutterState.DATA_AVAILABLE;
+            }
         }
 
         DifferenceResult differenceResult = executionRecord.get(hashKey);
+        String methodKey = method.getContainingClass().getQualifiedName()
+                +"#"+method.getName()+"#"+method.getJVMSignature();
+
+        if(this.candidateIndividualContextMap.get(methodKey)!=null &&
+                differenceResult.isUseIndividualContext())
+        {
+            System.out.println("Using flow ind : "
+                    +this.candidateIndividualContextMap.get(methodKey));
+            switch (this.candidateIndividualContextMap.get(methodKey))
+            {
+                case "Diff":
+                    return GutterState.DIFF;
+                case "NoRun":
+                    return GutterState.EXECUTE;
+                default:
+                    return GutterState.NO_DIFF;
+            }
+        }
+        System.out.println("Using flow normal : "
+                +differenceResult.getDiffResultType());
         switch (differenceResult.getDiffResultType()) {
             case DIFF:
                 return GutterState.DIFF;
@@ -1123,10 +1159,27 @@ final public class InsidiousService implements Disposable,
         }
     }
 
+    public GutterState getGutterStateBasedOnAgentState()
+    {
+        if(!agentStateProvider.doesAgentExist())
+        {
+            return GutterState.NO_AGENT;
+        }
+        if(agentStateProvider.isAgentRunning())
+        {
+            return GutterState.PROCESS_RUNNING;
+        }
+        else
+        {
+            return GutterState.PROCESS_NOT_RUNNING;
+        }
+    }
+
     public List<TestCandidateMetadata> getTestCandidateMetadata(MethodAdapter method) {
         if (method == null) {
-            return new ArrayList<>();
+            return List.of();
         }
+
         String methodName = method.getName();
         ClassAdapter containingClass = method.getContainingClass();
         String methodClassQualifiedName = containingClass.getQualifiedName();
@@ -1298,7 +1351,14 @@ final public class InsidiousService implements Disposable,
             return;
         }
         DifferenceResult existing = executionRecord.get(keyName);
-        if (existing.getDiffResultType() == DiffResultType.SAME) {
+        if(!existing.isUseIndividualContext()) {
+            if(existing.getDiffResultType().equals(DiffResultType.SAME))
+            {
+                executionRecord.put(keyName, newDiffRecord);
+            }
+        }
+        else
+        {
             executionRecord.put(keyName, newDiffRecord);
         }
         addExecutionRecord(newDiffRecord);
@@ -1370,7 +1430,6 @@ final public class InsidiousService implements Disposable,
 
     public void promoteState(GutterState newState) {
         if (this.atomicTestContainerWindow != null) {
-            System.out.println("Promoting to: " + newState);
             atomicTestContainerWindow.loadComponentForState(newState);
         }
     }
@@ -1472,9 +1531,26 @@ final public class InsidiousService implements Disposable,
 
     }
 
+    public void triggerAtomicTestsWindowRefresh() {
+        atomicTestContainerWindow.triggerMethodExecutorRefresh(null);
+    }
+
+    public void intiAtomicRecordService() {
+        this.atomicRecordService = new AtomicRecordService(this);
+    }
+
+    public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
+
     public void toggleReportGeneration() {
         this.reportingService.toggleReportMode();
     }
 
-    public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
+    public AtomicRecordService getAtomicRecordService()
+    {
+        return this.atomicRecordService;
+    }
+
+    public Map<String, String> getIndividualCandidateContextMap() {
+        return candidateIndividualContextMap;
+    }
 }

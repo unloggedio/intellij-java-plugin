@@ -269,6 +269,7 @@ public class SessionInstance {
         return executionSession;
     }
 
+    @NotNull
     private List<File> refreshSessionArchivesList(boolean forceRefresh) throws IOException {
         long start = new Date().getTime();
         if (sessionDirectory.listFiles() == null) {
@@ -2440,6 +2441,12 @@ public class SessionInstance {
     }
 
     private void updateObjectInfoIndex() throws IOException {
+        if (this.sessionArchives == null) {
+            this.sessionArchives = refreshSessionArchivesList(true);
+            if (this.sessionArchives == null) {
+                return;
+            }
+        }
         List<String> archiveList = this.sessionArchives.stream()
                 .map(File::getName)
                 .collect(Collectors.toList());
@@ -2543,6 +2550,7 @@ public class SessionInstance {
                 } catch (FailedToReadClassWeaveException ex) {
                     // we have logs from new zip, which has new probes, but we could not read new class weave info
                     // cant proceed
+                    logger.warn("Failed to read class weave file", ex);
                     throw new RuntimeException(ex);
                 }
             }
