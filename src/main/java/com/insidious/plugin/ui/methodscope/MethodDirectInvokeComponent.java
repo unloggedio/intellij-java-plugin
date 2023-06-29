@@ -214,13 +214,11 @@ public class MethodDirectInvokeComponent {
 
     public void renderForMethod(MethodAdapter methodElement) {
         if (methodElement == null || methodElement.equals(this.methodElement)) {
+            logger.info("DirectInvoke got null method");
             return;
         }
 
-//        executeButton.setToolTipText("");
-//        executeButton.setEnabled(true);
-//        executeButton.revalidate();
-//        executeButton.repaint();
+        clearOutputSection();
 
         String methodName = methodElement.getName();
         ClassAdapter containingClass = methodElement.getContainingClass();
@@ -324,7 +322,6 @@ public class MethodDirectInvokeComponent {
 
         methodParameterScrollContainer.setMinimumSize(new Dimension(-1, Math.min(methodParameters.length * 150, 150)));
         methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
-        clearOutputSection();
         mainContainer.revalidate();
         mainContainer.repaint();
     }
