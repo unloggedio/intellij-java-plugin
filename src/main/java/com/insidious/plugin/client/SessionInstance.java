@@ -507,8 +507,7 @@ public class SessionInstance {
             ClassInfo classInfo1 = KaitaiUtils.toClassInfo(classInfo);
 
 
-            final String className = classInfo.className()
-                    .value();
+            final String className = classInfo.className().value();
 
             List<DataInfo> dataInfoList = classInfo.probeList()
                     .stream()
@@ -3259,15 +3258,17 @@ public class SessionInstance {
                                         "object info document is null for [" + existingParameter.getValue() + "] in " +
                                                 "log file: [" + "] in archive [" +
                                                 "]");
-                                throw new NeedMoreLogsException(
-                                        "object info document is null for [" + existingParameter.getValue() + "] in " +
-                                                "log file: [" + "] in archive [" +
-                                                "]");
+//                                throw new NeedMoreLogsException(
+//                                        "object info document is null for [" + existingParameter.getValue() + "] in " +
+//                                                "log file: [" + "] in archive [" +
+//                                                "]");
                             }
                         }
-                        TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(objectInfoDocument.getTypeId());
-                        String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
-                        existingParameter.setType(typeName);
+                        if (objectInfoDocument != null) {
+                            TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(objectInfoDocument.getTypeId());
+                            String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
+                            existingParameter.setType(typeName);
+                        }
                     }
 
                     existingParameter.setProbeInfo(probeInfo);
