@@ -46,6 +46,7 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
 //            insidiousService.updateScaffoldForState(this.state, methodAdapter);
 //        }
 
+        insidiousService.loadSingleWindowForState(state);
         if (this.state == GutterState.EXECUTE) {
             insidiousService.compileAndExecuteWithAgentForMethod(methodAdapter);
         } else {

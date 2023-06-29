@@ -17,7 +17,7 @@
           </grid>
         </constraints>
         <properties/>
-        <border type="bevel-raised"/>
+        <border type="empty"/>
         <children/>
       </grid>
     </children>

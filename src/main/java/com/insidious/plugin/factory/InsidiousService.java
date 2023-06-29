@@ -656,12 +656,12 @@ final public class InsidiousService implements Disposable,
                 contentFactory.createContent(testCaseDesignerWindow.getContent(), "TestCase Boilerplate", false);
         testDesignerContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         testDesignerContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
-        contentManager.addContent(testDesignerContent);
+//        contentManager.addContent(testDesignerContent);
 
         // method executor window
         atomicTestContainerWindow = new AtomicTestContainer(this);
         atomicTestContent =
-                contentFactory.createContent(atomicTestContainerWindow.getComponent(), "Atomic Tests", false);
+                contentFactory.createContent(atomicTestContainerWindow.getComponent(), "Get Started", false);
         atomicTestContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
         contentManager.addContent(atomicTestContent);
@@ -670,9 +670,10 @@ final public class InsidiousService implements Disposable,
             atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
         } else if (agentStateProvider.doesAgentExist()) {
             atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
-        } else {
-            atomicTestContainerWindow.loadComponentForState(GutterState.NO_AGENT);
         }
+//        else {
+//            atomicTestContainerWindow.loadComponentForState(GutterState.NO_AGENT);
+//        }
 
 
         methodDirectInvokeComponent = new MethodDirectInvokeComponent(this);
@@ -680,8 +681,7 @@ final public class InsidiousService implements Disposable,
                 contentFactory.createContent(methodDirectInvokeComponent.getContent(), "Direct Invoke", false);
         this.directMethodInvokeContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         this.directMethodInvokeContent.setIcon(UIUtils.EXECUTE_METHOD);
-        contentManager.addContent(this.directMethodInvokeContent);
-
+//        contentManager.addContent(this.directMethodInvokeContent);
         SingleWindowView singleWindowView = new SingleWindowView(project, this);
         singleWindowContent = contentFactory.createContent(singleWindowView.getContent(),
                 "Raw Cases", false);
@@ -828,7 +828,7 @@ final public class InsidiousService implements Disposable,
         //methodExecutorToolWindow.refreshAndReloadCandidates(method);
         atomicTestContainerWindow.triggerMethodExecutorRefresh(method);
         methodDirectInvokeComponent.renderForMethod(method);
-        testCaseDesignerWindow.renderTestDesignerInterface(method);
+//        testCaseDesignerWindow.renderTestDesignerInterface(method);
     }
 
     public void compile(ClassAdapter psiClass, CompileStatusNotification compileStatusNotification) {
@@ -1064,9 +1064,9 @@ final public class InsidiousService implements Disposable,
     public GutterState getGutterStateFor(MethodAdapter method) {
 
         //check for agent here before other comps
-        if (!agentStateProvider.doesAgentExist()) {
-            return GutterState.NO_AGENT;
-        }
+//        if (!agentStateProvider.doesAgentExist()) {
+//            return GutterState.NO_AGENT;
+//        }
 
         // agent exists but cannot connect with agent server
         // so no process is running with the agent
@@ -1120,6 +1120,22 @@ final public class InsidiousService implements Disposable,
                 return GutterState.NO_DIFF;
             default:
                 return GutterState.DIFF;
+        }
+    }
+
+    public GutterState getGutterStateBasedOnAgentState()
+    {
+//        if(!agentStateProvider.doesAgentExist())
+//        {
+//            return GutterState.NO_AGENT;
+//        }
+        if(agentStateProvider.isAgentRunning())
+        {
+            return GutterState.PROCESS_RUNNING;
+        }
+        else
+        {
+            return GutterState.PROCESS_NOT_RUNNING;
         }
     }
 
@@ -1369,6 +1385,7 @@ final public class InsidiousService implements Disposable,
     }
 
     public void promoteState(GutterState newState) {
+        loadSingleWindowForState(newState);
         if (this.atomicTestContainerWindow != null) {
             System.out.println("Promoting to: " + newState);
             atomicTestContainerWindow.loadComponentForState(newState);
@@ -1472,9 +1489,51 @@ final public class InsidiousService implements Disposable,
 
     }
 
-    public void toggleReportGeneration() {
-        this.reportingService.toggleReportMode();
+    public void triggerAtomicTestsWindowRefresh() {
+        atomicTestContainerWindow.triggerMethodExecutorRefresh(null);
+    }
+
+    public void setAtomicWindowHeading(String name) {
+        atomicTestContent.setDisplayName(name);
+        if(name.startsWith("Get"))
+        {
+            atomicTestContent.setIcon(UIUtils.ONBOARDING_ICON_PINK);
+        }
+        else
+        {
+            atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
+        }
+    }
+
+    public void loadSingleWindowForState(GutterState state)
+    {
+        System.out.println("Loading sw to state : "+state);
+        ContentManager manager = this.toolWindow.getContentManager();
+        if(state.equals(GutterState.PROCESS_RUNNING))
+        {
+            //show directinvoke
+            if(!manager.getSelectedContent().equals(directMethodInvokeContent))
+            {
+                System.out.println("Showing directInvoke");
+                manager.removeAllContents(false);
+                manager.addContent(directMethodInvokeContent);
+            }
+        }
+        else
+        {
+            //show atomic
+            if(!manager.getSelectedContent().equals(atomicTestContent))
+            {
+                System.out.println("Showing atomic");
+                manager.removeAllContents(false);
+                manager.addContent(atomicTestContent);
+            }
+        }
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
+
+    public void toggleReportGeneration() {
+        this.reportingService.toggleReportMode();
+    }
 }
