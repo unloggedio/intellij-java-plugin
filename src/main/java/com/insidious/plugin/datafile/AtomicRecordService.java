@@ -319,21 +319,23 @@ public class AtomicRecordService {
 
     public Boolean hasStoredCandidateForMethod(String classname, String method)
     {
-        if(this.storedRecords==null)
-        {
-            checkPreRequisits();
-        }
-        AtomicRecord record = this.storedRecords.get(classname);
-        if(record==null)
-        {
+        try {
+            AtomicRecord record = this.storedRecords.get(classname);
+            if (record == null) {
+                return false;
+            }
+            if (record.getStoredCandidateMap().get(method) != null &&
+                    record.getStoredCandidateMap().get(method).size() > 0) {
+                return true;
+
+            }
             return false;
         }
-        if(record.getStoredCandidateMap().get(method)!=null &&
-                record.getStoredCandidateMap().get(method).size()>0)
+        catch (Exception e)
         {
-            return true;
+            logger.info("Exception checking if method has stored candidates."+e);
+            return false;
         }
-        return false;
     }
 
     public void ensureUnloggedFolder()
