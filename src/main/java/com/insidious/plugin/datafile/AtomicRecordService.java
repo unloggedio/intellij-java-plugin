@@ -42,59 +42,50 @@ public class AtomicRecordService {
 
     public GutterState computeGutterState(String classname, String method, int hashcode) {
 
-        AtomicRecord record = this.storedRecords.get(classname);
-        if(record==null)
-        {
-            return null;
-        }
-        List<StoredCandidate> candidates = new ArrayList<>();
-        if(record.getStoredCandidateMap().get(method)!=null)
-        {
-            candidates.addAll(record.getStoredCandidateMap().get(method));
-        }
-        else
-        {
-            return null;
-        }
-        boolean hashChange = false;
-        StoredCandidateMetadata.CandidateStatus status = null;
-        for(StoredCandidate candidate : candidates)
-        {
-            if(!candidate.getMethodHash().equals(hashcode+""))
-            {
-                hashChange = true;
+        try {
+            AtomicRecord record = this.storedRecords.get(classname);
+            if (record == null) {
+                return null;
             }
-            if(status==null) {
-                status = candidate.getMetadata().getCandidateStatus();
+            List<StoredCandidate> candidates = new ArrayList<>();
+            if (record.getStoredCandidateMap().get(method) != null) {
+                candidates.addAll(record.getStoredCandidateMap().get(method));
+            } else {
+                return null;
             }
-            else
-            {
-                if(candidate.getMetadata().getCandidateStatus()
-                        .equals(StoredCandidateMetadata.CandidateStatus.FAILING))
-                {
+            boolean hashChange = false;
+            StoredCandidateMetadata.CandidateStatus status = null;
+            for (StoredCandidate candidate : candidates) {
+                if (!candidate.getMethodHash().equals(hashcode + "")) {
+                    hashChange = true;
+                }
+                if (status == null) {
+                    status = candidate.getMetadata().getCandidateStatus();
+                } else {
+                    if (candidate.getMetadata().getCandidateStatus()
+                            .equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
                         status = StoredCandidateMetadata.CandidateStatus.FAILING;
+                    }
                 }
             }
+            if (hashChange) {
+                return GutterState.EXECUTE;
+            }
+            if (status == null) {
+                return GutterState.DATA_AVAILABLE;
+            }
+            if (status.equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
+                return GutterState.DIFF;
+            } else if (status.equals(StoredCandidateMetadata.CandidateStatus.PASSING)) {
+                return GutterState.NO_DIFF;
+            } else {
+                return GutterState.DATA_AVAILABLE;
+            }
         }
-        if(hashChange)
+        catch (Exception e)
         {
-            return GutterState.EXECUTE;
-        }
-        if(status == null)
-        {
-            return GutterState.DATA_AVAILABLE;
-        }
-        if(status.equals(StoredCandidateMetadata.CandidateStatus.FAILING))
-        {
-            return GutterState.DIFF;
-        }
-        else if(status.equals(StoredCandidateMetadata.CandidateStatus.PASSING))
-        {
-            return GutterState.NO_DIFF;
-        }
-        else
-        {
-            return GutterState.DATA_AVAILABLE;
+            logger.info("Exception computing gutter state."+e);
+            return null;
         }
     }
 
@@ -429,15 +420,19 @@ public class AtomicRecordService {
     //call to sync at session close
     public void writeAll()
     {
-        if(storedRecords.size()==0)
-        {
-            return;
+        try {
+            if (storedRecords.size() == 0) {
+                return;
+            }
+            for (String classname : storedRecords.keySet()) {
+                AtomicRecord recordForClass = storedRecords.get(classname);
+                writeToFile(new File(getFilenameForClass(classname))
+                        , recordForClass, FileUpdateType.UPDATE, false);
+            }
         }
-        for(String classname : storedRecords.keySet())
+        catch (Exception e)
         {
-            AtomicRecord recordForClass = storedRecords.get(classname);
-            writeToFile(new File(getFilenameForClass(classname))
-                    ,recordForClass,FileUpdateType.UPDATE,false);
+            logger.info("Failed to sync on exit "+e);
         }
     }
 

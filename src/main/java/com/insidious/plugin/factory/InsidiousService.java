@@ -1505,7 +1505,15 @@ final public class InsidiousService implements Disposable,
     }
 
     public void triggerAtomicTestsWindowRefresh() {
-        atomicTestContainerWindow.triggerMethodExecutorRefresh(null);
+        GutterState state = getGutterStateFor(currentMethod);
+        if(state.equals(GutterState.PROCESS_NOT_RUNNING)
+        || state.equals(GutterState.PROCESS_RUNNING))
+        {
+            loadSingleWindowForState(state);
+        }
+        else {
+            atomicTestContainerWindow.triggerMethodExecutorRefresh(null);
+        }
     }
 
     public void setAtomicWindowHeading(String name) {
