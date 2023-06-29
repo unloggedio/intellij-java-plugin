@@ -34,7 +34,6 @@ import com.insidious.plugin.ui.InsidiousCaretListener;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
-import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
@@ -828,7 +827,7 @@ final public class InsidiousService implements Disposable,
             return;
         }
 
-        //methodExecutorToolWindow.refreshAndReloadCandidates(method);
+        atomicTestContainerWindow.triggerMethodExecutorRefresh(method);
         methodDirectInvokeComponent.renderForMethod(method);
 //        testCaseDesignerWindow.renderTestDesignerInterface(method);
     }
@@ -1550,16 +1549,31 @@ final public class InsidiousService implements Disposable,
                 manager.addContent(directMethodInvokeContent);
             }
         }
-        else
+        else if(state.equals(GutterState.PROCESS_NOT_RUNNING))
         {
             //show atomic
             if(!manager.getSelectedContent().equals(atomicTestContent))
             {
-                System.out.println("Showing atomic");
+                System.out.println("Showing atomic onboarding");
                 manager.removeAllContents(false);
                 manager.addContent(atomicTestContent);
             }
         }
+        else
+        {
+            System.out.println("Showing full execution flow.");
+            manager.removeAllContents(false);
+            manager.addContent(atomicTestContent);
+            manager.addContent(directMethodInvokeContent);
+        }
+    }
+
+    public Map<String,String> getIndividualCandidateContextMap() {
+        return this.candidateIndividualContextMap;
+    }
+
+    public AtomicRecordService getAtomicRecordService() {
+        return this.atomicRecordService;
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
@@ -1567,4 +1581,9 @@ final public class InsidiousService implements Disposable,
     public void toggleReportGeneration() {
         this.reportingService.toggleReportMode();
     }
+
+    public void initAtomicRecordService() {
+        this.atomicRecordService = new AtomicRecordService(this);
+    }
+
 }
