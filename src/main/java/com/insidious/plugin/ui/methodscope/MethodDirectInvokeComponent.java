@@ -213,7 +213,7 @@ public class MethodDirectInvokeComponent {
     }
 
     public void renderForMethod(MethodAdapter methodElement) {
-        if (methodElement == null || methodElement.equals(this.methodElement)) {
+        if (methodElement == null) {
             logger.info("DirectInvoke got null method");
             return;
         }
