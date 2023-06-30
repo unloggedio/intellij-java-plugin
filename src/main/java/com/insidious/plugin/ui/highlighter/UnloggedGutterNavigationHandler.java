@@ -22,6 +22,7 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
 
     private static final Logger logger = LoggerUtil.getInstance(UnloggedGutterNavigationHandler.class);
     private final GutterState state;
+
     public UnloggedGutterNavigationHandler(GutterState state) {
         this.state = state;
     }
@@ -32,13 +33,16 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
         PsiClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(method.getContainingFile(),
                 method.getTextOffset(), PsiClass.class, false);
         InsidiousService insidiousService = psiClass.getProject().getService(InsidiousService.class);
+
         insidiousService.openTestCaseDesigner(psiClass.getProject());
+
         JavaMethodAdapter methodAdapter = new JavaMethodAdapter(method);
         insidiousService.methodFocussedHandler(methodAdapter);
-        recordAnalyticEvent();
 
-        @NotNull List<LineMarkerInfo<?>> lineMarkerInfoList = new LinkedList<>();
-        lineMarkerInfoList.add(new LineHighlighter().getLineMarkerInfo(identifier));
+        UsageInsightTracker.getInstance().RecordEvent("ICON_CLICK_" + this.state, null);
+
+//        @NotNull List<LineMarkerInfo<?>> lineMarkerInfoList = new LinkedList<>();
+//        lineMarkerInfoList.add(new LineHighlighter().getLineMarkerInfo(identifier));
 
 //        if (!this.state.equals(GutterState.DIFF) &&
 //                !this.state.equals(GutterState.NO_DIFF)) {
@@ -51,35 +55,5 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
         } else {
             insidiousService.focusAtomicTestsWindow();
         }
-    }
-
-    private void recordAnalyticEvent()
-    {
-        String event = "GutterIconClicked";
-        switch (this.state)
-        {
-            case NO_AGENT:
-                event="IconClickNoAgent";
-                break;
-            case PROCESS_NOT_RUNNING:
-                event="IconClickProcessNotRunning";
-                break;
-            case PROCESS_RUNNING:
-                event="IconClickProcessRunning";
-                break;
-            case DATA_AVAILABLE:
-                event="IconClickDataAvailable";
-                break;
-            case EXECUTE:
-                event="IconClickReload";
-                break;
-            case DIFF:
-                event="IconClickDiff";
-                break;
-            case NO_DIFF:
-                event="IconClickNoDiff";
-                break;
-        }
-        UsageInsightTracker.getInstance().RecordEvent(event, null);
     }
 }

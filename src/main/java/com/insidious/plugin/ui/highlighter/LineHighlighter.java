@@ -38,7 +38,6 @@ public class LineHighlighter implements LineMarkerProvider {
     public LineMarkerInfo<PsiIdentifier> getLineMarkerInfo(@NotNull PsiElement element) {
 
         if (element instanceof PsiIdentifier && element.getParent() instanceof PsiMethod) {
-//            InsidiousService insidiousService = element.getProject().getService(InsidiousService.class);
 
             Matcher fileMatcher = testFileNamePattern.matcher(element.getContainingFile().getName());
             if (fileMatcher.matches()) {
@@ -49,45 +48,16 @@ public class LineHighlighter implements LineMarkerProvider {
 //            if (methodMatcher.matches()) {
 //                return null;
 //            }
-//            PsiModifierList modifierList = psiMethod.getModifierList();
             if (psiMethod.isConstructor()) {
                 return null;
             }
-//            if (modifierList.hasModifierProperty(PsiModifier.PRIVATE) ||
-//                    modifierList.hasModifierProperty(PsiModifier.PROTECTED)) {
-//                return null;
-//            }
             GutterState gutterStateForMethod = getGutterStateForMethod(psiMethod);
-//            System.out.println("[GOT STATE] {"+gutterStateForMethod.toString()+"} FOR METHOD {"+psiMethod.getName()+"}");
             final Icon gutterIcon = UIUtils.getGutterIconForState(gutterStateForMethod);
 
-            LineMarkerInfo<PsiIdentifier> psiIdentifierLineMarkerInfo = new LineMarkerInfo<PsiIdentifier>(
+            return new LineMarkerInfo<>(
                     (PsiIdentifier) element,
                     element.getTextRange(), gutterIcon, psiIdentifier -> gutterStateForMethod.getToolTipText(),
                     navHandlerMap.get(gutterStateForMethod), GutterIconRenderer.Alignment.LEFT);
-
-//            switch (state) {
-//
-//                case NO_AGENT:
-//                    break;
-//                case EXECUTE:
-//                    break;
-//                case DIFF:
-//                    break;
-//                case NO_DIFF:
-//                    break;
-//                case PROCESS_NOT_RUNNING:
-//                    break;
-//                case PROCESS_RUNNING:
-//                    break;
-//                case DATA_AVAILABLE:
-//                    new GotItTooltip("io.unlogged.gutter." + DATA_AVAILABLE, "New candidates processed",
-//                            insidiousService)
-//                            .show(psiIdentifierLineMarkerInfo, GotItTooltip.TOP_MIDDLE);
-//                    break;
-//            }
-
-            return psiIdentifierLineMarkerInfo;
         }
         return null;
     }

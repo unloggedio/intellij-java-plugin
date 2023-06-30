@@ -1077,10 +1077,6 @@ final public class InsidiousService implements Disposable,
     @Override
     public GutterState getGutterStateFor(MethodAdapter method) {
 
-        //check for agent here before other comps
-//        if (!agentStateProvider.doesAgentExist()) {
-//            return GutterState.NO_AGENT;
-//        }
 
         // agent exists but cannot connect with agent server
         // so no process is running with the agent
