@@ -5,12 +5,10 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.util.ClassUtils;
-import com.insidious.plugin.util.TestCandidateUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
@@ -31,7 +29,7 @@ public class TestCandidateListedItemComponent {
     private final StoredCandidate candidateMetadata;
     private final MethodAdapter method;
     private final List<String> methodArgumentValues;
-    private final MethodExecutionListener listener;
+    private final MethodExecutionListener methodExecutionListener;
     private final Map<String, String> parameterMap;
     private final InsidiousService insidiousService;
     private JPanel mainPanel;
@@ -45,13 +43,12 @@ public class TestCandidateListedItemComponent {
     public TestCandidateListedItemComponent(
             StoredCandidate candidateMetadata,
             MethodAdapter method,
-            MethodExecutionListener listener,
-            CandidateSelectedListener candidateSelectedListener,
-            InsidiousService insidiousService) {
+            MethodExecutionListener methodExecutionListener,
+            CandidateSelectedListener candidateSelectedListener) {
         this.candidateMetadata = candidateMetadata;
-        this.insidiousService = insidiousService;
+        this.insidiousService = method.getProject().getService(InsidiousService.class);
         this.method = method;
-        this.listener = listener;
+        this.methodExecutionListener = methodExecutionListener;
         this.methodArgumentValues = candidateMetadata.getMethodArguments();
         this.parameterMap = generateParameterMap(method.getParameters());
 
@@ -72,7 +69,7 @@ public class TestCandidateListedItemComponent {
                     eventProperties.put("className", psiClass.getQualifiedName());
                     eventProperties.put("methodName", method.getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
-                    listener.executeCandidate(
+                    TestCandidateListedItemComponent.this.methodExecutionListener.executeCandidate(
                             Collections.singletonList(candidateMetadata), psiClass, "individual",
                             (candidateMetadata, agentCommandResponse, diffResult) -> {
                                 calls++;

@@ -24,7 +24,7 @@ import java.util.TreeMap;
 public class AtomicRecordService {
     InsidiousService insidiousService;
     private String basePath;
-    private final String unloggedFolderName = ".unlogged";
+    private final String unloggedFolderName = "unlogged";
     private ObjectMapper objectMapper = new ObjectMapper();
     private Map<String,AtomicRecord> storedRecords=null;
     private boolean useNotifications=true;
@@ -172,7 +172,13 @@ public class AtomicRecordService {
 
     private String getFilenameForClass(String classname)
     {
-        return basePath+File.separator+unloggedFolderName+File.separator+classname+".json";
+        return basePath+File.separator+getResourcePath()+
+                unloggedFolderName+File.separator+classname+".json";
+    }
+
+    public String getResourcePath()
+    {
+        return "src"+File.separator+"test"+File.separator+"resources"+File.separator;
     }
 
     public Map<String,List<StoredCandidate>> filterCandidates(Map<String,List<StoredCandidate>> candidates)
@@ -304,7 +310,8 @@ public class AtomicRecordService {
 
     private File[] getFilesInUnloggedFolder()
     {
-        File rootDir = new File(basePath+File.separator+unloggedFolderName);
+        File rootDir = new File(basePath+File.separator
+                +getResourcePath()+unloggedFolderName);
         return rootDir.listFiles();
     }
 
@@ -331,11 +338,12 @@ public class AtomicRecordService {
 
     public void ensureUnloggedFolder()
     {
-        File unloggedFolder = new File(basePath+File.separator+unloggedFolderName);
+        File unloggedFolder = new File(basePath+File.separator
+                +getResourcePath()+unloggedFolderName);
         if(!(unloggedFolder.exists() && unloggedFolder.isDirectory()))
         {
-            logger.info(".unlogged directory created");
-            System.out.println(".unlogged directory created");
+            logger.info("unlogged directory created");
+            System.out.println("unlogged directory created");
             unloggedFolder.mkdirs();
         }
     }
@@ -396,7 +404,8 @@ public class AtomicRecordService {
     }
 
     public String getSaveLocation() {
-        return basePath+File.separator+unloggedFolderName+File.separator;
+        return basePath+File.separator+
+                getResourcePath()+unloggedFolderName+File.separator;
     }
 
     public void setCandidateStateForCandidate(String candidateID, String classname,
