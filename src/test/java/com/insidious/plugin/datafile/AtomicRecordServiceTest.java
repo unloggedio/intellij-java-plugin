@@ -27,7 +27,7 @@ public class AtomicRecordServiceTest {
         Project project = Mockito.mock(Project.class);
         Mockito.when(insidiousService.getProject()).thenReturn(project);
         Mockito.when(insidiousService.getProject().getBasePath()).thenReturn(currentDir);
-        String saveLocation = currentDir+File.separator+".unlogged";
+        String saveLocation = currentDir+File.separator+getResourcePath()+"unlogged";
         File directory = new File(saveLocation);
 
         if(directory.exists() && directory.isDirectory())
@@ -247,7 +247,8 @@ public class AtomicRecordServiceTest {
     {
         String saveLocation = atomicRecordService.getSaveLocation();
         String currentDir = System.getProperty("user.dir");
-        currentDir = currentDir + File.separator+".unlogged"+File.separator;
+        currentDir = currentDir +File.separator+getResourcePath()
+                +"unlogged"+File.separator;
         Assertions.assertEquals(currentDir,saveLocation);
     }
 
@@ -347,5 +348,10 @@ public class AtomicRecordServiceTest {
         for (File subfile : unlogged.listFiles()) {
             subfile.delete();
         }
+    }
+
+    public String getResourcePath()
+    {
+        return "src"+File.separator+"test"+File.separator+"resources"+File.separator;
     }
 }

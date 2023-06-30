@@ -10,6 +10,7 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
+import com.insidious.plugin.ui.Components.MethodExecutorComponentDTO;
 import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.DiffUtils;
@@ -103,7 +104,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         });
     }
 
-    public void loadMethodCandidates() {
+    public MethodExecutorComponentDTO loadMethodCandidates(List<StoredCandidate> methodTestCandidates) {
+
+        Map<Long,TestCandidateListedItemComponent> components = new HashMap<>();
         int callToMake = methodTestCandidates.size();
         int GridRows = 3;
         if (callToMake > GridRows) {
@@ -118,29 +121,20 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             GridConstraints constraints = new GridConstraints();
             constraints.setRow(i);
             StoredCandidate candidateMetadata = methodTestCandidates.get(i);
+            //reduce no or args, remove insidiousService, user methodElem
             TestCandidateListedItemComponent candidateListItem = new TestCandidateListedItemComponent(
-                    candidateMetadata, methodElement, this, this, insidiousService);
-
-            candidateComponentMap.put(candidateMetadata.getEntryProbeIndex(), candidateListItem);
+                    candidateMetadata, methodElement, this, this);
+            components.put(candidateMetadata.getEntryProbeIndex(), candidateListItem);
             JPanel candidateDisplayPanel = candidateListItem.getComponent();
             gridPanel.add(candidateDisplayPanel, constraints);
             panelHeight += candidateDisplayPanel.getPreferredSize().getHeight() + 10;
         }
         panelHeight += 40;
-
         gridPanel.setBorder(JBUI.Borders.empty());
         JScrollPane scrollPane = new JBScrollPane(gridPanel);
         scrollPane.setBorder(JBUI.Borders.empty());
-
         scrollPane.setMaximumSize(new Dimension(-1, Math.min(300, panelHeight)));
-//        centerPanel.setMinimumSize(new Dimension(-1, 500));
-//        centerPanel.setMaximumSize(new Dimension(-1, Math.min(500, panelHeight)));
-        centerParent.setMaximumSize(new Dimension(-1, Math.min(300, panelHeight)));
-        centerParent.setMinimumSize(new Dimension(-1, 300));
-
-        centerParent.add(scrollPane, BorderLayout.CENTER);
-        centerParent.revalidate();
-        centerParent.repaint();
+        return new MethodExecutorComponentDTO(components,scrollPane,panelHeight);
     }
 
     private void showDirectInvokeNavButton() {
@@ -196,16 +190,13 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         clearBoard();
         this.methodElement = method;
         this.methodTestCandidates = candidates;
+        MethodExecutorComponentDTO dto = loadMethodCandidates(candidates);
+        executeAndShowDifferencesButton.setEnabled(true);
+        insidiousService.showNewTestCandidateGotIt();
 
-        if (this.methodTestCandidates.size() == 0) {
-            //moving to different view as this is not the intended screen for no available data.
-            insidiousService.focusDirectInvokeTab();
-            executeAndShowDifferencesButton.setEnabled(false);
-        } else {
-            loadMethodCandidates();
-            executeAndShowDifferencesButton.setEnabled(true);
-            insidiousService.showNewTestCandidateGotIt();
-        }
+        candidateComponentMap.putAll(dto.getComponentMap());
+        renderComponentList(dto.getMainPanel(),dto.getPanelHeight());
+
         executeAndShowDifferencesButton.revalidate();
         executeAndShowDifferencesButton.repaint();
         candidateCountLabel.setText(methodTestCandidates.size() + " Unique candidates");
@@ -215,6 +206,16 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
         rootContent.revalidate();
         rootContent.repaint();
+    }
+
+    private void renderComponentList(JScrollPane scrollPane, int panelHeight)
+    {
+        centerParent.setMaximumSize(new Dimension(-1, Math.min(300, panelHeight)));
+        centerParent.setMinimumSize(new Dimension(-1, 300));
+
+        centerParent.add(scrollPane, BorderLayout.CENTER);
+        centerParent.revalidate();
+        centerParent.repaint();
     }
 
     private void clearBoard() {
@@ -308,6 +309,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         }
     }
 
+    //refactor pending - if there are stored candidates show only from stored, else others.
     public String getExecutionStatusFromCandidates(long excludeKey) {
         boolean hasDiff = false;
         boolean hasNoRun = false;
@@ -325,10 +327,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             }
         }
         if (hasDiff) {
-            //has a diff case
             return "Diff";
         } else if (hasNoRun) {
-            //has candidates not run
             return "NoRun";
         }
         return "Same";
@@ -409,7 +409,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     public void setMethod(MethodAdapter lastSelection) {
+        System.out.println("In set method");
         if (lastSelection != null) {
+            System.out.println("Set Method");
             this.methodElement = lastSelection;
         }
     }

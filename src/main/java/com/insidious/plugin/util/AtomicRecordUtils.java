@@ -6,9 +6,7 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
 
@@ -58,5 +56,21 @@ public class AtomicRecordUtils {
             candidate.setMetadata(metadata1);
         }
         return candidate;
+    }
+
+    public static List<StoredCandidate> filterStoredCandidates(List<StoredCandidate> candidates) {
+        Map<Long, StoredCandidate> selectedCandidates = new TreeMap<>();
+        for (StoredCandidate candidate : candidates) {
+            if (!selectedCandidates.containsKey(candidate.getEntryProbeIndex())) {
+                selectedCandidates.put(candidate.getEntryProbeIndex(), candidate);
+            } else {
+                //saved candidate
+                if (candidate.getCandidateId() != null) {
+                    selectedCandidates.put(candidate.getEntryProbeIndex(), candidate);
+                }
+            }
+        }
+        List<StoredCandidate> candidatesFiltered = new ArrayList<>(selectedCandidates.values());
+        return candidatesFiltered;
     }
 }

@@ -29,6 +29,7 @@ import com.insidious.plugin.pojo.ModuleInformation;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.TestSuite;
+import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.GutterClickNavigationStates.AtomicTestContainer;
 import com.insidious.plugin.ui.InsidiousCaretListener;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
@@ -38,6 +39,7 @@ import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
 import com.insidious.plugin.ui.testgenerator.LiveViewWindow;
+import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
@@ -113,6 +115,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static com.insidious.plugin.util.AtomicRecordUtils.filterStoredCandidates;
 
 @Storage("insidious.xml")
 final public class InsidiousService implements Disposable,
@@ -1020,17 +1024,25 @@ final public class InsidiousService implements Disposable,
 
         if (atomicTestContainerWindow != null && currentMethod != null) {
             //promoteState();
-//            if (currentMethod.equals(atomicTestContainerWindow.getCurrentMethod())) {
-////                ApplicationManager.getApplication().invokeLater(() -> {
-//////                    if (this.toolWindow == null) {
-//////                        return;
-//////                    }
-//////                    ContentManager manager = this.toolWindow.getContentManager();
-//////                    manager.removeAllContents(false);
-//////                    manager.addContent(atomicTestContent);
-//////                    manager.addContent(directMethodInvokeContent);
-////                });
-//            }
+
+            if (currentMethod.equals(atomicTestContainerWindow.getCurrentMethod())) {
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    if (this.toolWindow == null) {
+                        return;
+                    }
+                    //show both
+                    ContentManager manager = this.toolWindow.getContentManager();
+                    List<Content> contentList = Arrays.asList(manager.getContents());
+                    if (!contentList.contains(atomicTestContent)) {
+                        manager.addContent(atomicTestContent,0);
+                        focusAtomicTestsWindow();
+                    }
+                    if(!contentList.contains(directMethodInvokeContent))
+                    {
+                        manager.addContent(directMethodInvokeContent);
+                    }
+                });
+            }
             ApplicationManager.getApplication().invokeLater(() -> {
                 atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
                 methodDirectInvokeComponent.renderForMethod(currentMethod);
@@ -1207,6 +1219,28 @@ final public class InsidiousService implements Disposable,
             }
         }
         return candidates;
+    }
+
+    public List<StoredCandidate> getStoredCandidatesFor(MethodAdapter method) {
+        if (method == null) {
+            return List.of();
+        }
+        List<TestCandidateMetadata> candidateMetadataList = getTestCandidateMetadata(method);
+        List<StoredCandidate> storedCandidates = new ArrayList<>();
+        List<StoredCandidate> candidates = atomicRecordService
+                .getStoredCandidatesForMethod(method.getContainingClass().getQualifiedName(),
+                        method.getName()+"#"+method.getJVMSignature());
+        if (candidates != null) {
+            storedCandidates.addAll(candidates);
+        }
+        if (storedCandidates == null) {
+            storedCandidates = new ArrayList<>();
+        }
+        List<StoredCandidate> convertedCandidates = AtomicRecordUtils.convertToStoredcandidates(
+                candidateMetadataList);
+        storedCandidates.addAll(convertedCandidates);
+        storedCandidates = filterStoredCandidates(storedCandidates);
+        return storedCandidates;
     }
 
     @NotNull
@@ -1518,27 +1552,34 @@ final public class InsidiousService implements Disposable,
             return;
         }
         ContentManager manager = this.toolWindow.getContentManager();
+        List<Content> contentList = Arrays.asList(manager.getContents());
         if (state.equals(GutterState.PROCESS_RUNNING)) {
-            //show directinvoke
-            if (!manager.getSelectedContent().equals(directMethodInvokeContent)) {
-                System.out.println("Showing directInvoke");
-                manager.removeAllContents(false);
+            if(contentList.contains(atomicTestContent))
+            {
+                manager.removeContent(atomicTestContent,false);
+            }
+            if(!contentList.contains(directMethodInvokeContent))
+            {
                 manager.addContent(directMethodInvokeContent);
-                manager.addContent(atomicTestContent);
-                atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
             }
         } else if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
-            //show atomic
-            if (!manager.getSelectedContent().equals(atomicTestContent)) {
-                System.out.println("Showing atomic onboarding");
-                manager.removeAllContents(false);
+            //show get started only
+            if(contentList.contains(directMethodInvokeContent))
+            {
+                manager.removeContent(directMethodInvokeContent,false);
+            }
+            if (!contentList.contains(atomicTestContent)) {
                 manager.addContent(atomicTestContent);
             }
         } else {
-//            System.out.println("Showing full execution flow.");
-//            manager.removeAllContents(false);
-//            manager.addContent(atomicTestContent);
-//            manager.addContent(directMethodInvokeContent);
+            //show both
+            if (!contentList.contains(atomicTestContent)) {
+                manager.addContent(atomicTestContent,0);
+            }
+            if(!contentList.contains(directMethodInvokeContent))
+            {
+                manager.addContent(directMethodInvokeContent);
+            }
         }
     }
 
