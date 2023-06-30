@@ -5,7 +5,6 @@ import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.extension.InsidiousNotification;
-import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -21,6 +20,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.PsiClass;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
@@ -104,15 +104,15 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         });
     }
 
-    public MethodExecutorComponentDTO loadMethodCandidates(List<StoredCandidate> methodTestCandidates) {
+    public MethodExecutorComponentDTO loadMethodCandidates(List<StoredCandidate> methodTestCandidates, MethodAdapter methodAdapter) {
 
-        Map<Long,TestCandidateListedItemComponent> components = new HashMap<>();
+        Map<Long, TestCandidateListedItemComponent> components = new HashMap<>();
         int callToMake = methodTestCandidates.size();
-        int GridRows = 3;
-        if (callToMake > GridRows) {
-            GridRows = callToMake;
+        int gridRows = 3;
+        if (callToMake > gridRows) {
+            gridRows = callToMake;
         }
-        GridLayout gridLayout = new GridLayout(GridRows, 1);
+        GridLayout gridLayout = new GridLayout(gridRows, 1);
         gridLayout.setVgap(8);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(JBUI.Borders.empty());
@@ -123,7 +123,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             StoredCandidate candidateMetadata = methodTestCandidates.get(i);
             //reduce no or args, remove insidiousService, user methodElem
             TestCandidateListedItemComponent candidateListItem = new TestCandidateListedItemComponent(
-                    candidateMetadata, methodElement, this, this);
+                    candidateMetadata, methodAdapter, this, this);
             components.put(candidateMetadata.getEntryProbeIndex(), candidateListItem);
             JPanel candidateDisplayPanel = candidateListItem.getComponent();
             gridPanel.add(candidateDisplayPanel, constraints);
@@ -134,7 +134,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         JScrollPane scrollPane = new JBScrollPane(gridPanel);
         scrollPane.setBorder(JBUI.Borders.empty());
         scrollPane.setMaximumSize(new Dimension(-1, Math.min(300, panelHeight)));
-        return new MethodExecutorComponentDTO(components,scrollPane,panelHeight);
+        return new MethodExecutorComponentDTO(components, scrollPane, panelHeight);
     }
 
     private void showDirectInvokeNavButton() {
@@ -143,8 +143,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
         JButton takeToDirectInvokeButton = new JButton("Execute method directly");
         takeToDirectInvokeButton.setMaximumSize(new Dimension(100, 80));
-        takeToDirectInvokeButton.setBackground(Color.BLUE);
-        takeToDirectInvokeButton.setForeground(Color.WHITE);
+        takeToDirectInvokeButton.setBackground(JBColor.BLUE);
+        takeToDirectInvokeButton.setForeground(JBColor.WHITE);
         takeToDirectInvokeButton.setBorderPainted(false);
         takeToDirectInvokeButton.setContentAreaFilled(false);
         takeToDirectInvokeButton.setOpaque(true);
@@ -190,12 +190,12 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         clearBoard();
         this.methodElement = method;
         this.methodTestCandidates = candidates;
-        MethodExecutorComponentDTO dto = loadMethodCandidates(candidates);
+        MethodExecutorComponentDTO dto = loadMethodCandidates(candidates, methodElement);
         executeAndShowDifferencesButton.setEnabled(true);
         insidiousService.showNewTestCandidateGotIt();
 
         candidateComponentMap.putAll(dto.getComponentMap());
-        renderComponentList(dto.getMainPanel(),dto.getPanelHeight());
+        renderComponentList(dto.getMainPanel(), dto.getPanelHeight());
 
         executeAndShowDifferencesButton.revalidate();
         executeAndShowDifferencesButton.repaint();
@@ -208,8 +208,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         rootContent.repaint();
     }
 
-    private void renderComponentList(JScrollPane scrollPane, int panelHeight)
-    {
+    private void renderComponentList(JScrollPane scrollPane, int panelHeight) {
         centerParent.setMaximumSize(new Dimension(-1, Math.min(300, panelHeight)));
         centerParent.setMinimumSize(new Dimension(-1, 300));
 

@@ -1,27 +1,18 @@
 package com.insidious.plugin.ui.GutterClickNavigationStates;
 
 import com.insidious.plugin.adapter.MethodAdapter;
-import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
-import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.TestCandidateUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Computable;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
-import static com.insidious.plugin.util.TestCandidateUtils.deDuplicateList;
 
 public class AtomicTestContainer {
     private static final Logger logger = LoggerUtil.getInstance(AtomicTestContainer.class);
@@ -96,30 +87,29 @@ public class AtomicTestContainer {
             return;
         }
         lastSelection = focussedMethod;
+
         if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
-            methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, new ArrayList<>());
-        } else {
-
-            if (currentState.equals(GutterState.PROCESS_NOT_RUNNING) ||
-                    insidiousService.getSessionInstance() == null) {
-                loadComponentForState(currentState);
-                return;
-            }
-
-            List<StoredCandidate> methodTestCandidates =
-                    ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
-                            insidiousService.getStoredCandidatesFor(focussedMethod));
-            if (methodTestCandidates.size() > 0)
-            {
-                loadExecutionFlow();
-                methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, methodTestCandidates);
-            }
-            else
-            {
-                //runs for process_running
-                loadComponentForState(currentState);
-            }
+            methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, List.of());
+            return;
         }
+
+        if (currentState.equals(GutterState.PROCESS_NOT_RUNNING) ||
+                insidiousService.getSessionInstance() == null) {
+            loadComponentForState(currentState);
+            return;
+        }
+
+        List<StoredCandidate> methodTestCandidates =
+                ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
+                        insidiousService.getStoredCandidatesFor(focussedMethod));
+        if (methodTestCandidates.size() > 0) {
+            loadExecutionFlow();
+            methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, methodTestCandidates);
+        } else {
+            //runs for process_running
+            loadComponentForState(currentState);
+        }
+
     }
 
     public void triggerCompileAndExecute() {

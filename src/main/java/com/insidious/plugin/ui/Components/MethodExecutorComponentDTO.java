@@ -6,8 +6,8 @@ import javax.swing.*;
 import java.util.Map;
 
 public class MethodExecutorComponentDTO {
-    private int panelHeight;
-    private Map<Long, TestCandidateListedItemComponent> componentMap;
+    private final int panelHeight;
+    private final Map<Long, TestCandidateListedItemComponent> componentMap;
     private JScrollPane scrollPane;
 
     public MethodExecutorComponentDTO(Map<Long, TestCandidateListedItemComponent> componentMap,

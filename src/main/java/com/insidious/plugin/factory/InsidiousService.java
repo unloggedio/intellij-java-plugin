@@ -1010,44 +1010,35 @@ final public class InsidiousService implements Disposable,
             ApplicationManager.getApplication().runReadAction(
                     () -> DaemonCodeAnalyzer.getInstance(project).restart(psiFile));
         }
+        if (this.toolWindow == null) {
+            return;
+        }
 
-//        if (toolWindow != null && atomicTestContainerWindow != null) {
-//            new GotItTooltip("io.unlogged.candidate.new", "New candidates processed", this)
-//                    .withIcon(UIUtils.UNLOGGED_ICON_LIGHT_SVG)
-//                    .withLink("Show", () -> {
-//                        atomicTestContainerWindow.loadExecutionFlow();
-//                        this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent, true);
-//                    })
-//                    .show(toolWindow.getComponent(), GotItTooltip.TOP_MIDDLE);
-//        }
-//        GutterActionRenderer
+        if (atomicTestContainerWindow == null) {
+            return;
+        }
 
-        if (atomicTestContainerWindow != null && currentMethod != null) {
-            //promoteState();
+        if (currentMethod == null) {
+            return;
+        }
 
-            if (currentMethod.equals(atomicTestContainerWindow.getCurrentMethod())) {
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    if (this.toolWindow == null) {
-                        return;
-                    }
-                    //show both
-                    ContentManager manager = this.toolWindow.getContentManager();
-                    List<Content> contentList = Arrays.asList(manager.getContents());
-                    if (!contentList.contains(atomicTestContent)) {
-                        manager.addContent(atomicTestContent,0);
-                        focusAtomicTestsWindow();
-                    }
-                    if(!contentList.contains(directMethodInvokeContent))
-                    {
-                        manager.addContent(directMethodInvokeContent);
-                    }
-                });
-            }
+        if (currentMethod.equals(atomicTestContainerWindow.getCurrentMethod())) {
             ApplicationManager.getApplication().invokeLater(() -> {
-                atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
-                methodDirectInvokeComponent.renderForMethod(currentMethod);
+                //show both
+                ContentManager manager = this.toolWindow.getContentManager();
+                if (manager.getContent(atomicTestContent.getComponent()) == null) {
+                    manager.addContent(atomicTestContent, 0);
+                    focusAtomicTestsWindow();
+                }
+                if (manager.getContent(directMethodInvokeContent.getComponent()) == null) {
+                    manager.addContent(directMethodInvokeContent);
+                }
             });
         }
+        ApplicationManager.getApplication().invokeLater(() -> {
+            atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
+            methodDirectInvokeComponent.renderForMethod(currentMethod);
+        });
 
     }
 
@@ -1229,7 +1220,7 @@ final public class InsidiousService implements Disposable,
         List<StoredCandidate> storedCandidates = new ArrayList<>();
         List<StoredCandidate> candidates = atomicRecordService
                 .getStoredCandidatesForMethod(method.getContainingClass().getQualifiedName(),
-                        method.getName()+"#"+method.getJVMSignature());
+                        method.getName() + "#" + method.getJVMSignature());
         if (candidates != null) {
             storedCandidates.addAll(candidates);
         }
@@ -1554,19 +1545,16 @@ final public class InsidiousService implements Disposable,
         ContentManager manager = this.toolWindow.getContentManager();
         List<Content> contentList = Arrays.asList(manager.getContents());
         if (state.equals(GutterState.PROCESS_RUNNING)) {
-            if(contentList.contains(atomicTestContent))
-            {
-                manager.removeContent(atomicTestContent,false);
+            if (contentList.contains(atomicTestContent)) {
+                manager.removeContent(atomicTestContent, false);
             }
-            if(!contentList.contains(directMethodInvokeContent))
-            {
+            if (!contentList.contains(directMethodInvokeContent)) {
                 manager.addContent(directMethodInvokeContent);
             }
         } else if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
             //show get started only
-            if(contentList.contains(directMethodInvokeContent))
-            {
-                manager.removeContent(directMethodInvokeContent,false);
+            if (contentList.contains(directMethodInvokeContent)) {
+                manager.removeContent(directMethodInvokeContent, false);
             }
             if (!contentList.contains(atomicTestContent)) {
                 manager.addContent(atomicTestContent);
@@ -1574,10 +1562,9 @@ final public class InsidiousService implements Disposable,
         } else {
             //show both
             if (!contentList.contains(atomicTestContent)) {
-                manager.addContent(atomicTestContent,0);
+                manager.addContent(atomicTestContent, 0);
             }
-            if(!contentList.contains(directMethodInvokeContent))
-            {
+            if (!contentList.contains(directMethodInvokeContent)) {
                 manager.addContent(directMethodInvokeContent);
             }
         }
