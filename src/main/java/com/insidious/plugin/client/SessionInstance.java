@@ -1919,6 +1919,9 @@ public class SessionInstance {
 
         for (File sessionArchive : sessionArchivesLocal) {
             logger.warn("open archive [" + sessionArchive.getName() + "]");
+            if (1 < 2) {
+                continue;
+            }
 
 
             Map<String, UploadFile> matchedFiles = new HashMap<>();
@@ -2443,9 +2446,6 @@ public class SessionInstance {
     private void updateObjectInfoIndex() throws IOException {
         if (this.sessionArchives == null) {
             this.sessionArchives = refreshSessionArchivesList(true);
-            if (this.sessionArchives == null) {
-                return;
-            }
         }
         List<String> archiveList = this.sessionArchives.stream()
                 .map(File::getName)
@@ -2454,23 +2454,22 @@ public class SessionInstance {
 
         // try to read the most recent object index from the archives we are about to process
         for (String lastArchiveName : archiveList) {
-            int archiveIndexNumber = Integer.parseInt(lastArchiveName.split("-")[1]);
+//            int archiveIndexNumber = Integer.parseInt(lastArchiveName.split("-")[1]);
             File lastSessionArchive = FileSystems.getDefault()
                     .getPath(executionSession.getPath(), lastArchiveName)
                     .toFile();
-            int latestIndexReadNumber = -1;
-            List<String> latestIndexRead = objectIndexRead.keySet()
-                    .stream()
-                    .sorted()
-                    .collect(Collectors.toList());
-            if (latestIndexRead.size() > 0) {
-                latestIndexReadNumber = Integer.parseInt(latestIndexRead.get(latestIndexRead.size() - 1)
-                        .split("-")[1]);
-            }
+//            int latestIndexReadNumber = -1;
+//            List<String> latestIndexRead = objectIndexRead.keySet()
+//                    .stream()
+//                    .sorted()
+//                    .collect(Collectors.toList());
+//            if (latestIndexRead.size() > 0) {
+//                latestIndexReadNumber = Integer.parseInt(latestIndexRead.get(latestIndexRead.size() - 1)
+//                        .split("-")[1]);
+//            }
 
 
-            if (latestIndexReadNumber < archiveIndexNumber && !objectIndexRead.containsKey(
-                    lastSessionArchive.getName())) {
+            if (!objectIndexRead.containsKey(lastSessionArchive.getName())) {
                 objectIndexRead.put(lastSessionArchive.getName(), true);
                 NameWithBytes objectIndex = createFileOnDiskFromSessionArchiveFile(lastSessionArchive,
                         INDEX_OBJECT_DAT_FILE.getFileName());
@@ -2489,9 +2488,6 @@ public class SessionInstance {
                         .parallelStream()
                         .forEach(e -> objectInfoIndex.put(e.getObjectId(), e));
                 objectIndexCollection = null;
-            } else {
-                // we already have the latest object info index
-                break;
             }
         }
     }

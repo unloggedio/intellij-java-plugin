@@ -31,7 +31,6 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
-import com.intellij.uiDesigner.core.Spacer;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -44,7 +43,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class MethodDirectInvokeComponent {
+public class MethodDirectInvokeComponent extends KeyAdapter {
     private static final Logger logger = LoggerUtil.getInstance(MethodDirectInvokeComponent.class);
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
@@ -59,6 +58,8 @@ public class MethodDirectInvokeComponent {
     private JLabel methodNameLabel;
     private JButton executeButton;
     private MethodAdapter methodElement;
+    private KeyAdapter NOP_KEY_ADAPTER = new KeyAdapter() {
+    };
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -85,24 +86,11 @@ public class MethodDirectInvokeComponent {
             }
         });
 
-//        methodNameLabel.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                SaveForm s = new SaveForm(null,null);
-//                s.setVisible(true);
-//            }
-//        });
     }
 
     private void executeMethodWithParameters() {
 
         AgentStateProvider agentStateProvider = insidiousService.getAgentStateProvider();
-//        if (!agentStateProvider.doesAgentExist()) {
-//            InsidiousNotification.notifyMessage("Start your application with Unlogged JAVA agent to start using " +
-//                    "method DirectInvoke", NotificationType.INFORMATION);
-//            insidiousService.updateScaffoldForState(GutterState.NO_AGENT);
-//            return;
-//        }
 
         if (!agentStateProvider.isAgentRunning()) {
             InsidiousNotification.notifyMessage("Start your application with Unlogged JAVA agent to start using " +
@@ -309,7 +297,7 @@ public class MethodDirectInvokeComponent {
                         || isBoxedPrimitive(typeCanonicalName)
                 ) {
                     parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
-                            JBTextField.class);
+                            JBTextField.class, this);
                     content = parameterContainer.getContent();
                     content.setMaximumSize(new Dimension(-1, 80));
                 } else {
@@ -318,15 +306,16 @@ public class MethodDirectInvokeComponent {
                             .findClass(typeCanonicalName, projectAndLibrariesScope);
                     if (typeClassReference != null && (typeClassReference.isEnum())) {
                         parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
-                                JBTextField.class);
+                                JBTextField.class, NOP_KEY_ADAPTER);
                     } else {
                         parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
-                                JBTextArea.class);
+                                JBTextArea.class, NOP_KEY_ADAPTER);
                     }
                     content = parameterContainer.getContent();
                     content.setMinimumSize(new Dimension(-1, 150));
                     content.setMaximumSize(new Dimension(-1, 300));
                 }
+
 
                 parameterInputComponents.add(parameterContainer);
                 methodParameterContainer.add(content);
@@ -350,6 +339,15 @@ public class MethodDirectInvokeComponent {
         methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
         mainContainer.revalidate();
         mainContainer.repaint();
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        super.keyPressed(e);
+        super.keyReleased(e);
+        if (e.getKeyCode() == 10) {
+            executeMethodWithParameters();
+        }
     }
 
     private void clearOutputSection() {

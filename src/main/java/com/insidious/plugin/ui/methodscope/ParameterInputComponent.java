@@ -6,12 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.adapter.ParameterAdapter;
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
-import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
+import java.awt.event.KeyListener;
 
 public class ParameterInputComponent {
     private final static ObjectMapper objectMapper = new ObjectMapper();
@@ -19,7 +19,7 @@ public class ParameterInputComponent {
     private JTextComponent parameterValue;
 
     public ParameterInputComponent(ParameterAdapter parameter, String defaultParameterValue,
-                                   Class<? extends JTextComponent> inputTextComponent) {
+                                   Class<? extends JTextComponent> inputTextComponent, KeyListener keyAdapter) {
         super();
         ((TitledBorder) rootContent.getBorder()).setTitle(
                 parameter.getType().getPresentableText() + " " + parameter.getName());
@@ -38,6 +38,7 @@ public class ParameterInputComponent {
         }
 
         parameterValue.setText(defaultParameterValue);
+        parameterValue.addKeyListener(keyAdapter);
         // row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0"
 //        rootContent.add(parameterValue,
 //                new GridConstraints(0, 0, 1, 1, 8, 1, 6, 0, new Dimension(-1, 80)
