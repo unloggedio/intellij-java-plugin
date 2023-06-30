@@ -34,7 +34,6 @@ import com.insidious.plugin.ui.InsidiousCaretListener;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
-import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
@@ -659,12 +658,12 @@ final public class InsidiousService implements Disposable,
                 contentFactory.createContent(testCaseDesignerWindow.getContent(), "TestCase Boilerplate", false);
         testDesignerContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         testDesignerContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
-        contentManager.addContent(testDesignerContent);
+//        contentManager.addContent(testDesignerContent);
 
         // method executor window
         atomicTestContainerWindow = new AtomicTestContainer(this);
         atomicTestContent =
-                contentFactory.createContent(atomicTestContainerWindow.getComponent(), "Atomic Tests", false);
+                contentFactory.createContent(atomicTestContainerWindow.getComponent(), "Get Started", false);
         atomicTestContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
         contentManager.addContent(atomicTestContent);
@@ -673,9 +672,10 @@ final public class InsidiousService implements Disposable,
             atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
         } else if (agentStateProvider.doesAgentExist()) {
             atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
-        } else {
-            atomicTestContainerWindow.loadComponentForState(GutterState.NO_AGENT);
         }
+//        else {
+//            atomicTestContainerWindow.loadComponentForState(GutterState.NO_AGENT);
+//        }
 
 
         methodDirectInvokeComponent = new MethodDirectInvokeComponent(this);
@@ -683,8 +683,7 @@ final public class InsidiousService implements Disposable,
                 contentFactory.createContent(methodDirectInvokeComponent.getContent(), "Direct Invoke", false);
         this.directMethodInvokeContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         this.directMethodInvokeContent.setIcon(UIUtils.EXECUTE_METHOD);
-        contentManager.addContent(this.directMethodInvokeContent);
-
+//        contentManager.addContent(this.directMethodInvokeContent);
         SingleWindowView singleWindowView = new SingleWindowView(project, this);
         singleWindowContent = contentFactory.createContent(singleWindowView.getContent(),
                 "Raw Cases", false);
@@ -828,11 +827,9 @@ final public class InsidiousService implements Disposable,
             return;
         }
 
-        //methodExecutorToolWindow.refreshAndReloadCandidates(method);
         methodDirectInvokeComponent.renderForMethod(method);
         atomicTestContainerWindow.triggerMethodExecutorRefresh(method);
-//        methodDirectInvokeComponent.renderForMethod(method);
-        testCaseDesignerWindow.renderTestDesignerInterface(method);
+//        testCaseDesignerWindow.renderTestDesignerInterface(method);
     }
 
     public void compile(ClassAdapter psiClass, CompileStatusNotification compileStatusNotification) {
@@ -1023,6 +1020,19 @@ final public class InsidiousService implements Disposable,
 
         if (atomicTestContainerWindow != null && currentMethod != null) {
             //promoteState();
+            if(currentMethod.equals(atomicTestContainerWindow.getCurrentMethod()))
+            {
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    if (this.toolWindow==null)
+                    {
+                        return;
+                    }
+                    ContentManager manager = this.toolWindow.getContentManager();
+                    manager.removeAllContents(false);
+                    manager.addContent(atomicTestContent);
+                    manager.addContent(directMethodInvokeContent);
+                });
+            }
             ApplicationManager.getApplication().invokeLater(() -> {
                 atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
             });
@@ -1066,9 +1076,9 @@ final public class InsidiousService implements Disposable,
     public GutterState getGutterStateFor(MethodAdapter method) {
 
         //check for agent here before other comps
-        if (!agentStateProvider.doesAgentExist()) {
-            return GutterState.NO_AGENT;
-        }
+//        if (!agentStateProvider.doesAgentExist()) {
+//            return GutterState.NO_AGENT;
+//        }
 
         // agent exists but cannot connect with agent server
         // so no process is running with the agent
@@ -1161,10 +1171,10 @@ final public class InsidiousService implements Disposable,
 
     public GutterState getGutterStateBasedOnAgentState()
     {
-        if(!agentStateProvider.doesAgentExist())
-        {
-            return GutterState.NO_AGENT;
-        }
+//        if(!agentStateProvider.doesAgentExist())
+//        {
+//            return GutterState.NO_AGENT;
+//        }
         if(agentStateProvider.isAgentRunning())
         {
             return GutterState.PROCESS_RUNNING;
@@ -1240,36 +1250,8 @@ final public class InsidiousService implements Disposable,
             int methodBodyHashCode = methodBody.hashCode();
             this.methodHash.put(classMethodHashKey, methodBodyHashCode);
             DaemonCodeAnalyzer.getInstance(project).restart(method.getContainingFile());
-        } else {
-            //don't update hash
-            //failed execution
         }
     }
-
-//    @Override
-//    public String getJavaAgentString() {
-//        return null;
-//    }
-//
-//    @Override
-//    public String getVideoBugAgentPath() {
-//        return null;
-//    }
-//
-//    @Override
-//    public String suggestAgentVersion() {
-//        return "jackson-2.13";
-//    }
-//
-//    @Override
-//    public boolean doesAgentExist() {
-//        return agentStateProvider.doesAgentExist();
-//    }
-//
-//    @Override
-//    public boolean isAgentRunning() {
-//        return agentStateProvider.isAgentRunning();
-//    }
 
     @Override
     public void branchWillChange(@NotNull String branchName) {
@@ -1350,17 +1332,8 @@ final public class InsidiousService implements Disposable,
             executionRecord.put(keyName, newDiffRecord);
             return;
         }
-        DifferenceResult existing = executionRecord.get(keyName);
-        if(!existing.isUseIndividualContext()) {
-            if(existing.getDiffResultType().equals(DiffResultType.SAME))
-            {
-                executionRecord.put(keyName, newDiffRecord);
-            }
-        }
-        else
-        {
-            executionRecord.put(keyName, newDiffRecord);
-        }
+
+        executionRecord.put(keyName, newDiffRecord);
         addExecutionRecord(newDiffRecord);
     }
 
@@ -1429,6 +1402,7 @@ final public class InsidiousService implements Disposable,
     }
 
     public void promoteState(GutterState newState) {
+        loadSingleWindowForState(newState);
         if (this.atomicTestContainerWindow != null) {
             atomicTestContainerWindow.loadComponentForState(newState);
         }
@@ -1532,11 +1506,72 @@ final public class InsidiousService implements Disposable,
     }
 
     public void triggerAtomicTestsWindowRefresh() {
-        atomicTestContainerWindow.triggerMethodExecutorRefresh(null);
+        GutterState state = getGutterStateFor(currentMethod);
+        if(state.equals(GutterState.PROCESS_NOT_RUNNING)
+        || state.equals(GutterState.PROCESS_RUNNING))
+        {
+            loadSingleWindowForState(state);
+        }
+        else {
+            atomicTestContainerWindow.triggerMethodExecutorRefresh(null);
+        }
     }
 
-    public void intiAtomicRecordService() {
-        this.atomicRecordService = new AtomicRecordService(this);
+    public void setAtomicWindowHeading(String name) {
+        atomicTestContent.setDisplayName(name);
+        if(name.startsWith("Get"))
+        {
+            atomicTestContent.setIcon(UIUtils.ONBOARDING_ICON_PINK);
+        }
+        else
+        {
+            atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
+        }
+    }
+
+    public void loadSingleWindowForState(GutterState state)
+    {
+        System.out.println("Loading sw to state : "+state);
+        if (this.toolWindow==null)
+        {
+            return;
+        }
+        ContentManager manager = this.toolWindow.getContentManager();
+        if(state.equals(GutterState.PROCESS_RUNNING))
+        {
+            //show directinvoke
+            if(!manager.getSelectedContent().equals(directMethodInvokeContent))
+            {
+                System.out.println("Showing directInvoke");
+                manager.removeAllContents(false);
+                manager.addContent(directMethodInvokeContent);
+            }
+        }
+        else if(state.equals(GutterState.PROCESS_NOT_RUNNING))
+        {
+            //show atomic
+            if(!manager.getSelectedContent().equals(atomicTestContent))
+            {
+                System.out.println("Showing atomic onboarding");
+                manager.removeAllContents(false);
+                manager.addContent(atomicTestContent);
+            }
+        }
+        else
+        {
+            System.out.println("Showing full execution flow.");
+            manager.removeAllContents(false);
+            manager.addContent(atomicTestContent);
+            manager.addContent(directMethodInvokeContent);
+        }
+    }
+
+    public Map<String,String> getIndividualCandidateContextMap() {
+        return this.candidateIndividualContextMap;
+    }
+
+    public AtomicRecordService getAtomicRecordService() {
+        return this.atomicRecordService;
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
@@ -1545,12 +1580,10 @@ final public class InsidiousService implements Disposable,
         this.reportingService.toggleReportMode();
     }
 
-    public AtomicRecordService getAtomicRecordService()
-    {
-        return this.atomicRecordService;
+    public void initAtomicRecordService() {
+        this.atomicRecordService = new AtomicRecordService(this);
     }
 
-    public Map<String, String> getIndividualCandidateContextMap() {
-        return candidateIndividualContextMap;
-    }
+
+
 }

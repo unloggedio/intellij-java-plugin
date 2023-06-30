@@ -96,12 +96,12 @@ public class MethodDirectInvokeComponent {
     private void executeMethodWithParameters() {
 
         AgentStateProvider agentStateProvider = insidiousService.getAgentStateProvider();
-        if (!agentStateProvider.doesAgentExist()) {
-            InsidiousNotification.notifyMessage("Start your application with Unlogged JAVA agent to start using " +
-                    "method DirectInvoke", NotificationType.INFORMATION);
-            insidiousService.updateScaffoldForState(GutterState.NO_AGENT);
-            return;
-        }
+//        if (!agentStateProvider.doesAgentExist()) {
+//            InsidiousNotification.notifyMessage("Start your application with Unlogged JAVA agent to start using " +
+//                    "method DirectInvoke", NotificationType.INFORMATION);
+//            insidiousService.updateScaffoldForState(GutterState.NO_AGENT);
+//            return;
+//        }
 
         if (!agentStateProvider.isAgentRunning()) {
             InsidiousNotification.notifyMessage("Start your application with Unlogged JAVA agent to start using " +
@@ -222,14 +222,12 @@ public class MethodDirectInvokeComponent {
     }
 
     public void renderForMethod(MethodAdapter methodElement) {
-        if (methodElement == null || methodElement.equals(this.methodElement)) {
+        if (methodElement == null) {
+            logger.info("DirectInvoke got null method");
             return;
         }
 
-//        executeButton.setToolTipText("");
-//        executeButton.setEnabled(true);
-//        executeButton.revalidate();
-//        executeButton.repaint();
+        clearOutputSection();
 
         String methodName = methodElement.getName();
         ClassAdapter containingClass = methodElement.getContainingClass();
@@ -333,7 +331,6 @@ public class MethodDirectInvokeComponent {
 
         methodParameterScrollContainer.setMinimumSize(new Dimension(-1, Math.min(methodParameters.length * 150, 150)));
         methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
-        clearOutputSection();
         mainContainer.revalidate();
         mainContainer.repaint();
     }

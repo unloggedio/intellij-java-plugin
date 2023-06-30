@@ -28,6 +28,7 @@ public class AtomicTestContainer {
     private JPanel mainPanel;
     private JPanel borderParent;
     private GutterState currentState;
+    private MethodAdapter lastSelection;
 
     public AtomicTestContainer(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -44,35 +45,30 @@ public class AtomicTestContainer {
                 if (currentState != null && currentState.equals(state)) {
                     return;
                 }
-                borderParent.removeAll();
-                AgentConfigComponent component = new AgentConfigComponent(insidiousService);
-                borderParent.add(component.getComponent(), BorderLayout.CENTER);
-                borderParent.revalidate();
-                borderParent.repaint();
-                mainPanel.revalidate();
-                mainPanel.repaint();
-
-
+                  loadSDKOnboarding();
                 break;
             }
             case EXECUTE:
             case DATA_AVAILABLE:
                 loadExecutionFlow();
                 break;
-            case PROCESS_RUNNING:
-                loadGenericComponentForState(state);
-                break;
-            default: {
-                if (currentState != null && currentState.equals(state)) {
-                    return;
-                }
-                loadGenericComponentForState(state);
-            }
+            default:
+                methodExecutorComponent.setMethod(lastSelection);
+//            case PROCESS_RUNNING:
+//                loadGenericComponentForState(state);
+//                break;
+//            default: {
+//                if (currentState != null && currentState.equals(state)) {
+//                    return;
+//                }
+//                loadGenericComponentForState(state);
+//            }
         }
         currentState = state;
     }
 
     public void loadGenericComponentForState(GutterState state) {
+        insidiousService.setAtomicWindowHeading("Get Started");
         borderParent.removeAll();
         GenericNavigationComponent component = new GenericNavigationComponent(state, insidiousService);
         JPanel component1 = component.getComponent();
@@ -85,7 +81,23 @@ public class AtomicTestContainer {
         borderParent.repaint();
     }
 
+    public void loadSDKOnboarding()
+    {
+        insidiousService.setAtomicWindowHeading("Get Started");
+        borderParent.removeAll();
+        UnloggedSDKOnboarding component = new UnloggedSDKOnboarding(insidiousService);
+        JPanel component1 = component.getComponent();
+        borderParent.add(component1, BorderLayout.CENTER);
+        component1.validate();
+        component1.repaint();
+        borderParent.setVisible(false);
+        borderParent.setVisible(true);
+        borderParent.validate();
+        borderParent.repaint();
+    }
+
     public void loadExecutionFlow() {
+        insidiousService.setAtomicWindowHeading("Atomic Tests");
         borderParent.removeAll();
         borderParent.add(methodExecutorComponent.getComponent(), BorderLayout.CENTER);
         borderParent.revalidate();
@@ -101,11 +113,11 @@ public class AtomicTestContainer {
         if (focussedMethod == null) {
             return;
         }
+        lastSelection=focussedMethod;
         if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
             methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, new ArrayList<>());
         } else {
-            if (currentState.equals(GutterState.NO_AGENT) ||
-                    currentState.equals(GutterState.PROCESS_NOT_RUNNING)) {
+            if (currentState.equals(GutterState.PROCESS_NOT_RUNNING)) {
                 loadComponentForState(currentState);
                 return;
             }
@@ -188,4 +200,9 @@ public class AtomicTestContainer {
     public void triggerCompileAndExecute() {
         methodExecutorComponent.compileAndExecuteAll();
     }
+
+    public MethodAdapter getCurrentMethod() {
+        return methodExecutorComponent.getCurrentMethod();
+    }
+    //assertions
 }

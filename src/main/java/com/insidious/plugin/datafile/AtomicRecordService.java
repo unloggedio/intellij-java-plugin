@@ -27,76 +27,69 @@ public class AtomicRecordService {
     private final String unloggedFolderName = ".unlogged";
     private ObjectMapper objectMapper = new ObjectMapper();
     private Map<String,AtomicRecord> storedRecords=null;
+    private boolean useNotifications=true;
     public AtomicRecordService(InsidiousService service)
     {
         this.insidiousService = service;
         DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
-        dumbService.runWhenSmart(() -> {
-            checkPreRequisits();
-        });
-
+        if(dumbService!=null) {
+            dumbService.runWhenSmart(() -> {
+                checkPreRequisits();
+            });
+        }
     }
     private static final Logger logger = LoggerUtil.getInstance(AtomicRecordService.class);
 
     public GutterState computeGutterState(String classname, String method, int hashcode) {
 
-        AtomicRecord record = this.storedRecords.get(classname);
-        if(record==null)
-        {
-            return null;
-        }
-        List<StoredCandidate> candidates = new ArrayList<>();
-        if(record.getStoredCandidateMap().get(method)!=null)
-        {
-            candidates.addAll(record.getStoredCandidateMap().get(method));
-        }
-        else
-        {
-            return null;
-        }
-        boolean hashChange = false;
-        StoredCandidateMetadata.CandidateStatus status = null;
-        for(StoredCandidate candidate : candidates)
-        {
-            if(!candidate.getMethodHash().equals(hashcode+""))
-            {
-                hashChange = true;
+        try {
+            AtomicRecord record = this.storedRecords.get(classname);
+            if (record == null) {
+                return null;
             }
-            if(status==null) {
-                status = candidate.getMetadata().getCandidateStatus();
+            List<StoredCandidate> candidates = new ArrayList<>();
+            if (record.getStoredCandidateMap().get(method) != null) {
+                candidates.addAll(record.getStoredCandidateMap().get(method));
+            } else {
+                return null;
             }
-            else
-            {
-                if(candidate.getMetadata().getCandidateStatus()
-                        .equals(StoredCandidateMetadata.CandidateStatus.FAILING))
-                {
+            boolean hashChange = false;
+            StoredCandidateMetadata.CandidateStatus status = null;
+            for (StoredCandidate candidate : candidates) {
+                if (!candidate.getMethodHash().equals(hashcode + "")) {
+                    hashChange = true;
+                }
+                if (status == null) {
+                    status = candidate.getMetadata().getCandidateStatus();
+                } else {
+                    if (candidate.getMetadata().getCandidateStatus()
+                            .equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
                         status = StoredCandidateMetadata.CandidateStatus.FAILING;
+                    }
                 }
             }
+            if (hashChange) {
+                return GutterState.EXECUTE;
+            }
+            if (status == null) {
+                return GutterState.DATA_AVAILABLE;
+            }
+            if (status.equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
+                return GutterState.DIFF;
+            } else if (status.equals(StoredCandidateMetadata.CandidateStatus.PASSING)) {
+                return GutterState.NO_DIFF;
+            } else {
+                return GutterState.DATA_AVAILABLE;
+            }
         }
-        if(hashChange)
+        catch (Exception e)
         {
-            return GutterState.EXECUTE;
-        }
-        if(status == null)
-        {
-            return GutterState.DATA_AVAILABLE;
-        }
-        if(status.equals(StoredCandidateMetadata.CandidateStatus.FAILING))
-        {
-            return GutterState.DIFF;
-        }
-        else if(status.equals(StoredCandidateMetadata.CandidateStatus.PASSING))
-        {
-            return GutterState.NO_DIFF;
-        }
-        else
-        {
-            return GutterState.DATA_AVAILABLE;
+            logger.info("Exception computing gutter state."+e);
+            return null;
         }
     }
 
-    private enum FileUpdateType {ADD,UPDATE,DELETE}
+    public enum FileUpdateType {ADD,UPDATE,DELETE}
 
     public void saveCandidate(String classname, String methodName, String signature, StoredCandidate candidate)
     {
@@ -128,7 +121,9 @@ public class AtomicRecordService {
                         {
                             foundCandidate = true;
                             //replace
-                            InsidiousNotification.notifyMessage("Replacing existing record", NotificationType.INFORMATION);
+                            if(useNotifications) {
+                                InsidiousNotification.notifyMessage("Replacing existing record", NotificationType.INFORMATION);
+                            }
                             logger.info("[ATRS] Replacing existing record");
                             storedCandidate.copyFrom(candidate);
                         }
@@ -151,14 +146,14 @@ public class AtomicRecordService {
                         existingRecord.setStoredCandidateMap(filterCandidates(existingRecord.getStoredCandidateMap()));
                     }
                     writeToFile(new File(getFilenameForClass(classname))
-                            ,obj,FileUpdateType.UPDATE,true);
+                            ,obj,FileUpdateType.UPDATE,(useNotifications) ? true : false);
                 }
                 else
                 {
                     logger.info("[ATRS] Replacing existing record (found)");
                     existingRecord.setStoredCandidateMap(filterCandidates(existingRecord.getStoredCandidateMap()));
                     writeToFile(new File(getFilenameForClass(classname))
-                            ,obj,FileUpdateType.UPDATE,true);
+                            ,obj,FileUpdateType.UPDATE,(useNotifications) ? true : false);
                 }
             }
             JSONObject properties = new JSONObject();
@@ -180,7 +175,7 @@ public class AtomicRecordService {
         return basePath+File.separator+unloggedFolderName+File.separator+classname+".json";
     }
 
-    private Map<String,List<StoredCandidate>> filterCandidates(Map<String,List<StoredCandidate>> candidates)
+    public Map<String,List<StoredCandidate>> filterCandidates(Map<String,List<StoredCandidate>> candidates)
     {
         if(candidates==null || candidates.size()==0)
         {
@@ -226,7 +221,7 @@ public class AtomicRecordService {
 
         this.storedRecords.put(classname,record);
         writeToFile(new File(getFilenameForClass(classname))
-                ,record,FileUpdateType.ADD,true);
+                ,record,FileUpdateType.ADD,(useNotifications) ? true : false);
     }
 
     private void writeToFile(File file, AtomicRecord atomicRecord, FileUpdateType type,
@@ -252,7 +247,7 @@ public class AtomicRecordService {
         }
     }
 
-    private String getMessageForOperationType(FileUpdateType type, boolean positive)
+    public String getMessageForOperationType(FileUpdateType type, boolean positive)
     {
         switch (type)
         {
@@ -262,7 +257,7 @@ public class AtomicRecordService {
                 }
                 else
                 {
-                    return "Failed to add record"+
+                    return "Failed to add record."+
                             "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.";
                 }
             case UPDATE:
@@ -315,17 +310,23 @@ public class AtomicRecordService {
 
     public Boolean hasStoredCandidateForMethod(String classname, String method)
     {
-        AtomicRecord record = this.storedRecords.get(classname);
-        if(record==null)
-        {
+        try {
+            AtomicRecord record = this.storedRecords.get(classname);
+            if (record == null) {
+                return false;
+            }
+            if (record.getStoredCandidateMap().get(method) != null &&
+                    record.getStoredCandidateMap().get(method).size() > 0) {
+                return true;
+
+            }
             return false;
         }
-        if(record.getStoredCandidateMap().get(method)!=null &&
-                record.getStoredCandidateMap().get(method).size()>0)
+        catch (Exception e)
         {
-            return true;
+            logger.info("Exception checking if method has stored candidates."+e);
+            return false;
         }
-        return false;
     }
 
     public void ensureUnloggedFolder()
@@ -339,7 +340,7 @@ public class AtomicRecordService {
         }
     }
 
-    private AtomicRecord getAtomicRecordFromFile(File file)
+    public AtomicRecord getAtomicRecordFromFile(File file)
     {
         try {
             InputStream inputStream = new FileInputStream(file);
@@ -388,7 +389,7 @@ public class AtomicRecordService {
             list.remove(candidateToRemove);
         }
         writeToFile(new File(getFilenameForClass(classname))
-                ,record,FileUpdateType.DELETE,true);
+                ,record,FileUpdateType.DELETE,(useNotifications) ? true : false);
         UsageInsightTracker.getInstance().RecordEvent("Candidate_Deleted",null);
         insidiousService.triggerGutterIconReload();
         insidiousService.triggerAtomicTestsWindowRefresh();
@@ -419,25 +420,42 @@ public class AtomicRecordService {
     //call to sync at session close
     public void writeAll()
     {
-        if(storedRecords.size()==0)
-        {
-            return;
+        try {
+            if (storedRecords.size() == 0) {
+                return;
+            }
+            for (String classname : storedRecords.keySet()) {
+                AtomicRecord recordForClass = storedRecords.get(classname);
+                writeToFile(new File(getFilenameForClass(classname))
+                        , recordForClass, FileUpdateType.UPDATE, false);
+            }
         }
-        for(String classname : storedRecords.keySet())
+        catch (Exception e)
         {
-            AtomicRecord recordForClass = storedRecords.get(classname);
-            writeToFile(new File(getFilenameForClass(classname))
-                    ,recordForClass,FileUpdateType.UPDATE,false);
+            logger.info("Failed to sync on exit "+e);
         }
     }
 
-    private void checkPreRequisits()
+    public void checkPreRequisits()
     {
-        ensureUnloggedFolder();
         basePath = insidiousService.getProject().getBasePath();
+        ensureUnloggedFolder();
         if(this.storedRecords==null)
         {
             this.storedRecords = updateMap();
         }
+    }
+
+    public Map<String,AtomicRecord> getStoredRecords()
+    {
+        return this.storedRecords;
+    }
+
+    public boolean isUseNotifications() {
+        return useNotifications;
+    }
+
+    public void setUseNotifications(boolean useNotifications) {
+        this.useNotifications = useNotifications;
     }
 }

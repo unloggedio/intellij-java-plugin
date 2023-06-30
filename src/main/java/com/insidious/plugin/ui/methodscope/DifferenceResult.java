@@ -96,6 +96,7 @@ public class DifferenceResult {
         return "DifferenceResult{" +
                 "differenceInstanceList=" + differenceInstanceList +
                 ", diffResultType=" + diffResultType +
+                ", useIndividualContext="+ useIndividualContext +
                 ", leftOnly=" + leftOnly +
                 ", rightOnly=" + rightOnly +
                 ", methodAdapter=" + methodAdapter +
