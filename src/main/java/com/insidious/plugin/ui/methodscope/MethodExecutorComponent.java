@@ -4,18 +4,17 @@ import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
-import com.insidious.plugin.datafile.AtomicRecordService;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.ui.MethodExecutionListener;
-import com.insidious.plugin.util.*;
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
+import com.insidious.plugin.util.ClassUtils;
+import com.insidious.plugin.util.DiffUtils;
+import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.MethodUtils;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -30,8 +29,9 @@ import org.json.JSONObject;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
+import java.util.HashMap;
 import java.util.List;
-import java.util.*;
+import java.util.Map;
 import java.util.function.Supplier;
 
 public class MethodExecutorComponent implements MethodExecutionListener, CandidateSelectedListener {
@@ -75,8 +75,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         });
     }
 
-    public MethodAdapter getCurrentMethod()
-    {
+    public MethodAdapter getCurrentMethod() {
         return methodElement;
     }
 
@@ -127,7 +126,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             gridPanel.add(candidateDisplayPanel, constraints);
             panelHeight += candidateDisplayPanel.getPreferredSize().getHeight() + 10;
         }
-        panelHeight +=40;
+        panelHeight += 40;
 
         gridPanel.setBorder(JBUI.Borders.empty());
         JScrollPane scrollPane = new JBScrollPane(gridPanel);
@@ -200,7 +199,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
         if (this.methodTestCandidates.size() == 0) {
             //moving to different view as this is not the intended screen for no available data.
-            insidiousService.updateScaffoldForState(GutterState.PROCESS_RUNNING);
+            insidiousService.focusDirectInvokeTab();
+            executeAndShowDifferencesButton.setEnabled(false);
         } else {
             loadMethodCandidates();
             executeAndShowDifferencesButton.setEnabled(true);
@@ -208,13 +208,13 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         }
         executeAndShowDifferencesButton.revalidate();
         executeAndShowDifferencesButton.repaint();
-        this.candidateCountLabel.setText(methodTestCandidates.size() + " Unique candidates");
+        candidateCountLabel.setText(methodTestCandidates.size() + " Unique candidates");
         TitledBorder topPanelTitledBorder = (TitledBorder) topPanel.getBorder();
         topPanelTitledBorder.setTitle(
                 methodElement.getContainingClass().getName() + "." + methodElement.getName() + "()");
 
-        this.rootContent.revalidate();
-        this.rootContent.repaint();
+        rootContent.revalidate();
+        rootContent.repaint();
     }
 
     private void clearBoard() {
@@ -245,27 +245,22 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                         candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
                         DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate,
                                 agentCommandResponse);
-                        System.out.println("Source [EXEC]: "+source);
-                        if(source.equals("all")) {
+                        System.out.println("Source [EXEC]: " + source);
+                        if (source.equals("all")) {
                             diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_REPLAY);
                             diffResult.setIndividualContext(false);
-                        }
-                        else
-                        {
+                        } else {
                             diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_INDIVIDUAL);
                             //check other statuses and add them for individual execution
                             String status = getExecutionStatusFromCandidates(testCandidate.getEntryProbeIndex());
                             String methodKey = methodElement.getContainingClass().getQualifiedName()
-                                    +"#"+methodElement.getName()+"#"+methodElement.getJVMSignature();
-                            if(status.equals("Diff") || status.equals("NoRun"))
-                            {
-                                System.out.println("Setting status multi run : "+status);
-                                insidiousService.getIndividualCandidateContextMap().put(methodKey,status);
-                            }
-                            else
-                            {
+                                    + "#" + methodElement.getName() + "#" + methodElement.getJVMSignature();
+                            if (status.equals("Diff") || status.equals("NoRun")) {
+                                System.out.println("Setting status multi run : " + status);
+                                insidiousService.getIndividualCandidateContextMap().put(methodKey, status);
+                            } else {
                                 System.out.println("Setting status multi run : Same");
-                                insidiousService.getIndividualCandidateContextMap().put(methodKey,"Same");
+                                insidiousService.getIndividualCandidateContextMap().put(methodKey, "Same");
                             }
                             diffResult.setIndividualContext(true);
                         }
@@ -276,16 +271,16 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                         insidiousService.addDiffRecord(methodElement, diffResult);
 
                         StoredCandidateMetadata meta = testCandidate.getMetadata();
-                        if(meta==null)
-                        {
+                        if (meta == null) {
                             meta = new StoredCandidateMetadata();
                         }
                         meta.setTimestamp(agentCommandResponse.getTimestamp());
                         meta.setCandidateStatus(getStatusForState(diffResult.getDiffResultType()));
-                        if(testCandidate.getCandidateId()!=null) {
+                        if (testCandidate.getCandidateId() != null) {
                             insidiousService.getAtomicRecordService().setCandidateStateForCandidate(
-                                    testCandidate.getCandidateId(),methodElement.getContainingClass().getQualifiedName(),
-                                    methodElement.getName()+"#"+methodElement.getJVMSignature(),
+                                    testCandidate.getCandidateId(),
+                                    methodElement.getContainingClass().getQualifiedName(),
+                                    methodElement.getName() + "#" + methodElement.getJVMSignature(),
                                     testCandidate.getMetadata().getCandidateStatus());
                         }
                         //possible bug vector, equal case check
@@ -303,10 +298,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         }
     }
 
-    private StoredCandidateMetadata.CandidateStatus getStatusForState(DiffResultType type)
-    {
-        switch (type)
-        {
+    private StoredCandidateMetadata.CandidateStatus getStatusForState(DiffResultType type) {
+        switch (type) {
             case SAME:
             case NO_ORIGINAL:
                 return StoredCandidateMetadata.CandidateStatus.PASSING;
@@ -315,34 +308,26 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         }
     }
 
-    public String getExecutionStatusFromCandidates(long excludeKey)
-    {
+    public String getExecutionStatusFromCandidates(long excludeKey) {
         boolean hasDiff = false;
         boolean hasNoRun = false;
-        for(long key : candidateComponentMap.keySet())
-        {
-            if(key == excludeKey)
-            {
+        for (long key : candidateComponentMap.keySet()) {
+            if (key == excludeKey) {
                 continue;
             }
             TestCandidateListedItemComponent component = candidateComponentMap.get(key);
             String status = component.getExecutionStatus().trim();
-            if(status.isEmpty() || status.isBlank())
-            {
+            if (status.isEmpty() || status.isBlank()) {
                 hasNoRun = true;
             }
-            if(status.contains("Diff"))
-            {
+            if (status.contains("Diff")) {
                 hasDiff = true;
             }
         }
-        if(hasDiff)
-        {
+        if (hasDiff) {
             //has a diff case
             return "Diff";
-        }
-        else if(hasNoRun)
-        {
+        } else if (hasNoRun) {
             //has candidates not run
             return "NoRun";
         }
@@ -355,7 +340,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
 
     public void displayResponse(Supplier<Component> component) {
-        scrollParent.setMinimumSize(new Dimension(-1,700));
+        scrollParent.setMinimumSize(new Dimension(-1, 700));
         this.diffContentPanel.removeAll();
         this.diffContentPanel.setLayout(new GridLayout(1, 1));
         diffContentPanel.setMinimumSize(new Dimension(-1, 700));
@@ -395,7 +380,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                     testCandidateMetadata, agentCommandResponse, insidiousService);
             comp.setMethodHash(methodElement.getJVMSignature());
             comp.setMethodName(methodElement.getName());
-            comp.setMethodHash(methodElement.getText().hashCode()+"");
+            comp.setMethodHash(methodElement.getText().hashCode() + "");
             comp.setClassname(methodElement.getContainingClass().getQualifiedName());
             comp.setMethodSignature(methodElement.getJVMSignature());
             return comp;
@@ -407,7 +392,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                     testCandidateMetadata, agentCommandResponse, insidiousService);
             comp.setMethodHash(methodElement.getJVMSignature());
             comp.setMethodName(methodElement.getName());
-            comp.setMethodHash(methodElement.getText().hashCode()+"");
+            comp.setMethodHash(methodElement.getText().hashCode() + "");
             comp.setClassname(methodElement.getContainingClass().getQualifiedName());
             comp.setMethodSignature(methodElement.getJVMSignature());
             return comp;
@@ -416,7 +401,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                     agentCommandResponse, testCandidateMetadata, true, insidiousService::generateCompareWindows,
                     insidiousService.getAtomicRecordService());
             component.setMethodName(methodElement.getName());
-            component.setMethodHash(methodElement.getText().hashCode()+"");
+            component.setMethodHash(methodElement.getText().hashCode() + "");
             component.setClassname(methodElement.getContainingClass().getQualifiedName());
             component.setMethodSignature(methodElement.getJVMSignature());
             return component;
@@ -424,7 +409,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     public void setMethod(MethodAdapter lastSelection) {
-        if(lastSelection!=null) {
+        if (lastSelection != null) {
             this.methodElement = lastSelection;
         }
     }

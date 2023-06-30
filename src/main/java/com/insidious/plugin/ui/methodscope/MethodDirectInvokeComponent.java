@@ -31,6 +31,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
+import com.intellij.uiDesigner.core.Spacer;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -148,6 +149,15 @@ public class MethodDirectInvokeComponent {
             insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                     (agentCommandRequest1, agentCommandResponse) -> {
                         logger.warn("Agent command execution response: " + agentCommandResponse);
+                        if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
+                            if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
+                                InsidiousNotification.notifyMessage(
+                                        "Exception thrown when trying to direct invoke " + agentCommandRequest.getMethodName(),
+                                        NotificationType.ERROR
+                                );
+                                return;
+                            }
+                        }
 
                         ResponseType responseType = agentCommandResponse.getResponseType();
                         String responseMessage = agentCommandResponse.getMessage() == null ? "" :
@@ -226,6 +236,9 @@ public class MethodDirectInvokeComponent {
             logger.info("DirectInvoke got null method");
             return;
         }
+        if (this.methodElement == methodElement) {
+            return;
+        }
 
         clearOutputSection();
 
@@ -297,23 +310,25 @@ public class MethodDirectInvokeComponent {
                 ) {
                     parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
                             JBTextField.class);
+                    content = parameterContainer.getContent();
+                    content.setMaximumSize(new Dimension(-1, 80));
                 } else {
                     PsiClass typeClassReference = JavaPsiFacade
                             .getInstance(project)
                             .findClass(typeCanonicalName, projectAndLibrariesScope);
-                    if (typeClassReference != null && typeClassReference.isEnum()) {
+                    if (typeClassReference != null && (typeClassReference.isEnum())) {
                         parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
                                 JBTextField.class);
                     } else {
                         parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
                                 JBTextArea.class);
                     }
+                    content = parameterContainer.getContent();
+                    content.setMinimumSize(new Dimension(-1, 150));
+                    content.setMaximumSize(new Dimension(-1, 300));
                 }
 
                 parameterInputComponents.add(parameterContainer);
-                content = parameterContainer.getContent();
-                content.setMinimumSize(new Dimension(-1, 150));
-                content.setMaximumSize(new Dimension(-1, 300));
                 methodParameterContainer.add(content);
             }
         } else {
@@ -321,6 +336,8 @@ public class MethodDirectInvokeComponent {
             methodParameterContainer.add(noParametersLabel);
         }
 
+//        Spacer spacer = new Spacer();
+//        methodParameterContainer.add(spacer);
         methodParameterScrollContainer.removeAll();
 
         JBScrollPane parameterScrollPanel = new JBScrollPane(methodParameterContainer);
@@ -329,7 +346,7 @@ public class MethodDirectInvokeComponent {
 //        parameterScrollPanel.setMinimumSize(new Dimension(-1, 500));
 //        parameterScrollPanel.setMaximumSize(new Dimension(-1, 500));
 
-        methodParameterScrollContainer.setMinimumSize(new Dimension(-1, Math.min(methodParameters.length * 150, 150)));
+        methodParameterScrollContainer.setMinimumSize(new Dimension(-1, Math.min(methodParameters.length * 100, 150)));
         methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
         mainContainer.revalidate();
         mainContainer.repaint();

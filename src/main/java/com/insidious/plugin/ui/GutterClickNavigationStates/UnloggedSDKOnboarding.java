@@ -19,8 +19,8 @@ public class UnloggedSDKOnboarding {
     private JButton copyCodeButton;
     private JButton discordButton;
     private InsidiousService insidiousService;
-    public UnloggedSDKOnboarding(InsidiousService insidiousService)
-    {
+
+    public UnloggedSDKOnboarding(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
         copyCodeButton.addActionListener(new ActionListener() {
             @Override
@@ -36,13 +36,11 @@ public class UnloggedSDKOnboarding {
         });
     }
 
-    public void copyCode()
-    {
+    public void copyCode() {
         insidiousService.copyToClipboard(dependencyArea.getText());
     }
 
-    public void routeToDiscord()
-    {
+    public void routeToDiscord() {
         String link = "https://discord.gg/Hhwvay8uTa";
         if (Desktop.isDesktopSupported()) {
             try {
@@ -57,8 +55,7 @@ public class UnloggedSDKOnboarding {
                 "routeToDiscord_GPT", null);
     }
 
-    public JPanel getComponent()
-    {
+    public JPanel getComponent() {
         return this.mainPanel;
     }
 }

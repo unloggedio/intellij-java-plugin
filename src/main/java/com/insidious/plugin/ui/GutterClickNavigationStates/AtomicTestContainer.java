@@ -45,7 +45,7 @@ public class AtomicTestContainer {
                 if (currentState != null && currentState.equals(state)) {
                     return;
                 }
-                  loadSDKOnboarding();
+                loadSDKOnboarding();
                 break;
             }
             case EXECUTE:
@@ -54,15 +54,6 @@ public class AtomicTestContainer {
                 break;
             default:
                 methodExecutorComponent.setMethod(lastSelection);
-//            case PROCESS_RUNNING:
-//                loadGenericComponentForState(state);
-//                break;
-//            default: {
-//                if (currentState != null && currentState.equals(state)) {
-//                    return;
-//                }
-//                loadGenericComponentForState(state);
-//            }
         }
         currentState = state;
     }
@@ -81,8 +72,7 @@ public class AtomicTestContainer {
         borderParent.repaint();
     }
 
-    public void loadSDKOnboarding()
-    {
+    public void loadSDKOnboarding() {
         insidiousService.setAtomicWindowHeading("Get Started");
         borderParent.removeAll();
         UnloggedSDKOnboarding component = new UnloggedSDKOnboarding(insidiousService);
@@ -97,6 +87,9 @@ public class AtomicTestContainer {
     }
 
     public void loadExecutionFlow() {
+        if (borderParent.getComponent(0).equals(methodExecutorComponent.getComponent())) {
+            return;
+        }
         insidiousService.setAtomicWindowHeading("Atomic Tests");
         borderParent.removeAll();
         borderParent.add(methodExecutorComponent.getComponent(), BorderLayout.CENTER);
@@ -113,7 +106,7 @@ public class AtomicTestContainer {
         if (focussedMethod == null) {
             return;
         }
-        lastSelection=focussedMethod;
+        lastSelection = focussedMethod;
         if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
             methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, new ArrayList<>());
         } else {
@@ -143,6 +136,7 @@ public class AtomicTestContainer {
             } else {
                 //no candidates, calc state
                 loadComponentForState(insidiousService.getGutterStateBasedOnAgentState());
+                methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, List.of());
             }
         }
     }
