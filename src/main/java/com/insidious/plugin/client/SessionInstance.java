@@ -485,20 +485,24 @@ public class SessionInstance {
 
         checkProgressIndicator("Loading class mappings to scan events", null);
 
-        FileInputStream classWeaverReader = new FileInputStream(fileName);
-        ByteBuffer wrap = ByteBuffer.wrap(classWeaverReader.readAllBytes());
-        KaitaiInsidiousClassWeaveParser classWeaveInfo = new KaitaiInsidiousClassWeaveParser(
-                new ByteBufferKaitaiStream(wrap));
-        classWeaverReader.close();
-        logger.warn(
-                "reading class weave info took: " + (new Date().getTime() - start) + " ms => "
-                        + classWeaveInfo.classInfo().size() + " classes");
-        long totalClassCount = classWeaveInfo.classInfo().size();
+//        FileInputStream classWeaverReader = new FileInputStream(fileName);
+//        ByteBuffer wrap = ByteBuffer.wrap(classWeaverReader.readAllBytes());
+        ByteBufferKaitaiStream kaitaiStream = new ByteBufferKaitaiStream(fileName);
+        KaitaiInsidiousClassWeaveParser classWeaveInfo = new KaitaiInsidiousClassWeaveParser(kaitaiStream);
+//        classWeaverReader.close();
+//        logger.warn(
+//                "reading class weave info took: " + (new Date().getTime() - start) + " ms => "
+//                        + classWeaveInfo.classInfo().size() + " classes");
+//        long totalClassCount = classWeaveInfo.classInfo().size();
 
         Map<Integer, DataInfo> probeListCache = new HashMap<>();
-        for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
+        while(true) {
+            KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = classWeaveInfo.nextClass();
+            if (classInfo == null) {
+                break;
+            }
             int current = counter.addAndGet(1);
-            checkProgressIndicator(null, "Loading " + current + " / " + totalClassCount + " class information");
+//            checkProgressIndicator(null, "Loading " + current + " / " + totalClassCount + " class information");
 
             ClassInfo existingClassInfo = classInfoIndex.get((int) classInfo.classId());
             if (existingClassInfo != null) {
@@ -610,13 +614,14 @@ public class SessionInstance {
 
             Map<Integer, DataInfo> probesMap = dataInfoList.stream()
                     .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
-            logger.debug("Add [" + probesMap.size() + "] probes for class: " + counter.get() + "/" + totalClassCount);
+//            logger.debug("Add [" + probesMap.size() + "] probes for class: " + counter.get() + "/" + totalClassCount);
             probeListCache.putAll(probesMap);
             if (probeListCache.size() > 10000) {
                 probeInfoIndex.putAll(probeListCache);
                 probeListCache.clear();
             }
         }
+        kaitaiStream.close();
         probeInfoIndex.putAll(probeListCache);
         probeListCache.clear();
 

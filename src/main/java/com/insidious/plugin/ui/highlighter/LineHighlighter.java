@@ -39,10 +39,10 @@ public class LineHighlighter implements LineMarkerProvider {
 
         if (element instanceof PsiIdentifier && element.getParent() instanceof PsiMethod) {
 
-            Matcher fileMatcher = testFileNamePattern.matcher(element.getContainingFile().getName());
-            if (fileMatcher.matches()) {
-                return null;
-            }
+//            Matcher fileMatcher = testFileNamePattern.matcher(element.getContainingFile().getName());
+//            if (fileMatcher.matches()) {
+//                return null;
+//            }
             PsiMethod psiMethod = (PsiMethod) element.getParent();
 //            Matcher methodMatcher = testMethodNamePattern.matcher(element.getText());
 //            if (methodMatcher.matches()) {

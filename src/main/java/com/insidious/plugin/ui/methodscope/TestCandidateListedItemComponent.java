@@ -11,6 +11,7 @@ import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.components.JBTreeTable;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 import org.json.JSONArray;
@@ -18,6 +19,8 @@ import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -37,8 +40,8 @@ public class TestCandidateListedItemComponent {
     private JPanel mainContentPanel;
     private JLabel executeLabel;
     private JPanel controlPanel;
-    private int clicks=0;
-    private int calls=0;
+    private int clicks = 0;
+    private int calls = 0;
 
     public TestCandidateListedItemComponent(
             StoredCandidate candidateMetadata,
@@ -53,8 +56,7 @@ public class TestCandidateListedItemComponent {
         this.parameterMap = generateParameterMap(method.getParameters());
 
         //saved candidate check
-        if(candidateMetadata.getName()!=null)
-        {
+        if (candidateMetadata.getName() != null) {
             setTitledBorder(candidateMetadata.getName());
         }
         mainPanel.revalidate();
@@ -135,6 +137,12 @@ public class TestCandidateListedItemComponent {
 //        constraints.setRow(1);
         JTree inputTree = new Tree(inputRoot);
         inputTree.setBorder(JBUI.Borders.empty());
+        inputTree.addTreeSelectionListener(new TreeSelectionListener() {
+            @Override
+            public void valueChanged(TreeSelectionEvent e) {
+                inputTree.clearSelection();
+            }
+        });
 
 //        for(int i = inputTree.getRowCount() - 1; i >= 0; i--){
 //            inputTree.collapseRow(i);
@@ -325,9 +333,8 @@ public class TestCandidateListedItemComponent {
         titledBorder.setTitle(title);
     }
 
-    public String getExecutionStatus()
-    {
-        return  this.statusLabel.getText();
+    public String getExecutionStatus() {
+        return this.statusLabel.getText();
     }
 
 }
