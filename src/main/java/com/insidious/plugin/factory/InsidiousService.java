@@ -801,7 +801,14 @@ final public class InsidiousService implements Disposable,
             return;
         }
         currentMethod = method;
-        final ClassAdapter psiClass = method.getContainingClass();
+        final ClassAdapter psiClass;
+        try {
+            psiClass = method.getContainingClass();
+        } catch (Exception e) {
+            // not a focussable element. return silently
+            return;
+        }
+
         if (psiClass.getName() == null) {
             return;
         }
