@@ -5,6 +5,7 @@ import com.insidious.plugin.util.TestCandidateUtils;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 public class StoredCandidate {
 
@@ -173,7 +174,10 @@ public class StoredCandidate {
         this.setBooleanType(candidateMetadata.getMainMethod().getReturnValue().isBooleanType());
         this.setMethodName(candidateMetadata.getMainMethod().getMethodName());
         this.setProbSerializedValue(candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue());
-        this.setEntryProbeIndex(candidateMetadata.getEntryProbeIndex());
+        //using random ID to minimize overlap, not picking candidateID as we use it to
+        //differentiate between stored and session candidates.
+        String newProbeIndex = UUID.randomUUID().toString();
+        this.setEntryProbeIndex(newProbeIndex.hashCode());
         StoredCandidateMetadata metadata = new StoredCandidateMetadata();
         metadata.setTimestamp(candidateMetadata.getCallTimeNanoSecond());
         this.setMetadata(metadata);
