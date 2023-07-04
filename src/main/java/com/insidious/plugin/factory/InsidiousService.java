@@ -185,6 +185,8 @@ final public class InsidiousService implements Disposable,
         agentStateProvider = new DefaultAgentStateProvider(this);
         threadPoolExecutor.submit(agentStateProvider);
         agentClient = new AgentClient("http://localhost:12100", (ConnectionStateListener) agentStateProvider);
+
+        ensureToolWindow();
     }
 
     @NotNull
@@ -1232,6 +1234,9 @@ final public class InsidiousService implements Disposable,
         List<StoredCandidate> convertedCandidates = AtomicRecordUtils.convertToStoredcandidates(
                 candidateMetadataList);
         storedCandidates.addAll(convertedCandidates);
+        logger.info("StoredCandidates pre filter for "+method.getName());
+        logger.info(""+storedCandidates.toString());
+
         storedCandidates = filterStoredCandidates(storedCandidates);
         return storedCandidates;
     }
@@ -1418,9 +1423,20 @@ final public class InsidiousService implements Disposable,
     }
 
     public void promoteState(GutterState newState) {
-        loadSingleWindowForState(newState,this.project);
+        loadSingleWindowForState(newState);
         if (this.atomicTestContainerWindow != null) {
             atomicTestContainerWindow.loadComponentForState(newState);
+        }
+    }
+
+    public void ensureToolWindow()
+    {
+        if (this.toolWindow == null) {
+            if (!this.initiated) {
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
+                });
+            }
         }
     }
 
@@ -1524,7 +1540,7 @@ final public class InsidiousService implements Disposable,
     public void triggerAtomicTestsWindowRefresh() {
         GutterState state = getGutterStateFor(currentMethod);
         if (state.equals(GutterState.PROCESS_NOT_RUNNING) || state.equals(GutterState.PROCESS_RUNNING)) {
-            loadSingleWindowForState(state,this.project);
+            loadSingleWindowForState(state);
         } else {
             atomicTestContainerWindow.triggerMethodExecutorRefresh(null);
         }
@@ -1539,18 +1555,9 @@ final public class InsidiousService implements Disposable,
         }
     }
 
-    public void loadSingleWindowForState(GutterState state, Project project) {
+    public void loadSingleWindowForState(GutterState state) {
 //        System.out.println("Loading sw to state : " + state);
-        if (this.toolWindow == null) {
-            if (!this.initiated) {
-                if (this.project == null) {
-                    this.project = project;
-                }
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
-                });
-            }
-        }
+
         ContentManager manager = this.toolWindow.getContentManager();
         List<Content> contentList = Arrays.asList(manager.getContents());
         if (state.equals(GutterState.PROCESS_RUNNING)) {

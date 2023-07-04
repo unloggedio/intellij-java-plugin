@@ -25,7 +25,7 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
             logger.info("Start unlogged tool window");
             this.currentProject = project;
             InsidiousService insidiousService = project.getService(InsidiousService.class);
-            insidiousService.init(project, toolWindow);
+            //insidiousService.init(project, toolWindow);
         } catch (Exception e) {
             JSONObject eventProperties = new JSONObject();
             eventProperties.put("error", e.getMessage());
