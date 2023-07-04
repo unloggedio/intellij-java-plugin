@@ -40,7 +40,6 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 public class MethodDirectInvokeComponent extends KeyAdapter {
@@ -48,7 +47,6 @@ public class MethodDirectInvokeComponent extends KeyAdapter {
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private final ObjectMapper objectMapper;
-    private final List<String> creationStack = new LinkedList<>();
     private JPanel mainContainer;
     private JPanel actionControlPanel;
     private JScrollPane returnValuePanel;
@@ -93,14 +91,18 @@ public class MethodDirectInvokeComponent extends KeyAdapter {
         AgentStateProvider agentStateProvider = insidiousService.getAgentStateProvider();
 
         if (!agentStateProvider.isAgentRunning()) {
-            InsidiousNotification.notifyMessage("Start your application with Unlogged JAVA agent to start using " +
-                    "method DirectInvoke", NotificationType.INFORMATION);
+            String message = "Start your application with Unlogged JAVA agent to start using " +
+                    "method DirectInvoke";
+            InsidiousNotification.notifyMessage(message, NotificationType.INFORMATION);
+            returnValueTextArea.setText(message);
             insidiousService.updateScaffoldForState(GutterState.PROCESS_NOT_RUNNING);
             return;
         }
 
         if (methodElement == null) {
-            InsidiousNotification.notifyMessage("No method selected in editor.", NotificationType.WARNING);
+            String message = "No method selected in editor.";
+            returnValueTextArea.setText(message);
+            InsidiousNotification.notifyMessage(message, NotificationType.WARNING);
             return;
         }
 
@@ -134,6 +136,8 @@ public class MethodDirectInvokeComponent extends KeyAdapter {
             returnValueTextArea.setText("");
 
 
+            returnValueTextArea.setText("Executing method [" + agentCommandRequest.getMethodName() + "()]\nin class ["
+                    + agentCommandRequest.getClassName() + "].\nWaiting for response...");
             insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                     (agentCommandRequest1, agentCommandResponse) -> {
                         logger.warn("Agent command execution response: " + agentCommandResponse);
@@ -156,6 +160,9 @@ public class MethodDirectInvokeComponent extends KeyAdapter {
 
 
                         String targetClassName = agentCommandResponse.getTargetClassName();
+                        if (targetClassName == null) {
+                            targetClassName = agentCommandRequest.getClassName();
+                        }
                         targetClassName = targetClassName.substring(targetClassName.lastIndexOf(".") + 1);
                         returnValueTextArea.setToolTipText("Timestamp: " +
                                 new Timestamp(agentCommandResponse.getTimestamp()).toString() + " from "
@@ -286,7 +293,6 @@ public class MethodDirectInvokeComponent extends KeyAdapter {
                 } else {
                     parameterValue = ClassUtils.createDummyValue(methodParameterType, new ArrayList<>(4),
                             insidiousService.getProject());
-                    creationStack.clear();
                 }
 
                 ParameterInputComponent parameterContainer;
