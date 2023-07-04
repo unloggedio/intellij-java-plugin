@@ -141,13 +141,7 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
 //                }
 //            });
 //        }
-        deleteButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                InsidiousNotification.notifyMessage("Removing this candidate. ",
-                        NotificationType.INFORMATION);
-            }
-        });
+
         acceptButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {

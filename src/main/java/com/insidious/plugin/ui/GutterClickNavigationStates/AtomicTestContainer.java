@@ -67,7 +67,8 @@ public class AtomicTestContainer {
     }
 
     public void loadExecutionFlow() {
-        if (borderParent.getComponent(0).equals(methodExecutorComponent.getComponent())) {
+        if (borderParent.getComponents().length > 0 &&
+                borderParent.getComponent(0).equals(methodExecutorComponent.getComponent())) {
             return;
         }
         insidiousService.setAtomicWindowHeading("Atomic Tests");

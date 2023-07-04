@@ -984,7 +984,6 @@ final public class InsidiousService implements Disposable,
         }
 //        toolWindow.getContentManager().setSelectedContent(this.testDesignerContent);
         toolWindow.show(null);
-
     }
 
     public void refreshGPTWindow() {
@@ -1419,7 +1418,7 @@ final public class InsidiousService implements Disposable,
     }
 
     public void promoteState(GutterState newState) {
-        loadSingleWindowForState(newState);
+        loadSingleWindowForState(newState,this.project);
         if (this.atomicTestContainerWindow != null) {
             atomicTestContainerWindow.loadComponentForState(newState);
         }
@@ -1525,7 +1524,7 @@ final public class InsidiousService implements Disposable,
     public void triggerAtomicTestsWindowRefresh() {
         GutterState state = getGutterStateFor(currentMethod);
         if (state.equals(GutterState.PROCESS_NOT_RUNNING) || state.equals(GutterState.PROCESS_RUNNING)) {
-            loadSingleWindowForState(state);
+            loadSingleWindowForState(state,this.project);
         } else {
             atomicTestContainerWindow.triggerMethodExecutorRefresh(null);
         }
@@ -1540,10 +1539,17 @@ final public class InsidiousService implements Disposable,
         }
     }
 
-    public void loadSingleWindowForState(GutterState state) {
-        System.out.println("Loading sw to state : " + state);
+    public void loadSingleWindowForState(GutterState state, Project project) {
+//        System.out.println("Loading sw to state : " + state);
         if (this.toolWindow == null) {
-            return;
+            if (!this.initiated) {
+                if (this.project == null) {
+                    this.project = project;
+                }
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
+                });
+            }
         }
         ContentManager manager = this.toolWindow.getContentManager();
         List<Content> contentList = Arrays.asList(manager.getContents());
@@ -1590,6 +1596,4 @@ final public class InsidiousService implements Disposable,
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
-
-
 }
