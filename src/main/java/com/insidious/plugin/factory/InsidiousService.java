@@ -1431,13 +1431,9 @@ final public class InsidiousService implements Disposable,
 
     public void ensureToolWindow()
     {
-        if (this.toolWindow == null) {
-            if (!this.initiated) {
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
-                });
-            }
-        }
+        ApplicationManager.getApplication().invokeLater(() -> {
+            this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
+        });
     }
 
     public void compileAndExecuteWithAgentForMethod(JavaMethodAdapter methodAdapter) {
