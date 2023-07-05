@@ -272,7 +272,7 @@ final public class InsidiousService implements Disposable,
         Clipboard clipboard = Toolkit.getDefaultToolkit()
                 .getSystemClipboard();
         clipboard.setContents(selection, null);
-        System.out.println(selection);
+//        logger.info(selection);
     }
 
 
@@ -1146,8 +1146,7 @@ final public class InsidiousService implements Disposable,
 
         if (this.candidateIndividualContextMap.get(methodKey) != null &&
                 differenceResult.isUseIndividualContext()) {
-            System.out.println("Using flow ind : "
-                    + this.candidateIndividualContextMap.get(methodKey));
+            logger.info("Using flow ind : " + this.candidateIndividualContextMap.get(methodKey));
             switch (this.candidateIndividualContextMap.get(methodKey)) {
                 case "Diff":
                     return GutterState.DIFF;
@@ -1157,7 +1156,7 @@ final public class InsidiousService implements Disposable,
                     return GutterState.NO_DIFF;
             }
         }
-        System.out.println("Using flow normal : "
+        logger.info("Using flow normal : "
                 + differenceResult.getDiffResultType());
         switch (differenceResult.getDiffResultType()) {
             case DIFF:
@@ -1234,8 +1233,8 @@ final public class InsidiousService implements Disposable,
         List<StoredCandidate> convertedCandidates = AtomicRecordUtils.convertToStoredcandidates(
                 candidateMetadataList);
         storedCandidates.addAll(convertedCandidates);
-        logger.info("StoredCandidates pre filter for "+method.getName());
-        logger.info(""+storedCandidates.toString());
+        logger.info("StoredCandidates pre filter for " + method.getName());
+        logger.info("" + storedCandidates.toString());
 
         storedCandidates = filterStoredCandidates(storedCandidates);
         return storedCandidates;
@@ -1429,8 +1428,7 @@ final public class InsidiousService implements Disposable,
         }
     }
 
-    public void ensureToolWindow()
-    {
+    public void ensureToolWindow() {
         ApplicationManager.getApplication().invokeLater(() -> {
             this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
         });

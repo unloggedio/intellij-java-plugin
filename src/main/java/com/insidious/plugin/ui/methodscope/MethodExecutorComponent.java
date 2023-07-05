@@ -62,7 +62,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     private int callCount = 0;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
-        System.out.println("In Constructor mec");
+//        System.out.println("In Constructor mec");
         this.insidiousService = insidiousService;
         executeAndShowDifferencesButton.addActionListener(e -> {
             if (methodTestCandidates == null || methodTestCandidates.size() == 0) {
@@ -286,7 +286,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                     candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
                     DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate,
                             agentCommandResponse);
-                    System.out.println("Source [EXEC]: " + source);
+                    logger.info("Source [EXEC]: " + source);
                     if (source.equals("all")) {
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_REPLAY);
                         diffResult.setIndividualContext(false);
@@ -297,10 +297,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                         String methodKey = methodElement.getContainingClass().getQualifiedName()
                                 + "#" + methodElement.getName() + "#" + methodElement.getJVMSignature();
                         if (status.equals("Diff") || status.equals("NoRun")) {
-                            System.out.println("Setting status multi run : " + status);
+                            logger.info("Setting status multi run : " + status);
                             insidiousService.getIndividualCandidateContextMap().put(methodKey, status);
                         } else {
-                            System.out.println("Setting status multi run : Same");
+                            logger.info("Setting status multi run : Same");
                             insidiousService.getIndividualCandidateContextMap().put(methodKey, "Same");
                         }
                         diffResult.setIndividualContext(true);
@@ -444,9 +444,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     public void setMethod(MethodAdapter lastSelection) {
-        System.out.println("In set method");
+//        System.out.println("In set method");
         if (lastSelection != null) {
-            System.out.println("Set Method");
+//            System.out.println("Set Method");
             this.methodElement = lastSelection;
         }
     }
