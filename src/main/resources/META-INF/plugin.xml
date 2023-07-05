@@ -7,68 +7,61 @@
 
     <description>
         <![CDATA[
-            We are excited to introduce the latest release of our IntelliJ Plugin, designed to 10x your unit testing experience. In this version, we have focused on providing a seamless way to save, delete, and update Atomic Tests in JSON format, allowing you to easily collaborate with your team members using Git.
-            <br/>
-            Key Features:
-            <ul>
-                <li>Save, delete, and update Atomic Tests in JSON format: With this release, you can now create Atomic Tests and save them as JSON files. You have the flexibility to update or delete these tests as per your requirements. This functionality enables easy sharing and collaboration with your teammates.</li>
+            <h2 class="c9" id="h.6kd09fd21779"><span class="c6">Exciting New Features Unleashed in Unlogged!</span></h2>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <p class="c4"><span class="c1">We are thrilled to unveil the latest enhancements in Unlogged that will elevate your development experience to new heights. Get ready to embark on a joyous coding journey with these amazing updates.</span></p>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <h3 class="c5" id="h.7do80d5h1u6m"><span class="c0">Simplified Project Setup</span></h3>
+            <p class="c4"><span class="c1">Setting up your project has never been smoother! Integrate Unlogged effortlessly by adding the pom.xml dependency. With just a few clicks, you&#39;ll be up and running in no time.</span></p>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <h3 class="c5" id="h.j4h98jmi0o6o"><span class="c0">Test Creation Made Easy</span></h3>
+            <p class="c4"><span class="c1">Creating tests for your methods is now a breeze. Once your project is running, head to the method you wish to test. No need to stress - simply click on the lively Guttor Icon and select &quot;Direct Invoke.&quot; It&#39;s as simple as that!</span></p>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <h3 class="c5" id="h.82opoqi3p0f"><span class="c0">Direct Invocation Magic</span></h3>
+            <p class="c4"><span class="c1">Say goodbye to the hassle of exposing HTTP endpoints. Thanks to Unlogged&#39;s Direct Invoke feature, you can now call any Java method directly. Experience the freedom of invoking methods without unnecessary complexities.</span></p>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <h3 class="c5" id="h.un50bl52ai0k"><span class="c0">Execute with Relevance</span></h3>
+            <p class="c4"><span class="c1">Supercharge your testing process by providing relevant inputs to your methods. Execute the method effortlessly with the desired inputs, and witness the magic of Unlogged at work. Get instant results and revel in the joy of efficient testing.</span></p>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <h3 class="c5" id="h.ert6t5nuwft7"><span class="c0">Relive the Magic with Atomic Tests</span></h3>
+            <p class="c4"><span class="c1">Record and replay your methods with ease using Atomic Tests. Say goodbye to repetitive input scenarios - save your input/return value combinations as convenient JSON files. Replaying recorded inputs has never been more delightful!</span></p>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <h2 class="c9" id="h.7w4yn3c6zibu"><span class="c6">Unveiling Key Terms:</span></h2>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <p class="c4"><span class="c2">Direct Invoke</span><span class="c1">: Unleash the power of direct method invocation with Unlogged. No more relying on HTTP endpoints - call any Java method directly and unlock a world of convenience and speed.</span></p>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <p class="c4"><span class="c2">Atomic Tests</span><span class="c1">: Elevate your testing game with Atomic Tests. Record and save input/return value combinations effortlessly as JSON files. Replay these tests seamlessly and save valuable time.</span></p>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <h3 class="c5" id="h.uupjes841413"><span class="c0">Let&#39;s Decode the Gutter Icon States:</span></h3>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <ul class="c10 lst-kix_852smikog4mb-0 start">
+               <li class="c4 c7 li-bullet-0"><span class="c2">Red Icon</span><span class="c1">: This friendly icon indicates that your application is not running with the Unlogged SDK. No worries! Just add the required dependency in your pom.xml, and you&#39;re on your way to an enhanced development experience.</span></li>
             </ul>
-            <br/>
+            <p class="c3"><span class="c1"></span></p>
+            <ul class="c10 lst-kix_852smikog4mb-0">
+               <li class="c4 c7 li-bullet-0"><span class="c2">Cyan Icon</span><span class="c1">: Congratulations! Your application is rocking the Unlogged SDK. Enjoy the perks of Direct Invoke by navigating to any method you desire.</span></li>
+            </ul>
+            <p class="c3"><span class="c1"></span></p>
+            <ul class="c10 lst-kix_852smikog4mb-0">
+               <li class="c4 c7 li-bullet-0"><span class="c2">Pink Icon</span><span class="c1">: Exciting times ahead! This icon signals the availability of input/return value recordings for a method. Dive into the joy of reusing and replaying these inputs effortlessly.</span></li>
+            </ul>
+            <p class="c3"><span class="c1"></span></p>
+            <ul class="c10 lst-kix_852smikog4mb-0">
+               <li class="c4 c7 li-bullet-0"><span class="c2">Bolt Icon:</span><span class="c1">&nbsp;Experience lightning-fast changes! Modify your methods with confidence, knowing that Unlogged will hot reload the changes and replay the recorded inputs. Enjoy a seamless development cycle like never before.</span></li>
+            </ul>
+            <p class="c3"><span class="c1"></span></p>
+            <ul class="c10 lst-kix_852smikog4mb-0">
+               <li class="c4 c7 li-bullet-0"><span class="c2">Green Tick</span><span class="c1">: Upon replaying, this delightful icon assures you that there have been no changes in return values for the recorded inputs. Celebrate the consistency!</span></li>
+            </ul>
+            <p class="c3"><span class="c1"></span></p>
+            <ul class="c10 lst-kix_852smikog4mb-0">
+               <li class="c4 c7 li-bullet-0"><span class="c2">Different Tick</span><span class="c1">: A friendly heads-up! This icon indicates that one or more return values don&#39;t match for the recorded inputs upon replaying. Pay attention to these variations and tweak your code accordingly.</span></li>
+            </ul>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <p class="c4"><span class="c1">Gradle: Please note that we are diligently working on Gradle compatibility, and Gradle support will be available in our upcoming release. Stay tuned for even more exciting updates!</span></p>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <p class="c4"><span class="c1">Unlogged is here to revolutionise your development process and bring joy to your coding adventures. Embrace these new features and experience the delight of seamless development. Happy coding!</span></p>
 
-            How to Use:
-            <br/>
-            <ol>
-                <li> Installation:
-                    <ul>
-                        <li>Install Unlogged Plugin from the marketplace.</li>
-                        <li>Make sure to add our agent to your project by following the instructions in the plugin.</li>
-                    </ul>
-                </li>
-
-                <li> Running the Application:
-                    <ul>
-                        <li>Run your Java application with the added agent. The agent facilitates the recording of input and return values for each method.</li>
-                    </ul>
-                </li>
-
-                <li> Use your application:
-                    <ul>
-                        <li>Use Direct Invoke inside the plugin to call any Java function directly.</li>
-                        <li>Use Postman, Swagger or your UI to send data to your backed application.</li>
-                    </ul>
-                </li>
-
-                <li> Checking Atomic Tests:
-                    <ul>
-                        <li>Atomic Tests tab will show you the input and return values for each method you accessed earlier.</li>
-                    </ul>
-                </li>
-
-                <li> Replay and Evaluate:
-                    <ul>
-                        <li>Replay your Atomic Tests directly from the IntelliJ IDE.</li>
-                        <li>Evaluate the return values of the test to ensure its correctness.</li>
-                    </ul>
-                </li>
-
-                <li> Saving Atomic Tests:
-                    <ul>
-                        <li>After running and validating an Atomic Test, save it using the provided functionality.</li>
-                        <li>The saved test will be stored as a JSON artifact inside the `.unlogged` folder within your project directory.</li>
-                    </ul>
-                </li>
-
-                <li> Collaboration with Teammates:
-                    <ul>
-                        <li>Commit the saved Atomic Tests to your Git repository, enabling your team members to access and utilize the same set of tests.</li>
-                        <li>Teammates can pull the Atomic Tests from the Git repository and run them seamlessly, streamlining the testing process.</li>
-                    </ul>
-                </li>
-            </ol>
-            We believe that these new features will significantly enhance your testing workflow and improve collaboration within your development team. Download the latest version of our IntelliJ Plugin now to take advantage of these exciting enhancements! It’s free and works fully offline.
-            <br/>
-
-            Please note: If you encounter any issues or have suggestions for further improvements, please don't hesitate to reach out to us on our discord channel. We value your feedback and are committed to continuously improving our plugin.
         ]]>
     </description>
 
