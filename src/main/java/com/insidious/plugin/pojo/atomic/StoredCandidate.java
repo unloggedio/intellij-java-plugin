@@ -164,7 +164,6 @@ public class StoredCandidate {
     public StoredCandidate(TestCandidateMetadata candidateMetadata)
     {
         this.setException(candidateMetadata.getMainMethod().getReturnValue().isException());
-
         byte[] serializedValue = candidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue();
         String returnValue = serializedValue.length > 0 ? new String(serializedValue) :
                 String.valueOf(candidateMetadata.getMainMethod().getReturnDataEvent().getValue());
@@ -174,13 +173,17 @@ public class StoredCandidate {
         this.setBooleanType(candidateMetadata.getMainMethod().getReturnValue().isBooleanType());
         this.setMethodName(candidateMetadata.getMainMethod().getMethodName());
         this.setProbSerializedValue(candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue());
-        //using random ID to minimize overlap, not picking candidateID as we use it to
-        //differentiate between stored and session candidates.
-        String newProbeIndex = UUID.randomUUID().toString();
-        this.setEntryProbeIndex(newProbeIndex.hashCode());
+        this.setEntryProbeIndex(generateIdentifier(candidateMetadata));
         StoredCandidateMetadata metadata = new StoredCandidateMetadata();
         metadata.setTimestamp(candidateMetadata.getCallTimeNanoSecond());
         this.setMetadata(metadata);
+    }
+
+    private long generateIdentifier(TestCandidateMetadata candidateMetadata)
+    {
+        String id = ""+candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt()
+                + candidateMetadata.getEntryProbeIndex();
+        return id.hashCode();
     }
 
     public void copyFrom(StoredCandidate candidate)
