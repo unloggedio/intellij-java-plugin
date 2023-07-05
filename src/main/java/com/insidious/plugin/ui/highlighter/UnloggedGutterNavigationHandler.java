@@ -33,9 +33,7 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
         PsiClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(method.getContainingFile(),
                 method.getTextOffset(), PsiClass.class, false);
         InsidiousService insidiousService = psiClass.getProject().getService(InsidiousService.class);
-
-        insidiousService.openTestCaseDesigner(psiClass.getProject());
-
+        insidiousService.openToolWindow();
         JavaMethodAdapter methodAdapter = new JavaMethodAdapter(method);
         insidiousService.methodFocussedHandler(methodAdapter);
 

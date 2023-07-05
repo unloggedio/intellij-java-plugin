@@ -977,14 +977,7 @@ final public class InsidiousService implements Disposable,
 
     }
 
-    public void openTestCaseDesigner(Project project) {
-        if (!this.initiated) {
-            if (this.project == null) {
-                this.project = project;
-            }
-            this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
-        }
-//        toolWindow.getContentManager().setSelectedContent(this.testDesignerContent);
+    public void openToolWindow() {
         toolWindow.show(null);
     }
 
@@ -1035,8 +1028,11 @@ final public class InsidiousService implements Disposable,
                 //show both
                 ContentManager manager = this.toolWindow.getContentManager();
                 if (manager.getContent(atomicTestContent.getComponent()) == null) {
-                    manager.addContent(atomicTestContent, 0);
-                    focusAtomicTestsWindow();
+                    //only add atomic if method has candidates.
+                    if(getStoredCandidatesFor(currentMethod).size()>0) {
+                        manager.addContent(atomicTestContent, 0);
+                        focusAtomicTestsWindow();
+                    }
                 }
                 if (manager.getContent(directMethodInvokeContent.getComponent()) == null) {
                     manager.addContent(directMethodInvokeContent);
@@ -1550,8 +1546,6 @@ final public class InsidiousService implements Disposable,
     }
 
     public void loadSingleWindowForState(GutterState state) {
-//        System.out.println("Loading sw to state : " + state);
-
         ContentManager manager = this.toolWindow.getContentManager();
         List<Content> contentList = Arrays.asList(manager.getContents());
         if (state.equals(GutterState.PROCESS_RUNNING)) {

@@ -1,7 +1,9 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.adapter.kotlin.KotlinMethodAdapter;
+import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -57,7 +59,11 @@ public class InsidiousCaretListener implements EditorMouseListener {
             }
             PsiMethod method = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiMethod.class, false);
             if (method != null) {
-                insidiousService.methodFocussedHandler(new JavaMethodAdapter(method));
+                // Single Window flow update on non gutter method click
+                MethodAdapter methodAdapter = new JavaMethodAdapter(method);
+                GutterState state = insidiousService.getGutterStateFor(methodAdapter);
+                insidiousService.loadSingleWindowForState(state);
+                insidiousService.methodFocussedHandler(methodAdapter);
                 return;
             }
             KtNamedFunction kotlinMethod = PsiTreeUtil.findElementOfClassAtOffset(file, offset, KtNamedFunction.class,

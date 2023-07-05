@@ -23,7 +23,7 @@ public class KotlinUnloggedGutterNavigationHandler implements GutterIconNavigati
         KtClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(method.getContainingFile(),
                     method.getTextOffset(), KtClass.class, false);
             InsidiousService insidiousService = psiClass.getProject().getService(InsidiousService.class);
-            insidiousService.openTestCaseDesigner(psiClass.getProject());
+            insidiousService.openToolWindow();
             insidiousService.methodFocussedHandler(new KotlinMethodAdapter(method));
             UsageInsightTracker.getInstance().RecordEvent("TestIconClick", null);
 
