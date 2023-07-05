@@ -32,7 +32,7 @@ public class DiffUtils {
         }
 
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
-        System.out.println("Is Exception from session : "+testCandidateMetadata.isException());
+//        System.out.println("Is Exception from session : "+testCandidateMetadata.isException());
         if (testCandidateMetadata.isException() ||
                 (agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
             //exception flow wip
@@ -95,15 +95,15 @@ public class DiffUtils {
             }
 
             MapDifference<String, Object> res = Maps.difference(flatten(m1), flatten(m2));
-            System.out.println(res);
+//            System.out.println(res);
 
-            res.entriesOnlyOnLeft().forEach((key, value) -> System.out.println(key + ": " + value));
+//            res.entriesOnlyOnLeft().forEach((key, value) -> System.out.println(key + ": " + value));
             Map<String, Object> leftOnly = res.entriesOnlyOnLeft();
 
-            res.entriesOnlyOnRight().forEach((key, value) -> System.out.println(key + ": " + value));
+//            res.entriesOnlyOnRight().forEach((key, value) -> System.out.println(key + ": " + value));
             Map<String, Object> rightOnly = res.entriesOnlyOnRight();
 
-            res.entriesDiffering().forEach((key, value) -> System.out.println(key + ": " + value));
+//            res.entriesDiffering().forEach((key, value) -> System.out.println(key + ": " + value));
             Map<String, MapDifference.ValueDifference<Object>> differences = res.entriesDiffering();
             List<DifferenceInstance> differenceInstances = getDifferenceModel(leftOnly,
                     rightOnly, differences);
@@ -144,8 +144,7 @@ public class DiffUtils {
             }
             return m1;
         } catch (Exception e) {
-            System.out.println("Flatmap make Exception: " + e);
-            e.printStackTrace();
+            logger.warn("Flatmap make Exception: ",  e);
             Map<String, Object> m1 = new TreeMap<>();
             m1.put("value", s1);
             return m1;

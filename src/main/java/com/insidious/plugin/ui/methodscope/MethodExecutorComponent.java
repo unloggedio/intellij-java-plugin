@@ -33,6 +33,7 @@ import java.awt.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 public class MethodExecutorComponent implements MethodExecutionListener, CandidateSelectedListener {
@@ -169,16 +170,47 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 eventProperties.put("methodName", methodElement.getName());
                 UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
 
-                callCount = candidateComponentMap.size();
+                callCount = methodTestCandidates.size();
+                long savedCandidatesCount = methodTestCandidates.stream().filter(e -> e.getCandidateId() != null)
+                        .count();
                 componentCounter = 0;
+                AtomicInteger passingSavedCandidateCount = new AtomicInteger(0);
+                AtomicInteger passingCandidateCount = new AtomicInteger(0);
 
                 executeCandidate(methodTestCandidates, psiClass1, "all",
                         (testCandidate, agentCommandResponse, diffResult) -> {
                             componentCounter++;
+                            if (diffResult.getDiffResultType().equals(DiffResultType.SAME)) {
+                                if (testCandidate.getCandidateId() != null) {
+                                    passingSavedCandidateCount.incrementAndGet();
+                                }
+                                passingCandidateCount.incrementAndGet();
+                            }
+                            logger.warn("component counter: " + componentCounter);
                             if (componentCounter == callCount) {
                                 insidiousService.updateMethodHashForExecutedMethod(methodElement);
                                 insidiousService.triggerGutterIconReload();
                                 ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
+                                int passedCount;
+                                if (savedCandidatesCount > 0) {
+                                    passedCount = passingSavedCandidateCount.get();
+                                    if (passedCount == savedCandidatesCount) {
+                                        InsidiousNotification.notifyMessage(passedCount + " of " + savedCandidatesCount
+                                                + " saved atomic tests passed", NotificationType.INFORMATION);
+                                    } else {
+                                        InsidiousNotification.notifyMessage(passedCount + " of " + savedCandidatesCount
+                                                + " saved atomic tests passed", NotificationType.WARNING);
+                                    }
+                                } else {
+                                    passedCount = passingCandidateCount.get();
+                                    if (passedCount == callCount) {
+                                        InsidiousNotification.notifyMessage(passedCount + " of " + callCount
+                                                + " atomic tests passed", NotificationType.INFORMATION);
+                                    } else {
+                                        InsidiousNotification.notifyMessage(passedCount + " of " + callCount
+                                                + " atomic tests passed", NotificationType.WARNING);
+                                    }
+                                }
                             }
                         });
             });
@@ -235,67 +267,71 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     ) {
 
         for (StoredCandidate testCandidate : testCandidateList) {
-
-            List<String> methodArgumentValues = testCandidate.getMethodArguments();
-            AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(
-                    methodElement, psiClass, methodArgumentValues);
-
-            insidiousService.executeMethodInRunningProcess(agentCommandRequest,
-                    (request, agentCommandResponse) -> {
-                        candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
-                        DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate,
-                                agentCommandResponse);
-                        System.out.println("Source [EXEC]: " + source);
-                        if (source.equals("all")) {
-                            diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_REPLAY);
-                            diffResult.setIndividualContext(false);
-                        } else {
-                            diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_INDIVIDUAL);
-                            //check other statuses and add them for individual execution
-                            String status = getExecutionStatusFromCandidates(testCandidate.getEntryProbeIndex());
-                            String methodKey = methodElement.getContainingClass().getQualifiedName()
-                                    + "#" + methodElement.getName() + "#" + methodElement.getJVMSignature();
-                            if (status.equals("Diff") || status.equals("NoRun")) {
-                                System.out.println("Setting status multi run : " + status);
-                                insidiousService.getIndividualCandidateContextMap().put(methodKey, status);
-                            } else {
-                                System.out.println("Setting status multi run : Same");
-                                insidiousService.getIndividualCandidateContextMap().put(methodKey, "Same");
-                            }
-                            diffResult.setIndividualContext(true);
-                        }
-                        diffResult.setMethodAdapter(methodElement);
-                        diffResult.setResponse(agentCommandResponse);
-                        diffResult.setCommand(agentCommandRequest);
-
-                        insidiousService.addDiffRecord(methodElement, diffResult);
-
-                        StoredCandidateMetadata meta = testCandidate.getMetadata();
-                        if (meta == null) {
-                            meta = new StoredCandidateMetadata();
-                        }
-                        meta.setTimestamp(agentCommandResponse.getTimestamp());
-                        meta.setCandidateStatus(getStatusForState(diffResult.getDiffResultType()));
-                        if (testCandidate.getCandidateId() != null) {
-                            insidiousService.getAtomicRecordService().setCandidateStateForCandidate(
-                                    testCandidate.getCandidateId(),
-                                    methodElement.getContainingClass().getQualifiedName(),
-                                    methodElement.getName() + "#" + methodElement.getJVMSignature(),
-                                    testCandidate.getMetadata().getCandidateStatus());
-                        }
-                        //possible bug vector, equal case check
-                        TestCandidateListedItemComponent candidateComponent =
-                                candidateComponentMap.get(testCandidate.getEntryProbeIndex());
-
-                        candidateComponent.setAndDisplayResponse(agentCommandResponse, diffResult);
-
-                        agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
-
-                        insidiousService.triggerGutterIconReload();
-
-                        agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
-                    });
+            executeSingleCandidate(testCandidate, psiClass, source, agentCommandResponseListener);
         }
+    }
+
+    private void executeSingleCandidate(
+            StoredCandidate testCandidate,
+            PsiClass psiClass,
+            String source,
+            AgentCommandResponseListener<String> agentCommandResponseListener
+    ) {
+        List<String> methodArgumentValues = testCandidate.getMethodArguments();
+        AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(
+                methodElement, psiClass, methodArgumentValues);
+
+        insidiousService.executeMethodInRunningProcess(agentCommandRequest,
+                (request, agentCommandResponse) -> {
+                    candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
+                    DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate,
+                            agentCommandResponse);
+                    System.out.println("Source [EXEC]: " + source);
+                    if (source.equals("all")) {
+                        diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_REPLAY);
+                        diffResult.setIndividualContext(false);
+                    } else {
+                        diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_INDIVIDUAL);
+                        //check other statuses and add them for individual execution
+                        String status = getExecutionStatusFromCandidates(testCandidate.getEntryProbeIndex());
+                        String methodKey = methodElement.getContainingClass().getQualifiedName()
+                                + "#" + methodElement.getName() + "#" + methodElement.getJVMSignature();
+                        if (status.equals("Diff") || status.equals("NoRun")) {
+                            System.out.println("Setting status multi run : " + status);
+                            insidiousService.getIndividualCandidateContextMap().put(methodKey, status);
+                        } else {
+                            System.out.println("Setting status multi run : Same");
+                            insidiousService.getIndividualCandidateContextMap().put(methodKey, "Same");
+                        }
+                        diffResult.setIndividualContext(true);
+                    }
+                    diffResult.setMethodAdapter(methodElement);
+                    diffResult.setResponse(agentCommandResponse);
+                    diffResult.setCommand(agentCommandRequest);
+
+                    insidiousService.addDiffRecord(methodElement, diffResult);
+
+                    StoredCandidateMetadata meta = testCandidate.getMetadata();
+                    if (meta == null) {
+                        meta = new StoredCandidateMetadata();
+                    }
+                    meta.setTimestamp(agentCommandResponse.getTimestamp());
+                    meta.setCandidateStatus(getStatusForState(diffResult.getDiffResultType()));
+                    if (testCandidate.getCandidateId() != null) {
+                        insidiousService.getAtomicRecordService().setCandidateStateForCandidate(
+                                testCandidate.getCandidateId(),
+                                methodElement.getContainingClass().getQualifiedName(),
+                                methodElement.getName() + "#" + methodElement.getJVMSignature(),
+                                testCandidate.getMetadata().getCandidateStatus());
+                    }
+                    //possible bug vector, equal case check
+                    TestCandidateListedItemComponent candidateComponent =
+                            candidateComponentMap.get(testCandidate.getEntryProbeIndex());
+
+                    candidateComponent.setAndDisplayResponse(agentCommandResponse, diffResult);
+
+                    agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
+                });
     }
 
     private StoredCandidateMetadata.CandidateStatus getStatusForState(DiffResultType type) {
