@@ -16,6 +16,7 @@ public class DifferenceResult {
     private AgentCommandRequest command;
     private AgentCommandResponse response;
     private boolean useIndividualContext=false;
+    private String batchID=null;
 
     public void setIndividualContext(boolean useIndividualContext) {
         this.useIndividualContext = useIndividualContext;
@@ -104,5 +105,13 @@ public class DifferenceResult {
                 ", response=" + response +
                 ", executionMode=" + executionMode +
                 '}';
+    }
+
+    public String getBatchID() {
+        return batchID;
+    }
+
+    public void setBatchID(String batchID) {
+        this.batchID = batchID;
     }
 }

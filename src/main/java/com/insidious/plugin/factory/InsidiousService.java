@@ -35,6 +35,7 @@ import com.insidious.plugin.ui.InsidiousCaretListener;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
+import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
@@ -1080,8 +1081,6 @@ final public class InsidiousService implements Disposable,
 
     @Override
     public GutterState getGutterStateFor(MethodAdapter method) {
-
-
         // agent exists but cannot connect with agent server
         // so no process is running with the agent
         if (!agentStateProvider.isAgentRunning() || sessionInstance == null) {
@@ -1350,13 +1349,28 @@ final public class InsidiousService implements Disposable,
             return;
         }
         String keyName = getClassMethodHashKey(methodElement);
-
         if (!executionRecord.containsKey(keyName)) {
             executionRecord.put(keyName, newDiffRecord);
             return;
         }
-
-        executionRecord.put(keyName, newDiffRecord);
+        if(!executionRecord.get(keyName).isUseIndividualContext() &&
+                !newDiffRecord.isUseIndividualContext())
+        {
+            if(!newDiffRecord.getBatchID().equals(executionRecord.get(keyName).getBatchID()))
+            {
+                //different replay all batch
+                executionRecord.put(keyName, newDiffRecord);
+            }
+            else {
+                //same replay all batch
+                if (executionRecord.get(keyName).getDiffResultType().equals(DiffResultType.SAME)) {
+                    executionRecord.put(keyName, newDiffRecord);
+                }
+            }
+        }
+        else {
+            executionRecord.put(keyName, newDiffRecord);
+        }
         addExecutionRecord(newDiffRecord);
     }
 

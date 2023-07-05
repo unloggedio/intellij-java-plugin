@@ -177,7 +177,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 AtomicInteger passingSavedCandidateCount = new AtomicInteger(0);
                 AtomicInteger passingCandidateCount = new AtomicInteger(0);
 
-                executeCandidate(methodTestCandidates, psiClass1, "all",
+                long batchTime = System.currentTimeMillis();
+                executeCandidate(methodTestCandidates, psiClass1, "all-"+batchTime,
                         (testCandidate, agentCommandResponse, diffResult) -> {
                             int currentCount = componentCounter.incrementAndGet();
                             if (diffResult.getDiffResultType().equals(DiffResultType.SAME)) {
@@ -287,9 +288,11 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                     DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate,
                             agentCommandResponse);
                     logger.info("Source [EXEC]: " + source);
-                    if (source.equals("all")) {
+                    if (source.startsWith("all")) {
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_REPLAY);
                         diffResult.setIndividualContext(false);
+                        String batchID = source.split("-")[1];
+                        diffResult.setBatchID(batchID);
                     } else {
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_INDIVIDUAL);
                         //check other statuses and add them for individual execution
