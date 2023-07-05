@@ -58,7 +58,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     private JPanel selectedCandidateInfoPanel;
     private JPanel borderParent;
     private List<StoredCandidate> methodTestCandidates;
-    private int componentCounter = 0;
+//    private int componentCounter = 0;
     private int callCount = 0;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
@@ -173,21 +173,21 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 callCount = methodTestCandidates.size();
                 long savedCandidatesCount = methodTestCandidates.stream().filter(e -> e.getCandidateId() != null)
                         .count();
-                componentCounter = 0;
+                AtomicInteger componentCounter = new AtomicInteger(0);
                 AtomicInteger passingSavedCandidateCount = new AtomicInteger(0);
                 AtomicInteger passingCandidateCount = new AtomicInteger(0);
 
                 executeCandidate(methodTestCandidates, psiClass1, "all",
                         (testCandidate, agentCommandResponse, diffResult) -> {
-                            componentCounter++;
+                            int currentCount = componentCounter.incrementAndGet();
                             if (diffResult.getDiffResultType().equals(DiffResultType.SAME)) {
                                 if (testCandidate.getCandidateId() != null) {
                                     passingSavedCandidateCount.incrementAndGet();
                                 }
                                 passingCandidateCount.incrementAndGet();
                             }
-                            logger.warn("component counter: " + componentCounter);
-                            if (componentCounter == callCount) {
+                            logger.warn("component counter: " + currentCount);
+                            if (currentCount == callCount) {
                                 insidiousService.updateMethodHashForExecutedMethod(methodElement);
                                 insidiousService.triggerGutterIconReload();
                                 ParameterHintsPassFactory.forceHintsUpdateOnNextPass();

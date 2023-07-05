@@ -1029,7 +1029,7 @@ final public class InsidiousService implements Disposable,
                 ContentManager manager = this.toolWindow.getContentManager();
                 if (manager.getContent(atomicTestContent.getComponent()) == null) {
                     //only add atomic if method has candidates.
-                    if(getStoredCandidatesFor(currentMethod).size()>0) {
+                    if (getStoredCandidatesFor(currentMethod).size() > 0) {
                         manager.addContent(atomicTestContent, 0);
                         focusAtomicTestsWindow();
                     }
@@ -1182,6 +1182,9 @@ final public class InsidiousService implements Disposable,
         if (method == null) {
             return List.of();
         }
+        if (DumbService.getInstance(project).isDumb()) {
+            return List.of();
+        }
 
         String methodName = method.getName();
         ClassAdapter containingClass = method.getContainingClass();
@@ -1215,6 +1218,10 @@ final public class InsidiousService implements Disposable,
         if (method == null) {
             return List.of();
         }
+        if (DumbService.getInstance(project).isDumb()) {
+            return List.of();
+        }
+
         List<TestCandidateMetadata> candidateMetadataList = getTestCandidateMetadata(method);
         List<StoredCandidate> storedCandidates = new ArrayList<>();
         List<StoredCandidate> candidates = atomicRecordService

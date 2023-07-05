@@ -12,19 +12,17 @@ import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
 
 public class AtomicRecordUtils {
 
-    public static List<StoredCandidate> convertToStoredcandidates(List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> testCandidateMetadataList)
-    {
+    public static List<StoredCandidate> convertToStoredcandidates(
+            List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> testCandidateMetadataList) {
         List<StoredCandidate> candidates = new ArrayList<>();
-        for(TestCandidateMetadata candidateMetadata:testCandidateMetadataList)
-        {
+        for (TestCandidateMetadata candidateMetadata : testCandidateMetadataList) {
             StoredCandidate candidate = new StoredCandidate(candidateMetadata);
             candidates.add(candidate);
         }
         return candidates;
     }
 
-    public static StoredCandidate createCandidateFor(StoredCandidate metadata, AgentCommandResponse<String> response)
-    {
+    public static StoredCandidate createCandidateFor(StoredCandidate metadata, AgentCommandResponse<String> response) {
         StoredCandidate candidate = new StoredCandidate();
         candidate.setCandidateId(UUID.randomUUID().toString());
         candidate.setMethodHash(metadata.getMethodHash());
@@ -41,13 +39,11 @@ public class AtomicRecordUtils {
         candidate.setException(response.getResponseType().equals(ResponseType.EXCEPTION) ? true : false);
         candidate.setReturnValueClassname(response.getResponseClassName());
 
-        if(metadata.getMetadata()!=null)
-        {
+        if (metadata.getMetadata() != null) {
             candidate.setMetadata(metadata.getMetadata());
             candidate.getMetadata().setHostMachineName(HOSTNAME);
             candidate.getMetadata().setRecordedBy(HOSTNAME);
-        }
-        else {
+        } else {
             StoredCandidateMetadata metadata1 = new StoredCandidateMetadata();
             metadata1.setCandidateStatus(null);
             metadata1.setTimestamp(response.getTimestamp());
