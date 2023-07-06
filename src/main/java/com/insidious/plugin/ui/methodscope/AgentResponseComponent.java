@@ -2,13 +2,11 @@ package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.datafile.AtomicRecordService;
-import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.Components.AtomicRecord.AtomicRecordListener;
-import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
+import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.*;
-import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -19,8 +17,10 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.*;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 public class AgentResponseComponent implements Supplier<Component>, AtomicRecordListener {
@@ -75,7 +75,12 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
         computeDifferences(differences);
 
 
-        String originalString = metadata.getReturnValue();
+        String originalString;
+        if (metadata.isBooleanType()) {
+            originalString = "1".equals(metadata.getReturnValue()) ? "true" : "false";
+        } else {
+            originalString = metadata.getReturnValue();
+        }
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
         String simpleClassName = agentCommandResponse.getTargetClassName();
@@ -145,8 +150,7 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
         acceptButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if(lastRef!=null)
-                {
+                if (lastRef != null) {
                     lastRef.dispose();
                 }
                 lastRef = new SaveForm(self);
@@ -154,17 +158,15 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
                 lastRef.setVisible(true);
             }
         });
-        if(metadata.getCandidateId()==null)
-        {
+        if (metadata.getCandidateId() == null) {
             deleteButton.setVisible(false);
         }
         deleteButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if(metadata.getCandidateId()!=null)
-                {
+                if (metadata.getCandidateId() != null) {
                     atomicRecordService.deleteStoredCandidate(classname,
-                            methodName+"#"+methodSignature, metadata.getCandidateId());
+                            methodName + "#" + methodSignature, metadata.getCandidateId());
                 }
             }
         });
@@ -295,11 +297,11 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
     @Override
     public void triggerRecordAddition(String name, String description, StoredCandidate.AssertionType type) {
         this.metadata.setMethodHash(methodHash);
-        StoredCandidate candidate = AtomicRecordUtils.createCandidateFor(metadata,agentCommandResponse);
+        StoredCandidate candidate = AtomicRecordUtils.createCandidateFor(metadata, agentCommandResponse);
         candidate.setName(name);
         candidate.setDescription(description);
         candidate.setAssertionType(type);
-        atomicRecordService.saveCandidate(classname,methodName,methodSignature,candidate);
+        atomicRecordService.saveCandidate(classname, methodName, methodSignature, candidate);
     }
 
     @Override
@@ -311,7 +313,10 @@ public class AgentResponseComponent implements Supplier<Component>, AtomicRecord
         return atomicRecordService.getSaveLocation();
     }
 
-    public void setMethodName(String name) {this.methodName = name;}
+    public void setMethodName(String name) {
+        this.methodName = name;
+    }
+
     public void setMethodHash(String methodHash) {
         this.methodHash = methodHash;
     }

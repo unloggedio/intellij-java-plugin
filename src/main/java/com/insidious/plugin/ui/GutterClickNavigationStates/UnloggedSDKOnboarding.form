@@ -74,7 +74,7 @@
                     <properties>
                       <editable value="false"/>
                       <margin top="4" left="4" bottom="4" right="4"/>
-                      <text value="&lt;dependency&gt;&#10;  &lt;artifactId&gt;unlogged-sdk&lt;/artifactId&gt;&#10;  &lt;groupId&gt;video.bug&lt;/groupId&gt;&#10;  &lt;version&gt;0.0.8&lt;/version&gt;&#10;&lt;/dependency&gt;"/>
+                      <text value="&lt;dependency&gt;&#10;  &lt;artifactId&gt;unlogged-sdk&lt;/artifactId&gt;&#10;  &lt;groupId&gt;video.bug&lt;/groupId&gt;&#10;  &lt;version&gt;0.0.9&lt;/version&gt;&#10;&lt;/dependency&gt;"/>
                     </properties>
                   </component>
                   <component id="2526d" class="javax.swing.JButton" binding="copyCodeButton">
