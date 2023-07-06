@@ -88,6 +88,9 @@ public class AtomicTestContainer {
             return;
         }
         lastSelection = focussedMethod;
+        if (currentState == null) {
+            currentState = insidiousService.getGutterStateBasedOnAgentState();
+        }
 
         if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
             methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, List.of());

@@ -11,6 +11,7 @@ import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyListener;
 
 public class ParameterInputComponent {
@@ -19,16 +20,20 @@ public class ParameterInputComponent {
     private JTextComponent parameterValue;
 
     public ParameterInputComponent(ParameterAdapter parameter, String defaultParameterValue,
-                                   Class<? extends JTextComponent> inputTextComponent, KeyListener keyAdapter) {
+                                   Class<? extends JTextComponent> inputTextComponent, ActionListener keyAdapter) {
         super();
         ((TitledBorder) rootContent.getBorder()).setTitle(
                 parameter.getType().getPresentableText() + " " + parameter.getName());
 
         if (inputTextComponent.equals(JBTextField.class) || inputTextComponent.equals(JTextField.class)) {
-            parameterValue = new JBTextField();
-            rootContent.setMaximumSize(new Dimension(-1, 100));
+            JBTextArea textArea = new JBTextArea();
+            parameterValue = textArea;
+            textArea.registerKeyboardAction(keyAdapter, KeyStroke.getKeyStroke(10, 0), JComponent.WHEN_FOCUSED);
+            textArea.getDocument().putProperty("filterNewlines", Boolean.TRUE);
+//            rootContent.setMaximumSize(new Dimension(-1, 100));
         } else if (inputTextComponent.equals(JBTextArea.class) || inputTextComponent.equals(JTextArea.class)) {
-            parameterValue = new JBTextArea();
+            JBTextArea textArea = new JBTextArea();
+            parameterValue = textArea;
             try {
                 JsonNode jsonNode = objectMapper.readValue(defaultParameterValue, JsonNode.class);
                 defaultParameterValue = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonNode);
@@ -38,7 +43,7 @@ public class ParameterInputComponent {
         }
 
         parameterValue.setText(defaultParameterValue);
-        parameterValue.addKeyListener(keyAdapter);
+//        parameterValue.addKeyListener(keyAdapter);
         // row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0"
 //        rootContent.add(parameterValue,
 //                new GridConstraints(0, 0, 1, 1, 8, 1, 6, 0, new Dimension(-1, 80)

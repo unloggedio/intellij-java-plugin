@@ -1,5 +1,7 @@
 package com.insidious.plugin.util;
 
+//import com.fasterxml.jackson.databind.ObjectMapper;
+//import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.ui.methodscope.ClassChosenListener;
@@ -13,12 +15,19 @@ import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.intellij.psi.PsiModifier.ABSTRACT;
 
 public class ClassUtils {
+
+//    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+//    static {
+//        objectMapper.registerModule(new JavaTimeModule());
+//    }
 
     public static String createDummyValue(
             PsiType parameterType,
@@ -44,11 +53,12 @@ public class ClassUtils {
                 return "";
             }
             if (parameterType.getCanonicalText().equals("java.util.Date")) {
-//                try {
                 return String.valueOf(new Date().getTime());
-//                } catch (JsonProcessingException e) {
-//                     should never happen
-//                }
+            }
+            if (parameterType.getCanonicalText().equals("java.time.Instant")) {
+//                Date date = new Date();
+                return String.valueOf(new Date().getTime() / 1000);
+
             }
             if (parameterType instanceof PsiArrayType) {
                 PsiArrayType arrayType = (PsiArrayType) parameterType;

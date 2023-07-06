@@ -36,13 +36,15 @@ import org.json.JSONObject;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MethodDirectInvokeComponent extends KeyAdapter {
+public class MethodDirectInvokeComponent implements ActionListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodDirectInvokeComponent.class);
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
@@ -56,7 +58,11 @@ public class MethodDirectInvokeComponent extends KeyAdapter {
     private JLabel methodNameLabel;
     private JButton executeButton;
     private MethodAdapter methodElement;
-    private KeyAdapter NOP_KEY_ADAPTER = new KeyAdapter() {
+    private ActionListener NOP_KEY_ADAPTER = new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+        }
     };
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
@@ -282,7 +288,9 @@ public class MethodDirectInvokeComponent extends KeyAdapter {
         ProjectAndLibrariesScope projectAndLibrariesScope = new ProjectAndLibrariesScope(project);
 
         if (methodParameters.length > 0) {
-            methodParameterContainer.setLayout(new GridLayout(methodParameters.length, 1));
+//            methodParameterContainer.setLayout(new GridLayout(methodParameters.length, 1));
+            BoxLayout boxLayout = new BoxLayout(methodParameterContainer, BoxLayout.Y_AXIS);
+            methodParameterContainer.setLayout(boxLayout);
             for (int i = 0; i < methodParameters.length; i++) {
                 ParameterAdapter methodParameter = methodParameters[i];
 
@@ -298,28 +306,29 @@ public class MethodDirectInvokeComponent extends KeyAdapter {
                 ParameterInputComponent parameterContainer;
                 JPanel content;
                 String typeCanonicalName = methodParameterType.getCanonicalText();
-                if (methodParameters.length > 3
-                        || methodParameterType instanceof PsiPrimitiveType
+                if (methodParameterType instanceof PsiPrimitiveType
                         || isBoxedPrimitive(typeCanonicalName)
                 ) {
                     parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
                             JBTextField.class, this);
                     content = parameterContainer.getContent();
-                    content.setMaximumSize(new Dimension(-1, 80));
+                    content.setMinimumSize(new Dimension(100, 150));
+//                    content.setPreferredSize(new Dimension(100, 80));
+//                    content.setMaximumSize(new Dimension(-1, 80));
                 } else {
                     PsiClass typeClassReference = JavaPsiFacade
                             .getInstance(project)
                             .findClass(typeCanonicalName, projectAndLibrariesScope);
                     if (typeClassReference != null && (typeClassReference.isEnum())) {
                         parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
-                                JBTextField.class, NOP_KEY_ADAPTER);
+                                JBTextArea.class, NOP_KEY_ADAPTER);
                     } else {
                         parameterContainer = new ParameterInputComponent(methodParameter, parameterValue,
                                 JBTextArea.class, NOP_KEY_ADAPTER);
                     }
                     content = parameterContainer.getContent();
-                    content.setMinimumSize(new Dimension(-1, 150));
-                    content.setMaximumSize(new Dimension(-1, 300));
+                    content.setMinimumSize(new Dimension(100, 150));
+//                    content.setMaximumSize(new Dimension(-1, 300));
                 }
 
 
@@ -338,22 +347,35 @@ public class MethodDirectInvokeComponent extends KeyAdapter {
         JBScrollPane parameterScrollPanel = new JBScrollPane(methodParameterContainer);
         parameterScrollPanel.setSize(new Dimension(-1, 500));
         parameterScrollPanel.setBorder(BorderFactory.createEmptyBorder());
-//        parameterScrollPanel.setMinimumSize(new Dimension(-1, 500));
-//        parameterScrollPanel.setMaximumSize(new Dimension(-1, 500));
+
 
         methodParameterScrollContainer.setMinimumSize(new Dimension(-1, Math.min(methodParameters.length * 100, 150)));
         methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
+
+
         mainContainer.revalidate();
         mainContainer.repaint();
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                //
+            }
+//            parameterScrollPanel.getViewport().setViewPosition(new Point(0, 0));
+            parameterScrollPanel.getVerticalScrollBar().setValue(0);
+//            parameterScrollPanel.repaint();
+        });
+
     }
 
     @Override
-    public void keyPressed(KeyEvent e) {
-        super.keyPressed(e);
-        super.keyReleased(e);
-        if (e.getKeyCode() == 10) {
-            executeMethodWithParameters();
-        }
+    public void actionPerformed(ActionEvent e) {
+//        if (e.getKeyCode() == 10) {
+        executeMethodWithParameters();
+//        } else {
+//            super.actionPerformed(e);
+//        }
     }
 
     private void clearOutputSection() {
