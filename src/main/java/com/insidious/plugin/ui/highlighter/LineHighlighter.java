@@ -9,6 +9,7 @@ import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.codeInsight.daemon.LineMarkerProvider;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
+import com.intellij.psi.PsiAnonymousClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiIdentifier;
 import com.intellij.psi.PsiMethod;
@@ -49,6 +50,9 @@ public class LineHighlighter implements LineMarkerProvider {
 //                return null;
 //            }
             if (psiMethod.isConstructor()) {
+                return null;
+            }
+            if (psiMethod.getContainingClass() instanceof PsiAnonymousClass) {
                 return null;
             }
             GutterState gutterStateForMethod = getGutterStateForMethod(psiMethod);
