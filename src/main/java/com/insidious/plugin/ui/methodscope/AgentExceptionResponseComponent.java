@@ -4,11 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
+import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.ui.Components.AtomicRecord.AtomicRecordListener;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
-import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.DateUtils;
 import com.insidious.plugin.util.ExceptionUtils;
 
@@ -22,7 +21,7 @@ import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class AgentExceptionResponseComponent implements Supplier<Component>, AtomicRecordListener {
+public class AgentExceptionResponseComponent implements Supplier<Component> {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     final private InsidiousService insidiousService;
     final private StoredCandidate metadata;
@@ -31,18 +30,17 @@ public class AgentExceptionResponseComponent implements Supplier<Component>, Ato
     private JPanel contentPanel;
     private JPanel afterSection;
     private JPanel beforeSection;
-    private String methodHash;
-    private String methodName;
-    private String classname;
-    private String methodSignature;
+    private CandidateLifeListener candidateLifeListener;
 
     public AgentExceptionResponseComponent(
             StoredCandidate metadata,
             AgentCommandResponse<String> agentCommandResponse,
-            InsidiousService insidiousService
+            InsidiousService insidiousService,
+            CandidateLifeListener candidateLifeListener
     ) {
 
         this.insidiousService = insidiousService;
+        this.candidateLifeListener = candidateLifeListener;
         this.metadata = metadata;
         this.response = agentCommandResponse;
         setupDefLayout();
@@ -75,7 +73,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component>, Ato
                 stacktrace = String.valueOf(actualString);
             }
             options = new ExceptionPreviewComponent(responseMessage, stacktrace, insidiousService,
-                    this,true,false,metadata);
+                    candidateLifeListener, true, false, metadata);
             options.setBorderTitle("After");
             JPanel component = options.getComponent();
             afterSection.add(component, BorderLayout.CENTER);
@@ -97,12 +95,11 @@ public class AgentExceptionResponseComponent implements Supplier<Component>, Ato
                 // failed to read return value as json node
             }
             boolean showDelete = false;
-            if(metadata.getCandidateId()!=null)
-            {
+            if (metadata.getCandidateId() != null) {
                 showDelete = true;
             }
             ExceptionPreviewComponent options = new ExceptionPreviewComponent(exceptionMessage,
-                    prettyException, insidiousService,this,false, showDelete, metadata);
+                    prettyException, insidiousService, candidateLifeListener, false, showDelete, metadata);
             options.setBorderTitle("Before");
             beforeSection.add(options.getComponent(), BorderLayout.CENTER);
         } else {
@@ -173,43 +170,4 @@ public class AgentExceptionResponseComponent implements Supplier<Component>, Ato
 //        this.infoLabel.setText(info);
     }
 
-    public void setMethodHash(String methodHash) {
-        this.methodHash = methodHash;
-    }
-
-    @Override
-    public void triggerRecordAddition(String name, String description, StoredCandidate.AssertionType type) {
-        this.metadata.setMethodHash(methodHash);
-        StoredCandidate candidate = AtomicRecordUtils.createCandidateFor(metadata,response);
-        candidate.setName(name);
-        candidate.setDescription(description);
-        candidate.setAssertionType(type);
-        insidiousService.getAtomicRecordService().saveCandidate(classname,methodName,methodSignature,candidate);
-    }
-
-    @Override
-    public void deleteCandidateRecord() {
-        if(metadata.getCandidateId()!=null)
-        {
-            insidiousService.getAtomicRecordService().deleteStoredCandidate(classname,
-                    methodName+"#"+methodSignature, metadata.getCandidateId());
-        }
-    }
-
-    @Override
-    public String getSaveLocation() {
-        return insidiousService.getAtomicRecordService().getSaveLocation();
-    }
-
-    public void setMethodName(String name) {
-        this.methodName = name;
-    }
-
-    public void setClassname(String qualifiedName) {
-        this.classname = qualifiedName;
-    }
-
-    public void setMethodSignature(String jvmSignature) {
-        this.methodSignature = jvmSignature;
-    }
 }

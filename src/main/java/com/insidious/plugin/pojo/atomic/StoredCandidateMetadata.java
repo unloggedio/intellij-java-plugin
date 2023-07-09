@@ -1,10 +1,10 @@
 package com.insidious.plugin.pojo.atomic;
+
 public class StoredCandidateMetadata {
     private String recordedBy;
     private String hostMachineName;
 
     private long timestamp;
-    public enum CandidateStatus {PASSING, FAILING}
     private CandidateStatus candidateStatus;
 
     public String getRecordedBy() {
@@ -48,4 +48,6 @@ public class StoredCandidateMetadata {
                 ", candidateStatus=" + candidateStatus +
                 '}';
     }
+
+    public enum CandidateStatus {PASSING, FAILING}
 }

@@ -47,7 +47,7 @@ public class AtomicTestContainer {
                 loadExecutionFlow();
                 break;
             default:
-                methodExecutorComponent.setMethod(lastSelection);
+                methodExecutorComponent.refreshAndReloadCandidates(lastSelection, List.of());
         }
         currentState = state;
     }
@@ -92,25 +92,28 @@ public class AtomicTestContainer {
             currentState = insidiousService.getGutterStateBasedOnAgentState();
         }
 
+        if (currentState.equals(GutterState.PROCESS_NOT_RUNNING) || insidiousService.getSessionInstance() == null) {
+            loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+            return;
+        }
+
+
         if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
             methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, List.of());
             return;
         }
 
-        if (currentState.equals(GutterState.PROCESS_NOT_RUNNING) ||
-                insidiousService.getSessionInstance() == null) {
-            loadComponentForState(currentState);
-            return;
-        }
 
         List<StoredCandidate> methodTestCandidates =
                 ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
                         insidiousService.getStoredCandidatesFor(focussedMethod));
         if (methodTestCandidates.size() > 0) {
             loadExecutionFlow();
+            methodTestCandidates.sort(StoredCandidate::compareTo);
             methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, methodTestCandidates);
         } else {
             //runs for process_running
+            insidiousService.focusDirectInvokeTab();
             loadComponentForState(currentState);
         }
 

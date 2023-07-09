@@ -2,12 +2,12 @@ package com.insidious.plugin.pojo.atomic;
 
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.util.TestCandidateUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
-public class StoredCandidate {
+public class StoredCandidate implements Comparable {
 
     private String candidateId;
     private String name;
@@ -18,17 +18,76 @@ public class StoredCandidate {
     private String returnValueClassname;
     private StoredCandidateMetadata metadata;
     private String methodHash;
-    private boolean BooleanType;
-    public enum AssertionType {EQUAL, NOT_EQUAL}
+    private boolean returnValueIsBoolean;
     private AssertionType assertionType;
     private long entryProbeIndex;
     private String returnDataEventSerializedValue;
     private long returnDataEventValue;
     private String methodName;
     private byte[] probSerializedValue;
+    private String methodSignature;
+    private String className;
+
+    public StoredCandidate() {
+    }
+
+    public StoredCandidate(TestCandidateMetadata candidateMetadata) {
+        this.setException(candidateMetadata.getMainMethod().getReturnValue().isException());
+        byte[] serializedValue = candidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue();
+        String returnValue = serializedValue.length > 0 ? new String(serializedValue) :
+                String.valueOf(candidateMetadata.getMainMethod().getReturnDataEvent().getValue());
+        this.setReturnValue(returnValue);
+        this.setMethodArguments(TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata));
+        this.setReturnValueClassname(candidateMetadata.getMainMethod().getReturnValue().getType());
+        this.setReturnValueIsBoolean(candidateMetadata.getMainMethod().getReturnValue().isBooleanType());
+        this.setMethodName(candidateMetadata.getMainMethod().getMethodName());
+        this.setProbSerializedValue(candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue());
+        this.setEntryProbeIndex(generateIdentifier(candidateMetadata));
+        StoredCandidateMetadata metadata = new StoredCandidateMetadata();
+        metadata.setTimestamp(candidateMetadata.getCallTimeNanoSecond());
+        this.setMetadata(metadata);
+    }
+
+    @Override
+    public int hashCode() {
+        if (this.candidateId != null) {
+            return this.candidateId.hashCode();
+        }
+        return (this.entryProbeIndex + "-" + this.metadata.getHostMachineName()).hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof StoredCandidate)) {
+            return false;
+        }
+        StoredCandidate otherCandidate = (StoredCandidate) obj;
+        if (otherCandidate.getCandidateId() != null && this.getCandidateId() == null) {
+            return false;
+        }
+        if (this.getCandidateId() != null && otherCandidate.getCandidateId() == null) {
+            return false;
+        }
+
+        if (this.getCandidateId() != null && otherCandidate.getCandidateId() != null) {
+            return this.getCandidateId().equals(otherCandidate.getCandidateId());
+        }
+
+        return this.entryProbeIndex == otherCandidate.getEntryProbeIndex();
+    }
+
+    @Override
+    public int compareTo(@NotNull Object o) {
+        if (!(o instanceof StoredCandidate)) {
+            return -1;
+        }
+        return Long.compare(this.entryProbeIndex, ((StoredCandidate) o).entryProbeIndex);
+    }
+
     public String getCandidateId() {
         return candidateId;
     }
+
     public void setCandidateId(String candidateId) {
         this.candidateId = candidateId;
     }
@@ -113,12 +172,12 @@ public class StoredCandidate {
         this.entryProbeIndex = entryProbeIndex;
     }
 
-    public boolean isBooleanType() {
-        return BooleanType;
+    public boolean isReturnValueIsBoolean() {
+        return returnValueIsBoolean;
     }
 
-    public void setBooleanType(boolean booleanType) {
-        BooleanType = booleanType;
+    public void setReturnValueIsBoolean(boolean returnValueIsBoolean) {
+        this.returnValueIsBoolean = returnValueIsBoolean;
     }
 
     public String getMethodName() {
@@ -149,7 +208,7 @@ public class StoredCandidate {
                 ", returnValueClassname='" + returnValueClassname + '\'' +
                 ", metadata=" + metadata +
                 ", methodHash='" + methodHash + '\'' +
-                ", BooleanType=" + BooleanType +
+                ", BooleanType=" + returnValueIsBoolean +
                 ", assertionType=" + assertionType +
                 ", entryProbeIndex=" + entryProbeIndex +
                 ", returnDataEventSerializedValue=" + returnDataEventSerializedValue +
@@ -159,44 +218,40 @@ public class StoredCandidate {
                 '}';
     }
 
-    public StoredCandidate(){}
-
-    public StoredCandidate(TestCandidateMetadata candidateMetadata)
-    {
-        this.setException(candidateMetadata.getMainMethod().getReturnValue().isException());
-        byte[] serializedValue = candidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue();
-        String returnValue = serializedValue.length > 0 ? new String(serializedValue) :
-                String.valueOf(candidateMetadata.getMainMethod().getReturnDataEvent().getValue());
-        this.setReturnValue(returnValue);
-        this.setMethodArguments(TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata));
-        this.setReturnValueClassname(candidateMetadata.getMainMethod().getReturnValue().getType());
-        this.setBooleanType(candidateMetadata.getMainMethod().getReturnValue().isBooleanType());
-        this.setMethodName(candidateMetadata.getMainMethod().getMethodName());
-        this.setProbSerializedValue(candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue());
-        this.setEntryProbeIndex(generateIdentifier(candidateMetadata));
-        StoredCandidateMetadata metadata = new StoredCandidateMetadata();
-        metadata.setTimestamp(candidateMetadata.getCallTimeNanoSecond());
-        this.setMetadata(metadata);
-    }
-
-    private long generateIdentifier(TestCandidateMetadata candidateMetadata)
-    {
-        String id = ""+candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt()
+    private long generateIdentifier(TestCandidateMetadata candidateMetadata) {
+        String id = "" + candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt()
                 + candidateMetadata.getEntryProbeIndex();
         return id.hashCode();
     }
 
-    public void copyFrom(StoredCandidate candidate)
-    {
+    public void copyFrom(StoredCandidate candidate) {
         this.setCandidateId(candidate.getCandidateId());
         this.setName(candidate.getName());
         this.setDescription(candidate.getDescription());
         this.setAssertionType(candidate.getAssertionType());
         this.setReturnValue(candidate.getReturnValue());
         this.setEntryProbeIndex(candidate.getEntryProbeIndex());
-        this.setBooleanType(candidate.isBooleanType());
+        this.setReturnValueIsBoolean(candidate.isReturnValueIsBoolean());
         this.setProbSerializedValue(candidate.getProbSerializedValue());
         this.setException(candidate.isException());
         this.setReturnValueClassname(candidate.getReturnValueClassname());
     }
+
+    public void setMethodSignature(String methodSignature) {
+        this.methodSignature = methodSignature;
+    }
+
+    public String getMethodSignature() {
+        return methodSignature;
+    }
+
+    public void setClassName(String className) {
+        this.className = className;
+    }
+
+    public String getClassName() {
+        return className;
+    }
+
+    public enum AssertionType {EQUAL, NOT_EQUAL}
 }

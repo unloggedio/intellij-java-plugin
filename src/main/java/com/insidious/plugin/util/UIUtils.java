@@ -217,8 +217,8 @@ public class UIUtils {
                 return NO_DIFF_GUTTER;
             case DIFF:
                 return DIFF_GUTTER;
-            case NO_AGENT:
-                return NO_AGENT_GUTTER;
+//            case NO_AGENT:
+//                return NO_AGENT_GUTTER;
             case PROCESS_RUNNING:
                 return PROCESS_RUNNING;
             case PROCESS_NOT_RUNNING:

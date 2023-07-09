@@ -1,6 +1,5 @@
 package com.insidious.plugin.factory;
 
-import com.insidious.plugin.Checksums;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.agent.ConnectionStateListener;
 import com.insidious.plugin.agent.ServerMetadata;
@@ -11,7 +10,6 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.*;
 import com.intellij.openapi.util.Computable;
-import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiPackage;
@@ -30,13 +28,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class DefaultAgentStateProvider implements ConnectionStateListener, AgentStateProvider, Runnable {
+public class DefaultAgentStateProvider implements ConnectionStateListener, AgentStateProvider {
     final private String javaAgentString = "-javaagent:\"" + Constants.AGENT_PATH + "=i=YOUR.PACKAGE.NAME\"";
     final private Logger logger = LoggerUtil.getInstance(DefaultAgentStateProvider.class);
     final private InsidiousService insidiousService;
     private final AgentDownloadService agentDownloadService;
     private boolean isAgentServerRunning;
-    private boolean agentJarExists;
+    private boolean agentJarExists = true;
     private boolean downloadFailed;
 
     public DefaultAgentStateProvider(InsidiousService insidiousService) {
@@ -101,12 +99,9 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
                 NotificationType.INFORMATION);
 
 
-        if (agentJarExists) {
-            insidiousService.triggerGutterIconReload();
-            insidiousService.promoteState(GutterState.PROCESS_RUNNING);
-            insidiousService.focusDirectInvokeTab();
-        }
-
+        insidiousService.triggerGutterIconReload();
+        insidiousService.setAgentProcessState(GutterState.PROCESS_RUNNING);
+        insidiousService.focusDirectInvokeTab();
 
     }
 
@@ -120,11 +115,7 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
         }
         ApplicationManager.getApplication().invokeLater(() -> {
             insidiousService.triggerGutterIconReload();
-            if (agentJarExists) {
-                insidiousService.promoteState(GutterState.PROCESS_NOT_RUNNING);
-            } else {
-                insidiousService.promoteState(GutterState.NO_AGENT);
-            }
+            insidiousService.setAgentProcessState(GutterState.PROCESS_NOT_RUNNING);
         });
     }
 
@@ -226,94 +217,94 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
         return checksum;
     }
 
-    @Override
-    public void run() {
-        long agentFileLastCheck = -1;
-        while (true) {
+//    @Override
+//    public void run() {
+//        long agentFileLastCheck = -1;
+//        while (true) {
+//
+//            File agentInfoFile = Constants.AGENT_INFO_PATH.toFile();
+//            File agentFile = Constants.AGENT_PATH.toFile();
+//            if (agentInfoFile.exists()) {
+//                try {
+//                    String agentVersion = FileUtil.loadFile(agentInfoFile);
+//                    if (!Constants.AGENT_VERSION.equals(agentVersion)) {
+//                        logger.warn("Unexpected agent version on disk: " + agentVersion
+//                                + ", expected: " + Constants.AGENT_VERSION);
+//                        // unexpected agent version found
+//                        // what to do ? let's download new version ?
+//                        if (!agentDownloadService.isDownloading()) {
+//                            agentInfoFile.delete();
+//                            if (agentFile.exists()) {
+//                                agentFile.delete();
+//                            }
+//                            if (downloadAgent()) {
+//                                jarFound();
+//                                break;
+//                            } else {
+//                                downloadFailed = true;
+//                            }
+//                        }
+//                    } else {
+//                        String existingAgentMd5 = "";
+//                        if (!agentFile.exists() && !agentDownloadService.isDownloading()) {
+//                            agentInfoFile.delete();
+//                            continue;
+//                        }
+//
+//                        long agentFileLastModified = agentFile.lastModified();
+//                        if (agentFileLastModified > agentFileLastCheck) {
+//                            existingAgentMd5 = md5SumForFile(agentFile);
+//                            agentFileLastCheck = agentFileLastModified;
+//                            if (Checksums.AGENT_MD5.equals(existingAgentMd5)) {
+//                                // everything is all right
+//                                jarFound();
+//                                break;
+//                            } else {
+//                                // agent jar exists, and version file points to correct one
+//                                // but the hash failed
+//                                // maybe it is being downloaded ?
+//                                logger.warn("Agent jar exists expected version [" + agentVersion + "] but hash check " +
+//                                        "failed. Expected [" + Checksums.AGENT_MD5 + "] vs actual [" + existingAgentMd5 + "]");
+//                            }
+//                        }
+//
+//                    }
+//                } catch (IOException e) {
+//                    // failed to read agent info file ?
+//                    logger.error("Failed to read agent info file: ", e);
+//                }
+//            } else {
+//                // agent file doesn't exist
+//                if (agentFile.exists()) {
+//                    boolean oldAgentFileDeleted = agentFile.delete();
+//                    if (!oldAgentFileDeleted) {
+//                        // failed to delete old agent file which has no agent info file
+//                        logger.warn("Failed to delete old agent jar");
+//                    }
+//                }
+//                if (downloadAgent()) {
+//                    jarFound();
+//                    break;
+//                } else {
+//                    downloadFailed = true;
+//                }
+//            }
+//
+//            try {
+//                Thread.sleep(1500);
+//            } catch (InterruptedException e) {
+//                throw new RuntimeException(e);
+//            }
+//        }
+//    }
 
-            File agentInfoFile = Constants.AGENT_INFO_PATH.toFile();
-            File agentFile = Constants.AGENT_PATH.toFile();
-            if (agentInfoFile.exists()) {
-                try {
-                    String agentVersion = FileUtil.loadFile(agentInfoFile);
-                    if (!Constants.AGENT_VERSION.equals(agentVersion)) {
-                        logger.warn("Unexpected agent version on disk: " + agentVersion
-                                + ", expected: " + Constants.AGENT_VERSION);
-                        // unexpected agent version found
-                        // what to do ? let's download new version ?
-                        if (!agentDownloadService.isDownloading()) {
-                            agentInfoFile.delete();
-                            if (agentFile.exists()) {
-                                agentFile.delete();
-                            }
-                            if (downloadAgent()) {
-                                jarFound();
-                                break;
-                            } else {
-                                downloadFailed = true;
-                            }
-                        }
-                    } else {
-                        String existingAgentMd5 = "";
-                        if (!agentFile.exists() && !agentDownloadService.isDownloading()) {
-                            agentInfoFile.delete();
-                            continue;
-                        }
-
-                        long agentFileLastModified = agentFile.lastModified();
-                        if (agentFileLastModified > agentFileLastCheck) {
-                            existingAgentMd5 = md5SumForFile(agentFile);
-                            agentFileLastCheck = agentFileLastModified;
-                            if (Checksums.AGENT_MD5.equals(existingAgentMd5)) {
-                                // everything is all right
-                                jarFound();
-                                break;
-                            } else {
-                                // agent jar exists, and version file points to correct one
-                                // but the hash failed
-                                // maybe it is being downloaded ?
-                                logger.warn("Agent jar exists expected version [" + agentVersion + "] but hash check " +
-                                        "failed. Expected [" + Checksums.AGENT_MD5 + "] vs actual [" + existingAgentMd5 + "]");
-                            }
-                        }
-
-                    }
-                } catch (IOException e) {
-                    // failed to read agent info file ?
-                    logger.error("Failed to read agent info file: ", e);
-                }
-            } else {
-                // agent file doesn't exist
-                if (agentFile.exists()) {
-                    boolean oldAgentFileDeleted = agentFile.delete();
-                    if (!oldAgentFileDeleted) {
-                        // failed to delete old agent file which has no agent info file
-                        logger.warn("Failed to delete old agent jar");
-                    }
-                }
-                if (downloadAgent()) {
-                    jarFound();
-                    break;
-                } else {
-                    downloadFailed = true;
-                }
-            }
-
-            try {
-                Thread.sleep(1500);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    private void jarFound() {
-        agentJarExists = true;
-        insidiousService.triggerGutterIconReload();
-        if (this.isAgentServerRunning) {
-            insidiousService.promoteState(GutterState.PROCESS_RUNNING);
-        } else {
-            insidiousService.promoteState(GutterState.PROCESS_NOT_RUNNING);
-        }
-    }
+//    private void jarFound() {
+//        agentJarExists = true;
+//        insidiousService.triggerGutterIconReload();
+//        if (this.isAgentServerRunning) {
+//            insidiousService.setAgentProcessState(GutterState.PROCESS_RUNNING);
+//        } else {
+//            insidiousService.setAgentProcessState(GutterState.PROCESS_NOT_RUNNING);
+//        }
+//    }
 }

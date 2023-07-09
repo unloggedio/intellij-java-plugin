@@ -9,12 +9,14 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 
-import java.util.Arrays;
 import java.util.List;
 
 public class MethodUtils {
-    public static AgentCommandRequest createRequestWithParameters(MethodAdapter methodAdapter,
-                                                                  PsiClass psiClass, List<String> parameterValues) {
+    public static AgentCommandRequest createRequestWithParameters(
+            MethodAdapter methodAdapter,
+            PsiClass psiClass,
+            List<String> parameterValues
+    ) {
 
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.EXECUTE);

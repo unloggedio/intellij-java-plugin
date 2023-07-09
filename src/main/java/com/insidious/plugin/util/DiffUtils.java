@@ -5,8 +5,6 @@ import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceInstance;
@@ -27,7 +25,7 @@ public class DiffUtils {
     ) {
         String originalString = testCandidateMetadata.getReturnValue();
 
-        if (testCandidateMetadata.isBooleanType()) {
+        if (testCandidateMetadata.isReturnValueIsBoolean()) {
             originalString = "0".equals(originalString) ? "false" : "true";
         }
 

@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.Components.AtomicRecord;
 
+import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.ui.components.JBScrollPane;
@@ -13,7 +14,7 @@ import java.awt.event.FocusListener;
 
 public class SaveForm extends JFrame {
 
-    private AtomicRecordListener listener;
+    private CandidateLifeListener listener;
     private JLabel title;
     private JLabel nameLabel;
     private JLabel descriptionLabel;
@@ -30,7 +31,8 @@ public class SaveForm extends JFrame {
     private JRadioButton b1;
     private JRadioButton b2;
 
-    public SaveForm(AtomicRecordListener listener) {
+    public SaveForm(StoredCandidate storedCandidate, CandidateLifeListener listener) {
+        this.storedCandidate = storedCandidate;
         this.listener = listener;
         setTitle("Unlogged Inc.");
         setBounds(400, 160, 500, 500);
@@ -171,6 +173,9 @@ public class SaveForm extends JFrame {
             }
         });
         c.add(cancelButton);
+
+        setInfo();
+
     }
 
     private void triggerSave() {
@@ -181,7 +186,10 @@ public class SaveForm extends JFrame {
         if (model.getActionCommand().equals("Assert Not Equals")) {
             type = StoredCandidate.AssertionType.NOT_EQUAL;
         }
-        this.listener.triggerRecordAddition(name_text, description_text, type);
+        storedCandidate.setName(name_text);
+        storedCandidate.setDescription(description_text);
+        storedCandidate.setAssertionType(type);
+        this.listener.onSaved(storedCandidate);
         this.dispose();
     }
 
@@ -193,40 +201,34 @@ public class SaveForm extends JFrame {
         }
     }
 
-    public void setStoredCandidate(StoredCandidate storedCandidate) {
-        this.storedCandidate = storedCandidate;
-        setInfo();
-    }
 
     private void setInfo() {
         boolean updated = false;
-        if (this.storedCandidate != null) {
-            String name = storedCandidate.getName();
-            String description = storedCandidate.getDescription();
-            StoredCandidate.AssertionType assertionType = storedCandidate.getAssertionType();
+        String name = storedCandidate.getName();
+        String description = storedCandidate.getDescription();
+        StoredCandidate.AssertionType assertionType = storedCandidate.getAssertionType();
 
-            if (name != null) {
-                this.nameField.setText(name);
-                updated = true;
+        if (name != null) {
+            this.nameField.setText(name);
+            updated = true;
+        }
+        if (description != null) {
+            this.description.setText(description);
+            updated = true;
+        }
+        if (assertionType != null) {
+            switch (assertionType) {
+                case EQUAL:
+                    b1.setSelected(true);
+                    updated = true;
+                    break;
+                default:
+                    b2.setSelected(true);
+                    updated = true;
             }
-            if (description != null) {
-                this.description.setText(description);
-                updated = true;
-            }
-            if (assertionType != null) {
-                switch (assertionType) {
-                    case EQUAL:
-                        b1.setSelected(true);
-                        updated = true;
-                        break;
-                    default:
-                        b2.setSelected(true);
-                        updated = true;
-                }
-            }
-            if (updated) {
-                saveButton.setText("Update");
-            }
+        }
+        if (updated) {
+            saveButton.setText("Update");
         }
     }
 

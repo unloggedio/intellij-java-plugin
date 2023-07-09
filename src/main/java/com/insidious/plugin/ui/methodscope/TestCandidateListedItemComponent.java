@@ -11,7 +11,6 @@ import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.ui.components.JBScrollPane;
-import com.intellij.ui.components.JBTreeTable;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 import org.json.JSONArray;
@@ -71,7 +70,7 @@ public class TestCandidateListedItemComponent {
                     eventProperties.put("className", psiClass.getQualifiedName());
                     eventProperties.put("methodName", method.getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
-                    TestCandidateListedItemComponent.this.methodExecutionListener.executeCandidate(
+                    methodExecutionListener.executeCandidate(
                             Collections.singletonList(candidateMetadata), psiClass, "individual",
                             (candidateMetadata, agentCommandResponse, diffResult) -> {
                                 calls++;

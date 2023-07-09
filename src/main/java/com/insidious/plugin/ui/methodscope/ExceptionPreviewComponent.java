@@ -1,8 +1,8 @@
 package com.insidious.plugin.ui.methodscope;
 
+import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.ui.Components.AtomicRecord.AtomicRecordListener;
 import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -11,7 +11,9 @@ import com.intellij.testFramework.LightVirtualFile;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
 
 public class ExceptionPreviewComponent {
     private final String message;
@@ -28,17 +30,17 @@ public class ExceptionPreviewComponent {
     private JButton deleteButton;
     private SaveForm saveForm;
     private StoredCandidate candidate;
+
     public ExceptionPreviewComponent(String message, String stacktrace, InsidiousService insidiousService,
-                                     AtomicRecordListener listener, boolean showSave, boolean showDelete,
+                                     CandidateLifeListener listener, boolean showSave, boolean showDelete,
                                      StoredCandidate candidate) {
         this.message = message;
         this.stackTrace = stacktrace;
         this.service = insidiousService;
-        this.candidate=candidate;
-        
+        this.candidate = candidate;
+
         this.exceptionArea.setText(message);
-        if(!showSave)
-        {
+        if (!showSave) {
             this.accept.setVisible(false);
         }
 
@@ -55,23 +57,17 @@ public class ExceptionPreviewComponent {
         accept.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if(saveForm!=null){
-                    saveForm.dispose();
-                }
-                saveForm = new SaveForm(listener);
-                saveForm.setStoredCandidate(candidate);
-                saveForm.setVisible(true);
+                listener.onSaveRequest(candidate);
             }
         });
 
-        if(!showDelete)
-        {
+        if (!showDelete) {
             this.deleteButton.setVisible(false);
         }
         deleteButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                listener.deleteCandidateRecord();
+                listener.onDeleted(candidate);
             }
         });
     }

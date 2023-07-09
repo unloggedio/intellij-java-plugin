@@ -2,24 +2,20 @@ package com.insidious.plugin.util;
 
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
 
 public class AtomicRecordUtils {
 
-    public static List<StoredCandidate> convertToStoredcandidates(
+    public static List<StoredCandidate> convertToStoredCandidates(
             List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> testCandidateMetadataList) {
-        List<StoredCandidate> candidates = new ArrayList<>();
-        for (TestCandidateMetadata candidateMetadata : testCandidateMetadataList) {
-            StoredCandidate candidate = new StoredCandidate(candidateMetadata);
-            candidates.add(candidate);
-        }
-        return candidates;
+
+        return testCandidateMetadataList.stream().map(StoredCandidate::new).collect(Collectors.toList());
     }
 
     public static StoredCandidate createCandidateFor(StoredCandidate metadata, AgentCommandResponse<String> response) {
@@ -27,16 +23,14 @@ public class AtomicRecordUtils {
         candidate.setCandidateId(UUID.randomUUID().toString());
         candidate.setMethodHash(metadata.getMethodHash());
         candidate.setMethodArguments(metadata.getMethodArguments());
-        candidate.setException(response.getResponseType().equals(ResponseType.NORMAL) ?
-                false : true);
+        candidate.setException(!response.getResponseType().equals(ResponseType.NORMAL));
         candidate.setReturnValue(response.getMethodReturnValue());
         //to be updated
         candidate.setProbSerializedValue(metadata.getProbSerializedValue());
         //to be updated
         candidate.setMethodName(metadata.getMethodName());
         candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
-        candidate.setBooleanType(metadata.isBooleanType());
-        candidate.setException(response.getResponseType().equals(ResponseType.EXCEPTION) ? true : false);
+        candidate.setReturnValueIsBoolean(metadata.isReturnValueIsBoolean());
         candidate.setReturnValueClassname(response.getResponseClassName());
 
         if (metadata.getMetadata() != null) {
@@ -54,6 +48,7 @@ public class AtomicRecordUtils {
         return candidate;
     }
 
+    // todo: explain
     public static List<StoredCandidate> filterStoredCandidates(List<StoredCandidate> candidates) {
         Map<Long, StoredCandidate> selectedCandidates = new TreeMap<>();
         for (StoredCandidate candidate : candidates) {
@@ -66,7 +61,6 @@ public class AtomicRecordUtils {
                 }
             }
         }
-        List<StoredCandidate> candidatesFiltered = new ArrayList<>(selectedCandidates.values());
-        return candidatesFiltered;
+        return new ArrayList<>(selectedCandidates.values());
     }
 }

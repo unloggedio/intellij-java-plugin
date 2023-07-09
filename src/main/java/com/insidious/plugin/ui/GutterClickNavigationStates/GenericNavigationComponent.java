@@ -29,13 +29,14 @@ public class GenericNavigationComponent {
         this.currentState = state;
         this.insidiousService = insidiousService;
         setTextAndIcons();
-        if (state.equals(GutterState.NO_AGENT)) {
-            //display button
-            actionButton.setVisible(true);
-            actionButton.setText("Download Agent");
-            actionButton.addActionListener((e) -> insidiousService.getAgentStateProvider().triggerAgentDownload());
-            actionButton.setIcon(UIUtils.DOWNLOAD_WHITE);
-        } else if (state.equals(GutterState.PROCESS_RUNNING)) {
+//        if (state.equals(GutterState.NO_AGENT)) {
+//            display button
+//            actionButton.setVisible(true);
+//            actionButton.setText("Download Agent");
+//            actionButton.addActionListener((e) -> insidiousService.getAgentStateProvider().triggerAgentDownload());
+//            actionButton.setIcon(UIUtils.DOWNLOAD_WHITE);
+//        } else
+        if (state.equals(GutterState.PROCESS_RUNNING)) {
             actionButton.setVisible(true);
             actionButton.setText("Execute method");
             loadImageForCurrentState();
@@ -76,10 +77,10 @@ public class GenericNavigationComponent {
             case PROCESS_RUNNING:
                 icon = UIUtils.PROCESS_RUNNING_HEADER;
                 break;
-            case NO_AGENT:
-                icon = UIUtils.NO_AGENT_HEADER;
-                iconLabel.setForeground(UIUtils.red);
-                break;
+//            case NO_AGENT:
+//                icon = UIUtils.NO_AGENT_HEADER;
+//                iconLabel.setForeground(UIUtils.red);
+//                break;
         }
         this.iconLabel.setIcon(icon);
     }
@@ -104,10 +105,10 @@ public class GenericNavigationComponent {
             case PROCESS_RUNNING:
                 header = "Call your application/relevant APIs using Postman, Swagger or UI. The Unlogged agent will record input/output for each method accessed.";
                 break;
-            case NO_AGENT:
-                header = "The agent byte code instruments your code to record input/output values of each method in your code.\n" +
-                        "Read more about bytecode instrumenting here.";
-                break;
+//            case NO_AGENT:
+//                header = "The agent byte code instruments your code to record input/output values of each method in your code.\n" +
+//                        "Read more about bytecode instrumenting here.";
+//                break;
         }
         return header;
     }
@@ -121,9 +122,9 @@ public class GenericNavigationComponent {
             case PROCESS_RUNNING:
                 header = "Application is running but no recordings found for this method";
                 break;
-            case NO_AGENT:
-                header = "Unlogged Java Agent not found";
-                break;
+//            case NO_AGENT:
+//                header = "Unlogged Java Agent not found";
+//                break;
         }
         return header;
     }

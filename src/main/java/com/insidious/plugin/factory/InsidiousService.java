@@ -40,7 +40,6 @@ import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
 import com.insidious.plugin.ui.testgenerator.LiveViewWindow;
-import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
@@ -184,7 +183,7 @@ final public class InsidiousService implements Disposable,
         InsidiousCaretListener listener = new InsidiousCaretListener(project);
         multicaster.addEditorMouseListener(listener, this);
         agentStateProvider = new DefaultAgentStateProvider(this);
-        threadPoolExecutor.submit(agentStateProvider);
+//        threadPoolExecutor.submit(agentStateProvider);
         agentClient = new AgentClient("http://localhost:12100", (ConnectionStateListener) agentStateProvider);
 
         ensureToolWindow();
@@ -1099,7 +1098,7 @@ final public class InsidiousService implements Disposable,
                 method.getName() + "#" + method.getJVMSignature(), method.getText().hashCode());
 
         // process is running, but no test candidates for this method
-        if (candidates.size() == 0 && hasStoredCandidates == false) {
+        if (candidates.size() == 0 && !hasStoredCandidates) {
             return GutterState.PROCESS_RUNNING;
         }
 
@@ -1222,24 +1221,20 @@ final public class InsidiousService implements Disposable,
         }
 
         List<TestCandidateMetadata> candidateMetadataList = getTestCandidateMetadata(method);
-        List<StoredCandidate> storedCandidates = new ArrayList<>();
         List<StoredCandidate> candidates = atomicRecordService
                 .getStoredCandidatesForMethod(method.getContainingClass().getQualifiedName(),
                         method.getName() + "#" + method.getJVMSignature());
-        if (candidates != null) {
-            storedCandidates.addAll(candidates);
-        }
-        if (storedCandidates == null) {
-            storedCandidates = new ArrayList<>();
-        }
-        List<StoredCandidate> convertedCandidates = AtomicRecordUtils.convertToStoredcandidates(
-                candidateMetadataList);
-        storedCandidates.addAll(convertedCandidates);
-        logger.info("StoredCandidates pre filter for " + method.getName());
-        logger.info("" + storedCandidates.toString());
 
-        storedCandidates = filterStoredCandidates(storedCandidates);
-        return storedCandidates;
+        List<StoredCandidate> storedCandidates = new ArrayList<>(candidates);
+
+        candidateMetadataList.stream()
+                .map(StoredCandidate::new)
+                .forEach(storedCandidates::add);
+
+
+        logger.info("StoredCandidates pre filter for " + method.getName() + " -> " + storedCandidates);
+
+        return filterStoredCandidates(storedCandidates);
     }
 
     @NotNull
@@ -1353,22 +1348,18 @@ final public class InsidiousService implements Disposable,
             executionRecord.put(keyName, newDiffRecord);
             return;
         }
-        if(!executionRecord.get(keyName).isUseIndividualContext() &&
-                !newDiffRecord.isUseIndividualContext())
-        {
-            if(!newDiffRecord.getBatchID().equals(executionRecord.get(keyName).getBatchID()))
-            {
+        if (!executionRecord.get(keyName).isUseIndividualContext() &&
+                !newDiffRecord.isUseIndividualContext()) {
+            if (!newDiffRecord.getBatchID().equals(executionRecord.get(keyName).getBatchID())) {
                 //different replay all batch
                 executionRecord.put(keyName, newDiffRecord);
-            }
-            else {
+            } else {
                 //same replay all batch
                 if (executionRecord.get(keyName).getDiffResultType().equals(DiffResultType.SAME)) {
                     executionRecord.put(keyName, newDiffRecord);
                 }
             }
-        }
-        else {
+        } else {
             executionRecord.put(keyName, newDiffRecord);
         }
         addExecutionRecord(newDiffRecord);
@@ -1438,7 +1429,7 @@ final public class InsidiousService implements Disposable,
         return list;
     }
 
-    public void promoteState(GutterState newState) {
+    public void setAgentProcessState(GutterState newState) {
         loadSingleWindowForState(newState);
         if (this.atomicTestContainerWindow != null) {
             atomicTestContainerWindow.loadComponentForState(newState);
@@ -1540,12 +1531,12 @@ final public class InsidiousService implements Disposable,
 
     @Override
     public void onConnectedToAgentServer(ServerMetadata serverMetadata) {
-
+        atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
     }
 
     @Override
     public void onDisconnectedFromAgentServer() {
-
+        atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
     }
 
     public void triggerAtomicTestsWindowRefresh() {

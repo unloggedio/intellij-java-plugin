@@ -26,30 +26,27 @@ import java.util.List;
 
 public class ReportingService {
 
+    public boolean notify = true;
     private boolean reportingEnabled = false;
-    private InsidiousService insidiousService;
+    private final InsidiousService insidiousService;
     private String output_file_name;
 
-    public boolean notify = true;
-    public ReportingService(InsidiousService service)
-    {
+    public ReportingService(InsidiousService service) {
         this.insidiousService = service;
     }
 
-    public boolean toggleReportMode()
-    {
+    public boolean toggleReportMode() {
         this.reportingEnabled = !this.reportingEnabled;
-        if(notify) {
+        if (notify) {
             InsidiousNotification.notifyMessage("Reporting mode is now : " + (reportingEnabled ?
                     "ACTIVE" : "INACTIVE"), NotificationType.INFORMATION);
         }
         return this.reportingEnabled;
 
     }
-    public void addRecord(DifferenceResult result)
-    {
-        if(!this.reportingEnabled)
-        {
+
+    public void addRecord(DifferenceResult result) {
+        if (!this.reportingEnabled) {
             return;
         }
         boolean isException = false;
@@ -57,8 +54,7 @@ public class ReportingService {
         boolean pluginException = false;
 
         XSSFWorkbook workbook = getWorkbook();
-        if(workbook == null)
-        {
+        if (workbook == null) {
 //            System.out.println("Workbook is null");
             return;
         }
@@ -73,8 +69,8 @@ public class ReportingService {
         Cell cell = row.createCell(0);
         cell.setCellValue(classname);
 
-        String method = result.getMethodAdapter().getName() +"\n"
-                +result.getMethodAdapter().getJVMSignature();
+        String method = result.getMethodAdapter().getName() + "\n"
+                + result.getMethodAdapter().getJVMSignature();
 //        System.out.println("Method : "+method);
         cell = row.createCell(1);
         cell.setCellValue(method);
@@ -85,8 +81,7 @@ public class ReportingService {
         cell.setCellValue(executionMode);
 
         String executionStatus = "";
-        if(result.getExecutionMode().equals(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE))
-        {
+        if (result.getExecutionMode().equals(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE)) {
             try {
                 if (result.getResponse().getResponseType().equals(ResponseType.NORMAL)) {
                     executionStatus = "NORMAL";
@@ -94,20 +89,15 @@ public class ReportingService {
                     executionStatus = "EXCEPTION";
                     isException = true;
                 }
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 //plugin exception
                 pluginException = true;
             }
-        }
-        else
-        {
+        } else {
 //            System.out.println("Execution Status : "+result.getDiffResultType());
             executionStatus = result.getDiffResultType().toString();
-            if(result.getDiffResultType().equals(DiffResultType.BOTH_EXCEPTION)
-                    || result.getDiffResultType().equals(DiffResultType.ACTUAL_EXCEPTION))
-            {
+            if (result.getDiffResultType().equals(DiffResultType.BOTH_EXCEPTION)
+                    || result.getDiffResultType().equals(DiffResultType.ACTUAL_EXCEPTION)) {
                 isException = true;
             }
         }
@@ -120,20 +110,17 @@ public class ReportingService {
         cell.setCellValue(input.toString());
 
         String output;
-        if(result.getResponse() == null || result.getResponse().getMethodReturnValue() == null)
-        {
+        if (result.getResponse() == null || result.getResponse().getMethodReturnValue() == null) {
             output = null;
-            if(result.getResponse().getTimestamp()==0)
-            {
+            if (result.getResponse().getTimestamp() == 0) {
                 isException = true;
                 pluginException = true;
             }
-        }
-        else {
+        } else {
             output = result.getResponse().getMethodReturnValue().toString();
         }
 //        System.out.println("Output Serialized : "+output);
-        if(isException) {
+        if (isException) {
             if (result.getResponse().getResponseType().equals(ResponseType.FAILED)) {
                 isAgentException = true;
             }
@@ -144,26 +131,19 @@ public class ReportingService {
         //make check for plugin exception
         String exceptionTrace = isException ? result.getResponse().getMethodReturnValue().toString() : "";
 //        System.out.println("Exception trace : "+exceptionTrace);
-        if(pluginException)
-        {
+        if (pluginException) {
             exceptionTrace = "plugin exception, no response";
         }
         cell = row.createCell(6);
         cell.setCellValue(exceptionTrace);
 
         String exceptionType = "";
-        if(isException)
-        {
-            if(isAgentException)
-            {
+        if (isException) {
+            if (isAgentException) {
                 exceptionType = "Agent Exception";
-            }
-            else if(pluginException)
-            {
+            } else if (pluginException) {
                 exceptionType = "Plugin Exception";
-            }
-            else
-            {
+            } else {
                 exceptionType = "Expected Exception";
             }
         }
@@ -173,7 +153,7 @@ public class ReportingService {
 
         long timestamp = result.getResponse().getTimestamp();
         String time = "";
-        if(!pluginException) {
+        if (!pluginException) {
             time = convertTimestamp(timestamp);
         }
 //        System.out.println("Timestamp : "+time);
@@ -182,38 +162,34 @@ public class ReportingService {
 
         try {
             FileOutputStream out = new FileOutputStream(new File(insidiousService.getProject().getBasePath()
-            +"/"+this.output_file_name));
+                    + "/" + this.output_file_name));
             workbook.write(out);
             out.close();
 //            System.out.println("Execution record added [+]");
         } catch (Exception e) {
-            System.out.println("Exception writing record to file "+e);
+            System.out.println("Exception writing record to file " + e);
             e.printStackTrace();
         }
     }
 
-    private List<String> getInputs(MethodAdapter methodAdapter, AgentCommandRequest command)
-    {
+    private List<String> getInputs(MethodAdapter methodAdapter, AgentCommandRequest command) {
         List<String> inputList = new ArrayList<>();
         ParameterAdapter[] types = methodAdapter.getParameters();
-        for(int i=0;i<command.getMethodParameters().size();i++)
-        {
-            inputList.add(types[i].getType().toString()+ " : "
-                    +command.getMethodParameters().get(i)+"\n");
+        for (int i = 0; i < command.getMethodParameters().size(); i++) {
+            inputList.add(types[i].getType().toString() + " : "
+                    + command.getMethodParameters().get(i) + "\n");
         }
         return inputList;
     }
 
-    private XSSFWorkbook getWorkbook()
-    {
+    private XSSFWorkbook getWorkbook() {
         Date today = new Date();
         LocalDate now = LocalDate.now();
-        String filename = insidiousService.getProject().getName()+"_"+now.getYear()+"_"+now.getMonth()
-                +"_"+now.getDayOfMonth()+".xlsx";
+        String filename = insidiousService.getProject().getName() + "_" + now.getYear() + "_" + now.getMonth()
+                + "_" + now.getDayOfMonth() + ".xlsx";
         this.output_file_name = filename;
-        File file = new File(insidiousService.getProject().getBasePath()+"/"+filename);
-        if(!file.exists())
-        {
+        File file = new File(insidiousService.getProject().getBasePath() + "/" + filename);
+        if (!file.exists()) {
             try {
                 //create sheet
                 XSSFWorkbook workbook = new XSSFWorkbook();
@@ -250,38 +226,31 @@ public class ReportingService {
                 cell.setCellValue("Timestamp");
 
                 FileOutputStream out = new FileOutputStream(
-                        new File(insidiousService.getProject().getBasePath()+"/"+filename));
+                        new File(insidiousService.getProject().getBasePath() + "/" + filename));
 
                 workbook.write(out);
                 out.close();
 
                 return workbook;
-            }
-            catch (Exception e)
-            {
-                System.out.println("Exception when creating excel file "+e);
+            } catch (Exception e) {
+                System.out.println("Exception when creating excel file " + e);
                 e.printStackTrace();
                 return null;
             }
-        }
-        else
-        {
+        } else {
             try {
                 XSSFWorkbook workbook = new XSSFWorkbook(
                         new FileInputStream(insidiousService.getProject().getBasePath() + "/" + filename));
                 return workbook;
-            }
-            catch (Exception e)
-            {
-                System.out.println("Exception opening existing excel file "+e);
+            } catch (Exception e) {
+                System.out.println("Exception opening existing excel file " + e);
                 e.printStackTrace();
                 return null;
             }
         }
     }
 
-    private String convertTimestamp(long timestamp)
-    {
+    private String convertTimestamp(long timestamp) {
         ZonedDateTime dateTime = Instant.ofEpochMilli(timestamp)
                 .atZone(ZoneId.of("Asia/Kolkata"));
         return dateTime.toString();

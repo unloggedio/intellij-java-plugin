@@ -4,12 +4,13 @@ import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
+import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
-import com.insidious.plugin.ui.Components.MethodExecutorComponentDTO;
+import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
 import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.DiffUtils;
@@ -22,7 +23,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.PsiClass;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
-import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
@@ -30,113 +30,68 @@ import org.json.JSONObject;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
-import java.util.HashMap;
+import java.awt.event.ActionEvent;
 import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-public class MethodExecutorComponent implements MethodExecutionListener, CandidateSelectedListener {
+public class MethodExecutorComponent implements MethodExecutionListener, CandidateSelectedListener, CandidateLifeListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
     private final InsidiousService insidiousService;
-    private final Map<Long, TestCandidateListedItemComponent> candidateComponentMap = new HashMap<>();
+
     private final Map<Long, AgentCommandResponse<String>> candidateResponseMap = new HashMap<>();
-    //    private List<ComponentContainer> components = new ArrayList<>();
+    private final Set<StoredCandidate> methodTestCandidates = new HashSet<>();
+    private final JPanel gridPanel;
+    private final Map<Long, TestCandidateListedItemComponent> candidateComponentMap = new HashMap<>();
+    private final JScrollPane candidateScrollPanelContainer;
     private MethodAdapter methodElement;
     private JPanel rootContent;
     private JButton executeAndShowDifferencesButton;
-    private JPanel methodParameterContainer;
     private JLabel candidateCountLabel;
-    private JScrollPane candidateListScroller;
     private JPanel diffContentPanel;
-    private JPanel candidateDisplayPanel;
     private JPanel topPanel;
     //    private JPanel centerPanel;
     private JPanel centerParent;
     private JPanel topAligner;
     private JScrollPane scrollParent;
-    private JPanel selectedCandidateInfoPanel;
-    private JPanel borderParent;
-    private List<StoredCandidate> methodTestCandidates;
-//    private int componentCounter = 0;
     private int callCount = 0;
+    private SaveForm saveFormReference;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
 //        System.out.println("In Constructor mec");
         this.insidiousService = insidiousService;
-        executeAndShowDifferencesButton.addActionListener(e -> {
-            if (methodTestCandidates == null || methodTestCandidates.size() == 0) {
-                InsidiousNotification.notifyMessage(
-                        "Please use the agent to record values for replay. " +
-                                "No candidates found for " + methodElement.getName(),
-                        NotificationType.WARNING
-                );
-                return;
-            }
-            executeAll();
-        });
+        executeAndShowDifferencesButton.addActionListener(this::actionPerformed);
+        gridPanel = createCandidateScrollPanel();
+
+        candidateScrollPanelContainer = new JBScrollPane(gridPanel);
+        candidateScrollPanelContainer.setBorder(JBUI.Borders.empty());
+        candidateScrollPanelContainer.setMaximumSize(new Dimension(-1, 40));
+
+
+        centerParent.setMaximumSize(new Dimension(-1, Math.min(300, 40)));
+        centerParent.setMinimumSize(new Dimension(-1, 300));
+
+        centerParent.add(candidateScrollPanelContainer, BorderLayout.CENTER);
+        centerParent.revalidate();
+        centerParent.repaint();
+
     }
 
     public MethodAdapter getCurrentMethod() {
         return methodElement;
     }
 
-    public void compileAndExecuteAll() {
 
-        ApplicationManager.getApplication().invokeLater(() -> {
-            insidiousService.compile(methodElement.getContainingClass(),
-                    (aborted, errors, warnings, compileContext) -> {
-                        logger.warn("compiled class: " + compileContext);
-                        if (aborted) {
-                            InsidiousNotification.notifyMessage(
-                                    "Re-execution cancelled", NotificationType.WARNING
-                            );
-                            return;
-                        }
-                        if (errors > 0) {
-                            InsidiousNotification.notifyMessage(
-                                    "Re-execution cancelled due to [" + errors + "] compilation errors",
-                                    NotificationType.ERROR
-                            );
-                        }
-                        executeAll();
-                    }
-            );
-        });
-    }
+    public JPanel createCandidateScrollPanel() {
 
-    public MethodExecutorComponentDTO loadMethodCandidates(List<StoredCandidate> methodTestCandidates, MethodAdapter methodAdapter) {
-
-        Map<Long, TestCandidateListedItemComponent> components = new HashMap<>();
-        int callToMake = methodTestCandidates.size();
-        int gridRows = 3;
-        if (callToMake > gridRows) {
-            gridRows = callToMake;
-        }
-        GridLayout gridLayout = new GridLayout(gridRows, 1);
+        GridLayout gridLayout = new GridLayout(0, 1);
         gridLayout.setVgap(8);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(JBUI.Borders.empty());
-        int panelHeight = 0;
-        for (int i = 0; i < methodTestCandidates.size(); i++) {
-            GridConstraints constraints = new GridConstraints();
-            constraints.setRow(i);
-            StoredCandidate candidateMetadata = methodTestCandidates.get(i);
-            //reduce no or args, remove insidiousService, user methodElem
-            TestCandidateListedItemComponent candidateListItem = new TestCandidateListedItemComponent(
-                    candidateMetadata, methodAdapter, this, this);
-            components.put(candidateMetadata.getEntryProbeIndex(), candidateListItem);
-            JPanel candidateDisplayPanel = candidateListItem.getComponent();
-            gridPanel.add(candidateDisplayPanel, constraints);
-            panelHeight += candidateDisplayPanel.getPreferredSize().getHeight() + 10;
-        }
-        panelHeight += 40;
-        gridPanel.setBorder(JBUI.Borders.empty());
-        JScrollPane scrollPane = new JBScrollPane(gridPanel);
-        scrollPane.setBorder(JBUI.Borders.empty());
-        scrollPane.setMaximumSize(new Dimension(-1, Math.min(300, panelHeight)));
-        return new MethodExecutorComponentDTO(components, scrollPane, panelHeight);
+        return gridPanel;
     }
+
 
     private void showDirectInvokeNavButton() {
         JPanel buttonPanel = new JPanel();
@@ -160,8 +115,39 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         centerParent.repaint();
     }
 
+    public void compileAndExecuteAll() {
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            insidiousService.compile(methodElement.getContainingClass(),
+                    (aborted, errors, warnings, compileContext) -> {
+                        logger.warn("compiled class: " + compileContext);
+                        if (aborted) {
+                            InsidiousNotification.notifyMessage("Re-execution cancelled", NotificationType.WARNING);
+                            return;
+                        }
+                        if (errors > 0) {
+                            InsidiousNotification.notifyMessage(
+                                    "Re-execution cancelled due to [" + errors + "] compilation errors",
+                                    NotificationType.ERROR
+                            );
+                            return;
+                        }
+                        executeAll();
+                    }
+            );
+        });
+    }
 
     public void executeAll() {
+        if (methodTestCandidates.size() == 0) {
+            InsidiousNotification.notifyMessage(
+                    "Please use the agent to record values for replay. " +
+                            "No candidates found for " + methodElement.getName(),
+                    NotificationType.WARNING
+            );
+            return;
+        }
+
         ApplicationManager.getApplication().invokeLater(() -> {
             JSONObject eventProperties = new JSONObject();
 
@@ -171,14 +157,15 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
 
                 callCount = methodTestCandidates.size();
-                long savedCandidatesCount = methodTestCandidates.stream().filter(e -> e.getCandidateId() != null)
+                long savedCandidatesCount = methodTestCandidates.stream()
+                        .filter(e -> e.getCandidateId() != null)
                         .count();
                 AtomicInteger componentCounter = new AtomicInteger(0);
                 AtomicInteger passingSavedCandidateCount = new AtomicInteger(0);
                 AtomicInteger passingCandidateCount = new AtomicInteger(0);
 
                 long batchTime = System.currentTimeMillis();
-                executeCandidate(methodTestCandidates, psiClass1, "all-"+batchTime,
+                executeCandidate(new ArrayList<>(methodTestCandidates), psiClass1, "all-" + batchTime,
                         (testCandidate, agentCommandResponse, diffResult) -> {
                             int currentCount = componentCounter.incrementAndGet();
                             if (diffResult.getDiffResultType().equals(DiffResultType.SAME)) {
@@ -219,16 +206,62 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     }
 
-    public void refreshAndReloadCandidates(MethodAdapter method, List<StoredCandidate> candidates) {
-        clearBoard();
+    public void refreshAndReloadCandidates(final MethodAdapter method, List<StoredCandidate> candidates) {
+
+        if (methodElement == null || method == null || method.getPsiMethod() != methodElement.getPsiMethod()) {
+            clearBoard();
+        }
         this.methodElement = method;
-        this.methodTestCandidates = candidates;
-        MethodExecutorComponentDTO dto = loadMethodCandidates(candidates, methodElement);
+        if (this.methodElement == null) {
+            return;
+        }
+        final String methodHash = methodElement.getText().hashCode() + "";
+        final String methodName = methodElement.getName();
+        final String methodJVMSignature = methodElement.getJVMSignature();
+        final String classQualifiedName = methodElement.getContainingClass().getQualifiedName();
+
+
+        this.methodTestCandidates.addAll(candidates);
+
+        candidates.stream()
+                .filter(testCandidateMetadata -> !candidateComponentMap.containsKey(
+                        testCandidateMetadata.getEntryProbeIndex()))
+                .peek(testCandidateMetadata -> {
+                    testCandidateMetadata.setMethodHash(methodHash);
+                    testCandidateMetadata.setMethodName(methodName);
+                    testCandidateMetadata.setMethodSignature(methodJVMSignature);
+                    testCandidateMetadata.setClassName(classQualifiedName);
+                })
+                .map(e -> new TestCandidateListedItemComponent(e, this.methodElement, this,
+                        MethodExecutorComponent.this))
+                .forEach(e -> {
+                    candidateComponentMap.put(e.getCandidateMetadata().getEntryProbeIndex(), e);
+                    gridPanel.add(e.getComponent());
+                });
+
+
         executeAndShowDifferencesButton.setEnabled(true);
         insidiousService.showNewTestCandidateGotIt();
 
-        candidateComponentMap.putAll(dto.getComponentMap());
-        renderComponentList(dto.getMainPanel(), dto.getPanelHeight());
+        int panelHeight = candidateComponentMap.values().stream()
+                .map(e -> e.getComponent().getPreferredSize().getHeight())
+                .mapToInt(Double::intValue)
+                .sum() + 40;
+
+        gridPanel.revalidate();
+        gridPanel.repaint();
+        candidateScrollPanelContainer.setMaximumSize(new Dimension(-1, Math.min(300, panelHeight)));
+        candidateScrollPanelContainer.setPreferredSize(new Dimension(-1, Math.min(300, panelHeight)));
+        centerParent.setMaximumSize(new Dimension(-1, Math.min(300, 30)));
+        centerParent.setPreferredSize(new Dimension(-1, Math.min(300, 30)));
+        centerParent.setMinimumSize(new Dimension(-1, 300));
+
+
+        candidateScrollPanelContainer.revalidate();
+        candidateScrollPanelContainer.repaint();
+        centerParent.revalidate();
+        centerParent.repaint();
+
 
         executeAndShowDifferencesButton.revalidate();
         executeAndShowDifferencesButton.repaint();
@@ -241,18 +274,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         rootContent.repaint();
     }
 
-    private void renderComponentList(JScrollPane scrollPane, int panelHeight) {
-        centerParent.setMaximumSize(new Dimension(-1, Math.min(300, panelHeight)));
-        centerParent.setMinimumSize(new Dimension(-1, 300));
-
-        centerParent.add(scrollPane, BorderLayout.CENTER);
-        centerParent.revalidate();
-        centerParent.repaint();
-    }
-
     private void clearBoard() {
+        methodTestCandidates.clear();
         candidateComponentMap.clear();
-        centerParent.removeAll();
+        gridPanel.removeAll();
         diffContentPanel.removeAll();
         diffContentPanel.revalidate();
         centerParent.revalidate();
@@ -404,6 +429,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         if (agentCommandResponse == null) {
             return;
         }
+        testCandidateMetadata.setMethodHash(methodElement.getText().hashCode() + "");
+        testCandidateMetadata.setMethodName(methodElement.getName());
+        testCandidateMetadata.setMethodSignature(methodElement.getJVMSignature());
+        testCandidateMetadata.setClassName(methodElement.getContainingClass().getQualifiedName());
         Supplier<Component> response = createTestCandidateChangeComponent(testCandidateMetadata, agentCommandResponse);
         displayResponse(response);
     }
@@ -414,43 +443,80 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             AgentCommandResponse<String> agentCommandResponse
     ) {
         if (testCandidateMetadata.isException()) {
-            AgentExceptionResponseComponent comp = new AgentExceptionResponseComponent(
-                    testCandidateMetadata, agentCommandResponse, insidiousService);
-            comp.setMethodHash(methodElement.getJVMSignature());
-            comp.setMethodName(methodElement.getName());
-            comp.setMethodHash(methodElement.getText().hashCode() + "");
-            comp.setClassname(methodElement.getContainingClass().getQualifiedName());
-            comp.setMethodSignature(methodElement.getJVMSignature());
-            return comp;
+            return new AgentExceptionResponseComponent(
+                    testCandidateMetadata, agentCommandResponse, insidiousService, this);
         }
         if (agentCommandResponse.getResponseType() != null &&
                 (agentCommandResponse.getResponseType().equals(ResponseType.FAILED) ||
                         agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
-            AgentExceptionResponseComponent comp = new AgentExceptionResponseComponent(
-                    testCandidateMetadata, agentCommandResponse, insidiousService);
-            comp.setMethodHash(methodElement.getJVMSignature());
-            comp.setMethodName(methodElement.getName());
-            comp.setMethodHash(methodElement.getText().hashCode() + "");
-            comp.setClassname(methodElement.getContainingClass().getQualifiedName());
-            comp.setMethodSignature(methodElement.getJVMSignature());
-            return comp;
+            return new AgentExceptionResponseComponent(
+                    testCandidateMetadata, agentCommandResponse, insidiousService, this);
         } else {
-            AgentResponseComponent component = new AgentResponseComponent(
-                    agentCommandResponse, testCandidateMetadata, true, insidiousService::generateCompareWindows,
-                    insidiousService.getAtomicRecordService());
-            component.setMethodName(methodElement.getName());
-            component.setMethodHash(methodElement.getText().hashCode() + "");
-            component.setClassname(methodElement.getContainingClass().getQualifiedName());
-            component.setMethodSignature(methodElement.getJVMSignature());
-            return component;
+            return new AgentResponseComponent(
+                    agentCommandResponse, testCandidateMetadata,
+                    true, insidiousService::generateCompareWindows,
+                    this
+            );
         }
     }
 
-    public void setMethod(MethodAdapter lastSelection) {
-//        System.out.println("In set method");
-        if (lastSelection != null) {
-//            System.out.println("Set Method");
-            this.methodElement = lastSelection;
+//    public void setMethod(MethodAdapter lastSelection) {
+////        System.out.println("In set method");
+//        if (lastSelection != null) {
+////            System.out.println("Set Method");
+//            this.methodElement = lastSelection;
+//        }
+//    }
+
+    private void actionPerformed(ActionEvent e) {
+        executeAll();
+    }
+
+    @Override
+    public void onSaved(StoredCandidate storedCandidate) {
+        insidiousService.getAtomicRecordService().saveCandidate(
+                methodElement.getContainingClass().getQualifiedName(),
+                storedCandidate.getMethodName(),
+                methodElement.getJVMSignature(),
+                storedCandidate
+        );
+        candidateComponentMap.get(storedCandidate.getEntryProbeIndex()).setTitledBorder(storedCandidate.getName());
+    }
+
+    @Override
+    public void onSaveRequest(StoredCandidate storedCandidate) {
+        if (saveFormReference != null) {
+            saveFormReference.dispose();
         }
+        saveFormReference = new SaveForm(storedCandidate, this);
+        saveFormReference.setVisible(true);
+    }
+
+    @Override
+    public void onDeleteRequest(StoredCandidate storedCandidate) {
+        onDeleted(storedCandidate);
+    }
+
+    @Override
+    public void onDeleted(StoredCandidate storedCandidate) {
+        insidiousService.getAtomicRecordService().deleteStoredCandidate(
+                storedCandidate.getClassName(),
+                storedCandidate.getMethodName() + "#" + storedCandidate.getMethodSignature(),
+                storedCandidate.getCandidateId());
+    }
+
+    @Override
+    public void onUpdated(StoredCandidate storedCandidate) {
+
+    }
+
+    @Override
+    public void onUpdateRequest(StoredCandidate storedCandidate) {
+
+    }
+
+    @Override
+    public String getSaveLocation() {
+        return insidiousService.getAtomicRecordService().getSaveLocation();
     }
 }

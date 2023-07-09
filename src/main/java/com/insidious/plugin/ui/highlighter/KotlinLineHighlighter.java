@@ -68,8 +68,8 @@ public class KotlinLineHighlighter implements LineMarkerProvider {
                 return UIUtils.NO_DIFF_GUTTER;
             case DIFF:
                 return UIUtils.DIFF_GUTTER;
-            case NO_AGENT:
-                return UIUtils.NO_AGENT_GUTTER;
+//            case NO_AGENT:
+//                return UIUtils.NO_AGENT_GUTTER;
             default:
                 return UIUtils.RE_EXECUTE;
         }

@@ -12,6 +12,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbService;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -311,12 +312,13 @@ public class AtomicRecordService {
         }
     }
 
+    @NotNull
     public List<StoredCandidate> getStoredCandidatesForMethod(String classname, String method) {
         AtomicRecord record = this.storedRecords.get(classname);
         if (record == null) {
-            return null;
+            return List.of();
         }
-        return record.getStoredCandidateMap().get(method);
+        return record.getStoredCandidateMap().getOrDefault(method, List.of());
     }
 
     public void deleteStoredCandidate(String classname, String method, String candidateId) {
