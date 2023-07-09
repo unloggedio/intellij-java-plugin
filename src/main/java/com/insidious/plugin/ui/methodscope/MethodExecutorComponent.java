@@ -321,7 +321,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                     } else {
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_INDIVIDUAL);
                         //check other statuses and add them for individual execution
-                        String status = getExecutionStatusFromCandidates(testCandidate.getEntryProbeIndex());
+                        String status = getExecutionStatusFromCandidates(testCandidate.getEntryProbeIndex(),
+                                diffResult.getDiffResultType());
                         String methodKey = methodElement.getContainingClass().getQualifiedName()
                                 + "#" + methodElement.getName() + "#" + methodElement.getJVMSignature();
                         if (status.equals("Diff") || status.equals("NoRun")) {
@@ -362,6 +363,18 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 });
     }
 
+    private boolean showDiffernetStatus(DiffResultType type)
+    {
+        switch (type)
+        {
+            case SAME:
+                return false;
+            default:
+                return true;
+
+        }
+    }
+
     private StoredCandidateMetadata.CandidateStatus getStatusForState(DiffResultType type) {
         switch (type) {
             case SAME:
@@ -373,7 +386,11 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     //refactor pending - if there are stored candidates show only from stored, else others.
-    public String getExecutionStatusFromCandidates(long excludeKey) {
+    public String getExecutionStatusFromCandidates(long excludeKey, DiffResultType type) {
+        if(showDiffernetStatus(type))
+        {
+            return "Diff";
+        }
         boolean hasDiff = false;
         boolean hasNoRun = false;
         for (long key : candidateComponentMap.keySet()) {
