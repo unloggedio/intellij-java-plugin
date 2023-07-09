@@ -363,10 +363,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 });
     }
 
-    private boolean showDiffernetStatus(DiffResultType type)
-    {
-        switch (type)
-        {
+    private boolean showDiffernetStatus(DiffResultType type) {
+        switch (type) {
             case SAME:
                 return false;
             default:
@@ -387,8 +385,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     //refactor pending - if there are stored candidates show only from stored, else others.
     public String getExecutionStatusFromCandidates(long excludeKey, DiffResultType type) {
-        if(showDiffernetStatus(type))
-        {
+        if (showDiffernetStatus(type)) {
             return "Diff";
         }
         boolean hasDiff = false;
@@ -419,18 +416,17 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
 
-    public void displayResponse(Supplier<Component> component) {
+    public void displayResponse(Component component) {
         scrollParent.setMinimumSize(new Dimension(-1, 700));
-        this.diffContentPanel.removeAll();
-        this.diffContentPanel.setLayout(new GridLayout(1, 1));
+        diffContentPanel.removeAll();
+        diffContentPanel.setLayout(new GridLayout(1, 1));
         diffContentPanel.setMinimumSize(new Dimension(-1, 700));
-        Component comp = component.get();
-        comp.setMinimumSize(new Dimension(-1, 700));
-        this.diffContentPanel.add(comp);
-        this.scrollParent.revalidate();
-        this.scrollParent.repaint();
-        this.diffContentPanel.revalidate();
-        this.diffContentPanel.repaint();
+        component.setMinimumSize(new Dimension(-1, 700));
+        diffContentPanel.add(component);
+        scrollParent.revalidate();
+        scrollParent.repaint();
+        diffContentPanel.revalidate();
+        diffContentPanel.repaint();
     }
 
 
@@ -446,12 +442,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         if (agentCommandResponse == null) {
             return;
         }
-        testCandidateMetadata.setMethodHash(methodElement.getText().hashCode() + "");
-        testCandidateMetadata.setMethodName(methodElement.getName());
-        testCandidateMetadata.setMethodSignature(methodElement.getJVMSignature());
-        testCandidateMetadata.setClassName(methodElement.getContainingClass().getQualifiedName());
         Supplier<Component> response = createTestCandidateChangeComponent(testCandidateMetadata, agentCommandResponse);
-        displayResponse(response);
+        displayResponse(response.get());
     }
 
     @NotNull
@@ -491,13 +483,23 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     @Override
     public void onSaved(StoredCandidate storedCandidate) {
+        if (storedCandidate.getCandidateId() == null) {
+            storedCandidate.setCandidateId(UUID.randomUUID().toString());
+        }
         insidiousService.getAtomicRecordService().saveCandidate(
                 methodElement.getContainingClass().getQualifiedName(),
                 storedCandidate.getMethodName(),
                 methodElement.getJVMSignature(),
                 storedCandidate
         );
-        candidateComponentMap.get(storedCandidate.getEntryProbeIndex()).setTitledBorder(storedCandidate.getName());
+        TestCandidateListedItemComponent candidateItem = candidateComponentMap.get(
+                storedCandidate.getEntryProbeIndex());
+        candidateItem.setTitledBorder(storedCandidate.getName());
+        candidateItem.getComponent().setEnabled(true);
+        onCandidateSelected(storedCandidate);
+        gridPanel.revalidate();
+        gridPanel.repaint();
+
     }
 
     @Override
@@ -520,6 +522,16 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 storedCandidate.getClassName(),
                 storedCandidate.getMethodName() + "#" + storedCandidate.getMethodSignature(),
                 storedCandidate.getCandidateId());
+        TestCandidateListedItemComponent testCandidateListedItemComponent = candidateComponentMap.get(
+                storedCandidate.getEntryProbeIndex());
+        JPanel candidateComponent = testCandidateListedItemComponent.getComponent();
+        testCandidateListedItemComponent.setTitledBorder("Deleted");
+        candidateComponent.setEnabled(false);
+        candidateComponent.repaint();
+        gridPanel.remove(candidateComponent);
+        gridPanel.revalidate();
+        gridPanel.repaint();
+        diffContentPanel.removeAll();
     }
 
     @Override

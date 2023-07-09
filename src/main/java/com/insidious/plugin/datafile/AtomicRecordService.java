@@ -148,7 +148,6 @@ public class AtomicRecordService {
             properties.put("hostMachineName", candidate.getMetadata().getHostMachineName());
             properties.put("timestamp", candidate.getMetadata().getTimestamp());
             UsageInsightTracker.getInstance().RecordEvent("Candidate_Added", properties);
-            insidiousService.triggerAtomicTestsWindowRefresh();
         } catch (Exception e) {
             logger.info("Exception adding candidate : " + e);
         }
@@ -201,7 +200,7 @@ public class AtomicRecordService {
 
         this.storedRecords.put(classname, record);
         writeToFile(new File(getFilenameForClass(classname))
-                , record, FileUpdateType.ADD, (useNotifications) ? true : false);
+                , record, FileUpdateType.ADD, useNotifications);
     }
 
     private void writeToFile(File file, AtomicRecord atomicRecord, FileUpdateType type,
@@ -330,23 +329,21 @@ public class AtomicRecordService {
             return;
         }
         StoredCandidate candidateToRemove = null;
-        List<StoredCandidate> list = record.getStoredCandidateMap().get(method);
+        List<StoredCandidate> existingStoredCandidates = record.getStoredCandidateMap().get(method);
 
-        for (StoredCandidate candidate : list) {
+        for (StoredCandidate candidate : existingStoredCandidates) {
             if (candidate.getCandidateId() != null &&
                     candidate.getCandidateId().equals(candidateId)) {
                 candidateToRemove = candidate;
                 break;
             }
         }
-        if (list != null && candidateToRemove != null) {
-            list.remove(candidateToRemove);
+        if (candidateToRemove != null) {
+            existingStoredCandidates.remove(candidateToRemove);
         }
-        writeToFile(new File(getFilenameForClass(classname))
-                , record, FileUpdateType.DELETE, (useNotifications) ? true : false);
+        writeToFile(new File(getFilenameForClass(classname)), record, FileUpdateType.DELETE, useNotifications);
         UsageInsightTracker.getInstance().RecordEvent("Candidate_Deleted", null);
         insidiousService.triggerGutterIconReload();
-        insidiousService.triggerAtomicTestsWindowRefresh();
     }
 
     public String getSaveLocation() {
@@ -354,7 +351,7 @@ public class AtomicRecordService {
                 getResourcePath() + unloggedFolderName + File.separator;
     }
 
-    public void setCandidateStateForCandidate(String candidateID, String classname,
+    public void setCandidateStateForCandidate(@NotNull String candidateID, String classname,
                                               String method, StoredCandidateMetadata.CandidateStatus state) {
         AtomicRecord record = this.storedRecords.get(classname);
         if (record == null || record.getStoredCandidateMap().get(method).size() == 0) {
@@ -362,7 +359,7 @@ public class AtomicRecordService {
         }
         List<StoredCandidate> list = record.getStoredCandidateMap().get(method);
         for (StoredCandidate candidate : list) {
-            if (candidate.getCandidateId().equals(candidateID)) {
+            if (candidateID.equals(candidate.getCandidateId())) {
                 candidate.getMetadata().setCandidateStatus(state);
             }
         }

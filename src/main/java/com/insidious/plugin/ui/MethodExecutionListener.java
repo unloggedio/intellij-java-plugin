@@ -18,5 +18,5 @@ public interface MethodExecutionListener {
             AgentCommandResponseListener<String> stringAgentCommandResponseListener
     );
 
-    void displayResponse(Supplier<Component> responseComponent);
+    void displayResponse(Component responseComponent);
 }
