@@ -12,14 +12,12 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
 import com.insidious.plugin.ui.MethodExecutionListener;
-import com.insidious.plugin.util.ClassUtils;
-import com.insidious.plugin.util.DiffUtils;
-import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.MethodUtils;
+import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.PsiClass;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
@@ -513,7 +511,19 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     @Override
     public void onDeleteRequest(StoredCandidate storedCandidate) {
-        onDeleted(storedCandidate);
+        TestCandidateListedItemComponent testCandidateListedItemComponent = candidateComponentMap.get(
+                storedCandidate.getEntryProbeIndex());
+
+        JPanel component = testCandidateListedItemComponent.getComponent();
+
+        int result = Messages.showYesNoDialog(
+                "Are you sure you want to delete the stored test [" + storedCandidate.getName() + "]",
+                "Confirm delete",
+                UIUtils.NO_AGENT_HEADER
+        );
+        if (result == Messages.YES) {
+            onDeleted(storedCandidate);
+        }
     }
 
     @Override
