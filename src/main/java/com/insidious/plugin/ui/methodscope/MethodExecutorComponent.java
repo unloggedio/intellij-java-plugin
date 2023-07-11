@@ -272,7 +272,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         rootContent.repaint();
     }
 
-    private void clearBoard() {
+    public void clearBoard() {
         methodTestCandidates.clear();
         candidateComponentMap.clear();
         gridPanel.removeAll();
