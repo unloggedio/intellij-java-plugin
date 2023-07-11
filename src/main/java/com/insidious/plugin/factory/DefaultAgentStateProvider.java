@@ -116,6 +116,7 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
         ApplicationManager.getApplication().invokeLater(() -> {
             insidiousService.triggerGutterIconReload();
             insidiousService.setAgentProcessState(GutterState.PROCESS_NOT_RUNNING);
+            insidiousService.clearAtomicBoard();
         });
     }
 

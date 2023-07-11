@@ -1539,6 +1539,11 @@ final public class InsidiousService implements Disposable,
         atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
     }
 
+    public void clearAtomicBoard()
+    {
+        atomicTestContainerWindow.clearBoardOnMethodExecutor();
+    }
+
 //    public void triggerAtomicTestsWindowRefresh() {
 //        GutterState state = getGutterStateFor(currentMethod);
 //        if (state.equals(GutterState.PROCESS_NOT_RUNNING) || state.equals(GutterState.PROCESS_RUNNING)) {

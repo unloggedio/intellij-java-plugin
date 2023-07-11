@@ -119,6 +119,11 @@ public class AtomicTestContainer {
 
     }
 
+    public void clearBoardOnMethodExecutor()
+    {
+        methodExecutorComponent.clearBoard();
+    }
+
     public void triggerCompileAndExecute() {
         methodExecutorComponent.compileAndExecuteAll();
     }
