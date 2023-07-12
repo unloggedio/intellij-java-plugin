@@ -30,6 +30,7 @@ public class UnloggedSDKOnboarding {
     private JComboBox<LanguageLevel> jdkSelector;
     private JScrollPane mavenScroller;
     private JScrollPane gradleScroller;
+    private JTextArea importIoUnloggedUnloggedTextArea;
     private InsidiousService insidiousService;
     private enum PROJECT_TYPE {MAVEN,GRADLE}
 
