@@ -2,13 +2,11 @@ package com.insidious.plugin.ui.GutterClickNavigationStates;
 
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
-import com.intellij.pom.java.LanguageLevel;
+import com.insidious.plugin.util.UIUtils;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
+import java.awt.event.*;
 
 public class UnloggedSDKOnboarding {
     private JPanel mainPanel;
@@ -27,12 +25,12 @@ public class UnloggedSDKOnboarding {
     private JTextArea gradleTextArea;
     private JButton gradleCopyButton;
     private JPanel bottomControls;
-    private JComboBox<LanguageLevel> jdkSelector;
-    private JScrollPane mavenScroller;
-    private JScrollPane gradleScroller;
+    private JComboBox jdkSelector;
     private JTextArea importIoUnloggedUnloggedTextArea;
+    private JTextArea mavenDependencyAreaAnnotation;
     private InsidiousService insidiousService;
     private enum PROJECT_TYPE {MAVEN,GRADLE}
+    private String currentJDK = "JDK 1.8";
 
     private String maven_default =
             "<dependency>\n" +
@@ -42,31 +40,19 @@ public class UnloggedSDKOnboarding {
             "</dependency>";
 
     private String maven_annotated =
-            "<dependency>\n" +
-            "  <artifactId>unlogged-sdk</artifactId>\n" +
-            "  <groupId>video.bug</groupId>\n" +
-            "  <version>0.0.11</version>\n" +
-            "</dependency>\n\n" +
-                    "<plugin>\n" +
-                    "  <groupId>org.apache.maven.plugins</groupId>\n" +
-                    "  <artifactId>maven-compiler-plugin</artifactId>\n" +
-                    "  <configuration>\n" +
-                    "      <source>10</source>\n" +
-                    "      <target>10</target>\n" +
-                    "      <annotationProcessorPaths>\n" +
-                    "          <annotationProcessorPath>\n" +
-                    "              <groupId>org.projectlombok</groupId>\n" +
-                    "              <artifactId>lombok</artifactId>\n" +
-                    "              <version>1.18.24</version>\n" +
-                    "              </annotationProcessorPath>\n" +
-                    "              <annotationProcessorPath>\n" +
-                    "                  <artifactId>unlogged-sdk</artifactId>\n" +
-                    "                  <groupId>video.bug</groupId>\n" +
-                    "                  <version>0.0.11</version>\n" +
-                    "              </annotationProcessorPath>\n" +
-                    "      </annotationProcessorPaths>\n" +
-                    "  </configuration>\n" +
-                    "</plugin>";
+            "<plugin>\n" +
+            "  <groupId>org.apache.maven.plugins</groupId>\n" +
+            "  <artifactId>maven-compiler-plugin</artifactId>\n" +
+            "  <configuration>\n" +
+            "      <annotationProcessorPaths>\n" +
+            "          <annotationProcessorPath>\n" +
+            "              <artifactId>unlogged-sdk</artifactId>\n" +
+            "              <groupId>video.bug</groupId>\n" +
+            "              <version>0.0.11</version>\n" +
+            "          </annotationProcessorPath>\n" +
+            "      </annotationProcessorPaths>\n" +
+            "  </configuration>\n" +
+            "</plugin>";
 
     public UnloggedSDKOnboarding(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -82,28 +68,29 @@ public class UnloggedSDKOnboarding {
                 routeToDiscord();
             }
         });
-        for (LanguageLevel value : LanguageLevel.values()) {
-            jdkSelector.addItem(value);
-        }
         gradleCopyButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 copyCode(PROJECT_TYPE.GRADLE);
             }
         });
+        primaryTabbedPane.setIconAt(0, UIUtils.MAVEN_ICON);
+        primaryTabbedPane.setIconAt(1, UIUtils.GRADLE_ICON);
+        mavenDependencyAreaAnnotation.setText(maven_annotated);
+        mavenDependencyAreaAnnotation.setVisible(false);
 
         jdkSelector.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {
-                LanguageLevel selectedLanguageLevel = (LanguageLevel) jdkSelector.getSelectedItem();
-                int lastCaretPosition = mavenDependencyArea.getCaretPosition();
-                if(selectedLanguageLevel.isLessThan(LanguageLevel.JDK_1_9))
+                String selectedItem = (String) jdkSelector.getSelectedItem();
+                currentJDK = selectedItem;
+                String version = selectedItem.split(" ")[1];
+                if(version.equals("1.8"))
                 {
-                    mavenDependencyArea.setText(maven_default);
+                    mavenDependencyAreaAnnotation.setVisible(false);
                 }
                 else
                 {
-                    mavenDependencyArea.setText(maven_annotated);
-                    mavenDependencyArea.setCaretPosition(lastCaretPosition);
+                    mavenDependencyAreaAnnotation.setVisible(true);
                 }
             }
         });
@@ -111,7 +98,12 @@ public class UnloggedSDKOnboarding {
 
     public void copyCode(PROJECT_TYPE type) {
         if(type.equals(PROJECT_TYPE.MAVEN)) {
-            insidiousService.copyToClipboard(mavenDependencyArea.getText());
+            String dependency = mavenDependencyArea.getText();
+            if(!currentJDK.equals("JDK 1.8"))
+            {
+                dependency = dependency + "\n" + mavenDependencyAreaAnnotation.getText();
+            }
+            insidiousService.copyToClipboard(dependency);
         }
         else {
             insidiousService.copyToClipboard(gradleTextArea.getText());
