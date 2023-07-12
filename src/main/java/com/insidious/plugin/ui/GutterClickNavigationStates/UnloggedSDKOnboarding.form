@@ -8,7 +8,7 @@
     <properties/>
     <border type="none"/>
     <children>
-      <grid id="c732" binding="topAligner" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+      <grid id="c732" binding="topAligner" layout-manager="GridLayoutManager" row-count="3" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
         <margin top="0" left="0" bottom="0" right="0"/>
         <constraints>
           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
@@ -37,70 +37,23 @@
               </component>
             </children>
           </grid>
-          <grid id="246c3" binding="mainContent" layout-manager="GridLayoutManager" row-count="6" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+          <grid id="246c3" binding="mainContent" layout-manager="GridLayoutManager" row-count="5" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
             <margin top="8" left="8" bottom="8" right="8"/>
             <constraints>
-              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+              <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties/>
             <border type="none"/>
             <children>
-              <component id="6bedb" class="javax.swing.JLabel">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <text value="1. Add Unlogged SDK to your pom.xml"/>
-                </properties>
-              </component>
-              <grid id="d1ea9" binding="dependencyContents" layout-manager="GridLayoutManager" row-count="2" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                <margin top="0" left="4" bottom="8" right="0"/>
-                <constraints>
-                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties/>
-                <border type="line">
-                  <font/>
-                  <title-color color="-4473925"/>
-                  <color color="-4473925"/>
-                </border>
-                <children>
-                  <component id="f5c43" class="javax.swing.JTextArea" binding="dependencyArea">
-                    <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="2" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                        <preferred-size width="150" height="50"/>
-                      </grid>
-                    </constraints>
-                    <properties>
-                      <editable value="false"/>
-                      <margin top="4" left="4" bottom="4" right="4"/>
-                      <text value="&lt;dependency&gt;&#10;  &lt;artifactId&gt;unlogged-sdk&lt;/artifactId&gt;&#10;  &lt;groupId&gt;video.bug&lt;/groupId&gt;&#10;  &lt;version&gt;0.0.9&lt;/version&gt;&#10;&lt;/dependency&gt;"/>
-                    </properties>
-                  </component>
-                  <component id="2526d" class="javax.swing.JButton" binding="copyCodeButton">
-                    <constraints>
-                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                    </constraints>
-                    <properties>
-                      <borderPainted value="true"/>
-                      <contentAreaFilled value="true"/>
-                      <icon value="icons/png/copy_icon_pink.png"/>
-                      <margin top="0" left="0" bottom="0" right="0"/>
-                      <opaque value="true"/>
-                      <text value="Copy Code"/>
-                    </properties>
-                  </component>
-                </children>
-              </grid>
               <component id="af416" class="javax.swing.JSeparator">
                 <constraints>
-                  <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties/>
               </component>
               <component id="33ce6" class="javax.swing.JLabel">
                 <constraints>
-                  <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
                   <text value="2. Add @Unlogged just above your project’s main method and run your code"/>
@@ -108,7 +61,7 @@
               </component>
               <component id="fb4e3" class="javax.swing.JButton" binding="discordButton">
                 <constraints>
-                  <grid row="5" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
                   <icon value="icons/png/discordIcon.png"/>
@@ -117,12 +70,173 @@
               </component>
               <component id="a6a51" class="javax.swing.JSeparator">
                 <constraints>
-                  <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                  <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties/>
               </component>
+              <tabbedpane id="268a" binding="primaryTabbedPane">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                    <preferred-size width="200" height="200"/>
+                  </grid>
+                </constraints>
+                <properties/>
+                <border type="empty">
+                  <title-color color="-4473925"/>
+                  <color color="-4473925"/>
+                </border>
+                <children>
+                  <grid id="5bcb7" binding="mavenPanel" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                    <margin top="6" left="0" bottom="0" right="0"/>
+                    <constraints>
+                      <tabbedpane title="Maven"/>
+                    </constraints>
+                    <properties/>
+                    <border type="none"/>
+                    <children>
+                      <grid id="28866" binding="dependencyContents" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                        <margin top="2" left="4" bottom="8" right="0"/>
+                        <constraints>
+                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                        </constraints>
+                        <properties/>
+                        <border type="empty">
+                          <font/>
+                          <title-color color="-4473925"/>
+                          <color color="-4473925"/>
+                        </border>
+                        <children>
+                          <grid id="c193a" binding="bottomControls" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                            <margin top="0" left="0" bottom="0" right="0"/>
+                            <constraints>
+                              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false"/>
+                            </constraints>
+                            <properties/>
+                            <border type="none"/>
+                            <children>
+                              <component id="5b1ab" class="javax.swing.JButton" binding="copyCodeButtonMaven">
+                                <constraints>
+                                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                                </constraints>
+                                <properties>
+                                  <borderPainted value="true"/>
+                                  <contentAreaFilled value="true"/>
+                                  <icon value="icons/png/copy_icon_pink.png"/>
+                                  <margin top="0" left="0" bottom="0" right="0"/>
+                                  <opaque value="true"/>
+                                  <text value="Copy Code"/>
+                                </properties>
+                              </component>
+                              <component id="812e0" class="javax.swing.JComboBox" binding="jdkSelector">
+                                <constraints>
+                                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
+                                </constraints>
+                                <properties/>
+                              </component>
+                            </children>
+                          </grid>
+                          <scrollpane id="4ff73" binding="mavenScroller">
+                            <constraints>
+                              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                            </constraints>
+                            <properties/>
+                            <border type="none"/>
+                            <children>
+                              <component id="15470" class="javax.swing.JTextArea" binding="mavenDependencyArea">
+                                <constraints/>
+                                <properties>
+                                  <autoscrolls value="false"/>
+                                  <editable value="false"/>
+                                  <margin top="4" left="4" bottom="4" right="4"/>
+                                  <text value="&lt;dependency&gt;&#10;  &lt;artifactId&gt;unlogged-sdk&lt;/artifactId&gt;&#10;  &lt;groupId&gt;video.bug&lt;/groupId&gt;&#10;  &lt;version&gt;0.0.11&lt;/version&gt;&#10;&lt;/dependency&gt;"/>
+                                </properties>
+                              </component>
+                            </children>
+                          </scrollpane>
+                        </children>
+                      </grid>
+                      <component id="546bf" class="javax.swing.JLabel">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="10" fill="0" indent="0" use-parent-layout="false"/>
+                        </constraints>
+                        <properties>
+                          <text value="1. Add Unlogged SDK to your pom.xml"/>
+                        </properties>
+                      </component>
+                    </children>
+                  </grid>
+                  <grid id="c1a10" binding="gradlePanel" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                    <margin top="6" left="0" bottom="0" right="0"/>
+                    <constraints>
+                      <tabbedpane title="Gradle"/>
+                    </constraints>
+                    <properties/>
+                    <border type="none"/>
+                    <children>
+                      <grid id="bcfc0" binding="gradleDependencyContents" layout-manager="GridLayoutManager" row-count="3" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                        <margin top="2" left="4" bottom="8" right="0"/>
+                        <constraints>
+                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                        </constraints>
+                        <properties/>
+                        <border type="empty">
+                          <font/>
+                          <title-color color="-4473925"/>
+                          <color color="-4473925"/>
+                        </border>
+                        <children>
+                          <component id="13f60" class="javax.swing.JButton" binding="gradleCopyButton">
+                            <constraints>
+                              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                            </constraints>
+                            <properties>
+                              <borderPainted value="true"/>
+                              <contentAreaFilled value="true"/>
+                              <icon value="icons/png/copy_icon_pink.png"/>
+                              <margin top="0" left="0" bottom="0" right="0"/>
+                              <opaque value="true"/>
+                              <text value="Copy Code"/>
+                            </properties>
+                          </component>
+                          <scrollpane id="fcf91" binding="gradleScroller">
+                            <constraints>
+                              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                            </constraints>
+                            <properties/>
+                            <border type="none"/>
+                            <children>
+                              <component id="b622d" class="javax.swing.JTextArea" binding="gradleTextArea">
+                                <constraints/>
+                                <properties>
+                                  <editable value="false"/>
+                                  <margin top="4" left="4" bottom="4" right="4"/>
+                                  <text value="implementation 'video.bug:unlogged-sdk:0.0.11'&#10;annotationProcessor 'video.bug:unlogged-sdk:0.0.11'"/>
+                                </properties>
+                              </component>
+                            </children>
+                          </scrollpane>
+                        </children>
+                      </grid>
+                      <component id="6bedb" class="javax.swing.JLabel">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="10" fill="0" indent="0" use-parent-layout="false"/>
+                        </constraints>
+                        <properties>
+                          <text value="1. Add Unlogged SDK to your build.gradle"/>
+                        </properties>
+                      </component>
+                    </children>
+                  </grid>
+                </children>
+              </tabbedpane>
             </children>
           </grid>
+          <component id="52a6b" class="javax.swing.JSeparator">
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties/>
+          </component>
         </children>
       </grid>
     </children>

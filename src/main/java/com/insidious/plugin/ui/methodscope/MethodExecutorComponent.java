@@ -502,7 +502,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         candidateItem.getComponent().revalidate();
         gridPanel.revalidate();
         gridPanel.repaint();
-
     }
 
     @Override
