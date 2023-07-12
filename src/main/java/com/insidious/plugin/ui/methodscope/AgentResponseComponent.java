@@ -65,7 +65,6 @@ public class AgentResponseComponent implements Supplier<Component> {
         DifferenceResult differences = DiffUtils.calculateDifferences(metadata, agentCommandResponse);
         computeDifferences(differences);
 
-
         String originalString;
         if (metadata.isReturnValueIsBoolean()) {
             originalString = "1".equals(metadata.getReturnValue()) ? "true" : "false";
@@ -76,7 +75,6 @@ public class AgentResponseComponent implements Supplier<Component> {
 
         String simpleClassName = agentCommandResponse.getTargetClassName();
         simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
-
 
         String methodLabel = simpleClassName + "." + agentCommandResponse.getTargetMethodName() + "()";
 

@@ -268,29 +268,6 @@ public class TestCandidateListedItemComponent {
         return parameterInputMap;
     }
 
-
-//    public void setResponseComponent(Boolean status) {
-////        this.responseComponent = responseComponent;
-////        Boolean status = this.responseComponent.computeDifferences();
-//        if (status == null) {
-//            this.statusLabel.setText("Exception");
-//            this.statusLabel.setForeground(UIUtils.orange);
-//            this.statusLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
-//            return;
-//        }
-//        if (!status) {
-//            //no diff
-//            this.statusLabel.setText("Same");
-//            this.statusLabel.setForeground(UIUtils.green);
-//            this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
-//        } else {
-//            //diff
-//            this.statusLabel.setText("Different");
-//            this.statusLabel.setForeground(UIUtils.red);
-//            this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
-//        }
-//    }
-
     public void setAndDisplayResponse(
             AgentCommandResponse<String> agentCommandResponse,
             DifferenceResult differenceResult

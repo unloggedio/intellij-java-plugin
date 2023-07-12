@@ -6,6 +6,7 @@ import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -33,13 +34,13 @@ import java.util.List;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class MethodExecutorComponent implements MethodExecutionListener, CandidateSelectedListener, CandidateLifeListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
     private final InsidiousService insidiousService;
 
     private final Map<Long, AgentCommandResponse<String>> candidateResponseMap = new HashMap<>();
-    private final Set<StoredCandidate> methodTestCandidates = new HashSet<>();
     private final JPanel gridPanel;
     private final Map<Long, TestCandidateListedItemComponent> candidateComponentMap = new HashMap<>();
     private final JScrollPane candidateScrollPanelContainer;
@@ -84,7 +85,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     public JPanel createCandidateScrollPanel() {
 
         GridLayout gridLayout = new GridLayout(0, 1);
-        gridLayout.setVgap(8);
+        gridLayout.setVgap(12);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(JBUI.Borders.empty());
         return gridPanel;
@@ -136,7 +137,14 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         });
     }
 
+    private List<StoredCandidate> getCandidatesFromComponents()
+    {
+        return candidateComponentMap.values().stream().
+                map(value -> value.getCandidateMetadata()).collect(Collectors.toList());
+    }
+
     public void executeAll() {
+        List<StoredCandidate> methodTestCandidates = getCandidatesFromComponents();
         if (methodTestCandidates.size() == 0) {
             InsidiousNotification.notifyMessage(
                     "Please use the agent to record values for replay. " +
@@ -218,9 +226,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         final String methodJVMSignature = methodElement.getJVMSignature();
         final String classQualifiedName = methodElement.getContainingClass().getQualifiedName();
 
-
-        this.methodTestCandidates.addAll(candidates);
-
         candidates.stream()
                 .filter(testCandidateMetadata -> !candidateComponentMap.containsKey(
                         testCandidateMetadata.getEntryProbeIndex()))
@@ -263,7 +268,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
         executeAndShowDifferencesButton.revalidate();
         executeAndShowDifferencesButton.repaint();
-        candidateCountLabel.setText(methodTestCandidates.size() + " Unique candidates");
+        candidateCountLabel.setText(candidateComponentMap.size() + " Unique candidates");
         TitledBorder topPanelTitledBorder = (TitledBorder) topPanel.getBorder();
         topPanelTitledBorder.setTitle(
                 methodElement.getContainingClass().getName() + "." + methodElement.getName() + "()");
@@ -273,7 +278,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     public void clearBoard() {
-        methodTestCandidates.clear();
         candidateComponentMap.clear();
         gridPanel.removeAll();
         diffContentPanel.removeAll();
@@ -495,6 +499,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         candidateItem.setTitledBorder(storedCandidate.getName());
         candidateItem.getComponent().setEnabled(true);
         onCandidateSelected(storedCandidate);
+        candidateItem.getComponent().revalidate();
         gridPanel.revalidate();
         gridPanel.repaint();
 
@@ -535,13 +540,19 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         TestCandidateListedItemComponent testCandidateListedItemComponent = candidateComponentMap.get(
                 storedCandidate.getEntryProbeIndex());
         JPanel candidateComponent = testCandidateListedItemComponent.getComponent();
-        testCandidateListedItemComponent.setTitledBorder("Deleted");
-        candidateComponent.setEnabled(false);
-        candidateComponent.repaint();
+
+        candidateComponentMap.remove(storedCandidate.getEntryProbeIndex());
+        candidateCountLabel.setText(candidateComponentMap.size() + " Unique candidates");
         gridPanel.remove(candidateComponent);
         gridPanel.revalidate();
         gridPanel.repaint();
         diffContentPanel.removeAll();
+
+        //calling this to ensure that we don't see an empty atomic window.
+        if(candidateComponentMap.size()==0)
+        {
+            insidiousService.loadSingleWindowForState(GutterState.PROCESS_RUNNING);
+        }
     }
 
     @Override
