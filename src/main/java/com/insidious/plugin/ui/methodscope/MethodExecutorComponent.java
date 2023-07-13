@@ -19,6 +19,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
@@ -478,14 +479,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         }
     }
 
-//    public void setMethod(MethodAdapter lastSelection) {
-////        System.out.println("In set method");
-//        if (lastSelection != null) {
-////            System.out.println("Set Method");
-//            this.methodElement = lastSelection;
-//        }
-//    }
-
     private void actionPerformed(ActionEvent e) {
         executeAll();
     }
@@ -557,6 +550,27 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         //calling this to ensure that we don't see an empty atomic window.
         if(candidateComponentMap.size()==0)
         {
+            onLastCandidateDeleted();
+        }
+    }
+
+    public void onLastCandidateDeleted()
+    {
+        GutterState currentState = insidiousService.getGutterStateFor(methodElement);
+        if (currentState.equals(GutterState.DATA_AVAILABLE)
+                || currentState.equals(GutterState.NO_DIFF)
+                || currentState.equals(GutterState.DIFF)
+                || currentState.equals(GutterState.EXECUTE))
+        {
+            //reload this view, to add
+            List<StoredCandidate> methodTestCandidates =
+                    ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
+                            insidiousService.getStoredCandidatesFor(methodElement));
+            refreshAndReloadCandidates(methodElement,methodTestCandidates);
+        }
+        else
+        {
+            //load process running window
             insidiousService.loadSingleWindowForState(GutterState.PROCESS_RUNNING);
         }
     }
