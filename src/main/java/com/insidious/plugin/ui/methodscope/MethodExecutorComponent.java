@@ -144,6 +144,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     public void executeAll() {
+        clearBottomPanel();
         List<StoredCandidate> methodTestCandidates = getCandidatesFromComponents();
         if (methodTestCandidates.size() == 0) {
             InsidiousNotification.notifyMessage(
@@ -284,6 +285,12 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         diffContentPanel.revalidate();
         centerParent.revalidate();
         centerParent.repaint();
+    }
+
+    public void clearBottomPanel()
+    {
+        diffContentPanel.removeAll();
+        diffContentPanel.revalidate();
     }
 
     @Override
