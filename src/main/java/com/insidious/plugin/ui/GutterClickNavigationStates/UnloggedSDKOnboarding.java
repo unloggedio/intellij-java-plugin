@@ -84,6 +84,7 @@ public class UnloggedSDKOnboarding {
         });
         primaryTabbedPane.setIconAt(0, UIUtils.MAVEN_ICON);
         primaryTabbedPane.setIconAt(1, UIUtils.GRADLE_ICON);
+        mavenDependencyArea.setText(maven_default);
         mavenDependencyAreaAnnotation.setText(maven_annotated);
         mavenDependencyAreaAnnotation.setVisible(false);
         gradleTextArea.setText(gradle_dependency);
