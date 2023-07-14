@@ -115,6 +115,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.insidious.plugin.util.AtomicRecordUtils.filterStoredCandidates;
 
@@ -1231,9 +1232,7 @@ final public class InsidiousService implements Disposable,
                 .map(StoredCandidate::new)
                 .forEach(storedCandidates::add);
 
-
         logger.info("StoredCandidates pre filter for " + method.getName() + " -> " + storedCandidates);
-
         return filterStoredCandidates(storedCandidates);
     }
 

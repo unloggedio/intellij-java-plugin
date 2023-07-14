@@ -73,7 +73,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
                 stacktrace = String.valueOf(actualString);
             }
             options = new ExceptionPreviewComponent(responseMessage, stacktrace, insidiousService,
-                    candidateLifeListener, true, false, metadata);
+                    candidateLifeListener, true, false, metadata, response);
             options.setBorderTitle("After");
             JPanel component = options.getComponent();
             afterSection.add(component, BorderLayout.CENTER);
@@ -99,7 +99,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
                 showDelete = true;
             }
             ExceptionPreviewComponent options = new ExceptionPreviewComponent(exceptionMessage,
-                    prettyException, insidiousService, candidateLifeListener, false, showDelete, metadata);
+                    prettyException, insidiousService, candidateLifeListener, false, showDelete, metadata, response);
             options.setBorderTitle("Before");
             beforeSection.add(options.getComponent(), BorderLayout.CENTER);
         } else {

@@ -244,7 +244,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                     gridPanel.add(e.getComponent());
                 });
 
-
         executeAndShowDifferencesButton.setEnabled(true);
         insidiousService.showNewTestCandidateGotIt();
 
@@ -255,12 +254,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
         gridPanel.revalidate();
         gridPanel.repaint();
-        candidateScrollPanelContainer.setMaximumSize(new Dimension(-1, Math.min(300, panelHeight)));
-        candidateScrollPanelContainer.setPreferredSize(new Dimension(-1, Math.min(300, panelHeight)));
-        centerParent.setMaximumSize(new Dimension(-1, Math.min(300, 30)));
-        centerParent.setPreferredSize(new Dimension(-1, Math.min(300, 30)));
-        centerParent.setMinimumSize(new Dimension(-1, 300));
 
+        setListDimensions(panelHeight);
 
         candidateScrollPanelContainer.revalidate();
         candidateScrollPanelContainer.repaint();
@@ -277,6 +272,21 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
         rootContent.revalidate();
         rootContent.repaint();
+    }
+
+    private void setListDimensions(int panelHeight)
+    {
+        if(candidateComponentMap.size()<3)
+        {
+            centerParent.setMaximumSize(new Dimension(-1, Math.min(300, panelHeight)));
+            centerParent.setPreferredSize(new Dimension(-1, Math.min(300, panelHeight)));
+            centerParent.setMinimumSize(new Dimension(-1, panelHeight));
+        }
+        else {
+            centerParent.setMaximumSize(new Dimension(-1, Math.min(300, 30)));
+            centerParent.setPreferredSize(new Dimension(-1, Math.min(300, 30)));
+            centerParent.setMinimumSize(new Dimension(-1, 300));
+        }
     }
 
     public void clearBoard() {
@@ -301,7 +311,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             String source,
             AgentCommandResponseListener<String> agentCommandResponseListener
     ) {
-
         for (StoredCandidate testCandidate : testCandidateList) {
             executeSingleCandidate(testCandidate, psiClass, source, agentCommandResponseListener);
         }
@@ -379,7 +388,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 return false;
             default:
                 return true;
-
         }
     }
 
@@ -485,7 +493,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     @Override
     public void onSaved(StoredCandidate storedCandidate) {
+        boolean newCase=false;
         if (storedCandidate.getCandidateId() == null) {
+            newCase=true;
             storedCandidate.setCandidateId(UUID.randomUUID().toString());
         }
         insidiousService.getAtomicRecordService().saveCandidate(
@@ -498,28 +508,49 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 storedCandidate.getEntryProbeIndex());
         candidateItem.setTitledBorder(storedCandidate.getName());
         candidateItem.getComponent().setEnabled(true);
-        onCandidateSelected(storedCandidate);
+        candidateItem.setCandidate(storedCandidate);
+        if(!newCase)
+        {
+            triggerReExecute(storedCandidate);
+        }
+//        onCandidateSelected(storedCandidate);
         candidateItem.getComponent().revalidate();
         gridPanel.revalidate();
         gridPanel.repaint();
     }
 
+    private void triggerReExecute(StoredCandidate candidate)
+    {
+        TestCandidateListedItemComponent component = candidateComponentMap.get(
+                candidate.getEntryProbeIndex());
+        ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("className", psiClass.getQualifiedName());
+            eventProperties.put("methodName", methodElement.getName());
+            UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE_UPDATE", eventProperties);
+            executeCandidate(
+                    Collections.singletonList(candidate), psiClass, "individual",
+                    (candidateMetadata, agentCommandResponse, diffResult) -> {
+                        insidiousService.updateMethodHashForExecutedMethod(methodElement);
+                        component.setAndDisplayResponse(agentCommandResponse, diffResult);
+                        onCandidateSelected(candidateMetadata);
+                        insidiousService.triggerGutterIconReload();
+                    }
+            );
+        });
+    }
+
     @Override
-    public void onSaveRequest(StoredCandidate storedCandidate) {
+    public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
         if (saveFormReference != null) {
             saveFormReference.dispose();
         }
-        saveFormReference = new SaveForm(storedCandidate, this);
+        saveFormReference = new SaveForm(storedCandidate, agentCommandResponse, this);
         saveFormReference.setVisible(true);
     }
 
     @Override
     public void onDeleteRequest(StoredCandidate storedCandidate) {
-        TestCandidateListedItemComponent testCandidateListedItemComponent = candidateComponentMap.get(
-                storedCandidate.getEntryProbeIndex());
-
-        JPanel component = testCandidateListedItemComponent.getComponent();
-
         int result = Messages.showYesNoDialog(
                 "Are you sure you want to delete the stored test [" + storedCandidate.getName() + "]",
                 "Confirm delete",
@@ -533,8 +564,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     @Override
     public void onDeleted(StoredCandidate storedCandidate) {
         insidiousService.getAtomicRecordService().deleteStoredCandidate(
-                storedCandidate.getClassName(),
-                storedCandidate.getMethodName() + "#" + storedCandidate.getMethodSignature(),
+                methodElement.getContainingClass().getQualifiedName(),
+                methodElement.getName() + "#" + methodElement.getJVMSignature(),
                 storedCandidate.getCandidateId());
         TestCandidateListedItemComponent testCandidateListedItemComponent = candidateComponentMap.get(
                 storedCandidate.getEntryProbeIndex());

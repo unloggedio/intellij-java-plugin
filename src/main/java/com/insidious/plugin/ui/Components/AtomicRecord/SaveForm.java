@@ -1,7 +1,9 @@
 package com.insidious.plugin.ui.Components.AtomicRecord;
 
+import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.ui.components.JBScrollPane;
 
@@ -30,10 +32,15 @@ public class SaveForm extends JFrame {
     private StoredCandidate storedCandidate;
     private JRadioButton b1;
     private JRadioButton b2;
+    private AgentCommandResponse agentCommandResponse;
 
-    public SaveForm(StoredCandidate storedCandidate, CandidateLifeListener listener) {
+    //AgentCommandResponse is necessary for update flow and Assertions as well
+    public SaveForm(StoredCandidate storedCandidate,
+                    AgentCommandResponse<String> agentCommandResponse,
+                    CandidateLifeListener listener) {
         this.storedCandidate = storedCandidate;
         this.listener = listener;
+        this.agentCommandResponse = agentCommandResponse;
         setTitle("Unlogged Inc.");
         setBounds(400, 160, 500, 500);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -173,9 +180,7 @@ public class SaveForm extends JFrame {
             }
         });
         c.add(cancelButton);
-
         setInfo();
-
     }
 
     private void triggerSave() {
@@ -186,10 +191,14 @@ public class SaveForm extends JFrame {
         if (model.getActionCommand().equals("Assert Not Equals")) {
             type = StoredCandidate.AssertionType.NOT_EQUAL;
         }
-        storedCandidate.setName(name_text);
-        storedCandidate.setDescription(description_text);
-        storedCandidate.setAssertionType(type);
-        this.listener.onSaved(storedCandidate);
+        //this call is necessary
+        //Required if we cancel update/save
+        //Required for upcoming assertion flows as well
+        StoredCandidate candidate = AtomicRecordUtils.createCandidateFor(storedCandidate, agentCommandResponse);
+        candidate.setName(name_text);
+        candidate.setDescription(description_text);
+        candidate.setAssertionType(type);
+        this.listener.onSaved(candidate);
         this.dispose();
     }
 

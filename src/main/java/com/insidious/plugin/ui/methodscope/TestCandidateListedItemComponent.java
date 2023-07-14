@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.*;
 
 public class TestCandidateListedItemComponent {
-    private final StoredCandidate candidateMetadata;
+    private StoredCandidate candidateMetadata;
     private final MethodAdapter method;
     private final List<String> methodArgumentValues;
     private final MethodExecutionListener methodExecutionListener;
@@ -39,15 +39,13 @@ public class TestCandidateListedItemComponent {
     private JPanel mainContentPanel;
     private JLabel executeLabel;
     private JPanel controlPanel;
-    private int clicks = 0;
-    private int calls = 0;
 
     public TestCandidateListedItemComponent(
-            StoredCandidate candidateMetadata,
+            StoredCandidate storedCandidate,
             MethodAdapter method,
             MethodExecutionListener methodExecutionListener,
             CandidateSelectedListener candidateSelectedListener) {
-        this.candidateMetadata = candidateMetadata;
+        this.candidateMetadata = storedCandidate;
         this.insidiousService = method.getProject().getService(InsidiousService.class);
         this.method = method;
         this.methodExecutionListener = methodExecutionListener;
@@ -64,7 +62,6 @@ public class TestCandidateListedItemComponent {
         executeLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                clicks++;
                 ClassUtils.chooseClassImplementation(method.getContainingClass(), psiClass -> {
                     JSONObject eventProperties = new JSONObject();
                     eventProperties.put("className", psiClass.getQualifiedName());
@@ -73,7 +70,6 @@ public class TestCandidateListedItemComponent {
                     methodExecutionListener.executeCandidate(
                             Collections.singletonList(candidateMetadata), psiClass, "individual",
                             (candidateMetadata, agentCommandResponse, diffResult) -> {
-                                calls++;
                                 insidiousService.updateMethodHashForExecutedMethod(method);
                                 setAndDisplayResponse(agentCommandResponse, diffResult);
                                 candidateSelectedListener.onCandidateSelected(candidateMetadata);
@@ -313,4 +309,7 @@ public class TestCandidateListedItemComponent {
         return this.statusLabel.getText();
     }
 
+    public void setCandidate(StoredCandidate storedCandidate) {
+        this.candidateMetadata = storedCandidate;
+    }
 }

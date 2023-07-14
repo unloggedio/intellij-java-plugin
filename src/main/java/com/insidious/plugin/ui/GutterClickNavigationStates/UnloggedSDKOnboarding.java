@@ -32,11 +32,13 @@ public class UnloggedSDKOnboarding {
     private enum PROJECT_TYPE {MAVEN,GRADLE}
     private String currentJDK = "JDK 1.8";
 
+    private final String UNLOGGED_SDK_VERSION = "0.0.12";
+
     private String maven_default =
             "<dependency>\n" +
             "  <artifactId>unlogged-sdk</artifactId>\n" +
             "  <groupId>video.bug</groupId>\n" +
-            "  <version>0.0.11</version>\n" +
+            "  <version>"+UNLOGGED_SDK_VERSION+"</version>\n" +
             "</dependency>";
 
     private String maven_annotated =
@@ -48,11 +50,17 @@ public class UnloggedSDKOnboarding {
             "          <annotationProcessorPath>\n" +
             "              <artifactId>unlogged-sdk</artifactId>\n" +
             "              <groupId>video.bug</groupId>\n" +
-            "              <version>0.0.11</version>\n" +
+            "              <version>"+UNLOGGED_SDK_VERSION+"</version>\n" +
             "          </annotationProcessorPath>\n" +
             "      </annotationProcessorPaths>\n" +
             "  </configuration>\n" +
             "</plugin>";
+
+    private String gradle_dependency = "dependencies\n" +
+            "{\n" +
+            "    implementation 'video.bug:unlogged-sdk:0.0.11'\n" +
+            "    annotationProcessor 'video.bug:unlogged-sdk:0.0.11'\n" +
+            "}";
 
     public UnloggedSDKOnboarding(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -78,6 +86,7 @@ public class UnloggedSDKOnboarding {
         primaryTabbedPane.setIconAt(1, UIUtils.GRADLE_ICON);
         mavenDependencyAreaAnnotation.setText(maven_annotated);
         mavenDependencyAreaAnnotation.setVisible(false);
+        gradleTextArea.setText(gradle_dependency);
 
         jdkSelector.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {

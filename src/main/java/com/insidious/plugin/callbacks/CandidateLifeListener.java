@@ -1,11 +1,12 @@
 package com.insidious.plugin.callbacks;
 
+import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 
 public interface CandidateLifeListener {
     public void onSaved(StoredCandidate storedCandidate);
 
-    public void onSaveRequest(StoredCandidate storedCandidate);
+    public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse);
 
     public void onDeleteRequest(StoredCandidate storedCandidate);
 

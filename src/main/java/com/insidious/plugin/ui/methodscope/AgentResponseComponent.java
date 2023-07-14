@@ -49,14 +49,14 @@ public class AgentResponseComponent implements Supplier<Component> {
 
     public AgentResponseComponent(
             AgentCommandResponse<String> agentCommandResponse,
-            StoredCandidate metadata,
+            StoredCandidate storedCandidate,
             boolean showAcceptButton,
             FullViewEventListener fullViewEventListener,
             CandidateLifeListener candidateLifeListener
     ) {
         this.agentCommandResponse = agentCommandResponse;
         this.showAcceptButton = showAcceptButton;
-        this.metadata = metadata;
+        this.metadata = storedCandidate;
 
         if (!showAcceptButton) {
             this.bottomControlPanel.setVisible(false);
@@ -132,7 +132,7 @@ public class AgentResponseComponent implements Supplier<Component> {
 //            });
 //        }
 
-        acceptButton.addActionListener(e -> candidateLifeListener.onSaveRequest(metadata));
+        acceptButton.addActionListener(e -> candidateLifeListener.onSaveRequest(metadata, agentCommandResponse));
         if (metadata.getCandidateId() == null) {
             deleteButton.setVisible(false);
         }
