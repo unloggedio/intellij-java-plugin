@@ -20,7 +20,7 @@ public class AtomicRecordUtils {
 
     public static StoredCandidate createCandidateFor(StoredCandidate metadata, AgentCommandResponse<String> response) {
         StoredCandidate candidate = new StoredCandidate();
-        candidate.setCandidateId(UUID.randomUUID().toString());
+        candidate.setCandidateId(metadata.getCandidateId());
         candidate.setMethodHash(metadata.getMethodHash());
         candidate.setMethodArguments(metadata.getMethodArguments());
         candidate.setException(!response.getResponseType().equals(ResponseType.NORMAL));
