@@ -58,8 +58,8 @@ public class UnloggedSDKOnboarding {
 
     private String gradle_dependency = "dependencies\n" +
             "{\n" +
-            "    implementation 'video.bug:unlogged-sdk:0.0.11'\n" +
-            "    annotationProcessor 'video.bug:unlogged-sdk:0.0.11'\n" +
+            "    implementation 'video.bug:unlogged-sdk:"+UNLOGGED_SDK_VERSION+"'\n" +
+            "    annotationProcessor 'video.bug:unlogged-sdk:"+UNLOGGED_SDK_VERSION+"'\n" +
             "}";
 
     public UnloggedSDKOnboarding(InsidiousService insidiousService) {
