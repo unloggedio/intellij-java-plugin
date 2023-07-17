@@ -26,11 +26,13 @@ public class DiffUtils {
         String originalString = testCandidateMetadata.getReturnValue();
 
         if (testCandidateMetadata.isReturnValueIsBoolean()) {
-            originalString = "0".equals(originalString) ? "false" : "true";
+            if(isNumeric(originalString)) {
+                originalString = "0".equals(originalString) ? "false" : "true";
+            }
         }
 
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
-//        System.out.println("Is Exception from session : "+testCandidateMetadata.isException());
+
         if (testCandidateMetadata.isException() ||
                 (agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
             //exception flow wip
@@ -197,6 +199,18 @@ public class DiffUtils {
         }
 
         return Stream.of(entry);
+    }
+
+    public static boolean isNumeric(String strNum) {
+        if (strNum == null) {
+            return false;
+        }
+        try {
+            double d = Double.parseDouble(strNum);
+        } catch (NumberFormatException nfe) {
+            return false;
+        }
+        return true;
     }
 
 

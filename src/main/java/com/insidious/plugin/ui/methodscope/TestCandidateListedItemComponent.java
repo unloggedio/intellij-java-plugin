@@ -143,7 +143,6 @@ public class TestCandidateListedItemComponent {
 //            inputTree.collapseRow(i);
 //        }
 
-
         inputTree.setCellRenderer(new IOTreeCellRenderer());
         inputTree.setRootVisible(false);
         inputTree.setShowsRootHandles(true);
@@ -163,7 +162,6 @@ public class TestCandidateListedItemComponent {
 //        mainContentPanel.setMaximumSize(preferredSize);
 //        gridLayout.preferredLayoutSize(mainContentPanel);
 
-
         inputTree.setSize(new Dimension(-1, desiredHeight));
         inputTree.setMaximumSize(new Dimension(-1, desiredHeight));
 
@@ -173,7 +171,6 @@ public class TestCandidateListedItemComponent {
         scrollPane.setPreferredSize(new Dimension(-1, desiredHeight));
         scrollPane.setMaximumSize(new Dimension(-1, desiredHeight));
         scrollPane.setSize(new Dimension(-1, desiredHeight));
-
 
         mainPanel.setPreferredSize(preferredSize);
         mainPanel.setMinimumSize(new Dimension(-1, 100));

@@ -66,8 +66,8 @@ public class AgentResponseComponent implements Supplier<Component> {
         computeDifferences(differences);
 
         String originalString;
-        if (metadata.isReturnValueIsBoolean()) {
-            originalString = "1".equals(metadata.getReturnValue()) ? "true" : "false";
+        if (metadata.isReturnValueIsBoolean() && DiffUtils.isNumeric(metadata.getReturnValue())) {
+            originalString = "0".equals(metadata.getReturnValue()) ? "false" : "true";
         } else {
             originalString = metadata.getReturnValue();
         }
