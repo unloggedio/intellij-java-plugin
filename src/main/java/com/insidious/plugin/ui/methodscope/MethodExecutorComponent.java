@@ -513,6 +513,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         {
             triggerReExecute(storedCandidate);
         }
+        else
+        {
+            onCandidateSelected(storedCandidate);
+        }
         candidateItem.getComponent().revalidate();
         gridPanel.revalidate();
         gridPanel.repaint();
