@@ -247,21 +247,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         executeAndShowDifferencesButton.setEnabled(true);
         insidiousService.showNewTestCandidateGotIt();
 
-        int panelHeight = candidateComponentMap.values().stream()
-                .map(e -> e.getComponent().getPreferredSize().getHeight())
-                .mapToInt(Double::intValue)
-                .sum() + 40;
-
         gridPanel.revalidate();
         gridPanel.repaint();
 
-        setListDimensions(panelHeight);
-
-        candidateScrollPanelContainer.revalidate();
-        candidateScrollPanelContainer.repaint();
-        centerParent.revalidate();
-        centerParent.repaint();
-
+        setListDimensions(calculatePanelHeight(candidateComponentMap));
 
         executeAndShowDifferencesButton.revalidate();
         executeAndShowDifferencesButton.repaint();
@@ -272,6 +261,14 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
         rootContent.revalidate();
         rootContent.repaint();
+    }
+
+    private int calculatePanelHeight(Map<Long,TestCandidateListedItemComponent> componentMap)
+    {
+        return candidateComponentMap.values().stream()
+                .map(e -> e.getComponent().getPreferredSize().getHeight())
+                .mapToInt(Double::intValue)
+                .sum() + 40;
     }
 
     private void setListDimensions(int panelHeight)
@@ -287,6 +284,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             centerParent.setPreferredSize(new Dimension(-1, Math.min(300, 30)));
             centerParent.setMinimumSize(new Dimension(-1, 300));
         }
+        candidateScrollPanelContainer.revalidate();
+        candidateScrollPanelContainer.repaint();
+        centerParent.revalidate();
+        centerParent.repaint();
     }
 
     public void clearBoard() {
@@ -572,10 +573,12 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         gridPanel.repaint();
         diffContentPanel.removeAll();
 
-        //calling this to ensure that we don't see an empty atomic window.
-        if(candidateComponentMap.size()==0)
-        {
-            onLastCandidateDeleted();
+        if(candidateComponentMap.size()<3) {
+            setListDimensions(calculatePanelHeight(candidateComponentMap));
+            //calling this to ensure that we don't see an empty atomic window.
+            if (candidateComponentMap.size() == 0) {
+                onLastCandidateDeleted();
+            }
         }
     }
 
