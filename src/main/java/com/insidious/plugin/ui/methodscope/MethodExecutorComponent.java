@@ -493,9 +493,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     @Override
     public void onSaved(StoredCandidate storedCandidate) {
-        boolean newCase=false;
         if (storedCandidate.getCandidateId() == null) {
-            newCase=true;
             storedCandidate.setCandidateId(UUID.randomUUID().toString());
         }
         insidiousService.getAtomicRecordService().saveCandidate(
@@ -509,14 +507,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         candidateItem.setTitledBorder(storedCandidate.getName());
         candidateItem.getComponent().setEnabled(true);
         candidateItem.setCandidate(storedCandidate);
-        if(!newCase)
-        {
-            triggerReExecute(storedCandidate);
-        }
-        else
-        {
-            onCandidateSelected(storedCandidate);
-        }
+        triggerReExecute(storedCandidate);
         candidateItem.getComponent().revalidate();
         gridPanel.revalidate();
         gridPanel.repaint();
