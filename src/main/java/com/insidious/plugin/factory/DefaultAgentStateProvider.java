@@ -66,29 +66,35 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
         properties.put("version", serverMetadata.getAgentVersion());
         properties.put("package", serverMetadata.getIncludePackageName());
         UsageInsightTracker.getInstance().RecordEvent("AGENT_CONNECTED", properties);
-        if ("?".equals(includedPackageName)) {
-            InsidiousNotification.notifyMessage("A process running with unlogged agent was discovered, but the " +
-                    "package to be captured is set to [?]. This means that no class is being captured. Please fix the" +
-                    " i= parameter in the JVM parameters and specify the correct package to be captured and restart " +
-                    "the process", NotificationType.WARNING);
-            return;
-        }
+        String finalIncludedPackageName = "*";
+        if (!"null".equals(includedPackageName)) {
 
-        String finalIncludedPackageName = includedPackageName;
-        @Nullable PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
-                (Computable<PsiPackage>) () -> JavaPsiFacade.getInstance(insidiousService.getProject())
-                        .findPackage(finalIncludedPackageName));
-        if (locatedPackage == null) {
-            logger.warn("Package for agent [" + includedPackageName + "] not found in current project");
-            return;
-        } else {
+            if ("?".equals(includedPackageName)) {
+                InsidiousNotification.notifyMessage("A process running with unlogged agent was discovered, but the " +
+                        "package to be captured is set to [?]. This means that no class is being captured. Please fix the" +
+                        " i= parameter in the JVM parameters and specify the correct package to be captured and restart " +
+                        "the process", NotificationType.WARNING);
+                return;
+            }
 
-            ApplicationManager.getApplication().runReadAction(() -> {
-                List<String> classNameList = Arrays.stream(locatedPackage.getDirectories()).map(PsiDirectory::getName)
-                        .collect(Collectors.toList());
-                logger.info("Package [" + finalIncludedPackageName + "] found in [" + locatedPackage.getProject()
-                        .getName() + "] -> " + classNameList);
-            });
+            finalIncludedPackageName = includedPackageName;
+            String finalIncludedPackageName1 = finalIncludedPackageName;
+            @Nullable PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
+                    (Computable<PsiPackage>) () -> JavaPsiFacade.getInstance(insidiousService.getProject())
+                            .findPackage(finalIncludedPackageName1));
+            if (locatedPackage == null) {
+                logger.warn("Package for agent [" + includedPackageName + "] not found in current project");
+                return;
+            } else {
+
+                ApplicationManager.getApplication().runReadAction(() -> {
+                    List<String> classNameList = Arrays.stream(locatedPackage.getDirectories())
+                            .map(PsiDirectory::getName)
+                            .collect(Collectors.toList());
+                    logger.info("Package [" + finalIncludedPackageName1 + "] found in [" + locatedPackage.getProject()
+                            .getName() + "] -> " + classNameList);
+                });
+            }
         }
         this.isAgentServerRunning = true;
         //reset atomicRecordMap
