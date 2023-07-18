@@ -93,6 +93,7 @@ import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
+import com.intellij.ui.content.impl.ContentManagerImpl;
 import com.intellij.util.FileContentUtil;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
@@ -161,6 +162,7 @@ final public class InsidiousService implements Disposable,
     private ReportingService reportingService = new ReportingService(this);
     private AtomicRecordService atomicRecordService;
     private Map<String, String> candidateIndividualContextMap = new TreeMap<>();
+    private boolean isDisposed;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -692,6 +694,7 @@ final public class InsidiousService implements Disposable,
 
     @Override
     public void dispose() {
+        isDisposed = true;
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("projectName", project.getName());
         UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_DISPOSED", eventProperties);
@@ -1202,7 +1205,7 @@ final public class InsidiousService implements Disposable,
                 .map(StoredCandidate::new)
                 .forEach(storedCandidates::add);
 
-        logger.info("StoredCandidates pre filter for " + method.getName() + " -> " + storedCandidates);
+//        logger.info("StoredCandidates pre filter for " + method.getName() + " -> " + storedCandidates);
         return filterStoredCandidates(storedCandidates);
     }
 
@@ -1533,6 +1536,9 @@ final public class InsidiousService implements Disposable,
 
     public void loadSingleWindowForState(GutterState state) {
         ContentManager manager = this.toolWindow.getContentManager();
+        if (((ContentManagerImpl) manager).getUI() == null) {
+            return;
+        }
         List<Content> contentList = Arrays.asList(manager.getContents());
         if (state.equals(GutterState.PROCESS_RUNNING)) {
             if (contentList.contains(atomicTestContent)) {
