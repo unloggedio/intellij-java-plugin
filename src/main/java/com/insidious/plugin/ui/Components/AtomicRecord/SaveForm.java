@@ -6,13 +6,15 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.treeStructure.Tree;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
+import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
 
 public class SaveForm extends JFrame {
 
@@ -33,6 +35,8 @@ public class SaveForm extends JFrame {
     private JRadioButton b1;
     private JRadioButton b2;
     private AgentCommandResponse agentCommandResponse;
+    private final int height = 728;
+    private final int width = 1000;
 
     //AgentCommandResponse is necessary for update flow and Assertions as well
     public SaveForm(StoredCandidate storedCandidate,
@@ -42,7 +46,7 @@ public class SaveForm extends JFrame {
         this.listener = listener;
         this.agentCommandResponse = agentCommandResponse;
         setTitle("Unlogged Inc.");
-        setBounds(400, 160, 500, 500);
+        setBounds(400, 100, width, height);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setResizable(false);
 
@@ -50,128 +54,58 @@ public class SaveForm extends JFrame {
         c.setLayout(null);
 
         title = new JLabel("Save Atomic Case");
-        title.setFont(new Font("", Font.PLAIN, 20));
+        title.setFont(new Font("", Font.PLAIN, 18));
         title.setSize(300, 30);
-        title.setLocation(50, 15);
+        title.setLocation(25, 10);
         c.add(title);
 
-        nameLabel = new JLabel("Test Name:");
-        nameLabel.setSize(100, 30);
-        nameLabel.setLocation(50, 50);
-        c.add(nameLabel);
+        JTree candidateExplorerTree = new Tree(getMockTree());
+        JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
+        treeParent.setBorder(new EmptyBorder(0,0,0,0));
 
-        nameField = new JTextField();
-        nameField.setSize(400, 30);
-        nameField.setLocation(50, 50 + 24);
-        nameField.setToolTipText("Enter name for the case");
-        nameField.setText("Optional");
-        nameField.addFocusListener(new FocusListener() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                nameField.setForeground(UIManager.getColor("TextArea.foreground"));
-                if (nameField.getText().equals("Optional")) {
-                    nameField.setText("");
-                }
-            }
+        JPanel treeViewer = new JPanel();
+        treeViewer.setLayout(new BoxLayout(treeViewer,BoxLayout.Y_AXIS));
+        treeViewer.setSize(570,260);
+        treeViewer.setLocation(25,50);
+        treeViewer.setBorder(new LineBorder(Color.cyan));
+        treeViewer.add(Box.createRigidArea(new Dimension(0,5)));
+        treeViewer.add(new JLabel("Available recorded objects"));
+        treeViewer.add(Box.createRigidArea(new Dimension(0,5)));
+        treeViewer.add(treeParent);
+        c.add(treeViewer);
 
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (nameField.getText().length() == 0) {
-                    nameField.setForeground(Color.GRAY);
-                    nameField.setText("Optional");
-                }
-            }
-        });
-        c.add(nameField);
+        JPanel metadataPanel = new SaveFormMetadataPanel().getMainPanel();
+        metadataPanel.setLocation(595,50);
+        metadataPanel.setSize(380,260);
+        metadataPanel.setBorder(new LineBorder(Color.cyan));
+        c.add(metadataPanel);
 
-        descriptionLabel = new JLabel("Description : ");
-        descriptionLabel.setSize(100, 30);
-        descriptionLabel.setLocation(50, 115);
-        c.add(descriptionLabel);
+        JScrollPane editorPanel = getEditorPanel();
+        editorPanel.setBorder(new LineBorder(Color.red));
+        c.add(editorPanel);
 
-        description = new JTextArea();
-        description.setLineWrap(false);
-        description.setText("Optional");
-        description.setForeground(Color.GRAY);
-        description.setEnabled(true);
-        description.setMargin(new Insets(4, 8, 2, 4));
-        description.addFocusListener(new FocusListener() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                description.setForeground(UIManager.getColor("TextArea.foreground"));
-                if (description.getText().equals("Optional")) {
-                    description.setText("");
-                }
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (description.getText().length() == 0) {
-                    description.setForeground(Color.GRAY);
-                    description.setText("Optional");
-                }
-            }
-        });
-        description.setEditable(true);
-        description.setToolTipText("Optional");
-
-        JBScrollPane scroll = new JBScrollPane(description,
-                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-
-        scroll.setSize(400, 160);
-        scroll.setLocation(50, 115 + 28);
-        c.add(scroll);
-
-        assertionLabel = new JLabel("Assertion : ");
-        assertionLabel.setSize(100, 30);
-        assertionLabel.setLocation(50, 325);
-        //c.add(assertionLabel);
-
-        b1 = new JRadioButton("Assert Equals");
-        b1.setActionCommand("Assert Equals");
-        b1.setSize(150, 30);
-        b1.setLocation(150, 325);
-        //c.add(b1);
-        radioGroup.add(b1);
-
-        b2 = new JRadioButton("Assert Not Equals");
-        b2.setActionCommand("Assert Not Equals");
-        b2.setSize(150, 30);
-        b2.setLocation(300, 325);
-        //c.add(b2);
-        radioGroup.add(b2);
-
-        b1.setSelected(true);
-
-        JLabel infoLabel = new JLabel("Case will be saved here : ");
+        JLabel infoLabel = new JLabel("Case will be saved at "+
+                formatLocation(listener.getSaveLocation()));
         infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
-        infoLabel.setSize(400, 12);
-        infoLabel.setLocation(50, 360 - 30);
-        c.add(infoLabel);
-
-        String saveLocation = listener.getSaveLocation();
-        infoLabel = new JLabel(formatLocation(saveLocation));
-        infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
-        infoLabel.setSize(400, 15);
-        infoLabel.setLocation(50, 375 - 30);
-        infoLabel.setToolTipText(saveLocation);
+        infoLabel.setSize(700, 12);
+        infoLabel.setLocation(25, height-75);
         c.add(infoLabel);
 
         saveButton = new JButton("Save and Close");
         saveButton.setSize(150, 30);
-        saveButton.setLocation(305, 410 - 30);
+        saveButton.setLocation(width-170, height-85);
         saveButton.setIcon(UIUtils.SAVE_CANDIDATE_GREY);
         saveButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                triggerSave();
+                //triggerSave();
             }
         });
         c.add(saveButton);
 
         cancelButton = new JButton("Cancel");
         cancelButton.setSize(100, 30);
-        cancelButton.setLocation(200, 410 - 30);
+        cancelButton.setLocation(width-270, height-85);
 
         cancelButton.addActionListener(new ActionListener() {
             @Override
@@ -180,7 +114,6 @@ public class SaveForm extends JFrame {
             }
         });
         c.add(cancelButton);
-        setInfo();
     }
 
     private void triggerSave() {
@@ -225,17 +158,6 @@ public class SaveForm extends JFrame {
             this.description.setText(description);
             updated = true;
         }
-        if (assertionType != null) {
-            switch (assertionType) {
-                case EQUAL:
-                    b1.setSelected(true);
-                    updated = true;
-                    break;
-                default:
-                    b2.setSelected(true);
-                    updated = true;
-            }
-        }
         if (updated) {
             saveButton.setText("Update");
         }
@@ -251,4 +173,41 @@ public class SaveForm extends JFrame {
             return left;
         }
     }
+
+    private DefaultMutableTreeNode getMockTree(){
+        DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
+        int loops = 10;
+        int counter=1;
+        for(int i=0;i<loops;i++) {
+            root.add(new DefaultMutableTreeNode("Elem "+counter++));
+            root.add(new DefaultMutableTreeNode("Elem "+counter++));
+
+            DefaultMutableTreeNode obj1 = new DefaultMutableTreeNode("Elem "+counter++);
+            obj1.add(new DefaultMutableTreeNode("Child 1"));
+            obj1.add(new DefaultMutableTreeNode("Child 2"));
+            root.add(obj1);
+
+            root.add(new DefaultMutableTreeNode("Elem "+counter++));
+            root.add(new DefaultMutableTreeNode("Elem "+counter++));
+        }
+        return root;
+    }
+
+    //wip
+    private JScrollPane getEditorPanel()
+    {
+        JPanel assertionPanel = new JPanel();
+        assertionPanel.setLayout(new BoxLayout(assertionPanel,BoxLayout.Y_AXIS));
+
+        JPanel defaultPanel = new JPanel();
+        defaultPanel.add(new JLabel("Test label"));
+        assertionPanel.add(defaultPanel);
+
+        JScrollPane scrollPane = new JBScrollPane(assertionPanel);
+        scrollPane.setLocation(25,320);
+        scrollPane.setSize(950,310);
+        return scrollPane;
+    }
+
+
 }
