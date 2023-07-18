@@ -1924,9 +1924,6 @@ public class SessionInstance {
 
         for (File sessionArchive : sessionArchivesLocal) {
             logger.warn("open archive [" + sessionArchive.getName() + "]");
-            if (1 < 2) {
-                continue;
-            }
 
 
             Map<String, UploadFile> matchedFiles = new HashMap<>();
