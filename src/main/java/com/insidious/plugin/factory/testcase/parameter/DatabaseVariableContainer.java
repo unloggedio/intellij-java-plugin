@@ -166,112 +166,112 @@ public class DatabaseVariableContainer {
         return parameterList.size() + " Variables in {" + '}';
     }
 
-    public Parameter getParameterByValue(long eventValue) {
-        if (eventValue == 0) {
-            return new Parameter(eventValue);
-        }
-        Parameter parameter = this.parameterMap.get(eventValue);
-        if (parameter == null) {
-            try {
+//    public Parameter getParameterByValue(long eventValue) {
+//        if (eventValue == 0) {
+//            return new Parameter(eventValue);
+//        }
+//        Parameter parameter = this.parameterMap.get(eventValue);
+//        if (parameter == null) {
+//            try {
+//
+//                synchronized (beingSaved) {
+//                    Optional<Parameter> isBeingSaved = beingSaved.stream()
+//                            .filter(e -> e.getValue() == eventValue)
+//                            .findFirst();
+//                    if (isBeingSaved.isPresent()) {
+//                        Parameter e = isBeingSaved.get();
+//                        parameterList.add(e);
+//                        parameterMap.put(e.getValue(), e);
+//                        return e;
+//                    }
+//                }
+//
+//                Parameter paramFromDatabase = daoService.getParameterByValue(eventValue);
+//                if (paramFromDatabase != null) {
+//                    parameterMap.put(eventValue, paramFromDatabase);
+//                    parameterList.add(paramFromDatabase);
+//                    return paramFromDatabase;
+//                }
+//            } catch (SQLException e) {
+//                e.printStackTrace();
+//                return new Parameter(eventValue);
+//            }
+//            parameter = new Parameter(eventValue);
+//            return parameter;
+//        }
+//        return parameter;
+//    }
 
-                synchronized (beingSaved) {
-                    Optional<Parameter> isBeingSaved = beingSaved.stream()
-                            .filter(e -> e.getValue() == eventValue)
-                            .findFirst();
-                    if (isBeingSaved.isPresent()) {
-                        Parameter e = isBeingSaved.get();
-                        parameterList.add(e);
-                        parameterMap.put(e.getValue(), e);
-                        return e;
-                    }
-                }
-
-                Parameter paramFromDatabase = daoService.getParameterByValue(eventValue);
-                if (paramFromDatabase != null) {
-                    parameterMap.put(eventValue, paramFromDatabase);
-                    parameterList.add(paramFromDatabase);
-                    return paramFromDatabase;
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-                return new Parameter(eventValue);
-            }
-            parameter = new Parameter(eventValue);
-            return parameter;
-        }
-        return parameter;
-    }
-
-    public void ensureParameterType(Parameter existingParameter, String expectingClassName) {
-        if (existingParameter.getValue() < 10000 || existingParameter.getType() == null) {
-            existingParameter.setType(expectingClassName);
-            return;
-        }
-        if (ensuredParameters.containsKey(existingParameter.getValue())) {
-            return;
-        }
-        ensuredParameters.put(existingParameter.getValue(), true);
-        if (expectingClassName.length() < 2 || expectingClassName.endsWith("]")) {
-            return;
-        }
-        if (expectingClassName.equals("java.lang.Object")) {
-            return;
-        }
-        TypeInfo parameterType = archiveIndex.getObjectType(existingParameter.getValue());
-        if (parameterType == null) {
-            return;
-        }
-        Map<String, TypeInfo> typeHierarchy = archiveIndex.getTypesById(Set.of((int) parameterType.getTypeId()));
-        TypeInfo expectedTypeInfo = archiveIndex.getTypesByName(expectingClassName);
-        if (expectedTypeInfo == null) {
-            // this is the case of some generated class name containing $$
-            // and stuff (array types we have excluded earlier) like a proxy object
-            // selecting the right type gets very tricky
-            if (!parameterType.getTypeNameFromClass()
-                    .contains("$")) {
-                throw new RuntimeException("this one has no $$$");
-            }
-            return;
-        }
-        if (!typeHierarchy.containsKey(String.valueOf(expectedTypeInfo.getTypeId()))) {
-            // the type info we got from the probe is probably wrong
-            return;
-        }
-        if (parameterType.getTypeId() < expectedTypeInfo.getTypeId()) {
-            existingParameter.setType(expectedTypeInfo.getTypeNameFromClass());
-        }
-    }
-
-    public void ensureParameterType(Parameter existingParameter, TypeInfo parameterType) {
-        if (existingParameter.getType() == null) {
-            existingParameter.setType(parameterType.getTypeNameFromClass());
-            return;
-        }
-        if (existingParameter.getValue() < 10000) {
+//    public void ensureParameterType(Parameter existingParameter, String expectingClassName) {
+//        if (existingParameter.getValue() < 10000 || existingParameter.getType() == null) {
 //            existingParameter.setType(expectingClassName);
-            return;
-        }
-        if (ensuredParameters.containsKey(existingParameter.getValue())) {
-            return;
-        }
-        ensuredParameters.put(existingParameter.getValue(), true);
-        if (existingParameter.getType()
-                .length() < 2 || existingParameter.getType()
-                .endsWith("]")) {
-            return;
-        }
-        existingParameter.setType(parameterType.getTypeNameFromClass());
+//            return;
+//        }
+//        if (ensuredParameters.containsKey(existingParameter.getValue())) {
+//            return;
+//        }
+//        ensuredParameters.put(existingParameter.getValue(), true);
+//        if (expectingClassName.length() < 2 || expectingClassName.endsWith("]")) {
+//            return;
+//        }
+//        if (expectingClassName.equals("java.lang.Object")) {
+//            return;
+//        }
+//        TypeInfo parameterType = archiveIndex.getObjectType(existingParameter.getValue());
+//        if (parameterType == null) {
+//            return;
+//        }
+//        Map<String, TypeInfo> typeHierarchy = archiveIndex.getTypesById(Set.of((int) parameterType.getTypeId()));
+//        TypeInfo expectedTypeInfo = archiveIndex.getTypesByName(expectingClassName);
+//        if (expectedTypeInfo == null) {
+//            // this is the case of some generated class name containing $$
+//            // and stuff (array types we have excluded earlier) like a proxy object
+//            // selecting the right type gets very tricky
+//            if (!parameterType.getTypeNameFromClass()
+//                    .contains("$")) {
+//                throw new RuntimeException("this one has no $$$");
+//            }
+//            return;
+//        }
+//        if (!typeHierarchy.containsKey(String.valueOf(expectedTypeInfo.getTypeId()))) {
+//            // the type info we got from the probe is probably wrong
+//            return;
+//        }
+//        if (parameterType.getTypeId() < expectedTypeInfo.getTypeId()) {
+//            existingParameter.setType(expectedTypeInfo.getTypeNameFromClass());
+//        }
+//    }
 
-    }
+//    public void ensureParameterType(Parameter existingParameter, TypeInfo parameterType) {
+//        if (existingParameter.getType() == null) {
+//            existingParameter.setType(parameterType.getTypeNameFromClass());
+//            return;
+//        }
+//        if (existingParameter.getValue() < 10000) {
+////            existingParameter.setType(expectingClassName);
+//            return;
+//        }
+//        if (ensuredParameters.containsKey(existingParameter.getValue())) {
+//            return;
+//        }
+//        ensuredParameters.put(existingParameter.getValue(), true);
+//        if (existingParameter.getType()
+//                .length() < 2 || existingParameter.getType()
+//                .endsWith("]")) {
+//            return;
+//        }
+//        existingParameter.setType(parameterType.getTypeNameFromClass());
+//
+//    }
 
-    public List<Parameter> getBeingSaved() {
-        return beingSaved;
-    }
-
-    public <E> void setBeingSaved(List<Parameter> beingSaved) {
-        synchronized (this.beingSaved) {
-            this.beingSaved.addAll(beingSaved);
-        }
-    }
+//    public List<Parameter> getBeingSaved() {
+//        return beingSaved;
+//    }
+//
+//    public <E> void setBeingSaved(List<Parameter> beingSaved) {
+//        synchronized (this.beingSaved) {
+//            this.beingSaved.addAll(beingSaved);
+//        }
+//    }
 
 }

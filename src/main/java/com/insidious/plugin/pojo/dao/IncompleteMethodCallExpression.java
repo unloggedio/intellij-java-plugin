@@ -84,13 +84,13 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo().getDataId());
+        methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes(), ","));
         if (methodCallExpression.getReturnDataEvent() != null) {
-            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
-                    .getEventId());
+            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent().getEventId());
         }
         return methodCallExpression1;
     }
@@ -123,8 +123,7 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
                 .map(DataEventWithSessionId::getEventId)
                 .collect(Collectors.toList()), ","));
         if (methodCallExpression.getReturnDataEvent() != null) {
-            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
-                    .getEventId());
+            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent().getEventId());
         }
         return methodCallExpression1;
     }

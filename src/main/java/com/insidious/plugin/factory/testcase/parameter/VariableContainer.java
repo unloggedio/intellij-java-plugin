@@ -71,9 +71,7 @@ public class VariableContainer {
                         .getSerializedValue();
                 if (existingSerializedValue == null || existingSerializedValue.length == 0) {
                     byValue.setProb(parameter.getProb());
-                } else if (byValue.getProb()
-                        .getEventId() < parameter.getProb()
-                        .getEventId()) {
+                } else if (byValue.getProb().getEventId() < parameter.getProb().getEventId()) {
                     byValue.setProb(parameter.getProb());
                 }
             } else {

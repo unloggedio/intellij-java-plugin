@@ -111,12 +111,10 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
                 methodCallExpression.getCallStack()
         );
         methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
-        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe()
-                .getEventId());
+        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe().getEventId());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
-        methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo()
-                .getDataId());
+        methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo().getDataId());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
         methodCallExpression1.setId(methodCallExpression.getId());
@@ -127,8 +125,7 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
                 .map(DataEventWithSessionId::getEventId)
                 .collect(Collectors.toList()), ","));
         if (methodCallExpression.getReturnDataEvent() != null) {
-            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
-                    .getEventId());
+            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent().getEventId());
         }
         return methodCallExpression1;
     }
@@ -208,12 +205,10 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
                         .collect(Collectors.toList()), ","),
                 returnParameterValue
         );
-        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe()
-                .getEventId());
+        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe().getEventId());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
-        methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo()
-                .getDataId());
+        methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo().getDataId());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
         methodCallExpression1.setId(methodCallExpression.getId());
