@@ -44,7 +44,7 @@ public class StoredCandidate implements Comparable {
         this.setProbSerializedValue(candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue());
         this.setEntryProbeIndex(generateIdentifier(candidateMetadata));
         StoredCandidateMetadata metadata = new StoredCandidateMetadata();
-        metadata.setTimestamp(candidateMetadata.getCallTimeNanoSecond());
+        metadata.setTimestamp(candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt());
         this.setMetadata(metadata);
     }
 
@@ -81,7 +81,7 @@ public class StoredCandidate implements Comparable {
         if (!(o instanceof StoredCandidate)) {
             return -1;
         }
-        return Long.compare(this.entryProbeIndex, ((StoredCandidate) o).entryProbeIndex);
+        return Long.compare(this.metadata.getTimestamp(), ((StoredCandidate) o).metadata.getTimestamp());
     }
 
     public String getCandidateId() {
