@@ -50,7 +50,7 @@ public class ClassUtils {
             }
 
             if (parameterType.getCanonicalText().equals("java.util.Random")) {
-                return "";
+                return "{}";
             }
             if (parameterType.getCanonicalText().equals("java.util.Date")) {
                 return String.valueOf(new Date().getTime());
@@ -70,7 +70,10 @@ public class ClassUtils {
 
             if (parameterType instanceof PsiClassReferenceType) {
                 PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
-                if (classReferenceType.rawType().getCanonicalText().equals("java.util.List") ||
+                if (
+                        classReferenceType.rawType().getCanonicalText().equals("java.util.List") ||
+                        classReferenceType.rawType().getCanonicalText().equals("java.util.ArrayList") ||
+                        classReferenceType.rawType().getCanonicalText().equals("java.util.LinkedList") ||
                         classReferenceType.rawType().getCanonicalText().equals("java.util.Set")
                 ) {
                     dummyValue.append("[");
@@ -103,7 +106,8 @@ public class ClassUtils {
 
                 if (resolvedClass == null) {
                     // class not resolved
-                    return dummyValue.toString();
+                    // lets hope it's just an object
+                    return "{}";
                 }
 
                 if (resolvedClass.isEnum()) {
