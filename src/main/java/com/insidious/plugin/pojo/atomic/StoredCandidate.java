@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Arrays;
 import java.util.List;
 
-public class StoredCandidate implements Comparable {
+public class StoredCandidate implements Comparable<StoredCandidate> {
 
     private String candidateId;
     private String name;
@@ -77,11 +77,8 @@ public class StoredCandidate implements Comparable {
     }
 
     @Override
-    public int compareTo(@NotNull Object o) {
-        if (!(o instanceof StoredCandidate)) {
-            return -1;
-        }
-        return Long.compare(this.metadata.getTimestamp(), ((StoredCandidate) o).metadata.getTimestamp());
+    public int compareTo(@NotNull StoredCandidate o) {
+        return Long.compare(this.metadata.getTimestamp(), o.metadata.getTimestamp());
     }
 
     public String getCandidateId() {
@@ -237,20 +234,20 @@ public class StoredCandidate implements Comparable {
         this.setReturnValueClassname(candidate.getReturnValueClassname());
     }
 
-    public void setMethodSignature(String methodSignature) {
-        this.methodSignature = methodSignature;
-    }
-
     public String getMethodSignature() {
         return methodSignature;
     }
 
-    public void setClassName(String className) {
-        this.className = className;
+    public void setMethodSignature(String methodSignature) {
+        this.methodSignature = methodSignature;
     }
 
     public String getClassName() {
         return className;
+    }
+
+    public void setClassName(String className) {
+        this.className = className;
     }
 
     public enum AssertionType {EQUAL, NOT_EQUAL}
