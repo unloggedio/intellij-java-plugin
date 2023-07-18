@@ -1,6 +1,6 @@
 package com.insidious.plugin.ui.GutterClickNavigationStates;
 
-import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.VMoptionsConstructionService;

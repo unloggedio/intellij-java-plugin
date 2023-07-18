@@ -10,7 +10,7 @@ import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.AgentStateProvider;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;

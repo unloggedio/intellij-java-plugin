@@ -23,7 +23,7 @@ import com.insidious.plugin.client.pojo.ArchiveFilesIndex;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.NameWithBytes;
-import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.TestCandidateReceiver;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -68,7 +68,6 @@ import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
 
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;

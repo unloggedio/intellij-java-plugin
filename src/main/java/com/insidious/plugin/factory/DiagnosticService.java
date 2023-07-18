@@ -4,7 +4,7 @@ import com.insidious.plugin.Constants;
 import com.insidious.plugin.client.MultipartUtility;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
-import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.util.StreamUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.module.Module;

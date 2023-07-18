@@ -1,7 +1,7 @@
 package com.insidious.plugin.upload.minio;
 
 import com.insidious.plugin.Constants;
-import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.upload.zip.ZipFiles;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;

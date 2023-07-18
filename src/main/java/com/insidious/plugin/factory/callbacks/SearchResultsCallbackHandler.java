@@ -2,14 +2,13 @@ package com.insidious.plugin.factory.callbacks;
 
 import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
-import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import org.json.JSONObject;
 
 import java.util.Collection;

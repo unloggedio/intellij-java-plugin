@@ -1,4 +1,4 @@
-package com.insidious.plugin.extension;
+package com.insidious.plugin;
 
 import com.intellij.AbstractBundle;
 import org.jetbrains.annotations.NotNull;

@@ -3,7 +3,7 @@ package com.insidious.plugin.factory.testcase;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.mock.MockFactory;

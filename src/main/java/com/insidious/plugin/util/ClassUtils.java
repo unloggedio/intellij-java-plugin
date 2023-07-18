@@ -3,7 +3,7 @@ package com.insidious.plugin.util;
 //import com.fasterxml.jackson.databind.ObjectMapper;
 //import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.insidious.plugin.adapter.ClassAdapter;
-import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.ui.methodscope.ClassChosenListener;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
 import com.intellij.lang.jvm.JvmModifier;
@@ -15,7 +15,6 @@ import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import org.jetbrains.annotations.NotNull;
 
-import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 

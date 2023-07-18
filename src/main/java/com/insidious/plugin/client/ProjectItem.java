@@ -1,4 +1,4 @@
-package com.insidious.plugin.extension.connector.model;
+package com.insidious.plugin.client;
 
 import com.insidious.plugin.client.pojo.ExecutionSession;
 

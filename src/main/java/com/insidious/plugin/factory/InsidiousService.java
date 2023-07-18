@@ -21,8 +21,7 @@ import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.datafile.AtomicRecordService;
-import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
-import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ModuleInformation;
@@ -115,7 +114,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static com.insidious.plugin.util.AtomicRecordUtils.filterStoredCandidates;
 
@@ -141,7 +139,6 @@ final public class InsidiousService implements Disposable,
     private Project project;
     private VideobugClientInterface client;
     private Module currentModule;
-    private InsidiousJavaDebugProcess debugProcess;
     private ToolWindow toolWindow;
     private LiveViewWindow liveViewWindow;
     private Content singleWindowContent;
@@ -609,33 +606,6 @@ final public class InsidiousService implements Disposable,
 
     }
 
-    public InsidiousJavaDebugProcess getDebugProcess() {
-        return debugProcess;
-    }
-
-    public void setDebugProcess(InsidiousJavaDebugProcess debugProcess) {
-        this.debugProcess = debugProcess;
-    }
-
-    // works for current sessions structure,
-    // will need refactor when project/module based logs are stored
-    public boolean areLogsPresent() {
-        File sessionDir = new File(Constants.SESSIONS_PATH.toString());
-        File[] files = sessionDir.listFiles();
-        for (File file : files) {
-            if (file.isDirectory()) {
-                File[] files_l2 = file.listFiles();
-                for (File file1 : files_l2) {
-                    if (file1.getName()
-                            .contains(".selog") || file1.getName()
-                            .startsWith("index-")) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
 
     private synchronized void initiateUI() {
         logger.info("initiate ui");

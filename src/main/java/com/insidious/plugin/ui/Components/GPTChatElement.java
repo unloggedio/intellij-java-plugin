@@ -1,6 +1,6 @@
 package com.insidious.plugin.ui.Components;
 
-import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 

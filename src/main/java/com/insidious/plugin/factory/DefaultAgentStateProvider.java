@@ -3,7 +3,7 @@ package com.insidious.plugin.factory;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.agent.ConnectionStateListener;
 import com.insidious.plugin.agent.ServerMetadata;
-import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;

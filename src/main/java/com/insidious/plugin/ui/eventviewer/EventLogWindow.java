@@ -8,7 +8,7 @@ import com.insidious.common.weaver.StringInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.ui.InsidiousUtils;

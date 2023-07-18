@@ -1,7 +1,7 @@
 package com.insidious.plugin.datafile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;

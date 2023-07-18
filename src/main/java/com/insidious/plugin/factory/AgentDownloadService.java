@@ -2,7 +2,7 @@ package com.insidious.plugin.factory;
 
 import com.insidious.plugin.Checksums;
 import com.insidious.plugin.Constants;
-import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
