@@ -13,6 +13,7 @@ import com.intellij.openapi.editor.event.EditorMouseEvent;
 import com.intellij.openapi.editor.event.EditorMouseEventArea;
 import com.intellij.openapi.editor.event.EditorMouseListener;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
@@ -39,6 +40,10 @@ public class InsidiousCaretListener implements EditorMouseListener {
         }
         EditorMouseListener.super.mousePressed(event);
         if (event.getArea() == null || !event.getArea().equals(EditorMouseEventArea.EDITING_AREA)) {
+            return;
+        }
+
+        if (DumbService.getInstance(project).isDumb()) {
             return;
         }
 
