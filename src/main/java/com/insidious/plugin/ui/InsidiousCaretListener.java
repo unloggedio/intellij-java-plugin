@@ -24,6 +24,8 @@ import com.intellij.testFramework.LightVirtualFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.kotlin.psi.KtNamedFunction;
 
+import java.util.Date;
+
 public class InsidiousCaretListener implements EditorMouseListener {
     final static private Logger logger = LoggerUtil.getInstance(InsidiousCaretListener.class);
     private final Project project;
@@ -66,7 +68,10 @@ public class InsidiousCaretListener implements EditorMouseListener {
             if (method != null) {
                 // Single Window flow update on non gutter method click
                 MethodAdapter methodAdapter = new JavaMethodAdapter(method);
+                long start = new Date().getTime();
                 GutterState state = insidiousService.getGutterStateFor(methodAdapter);
+                long end = new Date().getTime();
+                logger.warn("get gutter state took: " + (end - start) + " ms");
                 insidiousService.loadSingleWindowForState(state);
                 insidiousService.methodFocussedHandler(methodAdapter);
                 return;

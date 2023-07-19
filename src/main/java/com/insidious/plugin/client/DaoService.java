@@ -238,7 +238,7 @@ public class DaoService {
         int threadId = converted.getMainMethod().getThreadId();
         converted.setTestSubject(getParameterByValue(testCandidateMetadata.getTestSubject()));
 
-        List<Long> fieldParameters = testCandidateMetadata.getFields();
+        Set<Long> fieldParameters = testCandidateMetadata.getFields();
 
         for (Long fieldParameterValue : fieldParameters) {
             if (fieldParameterValue == 0L) {
