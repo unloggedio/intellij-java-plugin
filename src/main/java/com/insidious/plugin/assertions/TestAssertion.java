@@ -14,8 +14,11 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 public class TestAssertion implements Expression {
+
+    String id = UUID.randomUUID().toString();
     AssertionType assertionType;
     Parameter expectedValue;
     Parameter actualValue;
@@ -27,6 +30,14 @@ public class TestAssertion implements Expression {
         this.assertionType = assertionType;
         this.expectedValue = expectedValue;
         this.actualValue = actualValue;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public AssertionType getAssertionType() {
