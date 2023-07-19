@@ -3,10 +3,13 @@ package com.insidious.plugin.ui.Components.AtomicRecord;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.ui.AssertionType;
 import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -18,6 +21,8 @@ import java.awt.event.ActionListener;
 
 public class SaveForm extends JFrame {
 
+    private final int height = 728;
+    private final int width = 1000;
     private CandidateLifeListener listener;
     private JLabel title;
     private JLabel nameLabel;
@@ -27,16 +32,12 @@ public class SaveForm extends JFrame {
     private JTextArea description;
     private JButton saveButton;
     private JButton cancelButton;
-    private SaveForm form = this;
     private JLabel assertionLabel;
-    private ButtonGroup radioGroup = new ButtonGroup();
-    private String selectedType = "Assert Equals";
+    private final ButtonGroup radioGroup = new ButtonGroup();
     private StoredCandidate storedCandidate;
     private JRadioButton b1;
     private JRadioButton b2;
-    private AgentCommandResponse agentCommandResponse;
-    private final int height = 728;
-    private final int width = 1000;
+    private AgentCommandResponse<String> agentCommandResponse;
 
     //AgentCommandResponse is necessary for update flow and Assertions as well
     public SaveForm(StoredCandidate storedCandidate,
@@ -61,39 +62,39 @@ public class SaveForm extends JFrame {
 
         JTree candidateExplorerTree = new Tree(getMockTree());
         JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
-        treeParent.setBorder(new EmptyBorder(0,0,0,0));
+        treeParent.setBorder(JBUI.Borders.empty());
 
         JPanel treeViewer = new JPanel();
-        treeViewer.setLayout(new BoxLayout(treeViewer,BoxLayout.Y_AXIS));
-        treeViewer.setSize(570,260);
-        treeViewer.setLocation(25,50);
-        treeViewer.setBorder(new LineBorder(Color.cyan));
-        treeViewer.add(Box.createRigidArea(new Dimension(0,5)));
+        treeViewer.setLayout(new BoxLayout(treeViewer, BoxLayout.Y_AXIS));
+        treeViewer.setSize(570, 260);
+        treeViewer.setLocation(25, 50);
+        treeViewer.setBorder(new LineBorder(JBColor.CYAN));
+        treeViewer.add(Box.createRigidArea(new Dimension(0, 5)));
         treeViewer.add(new JLabel("Available recorded objects"));
-        treeViewer.add(Box.createRigidArea(new Dimension(0,5)));
+        treeViewer.add(Box.createRigidArea(new Dimension(0, 5)));
         treeViewer.add(treeParent);
         c.add(treeViewer);
 
         JPanel metadataPanel = new SaveFormMetadataPanel().getMainPanel();
-        metadataPanel.setLocation(595,50);
-        metadataPanel.setSize(380,260);
-        metadataPanel.setBorder(new LineBorder(Color.cyan));
+        metadataPanel.setLocation(595, 50);
+        metadataPanel.setSize(380, 260);
+        metadataPanel.setBorder(new LineBorder(JBColor.CYAN));
         c.add(metadataPanel);
 
         JScrollPane editorPanel = getEditorPanel();
-        editorPanel.setBorder(new LineBorder(Color.red));
+        editorPanel.setBorder(new LineBorder(JBColor.RED));
         c.add(editorPanel);
 
-        JLabel infoLabel = new JLabel("Case will be saved at "+
+        JLabel infoLabel = new JLabel("Case will be saved at " +
                 formatLocation(listener.getSaveLocation()));
         infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
         infoLabel.setSize(700, 12);
-        infoLabel.setLocation(25, height-75);
+        infoLabel.setLocation(25, height - 75);
         c.add(infoLabel);
 
         saveButton = new JButton("Save and Close");
         saveButton.setSize(150, 30);
-        saveButton.setLocation(width-170, height-85);
+        saveButton.setLocation(width - 170, height - 85);
         saveButton.setIcon(UIUtils.SAVE_CANDIDATE_GREY);
         saveButton.addActionListener(new ActionListener() {
             @Override
@@ -105,14 +106,9 @@ public class SaveForm extends JFrame {
 
         cancelButton = new JButton("Cancel");
         cancelButton.setSize(100, 30);
-        cancelButton.setLocation(width-270, height-85);
+        cancelButton.setLocation(width - 270, height - 85);
 
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                form.dispose();
-            }
-        });
+        cancelButton.addActionListener(e -> SaveForm.this.dispose());
         c.add(cancelButton);
     }
 
@@ -120,9 +116,9 @@ public class SaveForm extends JFrame {
         String name_text = prepareString(nameField.getText());
         String description_text = prepareString(description.getText());
         ButtonModel model = radioGroup.getSelection();
-        StoredCandidate.AssertionType type = StoredCandidate.AssertionType.EQUAL;
+        AssertionType type = AssertionType.EQUAL;
         if (model.getActionCommand().equals("Assert Not Equals")) {
-            type = StoredCandidate.AssertionType.NOT_EQUAL;
+            type = AssertionType.NOT_EQUAL;
         }
         //this call is necessary
         //Required if we cancel update/save
@@ -148,7 +144,7 @@ public class SaveForm extends JFrame {
         boolean updated = false;
         String name = storedCandidate.getName();
         String description = storedCandidate.getDescription();
-        StoredCandidate.AssertionType assertionType = storedCandidate.getAssertionType();
+        AssertionType assertionType = storedCandidate.getAssertionType();
 
         if (name != null) {
             this.nameField.setText(name);
@@ -174,38 +170,37 @@ public class SaveForm extends JFrame {
         }
     }
 
-    private DefaultMutableTreeNode getMockTree(){
+    private DefaultMutableTreeNode getMockTree() {
         DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
         int loops = 10;
-        int counter=1;
-        for(int i=0;i<loops;i++) {
-            root.add(new DefaultMutableTreeNode("Elem "+counter++));
-            root.add(new DefaultMutableTreeNode("Elem "+counter++));
+        int counter = 1;
+        for (int i = 0; i < loops; i++) {
+            root.add(new DefaultMutableTreeNode("Elem " + counter++));
+            root.add(new DefaultMutableTreeNode("Elem " + counter++));
 
-            DefaultMutableTreeNode obj1 = new DefaultMutableTreeNode("Elem "+counter++);
+            DefaultMutableTreeNode obj1 = new DefaultMutableTreeNode("Elem " + counter++);
             obj1.add(new DefaultMutableTreeNode("Child 1"));
             obj1.add(new DefaultMutableTreeNode("Child 2"));
             root.add(obj1);
 
-            root.add(new DefaultMutableTreeNode("Elem "+counter++));
-            root.add(new DefaultMutableTreeNode("Elem "+counter++));
+            root.add(new DefaultMutableTreeNode("Elem " + counter++));
+            root.add(new DefaultMutableTreeNode("Elem " + counter++));
         }
         return root;
     }
 
     //wip
-    private JScrollPane getEditorPanel()
-    {
+    private JScrollPane getEditorPanel() {
         JPanel assertionPanel = new JPanel();
-        assertionPanel.setLayout(new BoxLayout(assertionPanel,BoxLayout.Y_AXIS));
+        assertionPanel.setLayout(new BoxLayout(assertionPanel, BoxLayout.Y_AXIS));
 
         JPanel defaultPanel = new JPanel();
         defaultPanel.add(new JLabel("Test label"));
         assertionPanel.add(defaultPanel);
 
         JScrollPane scrollPane = new JBScrollPane(assertionPanel);
-        scrollPane.setLocation(25,320);
-        scrollPane.setSize(950,310);
+        scrollPane.setLocation(25, 320);
+        scrollPane.setSize(950, 310);
         return scrollPane;
     }
 

@@ -1,11 +1,14 @@
 package com.insidious.plugin.pojo.atomic;
 
+import com.insidious.plugin.factory.testcase.candidate.TestAssertion;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.ui.AssertionType;
 import com.insidious.plugin.util.TestCandidateUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class StoredCandidate implements Comparable<StoredCandidate> {
 
@@ -27,6 +30,8 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     private byte[] probSerializedValue;
     private String methodSignature;
     private String className;
+
+    private List<TestAssertion> testAssertions;
 
     public StoredCandidate() {
     }
@@ -50,10 +55,8 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
 
     @Override
     public int hashCode() {
-        if (this.candidateId != null) {
-            return this.candidateId.hashCode();
-        }
-        return (this.entryProbeIndex + "-" + this.metadata.getHostMachineName()).hashCode();
+        return Objects.requireNonNullElseGet(this.candidateId,
+                () -> this.entryProbeIndex + "-" + this.metadata.getHostMachineName()).hashCode();
     }
 
     @Override
@@ -211,7 +214,6 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
                 ", returnDataEventSerializedValue=" + returnDataEventSerializedValue +
                 ", returnDataEventValue=" + returnDataEventValue +
                 ", methodName='" + methodName + '\'' +
-                ", probSerializedValue=" + Arrays.toString(probSerializedValue) +
                 '}';
     }
 
@@ -250,5 +252,4 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.className = className;
     }
 
-    public enum AssertionType {EQUAL, NOT_EQUAL}
 }
