@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.Components.AtomicRecord;
 
 import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.assertions.TestAssertion;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.assertions.AssertionType;
@@ -125,7 +126,7 @@ public class SaveForm extends JFrame {
         StoredCandidate candidate = AtomicRecordUtils.createCandidateFor(storedCandidate, agentCommandResponse);
         candidate.setName(name_text);
         candidate.setDescription(description_text);
-        candidate.setAssertionType(type);
+        candidate.addTestAssertion(new TestAssertion(type, null, null));
         this.listener.onSaved(candidate);
         this.dispose();
     }
@@ -143,7 +144,6 @@ public class SaveForm extends JFrame {
         boolean updated = false;
         String name = storedCandidate.getName();
         String description = storedCandidate.getDescription();
-        AssertionType assertionType = storedCandidate.getAssertionType();
 
         if (name != null) {
             this.nameField.setText(name);

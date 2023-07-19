@@ -12,23 +12,16 @@ import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
 
 public class AtomicRecordUtils {
 
-    public static List<StoredCandidate> convertToStoredCandidates(
-            List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> testCandidateMetadataList) {
-
-        return testCandidateMetadataList.stream().map(StoredCandidate::new).collect(Collectors.toList());
-    }
-
     public static StoredCandidate createCandidateFor(StoredCandidate metadata, AgentCommandResponse<String> response) {
         StoredCandidate candidate = new StoredCandidate();
         candidate.setCandidateId(metadata.getCandidateId());
-        candidate.setMethodHash(metadata.getMethodHash());
         candidate.setMethodArguments(metadata.getMethodArguments());
         candidate.setException(!response.getResponseType().equals(ResponseType.NORMAL));
         candidate.setReturnValue(response.getMethodReturnValue());
         //to be updated
         candidate.setProbSerializedValue(metadata.getProbSerializedValue());
         //to be updated
-        candidate.setMethodName(metadata.getMethodName());
+        candidate.setMethod(metadata.getMethod());
         candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
         candidate.setReturnValueClassname(response.getResponseClassName());
 

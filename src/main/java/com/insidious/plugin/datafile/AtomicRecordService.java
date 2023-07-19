@@ -6,6 +6,7 @@ import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.util.LoggerUtil;
@@ -41,23 +42,25 @@ public class AtomicRecordService {
         }
     }
 
-    public GutterState computeGutterState(String classname, String method, int hashcode) {
+    public GutterState computeGutterState(MethodUnderTest method) {
 
         try {
-            AtomicRecord record = this.storedRecords.get(classname);
+            String methodKey = method.getMethodKey();
+            AtomicRecord record = this.storedRecords.get(method.getClassName());
             if (record == null) {
                 return null;
             }
             List<StoredCandidate> candidates = new ArrayList<>();
-            if (record.getStoredCandidateMap().get(method) != null) {
-                candidates.addAll(record.getStoredCandidateMap().get(method));
+            if (record.getStoredCandidateMap().get(methodKey) != null) {
+                candidates.addAll(record.getStoredCandidateMap().get(methodKey));
             } else {
                 return null;
             }
             boolean hashChange = false;
             StoredCandidateMetadata.CandidateStatus status = null;
             for (StoredCandidate candidate : candidates) {
-                if (!candidate.getMethodHash().equals(hashcode + "")) {
+                MethodUnderTest candidateMethodUnderTest = candidate.getMethod();
+                if (candidateMethodUnderTest.getMethodHash() != method.getMethodHash()) {
                     hashChange = true;
                 }
                 if (status == null) {
@@ -88,15 +91,16 @@ public class AtomicRecordService {
         }
     }
 
-    public void saveCandidate(String classname, String methodName, String signature, StoredCandidate candidate) {
+
+    public void saveCandidate(MethodUnderTest methodUnderTest, StoredCandidate candidate) {
         try {
             AtomicRecord existingRecord = null;
-            AtomicRecord obj = this.storedRecords.get(classname);
-            String methodKey = methodName + "#" + signature;
+            AtomicRecord obj = this.storedRecords.get(methodUnderTest.getClassName());
+            String methodKey = methodUnderTest.getMethodKey();
             if (obj == null) {
                 //create record
                 logger.info("[ATRS] creating a new record");
-                addNewRecord(methodKey, classname, candidate);
+                addNewRecord(methodKey, methodUnderTest.getClassName(), candidate);
             } else {
                 //read as array of AtomicRecords
                 logger.info("[ATRS] creating a new record");
@@ -126,20 +130,18 @@ public class AtomicRecordService {
                     candidates.add(candidate);
                     obj.getStoredCandidateMap().put(methodKey, candidates);
 
-                } else if (foundMethod && !foundCandidate) {
+                } else if (!foundCandidate) {
                     //add to stored candidates
                     logger.info("[ATRS] Adding Candidate");
-                    if (existingRecord != null) {
-                        existingRecord.getStoredCandidateMap().get(methodKey).add(candidate);
-                        existingRecord.setStoredCandidateMap(filterCandidates(existingRecord.getStoredCandidateMap()));
-                    }
-                    writeToFile(new File(getFilenameForClass(classname))
-                            , obj, FileUpdateType.UPDATE, (useNotifications) ? true : false);
+                    existingRecord.getStoredCandidateMap().get(methodKey).add(candidate);
+                    existingRecord.setStoredCandidateMap(filterCandidates(existingRecord.getStoredCandidateMap()));
+                    writeToFile(new File(getFilenameForClass(methodUnderTest.getClassName()))
+                            , obj, FileUpdateType.UPDATE, useNotifications);
                 } else {
                     logger.info("[ATRS] Replacing existing record (found)");
                     existingRecord.setStoredCandidateMap(filterCandidates(existingRecord.getStoredCandidateMap()));
-                    writeToFile(new File(getFilenameForClass(classname))
-                            , obj, FileUpdateType.UPDATE, (useNotifications) ? true : false);
+                    writeToFile(new File(getFilenameForClass(methodUnderTest.getClassName()))
+                            , obj, FileUpdateType.UPDATE, useNotifications);
                 }
             }
             JSONObject properties = new JSONObject();
@@ -173,7 +175,7 @@ public class AtomicRecordService {
 
             for (StoredCandidate candidate : storedCandidateList) {
                 if (candidate.getName() != null) {
-                    int hash = candidate.getMethodArguments().hashCode() + (candidate.getMethodName().hashCode());
+                    int hash = candidate.getMethodArguments().hashCode() + (candidate.getMethod().getName().hashCode());
                     if (storedCandidateMap.containsKey(hash)) {
                         if (storedCandidateMap.get(hash).getMetadata().getTimestamp() < candidate.getMetadata()
                                 .getTimestamp()) {

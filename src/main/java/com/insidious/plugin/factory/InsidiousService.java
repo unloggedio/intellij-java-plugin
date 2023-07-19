@@ -10,6 +10,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.insidious.plugin.Constants;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
@@ -21,13 +22,13 @@ import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.datafile.AtomicRecordService;
-import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ModuleInformation;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.TestSuite;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.GutterClickNavigationStates.AtomicTestContainer;
 import com.insidious.plugin.ui.InsidiousCaretListener;
@@ -1068,8 +1069,9 @@ final public class InsidiousService implements Disposable,
                 method.getContainingClass().getQualifiedName(),
                 method.getName() + "#" + method.getJVMSignature());
 
-        GutterState gutterState = atomicRecordService.computeGutterState(method.getContainingClass().getQualifiedName(),
-                method.getName() + "#" + method.getJVMSignature(), method.getText().hashCode());
+        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(method);
+
+        GutterState gutterState = atomicRecordService.computeGutterState(methodUnderTest);
 
         // process is running, but no test candidates for this method
         if (candidates.size() == 0 && !hasStoredCandidates) {
@@ -1511,8 +1513,7 @@ final public class InsidiousService implements Disposable,
         atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
     }
 
-    public void clearAtomicBoard()
-    {
+    public void clearAtomicBoard() {
         atomicTestContainerWindow.clearBoardOnMethodExecutor();
     }
 

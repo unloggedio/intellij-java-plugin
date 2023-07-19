@@ -46,7 +46,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
         setupDefLayout();
         String simpleClassName = testCandidate.getReturnValueClassname();
         simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
-        String methodLabel = simpleClassName + "." + testCandidate.getMethodName() + "()";
+        String methodLabel = simpleClassName + "." + testCandidate.getMethod().getName() + "()";
         setInfoLabel(methodLabel + " at " + DateUtils.formatDate(new Date(agentCommandResponse.getTimestamp())));
     }
 
@@ -99,7 +99,8 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
                 showDelete = true;
             }
             ExceptionPreviewComponent options = new ExceptionPreviewComponent(exceptionMessage,
-                    prettyException, insidiousService, candidateLifeListener, false, showDelete, testCandidate, response);
+                    prettyException, insidiousService, candidateLifeListener, false, showDelete, testCandidate,
+                    response);
             options.setBorderTitle("Before");
             beforeSection.add(options.getComponent(), BorderLayout.CENTER);
         } else {

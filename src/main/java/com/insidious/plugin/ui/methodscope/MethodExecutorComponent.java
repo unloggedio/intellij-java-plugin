@@ -9,6 +9,7 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
@@ -223,19 +224,13 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         if (this.methodElement == null) {
             return;
         }
-        final String methodHash = methodElement.getText().hashCode() + "";
-        final String methodName = methodElement.getName();
-        final String methodJVMSignature = methodElement.getJVMSignature();
-        final String classQualifiedName = methodElement.getContainingClass().getQualifiedName();
+        MethodUnderTest methodUnderTest1 = MethodUnderTest.fromMethodAdapter(methodElement);
 
         candidates.stream()
                 .filter(testCandidateMetadata -> !candidateComponentMap.containsKey(
                         testCandidateMetadata.getEntryProbeIndex()))
                 .peek(testCandidateMetadata -> {
-                    testCandidateMetadata.setMethodHash(methodHash);
-                    testCandidateMetadata.setMethodName(methodName);
-                    testCandidateMetadata.setMethodSignature(methodJVMSignature);
-                    testCandidateMetadata.setClassName(classQualifiedName);
+                    testCandidateMetadata.setMethod(methodUnderTest1);
                 })
                 .map(e -> new TestCandidateListedItemComponent(e, this.methodElement, this,
                         MethodExecutorComponent.this))
@@ -498,9 +493,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             storedCandidate.setCandidateId(UUID.randomUUID().toString());
         }
         insidiousService.getAtomicRecordService().saveCandidate(
-                methodElement.getContainingClass().getQualifiedName(),
-                storedCandidate.getMethodName(),
-                methodElement.getJVMSignature(),
+                MethodUnderTest.fromMethodAdapter(methodElement),
                 storedCandidate
         );
         TestCandidateListedItemComponent candidateItem = candidateComponentMap.get(

@@ -1,6 +1,6 @@
 package com.insidious.plugin.pojo.atomic;
 
-import com.insidious.plugin.assertions.AssertionType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.insidious.plugin.assertions.TestAssertion;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.util.TestCandidateUtils;
@@ -21,16 +21,10 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     private boolean isException;
     private String returnValueClassname;
     private StoredCandidateMetadata metadata;
-    private String methodHash;
-    private boolean returnValueIsBoolean;
-    private AssertionType assertionType;
     private long entryProbeIndex;
-    private String returnDataEventSerializedValue;
-    private long returnDataEventValue;
-    private String methodName;
     private byte[] probSerializedValue;
-    private String methodSignature;
-    private String className;
+
+    private MethodUnderTest methodUnderTest;
 
     public StoredCandidate() {
     }
@@ -43,7 +37,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.setReturnValue(returnValue);
         this.setMethodArguments(TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata));
         this.setReturnValueClassname(candidateMetadata.getMainMethod().getReturnValue().getType());
-        this.setMethodName(candidateMetadata.getMainMethod().getMethodName());
+        this.setMethod(MethodUnderTest.fromTestCandidateMetadata(candidateMetadata));
         this.setProbSerializedValue(candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue());
         this.setEntryProbeIndex(generateIdentifier(candidateMetadata));
         StoredCandidateMetadata metadata = new StoredCandidateMetadata();
@@ -146,20 +140,13 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.metadata = metadata;
     }
 
-    public String getMethodHash() {
-        return methodHash;
+
+    public MethodUnderTest getMethod() {
+        return methodUnderTest;
     }
 
-    public void setMethodHash(String methodHash) {
-        this.methodHash = methodHash;
-    }
-
-    public AssertionType getAssertionType() {
-        return assertionType;
-    }
-
-    public void setAssertionType(AssertionType assertionType) {
-        this.assertionType = assertionType;
+    public void setMethod(MethodUnderTest methodUnderTest1) {
+        this.methodUnderTest = methodUnderTest1;
     }
 
     public long getEntryProbeIndex() {
@@ -170,18 +157,10 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.entryProbeIndex = entryProbeIndex;
     }
 
+    @JsonIgnore
     public boolean isReturnValueIsBoolean() {
         return returnValueClassname != null && (returnValueClassname.equals("Z") || returnValueClassname.equals(
                 "java.lang.Boolean"));
-    }
-
-
-    public String getMethodName() {
-        return methodName;
-    }
-
-    public void setMethodName(String methodName) {
-        this.methodName = methodName;
     }
 
     public byte[] getProbSerializedValue() {
@@ -203,13 +182,8 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
                 ", isException=" + isException +
                 ", returnValueClassname='" + returnValueClassname + '\'' +
                 ", metadata=" + metadata +
-                ", methodHash='" + methodHash + '\'' +
-                ", BooleanType=" + returnValueIsBoolean +
-                ", assertionType=" + assertionType +
+                ", method=" + methodUnderTest +
                 ", entryProbeIndex=" + entryProbeIndex +
-                ", returnDataEventSerializedValue=" + returnDataEventSerializedValue +
-                ", returnDataEventValue=" + returnDataEventValue +
-                ", methodName='" + methodName + '\'' +
                 '}';
     }
 
@@ -223,28 +197,11 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.setCandidateId(candidate.getCandidateId());
         this.setName(candidate.getName());
         this.setDescription(candidate.getDescription());
-        this.setAssertionType(candidate.getAssertionType());
         this.setReturnValue(candidate.getReturnValue());
         this.setEntryProbeIndex(candidate.getEntryProbeIndex());
         this.setProbSerializedValue(candidate.getProbSerializedValue());
         this.setException(candidate.isException());
         this.setReturnValueClassname(candidate.getReturnValueClassname());
-    }
-
-    public String getMethodSignature() {
-        return methodSignature;
-    }
-
-    public void setMethodSignature(String methodSignature) {
-        this.methodSignature = methodSignature;
-    }
-
-    public String getClassName() {
-        return className;
-    }
-
-    public void setClassName(String className) {
-        this.className = className;
     }
 
     public List<TestAssertion> getTestAssertions() {
