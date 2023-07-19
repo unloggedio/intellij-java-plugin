@@ -4,9 +4,7 @@ import com.insidious.plugin.util.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -26,6 +24,8 @@ public class TestCandidateMetadata {
     private long exitProbeIndex;
     @DatabaseField
     private String variables;
+
+    private Set<Long> fieldIds = new HashSet<>();
 
     public static com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata
     toTestCandidate(TestCandidateMetadata testCandidateMetadata) {
@@ -55,13 +55,13 @@ public class TestCandidateMetadata {
         this.mainMethod_id = methodId;
     }
 
-    public List<Long> getFields() {
+    public Set<Long> getFields() {
         if (fields == null || fields.length() < 1) {
-            return Collections.emptyList();
+            return Collections.emptySet();
         }
         return Arrays.stream(fields.split(","))
                 .map(Long::valueOf)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
     public void setFields(List<Long> fields) {
@@ -115,6 +115,10 @@ public class TestCandidateMetadata {
     }
 
     public void addField(long parameterValue) {
+        if (fieldIds.contains(parameterValue)) {
+            return;
+        }
+        fieldIds.add(parameterValue);
         if (fields == null || fields.length() == 0) {
             fields = String.valueOf(parameterValue);
         } else {

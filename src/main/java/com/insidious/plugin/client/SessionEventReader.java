@@ -36,7 +36,7 @@ public class SessionEventReader implements Runnable {
         this.executionSession = executionSession;
         this.cacheEntries = cacheEntries;
         this.logFilesToRead = new ArrayList<>(logFilesToRead);
-        this.eventBufferSize = eventBufferSize * 2;
+        this.eventBufferSize = eventBufferSize * 3;
         this.sessionDirectory = FileSystems.getDefault()
                 .getPath(executionSession.getPath())
                 .toFile();
@@ -87,10 +87,11 @@ public class SessionEventReader implements Runnable {
                 new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(nameWithBytes.getBytes()));
         ArrayList<KaitaiInsidiousEventParser.Block> events = eventsContainer.event()
                 .entries();
+        int count = events.size();
         long end = new Date().getTime();
         long timeInMs = end - start;
         if (timeInMs > 100) {
-            logger.warn("Read events took: " + timeInMs + " ms" + " from [" + archiveFile + "]");
+            logger.warn("Read events[" + count + "] took: " + timeInMs + " ms" + " from [" + archiveFile + "]");
         }
         return events;
     }
