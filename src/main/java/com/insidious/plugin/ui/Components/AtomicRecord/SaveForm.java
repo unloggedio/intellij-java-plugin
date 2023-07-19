@@ -3,7 +3,7 @@ package com.insidious.plugin.ui.Components.AtomicRecord;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.ui.AssertionType;
+import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.ui.JBColor;
@@ -12,7 +12,6 @@ import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;

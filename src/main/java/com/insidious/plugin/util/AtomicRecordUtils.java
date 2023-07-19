@@ -30,7 +30,6 @@ public class AtomicRecordUtils {
         //to be updated
         candidate.setMethodName(metadata.getMethodName());
         candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
-        candidate.setReturnValueIsBoolean(metadata.isReturnValueIsBoolean());
         candidate.setReturnValueClassname(response.getResponseClassName());
 
         if (metadata.getMetadata() != null) {

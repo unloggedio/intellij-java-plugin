@@ -1,4 +1,4 @@
-package com.insidious.plugin.ui;
+package com.insidious.plugin.assertions;
 
 public enum AssertionType {
     EQUAL,

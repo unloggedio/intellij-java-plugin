@@ -43,9 +43,8 @@ public class AgentResponseComponent implements Supplier<Component> {
     private JPanel topAlign;
     private JButton deleteButton;
     private JButton hideButton;
-    private StoredCandidate metadata;
+    private StoredCandidate testCandidate;
     private SaveForm lastRef;
-    private AgentResponseComponent self = this;
 
     public AgentResponseComponent(
             AgentCommandResponse<String> agentCommandResponse,
@@ -56,20 +55,20 @@ public class AgentResponseComponent implements Supplier<Component> {
     ) {
         this.agentCommandResponse = agentCommandResponse;
         this.showAcceptButton = showAcceptButton;
-        this.metadata = storedCandidate;
+        this.testCandidate = storedCandidate;
 
         if (!showAcceptButton) {
             this.bottomControlPanel.setVisible(false);
         }
 
-        DifferenceResult differences = DiffUtils.calculateDifferences(metadata, agentCommandResponse);
+        DifferenceResult differences = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
         computeDifferences(differences);
 
         String originalString;
-        if (metadata.isReturnValueIsBoolean() && DiffUtils.isNumeric(metadata.getReturnValue())) {
-            originalString = "0".equals(metadata.getReturnValue()) ? "false" : "true";
+        if (testCandidate.isReturnValueIsBoolean() && DiffUtils.isNumeric(testCandidate.getReturnValue())) {
+            originalString = "0".equals(testCandidate.getReturnValue()) ? "false" : "true";
         } else {
-            originalString = metadata.getReturnValue();
+            originalString = testCandidate.getReturnValue();
         }
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
@@ -132,11 +131,11 @@ public class AgentResponseComponent implements Supplier<Component> {
 //            });
 //        }
 
-        acceptButton.addActionListener(e -> candidateLifeListener.onSaveRequest(metadata, agentCommandResponse));
-        if (metadata.getCandidateId() == null) {
+        acceptButton.addActionListener(e -> candidateLifeListener.onSaveRequest(testCandidate, agentCommandResponse));
+        if (testCandidate.getCandidateId() == null) {
             deleteButton.setVisible(false);
         }
-        deleteButton.addActionListener(e -> candidateLifeListener.onDeleteRequest(metadata));
+        deleteButton.addActionListener(e -> candidateLifeListener.onDeleteRequest(testCandidate));
     }
 
     public void setInfoLabel(String info) {
@@ -170,7 +169,7 @@ public class AgentResponseComponent implements Supplier<Component> {
                 this.tableParent.setVisible(false);
                 showExceptionTrace(
                         ExceptionUtils.prettyPrintException(
-                                this.metadata.getReturnValue())
+                                this.testCandidate.getReturnValue())
                 );
                 break;
         }

@@ -1,4 +1,4 @@
-package com.insidious.plugin.factory.testcase.candidate;
+package com.insidious.plugin.assertions;
 
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -10,7 +10,6 @@ import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
-import com.insidious.plugin.ui.AssertionType;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import org.jetbrains.annotations.NotNull;
 

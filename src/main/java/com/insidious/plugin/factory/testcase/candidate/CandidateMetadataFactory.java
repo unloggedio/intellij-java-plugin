@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.candidate;
 
+import com.insidious.plugin.assertions.TestAssertion;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
