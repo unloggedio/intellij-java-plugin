@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Objects;
 
 public enum AssertionType {
+    AND,
+    OR,
     EQUAL,
     NOT_EQUAL,
     FALSE,
@@ -16,6 +18,10 @@ public enum AssertionType {
     public String toString() {
         switch (this) {
 
+            case OR:
+                return "or";
+            case AND:
+                return "and";
             case EQUAL:
                 return "equals";
             case NOT_EQUAL:
@@ -29,7 +35,7 @@ public enum AssertionType {
             case GREATER_THAN:
                 return "greaterThan";
         }
-        return "not-defined";
+        return "unknown-assertion-type";
     }
 
     public boolean verify(JsonNode actualValue, JsonNode expectedValue) {

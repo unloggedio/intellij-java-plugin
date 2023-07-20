@@ -1,9 +1,11 @@
 package com.insidious.plugin.assertions;
 
+import java.util.List;
 import java.util.UUID;
 
 public class AtomicAssertion {
 
+    List<AtomicAssertion> subAssertions;
     private Expression expression;
     private String expectedValue;
     private String id = UUID.randomUUID().toString();
@@ -25,6 +27,23 @@ public class AtomicAssertion {
         this.assertionType = assertionType;
         this.key = key;
         this.expectedValue = expectedValue;
+    }
+
+    public AtomicAssertion(AssertionType assertionType, List<AtomicAssertion> subAssertions) {
+        this.expression = Expression.SELF;
+        if (assertionType != AssertionType.OR && assertionType != AssertionType.AND) {
+            // unacceptable
+        }
+        this.assertionType = assertionType;
+        this.subAssertions = subAssertions;
+    }
+
+    public List<AtomicAssertion> getSubAssertions() {
+        return subAssertions;
+    }
+
+    public void setSubAssertions(List<AtomicAssertion> subAssertions) {
+        this.subAssertions = subAssertions;
     }
 
     public Expression getExpression() {

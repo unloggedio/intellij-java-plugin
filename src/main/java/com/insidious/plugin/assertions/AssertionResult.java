@@ -4,14 +4,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class AssertionResult {
-    private final Map<AtomicAssertion, Boolean> results = new HashMap<>();
+    private final Map<String, Boolean> results = new HashMap<>();
     private boolean passing;
 
     public void addResult(AtomicAssertion assertion, boolean result) {
-        this.results.put(assertion, result);
+        this.results.put(assertion.getId(), result);
     }
 
-    public Map<AtomicAssertion, Boolean> getResults() {
+    public Map<String, Boolean> getResults() {
         return results;
     }
 

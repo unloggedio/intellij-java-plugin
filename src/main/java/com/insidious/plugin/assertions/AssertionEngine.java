@@ -10,23 +10,44 @@ public class AssertionEngine {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public AssertionResult executeAssertions(
-            List<AtomicAssertion> assertions, JsonNode responseNode
+    public static AssertionResult executeAssertions(
+            AtomicAssertion assertion, JsonNode responseNode
     ) throws JsonProcessingException {
         AssertionResult assertionResult = new AssertionResult();
 
-        boolean assertionPassing = true;
-        for (AtomicAssertion assertion : assertions) {
+        AssertionType assertionType = assertion.getAssertionType();
+
+        boolean result;
+        if (assertionType == AssertionType.OR) {
+            result = false;
+            List<AtomicAssertion> subAssertions = assertion.getSubAssertions();
+            for (AtomicAssertion subAssertion : subAssertions) {
+                AssertionResult subResult = AssertionEngine.executeAssertions(subAssertion, responseNode);
+                assertionResult.getResults().putAll(subResult.getResults());
+                result = result || subResult.isPassing();
+            }
+
+        } else if (assertionType == AssertionType.AND) {
+
+            result = true;
+            List<AtomicAssertion> subAssertions = assertion.getSubAssertions();
+            for (AtomicAssertion subAssertion : subAssertions) {
+                AssertionResult subResult = AssertionEngine.executeAssertions(subAssertion, responseNode);
+                assertionResult.getResults().putAll(subResult.getResults());
+                result = result && subResult.isPassing();
+            }
+
+        } else {
             JsonNode assertionActualValue = responseNode.at(assertion.getKey());
             Expression expression = assertion.getExpression();
             JsonNode expressedValue = expression.compute(assertionActualValue);
             JsonNode expectedValue = objectMapper.readTree(assertion.getExpectedValue());
-            boolean result = assertion.getAssertionType().verify(expressedValue, expectedValue);
-            assertionPassing = assertionPassing && result;
-            assertionResult.addResult(assertion, result);
+            result = assertionType.verify(expressedValue, expectedValue);
         }
 
-        assertionResult.setPassing(assertionPassing);
+
+        assertionResult.addResult(assertion, result);
+        assertionResult.setPassing(result);
 
         return assertionResult;
     }
