@@ -1,10 +1,10 @@
 package com.insidious.plugin.ui.Components.AtomicRecord;
 
 import com.insidious.plugin.agent.AgentCommandResponse;
-import com.insidious.plugin.assertions.TestAssertion;
+import com.insidious.plugin.assertions.AssertionType;
+import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.ui.JBColor;
@@ -23,6 +23,7 @@ public class SaveForm extends JFrame {
 
     private final int height = 728;
     private final int width = 1000;
+    private final ButtonGroup radioGroup = new ButtonGroup();
     private CandidateLifeListener listener;
     private JLabel title;
     private JLabel nameLabel;
@@ -33,7 +34,6 @@ public class SaveForm extends JFrame {
     private JButton saveButton;
     private JButton cancelButton;
     private JLabel assertionLabel;
-    private final ButtonGroup radioGroup = new ButtonGroup();
     private StoredCandidate storedCandidate;
     private JRadioButton b1;
     private JRadioButton b2;
@@ -126,7 +126,7 @@ public class SaveForm extends JFrame {
         StoredCandidate candidate = AtomicRecordUtils.createCandidateFor(storedCandidate, agentCommandResponse);
         candidate.setName(name_text);
         candidate.setDescription(description_text);
-        candidate.addTestAssertion(new TestAssertion(type, null, null));
+        candidate.addTestAssertion(new AtomicAssertion(type, "root", ""));
         this.listener.onSaved(candidate);
         this.dispose();
     }

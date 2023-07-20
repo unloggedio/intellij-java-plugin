@@ -1,7 +1,7 @@
 package com.insidious.plugin.pojo.atomic;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.insidious.plugin.assertions.TestAssertion;
+import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.util.TestCandidateUtils;
 import org.jetbrains.annotations.NotNull;
@@ -12,7 +12,7 @@ import java.util.Objects;
 
 public class StoredCandidate implements Comparable<StoredCandidate> {
 
-    private final List<TestAssertion> testAssertions = new ArrayList<>();
+    private final List<AtomicAssertion> testAssertions = new ArrayList<>();
     private String candidateId;
     private String name;
     private String description;
@@ -204,11 +204,11 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.setReturnValueClassname(candidate.getReturnValueClassname());
     }
 
-    public List<TestAssertion> getTestAssertions() {
+    public List<AtomicAssertion> getTestAssertions() {
         return testAssertions;
     }
 
-    public void addTestAssertion(TestAssertion testAssertions) {
+    public void addTestAssertion(AtomicAssertion testAssertions) {
         this.testAssertions.add(testAssertions);
     }
 }
