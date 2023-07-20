@@ -1,8 +1,6 @@
 package com.insidious.plugin.assertions;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Objects;
 
@@ -34,20 +32,20 @@ public enum AssertionType {
         return "not-defined";
     }
 
-    public boolean verify(JsonNode actualValue, String expectedValue) {
+    public boolean verify(JsonNode actualValue, JsonNode expectedValue) {
         switch (this) {
             case EQUAL:
-                return Objects.equals(actualValue.asText(), expectedValue);
+                return Objects.equals(actualValue, expectedValue);
             case NOT_EQUAL:
-                return !Objects.equals(actualValue.asText(), expectedValue);
+                return !Objects.equals(actualValue, expectedValue);
             case FALSE:
                 return Objects.equals(actualValue.asBoolean(), false);
             case TRUE:
                 return Objects.equals(actualValue.asBoolean(), true);
             case LESS_THAN:
-                return actualValue.asDouble() < Double.parseDouble(expectedValue);
+                return actualValue.asDouble() < expectedValue.asDouble();
             case GREATER_THAN:
-                return actualValue.asDouble() > Double.parseDouble(expectedValue);
+                return actualValue.asDouble() > expectedValue.asDouble();
         }
         return false;
     }
