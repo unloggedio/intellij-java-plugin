@@ -31,7 +31,7 @@ public class AtomicAssertion {
 
     public AtomicAssertion(AssertionType assertionType, List<AtomicAssertion> subAssertions) {
         this.expression = Expression.SELF;
-        if (assertionType != AssertionType.OR && assertionType != AssertionType.AND) {
+        if (assertionType != AssertionType.ANYOF && assertionType != AssertionType.ALLOF) {
             // unacceptable
         }
         this.assertionType = assertionType;

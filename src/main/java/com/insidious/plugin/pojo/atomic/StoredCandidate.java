@@ -13,7 +13,7 @@ import java.util.Objects;
 
 public class StoredCandidate implements Comparable<StoredCandidate> {
 
-    private final AtomicAssertion testAssertions = new AtomicAssertion(AssertionType.AND, new ArrayList<>());
+    private final AtomicAssertion testAssertions = new AtomicAssertion(AssertionType.ALLOF, new ArrayList<>());
     private String candidateId;
     private String name;
     private String description;

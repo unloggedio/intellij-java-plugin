@@ -18,7 +18,7 @@ public class AssertionEngine {
         AssertionType assertionType = assertion.getAssertionType();
 
         boolean result;
-        if (assertionType == AssertionType.OR) {
+        if (assertionType == AssertionType.ANYOF) {
             result = false;
             List<AtomicAssertion> subAssertions = assertion.getSubAssertions();
             for (AtomicAssertion subAssertion : subAssertions) {
@@ -27,7 +27,7 @@ public class AssertionEngine {
                 result = result || subResult.isPassing();
             }
 
-        } else if (assertionType == AssertionType.AND) {
+        } else if (assertionType == AssertionType.ALLOF) {
 
             result = true;
             List<AtomicAssertion> subAssertions = assertion.getSubAssertions();
@@ -35,6 +35,17 @@ public class AssertionEngine {
                 AssertionResult subResult = AssertionEngine.executeAssertions(subAssertion, responseNode);
                 assertionResult.getResults().putAll(subResult.getResults());
                 result = result && subResult.isPassing();
+            }
+
+        } else if (assertionType == AssertionType.NOT) {
+
+            result = true;
+
+            List<AtomicAssertion> subAssertions = assertion.getSubAssertions();
+            for (AtomicAssertion subAssertion : subAssertions) {
+                AssertionResult subResult = AssertionEngine.executeAssertions(subAssertion, responseNode);
+                assertionResult.getResults().putAll(subResult.getResults());
+                result = !subResult.isPassing();
             }
 
         } else {

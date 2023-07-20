@@ -5,8 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Objects;
 
 public enum AssertionType {
-    AND,
-    OR,
+    ALLOF,
+    ANYOF,
+    NOT,
     EQUAL,
     NOT_EQUAL,
     FALSE,
@@ -18,10 +19,12 @@ public enum AssertionType {
     public String toString() {
         switch (this) {
 
-            case OR:
+            case ANYOF:
                 return "or";
-            case AND:
+            case ALLOF:
                 return "and";
+            case NOT:
+                return "NOT";
             case EQUAL:
                 return "equals";
             case NOT_EQUAL:
