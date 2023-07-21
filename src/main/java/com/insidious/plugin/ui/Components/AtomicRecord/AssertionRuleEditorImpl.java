@@ -58,7 +58,6 @@ public class AssertionRuleEditorImpl implements AssertionRuleEditor{
     @Override
     public void removeAssertionBlock(AssertionBlock assertionBlock) {
         AssertionBlockElement element = getBlockElementByPanel(assertionBlock.getMainPanel());
-        System.out.println("INDEX OF BLOCK TO DELETE : "+assertionElements.indexOf(element));
         if(assertionElements.indexOf(element)>0)
         {
             //remove above condition

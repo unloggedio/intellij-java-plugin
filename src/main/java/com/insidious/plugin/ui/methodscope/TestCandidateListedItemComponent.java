@@ -9,6 +9,7 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.util.ClassUtils;
+import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
@@ -88,13 +89,11 @@ public class TestCandidateListedItemComponent {
         executeLabel.setIcon(UIUtils.EXECUTE_COMPONENT);
         statusLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         executeLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        mainPanel.setSize(new Dimension(-1, Math.max(150, 45 * method.getParameters().length)));
         mainPanel.addMouseListener(new MouseAdapter() {
 
             @Override
             public void mouseClicked(MouseEvent e) {
                 candidateSelectedListener.onCandidateSelected(candidateMetadata);
-//                listener.displayResponse(responseComponent);
             }
         });
     }
@@ -107,12 +106,6 @@ public class TestCandidateListedItemComponent {
         return candidateMetadata;
     }
 
-//    private void displayResponse() {
-//        if (this.responseComponent != null) {
-//            this.listener.displayResponse(this.responseComponent);
-//        }
-//    }
-
     private void loadInputTree() {
         this.mainContentPanel.removeAll();
         DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
@@ -123,13 +116,11 @@ public class TestCandidateListedItemComponent {
             inputRoot.add(node);
         } else {
             for (String key : methodArgumentNames) {
-                DefaultMutableTreeNode node = buildJsonTree(this.parameterMap.get(key), key);
+                DefaultMutableTreeNode node = JsonTreeUtils.buildJsonTree(this.parameterMap.get(key), key);
                 inputRoot.add(node);
             }
         }
 
-//        GridConstraints constraints = new GridConstraints();
-//        constraints.setRow(1);
         JTree inputTree = new Tree(inputRoot);
         inputTree.setBorder(JBUI.Borders.empty());
         inputTree.addTreeSelectionListener(new TreeSelectionListener() {
@@ -139,9 +130,6 @@ public class TestCandidateListedItemComponent {
             }
         });
 
-//        for(int i = inputTree.getRowCount() - 1; i >= 0; i--){
-//            inputTree.collapseRow(i);
-//        }
 
         inputTree.setCellRenderer(new IOTreeCellRenderer());
         inputTree.setRootVisible(false);
@@ -157,10 +145,6 @@ public class TestCandidateListedItemComponent {
             desiredHeight = 220;
         }
         Dimension preferredSize = new Dimension(-1, desiredHeight);
-
-//        mainContentPanel.setPreferredSize(preferredSize);
-//        mainContentPanel.setMaximumSize(preferredSize);
-//        gridLayout.preferredLayoutSize(mainContentPanel);
 
         inputTree.setSize(new Dimension(-1, desiredHeight));
         inputTree.setMaximumSize(new Dimension(-1, desiredHeight));
@@ -185,59 +169,6 @@ public class TestCandidateListedItemComponent {
 
         mainContentPanel.revalidate();
         mainContentPanel.repaint();
-    }
-
-    private DefaultMutableTreeNode buildJsonTree(String source, String name) {
-        if (source.startsWith("{")) {
-            return handleObject(new JSONObject(source), new DefaultMutableTreeNode(name));
-        } else if (source.startsWith("[")) {
-            return handleArray(new JSONArray(source), new DefaultMutableTreeNode(name));
-        } else {
-            return new DefaultMutableTreeNode(name + " = " + source);
-        }
-    }
-
-    private DefaultMutableTreeNode handleObject(JSONObject json, DefaultMutableTreeNode root) {
-        Set<String> keys = json.keySet();
-        for (String key : keys) {
-            String valueTemp = json.get(key)
-                    .toString();
-            if (valueTemp.startsWith("{")) {
-                //obj in obj
-                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(key);
-                JSONObject subObj = new JSONObject(valueTemp);
-                handleObject(subObj, thisKey);
-                root.add(thisKey);
-            } else if (valueTemp.startsWith("[")) {
-                //list
-                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(key);
-                JSONArray subObjArray = new JSONArray(valueTemp);
-                handleArray(subObjArray, thisKey);
-                root.add(thisKey);
-            } else {
-                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(key + " : " + valueTemp);
-                root.add(thisKVpair);
-            }
-        }
-        return root;
-    }
-
-    private DefaultMutableTreeNode handleArray(JSONArray json, DefaultMutableTreeNode root) {
-        for (int i = 0; i < json.length(); i++) {
-            String valueTemp = json.get(i)
-                    .toString();
-            if (valueTemp.startsWith("{")) {
-                //obj in obj
-                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(i + " : ");
-                JSONObject subObj = new JSONObject(valueTemp);
-                handleObject(subObj, thisKey);
-                root.add(thisKey);
-            } else {
-                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(i + " : " + valueTemp);
-                root.add(thisKVpair);
-            }
-        }
-        return root;
     }
 
     public Map<String, String> getParameterMap() {
