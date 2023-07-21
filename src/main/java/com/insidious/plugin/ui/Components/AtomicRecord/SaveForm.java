@@ -167,7 +167,6 @@ public class SaveForm extends JFrame {
     private void printRuleSet() {
         System.out.println("RULE SET : "+ruleEditor.getRuleSet());
         System.out.println("METADATA SET : "+metadataPanel.getPayload());
-
         triggerSave();
     }
 
@@ -199,7 +198,6 @@ public class SaveForm extends JFrame {
             return source.trim();
         }
     }
-
 
     private void setInfo() {
         boolean updated = false;
