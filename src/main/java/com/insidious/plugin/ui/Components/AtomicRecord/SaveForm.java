@@ -6,7 +6,15 @@ import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.AtomicRecordUtils;
+import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.project.Project;
+import com.intellij.psi.JavaPsiFacade;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiField;
+import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.util.PsiUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
@@ -14,7 +22,10 @@ import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import javax.swing.border.LineBorder;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -40,8 +51,8 @@ public class SaveForm extends JFrame {
     private JRadioButton b1;
     private JRadioButton b2;
     private AgentCommandResponse<String> agentCommandResponse;
-
     private AssertionRuleEditorImpl ruleEditor = new AssertionRuleEditorImpl();
+    private SaveFormMetadataPanel metadataPanel;
 
     //AgentCommandResponse is necessary for update flow and Assertions as well
     public SaveForm(StoredCandidate storedCandidate,
@@ -64,9 +75,19 @@ public class SaveForm extends JFrame {
         title.setLocation(25, 10);
         c.add(title);
 
-        JTree candidateExplorerTree = new Tree(getMockTree());
+        JTree candidateExplorerTree = new Tree(getTree());
         JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
         treeParent.setBorder(JBUI.Borders.empty());
+
+        candidateExplorerTree.addTreeSelectionListener(new TreeSelectionListener() {
+            public void valueChanged(TreeSelectionEvent e) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode)
+                        candidateExplorerTree.getLastSelectedPathComponent();
+                if (node == null) return;
+                TreeNode[] nodes = node.getPath();
+                System.out.println("SELECTED NODE : "+JsonTreeUtils.getFlatMap(nodes));
+            }
+        });
 
         JPanel treeViewer = new JPanel();
         treeViewer.setLayout(new BoxLayout(treeViewer, BoxLayout.Y_AXIS));
@@ -79,11 +100,13 @@ public class SaveForm extends JFrame {
         treeViewer.add(treeParent);
         c.add(treeViewer);
 
-        JPanel metadataPanel = new SaveFormMetadataPanel().getMainPanel();
-        metadataPanel.setLocation(595, 50);
-        metadataPanel.setSize(380, 260);
-        metadataPanel.setBorder(new LineBorder(JBColor.CYAN));
-        c.add(metadataPanel);
+        metadataPanel = new SaveFormMetadataPanel(new MetadataViewPayload(storedCandidate.getName(),
+                storedCandidate.getDescription(),
+                storedCandidate.getMetadata()));
+        metadataPanel.getMainPanel().setLocation(595, 50);
+        metadataPanel.getMainPanel().setSize(380, 260);
+        metadataPanel.getMainPanel().setBorder(new LineBorder(JBColor.CYAN));
+        c.add(metadataPanel.getMainPanel());
 
         JScrollPane editorPanel = getEditorPanel();
         editorPanel.setBorder(new LineBorder(JBColor.RED));
@@ -115,7 +138,8 @@ public class SaveForm extends JFrame {
 
         cancelButton.addActionListener(e -> SaveForm.this.dispose());
         c.add(cancelButton);
-        mockOpenRules();
+        setInfo();
+        //mockOpenRules();
     }
 
     private void mockOpenRules()
@@ -142,20 +166,24 @@ public class SaveForm extends JFrame {
 
     private void printRuleSet() {
         System.out.println("RULE SET : "+ruleEditor.getRuleSet());
+        System.out.println("METADATA SET : "+metadataPanel.getPayload());
+        triggerSave();
     }
 
     private void triggerSave() {
-        String name_text = prepareString(nameField.getText());
-        String description_text = prepareString(description.getText());
+        MetadataViewPayload payload = metadataPanel.getPayload();
+        String name_text = prepareString(payload.getName());
+        String description_text = prepareString(payload.getDescription());
         ButtonModel model = radioGroup.getSelection();
         AssertionType type = AssertionType.EQUAL;
-        if (model.getActionCommand().equals("Assert Not Equals")) {
-            type = AssertionType.NOT_EQUAL;
-        }
+//        if (model.getActionCommand().equals("Assert Not Equals")) {
+//            type = AssertionType.NOT_EQUAL;
+//        }
         //this call is necessary
         //Required if we cancel update/save
         //Required for upcoming assertion flows as well
         StoredCandidate candidate = AtomicRecordUtils.createCandidateFor(storedCandidate, agentCommandResponse);
+        candidate.setMetadata(payload.getStoredCandidateMetadata());
         candidate.setName(name_text);
         candidate.setDescription(description_text);
         candidate.addTestAssertion(new AtomicAssertion(type, "root", ""));
@@ -171,18 +199,15 @@ public class SaveForm extends JFrame {
         }
     }
 
-
     private void setInfo() {
         boolean updated = false;
         String name = storedCandidate.getName();
         String description = storedCandidate.getDescription();
 
         if (name != null) {
-            this.nameField.setText(name);
             updated = true;
         }
         if (description != null) {
-            this.description.setText(description);
             updated = true;
         }
         if (updated) {
@@ -199,6 +224,19 @@ public class SaveForm extends JFrame {
             left += ".../unlogged/";
             return left;
         }
+    }
+
+    public DefaultMutableTreeNode getTree()
+    {
+        return JsonTreeUtils.buildJsonTree(agentCommandResponse.getMethodReturnValue()
+                ,getSimpleName(agentCommandResponse.getResponseClassName()));
+    }
+
+    private String getSimpleName(String qualifiedName)
+    {
+        String[] parts = qualifiedName.split("\\.");
+        String simpleName = parts.length>0 ? parts[parts.length-1] : qualifiedName;
+        return simpleName.toLowerCase();
     }
 
     private DefaultMutableTreeNode getMockTree() {

@@ -19,6 +19,7 @@ import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
@@ -41,7 +42,6 @@ import java.util.stream.Collectors;
 public class MethodExecutorComponent implements MethodExecutionListener, CandidateSelectedListener, CandidateLifeListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
     private final InsidiousService insidiousService;
-
     private final Map<Long, AgentCommandResponse<String>> candidateResponseMap = new HashMap<>();
     private final JPanel gridPanel;
     private final Map<Long, TestCandidateListedItemComponent> candidateComponentMap = new HashMap<>();
@@ -609,5 +609,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     @Override
     public String getSaveLocation() {
         return insidiousService.getAtomicRecordService().getSaveLocation();
+    }
+
+    @Override
+    public Project getProject() {
+        return insidiousService.getProject();
     }
 }

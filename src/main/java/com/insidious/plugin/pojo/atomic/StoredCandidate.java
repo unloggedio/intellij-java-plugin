@@ -6,6 +6,7 @@ import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.util.TestCandidateUtils;
 import org.jetbrains.annotations.NotNull;
+import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +43,8 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.setProbSerializedValue(candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue());
         this.setEntryProbeIndex(generateIdentifier(candidateMetadata));
         StoredCandidateMetadata metadata = new StoredCandidateMetadata();
+        metadata.setHostMachineName(HOSTNAME);
+        metadata.setRecordedBy(HOSTNAME);
         metadata.setTimestamp(candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt());
         this.setMetadata(metadata);
     }
