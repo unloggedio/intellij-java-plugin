@@ -50,8 +50,11 @@
               <component id="613e7" class="javax.swing.JTextArea" binding="descriptionText">
                 <constraints/>
                 <properties>
+                  <lineWrap value="true"/>
+                  <margin top="4" left="4" bottom="4" right="4"/>
                   <minimumSize width="1" height="60"/>
                   <preferredSize width="1" height="60"/>
+                  <wrapStyleWord value="true"/>
                 </properties>
               </component>
             </children>
