@@ -18,6 +18,8 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SaveForm extends JFrame {
 
@@ -39,6 +41,8 @@ public class SaveForm extends JFrame {
     private JRadioButton b2;
     private AgentCommandResponse<String> agentCommandResponse;
 
+    private AssertionRuleEditorImpl ruleEditor = new AssertionRuleEditorImpl();
+
     //AgentCommandResponse is necessary for update flow and Assertions as well
     public SaveForm(StoredCandidate storedCandidate,
                     AgentCommandResponse<String> agentCommandResponse,
@@ -47,7 +51,7 @@ public class SaveForm extends JFrame {
         this.listener = listener;
         this.agentCommandResponse = agentCommandResponse;
         setTitle("Unlogged Inc.");
-        setBounds(400, 100, width, height);
+        setBounds(200, 50, width, height);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setResizable(false);
 
@@ -100,6 +104,7 @@ public class SaveForm extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 //triggerSave();
+                printRuleSet();
             }
         });
         c.add(saveButton);
@@ -110,6 +115,33 @@ public class SaveForm extends JFrame {
 
         cancelButton.addActionListener(e -> SaveForm.this.dispose());
         c.add(cancelButton);
+        mockOpenRules();
+    }
+
+    private void mockOpenRules()
+    {
+        List<AssertionBlockElement> elements = new ArrayList<>();
+        elements.add(new AssertionBlockElement(AssertionBlockElement.AssertionBlockElementType.RULE,
+                null,generateBlock(),null));
+        elements.add(new AssertionBlockElement(AssertionBlockElement.AssertionBlockElementType.CONNECTOR,
+                "OR",null,null));
+        elements.add(new AssertionBlockElement(AssertionBlockElement.AssertionBlockElementType.RULE,
+                null,generateBlock(),null));
+        ruleEditor.openSavedRules(elements);
+    }
+
+    private AssertionBlockModel generateBlock()
+    {
+        List<RuleData> ruleData = new ArrayList<>();
+        ruleData.add(new RuleData("Where","mock2","equals","e",null));
+        ruleData.add(new RuleData("AND",null,"equals",null,null));
+        ruleData.add(new RuleData("OR","mock3",null,null,null));
+        AssertionBlockModel model = new AssertionBlockModel(0,ruleData);
+        return model;
+    }
+
+    private void printRuleSet() {
+        System.out.println("RULE SET : "+ruleEditor.getRuleSet());
     }
 
     private void triggerSave() {
@@ -190,14 +222,9 @@ public class SaveForm extends JFrame {
 
     //wip
     private JScrollPane getEditorPanel() {
-        JPanel assertionPanel = new JPanel();
-        assertionPanel.setLayout(new BoxLayout(assertionPanel, BoxLayout.Y_AXIS));
+        JPanel editor = ruleEditor.getMainPanel();
 
-        JPanel defaultPanel = new JPanel();
-        defaultPanel.add(new JLabel("Test label"));
-        assertionPanel.add(defaultPanel);
-
-        JScrollPane scrollPane = new JBScrollPane(assertionPanel);
+        JScrollPane scrollPane = new JBScrollPane(editor);
         scrollPane.setLocation(25, 320);
         scrollPane.setSize(950, 310);
         return scrollPane;
