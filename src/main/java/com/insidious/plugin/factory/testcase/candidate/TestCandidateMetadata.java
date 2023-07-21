@@ -19,6 +19,11 @@ public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> 
     private long entryProbeIndex;
     private long exitProbeIndex;
     private boolean isUIselected = false;
+    private List<Integer> lineNumbers;
+
+    public List<Integer> getLineNumbers() {
+        return lineNumbers;
+    }
 
     public boolean isUIselected() {
         return isUIselected;
@@ -136,5 +141,9 @@ public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> 
     @Override
     public int compareTo(@NotNull TestCandidateMetadata o) {
         return Long.compare(this.entryProbeIndex, o.entryProbeIndex);
+    }
+
+    public void setLines(List<Integer> lineNumbers) {
+        this.lineNumbers = lineNumbers;
     }
 }

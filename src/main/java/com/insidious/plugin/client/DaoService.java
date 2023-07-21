@@ -6,15 +6,15 @@ import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.Descriptor;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.Constants;
-import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.TestAssertion;
+import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.dao.*;
-import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.Strings;
 import com.intellij.notification.NotificationType;
@@ -571,7 +571,7 @@ public class DaoService {
         List<MethodDefinition> methodDefinitionList = methodDefinitionsResultSet.getResults();
 
         methodDefinitionsResultSet.close();
-        Map<Long, MethodDefinition> methodDefinitionMap = methodDefinitionList.stream()
+        Map<Integer, MethodDefinition> methodDefinitionMap = methodDefinitionList.stream()
                 .collect(Collectors.toMap(MethodDefinition::getId, e -> e));
 
         for (MethodCallExpressionInterface methodCallExpression : mceList) {
@@ -1519,6 +1519,15 @@ public class DaoService {
         try {
             methodDefinitionsDao.executeRaw("delete from method_definition");
             methodDefinitionsDao.create(methodDefinitions);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<MethodDefinition> getAllMethodDefinitions() {
+        try {
+            return methodDefinitionsDao.queryForAll();
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException(e);

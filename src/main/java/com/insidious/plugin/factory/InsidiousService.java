@@ -39,7 +39,7 @@ import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
-import com.insidious.plugin.ui.testgenerator.LiveViewWindow;
+//import com.insidious.plugin.ui.testgenerator.LiveViewWindow;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
@@ -142,7 +142,6 @@ final public class InsidiousService implements Disposable,
     private VideobugClientInterface client;
     private Module currentModule;
     private ToolWindow toolWindow;
-    private LiveViewWindow liveViewWindow;
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
     private boolean liveViewAdded = false;
@@ -676,10 +675,10 @@ final public class InsidiousService implements Disposable,
 //        contentManager.addContent(gptContent);
 
         // test candidate list by packages
-        liveViewWindow = new LiveViewWindow(project);
-        liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
-        liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        liveWindowContent.setIcon(UIUtils.TEST_CASES_ICON_PINK);
+//        liveViewWindow = new LiveViewWindow(project);
+//        liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
+//        liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+//        liveWindowContent.setIcon(UIUtils.TEST_CASES_ICON_PINK);
         //contentManager.addContent(liveWindowContent);
 
 //        contentManager.addContent(onboardingConfigurationWindowContent);
@@ -737,23 +736,23 @@ final public class InsidiousService implements Disposable,
         rawViewAdded = true;
     }
 
-    public void addLiveView() {
-        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
-        if (!liveViewAdded) {
-            toolWindow.getContentManager().addContent(liveWindowContent);
-            toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
-            liveViewAdded = true;
-            try {
-                liveViewWindow.setTreeStateToLoading();
-                liveViewWindow.loadInfoBanner();
-            } catch (Exception e) {
-                //exception setting state
-                logger.error("Failed to start scan after proceed.");
-            }
-        } else {
-            toolWindow.getContentManager().setSelectedContent(liveWindowContent);
-        }
-    }
+//    public void addLiveView() {
+//        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
+//        if (!liveViewAdded) {
+//            toolWindow.getContentManager().addContent(liveWindowContent);
+//            toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
+//            liveViewAdded = true;
+//            try {
+//                liveViewWindow.setTreeStateToLoading();
+//                liveViewWindow.loadInfoBanner();
+//            } catch (Exception e) {
+//                //exception setting state
+//                logger.error("Failed to start scan after proceed.");
+//            }
+//        } else {
+//            toolWindow.getContentManager().setSelectedContent(liveWindowContent);
+//        }
+//    }
 
 
     public boolean moduleHasFileOfType(String module, String key) {

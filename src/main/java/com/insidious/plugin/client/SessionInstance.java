@@ -16,6 +16,7 @@ import com.insidious.common.parser.KaitaiInsidiousIndexParser;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.Constants;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
@@ -23,7 +24,6 @@ import com.insidious.plugin.client.pojo.ArchiveFilesIndex;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.NameWithBytes;
-import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.TestCandidateReceiver;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -101,6 +101,8 @@ public class SessionInstance {
     private final Map<Long, com.insidious.plugin.pojo.dao.MethodCallExpression> methodCallMap = new HashMap<>();
     private final Map<Long, String> methodCallSubjectTypeMap = new HashMap<>();
     private final String processorId;
+    private final Map<Integer, Integer> methodLineCount = new HashMap<>();
+    private final Map<Integer, Boolean> methodUsesFields = new HashMap<>();
     private boolean scanEnable = false;
     private List<File> sessionArchives = new ArrayList<>();
     private ArchiveIndex archiveIndex;
@@ -350,133 +352,6 @@ public class SessionInstance {
         return sessionFiles;
     }
 
-    private void refreshWeaveInformation(KaitaiInsidiousClassWeaveParser classWeaveInfo) throws IOException {
-        AtomicInteger counter = new AtomicInteger(0);
-        final long totalClassCount = classWeaveInfo.classInfo()
-                .size();
-        checkProgressIndicator("Loading class mappings to scan events", null);
-
-        List<MethodDefinition> methodDefinitionList = new ArrayList<>();
-        List<ClassDefinition> classDefinitionList = new ArrayList<>();
-        for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
-            int current = counter.addAndGet(1);
-            checkProgressIndicator(null, "Loading " + current + " / " + 1 + " class information");
-
-            ClassInfo existingClassInfo = classInfoIndex.get((int) classInfo.classId());
-            if (existingClassInfo != null) {
-                continue;
-            }
-
-            ClassInfo classInfo1 = KaitaiUtils.toClassInfo(classInfo);
-
-
-            final String className = classInfo.className().value();
-
-            List<DataInfo> dataInfoList = classInfo.probeList()
-                    .stream()
-                    .map(KaitaiUtils::toDataInfo)
-                    .collect(Collectors.toList());
-
-            Map<Integer, List<DataInfo>> dataInfoByMethodId = dataInfoList.stream()
-                    .collect(Collectors.groupingBy(DataInfo::getMethodId,
-                            Collectors.toList()));
-
-            List<MethodInfo> methodInfoStream = classInfo.methodList()
-                    .stream()
-                    .map(methodInfo -> KaitaiUtils.toMethodInfo(methodInfo, className))
-                    .collect(Collectors.toList());
-            Map<Integer, MethodInfo> methodInfoMap = methodInfoStream.stream()
-                    .collect(Collectors.toMap(MethodInfo::getMethodId, e -> e));
-
-            Map<String, MethodInfo> methodByNameMap = methodInfoStream.stream()
-                    .collect(Collectors.toMap(e -> e.getClassName() + e.getMethodName() + e.getMethodDesc(), e -> e));
-            methodInfoIndex.putAll(methodInfoMap);
-            methodInfoByNameIndex.putAll(methodByNameMap);
-
-            boolean isEnum = false;
-            boolean isPojo = true;
-            if (methodInfoMap.size() == 0) {
-                // ?
-                isPojo = false;
-            }
-            int getterCount = 0;
-            int setterCount = 0;
-            for (MethodInfo methodInfo : methodInfoMap.values()) {
-                String methodName = methodInfo.getMethodName();
-                if (methodName.equals("values") && methodInfo.getMethodDesc()
-                        .equals("()[L" + methodInfo.getClassName() + ";") && methodInfo.getAccess() == 9) {
-                    isEnum = true;
-                }
-                if (methodName.startsWith("set")) {
-                    setterCount++;
-                }
-                if (methodName.startsWith("get") || methodName.startsWith("is")) {
-                    getterCount++;
-                }
-                if (methodName.startsWith("set")
-                        || methodName.startsWith("get")
-                        || methodName.startsWith("is")) {
-                    List<DataInfo> methodProbes = dataInfoByMethodId.get(methodInfo.getMethodId());
-                    Optional<DataInfo> hasCallEvent = methodProbes.stream()
-                            .filter(e -> e.getEventType()
-                                    .equals(CALL))
-                            .findAny();
-                    if (hasCallEvent.isPresent()) {
-                        isPojo = false;
-                    }
-                } else {
-                    if (methodName.equals("toString") && !classInfo1.getFilename()
-                            .equals("<generated>")) {
-                        isPojo = true;
-                        classInfo1.setPojo(isPojo);
-                        break;
-                    } else if (methodName.equals("equals")
-                            || methodName.equals("canEqual")
-                            || methodName.equals("hashCode")
-                            || methodName.startsWith("<")) {
-                    } else {
-                        List<String> descriptorItemsList = ClassTypeUtils.splitMethodDesc(
-                                methodInfo.getMethodDesc());
-                        if (descriptorItemsList.size() > 1) {
-                            isPojo = false;
-                        }
-                    }
-                }
-            }
-            if (getterCount > 0 && setterCount > 0 && !classInfo1.getFilename()
-                    .equals("<generated>")) {
-                classInfo1.setPojo(isPojo);
-            }
-            classInfo1.setEnum(isEnum);
-            classInfoIndex.put(classInfo1.getClassId(), classInfo1);
-            classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()), classInfo1);
-
-            for (MethodInfo value : methodInfoMap.values()) {
-                MethodDefinition methodDefinition = MethodDefinition.fromMethodInfo(value, classInfo1, false);
-                for (int i = 0; i < dataInfoList.size(); i++) {
-                    DataInfo dataInfo = dataInfoList.get(i);
-                    if (dataInfo.getEventType() == CALL) {
-                        if (dataInfoList.get(i - 1).getEventType() == GET_INSTANCE_FIELD_RESULT
-                                || dataInfoList.get(i - 1).getEventType() == GET_STATIC_FIELD) {
-                            methodDefinition.setUsesFields(true);
-                            break;
-                        }
-                    }
-                }
-
-                methodDefinitionList.add(methodDefinition);
-            }
-            classDefinitionList.add(ClassDefinition.fromClassInfo(classInfo1));
-
-            Map<Integer, DataInfo> probesMap = dataInfoList.stream()
-                    .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
-            probeInfoIndex.putAll(probesMap);
-        }
-
-        daoService.createOrUpdateClassDefinitions(classDefinitionList);
-        daoService.createOrUpdateMethodDefinitions(methodDefinitionList);
-        classWeaveInfo._io().close();
-    }
 
     private void refreshWeaveInformationStream(String fileName) throws IOException {
         long start = new Date().getTime();
@@ -484,18 +359,16 @@ public class SessionInstance {
 
         checkProgressIndicator("Loading class mappings to scan events", null);
 
-//        FileInputStream classWeaverReader = new FileInputStream(fileName);
-//        ByteBuffer wrap = ByteBuffer.wrap(classWeaverReader.readAllBytes());
         ByteBufferKaitaiStream kaitaiStream = new ByteBufferKaitaiStream(fileName);
         KaitaiInsidiousClassWeaveParser classWeaveInfo = new KaitaiInsidiousClassWeaveParser(kaitaiStream);
-//        classWeaverReader.close();
-//        logger.warn(
-//                "reading class weave info took: " + (new Date().getTime() - start) + " ms => "
-//                        + classWeaveInfo.classInfo().size() + " classes");
-//        long totalClassCount = classWeaveInfo.classInfo().size();
 
         Map<Integer, DataInfo> probeListCache = new HashMap<>();
-        while(true) {
+
+        List<MethodDefinition> existingMethodDefinitions = daoService.getAllMethodDefinitions();
+        Map<Integer, MethodDefinition> methodDefinitionMap = existingMethodDefinitions.stream()
+                .collect(Collectors.toMap(e -> (int) e.getId(), e -> e));
+
+        while (true) {
             KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = classWeaveInfo.nextClass();
             if (classInfo == null) {
                 break;
@@ -519,8 +392,7 @@ public class SessionInstance {
                     .collect(Collectors.toList());
 
             Map<Integer, List<DataInfo>> dataInfoByMethodId = dataInfoList.stream()
-                    .collect(Collectors.groupingBy(DataInfo::getMethodId,
-                            Collectors.toList()));
+                    .collect(Collectors.groupingBy(DataInfo::getMethodId, Collectors.toList()));
 
             List<MethodInfo> methodInfoStream = classInfo.methodList()
                     .stream()
@@ -531,7 +403,6 @@ public class SessionInstance {
 
             Map<String, MethodInfo> methodByNameMap = methodInfoStream.stream()
                     .collect(Collectors.toMap(e -> e.getClassName() + e.getMethodName() + e.getMethodDesc(), e -> e));
-            methodInfoIndex.putAll(methodInfoMap);
             methodInfoByNameIndex.putAll(methodByNameMap);
 
             boolean isEnum = false;
@@ -544,8 +415,9 @@ public class SessionInstance {
             int setterCount = 0;
             for (MethodInfo methodInfo : methodInfoMap.values()) {
                 String methodName = methodInfo.getMethodName();
-                if (methodName.equals("values") && methodInfo.getMethodDesc()
-                        .equals("()[L" + methodInfo.getClassName() + ";") && methodInfo.getAccess() == 9) {
+                if (methodName.equals("values") &&
+                        methodInfo.getMethodDesc().equals("()[L" + methodInfo.getClassName() + ";") &&
+                        methodInfo.getAccess() == 9) {
                     isEnum = true;
                 }
                 if (methodName.startsWith("set")) {
@@ -559,8 +431,7 @@ public class SessionInstance {
                         || methodName.startsWith("is")) {
                     List<DataInfo> methodProbes = dataInfoByMethodId.get(methodInfo.getMethodId());
                     Optional<DataInfo> hasCallEvent = methodProbes.stream()
-                            .filter(e -> e.getEventType()
-                                    .equals(CALL))
+                            .filter(e -> e.getEventType().equals(CALL))
                             .findAny();
                     if (hasCallEvent.isPresent()) {
                         isPojo = false;
@@ -593,23 +464,23 @@ public class SessionInstance {
             classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()), classInfo1);
 
             for (MethodInfo value : methodInfoMap.values()) {
-                MethodDefinition methodDefinition = MethodDefinition.fromMethodInfo(value, classInfo1, false);
-                for (int i = 0; i < dataInfoList.size(); i++) {
-                    DataInfo dataInfo = dataInfoList.get(i);
-                    if (dataInfo.getEventType() == CALL) {
-                        if (dataInfoList.get(i - 1)
-                                .getEventType() == GET_INSTANCE_FIELD_RESULT
-                                || dataInfoList.get(i - 1)
-                                .getEventType() == GET_STATIC_FIELD) {
-                            methodDefinition.setUsesFields(true);
-                            break;
-                        }
+                List<DataInfo> methodProbes = dataInfoByMethodId.get(value.getMethodId());
+                Set<Integer> lineNumbers = new HashSet<>();
+                for (int i = 0; i < methodProbes.size(); i++) {
+                    DataInfo dataInfo = methodProbes.get(i);
+                    int line = dataInfo.getLine();
+                    if (line != 0 && line != -1) {
+                        lineNumbers.add(line);
+                    }
+                    if (dataInfoList.get(i).getEventType() == GET_INSTANCE_FIELD_RESULT ||
+                            dataInfoList.get(i).getEventType() == GET_STATIC_FIELD) {
+                        methodUsesFields.put(value.getMethodId(), true);
                     }
                 }
-
-//                methodDefinitionList.add(methodDefinition);
+                methodLineCount.put(value.getMethodId(), lineNumbers.size());
             }
-//            classDefinitionList.add(ClassDefinition.fromClassInfo(classInfo1));
+
+            methodInfoIndex.putAll(methodInfoMap);
 
             Map<Integer, DataInfo> probesMap = dataInfoList.stream()
                     .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
@@ -628,7 +499,16 @@ public class SessionInstance {
                 .map(ClassDefinition::fromClassInfo)
                 .collect(Collectors.toList()));
         daoService.createOrUpdateMethodDefinitions(methodInfoIndex.values().stream()
-                .map(e -> MethodDefinition.fromMethodInfo(e, classInfoIndex.get(e.getClassId()), false))
+                .map(e -> {
+                    MethodDefinition existingMethodDefinition = methodDefinitionMap.get(e.getMethodId());
+                    return MethodDefinition.fromMethodInfo(e,
+                            classInfoIndex.get(e.getClassId()),
+                            methodUsesFields.getOrDefault(e.getMethodId(),
+                                    existingMethodDefinition != null && existingMethodDefinition.isUsesFields()),
+                            methodLineCount.getOrDefault(e.getMethodId(),
+                                    existingMethodDefinition != null ? existingMethodDefinition.getLineCount() : 0));
+                        }
+                )
                 .collect(Collectors.toList()));
         classWeaveInfo._io().close();
         long end = new Date().getTime();
@@ -2315,6 +2195,10 @@ public class SessionInstance {
             // this happens when multiple ide windows open, so each one creates a sessionInstance
             return;
         }
+        if (probeInfoIndex == null) {
+            logger.warn("probe info index is not ready: " + this.executionSession.getPath());
+            return;
+        }
         if (isSessionCorrupted) {
             logger.warn("session is corrupted, not scanning new files: " + project.getName());
             if (!hasShownCorruptedNotification) {
@@ -2567,6 +2451,10 @@ public class SessionInstance {
                         //nothing
                 }
                 continue;
+            }
+            int line = probeInfo.getLine();
+            if (threadState.getCallStackSize() != 0 && line != 0) {
+                threadState.getTopCandidate().addLineCovered(line);
             }
             switch (probeInfo.getEventType()) {
 
@@ -3471,8 +3359,7 @@ public class SessionInstance {
                             probeInfo.getAttribute("Type", "V"));
                     threadState.pushNextNewObjectType(nextNewObjectType);
                     if (nextNewObjectType.equals("java.util.Date")) {
-                        threadState.getTopCall()
-                                .setUsesFields(true);
+                        threadState.getTopCall().setUsesFields(true);
                     }
                     break;
                 case NEW_OBJECT_CREATED:
