@@ -56,7 +56,7 @@
                   <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
-                  <text value="2. Add @Unlogged just above your project’s main method."/>
+                  <text value="&lt;html&gt;2. Add &lt;b&gt;@Unlogged just above your project’s main method&lt;/b&gt;.&lt;/html&gt;"/>
                 </properties>
               </component>
               <component id="fb4e3" class="javax.swing.JButton" binding="discordButton">
@@ -173,7 +173,7 @@
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="10" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <text value="1. Add Unlogged SDK to your pom.xml"/>
+                          <text value="&lt;html&gt;1. Add &lt;b&gt;Unlogged SDK&lt;/b&gt; to your &lt;b&gt;pom.xml&lt;/b&gt;.&lt;/html&gt;"/>
                         </properties>
                       </component>
                     </children>
@@ -228,7 +228,7 @@
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="10" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <text value="1. Add Unlogged SDK to your build.gradle"/>
+                          <text value="&lt;html&gt;1. Add &lt;b&gt;Unlogged SDK&lt;/b&gt; to your &lt;b&gt;build.gradle&lt;/b&gt;.&lt;/html&gt;"/>
                         </properties>
                       </component>
                     </children>
@@ -252,7 +252,7 @@
                   <grid row="5" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
-                  <text value="3. Run mvn clean package or gradle clean build, then run your code in Debug mode."/>
+                  <text value="&lt;html&gt;3. Run &lt;b&gt;mvn clean package&lt;/b&gt; or &lt;b&gt;gradle clean build&lt;/b&gt;, then run your code in &lt;b&gt;Debug mode&lt;/b&gt;.&lt;/html&gt;"/>
                 </properties>
               </component>
               <component id="bec2a" class="javax.swing.JSeparator">

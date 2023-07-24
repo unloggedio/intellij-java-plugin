@@ -1,8 +1,10 @@
 package com.insidious.plugin.ui.GutterClickNavigationStates;
 
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.notification.NotificationType;
 
 import javax.swing.*;
 import java.awt.*;
@@ -31,7 +33,6 @@ public class UnloggedSDKOnboarding {
     private InsidiousService insidiousService;
     private enum PROJECT_TYPE {MAVEN,GRADLE}
     private String currentJDK = "JDK 1.8";
-
     private final String UNLOGGED_SDK_VERSION = "0.0.12";
 
     private String maven_default =
@@ -114,9 +115,13 @@ public class UnloggedSDKOnboarding {
                 dependency = dependency + "\n" + mavenDependencyAreaAnnotation.getText();
             }
             insidiousService.copyToClipboard(dependency);
+            InsidiousNotification.notifyMessage("Copied Maven dependencies",
+                    NotificationType.INFORMATION);
         }
         else {
             insidiousService.copyToClipboard(gradleTextArea.getText());
+            InsidiousNotification.notifyMessage("Copied Gradle dependencies",
+                    NotificationType.INFORMATION);
         }
     }
 
