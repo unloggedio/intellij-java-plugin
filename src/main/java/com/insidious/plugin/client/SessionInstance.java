@@ -2432,7 +2432,7 @@ public class SessionInstance {
                     // we have logs from new zip, which has new probes, but we could not read new class weave info
                     // cant proceed
                     logger.warn("Failed to read class weave file", ex);
-                    throw new RuntimeException(ex);
+                    throw new NeedMoreLogsException("probe info is null for id: " + eventBlock.probeId());
                 }
             }
             Parameter existingParameter = parameterInstance;
