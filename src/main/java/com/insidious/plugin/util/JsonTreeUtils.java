@@ -7,6 +7,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 public class JsonTreeUtils {
 
@@ -63,14 +64,31 @@ public class JsonTreeUtils {
         return root;
     }
 
-    public static String getFlatMap(TreeNode[] pathnodes)
+    public static String getFlatMap(Object[] pathnodes)
     {
         StringBuilder flatmap = new StringBuilder("");
-        for(TreeNode node : pathnodes)
+        for(Object node : pathnodes)
         {
             flatmap.append(node.toString()+".");
         }
         flatmap.deleteCharAt(flatmap.length()-1);
         return flatmap.toString();
+    }
+
+    public static Map.Entry<String,String> getKeyValuePair(String flatmap)
+    {
+        Map<String,String> map = new TreeMap<>();
+        if(flatmap.contains(":"))
+        {
+            String value = flatmap.substring(flatmap.lastIndexOf(":")+1).trim();
+            String key = flatmap.substring(0,flatmap.lastIndexOf(":")).trim();
+            map.put(key,value);
+        }
+        else
+        {
+            map.put(flatmap,null);
+        }
+        Map.Entry<String,String>[] entries = new Map.Entry[1];
+        return map.entrySet().toArray(entries)[0];
     }
 }

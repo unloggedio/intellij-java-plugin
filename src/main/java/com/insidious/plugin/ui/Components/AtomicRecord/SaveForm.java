@@ -26,6 +26,7 @@ import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -85,9 +86,11 @@ public class SaveForm extends JFrame {
                         candidateExplorerTree.getLastSelectedPathComponent();
                 if (node == null) return;
                 TreeNode[] nodes = node.getPath();
-                System.out.println("SELECTED NODE : "+JsonTreeUtils.getFlatMap(nodes));
+                ruleEditor.setCurrentKey(JsonTreeUtils.getFlatMap(nodes));
             }
         });
+        TreePath path = candidateExplorerTree.getPathForRow(0);
+        ruleEditor.setCurrentKey(JsonTreeUtils.getFlatMap(path.getPath()));
 
         JPanel treeViewer = new JPanel();
         treeViewer.setLayout(new BoxLayout(treeViewer, BoxLayout.Y_AXIS));
@@ -139,34 +142,14 @@ public class SaveForm extends JFrame {
         cancelButton.addActionListener(e -> SaveForm.this.dispose());
         c.add(cancelButton);
         setInfo();
-        //mockOpenRules();
-    }
-
-    private void mockOpenRules()
-    {
-        List<AssertionBlockElement> elements = new ArrayList<>();
-        elements.add(new AssertionBlockElement(AssertionBlockElement.AssertionBlockElementType.RULE,
-                null,generateBlock(),null));
-        elements.add(new AssertionBlockElement(AssertionBlockElement.AssertionBlockElementType.CONNECTOR,
-                "OR",null,null));
-        elements.add(new AssertionBlockElement(AssertionBlockElement.AssertionBlockElementType.RULE,
-                null,generateBlock(),null));
-        ruleEditor.openSavedRules(elements);
-    }
-
-    private AssertionBlockModel generateBlock()
-    {
-        List<RuleData> ruleData = new ArrayList<>();
-        ruleData.add(new RuleData("Where","mock2","equals","e",null));
-        ruleData.add(new RuleData("AND",null,"equals",null,null));
-        ruleData.add(new RuleData("OR","mock3",null,null,null));
-        AssertionBlockModel model = new AssertionBlockModel(0,ruleData);
-        return model;
     }
 
     private void printRuleSet() {
-        System.out.println("RULE SET : "+ruleEditor.getRuleSet());
+        List<AtomicAssertion> assertions = ruleEditor.getAtomicAssertions();
+        System.out.println("RULE SET : "+assertions.toString());
         System.out.println("METADATA SET : "+metadataPanel.getPayload());
+
+        //wip : to save, also to update toString for AtomicAssertions
         triggerSave();
     }
 
