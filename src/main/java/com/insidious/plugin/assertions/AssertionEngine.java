@@ -37,7 +37,7 @@ public class AssertionEngine {
                 result = result && subResult.isPassing();
             }
 
-        } else if (assertionType == AssertionType.NOT) {
+        } else if (assertionType == AssertionType.NOTALLOF) {
 
             result = true;
 
@@ -46,6 +46,17 @@ public class AssertionEngine {
                 AssertionResult subResult = AssertionEngine.executeAssertions(subAssertion, responseNode);
                 assertionResult.getResults().putAll(subResult.getResults());
                 result = !subResult.isPassing();
+            }
+
+        } else if (assertionType == AssertionType.NOTANYOF) {
+
+            result = false;
+
+            List<AtomicAssertion> subAssertions = assertion.getSubAssertions();
+            for (AtomicAssertion subAssertion : subAssertions) {
+                AssertionResult subResult = AssertionEngine.executeAssertions(subAssertion, responseNode);
+                assertionResult.getResults().putAll(subResult.getResults());
+                result = result || !subResult.isPassing();
             }
 
         } else {

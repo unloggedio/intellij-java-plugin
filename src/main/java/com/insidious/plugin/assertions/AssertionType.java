@@ -7,7 +7,8 @@ import java.util.Objects;
 public enum AssertionType {
     ALLOF,
     ANYOF,
-    NOT,
+    NOTALLOF,
+    NOTANYOF,
     EQUAL,
     NOT_EQUAL,
     FALSE,
@@ -23,20 +24,22 @@ public enum AssertionType {
                 return "or";
             case ALLOF:
                 return "and";
-            case NOT:
-                return "NOT";
+            case NOTALLOF:
+                return "not and";
+            case NOTANYOF:
+                return "not or";
             case EQUAL:
                 return "equals";
             case NOT_EQUAL:
-                return "notEquals";
+                return "not equals";
             case FALSE:
                 return "false";
             case TRUE:
                 return "true";
             case LESS_THAN:
-                return "lessThan";
+                return "less than";
             case GREATER_THAN:
-                return "greaterThan";
+                return "greater than";
         }
         return "unknown-assertion-type";
     }
