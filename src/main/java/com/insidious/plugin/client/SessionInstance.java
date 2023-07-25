@@ -73,6 +73,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -84,7 +86,7 @@ import java.util.zip.ZipInputStream;
 import static com.insidious.common.weaver.EventType.*;
 import static com.insidious.plugin.client.DatFileType.*;
 
-public class SessionInstance {
+public class SessionInstance implements Runnable {
     private static final Logger logger = LoggerUtil.getInstance(SessionInstance.class);
     private final File sessionDirectory;
     private final ExecutionSession executionSession;
@@ -119,6 +121,7 @@ public class SessionInstance {
     //    private Date lastScannedTimeStamp;
     private boolean isSessionCorrupted = false;
     private boolean hasShownCorruptedNotification = false;
+    private BlockingQueue<Integer> scanLock;
 
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
@@ -179,13 +182,21 @@ public class SessionInstance {
         if (scanEnable) {
             logger.warn("Starting zip consumer: " + processorId);
             zipConsumer = new ZipConsumer(daoService, sessionDirectory, this);
+            scanLock = new ArrayBlockingQueue<Integer>(1);
             executorPool = Executors.newFixedThreadPool(4);
+            executorPool.submit(this);
             executorPool.submit(zipConsumer);
+            executorPool.submit(() -> {
+                try {
+                    this.sessionArchives = refreshSessionArchivesList(false);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
         } else {
             zipConsumer = null;
             executorPool = null;
         }
-        this.sessionArchives = refreshSessionArchivesList(false);
 
     }
 
@@ -354,6 +365,7 @@ public class SessionInstance {
 
 
     private void refreshWeaveInformationStream(String fileName) throws IOException {
+        logger.warn("reading class weave info from: " + fileName);
         long start = new Date().getTime();
         AtomicInteger counter = new AtomicInteger(0);
 
@@ -500,13 +512,13 @@ public class SessionInstance {
                 .collect(Collectors.toList()));
         daoService.createOrUpdateMethodDefinitions(methodInfoIndex.values().stream()
                 .map(e -> {
-                    MethodDefinition existingMethodDefinition = methodDefinitionMap.get(e.getMethodId());
-                    return MethodDefinition.fromMethodInfo(e,
-                            classInfoIndex.get(e.getClassId()),
-                            methodUsesFields.getOrDefault(e.getMethodId(),
-                                    existingMethodDefinition != null && existingMethodDefinition.isUsesFields()),
-                            methodLineCount.getOrDefault(e.getMethodId(),
-                                    existingMethodDefinition != null ? existingMethodDefinition.getLineCount() : 0));
+                            MethodDefinition existingMethodDefinition = methodDefinitionMap.get(e.getMethodId());
+                            return MethodDefinition.fromMethodInfo(e,
+                                    classInfoIndex.get(e.getClassId()),
+                                    methodUsesFields.getOrDefault(e.getMethodId(),
+                                            existingMethodDefinition != null && existingMethodDefinition.isUsesFields()),
+                                    methodLineCount.getOrDefault(e.getMethodId(),
+                                            existingMethodDefinition != null ? existingMethodDefinition.getLineCount() : 0));
                         }
                 )
                 .collect(Collectors.toList()));
@@ -2188,7 +2200,11 @@ public class SessionInstance {
 
     }
 
-    public void scanDataAndBuildReplay() {
+    public void unlockNextScan() {
+        scanLock.offer(1);
+    }
+
+    private void scanDataAndBuildReplay() {
         if (!scanEnable) {
             logger.warn("scan is not enabled: " + project.getName());
             // there is another session which created the lock file and will do the scanning
@@ -2443,17 +2459,17 @@ public class SessionInstance {
 //            }
             if (threadState.isSkipTillNextMethodExit()) {
                 switch (probeInfo.getEventType()) {
-                    case METHOD_NORMAL_EXIT:
-                    case METHOD_EXCEPTIONAL_EXIT:
+//                    case METHOD_NORMAL_EXIT:
+                    case METHOD_ENTRY:
                         threadState.setSkipTillNextMethodExit(false);
                         break;
                     default:
+                        continue;
                         //nothing
                 }
-                continue;
             }
             int line = probeInfo.getLine();
-            if (threadState.getCallStackSize() != 0 && line != 0) {
+            if (threadState.candidateSize() != 0 && line != 0) {
                 threadState.getTopCandidate().addLineCovered(line);
             }
             switch (probeInfo.getEventType()) {
@@ -2558,7 +2574,7 @@ public class SessionInstance {
                         }
                     }
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-                    if (existingParameter != null) {
+                    if (existingParameter != null && eventValue != 0) {
 //                        nameFromProbe = probeInfo.getAttribute("Name",
 //                                probeInfo.getAttribute("FieldName", null));
                         isModified = false;
@@ -3096,6 +3112,13 @@ public class SessionInstance {
                     break;
 
                 case CATCH:
+                    if (threadState.getCallStackSize() == 0) {
+                        threadState.getCallStack().clear();
+                        threadState.getCandidateStack().clear();
+                        threadState.setSkipTillNextMethodExit(true);
+                        continue;
+                    }
+
                     ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
                     String topCallSubjectType = methodCallSubjectTypeMap.get(threadState.getTopCall().getId());
 //                            parameterContainer.getParameterByValue(threadState.getTopCall().getSubject()).getType();
@@ -3105,6 +3128,7 @@ public class SessionInstance {
 
                     if (!topCallSubjectType.equals(currentProbeClassOwner)
                             && threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
+
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
                                 existingParameter);
@@ -3139,8 +3163,15 @@ public class SessionInstance {
 //                    entryProbeEventType = probeInfoIndex.get(topCall.getEntryProbeInfo_id())
 //                            .getEventType();
 
+                    if (threadState.candidateSize() == 0) {
+                        threadState.getCallStack().clear();
+                        threadState.getCandidateStack().clear();
+                        threadState.setSkipTillNextMethodExit(true);
+                        continue;
+                    }
+
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-                    if (existingParameter.getType() == null) {
+                    if (existingParameter.getType() == null && eventValue != 0) {
                         ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
                         if (objectInfoDocument == null) {
                             this.sessionArchives = refreshSessionArchivesList(true);
@@ -3202,6 +3233,7 @@ public class SessionInstance {
                     } else {
                         if (threadState.getCallStackSize() > 0) {
                             logger.warn("inconsistent call stack state, flushing calls list");
+                            threadState.getCallStack().clear();
                         }
                     }
 
@@ -3221,6 +3253,12 @@ public class SessionInstance {
 
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
 //                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
+                    if (threadState.candidateSize() == 0) {
+                        threadState.getCallStack().clear();
+                        threadState.getCandidateStack().clear();
+                        threadState.setSkipTillNextMethodExit(true);
+                        continue;
+                    }
 
                     topCall = threadState.getTopCall();
                     entryProbeEventType = probeInfoIndex.get(topCall.getEntryProbeInfo_id())
@@ -3319,13 +3357,10 @@ public class SessionInstance {
                         isModified = true;
                     }
                     if (threadState.getCallStackSize() == 0) {
+                        threadState.getCallStack().clear();
+                        threadState.getCandidateStack().clear();
                         threadState.setSkipTillNextMethodExit(true);
-                        if ("Lio/unlogged/Runtime;".equals(probeInfo.getAttribute("Type", null))) {
-                            continue;
-                        }
-//                        else {
-//                            throw new StackMismatchException();
-//                        }
+                        continue;
                     }
 
                     com.insidious.plugin.pojo.dao.MethodCallExpression callExpression = threadState.getTopCall();
@@ -3943,5 +3978,20 @@ public class SessionInstance {
 
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
         return daoService.getClassMethodCallAggregates(qualifiedName);
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            try {
+                scanLock.take();
+                scanDataAndBuildReplay();
+            } catch (InterruptedException ie) {
+                return;
+            } catch (Exception e) {
+                e.printStackTrace();
+                //
+            }
+        }
     }
 }

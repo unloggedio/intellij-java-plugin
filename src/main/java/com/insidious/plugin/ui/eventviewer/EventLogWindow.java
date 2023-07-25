@@ -281,6 +281,10 @@ public class EventLogWindow {
 
 
         int rowIndex = 0;
+        if (replayData.getDataEvents().size() == 0) {
+            InsidiousNotification.notifyMessage("No events found", NotificationType.INFORMATION);
+            return;
+        }
         long previousRecordedAt = replayData.getDataEvents().get(0).getRecordedAt();
         for (DataEventWithSessionId dataEvent : replayData.getDataEvents()) {
             Vector<Object> rowVector = new Vector<>(6);

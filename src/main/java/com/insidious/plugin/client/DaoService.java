@@ -31,6 +31,8 @@ import java.lang.reflect.Type;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 public class DaoService {
@@ -116,6 +118,7 @@ public class DaoService {
     private final Dao<ProbeInfo, Long> probeInfoDao;
     private final Dao<TestCandidateMetadata, Long> testCandidateDao;
     private final ParameterProvider parameterProvider;
+    private Lock dbBulkUpdate = new ReentrantLock();
 
     public DaoService(ConnectionSource connectionSource, ParameterProvider parameterProvider) throws SQLException {
         this.connectionSource = connectionSource;
@@ -1504,24 +1507,36 @@ public class DaoService {
     }
 
     public void createOrUpdateClassDefinitions(Collection<ClassDefinition> classDefinitions) {
+        if (!dbBulkUpdate.tryLock()) {
+            return;
+        }
+
         try {
-            logger.warn("create [" + classDefinitions.size() + "] class definitons");
+            logger.warn("create [" + classDefinitions.size() + "] class definitions");
             classDefinitionsDao.executeRaw("delete from class_definition");
             classDefinitionsDao.create(classDefinitions);
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
+        } finally {
+            dbBulkUpdate.unlock();
         }
 
     }
 
     public void createOrUpdateMethodDefinitions(List<MethodDefinition> methodDefinitions) {
+        if (!dbBulkUpdate.tryLock()) {
+            return;
+        }
+
         try {
             methodDefinitionsDao.executeRaw("delete from method_definition");
             methodDefinitionsDao.create(methodDefinitions);
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
+        } finally {
+            dbBulkUpdate.unlock();
         }
     }
 
