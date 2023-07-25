@@ -1,5 +1,8 @@
 package com.insidious.plugin.ui.Components.AtomicRecord;
 
+import com.insidious.plugin.assertions.AssertionType;
+import com.insidious.plugin.assertions.AtomicAssertion;
+
 import javax.swing.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -7,28 +10,33 @@ import java.awt.event.MouseEvent;
 public class AssertionRule {
     private JPanel mainPanel;
     private JPanel alignerParent;
-    private JComboBox<String> nameSelector;
-    private JComboBox<String> operationSelector;
+    private JTextField nameSelector;
+    private JComboBox<AssertionType> operationSelector;
     private JTextField valueField;
     private JLabel closeLabel;
-    private JLabel statusLabel;
-    private JLabel contextLabel;
+    private JLabel statusIconLabel;
     private JPanel leftAligner;
-    private AssertionBlock parentBlock;
-    public AssertionRule(AssertionBlock assertionBlock)
+    private AssertionBlockManager parentBlock;
+    private AssertionElement referenceElement;
+    private AtomicAssertion assertion;
+
+    public AssertionRule(AssertionBlockManager assertionBlock, AtomicAssertion payload)
     {
+        setupOptions();
+        this.assertion = payload;
         this.parentBlock = assertionBlock;
+//        this.statusIconLabel.setText(payload.getstat());
+        this.nameSelector.setText(payload.getKey()!=null ? payload.getKey() : "Nothing selected");
+//        this.operationSelector.setSelectedItem(payload.getAssertionType()!=null ? payload.getAssertionType() : operationSelector.getItemAt(0));
+        this.valueField.setText(payload.getExpectedValue()!=null ? payload.getExpectedValue() : "");
         setupListeners();
     }
 
-    public AssertionRule(AssertionBlock assertionBlock, RuleData payload)
+    private void setupOptions()
     {
-        this.parentBlock = assertionBlock;
-        this.contextLabel.setText(payload.getContext());
-        this.nameSelector.setSelectedItem(payload.getKey()!=null ? payload.getKey() : nameSelector.getItemAt(0));
-        this.operationSelector.setSelectedItem(payload.getOperation()!=null ? payload.getOperation() : operationSelector.getItemAt(0));
-        this.valueField.setText(payload.getExpectedValue()!=null ? payload.getExpectedValue() : "");
-        setupListeners();
+        for (AssertionType type : AssertionType.values()) {
+            operationSelector.addItem(type);
+        }
     }
 
     public void setupListeners()
@@ -39,24 +47,18 @@ public class AssertionRule {
                     deleteRule();
                 }
             });
-            contextLabel.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    toggleOperation();
-                }
-            });
     }
 
     private void toggleOperation() {
-        if(!contextLabel.getText().equals("Where"))
+        if(!statusIconLabel.getText().equals("Where"))
         {
-            if (contextLabel.getText().equals("AND"))
+            if (statusIconLabel.getText().equals("AND"))
             {
-                contextLabel.setText("OR");
+                statusIconLabel.setText("OR");
             }
             else
             {
-                contextLabel.setText("AND");
+                statusIconLabel.setText("AND");
             }
         }
     }
@@ -68,20 +70,22 @@ public class AssertionRule {
 
     public void deleteRule()
     {
-        this.parentBlock.removeRule(this);
+        this.parentBlock.removeAssertionElement(referenceElement);
     }
 
     @Override
     public String toString() {
-        return getRuleData().toString();
+        return getAtomicAssertion().toString();
     }
 
-    public RuleData getRuleData()
+    public AtomicAssertion getAtomicAssertion()
     {
-        return new RuleData(this.contextLabel.getText(),
-                this.nameSelector.getSelectedItem().toString(),
-                this.operationSelector.getSelectedItem().toString(),
-                this.valueField.getText().trim(),
-                null);
+        assertion.setAssertionType((AssertionType) this.operationSelector.getSelectedItem());
+        assertion.setExpectedValue(this.valueField.getText().trim());
+        return assertion;
+    }
+
+    public void setAssertionElement(AssertionElement ruleElement) {
+        this.referenceElement = ruleElement;
     }
 }

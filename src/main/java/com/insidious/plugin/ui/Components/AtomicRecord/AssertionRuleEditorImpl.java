@@ -1,5 +1,11 @@
 package com.insidious.plugin.ui.Components.AtomicRecord;
 
+import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.assertions.AtomicAssertion;
+import com.insidious.plugin.util.JsonTreeUtils;
+import com.intellij.notification.NotificationType;
+import com.intellij.uiDesigner.core.GridConstraints;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -10,180 +16,159 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
-public class AssertionRuleEditorImpl implements AssertionRuleEditor{
+public class AssertionRuleEditorImpl implements AssertionRuleEditor, AssertionBlockManager {
     private JPanel mainPanel;
     private JPanel topAligner;
     private JPanel assertionsContainerPanel;
-    private JButton addAssertionButton;
-    private int counter = 0;
-    private List<AssertionBlockElement> assertionElements = new ArrayList<>();
+    private JPanel controlPanel;
+    private String currentKey;
+    private RuleAdditionPanel ruleAdditionPanel;
+    private List<AssertionElement> ruleElements = new ArrayList<>();
 
     public AssertionRuleEditorImpl()
     {
         BoxLayout layout = new BoxLayout(assertionsContainerPanel,BoxLayout.Y_AXIS);
         assertionsContainerPanel.setLayout(layout);
 
-        addAssertionButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                addAssertion();
-            }
-        });
-    }
+        ruleAdditionPanel = new RuleAdditionPanel(this,true);
+        ruleAdditionPanel.setNested(false);
+        GridLayout controlLayout = new GridLayout(1,1);
+        controlPanel.setLayout(controlLayout);
 
-    private void addAssertion()
-    {
-        System.out.println("Counter : "+counter);
-        if(counter>0)
-        {
-            //add bridgeCondition
-            createNewBridgeCondidtion(null);
-            counter++;
-        }
-        createNewAssertionBlock(null);
-        assertionsContainerPanel.revalidate();
-        counter++;
+        GridConstraints constraints = new GridConstraints();
+        constraints.setRow(0);
+        controlPanel.add(ruleAdditionPanel.getMainPanel(),constraints);
+        controlPanel.revalidate();
     }
 
     public JPanel getMainPanel() {
         return mainPanel;
     }
 
-    public String getRuleSet()
+    public List<AtomicAssertion> getAtomicAssertions()
     {
-        return this.assertionElements.toString();
+        List<AtomicAssertion> assertions = new ArrayList<>();
+        for (AssertionElement element : ruleElements)
+        {
+            AtomicAssertion assertion = element.getRule().getAtomicAssertion();
+            if(element.getBlock()!=null)
+            {
+                List<AtomicAssertion> subAssertions = buildAssertionsFromBlock(element.getBlock(),
+                        new ArrayList<>());
+                assertion.setSubAssertions(subAssertions);
+            }
+            assertions.add(assertion);
+        }
+        return assertions;
+    }
+
+    private List<AtomicAssertion> buildAssertionsFromBlock(AssertionBlock block,
+                                                           List<AtomicAssertion> subAssertions)
+    {
+        List<AssertionElement> elements = block.getAssertionElements();
+        for (AssertionElement element : elements)
+        {
+            AtomicAssertion assertion = element.getRule().getAtomicAssertion();
+            if(element.getBlock()!=null)
+            {
+                List<AtomicAssertion> subs = buildAssertionsFromBlock(element.getBlock(),
+                        new ArrayList<>());
+                assertion.setSubAssertions(subs);
+            }
+            subAssertions.add(assertion);
+        }
+        return subAssertions;
     }
 
     @Override
-    public void removeAssertionBlock(AssertionBlock assertionBlock) {
-        AssertionBlockElement element = getBlockElementByPanel(assertionBlock.getMainPanel());
-        if(assertionElements.indexOf(element)>0)
+    public void setCurrentKey(String key) {
+        this.currentKey = key;
+    }
+
+    @Override
+    public void addFirstRule() {
+        addNewRule();
+    }
+
+    @Override
+    public void addNewRule() {
+        AtomicAssertion assertion = new AtomicAssertion();
+
+        String kv = getCurrentTreeKey();
+        Map.Entry<String,String> entry = JsonTreeUtils.getKeyValuePair(kv);
+        assertion.setKey(entry.getKey());
+        assertion.setExpectedValue(entry.getValue());
+
+        assertion.setId(UUID.randomUUID().toString());
+
+        AssertionRule rule = new AssertionRule(this, assertion);
+        AssertionElement ruleElement = new AssertionElement(rule);
+        ruleElements.add(ruleElement);
+        rule.setAssertionElement(ruleElement);
+        assertionsContainerPanel.add(rule.getMainPanel());
+        assertionsContainerPanel.revalidate();
+    }
+
+    @Override
+    public void addNewGroup() {
+        System.out.println("Adding new group");
+        AssertionBlock block = new AssertionBlock(this);
+        if(ruleElements.size()==0)
         {
-            //remove above condition
-            AssertionBlockElement connector = assertionElements.
-                    get(assertionElements.indexOf(element)-1);
-
-            assertionsContainerPanel.remove(element.getPanel());
-            assertionsContainerPanel.remove(connector.getPanel());
-
-            assertionElements.remove(element);
-            assertionElements.remove(connector);
-            counter--;
-            counter--;
+            InsidiousNotification.notifyMessage("Add a rule first", NotificationType.INFORMATION);
+            return;
+        }
+        AssertionElement lastRule = ruleElements.get(ruleElements.size()-1);
+        if(lastRule.getBlock()==null)
+        {
+            lastRule.setBlock(block);
+            assertionsContainerPanel.add(block.getMainPanel());
+            assertionsContainerPanel.revalidate();
         }
         else
         {
-            if(assertionElements.size()>2)
-            {
-                AssertionBlockElement connector = assertionElements.
-                        get(1);
-                assertionsContainerPanel.remove(connector.getPanel());
-                assertionElements.remove(connector);
-                counter--;
-            }
-            assertionsContainerPanel.remove(assertionBlock.getMainPanel());
-            assertionElements.remove(element);
-            counter--;
+            System.out.println("Can't add to this rule.");
         }
-        assertionsContainerPanel.revalidate();
     }
 
-    private AssertionBlockElement getBlockElementByPanel(JPanel panel) {
-        AssertionBlockElement element = null;
-        for (AssertionBlockElement blockElement : assertionElements)
+    @Override
+    public void removeAssertionElement(AssertionElement element) {
+        if(ruleElements.contains(element))
         {
-            if(blockElement.getPanel().equals(panel))
+            if(element.getBlock()!=null)
             {
-                //same panel
-                element = blockElement;
+                removeAssertionBlock(element.getBlock());
             }
+            ruleElements.remove(element);
+            assertionsContainerPanel.remove(element.getRule().getMainPanel());
+            assertionsContainerPanel.revalidate();
         }
-        return element;
     }
 
-    public void openSavedRules(List<AssertionBlockElement> blockElements)
-    {
-        System.out.println("Opening saved rules");
-        this.assertionElements.clear();
-        constructForRules(blockElements);
+    @Override
+    public void removeAssertionGroup() {
+        //can't remove this, reload flow
     }
 
-    private void constructForRules(List<AssertionBlockElement> blockElements)
-    {
-        assertionsContainerPanel.removeAll();
-        counter = 0;
-        for(AssertionBlockElement element : blockElements)
+    @Override
+    public String getCurrentTreeKey() {
+        return currentKey;
+    }
+
+    @Override
+    public void removeAssertionBlock(AssertionBlock block) {
+        for(AssertionElement element : ruleElements)
         {
-            if(element.getElementType().equals(AssertionBlockElement.AssertionBlockElementType.RULE))
+            if (element.getBlock()!=null &&
+                    element.getBlock().equals(block))
             {
-                createNewAssertionBlock(element.getAssertionBlockModel().getRuleDataList());
+                element.setBlock(null);
+                assertionsContainerPanel.remove(block.getMainPanel());
+                assertionsContainerPanel.revalidate();
             }
-            else
-            {
-                createNewBridgeCondidtion(element.getConnector());
-            }
-            counter++;
         }
-        assertionsContainerPanel.revalidate();
-    }
-
-    private JPanel createNewBridgeCondidtion(String condition)
-    {
-        if(condition == null)
-        {
-            condition = "AND";
-        }
-
-        JPanel connector = new JPanel();
-        connector.setLayout(new GridLayout(1,1));
-        JLabel label = new JLabel(condition, SwingConstants.LEFT);
-        label.setBorder(new EmptyBorder(8,8,8,0));
-        label.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                String newLabel = label.getText();
-                if(newLabel.equals("AND"))
-                {
-                    newLabel = "OR";
-                }
-                else
-                {
-                    newLabel = "AND";
-                }
-                label.setText(newLabel);
-                AssertionBlockElement element = getBlockElementByPanel(connector);
-                element.setConnector(newLabel);
-            }
-        });
-        connector.add(label);
-        connector.setBorder(new LineBorder(Color.BLUE));
-        assertionElements.add(
-                new AssertionBlockElement(
-                        AssertionBlockElement.AssertionBlockElementType.CONNECTOR,
-                        label.getText(),
-                        null,
-                        connector));
-        assertionsContainerPanel.add(connector);
-        return connector;
-    }
-
-    private void createNewAssertionBlock(List<RuleData> ruleData)
-    {
-        if(ruleData==null)
-        {
-            ruleData = new ArrayList<>();
-        }
-        AssertionBlockModel model = new AssertionBlockModel(counter,ruleData);
-        JPanel panel = new AssertionBlock(model,this).getMainPanel();
-        panel.setBorder(new LineBorder(Color.ORANGE));
-
-        assertionElements.add(
-                new AssertionBlockElement(
-                        AssertionBlockElement.AssertionBlockElementType.RULE,
-                        null,
-                        model,
-                        panel));
-        assertionsContainerPanel.add(panel);
     }
 }
