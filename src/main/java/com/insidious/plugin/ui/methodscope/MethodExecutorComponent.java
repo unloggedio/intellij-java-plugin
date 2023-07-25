@@ -1,11 +1,12 @@
 package com.insidious.plugin.ui.methodscope;
 
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
-import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -24,6 +25,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 import com.intellij.ui.JBColor;
+import com.intellij.ui.components.JBRadioButton;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
@@ -56,8 +58,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     private JPanel centerParent;
     private JPanel topAligner;
     private JScrollPane scrollParent;
+    private JPanel filterButtonGroupPanel;
     private int callCount = 0;
     private SaveForm saveFormReference;
+    private CandidateFilterType candidateFilterType;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
 //        System.out.println("In Constructor mec");
@@ -70,6 +74,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         candidateScrollPanelContainer.setMaximumSize(new Dimension(-1, 40));
 
 
+        setFilterButtonsListeners();
         centerParent.setMaximumSize(new Dimension(-1, Math.min(300, 40)));
         centerParent.setMinimumSize(new Dimension(-1, 300));
 
@@ -77,6 +82,42 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         centerParent.revalidate();
         centerParent.repaint();
 
+    }
+
+    public void setFilterButtonsListeners() {
+        ButtonGroup buttonGroup = new ButtonGroup();
+
+        JBRadioButton allButton = new JBRadioButton("All");
+        allButton.setSelected(true);
+
+        JBRadioButton classOnlyButton = new JBRadioButton("Class only");
+        JBRadioButton methodOnlyButton = new JBRadioButton("Method only");
+
+        buttonGroup.add(allButton);
+        buttonGroup.add(classOnlyButton);
+        buttonGroup.add(methodOnlyButton);
+
+        allButton.addActionListener((e) -> {
+            MethodExecutorComponent.this.candidateFilterType = CandidateFilterType.ALL;
+            refreshSearchAndLoad();
+        });
+
+
+        classOnlyButton.addActionListener((e) -> {
+            MethodExecutorComponent.this.candidateFilterType = CandidateFilterType.ALL;
+            refreshSearchAndLoad();
+        });
+
+
+        methodOnlyButton.addActionListener((e) -> {
+            MethodExecutorComponent.this.candidateFilterType = CandidateFilterType.ALL;
+            refreshSearchAndLoad();
+        });
+
+
+        filterButtonGroupPanel.add(allButton);
+        filterButtonGroupPanel.add(classOnlyButton);
+        filterButtonGroupPanel.add(methodOnlyButton);
     }
 
     public MethodAdapter getCurrentMethod() {
@@ -139,10 +180,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         });
     }
 
-    private List<StoredCandidate> getCandidatesFromComponents()
-    {
+    private List<StoredCandidate> getCandidatesFromComponents() {
         return candidateComponentMap.values().stream().
-                map(value -> value.getCandidateMetadata()).collect(Collectors.toList());
+                map(TestCandidateListedItemComponent::getCandidateMetadata).collect(Collectors.toList());
     }
 
     public void executeAll() {
@@ -250,6 +290,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         executeAndShowDifferencesButton.revalidate();
         executeAndShowDifferencesButton.repaint();
         candidateCountLabel.setText(candidateComponentMap.size() + " Unique candidates");
+
         TitledBorder topPanelTitledBorder = (TitledBorder) topPanel.getBorder();
         topPanelTitledBorder.setTitle(
                 methodElement.getContainingClass().getName() + "." + methodElement.getName() + "()");
@@ -258,23 +299,19 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         rootContent.repaint();
     }
 
-    private int calculatePanelHeight(Map<Long,TestCandidateListedItemComponent> componentMap)
-    {
+    private int calculatePanelHeight(Map<Long, TestCandidateListedItemComponent> componentMap) {
         return candidateComponentMap.values().stream()
                 .map(e -> e.getComponent().getPreferredSize().getHeight())
                 .mapToInt(Double::intValue)
                 .sum() + 40;
     }
 
-    private void setListDimensions(int panelHeight)
-    {
-        if(candidateComponentMap.size()<3)
-        {
+    private void setListDimensions(int panelHeight) {
+        if (candidateComponentMap.size() < 3) {
             centerParent.setMaximumSize(new Dimension(-1, Math.min(300, panelHeight)));
             centerParent.setPreferredSize(new Dimension(-1, Math.min(300, panelHeight)));
             centerParent.setMinimumSize(new Dimension(-1, panelHeight));
-        }
-        else {
+        } else {
             centerParent.setMaximumSize(new Dimension(-1, Math.min(300, 30)));
             centerParent.setPreferredSize(new Dimension(-1, Math.min(300, 30)));
             centerParent.setMinimumSize(new Dimension(-1, 300));
@@ -294,8 +331,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         centerParent.repaint();
     }
 
-    public void clearBottomPanel()
-    {
+    public void clearBottomPanel() {
         diffContentPanel.removeAll();
         diffContentPanel.revalidate();
     }
@@ -507,8 +543,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         gridPanel.repaint();
     }
 
-    private void triggerReExecute(StoredCandidate candidate)
-    {
+    private void triggerReExecute(StoredCandidate candidate) {
         TestCandidateListedItemComponent component = candidateComponentMap.get(
                 candidate.getEntryProbeIndex());
         ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {
@@ -566,7 +601,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         gridPanel.repaint();
         diffContentPanel.removeAll();
 
-        if(candidateComponentMap.size()<3) {
+        if (candidateComponentMap.size() < 3) {
             setListDimensions(calculatePanelHeight(candidateComponentMap));
             //calling this to ensure that we don't see an empty atomic window.
             if (candidateComponentMap.size() == 0) {
@@ -575,25 +610,29 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         }
     }
 
-    public void onLastCandidateDeleted()
-    {
+    public void onLastCandidateDeleted() {
         GutterState currentState = insidiousService.getGutterStateFor(methodElement);
         if (currentState.equals(GutterState.DATA_AVAILABLE)
                 || currentState.equals(GutterState.NO_DIFF)
                 || currentState.equals(GutterState.DIFF)
-                || currentState.equals(GutterState.EXECUTE))
-        {
+                || currentState.equals(GutterState.EXECUTE)) {
             //reload this view, to add
-            List<StoredCandidate> methodTestCandidates =
-                    ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
-                            insidiousService.getStoredCandidatesFor(methodElement));
-            refreshAndReloadCandidates(methodElement,methodTestCandidates);
-        }
-        else
-        {
+            refreshSearchAndLoad();
+        } else {
             //load process running window
             insidiousService.loadSingleWindowForState(GutterState.PROCESS_RUNNING);
         }
+    }
+
+    private void refreshSearchAndLoad() {
+
+        CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(methodElement, candidateFilterType, false);
+
+        List<StoredCandidate> methodTestCandidates =
+                ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
+                        insidiousService.getStoredCandidatesFor(query));
+
+        refreshAndReloadCandidates(methodElement, methodTestCandidates);
     }
 
     @Override

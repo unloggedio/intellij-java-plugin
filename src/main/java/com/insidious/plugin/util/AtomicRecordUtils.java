@@ -40,7 +40,7 @@ public class AtomicRecordUtils {
         return candidate;
     }
 
-    // todo: explain
+
     public static List<StoredCandidate> filterStoredCandidates(List<StoredCandidate> candidates) {
         Map<Long, StoredCandidate> selectedCandidates = new TreeMap<>();
         for (StoredCandidate candidate : candidates) {

@@ -25,6 +25,7 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.NameWithBytes;
 import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.TestCandidateReceiver;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -3649,15 +3650,13 @@ public class SessionInstance implements Runnable {
         return daoService.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
     }
 
-    public List<TestCandidateMetadata> getTestCandidatesForAllMethod(
-            String className, String methodName,
-            String methodArgumentsClassNames, boolean loadCalls) {
+    public List<TestCandidateMetadata> getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
         try {
-            return daoService.getTestCandidatesForAllMethod(className, methodName, methodArgumentsClassNames,
-                    loadCalls);
+            return daoService.getTestCandidatesForAllMethod(candidateSearchQuery);
         } catch (Exception e) {
             // probably database doesnt exist
-            logger.warn("failed to get test candidates for method [" + className + "." + methodName + "()]", e);
+            logger.warn("failed to get test candidates for method [" +
+                    candidateSearchQuery.getClassName() + "." + candidateSearchQuery.getMethodName() + "()]", e);
             return new ArrayList<>();
         }
     }
@@ -3987,8 +3986,10 @@ public class SessionInstance implements Runnable {
                 scanLock.take();
                 scanDataAndBuildReplay();
             } catch (InterruptedException ie) {
+                logger.warn("scan checker interrupted");
                 return;
             } catch (Exception e) {
+                logger.warn("scan checker interruption", e);
                 e.printStackTrace();
                 //
             }

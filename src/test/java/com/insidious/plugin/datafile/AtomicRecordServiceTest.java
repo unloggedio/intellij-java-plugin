@@ -1,5 +1,6 @@
 package com.insidious.plugin.datafile;
 
+import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
@@ -111,27 +112,27 @@ public class AtomicRecordServiceTest {
                 atomicRecordService.getStoredRecords().get(classname)
                         .getStoredCandidateMap().size());
 
+        CandidateSearchQuery query = new CandidateSearchQuery(classname, methodName, methodSignature, "", List.of());
+
         //test hasStoredCandidates
-        boolean hasCandidates = atomicRecordService.hasStoredCandidateForMethod(classname,
-                methodName + "#" + methodSignature);
+        boolean hasCandidates = atomicRecordService.hasStoredCandidateForMethod(query);
         //true case
-        Assertions.assertEquals(true, hasCandidates);
+        Assertions.assertTrue(hasCandidates);
 
         //false case
-        hasCandidates = atomicRecordService.hasStoredCandidateForMethod(classname,
-                methodName + "#1" + methodSignature);
-        Assertions.assertEquals(false, hasCandidates);
+        CandidateSearchQuery query2 = new CandidateSearchQuery(classname, methodName, "1" + methodSignature, "",
+                List.of());
+        hasCandidates = atomicRecordService.hasStoredCandidateForMethod(query2);
+        Assertions.assertFalse(hasCandidates);
 
         //get candidates case
 
         //positive case
-        List<StoredCandidate> candidateList = atomicRecordService.getStoredCandidatesForMethod(classname,
-                methodName + "#" + methodSignature);
+        List<StoredCandidate> candidateList = atomicRecordService.getStoredCandidatesForMethod(query);
         Assertions.assertEquals(1, candidateList.size());
 
         //negative case
-        candidateList = atomicRecordService.getStoredCandidatesForMethod(classname,
-                methodName + "#1" + methodSignature);
+        candidateList = atomicRecordService.getStoredCandidatesForMethod(query2);
         Assertions.assertEquals(List.of(), candidateList);
 
         //compute gutter status
@@ -323,12 +324,13 @@ public class AtomicRecordServiceTest {
 
     @Test
     public void testCandidateFetchForNonMehtodsnotStored() {
+        CandidateSearchQuery query = new CandidateSearchQuery("someclass", "some", "method", "", null);
         boolean hasCandidates = atomicRecordService
-                .hasStoredCandidateForMethod("someclass", "some#method");
+                .hasStoredCandidateForMethod(query);
         Assertions.assertEquals(false, hasCandidates);
 
         List<StoredCandidate> candidates = atomicRecordService
-                .getStoredCandidatesForMethod("someclass", "some#method");
+                .getStoredCandidatesForMethod(query);
         Assertions.assertEquals(List.of(), candidates);
     }
 

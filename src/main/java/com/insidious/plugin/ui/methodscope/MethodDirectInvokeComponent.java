@@ -11,10 +11,7 @@ import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.factory.AgentStateProvider;
-import com.insidious.plugin.factory.GutterState;
-import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.factory.*;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.util.*;
 import com.intellij.notification.NotificationType;
@@ -31,6 +28,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -269,9 +267,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
         } else {
             SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
             if (sessionInstance != null) {
-                List<TestCandidateMetadata> methodTestCandidates = sessionInstance
-                        .getTestCandidatesForAllMethod(classQualifiedName, methodName,
-                                insidiousService.getMethodArgsDescriptor(methodElement), false);
+                @NotNull CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
+                        methodElement, CandidateFilterType.METHOD, false);
+
+                List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(query);
                 int candidateCount = methodTestCandidates.size();
                 if (candidateCount > 0) {
                     TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(candidateCount - 1);

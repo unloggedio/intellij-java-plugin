@@ -35,11 +35,11 @@ import com.insidious.plugin.ui.InsidiousCaretListener;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
+import com.insidious.plugin.ui.methodscope.CandidateFilterType;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
-//import com.insidious.plugin.ui.testgenerator.LiveViewWindow;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
@@ -1003,7 +1003,9 @@ final public class InsidiousService implements Disposable,
                 ContentManager manager = this.toolWindow.getContentManager();
                 if (manager.getContent(atomicTestContent.getComponent()) == null) {
                     //only add atomic if method has candidates.
-                    if (getStoredCandidatesFor(currentMethod).size() > 0) {
+                    CandidateSearchQuery query = createSearchQueryForMethod(currentMethod);
+
+                    if (getStoredCandidatesFor(query).size() > 0) {
                         manager.addContent(atomicTestContent, 0);
                         focusAtomicTestsWindow();
                     }
@@ -1018,6 +1020,26 @@ final public class InsidiousService implements Disposable,
             methodDirectInvokeComponent.renderForMethod(currentMethod);
         });
 
+    }
+
+    @NotNull
+    public CandidateSearchQuery createSearchQueryForMethod(
+            MethodAdapter currentMethod,
+            CandidateFilterType candidateFilterType,
+            boolean loadCalls) {
+        return CandidateSearchQuery.fromMethod(currentMethod,
+                getInterfacesWithSameSignature(currentMethod),
+                getMethodArgsDescriptor(currentMethod),
+                candidateFilterType,
+                loadCalls
+        );
+    }
+
+    @NotNull
+    public CandidateSearchQuery createSearchQueryForMethod(MethodAdapter currentMethod) {
+        return CandidateSearchQuery.fromMethod(currentMethod,
+                getInterfacesWithSameSignature(currentMethod),
+                getMethodArgsDescriptor(currentMethod));
     }
 
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
@@ -1060,13 +1082,12 @@ final public class InsidiousService implements Disposable,
             return GutterState.PROCESS_NOT_RUNNING;
         }
 
-        List<TestCandidateMetadata> candidates = ApplicationManager.getApplication().runReadAction(
-                (Computable<List<TestCandidateMetadata>>) () -> getTestCandidateMetadata(method));
+        CandidateSearchQuery query = createSearchQueryForMethod(method);
+
+        List<TestCandidateMetadata> candidates = getTestCandidateMetadata(query);
 
         //check for stored candidates here
-        boolean hasStoredCandidates = atomicRecordService.hasStoredCandidateForMethod(
-                method.getContainingClass().getQualifiedName(),
-                method.getName() + "#" + method.getJVMSignature());
+        boolean hasStoredCandidates = atomicRecordService.hasStoredCandidateForMethod(query);
 
         MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(method);
 
@@ -1151,54 +1172,69 @@ final public class InsidiousService implements Disposable,
         }
     }
 
-    public List<TestCandidateMetadata> getTestCandidateMetadata(MethodAdapter method) {
-        if (method == null) {
+    public List<TestCandidateMetadata> getTestCandidateMetadata(CandidateSearchQuery candidateSearchQuery) {
+        if (candidateSearchQuery == null) {
             return List.of();
         }
         if (DumbService.getInstance(project).isDumb()) {
             return List.of();
         }
 
+        String methodName = candidateSearchQuery.getMethodName();
+        String methodClassQualifiedName = candidateSearchQuery.getClassName();
+        String methodArgsDescriptor = candidateSearchQuery.getArgumentsDescriptor();
+
+        List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesForAllMethod(candidateSearchQuery);
+
+
+        for (String interfaceName : candidateSearchQuery.getInterfaceNames()) {
+            CandidateSearchQuery interfaceSearchQuery =
+                    CandidateSearchQuery.cloneWithNewClassName(candidateSearchQuery, interfaceName);
+            List<TestCandidateMetadata> interfaceCandidates = sessionInstance.getTestCandidatesForAllMethod(interfaceSearchQuery);
+            candidates.addAll(interfaceCandidates);
+
+        }
+
+
+        return candidates;
+    }
+
+    @NotNull
+    public List<String> getInterfacesWithSameSignature(MethodAdapter method) {
         String methodName = method.getName();
         ClassAdapter containingClass = method.getContainingClass();
-        String methodClassQualifiedName = containingClass.getQualifiedName();
-
-        String methodArgsDescriptor = getMethodArgsDescriptor(method);
-
-        List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesForAllMethod(
-                methodClassQualifiedName, methodName, methodArgsDescriptor, false);
-
         ClassAdapter[] interfaceList = containingClass.getInterfaces();
+        List<String> interfaceQualifiedNamesWithSameMethod = new ArrayList<>();
+
         for (ClassAdapter classInterface : interfaceList) {
             boolean hasMethod = false;
             for (MethodAdapter interfaceMethod : classInterface.getMethods()) {
                 if (interfaceMethod.getName().equals(methodName) &&
                         interfaceMethod.getJVMSignature().equals(method.getJVMSignature())) {
                     hasMethod = true;
+                    break;
                 }
             }
 
             if (hasMethod) {
-                List<TestCandidateMetadata> interfaceCandidates = sessionInstance.getTestCandidatesForAllMethod(
-                        classInterface.getQualifiedName(), methodName, methodArgsDescriptor, false);
-                candidates.addAll(interfaceCandidates);
+                interfaceQualifiedNamesWithSameMethod.add(classInterface.getQualifiedName());
             }
         }
-        return candidates;
+        return interfaceQualifiedNamesWithSameMethod;
     }
 
-    public List<StoredCandidate> getStoredCandidatesFor(MethodAdapter method) {
-        if (method == null) {
+    public List<StoredCandidate> getStoredCandidatesFor(CandidateSearchQuery candidateSearchQuery) {
+        if (candidateSearchQuery == null) {
             return List.of();
         }
         if (DumbService.getInstance(project).isDumb()) {
             return List.of();
         }
 
-        List<TestCandidateMetadata> candidateMetadataList = getTestCandidateMetadata(method);
-        List<StoredCandidate> candidates = atomicRecordService
-                .getStoredCandidatesForMethod(method.getContainingClass().getQualifiedName(),
-                        method.getName() + "#" + method.getJVMSignature());
+
+        List<TestCandidateMetadata> candidateMetadataList = getTestCandidateMetadata(candidateSearchQuery);
+
+        List<StoredCandidate> candidates = atomicRecordService.getStoredCandidatesForMethod(candidateSearchQuery);
 
         List<StoredCandidate> storedCandidates = new ArrayList<>(candidates);
 
@@ -1540,30 +1576,30 @@ final public class InsidiousService implements Disposable,
             return;
         }
         List<Content> contentList = Arrays.asList(manager.getContents());
-        if (state.equals(GutterState.PROCESS_RUNNING)) {
-            if (contentList.contains(atomicTestContent)) {
-                manager.removeContent(atomicTestContent, false);
-            }
-            if (!contentList.contains(directMethodInvokeContent)) {
-                manager.addContent(directMethodInvokeContent);
-            }
-        } else if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
-            //show get started only
-            if (contentList.contains(directMethodInvokeContent)) {
-                manager.removeContent(directMethodInvokeContent, false);
-            }
-            if (!contentList.contains(atomicTestContent)) {
-                manager.addContent(atomicTestContent);
-            }
-        } else {
-            //show both
-            if (!contentList.contains(atomicTestContent)) {
-                manager.addContent(atomicTestContent, 0);
-            }
-            if (!contentList.contains(directMethodInvokeContent)) {
-                manager.addContent(directMethodInvokeContent);
-            }
+//        if (state.equals(GutterState.PROCESS_RUNNING)) {
+//            if (contentList.contains(atomicTestContent)) {
+//                manager.removeContent(atomicTestContent, false);
+//            }
+//            if (!contentList.contains(directMethodInvokeContent)) {
+//                manager.addContent(directMethodInvokeContent);
+//            }
+//        } else if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
+//            //show get started only
+//            if (contentList.contains(directMethodInvokeContent)) {
+//                manager.removeContent(directMethodInvokeContent, false);
+//            }
+//            if (!contentList.contains(atomicTestContent)) {
+//                manager.addContent(atomicTestContent);
+//            }
+//        } else {
+        //show both
+        if (!contentList.contains(atomicTestContent)) {
+            manager.addContent(atomicTestContent, 0);
         }
+        if (!contentList.contains(directMethodInvokeContent)) {
+            manager.addContent(directMethodInvokeContent, 1);
+        }
+//        }
     }
 
     public Map<String, String> getIndividualCandidateContextMap() {

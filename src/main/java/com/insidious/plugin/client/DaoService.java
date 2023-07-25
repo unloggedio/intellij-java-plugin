@@ -10,6 +10,7 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.TestAssertion;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
@@ -88,7 +89,7 @@ public class DaoService {
             "  and mc.methodName = ?\n" +
             "  and mc.methodAccess & 1 == 1\n" +
             "order by mc.methodName asc, tc.entryProbeIndex desc limit 50";
-    public static final String TEST_CANDIDATE_BY_ALL_METHOD_SELECT = "select tc.*\n" +
+    public static final String TEST_CANDIDATE_BY_METHOD_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
             "join method_definition md on md.id = mc.methodDefinitionId\n" +
@@ -96,6 +97,18 @@ public class DaoService {
             "  and mc.methodName = ?\n" +
             "  and md.argumentTypes = ?\n" +
             "order by tc.entryProbeIndex desc limit 50;";
+    public static final String TEST_CANDIDATE_BY_CLASS_SELECT = "select tc.*\n" +
+            "from test_candidate tc\n" +
+            "         join method_call mc on mc.id = mainMethod_id\n" +
+            "join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "where md.ownerType = ?\n" +
+            "order by tc.entryProbeIndex desc limit 50;";
+    public static final String TEST_CANDIDATE_BY_ALL_SELECT = "select tc.*\n" +
+            "from test_candidate tc\n" +
+            "         join method_call mc on mc.id = mainMethod_id\n" +
+            "join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "order by tc.entryProbeIndex desc limit 50;";
+
     public static final Type LIST_STRING_TYPE = new TypeToken<ArrayList<String>>() {
     }.getType();
     public static final Type LIST_CANDIDATE_TYPE = new TypeToken<ArrayList<TestCandidateMetadata>>() {
@@ -1263,21 +1276,52 @@ public class DaoService {
     }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-    getTestCandidatesForAllMethod(
-            String className, String methodName, String methodArgumentsClassNames, boolean loadCalls) {
+    getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
 
         try {
 
-            GenericRawResults<TestCandidateMetadata> parameterIds = testCandidateDao
-                    .queryRaw(TEST_CANDIDATE_BY_ALL_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className,
-                            methodName, methodArgumentsClassNames);
+            GenericRawResults<TestCandidateMetadata> parameterIds;
+            switch (candidateSearchQuery.getCandidateFilterType()) {
+
+                case ALL:
+                    parameterIds = testCandidateDao.queryRaw(TEST_CANDIDATE_BY_ALL_SELECT,
+                            testCandidateDao.getRawRowMapper(),
+                            candidateSearchQuery.getClassName(),
+                            candidateSearchQuery.getMethodName(),
+                            candidateSearchQuery.getArgumentsDescriptor());
+                    break;
+                case CLASS:
+                    parameterIds = testCandidateDao.queryRaw(TEST_CANDIDATE_BY_CLASS_SELECT,
+                            testCandidateDao.getRawRowMapper(),
+                            candidateSearchQuery.getClassName(),
+                            candidateSearchQuery.getMethodName(),
+                            candidateSearchQuery.getArgumentsDescriptor()
+                    );
+
+                    break;
+                case METHOD:
+                    parameterIds = testCandidateDao.queryRaw(TEST_CANDIDATE_BY_METHOD_SELECT,
+                            testCandidateDao.getRawRowMapper(),
+                            candidateSearchQuery.getClassName(),
+                            candidateSearchQuery.getMethodName(),
+                            candidateSearchQuery.getArgumentsDescriptor()
+                    );
+
+                    break;
+                default:
+                    parameterIds = testCandidateDao.queryRaw(TEST_CANDIDATE_BY_ALL_SELECT,
+                            testCandidateDao.getRawRowMapper(),
+                            candidateSearchQuery.getClassName(),
+                            candidateSearchQuery.getMethodName(),
+                            candidateSearchQuery.getArgumentsDescriptor());
+            }
 
             List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> resultList = new LinkedList<>();
 
             List<TestCandidateMetadata> testCandidates = parameterIds.getResults();
             for (TestCandidateMetadata testCandidate : testCandidates) {
                 com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
-                        convertTestCandidateMetadata(testCandidate, loadCalls);
+                        convertTestCandidateMetadata(testCandidate, candidateSearchQuery.isLoadCalls());
                 resultList.add(converted);
             }
 

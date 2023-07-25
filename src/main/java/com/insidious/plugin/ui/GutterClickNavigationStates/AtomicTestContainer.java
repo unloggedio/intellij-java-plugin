@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.GutterClickNavigationStates;
 
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -104,9 +105,13 @@ public class AtomicTestContainer {
         }
 
 
+        CandidateSearchQuery candidateSearchQuery =
+                insidiousService.createSearchQueryForMethod(focussedMethod);
+
         List<StoredCandidate> methodTestCandidates =
                 ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
-                        insidiousService.getStoredCandidatesFor(focussedMethod));
+                        insidiousService.getStoredCandidatesFor(candidateSearchQuery));
+
         if (methodTestCandidates.size() > 0) {
             loadExecutionFlow();
             methodTestCandidates.sort(StoredCandidate::compareTo);
@@ -119,8 +124,7 @@ public class AtomicTestContainer {
 
     }
 
-    public void clearBoardOnMethodExecutor()
-    {
+    public void clearBoardOnMethodExecutor() {
         methodExecutorComponent.clearBoard();
     }
 

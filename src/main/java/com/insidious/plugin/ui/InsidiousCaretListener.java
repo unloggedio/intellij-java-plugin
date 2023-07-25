@@ -72,7 +72,7 @@ public class InsidiousCaretListener implements EditorMouseListener {
                 GutterState state = insidiousService.getGutterStateFor(methodAdapter);
                 long end = new Date().getTime();
                 logger.warn("get gutter state took: " + (end - start) + " ms");
-                insidiousService.loadSingleWindowForState(state);
+//                insidiousService.loadSingleWindowForState(state);
                 insidiousService.methodFocussedHandler(methodAdapter);
                 return;
             }
