@@ -4,8 +4,6 @@ import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 
 import javax.swing.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 
 public class AssertionRule {
     private JPanel mainPanel;
@@ -16,60 +14,44 @@ public class AssertionRule {
     private JLabel closeLabel;
     private JLabel statusIconLabel;
     private JPanel leftAligner;
+    private JButton trashButton;
     private AssertionBlockManager parentBlock;
     private AssertionElement referenceElement;
     private AtomicAssertion assertion;
 
-    public AssertionRule(AssertionBlockManager assertionBlock, AtomicAssertion payload)
-    {
+    public AssertionRule(AssertionBlockManager assertionBlock, AtomicAssertion payload) {
         setupOptions();
         this.assertion = payload;
         this.parentBlock = assertionBlock;
 //        this.statusIconLabel.setText(payload.getstat());
-        this.nameSelector.setText(payload.getKey()!=null ? payload.getKey() : "Nothing selected");
+        this.nameSelector.setText(payload.getKey() != null ? payload.getKey() : "Nothing selected");
 //        this.operationSelector.setSelectedItem(payload.getAssertionType()!=null ? payload.getAssertionType() : operationSelector.getItemAt(0));
-        this.valueField.setText(payload.getExpectedValue()!=null ? payload.getExpectedValue() : "");
-        setupListeners();
+        this.valueField.setText(payload.getExpectedValue() != null ? payload.getExpectedValue() : "");
+        trashButton.addActionListener(e -> deleteRule());
     }
 
-    private void setupOptions()
-    {
+    private void setupOptions() {
         for (AssertionType type : AssertionType.values()) {
             operationSelector.addItem(type);
         }
     }
 
-    public void setupListeners()
-    {
-            closeLabel.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    deleteRule();
-                }
-            });
-    }
 
     private void toggleOperation() {
-        if(!statusIconLabel.getText().equals("Where"))
-        {
-            if (statusIconLabel.getText().equals("AND"))
-            {
+        if (!statusIconLabel.getText().equals("Where")) {
+            if (statusIconLabel.getText().equals("AND")) {
                 statusIconLabel.setText("OR");
-            }
-            else
-            {
+            } else {
                 statusIconLabel.setText("AND");
             }
         }
     }
 
-    public JPanel getMainPanel()
-    {
+    public JPanel getMainPanel() {
         return mainPanel;
     }
 
-    public void deleteRule()
-    {
+    public void deleteRule() {
         this.parentBlock.removeAssertionElement(referenceElement);
     }
 
@@ -78,8 +60,7 @@ public class AssertionRule {
         return getAtomicAssertion().toString();
     }
 
-    public AtomicAssertion getAtomicAssertion()
-    {
+    public AtomicAssertion getAtomicAssertion() {
         assertion.setAssertionType((AssertionType) this.operationSelector.getSelectedItem());
         assertion.setExpectedValue(this.valueField.getText().trim());
         return assertion;

@@ -4,8 +4,9 @@ public class AssertionElement {
     private AssertionBlock block;
     private AssertionRule rule;
 
-    public AssertionElement(AssertionRule rule) {
+    public AssertionElement(AssertionRule rule, AssertionBlock block) {
         this.rule = rule;
+        this.block = block;
     }
 
     public AssertionBlock getBlock() {

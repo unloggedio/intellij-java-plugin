@@ -115,6 +115,7 @@
         <toolWindow id="Unlogged" canCloseContents="false" secondary="false" icon="/icons/png/logo_unlogged.png"
                     anchor="right"
                     factoryClass="com.insidious.plugin.factory.DebuggerFactory"/>
+
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
         <applicationService serviceImplementation="com.insidious.plugin.factory.AgentDownloadService" />
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>

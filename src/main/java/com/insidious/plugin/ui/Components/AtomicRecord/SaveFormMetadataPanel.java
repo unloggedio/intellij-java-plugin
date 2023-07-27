@@ -29,35 +29,29 @@ public class SaveFormMetadataPanel {
         loadView(payload);
     }
 
-    public void loadView(MetadataViewPayload payload)
-    {
-        this.nameText.setText(payload.getName()!=null ? payload.getName() : "");
-        this.descriptionText.setText(payload.getDescription()!=null ? payload.getDescription() : "");
+    public void loadView(MetadataViewPayload payload) {
+        this.nameText.setText(payload.getName() != null ? payload.getName() : "");
+        this.descriptionText.setText(payload.getDescription() != null ? payload.getDescription() : "");
         this.createdByLabel.setText(payload.getStoredCandidateMetadata().getRecordedBy());
         this.hostLabel.setText(payload.getStoredCandidateMetadata().getHostMachineName());
         this.timestampLabel.setText(convertTimestamp(payload.getStoredCandidateMetadata().getTimestamp()));
-        this.timestampLabel.setToolTipText(payload.getStoredCandidateMetadata().getTimestamp()+"");
+        this.timestampLabel.setToolTipText(payload.getStoredCandidateMetadata().getTimestamp() + "");
         StoredCandidateMetadata.CandidateStatus status = payload.getStoredCandidateMetadata().getCandidateStatus();
-        if(status.equals(StoredCandidateMetadata.CandidateStatus.FAILING))
-        {
+        if (status.equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
             this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
             this.statusLabel.setForeground(UIUtils.red);
             this.statusLabel.setText("Failing");
-        }
-        else
-        {
+        } else {
             this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
             this.statusLabel.setForeground(UIUtils.green);
             this.statusLabel.setText("Passing");
         }
     }
 
-    public MetadataViewPayload getPayload()
-    {
+    public MetadataViewPayload getPayload() {
         StoredCandidateMetadata metadata = new StoredCandidateMetadata();
         StoredCandidateMetadata.CandidateStatus status = StoredCandidateMetadata.CandidateStatus.PASSING;
-        if (this.statusLabel.getText().equalsIgnoreCase("failing"))
-        {
+        if (this.statusLabel.getText().equalsIgnoreCase("failing")) {
             status = StoredCandidateMetadata.CandidateStatus.FAILING;
         }
         metadata.setCandidateStatus(status);

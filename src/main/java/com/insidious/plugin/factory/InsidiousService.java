@@ -30,6 +30,7 @@ import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.TestSuite;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
 import com.insidious.plugin.ui.GutterClickNavigationStates.AtomicTestContainer;
 import com.insidious.plugin.ui.InsidiousCaretListener;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
@@ -71,7 +72,9 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.EditorEventMulticaster;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileEditor.FileEditorProvider;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -103,6 +106,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -969,6 +973,8 @@ final public class InsidiousService implements Disposable,
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
         logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "]");
         ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
+
+
         Editor[] currentOpenEditorsList = EditorFactory.getInstance().getAllEditors();
         for (Editor editor : currentOpenEditorsList) {
             VirtualFile virtualFile = FileDocumentManager.getInstance().getFile(editor.getDocument());
@@ -1346,6 +1352,15 @@ final public class InsidiousService implements Disposable,
 
     public void showDiffEditor(SimpleDiffRequest request) {
         DiffManager.getInstance().showDiff(project, request);
+//        VcsEditorTabFilesManager.getInstance().
+    }
+
+    public void showComponent(@NotNull JComponent component) {
+        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+        @Nullable FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
+
+        fileEditorManager.addTopComponent(selectedEditor, component);
+
     }
 
     public void addDiffRecord(MethodAdapter methodElement, DifferenceResult newDiffRecord) {

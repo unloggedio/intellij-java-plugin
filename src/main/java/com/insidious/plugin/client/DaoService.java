@@ -1285,18 +1285,12 @@ public class DaoService {
 
                 case ALL:
                     parameterIds = testCandidateDao.queryRaw(TEST_CANDIDATE_BY_ALL_SELECT,
-                            testCandidateDao.getRawRowMapper(),
-                            candidateSearchQuery.getClassName(),
-                            candidateSearchQuery.getMethodName(),
-                            candidateSearchQuery.getArgumentsDescriptor());
+                            testCandidateDao.getRawRowMapper());
                     break;
                 case CLASS:
                     parameterIds = testCandidateDao.queryRaw(TEST_CANDIDATE_BY_CLASS_SELECT,
                             testCandidateDao.getRawRowMapper(),
-                            candidateSearchQuery.getClassName(),
-                            candidateSearchQuery.getMethodName(),
-                            candidateSearchQuery.getArgumentsDescriptor()
-                    );
+                            candidateSearchQuery.getClassName());
 
                     break;
                 case METHOD:
@@ -1304,8 +1298,7 @@ public class DaoService {
                             testCandidateDao.getRawRowMapper(),
                             candidateSearchQuery.getClassName(),
                             candidateSearchQuery.getMethodName(),
-                            candidateSearchQuery.getArgumentsDescriptor()
-                    );
+                            candidateSearchQuery.getArgumentsDescriptor());
 
                     break;
                 default:

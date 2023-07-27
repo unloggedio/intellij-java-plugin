@@ -58,10 +58,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     private JPanel centerParent;
     private JPanel topAligner;
     private JScrollPane scrollParent;
-    private JPanel filterButtonGroupPanel;
+    //    private JPanel filterButtonGroupPanel;
     private int callCount = 0;
     private SaveForm saveFormReference;
-    private CandidateFilterType candidateFilterType;
+    private CandidateFilterType candidateFilterType = CandidateFilterType.METHOD;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
 //        System.out.println("In Constructor mec");
@@ -88,10 +88,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         ButtonGroup buttonGroup = new ButtonGroup();
 
         JBRadioButton allButton = new JBRadioButton("All");
-        allButton.setSelected(true);
-
         JBRadioButton classOnlyButton = new JBRadioButton("Class only");
         JBRadioButton methodOnlyButton = new JBRadioButton("Method only");
+
+        methodOnlyButton.setSelected(true);
 
         buttonGroup.add(allButton);
         buttonGroup.add(classOnlyButton);
@@ -115,9 +115,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         });
 
 
-        filterButtonGroupPanel.add(allButton);
-        filterButtonGroupPanel.add(classOnlyButton);
-        filterButtonGroupPanel.add(methodOnlyButton);
+//        filterButtonGroupPanel.add(allButton);
+//        filterButtonGroupPanel.add(classOnlyButton);
+//        filterButtonGroupPanel.add(methodOnlyButton);
     }
 
     public MethodAdapter getCurrentMethod() {
@@ -569,7 +569,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             saveFormReference.dispose();
         }
         saveFormReference = new SaveForm(storedCandidate, agentCommandResponse, this);
-        saveFormReference.setVisible(true);
+        insidiousService.showComponent(saveFormReference.getComponent());
+//        saveFormReference.setVisible(true);
     }
 
     @Override
@@ -626,7 +627,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     private void refreshSearchAndLoad() {
 
-        CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(methodElement, candidateFilterType, false);
+        CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(methodElement, candidateFilterType,
+                false);
 
         List<StoredCandidate> methodTestCandidates =
                 ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->

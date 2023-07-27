@@ -42,7 +42,7 @@ public class CandidateSearchQuery {
         this.methodSignature = methodSignature;
         this.argumentsDescriptor = argumentsDescriptor;
         this.interfaceNames = interfaceNames;
-        this.candidateFilterType = CandidateFilterType.ALL;
+        this.candidateFilterType = CandidateFilterType.METHOD;
         this.loadCalls = false;
     }
 

@@ -1,18 +1,16 @@
 package com.insidious.plugin.ui.Components.AtomicRecord;
 
+import com.intellij.ui.JBColor;
+
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class RuleAdditionPanel {
+    private final AssertionBlockManager parentBlock;
+    private final Color defaultColor;
     private JPanel mainPanel;
-    private JPanel topAligner;
-    private JPanel defaultControls;
-    private JPanel emptyControls;
-    private JButton addAssertionButton;
     private JPanel labelHolder;
     private JLabel andLabel;
     private JLabel orLabel;
@@ -22,126 +20,80 @@ public class RuleAdditionPanel {
     private JButton groupButton;
     private JButton deleteButton;
     private JLabel iconLabel;
-    private AssertionBlockManager parentBlock;
+    private JPanel andPanel;
+    private JPanel orPanel;
     private boolean isNested;
     private String operation = "AND";
-    private Color defaultColor;
 
-    public JPanel getMainPanel()
-    {
-        return this.mainPanel;
-    }
-
-    public RuleAdditionPanel(AssertionBlockManager parent, boolean showInitialFlow)
-    {
+    public RuleAdditionPanel(AssertionBlockManager parent, boolean showInitialFlow) {
         defaultColor = andLabel.getBackground();
         parentBlock = parent;
-        if(showInitialFlow)
-        {
-            this.defaultControls.setVisible(false);
-            this.emptyControls.setVisible(true);
-        }
-        else
-        {
-            this.defaultControls.setVisible(true);
-            this.emptyControls.setVisible(false);
-        }
+
         setNested(false);
         setCondition("AND");
 
-        addAssertionButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                addFirstCondition();
-            }
-        });
-        ruleButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                addNewRule();
-            }
-        });
-        groupButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                addNewGroup();
-            }
-        });
-        deleteButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                deleteGroup();
-            }
-        });
-        andLabel.addMouseListener(new MouseAdapter() {
+        ruleButton.addActionListener(e -> addNewRule());
+        groupButton.addActionListener(e -> addNewGroup());
+        deleteButton.addActionListener(e -> deleteGroup());
+        MouseAdapter selectAnd = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 setCondition("AND");
             }
-        });
-        orLabel.addMouseListener(new MouseAdapter() {
+        };
+        MouseAdapter selectOr = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 setCondition("OR");
             }
-        });
+        };
+        andLabel.addMouseListener(selectAnd);
+        andPanel.addMouseListener(selectAnd);
+        orLabel.addMouseListener(selectOr);
+        orPanel.addMouseListener(selectOr);
+    }
+
+    public JPanel getMainPanel() {
+        return this.mainPanel;
     }
 
     private void setCondition(String condition) {
         this.operation = condition;
-        if(condition.equalsIgnoreCase("and"))
-        {
-            andLabel.setBackground(Color.BLUE);
-            orLabel.setBackground(defaultColor);
+        if (condition.equalsIgnoreCase("and")) {
+            andPanel.setBackground(JBColor.BLUE);
+            orPanel.setBackground(defaultColor);
+        } else {
+            orPanel.setBackground(JBColor.BLUE);
+            andPanel.setBackground(defaultColor);
         }
-        else
-        {
-            orLabel.setBackground(Color.BLUE);
-            andLabel.setBackground(defaultColor);
-        }
+        andLabel.repaint();
+        orLabel.repaint();
     }
 
-    public void addFirstCondition()
-    {
-        this.emptyControls.setVisible(false);
-        this.defaultControls.setVisible(true);
-        //send updward call to add rule
-        parentBlock.addFirstRule();
-    }
 
-    public void addNewRule()
-    {
+    public void addNewRule() {
         //send add new rule trigger
         parentBlock.addNewRule();
     }
 
-    public void addNewGroup()
-    {
+    public void addNewGroup() {
         //send add new assertion trigger
         parentBlock.addNewGroup();
     }
 
     public void setNested(boolean b) {
         this.isNested = b;
-        if(isNested)
-        {
+        if (isNested) {
             iconLabel.setVisible(true);
             deleteButton.setVisible(true);
-        }
-        else
-        {
+        } else {
             deleteButton.setVisible(false);
             iconLabel.setVisible(false);
         }
     }
 
-    private void deleteGroup()
-    {
+    private void deleteGroup() {
         parentBlock.removeAssertionGroup();
     }
 
-    public String getSelectedCondition()
-    {
-        return notCheckBox.isSelected() ? "NOT "+operation : operation;
-    }
 }

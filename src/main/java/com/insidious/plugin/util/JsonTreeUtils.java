@@ -4,7 +4,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreeNode;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -48,8 +47,7 @@ public class JsonTreeUtils {
 
     private static DefaultMutableTreeNode handleArray(JSONArray json, DefaultMutableTreeNode root) {
         for (int i = 0; i < json.length(); i++) {
-            String valueTemp = json.get(i)
-                    .toString();
+            String valueTemp = json.get(i).toString();
             if (valueTemp.startsWith("{")) {
                 //obj in obj
                 DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(i + " : ");
@@ -64,31 +62,25 @@ public class JsonTreeUtils {
         return root;
     }
 
-    public static String getFlatMap(Object[] pathnodes)
-    {
+    public static String getFlatMap(Object[] pathnodes) {
         StringBuilder flatmap = new StringBuilder("");
-        for(Object node : pathnodes)
-        {
-            flatmap.append(node.toString()+".");
+        for (Object node : pathnodes) {
+            flatmap.append(node.toString() + ".");
         }
-        flatmap.deleteCharAt(flatmap.length()-1);
+        flatmap.deleteCharAt(flatmap.length() - 1);
         return flatmap.toString();
     }
 
-    public static Map.Entry<String,String> getKeyValuePair(String flatmap)
-    {
-        Map<String,String> map = new TreeMap<>();
-        if(flatmap.contains(":"))
-        {
-            String value = flatmap.substring(flatmap.lastIndexOf(":")+1).trim();
-            String key = flatmap.substring(0,flatmap.lastIndexOf(":")).trim();
-            map.put(key,value);
+    public static Map.Entry<String, String> getKeyValuePair(String flatmap) {
+        Map<String, String> map = new TreeMap<>();
+        if (flatmap.contains(":")) {
+            String value = flatmap.substring(flatmap.lastIndexOf(":") + 1).trim();
+            String key = flatmap.substring(0, flatmap.lastIndexOf(":")).trim();
+            map.put(key, value);
+        } else {
+            map.put(flatmap, null);
         }
-        else
-        {
-            map.put(flatmap,null);
-        }
-        Map.Entry<String,String>[] entries = new Map.Entry[1];
+        Map.Entry<String, String>[] entries = new Map.Entry[1];
         return map.entrySet().toArray(entries)[0];
     }
 }
