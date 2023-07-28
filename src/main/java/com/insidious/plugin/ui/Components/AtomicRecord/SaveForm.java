@@ -67,8 +67,7 @@ public class SaveForm {
         }
 
         AtomicAssertion existingAssertion = storedCandidate.getTestAssertions();
-        if (existingAssertion == null ||
-                existingAssertion.getSubAssertions() == null ||
+        if (existingAssertion == null || existingAssertion.getSubAssertions() == null ||
                 existingAssertion.getSubAssertions().size() == 0) {
             List<AtomicAssertion> subAssertions = new ArrayList<>();
             subAssertions.add(
@@ -230,12 +229,12 @@ public class SaveForm {
     private void triggerSave() {
 
         AtomicAssertion atomicAssertion = ruleEditor.getAssertion();
-        try {
-            logger.warn("Atomic assertion: \n" +
-                    objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(atomicAssertion));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+//        try {
+//            logger.warn("Atomic assertion: \n" +
+//                    objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(atomicAssertion));
+//        } catch (JsonProcessingException e) {
+//            throw new RuntimeException(e);
+//        }
 
         MetadataViewPayload payload = metadataForm.getPayload();
         String name_text = prepareString(payload.getName());
@@ -251,7 +250,7 @@ public class SaveForm {
         candidate.setMetadata(payload.getStoredCandidateMetadata());
         candidate.setName(name_text);
         candidate.setDescription(description_text);
-        candidate.addTestAssertion(new AtomicAssertion(type, "/", ""));
+        candidate.setTestAssertions(atomicAssertion);
 
         listener.onSaved(candidate);
     }

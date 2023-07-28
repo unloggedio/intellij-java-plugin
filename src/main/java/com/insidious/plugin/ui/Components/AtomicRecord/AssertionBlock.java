@@ -72,12 +72,13 @@ public class AssertionBlock implements AssertionBlockManager {
                 selectedKeyValue.getValue().toString());
 
         AtomicAssertion newSubGroup = new AtomicAssertion();
+        newSubGroup.setAssertionType(AssertionType.ALLOF);
         newSubGroup.getSubAssertions().add(assertion);
 
+        this.assertion.getSubAssertions().add(newSubGroup);
         AssertionBlock newBlock = new AssertionBlock(newSubGroup, this);
 
         assertionGroups.add(newBlock);
-        this.assertion.getSubAssertions().add(newSubGroup);
 
         contentPanel.add(newBlock.getMainPanel());
         contentPanel.revalidate();

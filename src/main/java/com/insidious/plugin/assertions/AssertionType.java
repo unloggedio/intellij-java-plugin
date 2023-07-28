@@ -49,6 +49,7 @@ public enum AssertionType {
     }
 
     public boolean verify(JsonNode actualValue, JsonNode expectedValue) {
+
         switch (this) {
             case EQUAL:
                 return Objects.equals(actualValue, expectedValue);
@@ -59,12 +60,24 @@ public enum AssertionType {
             case TRUE:
                 return Objects.equals(actualValue.asBoolean(), true);
             case LESS_THAN:
+                if (expectedValue == null) {
+                    return false;
+                }
                 return actualValue.asDouble() < expectedValue.asDouble();
             case GREATER_THAN:
+                if (expectedValue == null) {
+                    return false;
+                }
                 return actualValue.asDouble() > expectedValue.asDouble();
             case LESS_THAN_OR_EQUAL:
+                if (expectedValue == null) {
+                    return false;
+                }
                 return actualValue.asDouble() <= expectedValue.asDouble();
             case GREATER_THAN_OR_EQUAL:
+                if (expectedValue == null) {
+                    return false;
+                }
                 return actualValue.asDouble() >= expectedValue.asDouble();
             case NULL:
                 return actualValue.isNull();

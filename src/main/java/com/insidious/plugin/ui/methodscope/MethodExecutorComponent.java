@@ -380,8 +380,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                         try {
                             JsonNode responseNode = objectMapper.readTree(agentCommandResponse.getMethodReturnValue());
                             AssertionResult result = AssertionEngine.executeAssertions(
-                                    testCandidate.getTestAssertions(),
-                                    responseNode);
+                                    testCandidate.getTestAssertions(), responseNode);
 
                             List<AtomicAssertion> flatAssertionList =
                                     flattenAssertionMap(testCandidate.getTestAssertions());
@@ -409,9 +408,19 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                                     leftOnlyMap, rightOnlyMap
                             );
 
-                        } catch (JsonProcessingException e) {
+                        } catch (Exception e) {
 
-                            throw new RuntimeException(e);
+                            differencesList.add(
+                                    new DifferenceInstance(
+                                            "Invalid assertion",
+                                            e.getMessage(),
+                                            "",
+                                            DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY
+                                    )
+                            );
+                            diffResult = new DifferenceResult(
+                                    differencesList, DiffResultType.DIFF, leftOnlyMap, rightOnlyMap);
+
                         }
                     }
 

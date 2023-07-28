@@ -70,8 +70,12 @@ public class AssertionEngine {
             JsonNode expressedValue = expression.compute(assertionActualValue);
             JsonNode expectedValue = null;
             try {
-                expectedValue = objectMapper.readTree(assertion.getExpectedValue());
-                result = assertionType.verify(expressedValue, expectedValue);
+                if (assertion.getExpectedValue() == null) {
+                    result = assertionType.verify(expressedValue, null);
+                } else {
+                    expectedValue = objectMapper.readTree(assertion.getExpectedValue());
+                    result = assertionType.verify(expressedValue, expectedValue);
+                }
             } catch (JsonProcessingException e) {
                 try {
                     expectedValue = objectMapper.readTree("\"" + assertion.getExpectedValue() + "\"");

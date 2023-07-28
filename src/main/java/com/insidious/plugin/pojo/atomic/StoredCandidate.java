@@ -14,7 +14,11 @@ import java.util.Objects;
 
 public class StoredCandidate implements Comparable<StoredCandidate> {
 
-    private final AtomicAssertion testAssertions = new AtomicAssertion(AssertionType.ALLOF, new ArrayList<>());
+    public void setTestAssertions(AtomicAssertion testAssertions) {
+        this.testAssertions = testAssertions;
+    }
+
+    private AtomicAssertion testAssertions = new AtomicAssertion(AssertionType.ALLOF, new ArrayList<>());
     private String candidateId;
     private String name;
     private String description;
@@ -215,4 +219,5 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     public void addTestAssertion(AtomicAssertion testAssertions) {
         this.testAssertions.getSubAssertions().add(testAssertions);
     }
+
 }
