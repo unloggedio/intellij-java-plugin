@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.methodscope;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
@@ -10,13 +11,13 @@ import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.*;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.util.*;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
@@ -66,6 +67,13 @@ public class MethodDirectInvokeComponent implements ActionListener {
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
         this.objectMapper = this.insidiousService.getObjectMapper();
+
+        methodNameLabel.setText("This will be available after IDEA indexing is complete");
+        executeButton.setEnabled(false);
+        DumbService.getInstance(insidiousService.getProject()).runWhenSmart(() -> {
+            methodNameLabel.setText("Click on a method to proceed");
+            executeButton.setEnabled(true);
+        });
 
         executeButton.addActionListener(e -> executeMethodWithParameters());
         methodParameterScrollContainer.addKeyListener(new KeyAdapter() {

@@ -74,7 +74,6 @@ import com.intellij.openapi.editor.event.EditorEventMulticaster;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.fileEditor.FileEditorProvider;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -106,7 +105,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -167,6 +165,7 @@ final public class InsidiousService implements Disposable,
     private AtomicRecordService atomicRecordService;
     private Map<String, String> candidateIndividualContextMap = new TreeMap<>();
     private boolean isDisposed;
+    private SaveForm currentSaveForm;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -1196,7 +1195,8 @@ final public class InsidiousService implements Disposable,
         for (String interfaceName : candidateSearchQuery.getInterfaceNames()) {
             CandidateSearchQuery interfaceSearchQuery =
                     CandidateSearchQuery.cloneWithNewClassName(candidateSearchQuery, interfaceName);
-            List<TestCandidateMetadata> interfaceCandidates = sessionInstance.getTestCandidatesForAllMethod(interfaceSearchQuery);
+            List<TestCandidateMetadata> interfaceCandidates = sessionInstance.getTestCandidatesForAllMethod(
+                    interfaceSearchQuery);
             candidates.addAll(interfaceCandidates);
 
         }
@@ -1355,12 +1355,23 @@ final public class InsidiousService implements Disposable,
 //        VcsEditorTabFilesManager.getInstance().
     }
 
-    public void showComponent(@NotNull JComponent component) {
+    public void showCandidateSaveForm(SaveForm saveForm) {
         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
         @Nullable FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
+        if (this.currentSaveForm != null) {
+            fileEditorManager.removeTopComponent(selectedEditor, currentSaveForm.getComponent());
+        }
+        this.currentSaveForm = saveForm;
+        fileEditorManager.addTopComponent(selectedEditor, currentSaveForm.getComponent());
+    }
 
-        fileEditorManager.addTopComponent(selectedEditor, component);
-
+    public void hideCandidateSaveForm() {
+        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+        @Nullable FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
+        if (this.currentSaveForm != null) {
+            fileEditorManager.removeTopComponent(selectedEditor, currentSaveForm.getComponent());
+        }
+        this.currentSaveForm = null;
     }
 
     public void addDiffRecord(MethodAdapter methodElement, DifferenceResult newDiffRecord) {

@@ -4,6 +4,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -23,8 +24,7 @@ public class JsonTreeUtils {
     private static DefaultMutableTreeNode handleObject(JSONObject json, DefaultMutableTreeNode root) {
         Set<String> keys = json.keySet();
         for (String key : keys) {
-            String valueTemp = json.get(key)
-                    .toString();
+            String valueTemp = json.get(key).toString();
             if (valueTemp.startsWith("{")) {
                 //obj in obj
                 DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(key);
@@ -38,7 +38,7 @@ public class JsonTreeUtils {
                 handleArray(subObjArray, thisKey);
                 root.add(thisKey);
             } else {
-                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(key + " : " + valueTemp);
+                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(key + ": " + valueTemp);
                 root.add(thisKVpair);
             }
         }
@@ -50,25 +50,38 @@ public class JsonTreeUtils {
             String valueTemp = json.get(i).toString();
             if (valueTemp.startsWith("{")) {
                 //obj in obj
-                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(i + " : ");
+                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(i + ": ");
                 JSONObject subObj = new JSONObject(valueTemp);
                 handleObject(subObj, thisKey);
                 root.add(thisKey);
             } else {
-                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(i + " : " + valueTemp);
+                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(i + ": " + valueTemp);
                 root.add(thisKVpair);
             }
         }
         return root;
     }
 
-    public static String getFlatMap(Object[] pathnodes) {
+    public static String getFlatMap(TreeNode[] treeNodes) {
         StringBuilder flatmap = new StringBuilder("");
-        for (Object node : pathnodes) {
-            flatmap.append(node.toString() + ".");
+        boolean first = true;
+        for (TreeNode treeNode : treeNodes) {
+            String keyName = treeNode.toString();
+            if (first) {
+                first = false;
+            } else {
+                if (keyName.contains(":")) {
+                    keyName = keyName.substring(0, keyName.indexOf(":"));
+                }
+                flatmap.append("/").append(keyName);
+            }
         }
-        flatmap.deleteCharAt(flatmap.length() - 1);
-        return flatmap.toString();
+//        flatmap.deleteCharAt(flatmap.length() - 1);
+        String jsonPointer = flatmap.toString();
+        if (jsonPointer.length() == 0) {
+            return "/";
+        }
+        return jsonPointer;
     }
 
     public static Map.Entry<String, String> getKeyValuePair(String flatmap) {
@@ -82,5 +95,17 @@ public class JsonTreeUtils {
         }
         Map.Entry<String, String>[] entries = new Map.Entry[1];
         return map.entrySet().toArray(entries)[0];
+    }
+
+    public static Object getValueFromJsonNode(String source, String selectedKey) {
+        if (source.startsWith("{")) {
+            JSONObject json = new JSONObject(source);
+            return json.optQuery(selectedKey);
+        } else if (source.startsWith("[")) {
+            JSONArray json = new JSONArray(source);
+            return json.optQuery(selectedKey);
+        } else {
+            return source;
+        }
     }
 }

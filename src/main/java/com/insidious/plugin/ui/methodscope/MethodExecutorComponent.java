@@ -565,12 +565,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     @Override
     public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
-        if (saveFormReference != null) {
-            saveFormReference.dispose();
-        }
         saveFormReference = new SaveForm(storedCandidate, agentCommandResponse, this);
-        insidiousService.showComponent(saveFormReference.getComponent());
-//        saveFormReference.setVisible(true);
+        insidiousService.showCandidateSaveForm(saveFormReference);
+
     }
 
     @Override
@@ -645,6 +642,11 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     @Override
     public void onUpdateRequest(StoredCandidate storedCandidate) {
 
+    }
+
+    @Override
+    public void onCancel() {
+        insidiousService.hideCandidateSaveForm();
     }
 
     @Override

@@ -14,7 +14,11 @@ public enum AssertionType {
     FALSE,
     TRUE,
     LESS_THAN,
-    GREATER_THAN;
+    LESS_THAN_OR_EQUAL,
+    GREATER_THAN,
+    GREATER_THAN_OR_EQUAL,
+    CONTAINS,
+    NOT_CONTAINS, NOT_NULL, NULL, EMPTY, NOT_EMPTY;
 
     @Override
     public String toString() {
@@ -58,6 +62,19 @@ public enum AssertionType {
                 return actualValue.asDouble() < expectedValue.asDouble();
             case GREATER_THAN:
                 return actualValue.asDouble() > expectedValue.asDouble();
+            case LESS_THAN_OR_EQUAL:
+                return actualValue.asDouble() <= expectedValue.asDouble();
+            case GREATER_THAN_OR_EQUAL:
+                return actualValue.asDouble() >= expectedValue.asDouble();
+            case NULL:
+                return actualValue.isNull();
+            case EMPTY:
+                return actualValue.isEmpty();
+            case NOT_EMPTY:
+                return actualValue.isEmpty();
+            case NOT_NULL:
+                return !actualValue.isNull();
+
         }
         return false;
     }

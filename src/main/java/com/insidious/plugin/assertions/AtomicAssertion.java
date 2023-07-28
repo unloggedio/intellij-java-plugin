@@ -1,15 +1,16 @@
 package com.insidious.plugin.assertions;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class AtomicAssertion {
 
-    List<AtomicAssertion> subAssertions;
-    private Expression expression;
+    List<AtomicAssertion> subAssertions = new ArrayList<>();
+    private Expression expression = Expression.SELF;
     private String expectedValue;
     private String id = UUID.randomUUID().toString();
-    private AssertionType assertionType;
+    private AssertionType assertionType = AssertionType.EQUAL;
     private String key;
 
     public AtomicAssertion() {

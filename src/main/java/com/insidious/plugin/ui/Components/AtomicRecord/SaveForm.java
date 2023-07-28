@@ -1,14 +1,20 @@
 package com.insidious.plugin.ui.Components.AtomicRecord;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
+import com.insidious.plugin.assertions.KeyValue;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.JsonTreeUtils;
+import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
-import com.intellij.ui.JBColor;
+import com.intellij.notification.NotificationType;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
@@ -16,33 +22,22 @@ import com.intellij.util.ui.JBUI;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.List;
 
-public class SaveForm extends JFrame {
+public class SaveForm {
 
-    private final int height = 728;
-    private final int width = 1000;
-    private final ButtonGroup radioGroup = new ButtonGroup();
+    private static final Logger logger = LoggerUtil.getInstance(SaveForm.class);
+    private final static ObjectMapper objectMapper = new ObjectMapper();
     private final CandidateLifeListener listener;
     private final StoredCandidate storedCandidate;
     private final AgentCommandResponse<String> agentCommandResponse;
     private final AssertionBlock ruleEditor;
     private final SaveFormMetadataPanel metadataForm;
     private final JPanel mainPanel;
-    //    private final List<Component> components;
-    private JLabel title;
-    private JLabel nameLabel;
-    private JLabel descriptionLabel;
-    //    private Container contentPane;
-    private JTextField nameField;
-    private JTextArea description;
     private JButton saveButton;
     private JButton cancelButton;
     private JLabel assertionLabel;
@@ -50,9 +45,11 @@ public class SaveForm extends JFrame {
     private JRadioButton b2;
 
     //AgentCommandResponse is necessary for update flow and Assertions as well
-    public SaveForm(StoredCandidate storedCandidate,
-                    AgentCommandResponse<String> agentCommandResponse,
-                    CandidateLifeListener listener) {
+    public SaveForm(
+            StoredCandidate storedCandidate,
+            AgentCommandResponse<String> agentCommandResponse,
+            CandidateLifeListener listener
+    ) {
         this.storedCandidate = storedCandidate;
         this.listener = listener;
         this.agentCommandResponse = agentCommandResponse;
@@ -60,15 +57,18 @@ public class SaveForm extends JFrame {
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
 
-        JPanel titlePanel = new JPanel();
-
-//        setTitle("Unlogged Inc.");
-//        setBounds(200, 50, width, height);
-//        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-//        setResizable(false);
         JTree candidateExplorerTree = new Tree(getTree());
 
-        ruleEditor = new AssertionBlock(new AssertionBlockManager() {
+        AtomicAssertion existingAssertion = storedCandidate.getTestAssertions();
+        if (existingAssertion == null ||
+                existingAssertion.getSubAssertions() == null ||
+                existingAssertion.getSubAssertions().size() == 0) {
+            List<AtomicAssertion> subAssertions = new ArrayList<>();
+            subAssertions.add(
+                    new AtomicAssertion(AssertionType.EQUAL, "/", agentCommandResponse.getMethodReturnValue()));
+            existingAssertion = new AtomicAssertion(AssertionType.ALLOF, subAssertions);
+        }
+        ruleEditor = new AssertionBlock(existingAssertion, new AssertionBlockManager() {
             @Override
             public void addNewRule() {
 
@@ -80,26 +80,28 @@ public class SaveForm extends JFrame {
             }
 
             @Override
-            public void removeAssertionElement(AssertionElement element) {
+            public void deleteAssertionRule(AssertionRule element) {
 
             }
 
             @Override
             public void removeAssertionGroup() {
-
+                InsidiousNotification.notifyMessage("Cannot delete this group.", NotificationType.ERROR);
             }
 
             @Override
-            public String getCurrentTreeKey() {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode)
-                        candidateExplorerTree.getLastSelectedPathComponent();
-                if (node == null) return "root";
+            public KeyValue getCurrentTreeKey() {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) candidateExplorerTree.getLastSelectedPathComponent();
+                if (node == null) return new KeyValue("/", agentCommandResponse.getMethodReturnValue());
                 TreeNode[] nodes = node.getPath();
-                return JsonTreeUtils.getFlatMap(nodes);
+                String selectedKey = JsonTreeUtils.getFlatMap(nodes);
+                return new KeyValue(selectedKey,
+                        JsonTreeUtils.getValueFromJsonNode(agentCommandResponse.getMethodReturnValue(), selectedKey));
+//                return selectedKey;
             }
 
             @Override
-            public void removeAssertionBlock(AssertionBlock block) {
+            public void removeAssertionGroup(AssertionBlock block) {
 
             }
         });
@@ -112,69 +114,26 @@ public class SaveForm extends JFrame {
 //        scrollPane.setSize(950, 310);
         assertionScrollPanel.setMaximumSize(new Dimension(1080, 300));
         assertionScrollPanel.setPreferredSize(new Dimension(1080, 300));
-//        JPanel midPanel = new JPanel(new BorderLayout());
-//        midPanel.add(assertionScrollPanel, BorderLayout.CENTER);
-//        midPanel.setMaximumSize(new Dimension(1080, 400));
-//        midPanel.setMaximumSize(new Dimension(-1, 400));
-//        new Thread(() -> {
-//            while (true) {
-//                try {
-//                    Thread.sleep(3000);
-//                    int currentWidth = assertionScrollPanel.getWidth();
-//                    assertionScrollPanel.setSize(new Dimension(currentWidth, 500));
-//                    assertionScrollPanel.revalidate();
-//                    assertionScrollPanel.repaint();
-//                } catch (InterruptedException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            }
-//        }).start();
 
-
-//        contentPane = getContentPane();
-//        contentPane.setLayout(null);
-//        components = new ArrayList<>();
 
         JPanel topPanel = new JPanel();
-//        topPanel.setSize(new Dimension(800, 400));
-//        topPanel.setMaximumSize(new Dimension(800, 400));
-//        topPanel.setPreferredSize(new Dimension(800, 400));
-        GridLayout mgr = new GridLayout(1, 2);
-        topPanel.setLayout(mgr);
-        title = new JLabel("Save Atomic Case");
-        title.setFont(new Font("", Font.PLAIN, 18));
-        title.setSize(300, 30);
-//        title.setLocation(25, 10);
-//        contentPane.add(title);
-        titlePanel.add(title);
-//        mainPanel.add(titlePanel, BorderLayout.NORTH);
+
+        GridLayout topPanelLayout = new GridLayout(1, 2);
+        topPanel.setLayout(topPanelLayout);
+
         mainPanel.setMaximumSize(new Dimension(1080, 600));
 
         candidateExplorerTree.setSize(new Dimension(400, 300));
-//        candidateExplorerTree.setBorder(new LineBorder(JBColor.GREEN));
+
         JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
         treeParent.setSize(new Dimension(400, topPanelHeight));
         treeParent.setMaximumSize(new Dimension(400, topPanelHeight));
         treeParent.setPreferredSize(new Dimension(400, topPanelHeight));
-//        treeParent.setBorder(new LineBorder(JBColor.RED));
-
-//        candidateExplorerTree.addTreeSelectionListener(new TreeSelectionListener() {
-//            public void valueChanged(TreeSelectionEvent e) {
-//                DefaultMutableTreeNode node = (DefaultMutableTreeNode)
-//                        candidateExplorerTree.getLastSelectedPathComponent();
-//                if (node == null) return;
-//                TreeNode[] nodes = node.getPath();
-//                ruleEditor.setCurrentKey(JsonTreeUtils.getFlatMap(nodes));
-//            }
-//        });
 
 
         JPanel treeViewer = new JPanel();
         treeViewer.setLayout(new BorderLayout());
-//        treeViewer.setSize(-1, -1);
-//        treeViewer.setLocation(25, 50);
-//        treeViewer.setBorder(new LineBorder(JBColor.CYAN));
-//        treeViewer.add(Box.createRigidArea(new Dimension(0, 5)));
+
         JLabel treeTitleLabel = new JLabel("Available recorded objects");
         JPanel titleLabelContainer = new JPanel();
 
@@ -192,56 +151,51 @@ public class SaveForm extends JFrame {
         treeViewer.setMaximumSize(new Dimension(400, topPanelHeight));
         treeViewer.setPreferredSize(new Dimension(400, topPanelHeight));
         topPanel.add(treeViewer);
-//        topPanel.setMaximumSize(new Dimension(100, 300));
-//        topPanel.setSize(new Dimension(-1, 300));
-//        components.add(treeViewer);
+
 
         metadataForm = new SaveFormMetadataPanel(new MetadataViewPayload(storedCandidate.getName(),
                 storedCandidate.getDescription(),
                 storedCandidate.getMetadata()));
-//        metadataPanel.getMainPanel().setLocation(595, 50);
+
         JPanel metadataFormPanel = metadataForm.getMainPanel();
         metadataFormPanel.setSize(new Dimension(380, topPanelHeight));
         metadataFormPanel.setMaximumSize(new Dimension(380, topPanelHeight));
-//        metadataFormPanel.setBorder(new LineBorder(JBColor.CYAN));
-//        components.add(metadataPanel.getMainPanel());
+
         topPanel.add(metadataFormPanel);
 
         mainPanel.add(topPanel, BorderLayout.NORTH);
         mainPanel.add(assertionScrollPanel, BorderLayout.CENTER);
 
-//        JScrollPane editorPanel = getEditorPanel();
-//        editorPanel.setBorder(new LineBorder(JBColor.RED));
-
-//        components.add(editorPanel);
 
         JPanel bottomPanel = new JPanel();
-        JLabel infoLabel = new JLabel("Case will be saved at " +
-                formatLocation(listener.getSaveLocation()));
+        bottomPanel.setLayout(new BorderLayout());
+
+        JPanel bottomPanelLeft = new JPanel();
+        bottomPanelLeft.setAlignmentX(0);
+
+        JLabel infoLabel = new JLabel("Case will be saved at " + formatLocation(listener.getSaveLocation()));
         infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
         infoLabel.setSize(700, 12);
-//        infoLabel.setLocation(25, height - 75);
-        bottomPanel.add(infoLabel);
+        bottomPanelLeft.add(infoLabel);
 
-        saveButton = new JButton("Save and Close");
-        saveButton.setSize(150, 30);
-//        saveButton.setLocation(width - 170, height - 85);
-        saveButton.setIcon(UIUtils.SAVE_CANDIDATE_GREY);
-        saveButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                //triggerSave();
-                printRuleSet();
-            }
-        });
-        bottomPanel.add(saveButton);
+        JPanel bottomPanelRight = new JPanel();
+        bottomPanelRight.setAlignmentX(1);
 
         cancelButton = new JButton("Cancel");
         cancelButton.setSize(100, 30);
-//        cancelButton.setLocation(width - 270, height - 85);
 
-        cancelButton.addActionListener(e -> SaveForm.this.dispose());
-        bottomPanel.add(cancelButton);
+        cancelButton.addActionListener(e -> listener.onCancel());
+
+        saveButton = new JButton("Save and Close");
+        saveButton.setSize(150, 30);
+        saveButton.setIcon(UIUtils.SAVE_CANDIDATE_GREY);
+        saveButton.addActionListener(e -> printRuleSet());
+
+        bottomPanelRight.add(cancelButton);
+        bottomPanelRight.add(saveButton);
+
+        bottomPanel.add(bottomPanelLeft, BorderLayout.WEST);
+        bottomPanel.add(bottomPanelRight, BorderLayout.EAST);
 
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
@@ -253,7 +207,7 @@ public class SaveForm extends JFrame {
     }
 
     private void printRuleSet() {
-        List<AtomicAssertion> assertions = ruleEditor.getAtomicAssertions();
+        AtomicAssertion assertions = ruleEditor.getAtomicAssertion();
         System.out.println("RULE SET : " + assertions.toString());
         System.out.println("METADATA SET : " + metadataForm.getPayload());
 
@@ -262,10 +216,18 @@ public class SaveForm extends JFrame {
     }
 
     private void triggerSave() {
+
+        AtomicAssertion atomicAssertion = ruleEditor.getAtomicAssertion();
+        try {
+            logger.warn("Atomic assertion: \n" +
+                    objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(atomicAssertion));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
         MetadataViewPayload payload = metadataForm.getPayload();
         String name_text = prepareString(payload.getName());
         String description_text = prepareString(payload.getDescription());
-        ButtonModel model = radioGroup.getSelection();
         AssertionType type = AssertionType.EQUAL;
 //        if (model.getActionCommand().equals("Assert Not Equals")) {
 //            type = AssertionType.NOT_EQUAL;
@@ -277,9 +239,9 @@ public class SaveForm extends JFrame {
         candidate.setMetadata(payload.getStoredCandidateMetadata());
         candidate.setName(name_text);
         candidate.setDescription(description_text);
-        candidate.addTestAssertion(new AtomicAssertion(type, "root", ""));
-        this.listener.onSaved(candidate);
-        this.dispose();
+        candidate.addTestAssertion(new AtomicAssertion(type, "/", ""));
+
+        listener.onSaved(candidate);
     }
 
     private String prepareString(String source) {
@@ -318,33 +280,13 @@ public class SaveForm extends JFrame {
     }
 
     public DefaultMutableTreeNode getTree() {
-        return JsonTreeUtils.buildJsonTree(agentCommandResponse.getMethodReturnValue()
-                , getSimpleName(agentCommandResponse.getResponseClassName()));
+        return JsonTreeUtils.buildJsonTree(agentCommandResponse.getMethodReturnValue(),
+                getSimpleName(agentCommandResponse.getResponseClassName()));
     }
 
     private String getSimpleName(String qualifiedName) {
         String[] parts = qualifiedName.split("\\.");
-        String simpleName = parts.length > 0 ? parts[parts.length - 1] : qualifiedName;
-        return simpleName.toLowerCase();
-    }
-
-    private DefaultMutableTreeNode getMockTree() {
-        DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
-        int loops = 10;
-        int counter = 1;
-        for (int i = 0; i < loops; i++) {
-            root.add(new DefaultMutableTreeNode("Elem " + counter++));
-            root.add(new DefaultMutableTreeNode("Elem " + counter++));
-
-            DefaultMutableTreeNode obj1 = new DefaultMutableTreeNode("Elem " + counter++);
-            obj1.add(new DefaultMutableTreeNode("Child 1"));
-            obj1.add(new DefaultMutableTreeNode("Child 2"));
-            root.add(obj1);
-
-            root.add(new DefaultMutableTreeNode("Elem " + counter++));
-            root.add(new DefaultMutableTreeNode("Elem " + counter++));
-        }
-        return root;
+        return parts.length > 0 ? parts[parts.length - 1] : qualifiedName;
     }
 
 
