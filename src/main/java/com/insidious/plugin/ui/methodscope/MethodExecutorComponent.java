@@ -361,8 +361,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                 (request, agentCommandResponse) -> {
                     candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
-                    DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate,
-                            agentCommandResponse);
+
+                    DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
+
                     logger.info("Source [EXEC]: " + source);
                     if (source.startsWith("all")) {
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_REPLAY);

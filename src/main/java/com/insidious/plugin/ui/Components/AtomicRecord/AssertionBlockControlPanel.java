@@ -6,8 +6,6 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.RoundedLineBorder;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -31,7 +29,7 @@ public class AssertionBlockControlPanel {
     private JPanel andPanel;
     private JPanel orPanel;
 
-    public AssertionBlockControlPanel(AssertionBlockManager parent, AtomicAssertion atomicAssertion) {
+    public AssertionBlockControlPanel(AssertionBlockManager blockManager, AtomicAssertion atomicAssertion) {
 
         this.atomicAssertion = atomicAssertion;
         RoundedLineBorder logicalOperatorRoundedBorder = new RoundedLineBorder(
@@ -41,21 +39,9 @@ public class AssertionBlockControlPanel {
         orPanel.setBorder(logicalOperatorRoundedBorder);
 
         defaultColor = andLabel.getBackground();
-        parentBlock = parent;
+        parentBlock = blockManager;
 
 
-        notCheckBox.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-
-                if (atomicAssertion.getAssertionType() == AssertionType.ALLOF
-                        || atomicAssertion.getAssertionType() == AssertionType.NOTALLOF) {
-                    setCondition("AND");
-                } else {
-                    setCondition("OR");
-                }
-            }
-        });
 
         switch (atomicAssertion.getAssertionType()) {
             case ALLOF:
@@ -77,6 +63,17 @@ public class AssertionBlockControlPanel {
                 notCheckBox.setSelected(true);
                 break;
         }
+
+        notCheckBox.addChangeListener(e -> {
+
+            if (atomicAssertion.getAssertionType() == AssertionType.ALLOF ||
+                    atomicAssertion.getAssertionType() == AssertionType.NOTALLOF) {
+                setCondition("AND");
+            } else {
+                setCondition("OR");
+            }
+        });
+
 
         ruleButton.addActionListener(e -> addNewRule());
         groupButton.addActionListener(e -> addNewGroup());
@@ -121,18 +118,19 @@ public class AssertionBlockControlPanel {
             orPanel.setBackground(SELECTED_LOGICAL_OPERATOR_COLOR);
             andPanel.setBackground(defaultColor);
         }
+
+        parentBlock.executeAssertion(atomicAssertion);
+
         andLabel.repaint();
         orLabel.repaint();
     }
 
 
     public void addNewRule() {
-        //send add new rule trigger
         parentBlock.addNewRule();
     }
 
     public void addNewGroup() {
-        //send add new assertion trigger
         parentBlock.addNewGroup();
     }
 

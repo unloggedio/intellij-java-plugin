@@ -1,8 +1,10 @@
 package com.insidious.plugin.ui.Components.AtomicRecord;
 
+import com.insidious.plugin.assertions.AssertionResult;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.Expression;
+import com.insidious.plugin.ui.Components.AtomicAssertionConstants;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.DocumentAdapter;
@@ -10,15 +12,15 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class AssertionRule {
     private static final Logger logger = LoggerUtil.getInstance(AssertionRule.class);
-    private final AssertionBlock parentBlock;
+    private final AssertionBlock manager;
     private final AtomicAssertion assertion;
     private JPanel mainPanel;
-    private JPanel alignerParent;
+    private JPanel topAligner;
     private JTextField nameSelector;
     private JComboBox<String> operationSelector;
     private JTextField valueField;
@@ -27,13 +29,14 @@ public class AssertionRule {
     private JButton trashButton;
 
     public AssertionRule(AssertionBlock assertionBlock, AtomicAssertion atomicAssertion) {
-        setupOptions();
         this.assertion = atomicAssertion;
-        this.parentBlock = assertionBlock;
+        this.manager = assertionBlock;
 
         this.nameSelector.setText(atomicAssertion.getKey() != null ? atomicAssertion.getKey() : "Nothing selected");
 
         this.valueField.setText(atomicAssertion.getExpectedValue() != null ? atomicAssertion.getExpectedValue() : "");
+
+        setupOptions();
 
         switch (atomicAssertion.getAssertionType()) {
 
@@ -114,44 +117,6 @@ public class AssertionRule {
                 break;
         }
 
-
-        valueField.getDocument().addDocumentListener(new DocumentAdapter() {
-            @Override
-            protected void textChanged(@NotNull DocumentEvent e) {
-                logger.warn("Value field updated: " + valueField.getText().trim());
-                assertion.setExpectedValue(valueField.getText().trim());
-            }
-        });
-
-        trashButton.addActionListener(e -> deleteRule());
-    }
-
-    public AssertionBlock getBlock() {
-        return parentBlock;
-    }
-
-    private void setupOptions() {
-        operationSelector.addItem("is");
-        operationSelector.addItem("is not");
-        operationSelector.addItem(">");
-        operationSelector.addItem(">=");
-        operationSelector.addItem("<");
-        operationSelector.addItem("<=");
-
-//        operationSelector.addItem("contains");
-//        operationSelector.addItem("does not contains");
-
-        operationSelector.addItem("is null");
-        operationSelector.addItem("is not null");
-        operationSelector.addItem("is empty");
-        operationSelector.addItem("is not empty");
-        operationSelector.addItem("is true");
-        operationSelector.addItem("is false");
-
-        operationSelector.addItem("size is");
-        operationSelector.addItem("size is not");
-        operationSelector.addItem("length is");
-        operationSelector.addItem("length is not");
         operationSelector.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -223,8 +188,63 @@ public class AssertionRule {
                         assertion.setAssertionType(AssertionType.NOT_EQUAL);
                         break;
                 }
+                updateResult();
             }
         });
+
+
+        valueField.getDocument().addDocumentListener(new DocumentAdapter() {
+            @Override
+            protected void textChanged(@NotNull DocumentEvent e) {
+                logger.warn("Value field updated: " + valueField.getText().trim());
+                assertion.setExpectedValue(valueField.getText().trim());
+                updateResult();
+            }
+        });
+
+        trashButton.addActionListener(e -> deleteRule());
+        updateResult();
+    }
+
+    public void updateResult() {
+        AssertionResult thisResult = manager.executeAssertion(assertion);
+        Boolean result = thisResult.getResults().get(assertion.getId());
+        if (result) {
+            topAligner.setBackground(AtomicAssertionConstants.PASSING_COLOR);
+            mainPanel.setBackground(AtomicAssertionConstants.PASSING_COLOR);
+        } else {
+            topAligner.setBackground(AtomicAssertionConstants.FAILING_COLOR);
+            mainPanel.setBackground(AtomicAssertionConstants.FAILING_COLOR);
+        }
+    }
+
+    public AssertionBlock getBlock() {
+        return manager;
+    }
+
+    private void setupOptions() {
+        operationSelector.addItem("is");
+        operationSelector.addItem("is not");
+        operationSelector.addItem(">");
+        operationSelector.addItem(">=");
+        operationSelector.addItem("<");
+        operationSelector.addItem("<=");
+
+//        operationSelector.addItem("contains");
+//        operationSelector.addItem("does not contains");
+
+        operationSelector.addItem("is null");
+        operationSelector.addItem("is not null");
+        operationSelector.addItem("is empty");
+        operationSelector.addItem("is not empty");
+        operationSelector.addItem("is true");
+        operationSelector.addItem("is false");
+
+        operationSelector.addItem("size is");
+        operationSelector.addItem("size is not");
+        operationSelector.addItem("length is");
+        operationSelector.addItem("length is not");
+
     }
 
 
@@ -233,7 +253,7 @@ public class AssertionRule {
     }
 
     public void deleteRule() {
-        parentBlock.deleteAssertionRule(this);
+        manager.deleteAssertionRule(this);
     }
 
     @Override

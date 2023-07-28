@@ -1,12 +1,11 @@
 package com.insidious.plugin.ui.Components.AtomicRecord;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.agent.AgentCommandResponse;
-import com.insidious.plugin.assertions.AssertionType;
-import com.insidious.plugin.assertions.AtomicAssertion;
-import com.insidious.plugin.assertions.KeyValue;
+import com.insidious.plugin.assertions.*;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.AtomicRecordUtils;
@@ -38,6 +37,7 @@ public class SaveForm {
     private final AssertionBlock ruleEditor;
     private final SaveFormMetadataPanel metadataForm;
     private final JPanel mainPanel;
+    private final JsonNode responseNode;
     private JButton saveButton;
     private JButton cancelButton;
     private JLabel assertionLabel;
@@ -59,6 +59,13 @@ public class SaveForm {
 
         JTree candidateExplorerTree = new Tree(getTree());
 
+        try {
+            responseNode = objectMapper.readValue(agentCommandResponse.getMethodReturnValue(), JsonNode.class);
+        } catch (JsonProcessingException e) {
+            // this shouldn't happen
+            throw new RuntimeException(e);
+        }
+
         AtomicAssertion existingAssertion = storedCandidate.getTestAssertions();
         if (existingAssertion == null ||
                 existingAssertion.getSubAssertions() == null ||
@@ -77,6 +84,11 @@ public class SaveForm {
             @Override
             public void addNewGroup() {
 
+            }
+
+            @Override
+            public AssertionResult executeAssertion(AtomicAssertion atomicAssertion) {
+                return AssertionEngine.executeAssertions(atomicAssertion, responseNode);
             }
 
             @Override
@@ -207,7 +219,7 @@ public class SaveForm {
     }
 
     private void printRuleSet() {
-        AtomicAssertion assertions = ruleEditor.getAtomicAssertion();
+        AtomicAssertion assertions = ruleEditor.getAssertion();
         System.out.println("RULE SET : " + assertions.toString());
         System.out.println("METADATA SET : " + metadataForm.getPayload());
 
@@ -217,7 +229,7 @@ public class SaveForm {
 
     private void triggerSave() {
 
-        AtomicAssertion atomicAssertion = ruleEditor.getAtomicAssertion();
+        AtomicAssertion atomicAssertion = ruleEditor.getAssertion();
         try {
             logger.warn("Atomic assertion: \n" +
                     objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(atomicAssertion));

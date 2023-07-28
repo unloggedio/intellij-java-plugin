@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class AssertionResult {
     private final Map<String, Boolean> results = new HashMap<>();
-    private boolean passing;
+    private boolean passing = false;
 
     public void addResult(AtomicAssertion assertion, boolean result) {
         this.results.put(assertion.getId(), result);

@@ -12,7 +12,7 @@ public class AssertionEngine {
 
     public static AssertionResult executeAssertions(
             AtomicAssertion assertion, JsonNode responseNode
-    ) throws JsonProcessingException {
+    ) {
         AssertionResult assertionResult = new AssertionResult();
 
         AssertionType assertionType = assertion.getAssertionType();
@@ -63,8 +63,19 @@ public class AssertionEngine {
             JsonNode assertionActualValue = responseNode.at(assertion.getKey());
             Expression expression = assertion.getExpression();
             JsonNode expressedValue = expression.compute(assertionActualValue);
-            JsonNode expectedValue = objectMapper.readTree(assertion.getExpectedValue());
-            result = assertionType.verify(expressedValue, expectedValue);
+            JsonNode expectedValue = null;
+            try {
+                expectedValue = objectMapper.readTree(assertion.getExpectedValue());
+                result = assertionType.verify(expressedValue, expectedValue);
+            } catch (JsonProcessingException e) {
+                try {
+                    expectedValue = objectMapper.readTree("\"" + assertion.getExpectedValue() + "\"");
+                    result = assertionType.verify(expressedValue, expectedValue);
+                } catch (JsonProcessingException ex) {
+                    result = false;
+                }
+//                throw new RuntimeException(e);
+            }
         }
 
 

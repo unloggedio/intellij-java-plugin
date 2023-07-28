@@ -1,37 +1,35 @@
 package com.insidious.plugin.ui.Components.AtomicRecord;
 
+import com.insidious.plugin.assertions.AssertionResult;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.KeyValue;
-import com.insidious.plugin.util.JsonTreeUtils;
+import com.insidious.plugin.ui.Components.AtomicAssertionConstants;
 
 import javax.swing.*;
 import java.awt.*;
-import java.security.Key;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 public class AssertionBlock implements AssertionBlockManager {
     private final AssertionBlockControlPanel assertionBlockControlPanel;
     private final List<AssertionRule> assertionRules = new ArrayList<>();
     private final List<AssertionBlock> assertionGroups = new ArrayList<>();
     private final AssertionBlockManager manager;
-    private final AtomicAssertion atomicAssertion;
+    private final AtomicAssertion assertion;
     private JPanel mainPanel;
     private JPanel topAligner;
     private JPanel contentPanel;
     private JPanel controlPanel;
 //    private boolean controlPanelIsVisible = false;
 
-    public AssertionBlock(AtomicAssertion atomicAssertion, AssertionBlockManager blockManager) {
+    public AssertionBlock(AtomicAssertion assertion, AssertionBlockManager blockManager) {
         this.manager = blockManager;
-        this.atomicAssertion = atomicAssertion;
+        this.assertion = assertion;
         BoxLayout boxLayout = new BoxLayout(contentPanel, BoxLayout.Y_AXIS);
         contentPanel.setLayout(boxLayout);
 
-        assertionBlockControlPanel = new AssertionBlockControlPanel(this, atomicAssertion);
+        assertionBlockControlPanel = new AssertionBlockControlPanel(this, assertion);
 
         controlPanel.setLayout(new BorderLayout());
 
@@ -39,7 +37,7 @@ public class AssertionBlock implements AssertionBlockManager {
         JPanel ruleAdditionPanelContainer = assertionBlockControlPanel.getMainPanel();
         controlPanel.add(ruleAdditionPanelContainer, BorderLayout.CENTER);
 
-        for (AtomicAssertion subAssertion : atomicAssertion.getSubAssertions()) {
+        for (AtomicAssertion subAssertion : assertion.getSubAssertions()) {
             addRule(subAssertion);
         }
 
@@ -60,33 +58,58 @@ public class AssertionBlock implements AssertionBlockManager {
     public void addNewRule() {
 
         KeyValue selectedKeyValue = getCurrentTreeKey();
-//        Map.Entry<String, String> entry = JsonTreeUtils.getKeyValuePair(selectedKeyValue);
         AtomicAssertion assertion = new AtomicAssertion(AssertionType.EQUAL, selectedKeyValue.getKey(),
                 selectedKeyValue.getValue().toString());
-        atomicAssertion.getSubAssertions().add(assertion);
+        this.assertion.getSubAssertions().add(assertion);
 
         addRule(assertion);
     }
 
     @Override
     public void addNewGroup() {
+        KeyValue selectedKeyValue = getCurrentTreeKey();
+        AtomicAssertion assertion = new AtomicAssertion(AssertionType.EQUAL, selectedKeyValue.getKey(),
+                selectedKeyValue.getValue().toString());
+
         AtomicAssertion newSubGroup = new AtomicAssertion();
+        newSubGroup.getSubAssertions().add(assertion);
+
         AssertionBlock newBlock = new AssertionBlock(newSubGroup, this);
 
         assertionGroups.add(newBlock);
-        atomicAssertion.getSubAssertions().add(newSubGroup);
+        this.assertion.getSubAssertions().add(newSubGroup);
 
         contentPanel.add(newBlock.getMainPanel());
         contentPanel.revalidate();
     }
 
     @Override
+    public AssertionResult executeAssertion(AtomicAssertion subAssertion) {
+        AssertionResult thisResult = manager.executeAssertion(assertion);
+        Boolean result = thisResult.getResults().get(assertion.getId());
+
+        if (result) {
+            topAligner.setBackground(AtomicAssertionConstants.PASSING_COLOR);
+            mainPanel.setBackground(AtomicAssertionConstants.PASSING_COLOR);
+        } else {
+            topAligner.setBackground(AtomicAssertionConstants.FAILING_COLOR);
+            mainPanel.setBackground(AtomicAssertionConstants.FAILING_COLOR);
+        }
+
+        return thisResult;
+    }
+
+    @Override
     public void deleteAssertionRule(AssertionRule element) {
         if (assertionRules.contains(element)) {
             assertionRules.remove(element);
-            atomicAssertion.getSubAssertions().remove(element.getAtomicAssertion());
+            assertion.getSubAssertions().remove(element.getAtomicAssertion());
             contentPanel.remove(element.getMainPanel());
             contentPanel.revalidate();
+            executeAssertion(assertion);
+        }
+        if (assertion.getSubAssertions().size() == 0) {
+            removeAssertionGroup();
         }
     }
 
@@ -105,17 +128,18 @@ public class AssertionBlock implements AssertionBlockManager {
         for (AssertionBlock assertionBlock : assertionGroups) {
             if (assertionBlock.equals(block)) {
                 assertionGroups.remove(block);
-                atomicAssertion.getSubAssertions().remove(block.getAtomicAssertion());
+                assertion.getSubAssertions().remove(block.getAssertion());
                 contentPanel.remove(block.getMainPanel());
                 contentPanel.revalidate();
+                executeAssertion(assertion);
                 break;
             }
         }
     }
 
 
-    public AtomicAssertion getAtomicAssertion() {
-        return atomicAssertion;
+    public AtomicAssertion getAssertion() {
+        return assertion;
     }
 
 
