@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
+import java.util.Objects;
 
 public class AssertionEngine {
 
@@ -60,7 +61,11 @@ public class AssertionEngine {
             }
 
         } else {
-            JsonNode assertionActualValue = responseNode.at(assertion.getKey());
+            String key = assertion.getKey();
+            if (Objects.equals(key, "/")) {
+                key = "";
+            }
+            JsonNode assertionActualValue = responseNode.at(key);
             Expression expression = assertion.getExpression();
             JsonNode expressedValue = expression.compute(assertionActualValue);
             JsonNode expectedValue = null;

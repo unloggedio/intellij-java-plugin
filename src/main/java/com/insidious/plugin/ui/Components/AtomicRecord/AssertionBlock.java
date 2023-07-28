@@ -90,10 +90,10 @@ public class AssertionBlock implements AssertionBlockManager {
 
         if (result) {
             topAligner.setBackground(AtomicAssertionConstants.PASSING_COLOR);
-            mainPanel.setBackground(AtomicAssertionConstants.PASSING_COLOR);
+//            mainPanel.setBackground(AtomicAssertionConstants.PASSING_COLOR);
         } else {
             topAligner.setBackground(AtomicAssertionConstants.FAILING_COLOR);
-            mainPanel.setBackground(AtomicAssertionConstants.FAILING_COLOR);
+//            mainPanel.setBackground(AtomicAssertionConstants.FAILING_COLOR);
         }
 
         return thisResult;

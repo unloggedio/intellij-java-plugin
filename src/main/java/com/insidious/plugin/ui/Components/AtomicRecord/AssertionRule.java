@@ -37,6 +37,9 @@ public class AssertionRule {
         this.valueField.setText(atomicAssertion.getExpectedValue() != null ? atomicAssertion.getExpectedValue() : "");
 
         setupOptions();
+        if (atomicAssertion.getAssertionType() == null) {
+            atomicAssertion.setAssertionType(AssertionType.EQUAL);
+        }
 
         switch (atomicAssertion.getAssertionType()) {
 
@@ -212,9 +215,10 @@ public class AssertionRule {
         if (result) {
             topAligner.setBackground(AtomicAssertionConstants.PASSING_COLOR);
             mainPanel.setBackground(AtomicAssertionConstants.PASSING_COLOR);
+            leftAligner.setBackground(AtomicAssertionConstants.PASSING_COLOR);
         } else {
             topAligner.setBackground(AtomicAssertionConstants.FAILING_COLOR);
-            mainPanel.setBackground(AtomicAssertionConstants.FAILING_COLOR);
+            leftAligner.setBackground(AtomicAssertionConstants.FAILING_COLOR);
         }
     }
 

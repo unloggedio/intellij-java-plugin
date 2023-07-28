@@ -98,6 +98,9 @@ public class JsonTreeUtils {
     }
 
     public static Object getValueFromJsonNode(String source, String selectedKey) {
+        if (selectedKey.equals("/")) {
+            selectedKey = "";
+        }
         if (source.startsWith("{")) {
             JSONObject json = new JSONObject(source);
             return json.optQuery(selectedKey);

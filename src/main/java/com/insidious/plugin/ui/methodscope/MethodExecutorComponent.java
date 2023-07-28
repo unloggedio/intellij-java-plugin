@@ -1,10 +1,17 @@
 package com.insidious.plugin.ui.methodscope;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
+import com.insidious.plugin.assertions.AssertionEngine;
+import com.insidious.plugin.assertions.AssertionResult;
+import com.insidious.plugin.assertions.AtomicAssertion;
+import com.insidious.plugin.assertions.Expression;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.GutterState;
@@ -43,6 +50,7 @@ import java.util.stream.Collectors;
 
 public class MethodExecutorComponent implements MethodExecutionListener, CandidateSelectedListener, CandidateLifeListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
+    private static final ObjectMapper objectMapper = new ObjectMapper();
     private final InsidiousService insidiousService;
     private final Map<Long, AgentCommandResponse<String>> candidateResponseMap = new HashMap<>();
     private final JPanel gridPanel;
@@ -362,7 +370,50 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 (request, agentCommandResponse) -> {
                     candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
 
-                    DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
+                    DifferenceResult diffResult;
+                    if (testCandidate.getTestAssertions() == null) {
+                        diffResult = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
+                    } else {
+                        Map<String, Object> leftOnlyMap = new HashMap<>();
+                        Map<String, Object> rightOnlyMap = new HashMap<>();
+                        List<DifferenceInstance> differencesList = new ArrayList<>();
+                        try {
+                            JsonNode responseNode = objectMapper.readTree(agentCommandResponse.getMethodReturnValue());
+                            AssertionResult result = AssertionEngine.executeAssertions(
+                                    testCandidate.getTestAssertions(),
+                                    responseNode);
+
+                            List<AtomicAssertion> flatAssertionList =
+                                    flattenAssertionMap(testCandidate.getTestAssertions());
+
+                            Map<String, Boolean> results = result.getResults();
+
+
+                            for (AtomicAssertion atomicAssertion : flatAssertionList) {
+                                Boolean subResult = results.get(atomicAssertion.getId());
+                                if (!subResult) {
+                                    differencesList.add(
+                                            new DifferenceInstance(
+                                                    atomicAssertion.getExpression() == Expression.SELF ?
+                                                            atomicAssertion.getKey() : atomicAssertion.getExpression()
+                                                            + "(" + atomicAssertion.getKey() + ")",
+                                                    atomicAssertion.getExpectedValue(),
+                                                    responseNode.at(atomicAssertion.getKey()),
+                                                    DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE));
+                                }
+                            }
+
+
+                            diffResult = new DifferenceResult(
+                                    differencesList, result.isPassing() ? DiffResultType.SAME : DiffResultType.DIFF,
+                                    leftOnlyMap, rightOnlyMap
+                            );
+
+                        } catch (JsonProcessingException e) {
+
+                            throw new RuntimeException(e);
+                        }
+                    }
 
                     logger.info("Source [EXEC]: " + source);
                     if (source.startsWith("all")) {
@@ -413,6 +464,20 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
                     agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
                 });
+    }
+
+    private List<AtomicAssertion> flattenAssertionMap(AtomicAssertion testAssertions) {
+
+        List<AtomicAssertion> all = new ArrayList<>();
+        all.add(testAssertions);
+
+        if (testAssertions.getSubAssertions() != null) {
+            for (AtomicAssertion subAssertion : testAssertions.getSubAssertions()) {
+                all.addAll(flattenAssertionMap(subAssertion));
+            }
+        }
+
+        return all;
     }
 
     private boolean showDiffernetStatus(DiffResultType type) {
@@ -525,23 +590,21 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     @Override
-    public void onSaved(StoredCandidate storedCandidate) {
-        if (storedCandidate.getCandidateId() == null) {
-            storedCandidate.setCandidateId(UUID.randomUUID().toString());
+    public void onSaved(StoredCandidate candidate) {
+        if (candidate.getCandidateId() == null) {
+            candidate.setCandidateId(UUID.randomUUID().toString());
         }
-        insidiousService.getAtomicRecordService().saveCandidate(
-                MethodUnderTest.fromMethodAdapter(methodElement),
-                storedCandidate
-        );
-        TestCandidateListedItemComponent candidateItem = candidateComponentMap.get(
-                storedCandidate.getEntryProbeIndex());
-        candidateItem.setTitledBorder(storedCandidate.getName());
+        insidiousService.getAtomicRecordService()
+                .saveCandidate(MethodUnderTest.fromMethodAdapter(methodElement), candidate);
+        TestCandidateListedItemComponent candidateItem = candidateComponentMap.get(candidate.getEntryProbeIndex());
+        candidateItem.setTitledBorder(candidate.getName());
         candidateItem.getComponent().setEnabled(true);
-        candidateItem.setCandidate(storedCandidate);
-        triggerReExecute(storedCandidate);
+        candidateItem.setCandidate(candidate);
+        triggerReExecute(candidate);
         candidateItem.getComponent().revalidate();
         gridPanel.revalidate();
         gridPanel.repaint();
+        insidiousService.hideCandidateSaveForm();
     }
 
     private void triggerReExecute(StoredCandidate candidate) {
