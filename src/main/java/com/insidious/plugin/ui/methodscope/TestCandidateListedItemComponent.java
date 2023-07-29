@@ -18,6 +18,9 @@ import com.intellij.util.ui.JBUI;
 import org.json.JSONObject;
 
 import javax.swing.*;
+import javax.swing.border.BevelBorder;
+import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
@@ -155,32 +158,47 @@ public class TestCandidateListedItemComponent {
         inputTree.setMaximumSize(new Dimension(-1, desiredHeight));
 
         JScrollPane scrollPane = new JBScrollPane(inputTree);
-        scrollPane.setBorder(JBUI.Borders.empty());
+//        scrollPane.setBorder(new BevelBorder(BevelBorder.LOWERED));
 
         scrollPane.setPreferredSize(new Dimension(-1, desiredHeight));
         scrollPane.setMaximumSize(new Dimension(-1, desiredHeight));
         scrollPane.setSize(new Dimension(-1, desiredHeight));
 
-        mainPanel.setPreferredSize(preferredSize);
+        mainPanel.setPreferredSize(new Dimension(-1, desiredHeight));
         mainPanel.setMinimumSize(new Dimension(-1, 100));
-        mainPanel.setMaximumSize(preferredSize);
+        mainPanel.setMaximumSize(new Dimension(-1, desiredHeight));
 
         mainContentPanel.setSize(new Dimension(-1, desiredHeight));
 
-        mainContentPanel.setMaximumSize(preferredSize);
-        mainContentPanel.setPreferredSize(preferredSize);
+        mainContentPanel.setMaximumSize(new Dimension(-1, desiredHeight));
+        mainContentPanel.setPreferredSize(new Dimension(-1, desiredHeight));
         mainContentPanel.add(scrollPane, BorderLayout.CENTER);
 
         JLabel argumentsLabel = new JLabel("Method arguments");
         JPanel argumentsLabelPanel = new JPanel();
+        argumentsLabel.setAlignmentY(0F);
+
+        Border border = argumentsLabelPanel.getBorder();
+        Border margin = JBUI.Borders.empty(0, 0, 5, 0);
+        CompoundBorder borderWithMargin = new CompoundBorder(border, margin);
+        argumentsLabelPanel.setBorder(borderWithMargin);
         argumentsLabelPanel.setLayout(new BorderLayout());
+        argumentsLabelPanel.setAlignmentY(0.0F);
         argumentsLabelPanel.add(argumentsLabel, BorderLayout.WEST);
 
         if (candidateMetadata.getCandidateId() != null && candidateMetadata.getTestAssertions() != null) {
             int assertionCount = AtomicAssertionUtils.countAssertions(candidateMetadata.getTestAssertions());
             JLabel assertionCountLabel = new JLabel(assertionCount + " assertions");
+            assertionCountLabel.setAlignmentY(1.0F);
             JPanel countPanel = new JPanel(new BorderLayout());
+
+            Border border1 = countPanel.getBorder();
+            Border margin1 = JBUI.Borders.empty(5, 0, 0, 0);
+            CompoundBorder borderWithMargin1 = new CompoundBorder(border1, margin1);
+            countPanel.setBorder(borderWithMargin1);
+
             countPanel.add(assertionCountLabel, BorderLayout.WEST);
+            countPanel.setAlignmentY(1.0F);
             mainContentPanel.add(countPanel, BorderLayout.SOUTH);
         }
         mainContentPanel.add(argumentsLabelPanel, BorderLayout.NORTH);
@@ -258,5 +276,9 @@ public class TestCandidateListedItemComponent {
 
     public void setCandidate(StoredCandidate storedCandidate) {
         this.candidateMetadata = storedCandidate;
+    }
+
+    public void setStatus(String statusText) {
+        statusLabel.setText(statusText);
     }
 }

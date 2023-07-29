@@ -365,6 +365,12 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(
                 methodElement, psiClass, methodArgumentValues);
 
+        TestCandidateListedItemComponent candidateComponent =
+                candidateComponentMap.get(testCandidate.getEntryProbeIndex());
+
+        candidateComponent.setStatus("Executing");
+
+
         insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                 (request, agentCommandResponse) -> {
                     candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
@@ -460,8 +466,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                                 testCandidate.getMetadata().getCandidateStatus());
                     }
                     //possible bug vector, equal case check
-                    TestCandidateListedItemComponent candidateComponent =
-                            candidateComponentMap.get(testCandidate.getEntryProbeIndex());
+//                    TestCandidateListedItemComponent candidateComponent =
+//                            candidateComponentMap.get(testCandidate.getEntryProbeIndex());
 
                     candidateComponent.setAndDisplayResponse(agentCommandResponse, diffResult);
 

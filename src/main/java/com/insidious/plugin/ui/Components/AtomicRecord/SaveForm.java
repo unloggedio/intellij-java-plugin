@@ -150,7 +150,8 @@ public class SaveForm {
 
         Border border = treeTitleLabel.getBorder();
         Border margin = JBUI.Borders.empty(10);
-        treeTitleLabel.setBorder(new CompoundBorder(border, margin));
+        CompoundBorder borderWithMargin = new CompoundBorder(border, margin);
+        treeTitleLabel.setBorder(borderWithMargin);
 
         titleLabelContainer.add(treeTitleLabel);
         treeViewer.add(treeTitleLabel, BorderLayout.NORTH);
