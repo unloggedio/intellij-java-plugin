@@ -59,7 +59,7 @@ public class ClassUtils {
                 return String.valueOf(new Date().getTime() / 1000);
 
             }
-            if (parameterType instanceof PsiArrayType) {
+            if (parameterType instanceof PsiArrayType || parameterType instanceof PsiEllipsisType) {
                 PsiArrayType arrayType = (PsiArrayType) parameterType;
                 dummyValue.append("[");
                 dummyValue.append(createDummyValue(arrayType.getComponentType(), creationStack, project));

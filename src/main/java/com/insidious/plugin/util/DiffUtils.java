@@ -31,6 +31,11 @@ public class DiffUtils {
             }
         }
 
+        // void return value
+        if (testCandidateMetadata.getReturnValueClassname() == null) {
+            originalString = "null";
+        }
+
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
         if (testCandidateMetadata.isException() ||

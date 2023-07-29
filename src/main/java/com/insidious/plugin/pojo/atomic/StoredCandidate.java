@@ -18,7 +18,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.testAssertions = testAssertions;
     }
 
-    private AtomicAssertion testAssertions = new AtomicAssertion(AssertionType.ALLOF, new ArrayList<>());
+    private AtomicAssertion testAssertions = null;
     private String candidateId;
     private String name;
     private String description;
@@ -215,9 +215,4 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     public AtomicAssertion getTestAssertions() {
         return testAssertions;
     }
-
-    public void addTestAssertion(AtomicAssertion testAssertions) {
-        this.testAssertions.getSubAssertions().add(testAssertions);
-    }
-
 }

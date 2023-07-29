@@ -196,6 +196,7 @@ public class AssertionRule {
         });
 
 
+        valueField.setCaretPosition(0);
         valueField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {

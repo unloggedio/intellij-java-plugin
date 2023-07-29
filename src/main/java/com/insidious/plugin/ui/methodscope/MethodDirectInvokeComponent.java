@@ -200,8 +200,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                             try {
                                 JsonNode jsonNode = objectMapper.readValue(methodReturnValue.toString(),
                                         JsonNode.class);
-                                returnValueTextArea.setText(objectMapper
-                                        .writerWithDefaultPrettyPrinter()
+                                returnValueTextArea.setText(objectMapper.writerWithDefaultPrettyPrinter()
                                         .writeValueAsString(jsonNode));
                             } catch (JsonProcessingException ex) {
                                 returnValueTextArea.setText(methodReturnValue.toString());
@@ -228,7 +227,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                                 null,
                                 DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
-                        diffResult.setMethodAdapter(methodElement);
+//                        diffResult.setMethodAdapter(methodElement);
                         diffResult.setResponse(agentCommandResponse);
                         diffResult.setCommand(agentCommandRequest);
                         insidiousService.addExecutionRecord(diffResult);

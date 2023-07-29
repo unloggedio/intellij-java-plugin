@@ -8,13 +8,13 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.ui.MethodExecutionListener;
+import com.insidious.plugin.util.AtomicAssertionUtils;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -29,12 +29,12 @@ import java.util.List;
 import java.util.*;
 
 public class TestCandidateListedItemComponent {
-    private StoredCandidate candidateMetadata;
     private final MethodAdapter method;
     private final List<String> methodArgumentValues;
     private final MethodExecutionListener methodExecutionListener;
     private final Map<String, String> parameterMap;
     private final InsidiousService insidiousService;
+    private StoredCandidate candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
     private JPanel mainContentPanel;
@@ -52,11 +52,14 @@ public class TestCandidateListedItemComponent {
         this.methodExecutionListener = methodExecutionListener;
         this.methodArgumentValues = candidateMetadata.getMethodArguments();
         this.parameterMap = generateParameterMap(method.getParameters());
+        mainContentPanel.setLayout(new BorderLayout());
 
         //saved candidate check
         if (candidateMetadata.getName() != null) {
             setTitledBorder(candidateMetadata.getName());
         }
+
+
         mainPanel.revalidate();
 
         loadInputTree();
@@ -68,11 +71,12 @@ public class TestCandidateListedItemComponent {
                     eventProperties.put("className", psiClass.getQualifiedName());
                     eventProperties.put("methodName", method.getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
+                    statusLabel.setText("Executing");
                     methodExecutionListener.executeCandidate(
                             Collections.singletonList(candidateMetadata), psiClass, "individual",
                             (candidateMetadata, agentCommandResponse, diffResult) -> {
                                 insidiousService.updateMethodHashForExecutedMethod(method);
-                                setAndDisplayResponse(agentCommandResponse, diffResult);
+//                                setAndDisplayResponse(agentCommandResponse, diffResult);
                                 candidateSelectedListener.onCandidateSelected(candidateMetadata);
                                 insidiousService.triggerGutterIconReload();
                             }
@@ -107,7 +111,8 @@ public class TestCandidateListedItemComponent {
     }
 
     private void loadInputTree() {
-        this.mainContentPanel.removeAll();
+
+        mainContentPanel.removeAll();
         DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
         Set<String> methodArgumentNames = this.parameterMap.keySet();
         int methodArgumentCount = methodArgumentNames.size();
@@ -135,7 +140,7 @@ public class TestCandidateListedItemComponent {
         inputTree.setRootVisible(false);
         inputTree.setShowsRootHandles(true);
 
-        GridLayout gridLayout = new GridLayout(1, 1);
+//        GridLayout gridLayout = new GridLayout(1, 1);
         int desiredHeightPerInput = 30;
         int desiredHeight = inputRoot.getLeafCount() * desiredHeightPerInput;
         if (desiredHeight < 100) {
@@ -160,12 +165,26 @@ public class TestCandidateListedItemComponent {
         mainPanel.setMinimumSize(new Dimension(-1, 100));
         mainPanel.setMaximumSize(preferredSize);
 
-        mainContentPanel.setLayout(gridLayout);
         mainContentPanel.setSize(new Dimension(-1, desiredHeight));
 
         mainContentPanel.setMaximumSize(preferredSize);
         mainContentPanel.setPreferredSize(preferredSize);
-        mainContentPanel.add(scrollPane);
+        mainContentPanel.add(scrollPane, BorderLayout.CENTER);
+
+        JLabel argumentsLabel = new JLabel("Method arguments");
+        JPanel argumentsLabelPanel = new JPanel();
+        argumentsLabelPanel.setLayout(new BorderLayout());
+        argumentsLabelPanel.add(argumentsLabel, BorderLayout.WEST);
+
+        if (candidateMetadata.getCandidateId() != null && candidateMetadata.getTestAssertions() != null) {
+            int assertionCount = AtomicAssertionUtils.countAssertions(candidateMetadata.getTestAssertions());
+            JLabel assertionCountLabel = new JLabel(assertionCount + " assertions");
+            JPanel countPanel = new JPanel(new BorderLayout());
+            countPanel.add(assertionCountLabel, BorderLayout.WEST);
+            mainContentPanel.add(countPanel, BorderLayout.SOUTH);
+        }
+        mainContentPanel.add(argumentsLabelPanel, BorderLayout.NORTH);
+
 
         mainContentPanel.revalidate();
         mainContentPanel.repaint();

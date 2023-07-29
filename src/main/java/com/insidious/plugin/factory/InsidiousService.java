@@ -198,6 +198,11 @@ final public class InsidiousService implements Disposable,
                 (Computable<String>) () -> method.getContainingClass().getQualifiedName() + "#" + method.getName());
     }
 
+    @NotNull
+    private static String getClassMethodHashKey(AgentCommandRequest agentCommandRequest) {
+        return agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName();
+    }
+
     public void addAgentToRunConfig(String javaAgentString) {
 
 
@@ -1374,11 +1379,12 @@ final public class InsidiousService implements Disposable,
         this.currentSaveForm = null;
     }
 
-    public void addDiffRecord(MethodAdapter methodElement, DifferenceResult newDiffRecord) {
+    public void addDiffRecord(DifferenceResult newDiffRecord) {
         if (newDiffRecord == null) {
             return;
         }
-        String keyName = getClassMethodHashKey(methodElement);
+        AgentCommandRequest agentCommandRequest = newDiffRecord.getCommand();
+        String keyName = getClassMethodHashKey(agentCommandRequest);
         if (!executionRecord.containsKey(keyName)) {
             executionRecord.put(keyName, newDiffRecord);
             return;

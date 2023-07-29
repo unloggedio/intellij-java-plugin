@@ -230,23 +230,23 @@ public class AtomicRecordService {
         switch (type) {
             case ADD:
                 if (positive) {
-                    return "Added Record.";
+                    return "Added test candidate";
                 } else {
-                    return "Failed to add record." +
+                    return "Failed to add test candidate" +
                             "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.";
                 }
             case UPDATE:
                 if (positive) {
-                    return "Updated Record.";
+                    return "Updated test candidate";
                 } else {
-                    return "Failed to update record." +
+                    return "Failed to update test candidate" +
                             "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.";
                 }
             default:
                 if (positive) {
-                    return "Deleted Record.";
+                    return "Deleted test candidate";
                 } else {
-                    return "Failed to delete record." +
+                    return "Failed to delete test candidate" +
                             "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.";
                 }
         }

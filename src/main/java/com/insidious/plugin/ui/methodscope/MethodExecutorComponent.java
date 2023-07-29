@@ -1,6 +1,5 @@
 package com.insidious.plugin.ui.methodscope;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
@@ -371,7 +370,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                     candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
 
                     DifferenceResult diffResult;
-                    if (testCandidate.getTestAssertions() == null) {
+                    AtomicAssertion testAssertions = testCandidate.getTestAssertions();
+                    if (testAssertions == null || AtomicAssertionUtils.countAssertions(testAssertions) < 2) {
                         diffResult = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
                     } else {
                         Map<String, Object> leftOnlyMap = new HashMap<>();
@@ -380,10 +380,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                         try {
                             JsonNode responseNode = objectMapper.readTree(agentCommandResponse.getMethodReturnValue());
                             AssertionResult result = AssertionEngine.executeAssertions(
-                                    testCandidate.getTestAssertions(), responseNode);
+                                    testAssertions, responseNode);
 
-                            List<AtomicAssertion> flatAssertionList =
-                                    flattenAssertionMap(testCandidate.getTestAssertions());
+                            List<AtomicAssertion> flatAssertionList = AtomicAssertionUtils.flattenAssertionMap(testAssertions);
 
                             Map<String, Boolean> results = result.getResults();
 
@@ -435,22 +434,17 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                         //check other statuses and add them for individual execution
                         String status = getExecutionStatusFromCandidates(testCandidate.getEntryProbeIndex(),
                                 diffResult.getDiffResultType());
-                        String methodKey = methodElement.getContainingClass().getQualifiedName()
-                                + "#" + methodElement.getName() + "#" + methodElement.getJVMSignature();
-                        if (status.equals("Diff") || status.equals("NoRun")) {
-                            logger.info("Setting status multi run : " + status);
-                            insidiousService.getIndividualCandidateContextMap().put(methodKey, status);
-                        } else {
-                            logger.info("Setting status multi run : Same");
-                            insidiousService.getIndividualCandidateContextMap().put(methodKey, "Same");
-                        }
+                        String methodKey = agentCommandRequest.getClassName()
+                                + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
+                        logger.info("Setting status multi run : " + status);
+                        insidiousService.getIndividualCandidateContextMap().put(methodKey, status);
                         diffResult.setIndividualContext(true);
                     }
-                    diffResult.setMethodAdapter(methodElement);
+
                     diffResult.setResponse(agentCommandResponse);
                     diffResult.setCommand(agentCommandRequest);
 
-                    insidiousService.addDiffRecord(methodElement, diffResult);
+                    insidiousService.addDiffRecord(diffResult);
 
                     StoredCandidateMetadata meta = testCandidate.getMetadata();
                     if (meta == null) {
@@ -461,8 +455,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                     if (testCandidate.getCandidateId() != null) {
                         insidiousService.getAtomicRecordService().setCandidateStateForCandidate(
                                 testCandidate.getCandidateId(),
-                                methodElement.getContainingClass().getQualifiedName(),
-                                methodElement.getName() + "#" + methodElement.getJVMSignature(),
+                                agentCommandRequest.getClassName(),
+                                agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature(),
                                 testCandidate.getMetadata().getCandidateStatus());
                     }
                     //possible bug vector, equal case check
@@ -475,19 +469,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 });
     }
 
-    private List<AtomicAssertion> flattenAssertionMap(AtomicAssertion testAssertions) {
-
-        List<AtomicAssertion> all = new ArrayList<>();
-        all.add(testAssertions);
-
-        if (testAssertions.getSubAssertions() != null) {
-            for (AtomicAssertion subAssertion : testAssertions.getSubAssertions()) {
-                all.addAll(flattenAssertionMap(subAssertion));
-            }
-        }
-
-        return all;
-    }
 
     private boolean showDiffernetStatus(DiffResultType type) {
         switch (type) {
