@@ -2,6 +2,7 @@ package com.insidious.plugin.ui.methodscope;
 
 
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.ui.JBColor;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -12,10 +13,10 @@ import java.util.List;
 public class CompareTableModel extends AbstractTableModel {
 
     private final String[] columnNames = {
-            "Key", "Old Value", "New Value"
+            "Key", "Expected", "Actual"
     };
-    private List<DifferenceInstance> differences;
-    private JTable table;
+    private final List<DifferenceInstance> differences;
+    private final JTable table;
     private boolean headerSetup = false;
     private Color defaultColor = null;
     private Color defaultForeground = null;
@@ -34,15 +35,9 @@ public class CompareTableModel extends AbstractTableModel {
                 if (differences != null && differences.size() > 0) {
                     DifferenceInstance i = differences.get(row);
                     if (i.getDifferenceType().equals(DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY)) {
-                        if (column == 1) {
+                        if (column == 1 || column == 2) {
                             c.setBackground(UIUtils.green);
-                            c.setForeground(Color.WHITE);
-                            return c;
-                        }
-                    } else if (i.getDifferenceType().equals(DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY)) {
-                        if (column == 2) {
-                            c.setBackground(UIUtils.green);
-                            c.setForeground(Color.WHITE);
+                            c.setForeground(JBColor.WHITE);
                             return c;
                         }
                     }
@@ -90,11 +85,6 @@ public class CompareTableModel extends AbstractTableModel {
         return null;
     }
 
-//    @Override
-//    public String getColumnName(int column) {
-//        return columnNames[column];
-//    }
-
     public void setupHeader() {
         Border headerBorder = UIManager.getBorder("TableHeader.cellBorder");
 
@@ -130,11 +120,10 @@ public class CompareTableModel extends AbstractTableModel {
         return columnNames[column];
     }
 
-    class JComponentTableCellRenderer implements TableCellRenderer {
+    static class JComponentTableCellRenderer implements TableCellRenderer {
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
                                                        boolean hasFocus, int row, int column) {
-            Component c = (JComponent) value;
-            return c;
+            return (Component) value;
         }
     }
 }

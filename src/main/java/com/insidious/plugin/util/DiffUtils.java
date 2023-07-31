@@ -1,10 +1,12 @@
 package com.insidious.plugin.util;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
+import com.insidious.plugin.assertions.*;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceInstance;
@@ -23,10 +25,70 @@ public class DiffUtils {
             StoredCandidate testCandidateMetadata,
             AgentCommandResponse<String> agentCommandResponse
     ) {
+
+        AtomicAssertion testAssertions = testCandidateMetadata.getTestAssertions();
+        if (testAssertions != null && AtomicAssertionUtils.countAssertions(testAssertions) > 1) {
+            Map<String, Object> leftOnlyMap = new HashMap<>();
+            Map<String, Object> rightOnlyMap = new HashMap<>();
+            List<DifferenceInstance> differencesList = new ArrayList<>();
+            try {
+                JsonNode responseNode = objectMapper.readTree(agentCommandResponse.getMethodReturnValue());
+                AssertionResult result = AssertionEngine.executeAssertions(
+                        testAssertions, responseNode);
+
+                List<AtomicAssertion> flatAssertionList = AtomicAssertionUtils.flattenAssertionMap(testAssertions);
+
+                Map<String, Boolean> results = result.getResults();
+
+
+                for (AtomicAssertion atomicAssertion : flatAssertionList) {
+                    if (
+                            atomicAssertion.getAssertionType() == AssertionType.ALLOF ||
+                                    atomicAssertion.getAssertionType() == AssertionType.NOTALLOF ||
+                                    atomicAssertion.getAssertionType() == AssertionType.NOTANYOF ||
+                                    atomicAssertion.getAssertionType() == AssertionType.ANYOF
+                    ) {
+                        continue;
+                    }
+                    Boolean subResult = results.get(atomicAssertion.getId());
+                    if (!subResult) {
+                        differencesList.add(
+                                new DifferenceInstance(
+                                        atomicAssertion.getExpression() == Expression.SELF ?
+                                                atomicAssertion.getKey() : atomicAssertion.getExpression()
+                                                + "(" + atomicAssertion.getKey() + ")",
+                                        atomicAssertion.getExpectedValue(),
+                                        responseNode.at(atomicAssertion.getKey()),
+                                        DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE));
+                    }
+                }
+
+
+                return new DifferenceResult(
+                        differencesList, result.isPassing() ? DiffResultType.SAME : DiffResultType.DIFF,
+                        leftOnlyMap, rightOnlyMap
+                );
+
+            } catch (Exception e) {
+
+                differencesList.add(
+                        new DifferenceInstance(
+                                "Invalid assertion",
+                                e.getMessage(),
+                                "",
+                                DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY
+                        )
+                );
+                return new DifferenceResult(
+                        differencesList, DiffResultType.DIFF, leftOnlyMap, rightOnlyMap);
+
+            }
+        }
+
         String originalString = testCandidateMetadata.getReturnValue();
 
         if (testCandidateMetadata.isReturnValueIsBoolean()) {
-            if(isNumeric(originalString)) {
+            if (isNumeric(originalString)) {
                 originalString = "0".equals(originalString) ? "false" : "true";
             }
         }
@@ -149,7 +211,7 @@ public class DiffUtils {
             }
             return m1;
         } catch (Exception e) {
-            logger.warn("Flatmap make Exception: ",  e);
+            logger.warn("Flatmap make Exception: ", e);
             Map<String, Object> m1 = new TreeMap<>();
             m1.put("value", s1);
             return m1;

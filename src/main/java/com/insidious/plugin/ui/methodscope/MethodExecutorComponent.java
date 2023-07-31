@@ -1,16 +1,11 @@
 package com.insidious.plugin.ui.methodscope;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
-import com.insidious.plugin.assertions.AssertionEngine;
-import com.insidious.plugin.assertions.AssertionResult;
-import com.insidious.plugin.assertions.AtomicAssertion;
-import com.insidious.plugin.assertions.Expression;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.GutterState;
@@ -375,59 +370,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 (request, agentCommandResponse) -> {
                     candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
 
-                    DifferenceResult diffResult;
-                    AtomicAssertion testAssertions = testCandidate.getTestAssertions();
-                    if (testAssertions == null || AtomicAssertionUtils.countAssertions(testAssertions) < 2) {
-                        diffResult = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
-                    } else {
-                        Map<String, Object> leftOnlyMap = new HashMap<>();
-                        Map<String, Object> rightOnlyMap = new HashMap<>();
-                        List<DifferenceInstance> differencesList = new ArrayList<>();
-                        try {
-                            JsonNode responseNode = objectMapper.readTree(agentCommandResponse.getMethodReturnValue());
-                            AssertionResult result = AssertionEngine.executeAssertions(
-                                    testAssertions, responseNode);
-
-                            List<AtomicAssertion> flatAssertionList = AtomicAssertionUtils.flattenAssertionMap(testAssertions);
-
-                            Map<String, Boolean> results = result.getResults();
-
-
-                            for (AtomicAssertion atomicAssertion : flatAssertionList) {
-                                Boolean subResult = results.get(atomicAssertion.getId());
-                                if (!subResult) {
-                                    differencesList.add(
-                                            new DifferenceInstance(
-                                                    atomicAssertion.getExpression() == Expression.SELF ?
-                                                            atomicAssertion.getKey() : atomicAssertion.getExpression()
-                                                            + "(" + atomicAssertion.getKey() + ")",
-                                                    atomicAssertion.getExpectedValue(),
-                                                    responseNode.at(atomicAssertion.getKey()),
-                                                    DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE));
-                                }
-                            }
-
-
-                            diffResult = new DifferenceResult(
-                                    differencesList, result.isPassing() ? DiffResultType.SAME : DiffResultType.DIFF,
-                                    leftOnlyMap, rightOnlyMap
-                            );
-
-                        } catch (Exception e) {
-
-                            differencesList.add(
-                                    new DifferenceInstance(
-                                            "Invalid assertion",
-                                            e.getMessage(),
-                                            "",
-                                            DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY
-                                    )
-                            );
-                            diffResult = new DifferenceResult(
-                                    differencesList, DiffResultType.DIFF, leftOnlyMap, rightOnlyMap);
-
-                        }
-                    }
+                    DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
 
                     logger.info("Source [EXEC]: " + source);
                     if (source.startsWith("all")) {
