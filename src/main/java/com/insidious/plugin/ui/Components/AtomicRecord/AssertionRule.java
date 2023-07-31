@@ -8,12 +8,17 @@ import com.insidious.plugin.ui.Components.AtomicAssertionConstants;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.DocumentAdapter;
+import com.intellij.ui.JBColor;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.border.LineBorder;
 import javax.swing.event.DocumentEvent;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
 public class AssertionRule {
     private static final Logger logger = LoggerUtil.getInstance(AssertionRule.class);
@@ -24,8 +29,6 @@ public class AssertionRule {
     private JTextField nameSelector;
     private JComboBox<String> operationSelector;
     private JTextField valueField;
-    private JLabel statusIconLabel;
-    private JPanel leftAligner;
     private JButton trashButton;
 
     public AssertionRule(AssertionBlock assertionBlock, AtomicAssertion atomicAssertion) {
@@ -33,6 +36,29 @@ public class AssertionRule {
         this.manager = assertionBlock;
 
         this.nameSelector.setText(atomicAssertion.getKey() != null ? atomicAssertion.getKey() : "Nothing selected");
+
+//        Color currentBackgroundColor = nameSelector.getBackground();
+//        nameSelector.setEditable(false);
+//        nameSelector.setBackground(currentBackgroundColor);
+//        nameSelector.setBackground(JBColor.BLACK);
+//        nameSelector.setOpaque(true);
+//        nameSelector.repaint();
+        nameSelector.addKeyListener(new KeyListener() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                e.consume();
+            }
+
+            @Override
+            public void keyPressed(KeyEvent e) {
+                e.consume();
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                e.consume();
+            }
+        });
 
         this.valueField.setText(atomicAssertion.getExpectedValue() != null ? atomicAssertion.getExpectedValue() : "");
 
@@ -214,12 +240,14 @@ public class AssertionRule {
         AssertionResult thisResult = manager.executeAssertion(assertion);
         Boolean result = thisResult.getResults().get(assertion.getId());
         if (result) {
+//            topAligner.setBorder(new LineBorder(AtomicAssertionConstants.PASSING_COLOR));
             topAligner.setBackground(AtomicAssertionConstants.PASSING_COLOR);
-            mainPanel.setBackground(AtomicAssertionConstants.PASSING_COLOR);
-            leftAligner.setBackground(AtomicAssertionConstants.PASSING_COLOR);
+//            mainPanel.setBackground(AtomicAssertionConstants.PASSING_COLOR);
+//            leftAligner.setBackground(AtomicAssertionConstants.PASSING_COLOR);
         } else {
+//            topAligner.setBorder(new LineBorder(AtomicAssertionConstants.FAILING_COLOR));
             topAligner.setBackground(AtomicAssertionConstants.FAILING_COLOR);
-            leftAligner.setBackground(AtomicAssertionConstants.FAILING_COLOR);
+//            leftAligner.setBackground(AtomicAssertionConstants.FAILING_COLOR);
         }
     }
 

@@ -32,7 +32,7 @@ public class UnloggedSDKOnboarding {
     private enum PROJECT_TYPE {MAVEN,GRADLE}
     private String currentJDK = "JDK 1.8";
 
-    private final String UNLOGGED_SDK_VERSION = "0.0.12";
+    private final String UNLOGGED_SDK_VERSION = "0.0.15";
 
     private String maven_default =
             "<dependency>\n" +

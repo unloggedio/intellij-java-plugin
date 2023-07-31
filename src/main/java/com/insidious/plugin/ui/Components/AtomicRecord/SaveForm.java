@@ -115,7 +115,7 @@ public class SaveForm {
             public void removeAssertionGroup(AssertionBlock block) {
 
             }
-        });
+        }, true);
         int topPanelHeight = 200;
 
         JPanel ruleEditor = this.ruleEditor.getMainPanel();

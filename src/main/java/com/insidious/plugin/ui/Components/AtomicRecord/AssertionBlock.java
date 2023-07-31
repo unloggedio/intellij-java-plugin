@@ -9,27 +9,41 @@ import com.insidious.plugin.ui.Components.AtomicAssertionConstants;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class AssertionBlock implements AssertionBlockManager {
+    //    private boolean controlPanelIsVisible = false;
+    private static final List<AssertionType> GROUP_CONDITIONS = Arrays.asList(
+            AssertionType.ANYOF,
+            AssertionType.NOTANYOF,
+            AssertionType.ALLOF,
+            AssertionType.NOTALLOF
+    );
     private final AssertionBlockControlPanel assertionBlockControlPanel;
     private final List<AssertionRule> assertionRules = new ArrayList<>();
     private final List<AssertionBlock> assertionGroups = new ArrayList<>();
     private final AssertionBlockManager manager;
     private final AtomicAssertion assertion;
+    private final boolean isRootCondition;
     private JPanel mainPanel;
     private JPanel topAligner;
     private JPanel contentPanel;
     private JPanel controlPanel;
-//    private boolean controlPanelIsVisible = false;
 
-    public AssertionBlock(AtomicAssertion assertion, AssertionBlockManager blockManager) {
+    public AssertionBlock(AtomicAssertion assertion, AssertionBlockManager blockManager, boolean isRootCondition) {
+        this.isRootCondition = isRootCondition;
         this.manager = blockManager;
         this.assertion = assertion;
         BoxLayout boxLayout = new BoxLayout(contentPanel, BoxLayout.Y_AXIS);
         contentPanel.setLayout(boxLayout);
 
-        assertionBlockControlPanel = new AssertionBlockControlPanel(this, assertion);
+        if (!isRootCondition) {
+            topAligner.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
+        }
+
+        assertionBlockControlPanel = new AssertionBlockControlPanel(this, assertion, isRootCondition);
+
 
         controlPanel.setLayout(new BorderLayout());
 
@@ -37,8 +51,14 @@ public class AssertionBlock implements AssertionBlockManager {
         JPanel ruleAdditionPanelContainer = assertionBlockControlPanel.getMainPanel();
         controlPanel.add(ruleAdditionPanelContainer, BorderLayout.CENTER);
 
-        for (AtomicAssertion subAssertion : assertion.getSubAssertions()) {
-            addRule(subAssertion);
+        if (assertion.getSubAssertions() != null) {
+            for (AtomicAssertion subAssertion : assertion.getSubAssertions()) {
+                if (GROUP_CONDITIONS.contains(subAssertion.getAssertionType())) {
+                    addGroup(subAssertion);
+                } else {
+                    addRule(subAssertion);
+                }
+            }
         }
 
     }
@@ -74,12 +94,14 @@ public class AssertionBlock implements AssertionBlockManager {
         AtomicAssertion newSubGroup = new AtomicAssertion();
         newSubGroup.setAssertionType(AssertionType.ALLOF);
         newSubGroup.getSubAssertions().add(assertion);
-
         this.assertion.getSubAssertions().add(newSubGroup);
-        AssertionBlock newBlock = new AssertionBlock(newSubGroup, this);
 
+        addGroup(newSubGroup);
+    }
+
+    private void addGroup(AtomicAssertion newSubGroup) {
+        AssertionBlock newBlock = new AssertionBlock(newSubGroup, this, false);
         assertionGroups.add(newBlock);
-
         contentPanel.add(newBlock.getMainPanel());
         contentPanel.revalidate();
     }
@@ -91,8 +113,10 @@ public class AssertionBlock implements AssertionBlockManager {
 
         if (result) {
             topAligner.setBackground(AtomicAssertionConstants.PASSING_COLOR);
+//            topAligner.setBorder(new LineBorder(AtomicAssertionConstants.PASSING_COLOR));
 //            mainPanel.setBackground(AtomicAssertionConstants.PASSING_COLOR);
         } else {
+//            topAligner.setBorder(new LineBorder(AtomicAssertionConstants.FAILING_COLOR));
             topAligner.setBackground(AtomicAssertionConstants.FAILING_COLOR);
 //            mainPanel.setBackground(AtomicAssertionConstants.FAILING_COLOR);
         }

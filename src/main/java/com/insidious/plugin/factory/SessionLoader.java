@@ -1,9 +1,11 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -79,7 +81,9 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
                 insidiousService.setSession(mostRecentSession);
             }
         } catch (SQLException | IOException e) {
-            logger.warn("Failed to set new session: " + e.getMessage());
+            logger.warn("Failed to set new session: " + e.getMessage(), e);
+            InsidiousNotification.notifyMessage("Failed to process new session: " + e.getMessage(),
+                    NotificationType.ERROR);
 //            throw new RuntimeException(e);
         }
     }

@@ -174,17 +174,17 @@ public class TestCandidateListedItemComponent {
         mainContentPanel.setPreferredSize(new Dimension(-1, desiredHeight));
         mainContentPanel.add(scrollPane, BorderLayout.CENTER);
 
-        JLabel argumentsLabel = new JLabel("Method arguments");
-        JPanel argumentsLabelPanel = new JPanel();
-        argumentsLabel.setAlignmentY(0F);
+//        JLabel argumentsLabel = new JLabel("Method arguments");
+//        JPanel argumentsLabelPanel = new JPanel();
+//        argumentsLabel.setAlignmentY(0F);
 
-        Border border = argumentsLabelPanel.getBorder();
-        Border margin = JBUI.Borders.empty(0, 0, 5, 0);
-        CompoundBorder borderWithMargin = new CompoundBorder(border, margin);
-        argumentsLabelPanel.setBorder(borderWithMargin);
-        argumentsLabelPanel.setLayout(new BorderLayout());
-        argumentsLabelPanel.setAlignmentY(0.0F);
-        argumentsLabelPanel.add(argumentsLabel, BorderLayout.WEST);
+//        Border border = argumentsLabelPanel.getBorder();
+//        Border margin = JBUI.Borders.empty(0, 0, 5, 0);
+//        CompoundBorder borderWithMargin = new CompoundBorder(border, margin);
+//        argumentsLabelPanel.setBorder(borderWithMargin);
+//        argumentsLabelPanel.setLayout(new BorderLayout());
+//        argumentsLabelPanel.setAlignmentY(0.0F);
+//        argumentsLabelPanel.add(argumentsLabel, BorderLayout.WEST);
 
         if (candidateMetadata.getCandidateId() != null && candidateMetadata.getTestAssertions() != null) {
             int assertionCount = AtomicAssertionUtils.countAssertions(candidateMetadata.getTestAssertions());
@@ -201,7 +201,7 @@ public class TestCandidateListedItemComponent {
             countPanel.setAlignmentY(1.0F);
             mainContentPanel.add(countPanel, BorderLayout.SOUTH);
         }
-        mainContentPanel.add(argumentsLabelPanel, BorderLayout.NORTH);
+//        mainContentPanel.add(argumentsLabelPanel, BorderLayout.NORTH);
 
 
         mainContentPanel.revalidate();
