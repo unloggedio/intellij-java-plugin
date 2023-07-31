@@ -3,7 +3,7 @@
   <grid id="75583" binding="mainPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="4" left="2" bottom="4" right="2"/>
     <constraints>
-      <xy x="3" y="8" width="373" height="320"/>
+      <xy x="3" y="8" width="447" height="374"/>
     </constraints>
     <properties>
       <maximumSize width="2147483647" height="-1"/>
@@ -20,7 +20,7 @@
         <properties/>
         <border type="none"/>
         <children>
-          <grid id="de7d1" binding="topPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+          <grid id="de7d1" binding="topPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
             <margin top="0" left="0" bottom="0" right="0"/>
             <constraints>
               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false">
@@ -30,24 +30,14 @@
             <properties/>
             <border type="none"/>
             <children>
-              <component id="6ff3d" class="javax.swing.JButton" binding="viewFullButton">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <actionCommand value="view Differences"/>
-                  <icon value="icons/png/json_difference_icon.png"/>
-                  <text value="Detailed View"/>
-                </properties>
-              </component>
               <component id="240d8" class="javax.swing.JButton" binding="deleteButton">
                 <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
                   <contentAreaFilled value="false"/>
                   <icon value="icons/png/delete_candidate.png"/>
-                  <text value=""/>
+                  <text value="Delete test case"/>
                 </properties>
               </component>
             </children>
@@ -82,7 +72,7 @@
                   </scrollpane>
                 </children>
               </grid>
-              <grid id="2dea" binding="bottomControlPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+              <grid id="2dea" binding="bottomControlPanel" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                 <margin top="4" left="0" bottom="4" right="0"/>
                 <constraints>
                   <grid row="1" column="0" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
@@ -92,12 +82,12 @@
                 <children>
                   <component id="1d648" class="javax.swing.JButton" binding="acceptButton">
                     <constraints>
-                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
+                      <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
                     </constraints>
                     <properties>
                       <icon value="icons/png/save_candidate.png"/>
-                      <label value="Save"/>
-                      <text value="Save"/>
+                      <label value="Change assertions"/>
+                      <text value="Change assertions"/>
                     </properties>
                   </component>
                   <component id="2d4d3" class="javax.swing.JLabel" binding="statusLabel">
@@ -107,6 +97,16 @@
                     <properties>
                       <icon value="icons/png/difference_icon.png"/>
                       <text value="Status"/>
+                    </properties>
+                  </component>
+                  <component id="6ff3d" class="javax.swing.JButton" binding="viewFullButton">
+                    <constraints>
+                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                    <properties>
+                      <actionCommand value="view Differences"/>
+                      <icon value="icons/png/json_difference_icon.png"/>
+                      <text value="Show complete diff"/>
                     </properties>
                   </component>
                 </children>

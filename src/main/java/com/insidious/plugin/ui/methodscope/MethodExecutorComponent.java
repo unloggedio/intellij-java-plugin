@@ -518,8 +518,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         } else {
             return new AgentResponseComponent(
                     agentCommandResponse, testCandidateMetadata,
-                    true, insidiousService::generateCompareWindows,
-                    this
+                    insidiousService::generateCompareWindows, this
             );
         }
     }

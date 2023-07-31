@@ -94,10 +94,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
             } catch (IOException e) {
                 // failed to read return value as json node
             }
-            boolean showDelete = false;
-            if (testCandidate.getCandidateId() != null) {
-                showDelete = true;
-            }
+            boolean showDelete = testCandidate.getCandidateId() != null;
             ExceptionPreviewComponent options = new ExceptionPreviewComponent(exceptionMessage,
                     prettyException, insidiousService, candidateLifeListener, false, showDelete, testCandidate,
                     response);
