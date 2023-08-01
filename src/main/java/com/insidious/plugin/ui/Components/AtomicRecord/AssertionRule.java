@@ -8,13 +8,10 @@ import com.insidious.plugin.ui.Components.AtomicAssertionConstants;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.DocumentAdapter;
-import com.intellij.ui.JBColor;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.border.LineBorder;
 import javax.swing.event.DocumentEvent;
-import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -94,6 +91,9 @@ public class AssertionRule {
                         break;
                 }
                 break;
+            case EQUAL_IGNORE_CASE:
+                operationSelector.setSelectedItem("equals ignore case");
+                break;
             case NOT_EQUAL:
                 switch (atomicAssertion.getExpression()) {
                     case SELF:
@@ -111,6 +111,12 @@ public class AssertionRule {
             case FALSE:
                 operationSelector.setSelectedItem("is false");
                 break;
+            case MATCHES_REGEX:
+                operationSelector.setSelectedItem("matches regex");
+                break;
+            case NOT_MATCHES_REGEX:
+                operationSelector.setSelectedItem("not matches regex");
+                break;
             case TRUE:
                 operationSelector.setSelectedItem("is true");
                 break;
@@ -126,12 +132,6 @@ public class AssertionRule {
             case GREATER_THAN_OR_EQUAL:
                 operationSelector.setSelectedItem(">=");
                 break;
-            case CONTAINS:
-                operationSelector.setSelectedItem("contains");
-                break;
-            case NOT_CONTAINS:
-                operationSelector.setSelectedItem("not contains");
-                break;
             case NOT_NULL:
                 operationSelector.setSelectedItem("is not null");
                 break;
@@ -143,6 +143,24 @@ public class AssertionRule {
                 break;
             case NOT_EMPTY:
                 operationSelector.setSelectedItem("is not empty");
+                break;
+            case CONTAINS_KEY:
+                operationSelector.setSelectedItem("contains key in object");
+                break;
+            case CONTAINS_ITEM:
+                operationSelector.setSelectedItem("contains item in array");
+                break;
+            case NOT_CONTAINS_ITEM:
+                operationSelector.setSelectedItem("not contains item in array");
+                break;
+            case CONTAINS_STRING:
+                operationSelector.setSelectedItem("contains substring");
+                break;
+            case NOT_CONTAINS_KEY:
+                operationSelector.setSelectedItem("not contains key in object");
+                break;
+            case NOT_CONTAINS_STRING:
+                operationSelector.setSelectedItem("not contains substring");
                 break;
         }
 
@@ -170,13 +188,6 @@ public class AssertionRule {
                         break;
                     case ">=":
                         assertion.setAssertionType(AssertionType.GREATER_THAN_OR_EQUAL);
-                        break;
-
-                    case "contains":
-                        assertion.setAssertionType(AssertionType.CONTAINS);
-                        break;
-                    case "does not contains":
-                        assertion.setAssertionType(AssertionType.NOT_CONTAINS);
                         break;
 
                     case "is null":
@@ -216,6 +227,34 @@ public class AssertionRule {
                         assertion.setExpression(Expression.LENGTH);
                         assertion.setAssertionType(AssertionType.NOT_EQUAL);
                         break;
+                    case "contains key in object":
+                        assertion.setAssertionType(AssertionType.CONTAINS_KEY);
+                        break;
+                    case "contains item in array":
+                        assertion.setAssertionType(AssertionType.CONTAINS_ITEM);
+                        break;
+                    case "not contains item in array":
+                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_ITEM);
+                        break;
+                    case "contains substring":
+                        assertion.setAssertionType(AssertionType.CONTAINS_STRING);
+                        break;
+                    case "not contains key in object":
+                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_KEY);
+                        break;
+                    case "not contains substring":
+                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_STRING);
+                        break;
+                    case "matches regex":
+                        assertion.setAssertionType(AssertionType.MATCHES_REGEX);
+                        break;
+                    case "not matches regex":
+                        assertion.setAssertionType(AssertionType.NOT_MATCHES_REGEX);
+                        break;
+                    case "equals ignore case":
+                        assertion.setAssertionType(AssertionType.EQUAL_IGNORE_CASE);
+                        break;
+
                 }
                 updateResult();
             }
@@ -263,8 +302,6 @@ public class AssertionRule {
         operationSelector.addItem("<");
         operationSelector.addItem("<=");
 
-//        operationSelector.addItem("contains");
-//        operationSelector.addItem("does not contains");
 
         operationSelector.addItem("is null");
         operationSelector.addItem("is not null");
@@ -277,6 +314,21 @@ public class AssertionRule {
         operationSelector.addItem("size is not");
         operationSelector.addItem("length is");
         operationSelector.addItem("length is not");
+
+        operationSelector.addItem("equals ignore case");
+
+        operationSelector.addItem("contains item in array");
+        operationSelector.addItem("not contains item in array");
+
+        operationSelector.addItem("contains key in object");
+        operationSelector.addItem("not contains key in object");
+
+        operationSelector.addItem("contains substring");
+        operationSelector.addItem("not contains substring");
+
+        operationSelector.addItem("matches regex");
+        operationSelector.addItem("not matches regex");
+
 
     }
 
