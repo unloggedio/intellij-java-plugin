@@ -43,6 +43,7 @@ public class SaveForm {
     private JLabel assertionLabel;
     private JRadioButton b1;
     private JRadioButton b2;
+    private JTree candidateExplorerTree;
 
     //AgentCommandResponse is necessary for update flow and Assertions as well
     public SaveForm(
@@ -57,7 +58,7 @@ public class SaveForm {
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
 
-        JTree candidateExplorerTree = new Tree(getTree());
+        candidateExplorerTree = new Tree(getTree());
 
         try {
             responseNode = objectMapper.readValue(agentCommandResponse.getMethodReturnValue(), JsonNode.class);
@@ -202,7 +203,7 @@ public class SaveForm {
         saveButton = new JButton("Save and Close");
         saveButton.setSize(150, 30);
         saveButton.setIcon(UIUtils.SAVE_CANDIDATE_GREY);
-        saveButton.addActionListener(e -> printRuleSet());
+        saveButton.addActionListener(e -> triggerSave());
 
         bottomPanelRight.add(cancelButton);
         bottomPanelRight.add(saveButton);
@@ -217,15 +218,6 @@ public class SaveForm {
 
     public JPanel getComponent() {
         return mainPanel;
-    }
-
-    private void printRuleSet() {
-        AtomicAssertion assertions = ruleEditor.getAssertion();
-        System.out.println("RULE SET : " + assertions.toString());
-        System.out.println("METADATA SET : " + metadataForm.getPayload());
-
-        //wip : to save, also to update toString for AtomicAssertions
-        triggerSave();
     }
 
     private void triggerSave() {
@@ -302,5 +294,12 @@ public class SaveForm {
         return parts.length > 0 ? parts[parts.length - 1] : qualifiedName;
     }
 
+    public AssertionBlock getRuleEditor()
+    {
+        return this.ruleEditor;
+    }
 
+    public JTree getCandidateExplorerTree() {
+        return candidateExplorerTree;
+    }
 }
