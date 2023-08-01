@@ -11,7 +11,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 
 public class UnloggedSDKOnboarding {
-    private final String UNLOGGED_SDK_VERSION = "0.0.15";
+    private final String UNLOGGED_SDK_VERSION = "0.0.16";
     private JPanel mainPanel;
     private JPanel topAligner;
     private JPanel infoPanel;
