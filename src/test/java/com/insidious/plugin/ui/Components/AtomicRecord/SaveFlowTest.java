@@ -2,8 +2,6 @@ package com.insidious.plugin.ui.Components.AtomicRecord;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.agent.AgentCommandResponse;
-import com.insidious.plugin.assertions.AtomicAssertion;
-import com.insidious.plugin.assertions.KeyValue;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.Components.AtomicAssertionConstants;
@@ -13,12 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.swing.*;
-import javax.swing.text.Position;
-import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.util.*;
 import java.util.List;
 
@@ -74,7 +69,6 @@ public class SaveFlowTest {
     public void setup() throws Exception {
         candidateLifeListener = Mockito.mock(CandidateLifeListener.class);
         Mockito.when(candidateLifeListener.getSaveLocation()).thenReturn("testLoc");
-
         candidate = objectMapper.readValue(storedCandidateSource, StoredCandidate.class);
         agentCommandResponse = objectMapper.readValue(responseSource, AgentCommandResponse.class);
     }
