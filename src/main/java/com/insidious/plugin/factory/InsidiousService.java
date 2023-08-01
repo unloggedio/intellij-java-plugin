@@ -1608,30 +1608,30 @@ final public class InsidiousService implements Disposable,
             return;
         }
         List<Content> contentList = Arrays.asList(manager.getContents());
-//        if (state.equals(GutterState.PROCESS_RUNNING)) {
-//            if (contentList.contains(atomicTestContent)) {
-//                manager.removeContent(atomicTestContent, false);
-//            }
-//            if (!contentList.contains(directMethodInvokeContent)) {
-//                manager.addContent(directMethodInvokeContent);
-//            }
-//        } else if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
-//            //show get started only
-//            if (contentList.contains(directMethodInvokeContent)) {
-//                manager.removeContent(directMethodInvokeContent, false);
-//            }
-//            if (!contentList.contains(atomicTestContent)) {
-//                manager.addContent(atomicTestContent);
-//            }
-//        } else {
-        //show both
-        if (!contentList.contains(atomicTestContent)) {
-            manager.addContent(atomicTestContent, 0);
+        if (state.equals(GutterState.PROCESS_RUNNING)) {
+            if (contentList.contains(atomicTestContent)) {
+                manager.removeContent(atomicTestContent, false);
+            }
+            if (!contentList.contains(directMethodInvokeContent)) {
+                manager.addContent(directMethodInvokeContent);
+            }
+        } else if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
+            //show get started only
+            if (contentList.contains(directMethodInvokeContent)) {
+                manager.removeContent(directMethodInvokeContent, false);
+            }
+            if (!contentList.contains(atomicTestContent)) {
+                manager.addContent(atomicTestContent);
+            }
+        } else {
+            //show both
+            if (!contentList.contains(atomicTestContent)) {
+                manager.addContent(atomicTestContent, 0);
+            }
+            if (!contentList.contains(directMethodInvokeContent)) {
+                manager.addContent(directMethodInvokeContent, 1);
+            }
         }
-        if (!contentList.contains(directMethodInvokeContent)) {
-            manager.addContent(directMethodInvokeContent, 1);
-        }
-//        }
     }
 
     public Map<String, String> getIndividualCandidateContextMap() {

@@ -103,12 +103,13 @@ public class SaveForm {
             @Override
             public KeyValue getCurrentTreeKey() {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) candidateExplorerTree.getLastSelectedPathComponent();
-                if (node == null) return new KeyValue("/", agentCommandResponse.getMethodReturnValue());
+                String methodReturnValue = agentCommandResponse.getMethodReturnValue();
+                if (node == null) return new KeyValue("/", methodReturnValue);
                 TreeNode[] nodes = node.getPath();
                 String selectedKey = JsonTreeUtils.getFlatMap(nodes);
-                return new KeyValue(selectedKey,
-                        JsonTreeUtils.getValueFromJsonNode(agentCommandResponse.getMethodReturnValue(), selectedKey));
-//                return selectedKey;
+                Object valueFromJsonNode = JsonTreeUtils.getValueFromJsonNode(
+                        methodReturnValue, selectedKey);
+                return new KeyValue(selectedKey, valueFromJsonNode);
             }
 
             @Override
