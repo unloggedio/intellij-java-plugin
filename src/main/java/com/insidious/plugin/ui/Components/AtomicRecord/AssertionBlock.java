@@ -162,10 +162,15 @@ public class AssertionBlock implements AssertionBlockManager {
         }
     }
 
-
     public AtomicAssertion getAssertion() {
         return assertion;
     }
 
+    public List<AssertionRule> getAssertionRules() {
+        return assertionRules;
+    }
 
+    public List<AssertionBlock> getAssertionGroups() {
+        return assertionGroups;
+    }
 }
