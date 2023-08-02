@@ -147,7 +147,8 @@ public class SaveForm {
         JPanel treeViewer = new JPanel();
         treeViewer.setLayout(new BorderLayout());
 
-        JLabel treeTitleLabel = new JLabel("Available recorded objects");
+        JLabel treeTitleLabel = new JLabel();
+        treeTitleLabel.setText("<html><b>Available recorded objects</b></html>");
         JPanel titleLabelContainer = new JPanel();
 
         Border border = treeTitleLabel.getBorder();
@@ -202,7 +203,7 @@ public class SaveForm {
 
         saveButton = new JButton("Save and Close");
         saveButton.setSize(150, 30);
-        saveButton.setIcon(UIUtils.SAVE_CANDIDATE_GREY);
+        saveButton.setIcon(UIUtils.SAVE_CANDIDATE_PINK);
         saveButton.addActionListener(e -> triggerSave());
 
         bottomPanelRight.add(cancelButton);
