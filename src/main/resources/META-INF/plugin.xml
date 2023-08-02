@@ -7,6 +7,53 @@
 
     <description>
         <![CDATA[
+
+        <h3>Version 1.16.28 (2nd Aug 2023) </h3>
+
+        <p>We are excited to announce the latest release of Unlogged, version 1.16.28! This release brings significant improvements and new features that empower developers to easily monitor and verify their code changes, ensuring a seamless development experience and preventing regressions. Let's take a look at the key highlights of this release:</p>
+
+        <h4>Assertions for Custom Validation:</h4>
+
+        <p>Unlogged now introduces the power of assertions with a brand-new intuitive user interface (UI). With this feature, developers can define custom assertions to validate method return values, all the way down to the key level, without writing any code manually. Say goodbye to spending hours crafting assertion rules; now, you can create complex and nested validation rules with ease through our UI.</p>
+
+        <h4> Enhanced Method Comparison:</h4>
+
+        <p>In previous versions, Unlogged only compared the return values of changed methods, which sometimes led to false failures when dealing with ever-changing values like timestamps or external API responses. Now, with the addition of assertions, developers can perform comprehensive validation on method behavior. Each code change triggers Unlogged to replay the code execution, applying the defined custom assertions to ensure accurate and reliable results.</p>
+
+        <h4>Zero Extra Code:</h4>
+
+        <p>Unlogged has always focused on minimizing developer effort. With this release, we take that philosophy a step further. Defining and maintaining the assertions need no extra code, enabling you to focus solely on delivering quality code.</p>
+
+        <h4>Instant Regression Testing:</h4>
+
+        <p>Thanks to Unlogged's automated recording of method input and return values, developers can instantly replay code changes and verify the behavior of their applications with custom assertions. This feature accelerates the development process and provides early feedback, allowing for quick identification and resolution of potential issues before they escalate.</p>
+
+
+        <h4>Enhanced Developer Productivity:</h4>
+
+        <p>Unlogged's latest release is designed to enhance developer productivity significantly. By minimizing manual testing efforts, providing detailed validation through custom assertions, and offering instant regression testing, developers can focus more on innovation and delivering high-quality code.</p>
+
+        <h4>How to Get Started:</h4>
+        <ul>
+        <li>Install Unlogged from JetBrains marketplace</li>
+        <li>Add the dependency in your pom.xml or build.gradle,</li>
+        <li>Add @Unlogged above your main method.</li>
+        <li>Run your project in debug mode, call your methods directly, and replay previously saved inputs.</li>
+        <li>Click on Change Assertions. (Remember, the default assertion is comparison of return values, as is)</li>
+        <li>Define the assertions as you like, and Save!</li>
+        </ul>
+
+        <h4>Bug Fixes and Improvements</h4>
+
+        <p>In addition to the exciting new features, this release includes various bug fixes and performance improvements. Unlogged is now more stable and efficient than ever, providing a seamless experience for developers.</p>
+
+        <p>We hope that this latest release of Unlogged brings immense value to your Java development. As always, we are open to feedback and suggestions to make Unlogged even better. Feel free to reach out to our support team on Discord with any questions or comments.</p>
+
+        <a href="https://discord.gg/Hhwvay8uTa">Join Unlogged at Discord</a>
+
+
+
+                <h3>Version 1.16.3 (5th Jul 2023) </h3>
             <h2 class="c9" id="h.6kd09fd21779"><span class="c6">Exciting New Features Unleashed in Unlogged!</span></h2>
             <p class="c4 c8"><span class="c1"></span></p>
             <p class="c4"><span class="c1">We are thrilled to unveil the latest enhancements in Unlogged that will elevate your development experience to new heights. Get ready to embark on a joyous coding journey with these amazing updates.</span></p>
