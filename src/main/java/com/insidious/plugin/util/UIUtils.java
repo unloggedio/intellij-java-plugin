@@ -29,6 +29,7 @@ public class UIUtils {
     public static final Icon REFACTOR_TEAL = IconLoader.getIcon("/icons/png/refactorTeal.png", UIUtils.class);
     public static final Icon EXPLAIN_TEAL = IconLoader.getIcon("/icons/png/explainTeal.png", UIUtils.class);
     public static final Icon SAVE_CANDIDATE_GREY = IconLoader.getIcon("/icons/png/save_candidate.png", UIUtils.class);
+    public static final Icon SAVE_CANDIDATE_PINK = IconLoader.getIcon("/icons/png/save-line-pink.png", UIUtils.class);
     public static final Icon ICON_EXECUTE_METHOD = IconLoader.getIcon("/icons/play.png", UIUtils.class);
     public static final Icon ICON_EXECUTE_METHOD_SMALLER = IconUtil.scale(ICON_EXECUTE_METHOD, null,
             JBUIScale.scale(16.0f) / ICON_EXECUTE_METHOD.getIconWidth());
