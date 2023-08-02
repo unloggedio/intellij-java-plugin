@@ -302,4 +302,8 @@ public class SaveForm {
     public JTree getCandidateExplorerTree() {
         return candidateExplorerTree;
     }
+
+    public StoredCandidate getStoredCandidate() {
+        return storedCandidate;
+    }
 }

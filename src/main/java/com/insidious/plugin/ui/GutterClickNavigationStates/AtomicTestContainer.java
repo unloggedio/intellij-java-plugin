@@ -48,6 +48,7 @@ public class AtomicTestContainer {
                 loadExecutionFlow();
                 break;
             default:
+                loadExecutionFlow();
                 methodExecutorComponent.refreshAndReloadCandidates(lastSelection, List.of());
         }
         currentState = state;
@@ -112,8 +113,8 @@ public class AtomicTestContainer {
                 ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
                         insidiousService.getStoredCandidatesFor(candidateSearchQuery));
 
+        loadExecutionFlow();
         if (methodTestCandidates.size() > 0) {
-            loadExecutionFlow();
             methodTestCandidates.sort(StoredCandidate::compareTo);
             methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, methodTestCandidates);
         } else {

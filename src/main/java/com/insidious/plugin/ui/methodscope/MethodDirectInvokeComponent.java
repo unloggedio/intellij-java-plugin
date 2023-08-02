@@ -143,7 +143,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
             }
 
             AgentCommandRequest agentCommandRequest =
-                    MethodUtils.createRequestWithParameters(methodElement, psiClass, methodArgumentValues);
+                    MethodUtils.createRequestWithParameters(methodElement, psiClass, methodArgumentValues, false);
             agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
             returnValueTextArea.setText("");
 
@@ -198,8 +198,22 @@ public class MethodDirectInvokeComponent implements ActionListener {
                             panelTitledBoarder.setTitle("Method response: " + returnTypePresentableText);
                             ObjectMapper objectMapper = insidiousService.getObjectMapper();
                             try {
-                                JsonNode jsonNode = objectMapper.readValue(methodReturnValue.toString(),
-                                        JsonNode.class);
+                                String returnValueString = methodReturnValue.toString();
+
+                                String responseClassName = agentCommandResponse.getResponseClassName();
+                                if (responseClassName.equals("float")
+                                        || responseClassName.equals("java.lang.Float")) {
+                                    returnValueString = String.valueOf(
+                                            Float.intBitsToFloat(Integer.parseInt(returnValueString)));
+                                }
+
+                                if (responseClassName.equals("double")
+                                        || responseClassName.equals("java.lang.Double")) {
+                                    returnValueString = String.valueOf(
+                                            Double.longBitsToDouble(Long.parseLong(returnValueString)));
+                                }
+
+                                JsonNode jsonNode = objectMapper.readValue(returnValueString, JsonNode.class);
                                 returnValueTextArea.setText(objectMapper.writerWithDefaultPrettyPrinter()
                                         .writeValueAsString(jsonNode));
                             } catch (JsonProcessingException ex) {
@@ -266,7 +280,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 //        TestCandidateMetadata mostRecentTestCandidate = null;
         List<String> methodArgumentValues = null;
         AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(methodElement,
-                (PsiClass) containingClass.getSource(), methodArgumentValues);
+                (PsiClass) containingClass.getSource(), methodArgumentValues, false);
 
         AgentCommandRequest existingRequests = insidiousService.getAgentCommandRequests(agentCommandRequest);
         if (existingRequests != null) {

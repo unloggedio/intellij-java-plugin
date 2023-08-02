@@ -1,6 +1,5 @@
 package com.insidious.plugin.ui;
 
-import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.factory.InsidiousService;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
@@ -19,17 +18,19 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
-import java.util.Collection;
 
 public class InsidiousUtils {
-    public static void
+    public static FileEditor
     focusProbeLocationInEditor(
-            DataInfo probeInfo,
+            int lineNumber,
             String className,
             InsidiousService service
     ) {
         if (className.contains("$")) {
             className = className.substring(0, className.indexOf('$'));
+        }
+        if (className.contains(".")) {
+            className = className.replaceAll("\\.", "/");
         }
         String fileName = className + ".java";
         String fileLocation = "src/main/java/" + fileName;
@@ -43,7 +44,7 @@ public class InsidiousUtils {
             @NotNull PsiFile @NotNull [] searchResult = FilenameIndex.getFilesByName(
                     service.getProject(), fileName, GlobalSearchScope.projectScope(service.getProject()));
             if (searchResult.length == 0) {
-                return;
+                return null;
             }
             newFile = searchResult[0].getVirtualFile();
         }
@@ -52,17 +53,19 @@ public class InsidiousUtils {
                 true, true);
 
 
+        FileEditor fileEditor1 = fileEditor[0];
         Editor editor =
                 DataManager.getInstance()
-                        .getDataContext(fileEditor[0].getComponent())
+                        .getDataContext(fileEditor1.getComponent())
                         .getData(CommonDataKeys.EDITOR);
 
 
         @Nullable Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
-        if (probeInfo.getLine() > 0) {
-            int lineOffsetStart = newDocument.getLineStartOffset(probeInfo.getLine() - 1);
+        if (lineNumber > 0) {
+            int lineOffsetStart = newDocument.getLineStartOffset(lineNumber - 1);
             editor.getCaretModel().getCurrentCaret().moveToOffset(lineOffsetStart);
             editor.getScrollingModel().scrollToCaret(ScrollType.CENTER);
         }
+        return fileEditor1;
     }
 }

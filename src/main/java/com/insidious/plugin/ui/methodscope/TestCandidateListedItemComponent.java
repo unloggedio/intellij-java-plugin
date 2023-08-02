@@ -2,23 +2,19 @@ package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
-import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.ui.MethodExecutionListener;
-import com.insidious.plugin.util.AtomicAssertionUtils;
-import com.insidious.plugin.util.ClassUtils;
-import com.insidious.plugin.util.JsonTreeUtils;
-import com.insidious.plugin.util.UIUtils;
+import com.insidious.plugin.util.*;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.border.BevelBorder;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.TitledBorder;
@@ -35,9 +31,9 @@ public class TestCandidateListedItemComponent {
     public static final String TEST_FAIL_LABEL = "Fail";
     public static final String TEST_PASS_LABEL = "Pass";
     public static final String TEST_EXCEPTION_LABEL = "Exception";
+    private static final Logger logger = LoggerUtil.getInstance(TestCandidateListedItemComponent.class);
     private final MethodAdapter method;
     private final List<String> methodArgumentValues;
-    private final MethodExecutionListener methodExecutionListener;
     private final Map<String, String> parameterMap;
     private final InsidiousService insidiousService;
     private StoredCandidate candidateMetadata;
@@ -55,7 +51,6 @@ public class TestCandidateListedItemComponent {
         this.candidateMetadata = storedCandidate;
         this.insidiousService = method.getProject().getService(InsidiousService.class);
         this.method = method;
-        this.methodExecutionListener = methodExecutionListener;
         this.methodArgumentValues = candidateMetadata.getMethodArguments();
         this.parameterMap = generateParameterMap(method.getParameters());
         mainContentPanel.setLayout(new BorderLayout());
@@ -75,7 +70,7 @@ public class TestCandidateListedItemComponent {
                 ClassUtils.chooseClassImplementation(method.getContainingClass(), psiClass -> {
                     JSONObject eventProperties = new JSONObject();
                     eventProperties.put("className", psiClass.getQualifiedName());
-                    eventProperties.put("methodName", method.getName());
+                    eventProperties.put("methodName", storedCandidate.getMethod().getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
                     statusLabel.setText("Executing");
                     methodExecutionListener.executeCandidate(
@@ -134,12 +129,7 @@ public class TestCandidateListedItemComponent {
 
         JTree inputTree = new Tree(inputRoot);
         inputTree.setBorder(JBUI.Borders.empty());
-        inputTree.addTreeSelectionListener(new TreeSelectionListener() {
-            @Override
-            public void valueChanged(TreeSelectionEvent e) {
-                inputTree.clearSelection();
-            }
-        });
+        inputTree.addTreeSelectionListener(e -> inputTree.clearSelection());
 
 
         inputTree.setCellRenderer(new IOTreeCellRenderer());
@@ -224,18 +214,30 @@ public class TestCandidateListedItemComponent {
         if (parameters != null) {
             for (int i = 0; i < parameters.length; i++) {
                 ParameterAdapter methodParameter = parameters[i];
-                String parameterValue = methodArgumentValues == null || methodArgumentValues.size() <= i ? "" :
-                        methodArgumentValues.get(i);
+                String parameterValue = methodArgumentValues == null || methodArgumentValues.size() <= i
+                        ? "" : methodArgumentValues.get(i);
+                String methodTypeCanonicalName = methodParameter.getType().getCanonicalText();
+                try {
+
+
+                    if (methodTypeCanonicalName.equals("float") || methodTypeCanonicalName.equals("java.lang.Float")) {
+                        parameterValue = String.valueOf(Float.intBitsToFloat(Integer.parseInt(parameterValue)));
+                    } else if (methodTypeCanonicalName.equals("double") || methodTypeCanonicalName.equals(
+                            "java.lang.Double")) {
+                        parameterValue = String.valueOf(Double.longBitsToDouble(Long.parseLong(parameterValue)));
+                    }
+                } catch (Exception e) {
+                    logger.warn("Failed to parse double/float [" + parameterValue + "]", e);
+                    //
+                }
+
                 parameterInputMap.put(methodParameter.getName(), parameterValue);
             }
         }
         return parameterInputMap;
     }
 
-    public void setAndDisplayResponse(
-            AgentCommandResponse<String> agentCommandResponse,
-            DifferenceResult differenceResult
-    ) {
+    public void setAndDisplayResponse(DifferenceResult differenceResult) {
 
         switch (differenceResult.getDiffResultType()) {
             case DIFF:

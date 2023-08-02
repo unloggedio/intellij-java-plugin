@@ -88,14 +88,18 @@ public class JsonTreeUtils {
     }
 
     public static Object getValueFromJsonNode(String source, String selectedKey) {
-        if (selectedKey.equals("/")) {
-            selectedKey = "";
-        }
         try {
             JsonNode objectNode = objectMapper.readTree(source);
-            return objectNode.at(selectedKey);
+            return getValueFromJsonNode(objectNode, selectedKey);
         } catch (JsonProcessingException e) {
             return source;
         }
+    }
+
+    public static Object getValueFromJsonNode(JsonNode objectNode, String selectedKey) {
+        if (selectedKey.equals("/")) {
+            selectedKey = "";
+        }
+        return objectNode.at(selectedKey);
     }
 }

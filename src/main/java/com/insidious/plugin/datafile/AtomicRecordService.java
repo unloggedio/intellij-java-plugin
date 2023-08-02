@@ -29,7 +29,7 @@ public class AtomicRecordService {
     private final String unloggedFolderName = "unlogged";
     InsidiousService insidiousService;
     private String basePath;
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private Map<String, AtomicRecord> storedRecords = null;
     private boolean useNotifications = true;
 

@@ -8,7 +8,6 @@ import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.CandidateSearchQuery;
-import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
@@ -358,7 +357,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     ) {
         List<String> methodArgumentValues = testCandidate.getMethodArguments();
         AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(
-                methodElement, psiClass, methodArgumentValues);
+                methodElement, psiClass, methodArgumentValues, true);
 
         TestCandidateListedItemComponent candidateComponent =
                 candidateComponentMap.get(testCandidate.getEntryProbeIndex());
@@ -412,7 +411,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 //                    TestCandidateListedItemComponent candidateComponent =
 //                            candidateComponentMap.get(testCandidate.getEntryProbeIndex());
 
-                    candidateComponent.setAndDisplayResponse(agentCommandResponse, diffResult);
+                    candidateComponent.setAndDisplayResponse(diffResult);
 
                     agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
                 });
@@ -542,7 +541,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         candidateItem.getComponent().revalidate();
         gridPanel.revalidate();
         gridPanel.repaint();
-        insidiousService.hideCandidateSaveForm();
+        insidiousService.hideCandidateSaveForm(saveFormReference);
+        saveFormReference = null;
     }
 
     private void triggerReExecute(StoredCandidate candidate) {
@@ -557,7 +557,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                     Collections.singletonList(candidate), psiClass, "individual",
                     (candidateMetadata, agentCommandResponse, diffResult) -> {
                         insidiousService.updateMethodHashForExecutedMethod(methodElement);
-                        component.setAndDisplayResponse(agentCommandResponse, diffResult);
+                        component.setAndDisplayResponse(diffResult);
                         onCandidateSelected(candidateMetadata);
                         insidiousService.triggerGutterIconReload();
                     }
@@ -567,6 +567,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     @Override
     public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
+        if (saveFormReference != null) {
+            insidiousService.hideCandidateSaveForm(saveFormReference);
+            saveFormReference = null;
+        }
         saveFormReference = new SaveForm(storedCandidate, agentCommandResponse, this);
         insidiousService.showCandidateSaveForm(saveFormReference);
 
@@ -576,7 +580,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     public void onDeleteRequest(StoredCandidate storedCandidate) {
         int result = Messages.showYesNoDialog(
                 "Are you sure you want to delete the stored test [" + storedCandidate.getName() + "]",
-                "Confirm delete",
+                "Confirm Delete",
                 UIUtils.NO_AGENT_HEADER
         );
         if (result == Messages.YES) {
@@ -611,17 +615,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     public void onLastCandidateDeleted() {
-        GutterState currentState = insidiousService.getGutterStateFor(methodElement);
-        if (currentState.equals(GutterState.DATA_AVAILABLE)
-                || currentState.equals(GutterState.NO_DIFF)
-                || currentState.equals(GutterState.DIFF)
-                || currentState.equals(GutterState.EXECUTE)) {
-            //reload this view, to add
-            refreshSearchAndLoad();
-        } else {
-            //load process running window
-            insidiousService.loadSingleWindowForState(GutterState.PROCESS_RUNNING);
-        }
+//        GutterState currentState = insidiousService.getGutterStateFor(methodElement);
+        //reload this view, to add
+        refreshSearchAndLoad();
     }
 
     private void refreshSearchAndLoad() {
@@ -648,7 +644,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     @Override
     public void onCancel() {
-        insidiousService.hideCandidateSaveForm();
+        if (saveFormReference != null) {
+            insidiousService.hideCandidateSaveForm(saveFormReference);
+            saveFormReference = null;
+        }
     }
 
     @Override

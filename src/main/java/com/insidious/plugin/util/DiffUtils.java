@@ -58,7 +58,7 @@ public class DiffUtils {
                                                 atomicAssertion.getKey() : atomicAssertion.getExpression()
                                                 + "(" + atomicAssertion.getKey() + ")",
                                         atomicAssertion.getExpectedValue(),
-                                        responseNode.at(atomicAssertion.getKey()),
+                                        JsonTreeUtils.getValueFromJsonNode(responseNode, atomicAssertion.getKey()),
                                         DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE));
                     }
                 }
@@ -94,11 +94,21 @@ public class DiffUtils {
         }
 
         // void return value
-        if (testCandidateMetadata.getReturnValueClassname() == null) {
+        if ("void".equals(agentCommandResponse.getResponseClassName()) && "0".equals(originalString)) {
             originalString = "null";
         }
 
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
+
+        if ("float".equals(agentCommandResponse.getResponseClassName())) {
+            originalString = String.valueOf(Float.intBitsToFloat(Integer.parseInt(originalString)));
+            actualString = String.valueOf(Float.intBitsToFloat(Integer.parseInt(actualString)));
+        }
+
+        if ("double".equals(agentCommandResponse.getResponseClassName())) {
+            originalString = String.valueOf(Double.longBitsToDouble(Long.parseLong(originalString)));
+            actualString = String.valueOf(Double.longBitsToDouble(Long.parseLong(actualString)));
+        }
 
         if (testCandidateMetadata.isException() ||
                 (agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {

@@ -73,8 +73,8 @@ public class CompareTableModel extends AbstractTableModel {
         DifferenceInstance instance = differences.get(rowIndex);
         if (columnIndex == 0) {
             String key = instance.getKey();
-            key = key.replaceAll("/", ".");
-            key = key.replaceFirst("\\.", "");
+//            key = key.replaceAll("/", ".");
+//            key = key.replaceFirst("\\.", "");
             return key;
         }
         if (columnIndex == 1) {
