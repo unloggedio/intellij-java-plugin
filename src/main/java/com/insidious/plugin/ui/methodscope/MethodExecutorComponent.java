@@ -63,9 +63,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     private int callCount = 0;
     private SaveForm saveFormReference;
     private CandidateFilterType candidateFilterType = CandidateFilterType.METHOD;
+    private final int panelHeightMax = 300;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
-//        System.out.println("In Constructor mec");
         this.insidiousService = insidiousService;
         executeAndShowDifferencesButton.addActionListener(this::actionPerformed);
         gridPanel = createCandidateScrollPanel();
@@ -308,15 +308,11 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     private void setListDimensions(int panelHeight) {
-        if (candidateComponentMap.size() < 3) {
-            centerParent.setMaximumSize(new Dimension(-1, Math.min(300, panelHeight)));
-            centerParent.setPreferredSize(new Dimension(-1, Math.min(300, panelHeight)));
-            centerParent.setMinimumSize(new Dimension(-1, panelHeight));
-        } else {
-            centerParent.setMaximumSize(new Dimension(-1, Math.min(300, 30)));
-            centerParent.setPreferredSize(new Dimension(-1, Math.min(300, 30)));
-            centerParent.setMinimumSize(new Dimension(-1, 300));
-        }
+        panelHeight = Math.min(panelHeightMax, panelHeight);
+        centerParent.setMaximumSize(new Dimension(-1, panelHeight));
+        centerParent.setPreferredSize(new Dimension(-1, panelHeight));
+        centerParent.setMinimumSize(new Dimension(-1, panelHeight));
+
         candidateScrollPanelContainer.revalidate();
         candidateScrollPanelContainer.repaint();
         centerParent.revalidate();
