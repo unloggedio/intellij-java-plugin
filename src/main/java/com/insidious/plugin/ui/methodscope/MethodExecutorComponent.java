@@ -59,6 +59,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     private JPanel centerParent;
     private JPanel topAligner;
     private JScrollPane scrollParent;
+    private JPanel controlsPanel;
     //    private JPanel filterButtonGroupPanel;
     private int callCount = 0;
     private SaveForm saveFormReference;
@@ -74,7 +75,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         candidateScrollPanelContainer.setBorder(JBUI.Borders.empty());
         candidateScrollPanelContainer.setMaximumSize(new Dimension(-1, 40));
 
-
         setFilterButtonsListeners();
         centerParent.setMaximumSize(new Dimension(-1, Math.min(300, 40)));
         centerParent.setMinimumSize(new Dimension(-1, 300));
@@ -83,6 +83,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         centerParent.revalidate();
         centerParent.repaint();
 
+        executeAndShowDifferencesButton.setIcon(UIUtils.REPLAY_PINK);
     }
 
     public void setFilterButtonsListeners() {
@@ -467,11 +468,11 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
 
     public void displayResponse(Component component) {
-        scrollParent.setMinimumSize(new Dimension(-1, 700));
+//        scrollParent.setMinimumSize(new Dimension(-1, 700));
         diffContentPanel.removeAll();
         diffContentPanel.setLayout(new GridLayout(1, 1));
         diffContentPanel.setMinimumSize(new Dimension(-1, 700));
-        component.setMinimumSize(new Dimension(-1, 700));
+//        component.setMinimumSize(new Dimension(-1, 700));
         diffContentPanel.add(component);
         scrollParent.revalidate();
         scrollParent.repaint();

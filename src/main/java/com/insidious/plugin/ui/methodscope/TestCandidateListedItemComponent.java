@@ -11,12 +11,14 @@ import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.ui.JBImageIcon;
 import com.intellij.util.ui.JBUI;
 import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
@@ -88,7 +90,9 @@ public class TestCandidateListedItemComponent {
         statusLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                candidateSelectedListener.onCandidateSelected(candidateMetadata);
+                if (!statusLabel.getText().trim().isEmpty()) {
+                    candidateSelectedListener.onCandidateSelected(candidateMetadata);
+                }
             }
         });
         executeLabel.setIcon(UIUtils.EXECUTE_COMPONENT);
@@ -101,6 +105,10 @@ public class TestCandidateListedItemComponent {
                 candidateSelectedListener.onCandidateSelected(candidateMetadata);
             }
         });
+        mainPanel.setBackground(UIUtils.agentResponseBaseColor);
+        executeLabel.setIcon(UIUtils.EXECUTE_ICON_OUTLINED_SVG);
+        mainContentPanel.setOpaque(false);
+        controlPanel.setOpaque(false);
     }
 
     public JPanel getComponent() {
@@ -145,13 +153,11 @@ public class TestCandidateListedItemComponent {
         if (desiredHeight > 220) {
             desiredHeight = 220;
         }
-        Dimension preferredSize = new Dimension(-1, desiredHeight);
 
         inputTree.setSize(new Dimension(-1, desiredHeight));
         inputTree.setMaximumSize(new Dimension(-1, desiredHeight));
 
         JScrollPane scrollPane = new JBScrollPane(inputTree);
-//        scrollPane.setBorder(new BevelBorder(BevelBorder.LOWERED));
 
         scrollPane.setPreferredSize(new Dimension(-1, desiredHeight));
         scrollPane.setMaximumSize(new Dimension(-1, desiredHeight));
@@ -165,19 +171,13 @@ public class TestCandidateListedItemComponent {
 
         mainContentPanel.setMaximumSize(new Dimension(-1, desiredHeight));
         mainContentPanel.setPreferredSize(new Dimension(-1, desiredHeight));
+        scrollPane.setBorder(JBUI.Borders.empty());
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        inputTree.setOpaque(false);
+
+        inputTree.setBackground(UIUtils.agentResponseBaseColor);
         mainContentPanel.add(scrollPane, BorderLayout.CENTER);
-
-//        JLabel argumentsLabel = new JLabel("Method arguments");
-//        JPanel argumentsLabelPanel = new JPanel();
-//        argumentsLabel.setAlignmentY(0F);
-
-//        Border border = argumentsLabelPanel.getBorder();
-//        Border margin = JBUI.Borders.empty(0, 0, 5, 0);
-//        CompoundBorder borderWithMargin = new CompoundBorder(border, margin);
-//        argumentsLabelPanel.setBorder(borderWithMargin);
-//        argumentsLabelPanel.setLayout(new BorderLayout());
-//        argumentsLabelPanel.setAlignmentY(0.0F);
-//        argumentsLabelPanel.add(argumentsLabel, BorderLayout.WEST);
 
         if (candidateMetadata.getCandidateId() != null && candidateMetadata.getTestAssertions() != null) {
             int assertionCount = AtomicAssertionUtils.countAssertions(candidateMetadata.getTestAssertions());
@@ -192,10 +192,10 @@ public class TestCandidateListedItemComponent {
 
             countPanel.add(assertionCountLabel, BorderLayout.WEST);
             countPanel.setAlignmentY(1.0F);
+            countPanel.setOpaque(false);
             mainContentPanel.add(countPanel, BorderLayout.SOUTH);
         }
 //        mainContentPanel.add(argumentsLabelPanel, BorderLayout.NORTH);
-
 
         mainContentPanel.revalidate();
         mainContentPanel.repaint();
@@ -256,7 +256,6 @@ public class TestCandidateListedItemComponent {
                 this.statusLabel.setText(TEST_EXCEPTION_LABEL);
                 this.statusLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
                 this.statusLabel.setForeground(UIUtils.orange);
-                System.out.println("Exception display for status label : ");
         }
     }
 

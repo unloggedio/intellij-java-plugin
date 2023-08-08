@@ -6,6 +6,8 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.ui.JBColor;
+import com.intellij.vcs.log.ui.frame.WrappedFlowLayout;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -22,16 +24,19 @@ public class AgentResponseComponent implements Supplier<Component> {
     private final StoredCandidate testCandidate;
     private JPanel mainPanel;
     private JPanel centerPanel;
-    private JPanel bottomControlPanel;
     private JButton viewFullButton;
     private JTable mainTable;
     private JLabel statusLabel;
     private JPanel tableParent;
     private JButton acceptButton;
-    private JScrollPane scrollParent;
-    private JPanel topPanel;
     private JPanel topAlign;
     private JButton deleteButton;
+    private JPanel buttonPanel;
+    private JScrollPane scrollParent;
+    private JPanel statusPanel;
+    private JPanel informationPanel;
+    private JLabel informationLabel;
+    private JPanel mainContentPanel;
 
     public AgentResponseComponent(
             AgentCommandResponse<String> agentCommandResponse,
@@ -58,7 +63,8 @@ public class AgentResponseComponent implements Supplier<Component> {
 
         String methodLabel = simpleClassName + "." + agentCommandResponse.getTargetMethodName() + "()";
 
-        setInfoLabel(methodLabel + " at " + DateUtils.formatDate(new Date(agentCommandResponse.getTimestamp())));
+        setInfoLabel("Replayed at " + DateUtils.formatDate(new Date(agentCommandResponse.getTimestamp())) +
+                " for " + methodLabel);
         viewFullButton.addActionListener(
                 e -> fullViewEventListener.generateCompareWindows(originalString, actualString));
 
@@ -112,18 +118,23 @@ public class AgentResponseComponent implements Supplier<Component> {
             deleteButton.setVisible(false);
         }
         deleteButton.addActionListener(e -> candidateLifeListener.onDeleteRequest(testCandidate));
+
+        deleteButton.setIcon(UIUtils.DELETE_CANDIDATE_RED_SVG);
+        acceptButton.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
     }
 
     public void setInfoLabel(String info) {
-        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
-        titledBorder.setTitle(info);
+        informationLabel.setText(info);
+        informationLabel.setIcon(UIUtils.REPLAY_PINK);
+        TitledBorder border = BorderFactory.createTitledBorder("");
+        mainContentPanel.setBorder(border);
     }
 
     public void computeDifferences(DifferenceResult differenceResult) {
 
         switch (differenceResult.getDiffResultType()) {
             case DIFF:
-                this.statusLabel.setText("Differences Found.");
+                this.statusLabel.setText("Failing.");
                 this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
                 this.statusLabel.setForeground(UIUtils.red);
                 renderTableWithDifferences(differenceResult.getDifferenceInstanceList());
@@ -133,7 +144,7 @@ public class AgentResponseComponent implements Supplier<Component> {
                 renderTableForResponse(differenceResult.getRightOnly());
                 break;
             case SAME:
-                this.statusLabel.setText("Both Responses are Equal.");
+                this.statusLabel.setText("Passing.");
                 this.statusLabel.setIcon(UIUtils.CHECK_GREEN_SMALL);
                 this.statusLabel.setForeground(UIUtils.green);
                 this.tableParent.setVisible(false);

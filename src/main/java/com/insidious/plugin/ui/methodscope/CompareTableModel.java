@@ -11,22 +11,16 @@ import java.awt.*;
 import java.util.List;
 
 public class CompareTableModel extends AbstractTableModel {
-
     private final String[] columnNames = {
             "Key", "Expected", "Actual"
     };
     private final List<DifferenceInstance> differences;
     private final JTable table;
     private boolean headerSetup = false;
-    private Color defaultColor = null;
-    private Color defaultForeground = null;
 
     public CompareTableModel(List<DifferenceInstance> differences, JTable table) {
         this.differences = differences;
         this.table = table;
-        Color color = (Color) UIManager.get("Table.background");
-        this.defaultForeground = (Color) UIManager.get("Table.foreground");
-        this.defaultColor = color;
         this.table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -42,8 +36,8 @@ public class CompareTableModel extends AbstractTableModel {
                         }
                     }
                 }
-                c.setBackground(defaultColor);
-                c.setForeground(defaultForeground);
+                c.setBackground(UIUtils.agentResponseBaseColor);
+                c.setForeground(UIUtils.inputViewerTreeForeground);
                 return c;
             }
         });

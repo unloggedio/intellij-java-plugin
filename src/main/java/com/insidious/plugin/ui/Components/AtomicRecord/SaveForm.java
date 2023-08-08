@@ -17,6 +17,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
+import com.intellij.vcs.log.ui.frame.WrappedFlowLayout;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -181,17 +182,15 @@ public class SaveForm {
         mainPanel.add(topPanel, BorderLayout.NORTH);
         mainPanel.add(assertionScrollPanel, BorderLayout.CENTER);
 
-
         JPanel bottomPanel = new JPanel();
-        bottomPanel.setLayout(new BorderLayout());
+        bottomPanel.setLayout(new WrappedFlowLayout(8, 8));
 
-        JPanel bottomPanelLeft = new JPanel();
-        bottomPanelLeft.setAlignmentX(0);
-
-        JLabel infoLabel = new JLabel("Case will be saved at " + formatLocation(listener.getSaveLocation()));
+        String saveLocation = listener.getSaveLocation();
+        JLabel infoLabel = new JLabel("Case will be saved at " + formatLocation(saveLocation));
+        infoLabel.setToolTipText(saveLocation);
         infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
-        infoLabel.setSize(700, 12);
-        bottomPanelLeft.add(infoLabel);
+        infoLabel.setSize(400, 12);
+        bottomPanel.add(infoLabel);
 
         JPanel bottomPanelRight = new JPanel();
         bottomPanelRight.setAlignmentX(1);
@@ -209,11 +208,8 @@ public class SaveForm {
         bottomPanelRight.add(cancelButton);
         bottomPanelRight.add(saveButton);
 
-        bottomPanel.add(bottomPanelLeft, BorderLayout.WEST);
-        bottomPanel.add(bottomPanelRight, BorderLayout.EAST);
-
+        bottomPanel.add(bottomPanelRight);
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
-
         setInfo();
     }
 
@@ -295,8 +291,7 @@ public class SaveForm {
         return parts.length > 0 ? parts[parts.length - 1] : qualifiedName;
     }
 
-    public AssertionBlock getRuleEditor()
-    {
+    public AssertionBlock getRuleEditor() {
         return this.ruleEditor;
     }
 
