@@ -95,7 +95,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 }
             }
         });
-
+        executeButton.setIcon(UIUtils.DIRECT_INVOKE_EXECUTE);
     }
 
     private void executeMethodWithParameters() {

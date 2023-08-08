@@ -74,6 +74,7 @@ public class UIUtils {
     public static Icon PROCESS_NOT_RUNNING = IconLoader.getIcon("/icons/svg/process_not_running.svg", UIUtils.class);
     public static Icon DATA_AVAILABLE = IconLoader.getIcon("/icons/svg/data_available_v2.svg", UIUtils.class);
     public static Icon ATOMIC_TESTS = IconLoader.getIcon("/icons/svg/atomic_tests_v2.svg", UIUtils.class);
+    public static Icon DIRECT_INVOKE_EXECUTE = IconLoader.getIcon("/icons/svg/direct-invoke-execute.svg", UIUtils.class);
     public static Icon EXECUTE_METHOD = IconLoader.getIcon("/icons/svg/execute_method.svg", UIUtils.class);
     public static Icon ORANGE_EXCEPTION = IconLoader.getIcon("/icons/svg/exception_orange.svg", UIUtils.class);
     public static Icon EXECUTE_ICON_OUTLINED_SVG = IconLoader.getIcon("/icons/svg/execute-button-outlined.svg", UIUtils.class);
