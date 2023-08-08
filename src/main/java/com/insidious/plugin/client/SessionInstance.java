@@ -2384,7 +2384,7 @@ public class SessionInstance {
             properties.put("project", this.project.getName());
             properties.put("session", executionSession.getPath());
             properties.put("message", e.getMessage());
-            UsageInsightTracker.getInstance().RecordEvent("SESSSION_CORRUPT", properties);
+            UsageInsightTracker.getInstance().RecordEvent("SESSION_CORRUPT", properties);
             logger.warn("Exception in scan and build session", e);
         }
     }

@@ -662,7 +662,7 @@ final public class InsidiousService implements Disposable,
                 contentFactory.createContent(methodDirectInvokeComponent.getContent(), "Direct Invoke", false);
         this.directMethodInvokeContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         this.directMethodInvokeContent.setIcon(UIUtils.EXECUTE_METHOD);
-//        contentManager.addContent(this.directMethodInvokeContent);
+        contentManager.addContent(this.directMethodInvokeContent);
         SingleWindowView singleWindowView = new SingleWindowView(project, this);
         singleWindowContent = contentFactory.createContent(singleWindowView.getContent(),
                 "Raw Cases", false);
@@ -997,22 +997,24 @@ final public class InsidiousService implements Disposable,
             return;
         }
 
-        if (currentMethod.equals(atomicTestContainerWindow.getCurrentMethod())) {
-            ApplicationManager.getApplication().invokeLater(() -> {
-                //show both
-                ContentManager manager = this.toolWindow.getContentManager();
-                if (manager.getContent(atomicTestContent.getComponent()) == null) {
-                    //only add atomic if method has candidates.
-                    if (getStoredCandidatesFor(currentMethod).size() > 0) {
-                        manager.addContent(atomicTestContent, 0);
-                        focusAtomicTestsWindow();
-                    }
-                }
-                if (manager.getContent(directMethodInvokeContent.getComponent()) == null) {
-                    manager.addContent(directMethodInvokeContent);
-                }
-            });
-        }
+//        if (currentMethod.equals(atomicTestContainerWindow.getCurrentMethod())) {
+//        ApplicationManager.getApplication().invokeLater(() -> {
+//            //show both
+////            ContentManager manager = this.toolWindow.getContentManager();
+////            if (manager.getContent(atomicTestContent.getComponent()) == null) {
+////                //only add atomic if method has candidates.
+//////                CandidateSearchQuery query = createSearchQueryForMethod(currentMethod);
+////
+//////                if (getStoredCandidatesFor(query).size() > 0) {
+//////                    manager.addContent(atomicTestContent, 0);
+//////                    focusAtomicTestsWindow();
+//////                }
+////            }
+////            if (manager.getContent(directMethodInvokeContent.getComponent()) == null) {
+////                manager.addContent(directMethodInvokeContent);
+////            }
+//        });
+//        }
         ApplicationManager.getApplication().invokeLater(() -> {
             atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
             methodDirectInvokeComponent.renderForMethod(currentMethod);
@@ -1535,35 +1537,35 @@ final public class InsidiousService implements Disposable,
     }
 
     public void loadSingleWindowForState(GutterState state) {
-        ContentManager manager = this.toolWindow.getContentManager();
-        if (((ContentManagerImpl) manager).getUI() == null) {
-            return;
-        }
-        List<Content> contentList = Arrays.asList(manager.getContents());
-        if (state.equals(GutterState.PROCESS_RUNNING)) {
-            if (contentList.contains(atomicTestContent)) {
-                manager.removeContent(atomicTestContent, false);
-            }
-            if (!contentList.contains(directMethodInvokeContent)) {
-                manager.addContent(directMethodInvokeContent);
-            }
-        } else if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
-            //show get started only
-            if (contentList.contains(directMethodInvokeContent)) {
-                manager.removeContent(directMethodInvokeContent, false);
-            }
-            if (!contentList.contains(atomicTestContent)) {
-                manager.addContent(atomicTestContent);
-            }
-        } else {
-            //show both
-            if (!contentList.contains(atomicTestContent)) {
-                manager.addContent(atomicTestContent, 0);
-            }
-            if (!contentList.contains(directMethodInvokeContent)) {
-                manager.addContent(directMethodInvokeContent);
-            }
-        }
+//        ContentManager manager = this.toolWindow.getContentManager();
+//        if (((ContentManagerImpl) manager).getUI() == null) {
+//            return;
+//        }
+//        List<Content> contentList = Arrays.asList(manager.getContents());
+//        if (state.equals(GutterState.PROCESS_RUNNING)) {
+//            if (contentList.contains(atomicTestContent)) {
+//                manager.removeContent(atomicTestContent, false);
+//            }
+//            if (!contentList.contains(directMethodInvokeContent)) {
+//                manager.addContent(directMethodInvokeContent);
+//            }
+//        } else if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
+//            //show get started only
+//            if (contentList.contains(directMethodInvokeContent)) {
+//                manager.removeContent(directMethodInvokeContent, false);
+//            }
+//            if (!contentList.contains(atomicTestContent)) {
+//                manager.addContent(atomicTestContent);
+//            }
+//        } else {
+        //show both
+//        if (!contentList.contains(atomicTestContent)) {
+//            manager.addContent(atomicTestContent, 0);
+//        }
+//        if (!contentList.contains(directMethodInvokeContent)) {
+//            manager.addContent(directMethodInvokeContent, 1);
+//        }
+//        }
     }
 
     public Map<String, String> getIndividualCandidateContextMap() {

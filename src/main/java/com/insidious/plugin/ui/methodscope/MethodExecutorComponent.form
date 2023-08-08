@@ -46,7 +46,7 @@
                 </constraints>
                 <properties>
                   <font size="14"/>
-                  <text value="0 Input Sets found."/>
+                  <text value="0 recorded method executions"/>
                 </properties>
               </component>
               <hspacer id="e27e3">
