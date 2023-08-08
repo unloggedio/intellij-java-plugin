@@ -1,8 +1,10 @@
 package com.insidious.plugin.ui.GutterClickNavigationStates;
 
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.notification.NotificationType;
 
 import javax.swing.*;
 import java.awt.*;
@@ -96,6 +98,8 @@ public class UnloggedSDKOnboarding {
             insidiousService.copyToClipboard(dependency);
         } else {
             insidiousService.copyToClipboard(gradleTextArea.getText());
+            InsidiousNotification.notifyMessage("Copied Gradle dependencies",
+                    NotificationType.INFORMATION);
         }
     }
 
