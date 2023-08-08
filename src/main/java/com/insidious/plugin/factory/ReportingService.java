@@ -1,10 +1,8 @@
 package com.insidious.plugin.factory;
 
-import com.insidious.plugin.adapter.MethodAdapter;
-import com.insidious.plugin.adapter.ParameterAdapter;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.ResponseType;
-import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.intellij.notification.NotificationType;
@@ -26,9 +24,9 @@ import java.util.List;
 
 public class ReportingService {
 
+    private final InsidiousService insidiousService;
     public boolean notify = true;
     private boolean reportingEnabled = false;
-    private final InsidiousService insidiousService;
     private String output_file_name;
 
     public ReportingService(InsidiousService service) {
@@ -63,14 +61,14 @@ public class ReportingService {
         XSSFRow row = sheet.createRow(rowNum);
 
 //        System.out.println("Report entry Start ----");
-        String classname = result.getMethodAdapter().getContainingClass().getQualifiedName();
+        AgentCommandRequest agentCommandRequest = result.getCommand();
+        String classname = agentCommandRequest.getClassName();
 //        System.out.println("Class : "+classname);
 
         Cell cell = row.createCell(0);
         cell.setCellValue(classname);
 
-        String method = result.getMethodAdapter().getName() + "\n"
-                + result.getMethodAdapter().getJVMSignature();
+        String method = agentCommandRequest.getMethodName() + "\n" + agentCommandRequest.getMethodSignature();
 //        System.out.println("Method : "+method);
         cell = row.createCell(1);
         cell.setCellValue(method);
@@ -104,7 +102,7 @@ public class ReportingService {
         cell = row.createCell(3);
         cell.setCellValue(executionStatus);
 
-        List<String> input = getInputs(result.getMethodAdapter(), result.getCommand());
+        List<String> input = getInputs(result.getCommand());
 //        System.out.println("Input Serialized : "+input.toString());
         cell = row.createCell(4);
         cell.setCellValue(input.toString());
@@ -172,12 +170,12 @@ public class ReportingService {
         }
     }
 
-    private List<String> getInputs(MethodAdapter methodAdapter, AgentCommandRequest command) {
+    private List<String> getInputs(AgentCommandRequest command) {
+        List<String> types = command.getParameterTypes();
         List<String> inputList = new ArrayList<>();
-        ParameterAdapter[] types = methodAdapter.getParameters();
+
         for (int i = 0; i < command.getMethodParameters().size(); i++) {
-            inputList.add(types[i].getType().toString() + " : "
-                    + command.getMethodParameters().get(i) + "\n");
+            inputList.add(types.get(i) + " : " + command.getMethodParameters().get(i) + "\n");
         }
         return inputList;
     }

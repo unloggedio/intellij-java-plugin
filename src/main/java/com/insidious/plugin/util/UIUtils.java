@@ -3,6 +3,7 @@ package com.insidious.plugin.util;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.intellij.openapi.util.IconLoader;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.IconUtil;
 
@@ -29,6 +30,10 @@ public class UIUtils {
     public static final Icon REFACTOR_TEAL = IconLoader.getIcon("/icons/png/refactorTeal.png", UIUtils.class);
     public static final Icon EXPLAIN_TEAL = IconLoader.getIcon("/icons/png/explainTeal.png", UIUtils.class);
     public static final Icon SAVE_CANDIDATE_GREY = IconLoader.getIcon("/icons/png/save_candidate.png", UIUtils.class);
+    public static final Icon SAVE_CANDIDATE_PINK = IconLoader.getIcon("/icons/png/save-line-pink.png", UIUtils.class);
+    public static final Icon SAVE_CANDIDATE_GREEN_SVG = IconLoader.getIcon("/icons/svg/save-line.svg", UIUtils.class);
+    public static final Icon DELETE_CANDIDATE_RED_SVG = IconLoader.getIcon("/icons/svg/delete-bin-6-line.svg", UIUtils.class);
+    public static final Icon REPLAY_PINK = IconLoader.getIcon("/icons/svg/replay-all-pink.svg", UIUtils.class);
     public static final Icon ICON_EXECUTE_METHOD = IconLoader.getIcon("/icons/play.png", UIUtils.class);
     public static final Icon ICON_EXECUTE_METHOD_SMALLER = IconUtil.scale(ICON_EXECUTE_METHOD, null,
             JBUIScale.scale(16.0f) / ICON_EXECUTE_METHOD.getIconWidth());
@@ -37,11 +42,19 @@ public class UIUtils {
     public static Color red = new Color(245, 101, 101);
     public static Color green = new Color(56, 161, 105);
     public static Color yellow_alert = new Color(225, 163, 54);
-
     public static Color orange = new Color(221, 107, 32);
-    public static Color DefaultForegoround = new Color(187, 187, 187);
+    public static Color defaultForeground = new Color(187, 187, 187);
     public static Color NeutralGrey = new Color(81, 85, 87);
     public static Color black_custom = new Color(32, 32, 32);
+
+    public static JBColor agentResponseBaseColor = new JBColor(
+            new Color(255, 255, 255),
+            new Color(43, 45, 48));
+
+    public static JBColor inputViewerTreeForeground = new JBColor(
+            Color.BLACK,
+            defaultForeground);
+
     public static Icon UNLOGGED_ICON_DARK = IconLoader.getIcon("/icons/png/logo_unlogged.png", UIUtils.class);
     public static Icon UNLOGGED_GPT_ICON_PINK = IconLoader.getIcon("/icons/png/unloggedGPT_pink.png", UIUtils.class);
     public static Icon UNLOGGED_ICON_DARK_SVG = IconLoader.getIcon("/icons/svg/unlogged_logo.svg", UIUtils.class);
@@ -63,6 +76,7 @@ public class UIUtils {
     public static Icon ATOMIC_TESTS = IconLoader.getIcon("/icons/svg/atomic_tests_v2.svg", UIUtils.class);
     public static Icon EXECUTE_METHOD = IconLoader.getIcon("/icons/svg/execute_method.svg", UIUtils.class);
     public static Icon ORANGE_EXCEPTION = IconLoader.getIcon("/icons/svg/exception_orange.svg", UIUtils.class);
+    public static Icon EXECUTE_ICON_OUTLINED_SVG = IconLoader.getIcon("/icons/svg/execute-button-outlined.svg", UIUtils.class);
     public static Icon ONBOARDING_ICON_DARK = IconLoader.getIcon("/icons/png/onboarding_icon_dark.png", UIUtils.class);
     public static Icon ONBOARDING_ICON_PINK = IconLoader.getIcon("/icons/png/onboarding_icon_pink.png", UIUtils.class);
     public static Icon ONBOARDING_ICON_TEAL = IconLoader.getIcon("/icons/png/onboarding_icon_teal.png", UIUtils.class);
@@ -88,6 +102,8 @@ public class UIUtils {
     public static Icon ICON_3_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_3_teal.png", UIUtils.class);
     public static Icon ICON_4_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_4_teal.png", UIUtils.class);
     public static Icon ICON_5_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_5_teal.png", UIUtils.class);
+    //    public static Icon ICON_MINUS = IconLoader.getIcon("/icons/png/ph-minus-square-bold.png", UIUtils.class);
+//    public static Icon ICON_PLUS = IconLoader.getIcon("/icons/png/material-symbols-add-box-outline-rounded.png", UIUtils.class);
     public static Icon SEND_TEAL_ICON = IconLoader.getIcon("/icons/png/sendButton.png", UIUtils.class);
     public static Icon MISSING_DEPENDENCIES_ICON = IconLoader.getIcon("/icons/png/alert_icon_yellow.png",
             UIUtils.class);
@@ -153,7 +169,7 @@ public class UIUtils {
         try {
 //            ImageIcon loadingIcon = new ImageIcon(UIUtils.class.getResource(gifPath + gif));
             //get abs path
-            pane.setText("<html><body><img src = \""+gifPath+gif+"\"></body></html>");
+            pane.setText("<html><body><img src = \"" + gifPath + gif + "\"></body></html>");
 
 //            this.getClass().getClassLoader()
 //                    .getResource("images/logo_html.png").toString()

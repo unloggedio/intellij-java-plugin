@@ -2,21 +2,23 @@ package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
-import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.ui.MethodExecutionListener;
-import com.insidious.plugin.util.ClassUtils;
-import com.insidious.plugin.util.UIUtils;
+import com.insidious.plugin.util.*;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.ui.JBImageIcon;
 import com.intellij.util.ui.JBUI;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
@@ -28,12 +30,15 @@ import java.util.List;
 import java.util.*;
 
 public class TestCandidateListedItemComponent {
-    private StoredCandidate candidateMetadata;
+    public static final String TEST_FAIL_LABEL = "Fail";
+    public static final String TEST_PASS_LABEL = "Pass";
+    public static final String TEST_EXCEPTION_LABEL = "Exception";
+    private static final Logger logger = LoggerUtil.getInstance(TestCandidateListedItemComponent.class);
     private final MethodAdapter method;
     private final List<String> methodArgumentValues;
-    private final MethodExecutionListener methodExecutionListener;
     private final Map<String, String> parameterMap;
     private final InsidiousService insidiousService;
+    private StoredCandidate candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
     private JPanel mainContentPanel;
@@ -48,14 +53,16 @@ public class TestCandidateListedItemComponent {
         this.candidateMetadata = storedCandidate;
         this.insidiousService = method.getProject().getService(InsidiousService.class);
         this.method = method;
-        this.methodExecutionListener = methodExecutionListener;
         this.methodArgumentValues = candidateMetadata.getMethodArguments();
         this.parameterMap = generateParameterMap(method.getParameters());
+        mainContentPanel.setLayout(new BorderLayout());
 
         //saved candidate check
         if (candidateMetadata.getName() != null) {
             setTitledBorder(candidateMetadata.getName());
         }
+
+
         mainPanel.revalidate();
 
         loadInputTree();
@@ -65,13 +72,14 @@ public class TestCandidateListedItemComponent {
                 ClassUtils.chooseClassImplementation(method.getContainingClass(), psiClass -> {
                     JSONObject eventProperties = new JSONObject();
                     eventProperties.put("className", psiClass.getQualifiedName());
-                    eventProperties.put("methodName", method.getName());
+                    eventProperties.put("methodName", storedCandidate.getMethod().getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
+                    statusLabel.setText("Executing");
                     methodExecutionListener.executeCandidate(
                             Collections.singletonList(candidateMetadata), psiClass, "individual",
                             (candidateMetadata, agentCommandResponse, diffResult) -> {
                                 insidiousService.updateMethodHashForExecutedMethod(method);
-                                setAndDisplayResponse(agentCommandResponse, diffResult);
+//                                setAndDisplayResponse(agentCommandResponse, diffResult);
                                 candidateSelectedListener.onCandidateSelected(candidateMetadata);
                                 insidiousService.triggerGutterIconReload();
                             }
@@ -82,21 +90,25 @@ public class TestCandidateListedItemComponent {
         statusLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                candidateSelectedListener.onCandidateSelected(candidateMetadata);
+                if (!statusLabel.getText().trim().isEmpty()) {
+                    candidateSelectedListener.onCandidateSelected(candidateMetadata);
+                }
             }
         });
         executeLabel.setIcon(UIUtils.EXECUTE_COMPONENT);
         statusLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         executeLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        mainPanel.setSize(new Dimension(-1, Math.max(150, 45 * method.getParameters().length)));
         mainPanel.addMouseListener(new MouseAdapter() {
 
             @Override
             public void mouseClicked(MouseEvent e) {
                 candidateSelectedListener.onCandidateSelected(candidateMetadata);
-//                listener.displayResponse(responseComponent);
             }
         });
+        mainPanel.setBackground(UIUtils.agentResponseBaseColor);
+        executeLabel.setIcon(UIUtils.EXECUTE_ICON_OUTLINED_SVG);
+        mainContentPanel.setOpaque(false);
+        controlPanel.setOpaque(false);
     }
 
     public JPanel getComponent() {
@@ -107,14 +119,9 @@ public class TestCandidateListedItemComponent {
         return candidateMetadata;
     }
 
-//    private void displayResponse() {
-//        if (this.responseComponent != null) {
-//            this.listener.displayResponse(this.responseComponent);
-//        }
-//    }
-
     private void loadInputTree() {
-        this.mainContentPanel.removeAll();
+
+        mainContentPanel.removeAll();
         DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
         Set<String> methodArgumentNames = this.parameterMap.keySet();
         int methodArgumentCount = methodArgumentNames.size();
@@ -123,31 +130,21 @@ public class TestCandidateListedItemComponent {
             inputRoot.add(node);
         } else {
             for (String key : methodArgumentNames) {
-                DefaultMutableTreeNode node = buildJsonTree(this.parameterMap.get(key), key);
+                DefaultMutableTreeNode node = JsonTreeUtils.buildJsonTree(this.parameterMap.get(key), key);
                 inputRoot.add(node);
             }
         }
 
-//        GridConstraints constraints = new GridConstraints();
-//        constraints.setRow(1);
         JTree inputTree = new Tree(inputRoot);
         inputTree.setBorder(JBUI.Borders.empty());
-        inputTree.addTreeSelectionListener(new TreeSelectionListener() {
-            @Override
-            public void valueChanged(TreeSelectionEvent e) {
-                inputTree.clearSelection();
-            }
-        });
+        inputTree.addTreeSelectionListener(e -> inputTree.clearSelection());
 
-//        for(int i = inputTree.getRowCount() - 1; i >= 0; i--){
-//            inputTree.collapseRow(i);
-//        }
 
         inputTree.setCellRenderer(new IOTreeCellRenderer());
         inputTree.setRootVisible(false);
         inputTree.setShowsRootHandles(true);
 
-        GridLayout gridLayout = new GridLayout(1, 1);
+//        GridLayout gridLayout = new GridLayout(1, 1);
         int desiredHeightPerInput = 30;
         int desiredHeight = inputRoot.getLeafCount() * desiredHeightPerInput;
         if (desiredHeight < 100) {
@@ -156,88 +153,52 @@ public class TestCandidateListedItemComponent {
         if (desiredHeight > 220) {
             desiredHeight = 220;
         }
-        Dimension preferredSize = new Dimension(-1, desiredHeight);
-
-//        mainContentPanel.setPreferredSize(preferredSize);
-//        mainContentPanel.setMaximumSize(preferredSize);
-//        gridLayout.preferredLayoutSize(mainContentPanel);
 
         inputTree.setSize(new Dimension(-1, desiredHeight));
         inputTree.setMaximumSize(new Dimension(-1, desiredHeight));
 
         JScrollPane scrollPane = new JBScrollPane(inputTree);
-        scrollPane.setBorder(JBUI.Borders.empty());
 
         scrollPane.setPreferredSize(new Dimension(-1, desiredHeight));
         scrollPane.setMaximumSize(new Dimension(-1, desiredHeight));
         scrollPane.setSize(new Dimension(-1, desiredHeight));
 
-        mainPanel.setPreferredSize(preferredSize);
+        mainPanel.setPreferredSize(new Dimension(-1, desiredHeight));
         mainPanel.setMinimumSize(new Dimension(-1, 100));
-        mainPanel.setMaximumSize(preferredSize);
+        mainPanel.setMaximumSize(new Dimension(-1, desiredHeight));
 
-        mainContentPanel.setLayout(gridLayout);
         mainContentPanel.setSize(new Dimension(-1, desiredHeight));
 
-        mainContentPanel.setMaximumSize(preferredSize);
-        mainContentPanel.setPreferredSize(preferredSize);
-        mainContentPanel.add(scrollPane);
+        mainContentPanel.setMaximumSize(new Dimension(-1, desiredHeight));
+        mainContentPanel.setPreferredSize(new Dimension(-1, desiredHeight));
+        scrollPane.setBorder(JBUI.Borders.empty());
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        inputTree.setOpaque(false);
+
+        inputTree.setBackground(UIUtils.agentResponseBaseColor);
+        mainContentPanel.add(scrollPane, BorderLayout.CENTER);
+
+        if (candidateMetadata.getCandidateId() != null && candidateMetadata.getTestAssertions() != null) {
+            int assertionCount = AtomicAssertionUtils.countAssertions(candidateMetadata.getTestAssertions());
+            JLabel assertionCountLabel = new JLabel(assertionCount + " assertions");
+            assertionCountLabel.setAlignmentY(1.0F);
+            JPanel countPanel = new JPanel(new BorderLayout());
+
+            Border border1 = countPanel.getBorder();
+            Border margin1 = JBUI.Borders.empty(5, 0, 0, 0);
+            CompoundBorder borderWithMargin1 = new CompoundBorder(border1, margin1);
+            countPanel.setBorder(borderWithMargin1);
+
+            countPanel.add(assertionCountLabel, BorderLayout.WEST);
+            countPanel.setAlignmentY(1.0F);
+            countPanel.setOpaque(false);
+            mainContentPanel.add(countPanel, BorderLayout.SOUTH);
+        }
+//        mainContentPanel.add(argumentsLabelPanel, BorderLayout.NORTH);
 
         mainContentPanel.revalidate();
         mainContentPanel.repaint();
-    }
-
-    private DefaultMutableTreeNode buildJsonTree(String source, String name) {
-        if (source.startsWith("{")) {
-            return handleObject(new JSONObject(source), new DefaultMutableTreeNode(name));
-        } else if (source.startsWith("[")) {
-            return handleArray(new JSONArray(source), new DefaultMutableTreeNode(name));
-        } else {
-            return new DefaultMutableTreeNode(name + " = " + source);
-        }
-    }
-
-    private DefaultMutableTreeNode handleObject(JSONObject json, DefaultMutableTreeNode root) {
-        Set<String> keys = json.keySet();
-        for (String key : keys) {
-            String valueTemp = json.get(key)
-                    .toString();
-            if (valueTemp.startsWith("{")) {
-                //obj in obj
-                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(key);
-                JSONObject subObj = new JSONObject(valueTemp);
-                handleObject(subObj, thisKey);
-                root.add(thisKey);
-            } else if (valueTemp.startsWith("[")) {
-                //list
-                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(key);
-                JSONArray subObjArray = new JSONArray(valueTemp);
-                handleArray(subObjArray, thisKey);
-                root.add(thisKey);
-            } else {
-                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(key + " : " + valueTemp);
-                root.add(thisKVpair);
-            }
-        }
-        return root;
-    }
-
-    private DefaultMutableTreeNode handleArray(JSONArray json, DefaultMutableTreeNode root) {
-        for (int i = 0; i < json.length(); i++) {
-            String valueTemp = json.get(i)
-                    .toString();
-            if (valueTemp.startsWith("{")) {
-                //obj in obj
-                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(i + " : ");
-                JSONObject subObj = new JSONObject(valueTemp);
-                handleObject(subObj, thisKey);
-                root.add(thisKey);
-            } else {
-                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(i + " : " + valueTemp);
-                root.add(thisKVpair);
-            }
-        }
-        return root;
     }
 
     public Map<String, String> getParameterMap() {
@@ -253,37 +214,48 @@ public class TestCandidateListedItemComponent {
         if (parameters != null) {
             for (int i = 0; i < parameters.length; i++) {
                 ParameterAdapter methodParameter = parameters[i];
-                String parameterValue = methodArgumentValues == null || methodArgumentValues.size() <= i ? "" :
-                        methodArgumentValues.get(i);
+                String parameterValue = methodArgumentValues == null || methodArgumentValues.size() <= i
+                        ? "" : methodArgumentValues.get(i);
+                String methodTypeCanonicalName = methodParameter.getType().getCanonicalText();
+                try {
+
+
+                    if (methodTypeCanonicalName.equals("float") || methodTypeCanonicalName.equals("java.lang.Float")) {
+                        parameterValue = String.valueOf(Float.intBitsToFloat(Integer.parseInt(parameterValue)));
+                    } else if (methodTypeCanonicalName.equals("double") || methodTypeCanonicalName.equals(
+                            "java.lang.Double")) {
+                        parameterValue = String.valueOf(Double.longBitsToDouble(Long.parseLong(parameterValue)));
+                    }
+                } catch (Exception e) {
+                    logger.warn("Failed to parse double/float [" + parameterValue + "]", e);
+                    //
+                }
+
                 parameterInputMap.put(methodParameter.getName(), parameterValue);
             }
         }
         return parameterInputMap;
     }
 
-    public void setAndDisplayResponse(
-            AgentCommandResponse<String> agentCommandResponse,
-            DifferenceResult differenceResult
-    ) {
+    public void setAndDisplayResponse(DifferenceResult differenceResult) {
 
         switch (differenceResult.getDiffResultType()) {
             case DIFF:
-                this.statusLabel.setText("Different");
+                this.statusLabel.setText(TEST_FAIL_LABEL);
                 this.statusLabel.setForeground(UIUtils.red);
                 this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
                 break;
             case NO_ORIGINAL:
                 break;
             case SAME:
-                this.statusLabel.setText("Same");
+                this.statusLabel.setText(TEST_PASS_LABEL);
                 this.statusLabel.setForeground(UIUtils.green);
                 this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
                 break;
             default:
-                this.statusLabel.setText("Exception");
+                this.statusLabel.setText(TEST_EXCEPTION_LABEL);
                 this.statusLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
                 this.statusLabel.setForeground(UIUtils.orange);
-                System.out.println("Exception display for status label : ");
         }
     }
 
@@ -308,5 +280,9 @@ public class TestCandidateListedItemComponent {
 
     public void setCandidate(StoredCandidate storedCandidate) {
         this.candidateMetadata = storedCandidate;
+    }
+
+    public void setStatus(String statusText) {
+        statusLabel.setText(statusText);
     }
 }

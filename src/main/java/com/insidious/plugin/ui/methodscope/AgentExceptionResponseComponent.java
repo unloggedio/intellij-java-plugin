@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 public class AgentExceptionResponseComponent implements Supplier<Component> {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     final private InsidiousService insidiousService;
-    final private StoredCandidate metadata;
+    final private StoredCandidate testCandidate;
     final private AgentCommandResponse<String> response;
     private JPanel mainPanel;
     private JPanel contentPanel;
@@ -33,7 +33,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
     private CandidateLifeListener candidateLifeListener;
 
     public AgentExceptionResponseComponent(
-            StoredCandidate metadata,
+            StoredCandidate testCandidate,
             AgentCommandResponse<String> agentCommandResponse,
             InsidiousService insidiousService,
             CandidateLifeListener candidateLifeListener
@@ -41,18 +41,18 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
 
         this.insidiousService = insidiousService;
         this.candidateLifeListener = candidateLifeListener;
-        this.metadata = metadata;
+        this.testCandidate = testCandidate;
         this.response = agentCommandResponse;
         setupDefLayout();
-        String simpleClassName = metadata.getReturnValueClassname();
+        String simpleClassName = testCandidate.getReturnValueClassname();
         simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
-        String methodLabel = simpleClassName + "." + metadata.getMethodName() + "()";
+        String methodLabel = simpleClassName + "." + testCandidate.getMethod().getName() + "()";
         setInfoLabel(methodLabel + " at " + DateUtils.formatDate(new Date(agentCommandResponse.getTimestamp())));
     }
 
 
     public void setupDefLayout() {
-        final String originalString = metadata.getReturnValue();
+        final String originalString = testCandidate.getReturnValue();
         final String actualString = String.valueOf(response.getMethodReturnValue());
         JPanel panel = new JPanel();
         panel.setLayout(new GridLayout(2, 1));
@@ -73,7 +73,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
                 stacktrace = String.valueOf(actualString);
             }
             options = new ExceptionPreviewComponent(responseMessage, stacktrace, insidiousService,
-                    candidateLifeListener, true, false, metadata, response);
+                    candidateLifeListener, true, false, testCandidate, response);
             options.setBorderTitle("After");
             JPanel component = options.getComponent();
             afterSection.add(component, BorderLayout.CENTER);
@@ -83,23 +83,21 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
             afterSection.add(comp.getComponent(), BorderLayout.CENTER);
         }
 
-        if (metadata.isException()) {
-            String prettyException = ExceptionUtils.prettyPrintException(metadata.getProbSerializedValue());
+        if (testCandidate.isException()) {
+            String prettyException = ExceptionUtils.prettyPrintException(testCandidate.getProbSerializedValue());
             String exceptionMessage = "Exception message";
             try {
-                JsonNode jsonNode = objectMapper.readValue(metadata.getProbSerializedValue(), JsonNode.class);
+                JsonNode jsonNode = objectMapper.readValue(testCandidate.getProbSerializedValue(), JsonNode.class);
                 if (jsonNode.has("message")) {
                     exceptionMessage = jsonNode.get("message").asText();
                 }
             } catch (IOException e) {
                 // failed to read return value as json node
             }
-            boolean showDelete = false;
-            if (metadata.getCandidateId() != null) {
-                showDelete = true;
-            }
+            boolean showDelete = testCandidate.getCandidateId() != null;
             ExceptionPreviewComponent options = new ExceptionPreviewComponent(exceptionMessage,
-                    prettyException, insidiousService, candidateLifeListener, false, showDelete, metadata, response);
+                    prettyException, insidiousService, candidateLifeListener, false, showDelete, testCandidate,
+                    response);
             options.setBorderTitle("Before");
             beforeSection.add(options.getComponent(), BorderLayout.CENTER);
         } else {

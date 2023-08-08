@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.methodscope;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
@@ -10,16 +11,13 @@ import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.factory.AgentStateProvider;
-import com.insidious.plugin.factory.GutterState;
-import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.factory.*;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.util.*;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
@@ -31,6 +29,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -68,6 +67,13 @@ public class MethodDirectInvokeComponent implements ActionListener {
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
         this.objectMapper = this.insidiousService.getObjectMapper();
+
+        methodNameLabel.setText("This will be available after IDEA indexing is complete");
+        executeButton.setEnabled(false);
+        DumbService.getInstance(insidiousService.getProject()).runWhenSmart(() -> {
+            methodNameLabel.setText("Click on a method to proceed");
+            executeButton.setEnabled(true);
+        });
 
         executeButton.addActionListener(e -> executeMethodWithParameters());
         methodParameterScrollContainer.addKeyListener(new KeyAdapter() {
@@ -137,7 +143,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
             }
 
             AgentCommandRequest agentCommandRequest =
-                    MethodUtils.createRequestWithParameters(methodElement, psiClass, methodArgumentValues);
+                    MethodUtils.createRequestWithParameters(methodElement, psiClass, methodArgumentValues, false);
             agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
             returnValueTextArea.setText("");
 
@@ -192,10 +198,23 @@ public class MethodDirectInvokeComponent implements ActionListener {
                             panelTitledBoarder.setTitle("Method response: " + returnTypePresentableText);
                             ObjectMapper objectMapper = insidiousService.getObjectMapper();
                             try {
-                                JsonNode jsonNode = objectMapper.readValue(methodReturnValue.toString(),
-                                        JsonNode.class);
-                                returnValueTextArea.setText(objectMapper
-                                        .writerWithDefaultPrettyPrinter()
+                                String returnValueString = methodReturnValue.toString();
+
+                                String responseClassName = agentCommandResponse.getResponseClassName();
+                                if (responseClassName.equals("float")
+                                        || responseClassName.equals("java.lang.Float")) {
+                                    returnValueString = String.valueOf(
+                                            Float.intBitsToFloat(Integer.parseInt(returnValueString)));
+                                }
+
+                                if (responseClassName.equals("double")
+                                        || responseClassName.equals("java.lang.Double")) {
+                                    returnValueString = String.valueOf(
+                                            Double.longBitsToDouble(Long.parseLong(returnValueString)));
+                                }
+
+                                JsonNode jsonNode = objectMapper.readValue(returnValueString, JsonNode.class);
+                                returnValueTextArea.setText(objectMapper.writerWithDefaultPrettyPrinter()
                                         .writeValueAsString(jsonNode));
                             } catch (JsonProcessingException ex) {
                                 returnValueTextArea.setText(methodReturnValue.toString());
@@ -222,7 +241,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                                 null,
                                 DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
-                        diffResult.setMethodAdapter(methodElement);
+//                        diffResult.setMethodAdapter(methodElement);
                         diffResult.setResponse(agentCommandResponse);
                         diffResult.setCommand(agentCommandRequest);
                         insidiousService.addExecutionRecord(diffResult);
@@ -261,7 +280,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 //        TestCandidateMetadata mostRecentTestCandidate = null;
         List<String> methodArgumentValues = null;
         AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(methodElement,
-                (PsiClass) containingClass.getSource(), methodArgumentValues);
+                (PsiClass) containingClass.getSource(), methodArgumentValues, false);
 
         AgentCommandRequest existingRequests = insidiousService.getAgentCommandRequests(agentCommandRequest);
         if (existingRequests != null) {
@@ -269,9 +288,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
         } else {
             SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
             if (sessionInstance != null) {
-                List<TestCandidateMetadata> methodTestCandidates = sessionInstance
-                        .getTestCandidatesForAllMethod(classQualifiedName, methodName,
-                                insidiousService.getMethodArgsDescriptor(methodElement), false);
+                @NotNull CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
+                        methodElement, CandidateFilterType.METHOD, false);
+
+                List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(query);
                 int candidateCount = methodTestCandidates.size();
                 if (candidateCount > 0) {
                     TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(candidateCount - 1);

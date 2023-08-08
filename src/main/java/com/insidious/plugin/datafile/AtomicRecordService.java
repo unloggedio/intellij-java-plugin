@@ -2,10 +2,12 @@ package com.insidious.plugin.datafile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.util.LoggerUtil;
@@ -27,7 +29,7 @@ public class AtomicRecordService {
     private final String unloggedFolderName = "unlogged";
     InsidiousService insidiousService;
     private String basePath;
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private Map<String, AtomicRecord> storedRecords = null;
     private boolean useNotifications = true;
 
@@ -41,23 +43,25 @@ public class AtomicRecordService {
         }
     }
 
-    public GutterState computeGutterState(String classname, String method, int hashcode) {
+    public GutterState computeGutterState(MethodUnderTest method) {
 
         try {
-            AtomicRecord record = this.storedRecords.get(classname);
+            String methodKey = method.getMethodKey();
+            AtomicRecord record = this.storedRecords.get(method.getClassName());
             if (record == null) {
                 return null;
             }
-            List<StoredCandidate> candidates = new ArrayList<>();
-            if (record.getStoredCandidateMap().get(method) != null) {
-                candidates.addAll(record.getStoredCandidateMap().get(method));
+            List<StoredCandidate> candidates;
+            if (record.getStoredCandidateMap().get(methodKey) != null) {
+                candidates = new ArrayList<>(record.getStoredCandidateMap().get(methodKey));
             } else {
                 return null;
             }
             boolean hashChange = false;
             StoredCandidateMetadata.CandidateStatus status = null;
             for (StoredCandidate candidate : candidates) {
-                if (!candidate.getMethodHash().equals(hashcode + "")) {
+                MethodUnderTest candidateMethodUnderTest = candidate.getMethod();
+                if (candidateMethodUnderTest.getMethodHash() != method.getMethodHash()) {
                     hashChange = true;
                 }
                 if (status == null) {
@@ -88,15 +92,16 @@ public class AtomicRecordService {
         }
     }
 
-    public void saveCandidate(String classname, String methodName, String signature, StoredCandidate candidate) {
+
+    public void saveCandidate(MethodUnderTest methodUnderTest, StoredCandidate candidate) {
         try {
             AtomicRecord existingRecord = null;
-            AtomicRecord obj = this.storedRecords.get(classname);
-            String methodKey = methodName + "#" + signature;
+            AtomicRecord obj = this.storedRecords.get(methodUnderTest.getClassName());
+            String methodKey = methodUnderTest.getMethodKey();
             if (obj == null) {
                 //create record
                 logger.info("[ATRS] creating a new record");
-                addNewRecord(methodKey, classname, candidate);
+                addNewRecord(methodKey, methodUnderTest.getClassName(), candidate);
             } else {
                 //read as array of AtomicRecords
                 logger.info("[ATRS] creating a new record");
@@ -126,20 +131,18 @@ public class AtomicRecordService {
                     candidates.add(candidate);
                     obj.getStoredCandidateMap().put(methodKey, candidates);
 
-                } else if (foundMethod && !foundCandidate) {
+                } else if (!foundCandidate) {
                     //add to stored candidates
                     logger.info("[ATRS] Adding Candidate");
-                    if (existingRecord != null) {
-                        existingRecord.getStoredCandidateMap().get(methodKey).add(candidate);
-                        existingRecord.setStoredCandidateMap(filterCandidates(existingRecord.getStoredCandidateMap()));
-                    }
-                    writeToFile(new File(getFilenameForClass(classname))
-                            , obj, FileUpdateType.UPDATE, (useNotifications) ? true : false);
+                    existingRecord.getStoredCandidateMap().get(methodKey).add(candidate);
+                    existingRecord.setStoredCandidateMap(filterCandidates(existingRecord.getStoredCandidateMap()));
+                    writeToFile(new File(getFilenameForClass(methodUnderTest.getClassName()))
+                            , obj, FileUpdateType.UPDATE, useNotifications);
                 } else {
                     logger.info("[ATRS] Replacing existing record (found)");
                     existingRecord.setStoredCandidateMap(filterCandidates(existingRecord.getStoredCandidateMap()));
-                    writeToFile(new File(getFilenameForClass(classname))
-                            , obj, FileUpdateType.UPDATE, (useNotifications) ? true : false);
+                    writeToFile(new File(getFilenameForClass(methodUnderTest.getClassName()))
+                            , obj, FileUpdateType.UPDATE, useNotifications);
                 }
             }
             JSONObject properties = new JSONObject();
@@ -173,7 +176,7 @@ public class AtomicRecordService {
 
             for (StoredCandidate candidate : storedCandidateList) {
                 if (candidate.getName() != null) {
-                    int hash = candidate.getMethodArguments().hashCode() + (candidate.getMethodName().hashCode());
+                    int hash = candidate.getMethodArguments().hashCode() + (candidate.getMethod().getName().hashCode());
                     if (storedCandidateMap.containsKey(hash)) {
                         if (storedCandidateMap.get(hash).getMetadata().getTimestamp() < candidate.getMetadata()
                                 .getTimestamp()) {
@@ -227,23 +230,23 @@ public class AtomicRecordService {
         switch (type) {
             case ADD:
                 if (positive) {
-                    return "Added Record.";
+                    return "Added test candidate";
                 } else {
-                    return "Failed to add record." +
+                    return "Failed to add test candidate" +
                             "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.";
                 }
             case UPDATE:
                 if (positive) {
-                    return "Updated Record.";
+                    return "Updated test candidate";
                 } else {
-                    return "Failed to update record." +
+                    return "Failed to update test candidate" +
                             "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.";
                 }
             default:
                 if (positive) {
-                    return "Deleted Record.";
+                    return "Deleted test candidate";
                 } else {
-                    return "Failed to delete record." +
+                    return "Failed to delete test candidate" +
                             "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.";
                 }
         }
@@ -272,14 +275,15 @@ public class AtomicRecordService {
         return rootDir.listFiles();
     }
 
-    public Boolean hasStoredCandidateForMethod(String classname, String method) {
+    public Boolean hasStoredCandidateForMethod(CandidateSearchQuery candidateSearchQuery) {
         try {
-            AtomicRecord record = this.storedRecords.get(classname);
+            AtomicRecord record = this.storedRecords.get(candidateSearchQuery.getClassName());
             if (record == null) {
                 return false;
             }
-            if (record.getStoredCandidateMap().get(method) != null &&
-                    record.getStoredCandidateMap().get(method).size() > 0) {
+            String methodKey = candidateSearchQuery.getMethodName() + "#" + candidateSearchQuery.getMethodSignature();
+            if (record.getStoredCandidateMap().get(methodKey) != null &&
+                    record.getStoredCandidateMap().get(methodKey).size() > 0) {
                 return true;
 
             }
@@ -312,24 +316,25 @@ public class AtomicRecordService {
     }
 
     @NotNull
-    public List<StoredCandidate> getStoredCandidatesForMethod(String classname, String method) {
-        AtomicRecord record = this.storedRecords.get(classname);
+    public List<StoredCandidate> getStoredCandidatesForMethod(CandidateSearchQuery candidateSearchQuery) {
+        AtomicRecord record = this.storedRecords.get(candidateSearchQuery.getClassName());
         if (record == null) {
             return List.of();
         }
-        return record.getStoredCandidateMap().getOrDefault(method, List.of());
+        return record.getStoredCandidateMap().getOrDefault(
+                candidateSearchQuery.getMethodName() + "#" + candidateSearchQuery.getMethodSignature(), List.of());
     }
 
-    public void deleteStoredCandidate(String classname, String method, String candidateId) {
-        if (classname == null || method == null) {
+    public void deleteStoredCandidate(String classname, String methodKey, String candidateId) {
+        if (classname == null || methodKey == null) {
             return;
         }
         AtomicRecord record = this.storedRecords.get(classname);
-        if (record == null || record.getStoredCandidateMap().get(method).size() == 0) {
+        if (record == null || record.getStoredCandidateMap().get(methodKey).size() == 0) {
             return;
         }
         StoredCandidate candidateToRemove = null;
-        List<StoredCandidate> existingStoredCandidates = record.getStoredCandidateMap().get(method);
+        List<StoredCandidate> existingStoredCandidates = record.getStoredCandidateMap().get(methodKey);
 
         for (StoredCandidate candidate : existingStoredCandidates) {
             if (candidate.getCandidateId() != null &&
@@ -352,12 +357,12 @@ public class AtomicRecordService {
     }
 
     public void setCandidateStateForCandidate(@NotNull String candidateID, String classname,
-                                              String method, StoredCandidateMetadata.CandidateStatus state) {
+                                              String methodKey, StoredCandidateMetadata.CandidateStatus state) {
         AtomicRecord record = this.storedRecords.get(classname);
-        if (record == null || record.getStoredCandidateMap().get(method).size() == 0) {
+        if (record == null || record.getStoredCandidateMap().get(methodKey).size() == 0) {
             return;
         }
-        List<StoredCandidate> list = record.getStoredCandidateMap().get(method);
+        List<StoredCandidate> list = record.getStoredCandidateMap().get(methodKey);
         for (StoredCandidate candidate : list) {
             if (candidateID.equals(candidate.getCandidateId())) {
                 candidate.getMetadata().setCandidateStatus(state);

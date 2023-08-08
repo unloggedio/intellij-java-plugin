@@ -3,73 +3,58 @@ package com.insidious.plugin.ui.methodscope;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import com.intellij.ui.JBColor;
+import com.intellij.vcs.log.ui.frame.WrappedFlowLayout;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
-import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Supplier;
 
 public class AgentResponseComponent implements Supplier<Component> {
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
     private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = true;
     private final AgentCommandResponse<String> agentCommandResponse;
-    private final boolean MOCK_MODE = false;
-    final private boolean showAcceptButton;
-    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\",\"wut\":\"ay\",\"get\":\"ay\",\"sut\":\"ay\",\"put\":\"ay\",\"fut\":\"ay\"}";
-    //    String s1 = "";
-    String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"dababy\",\"e\":\"f\"}";
+    private final StoredCandidate testCandidate;
     private JPanel mainPanel;
     private JPanel centerPanel;
-    private JPanel bottomControlPanel;
     private JButton viewFullButton;
     private JTable mainTable;
     private JLabel statusLabel;
     private JPanel tableParent;
-    private JPanel methodArgumentsPanel;
     private JButton acceptButton;
-    private JScrollPane scrollParent;
-    private JPanel topPanel;
     private JPanel topAlign;
     private JButton deleteButton;
-    private JButton hideButton;
-    private StoredCandidate metadata;
-    private SaveForm lastRef;
-    private AgentResponseComponent self = this;
+    private JPanel buttonPanel;
+    private JScrollPane scrollParent;
+    private JPanel statusPanel;
+    private JPanel informationPanel;
+    private JLabel informationLabel;
+    private JPanel mainContentPanel;
 
     public AgentResponseComponent(
             AgentCommandResponse<String> agentCommandResponse,
             StoredCandidate storedCandidate,
-            boolean showAcceptButton,
             FullViewEventListener fullViewEventListener,
             CandidateLifeListener candidateLifeListener
     ) {
         this.agentCommandResponse = agentCommandResponse;
-        this.showAcceptButton = showAcceptButton;
-        this.metadata = storedCandidate;
+        this.testCandidate = storedCandidate;
 
-        if (!showAcceptButton) {
-            this.bottomControlPanel.setVisible(false);
-        }
-
-        DifferenceResult differences = DiffUtils.calculateDifferences(metadata, agentCommandResponse);
+        DifferenceResult differences = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
         computeDifferences(differences);
 
         String originalString;
-        if (metadata.isReturnValueIsBoolean() && DiffUtils.isNumeric(metadata.getReturnValue())) {
-            originalString = "0".equals(metadata.getReturnValue()) ? "false" : "true";
+        if (testCandidate.isReturnValueIsBoolean() && DiffUtils.isNumeric(testCandidate.getReturnValue())) {
+            originalString = "0".equals(testCandidate.getReturnValue()) ? "false" : "true";
         } else {
-            originalString = metadata.getReturnValue();
+            originalString = testCandidate.getReturnValue();
         }
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
@@ -78,14 +63,10 @@ public class AgentResponseComponent implements Supplier<Component> {
 
         String methodLabel = simpleClassName + "." + agentCommandResponse.getTargetMethodName() + "()";
 
-        setInfoLabel(methodLabel + " at " + DateUtils.formatDate(new Date(agentCommandResponse.getTimestamp())));
-        viewFullButton.addActionListener(e -> {
-            if (MOCK_MODE) {
-                fullViewEventListener.generateCompareWindows(s1, s2);
-            } else {
-                fullViewEventListener.generateCompareWindows(originalString, actualString);
-            }
-        });
+        setInfoLabel("Replayed at " + DateUtils.formatDate(new Date(agentCommandResponse.getTimestamp())) +
+                " for " + methodLabel);
+        viewFullButton.addActionListener(
+                e -> fullViewEventListener.generateCompareWindows(originalString, actualString));
 
 //        if (SHOW_TEST_CASE_CREATE_BUTTON) {
 //            JButton createTestCaseButton = new JButton("Create test case");
@@ -132,23 +113,28 @@ public class AgentResponseComponent implements Supplier<Component> {
 //            });
 //        }
 
-        acceptButton.addActionListener(e -> candidateLifeListener.onSaveRequest(metadata, agentCommandResponse));
-        if (metadata.getCandidateId() == null) {
+        acceptButton.addActionListener(e -> candidateLifeListener.onSaveRequest(testCandidate, agentCommandResponse));
+        if (testCandidate.getCandidateId() == null) {
             deleteButton.setVisible(false);
         }
-        deleteButton.addActionListener(e -> candidateLifeListener.onDeleteRequest(metadata));
+        deleteButton.addActionListener(e -> candidateLifeListener.onDeleteRequest(testCandidate));
+
+        deleteButton.setIcon(UIUtils.DELETE_CANDIDATE_RED_SVG);
+        acceptButton.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
     }
 
     public void setInfoLabel(String info) {
-        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
-        titledBorder.setTitle(info);
+        informationLabel.setText(info);
+        informationLabel.setIcon(UIUtils.REPLAY_PINK);
+        TitledBorder border = BorderFactory.createTitledBorder("");
+        mainContentPanel.setBorder(border);
     }
 
     public void computeDifferences(DifferenceResult differenceResult) {
 
         switch (differenceResult.getDiffResultType()) {
             case DIFF:
-                this.statusLabel.setText("Differences Found.");
+                this.statusLabel.setText("Failing.");
                 this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
                 this.statusLabel.setForeground(UIUtils.red);
                 renderTableWithDifferences(differenceResult.getDifferenceInstanceList());
@@ -158,7 +144,7 @@ public class AgentResponseComponent implements Supplier<Component> {
                 renderTableForResponse(differenceResult.getRightOnly());
                 break;
             case SAME:
-                this.statusLabel.setText("Both Responses are Equal.");
+                this.statusLabel.setText("Passing.");
                 this.statusLabel.setIcon(UIUtils.CHECK_GREEN_SMALL);
                 this.statusLabel.setForeground(UIUtils.green);
                 this.tableParent.setVisible(false);
@@ -170,7 +156,7 @@ public class AgentResponseComponent implements Supplier<Component> {
                 this.tableParent.setVisible(false);
                 showExceptionTrace(
                         ExceptionUtils.prettyPrintException(
-                                this.metadata.getReturnValue())
+                                this.testCandidate.getReturnValue())
                 );
                 break;
         }
@@ -190,67 +176,13 @@ public class AgentResponseComponent implements Supplier<Component> {
         this.mainTable.repaint();
     }
 
-    private DefaultMutableTreeNode buildJsonTree(String source, String name) {
-        if (source.startsWith("{")) {
-            return handleObject(new JSONObject(source), new DefaultMutableTreeNode(name));
-        } else if (source.startsWith("[")) {
-            return handleArray(new JSONArray(source), new DefaultMutableTreeNode(name));
-        } else {
-            return new DefaultMutableTreeNode(name + " = " + source);
-        }
-    }
-
-    private DefaultMutableTreeNode handleObject(JSONObject json, DefaultMutableTreeNode root) {
-        Set<String> keys = json.keySet();
-        for (String key : keys) {
-            String valueTemp = json.get(key)
-                    .toString();
-            if (valueTemp.startsWith("{")) {
-                //obj in obj
-                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(key);
-                JSONObject subObj = new JSONObject(valueTemp);
-                handleObject(subObj, thisKey);
-                root.add(thisKey);
-            } else if (valueTemp.startsWith("[")) {
-                //list
-                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(key);
-                JSONArray subObjArray = new JSONArray(valueTemp);
-                handleArray(subObjArray, thisKey);
-                root.add(thisKey);
-            } else {
-                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(key + " : " + valueTemp);
-                root.add(thisKVpair);
-            }
-        }
-        return root;
-    }
-
-    private DefaultMutableTreeNode handleArray(JSONArray json, DefaultMutableTreeNode root) {
-        for (int i = 0; i < json.length(); i++) {
-            String valueTemp = json.get(i)
-                    .toString();
-            if (valueTemp.startsWith("{")) {
-                //obj in obj
-                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(i + " : ");
-                JSONObject subObj = new JSONObject(valueTemp);
-                handleObject(subObj, thisKey);
-                root.add(thisKey);
-            } else {
-                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(i + " : " + valueTemp);
-                root.add(thisKVpair);
-            }
-        }
-        return root;
-    }
-
     public void showExceptionTrace(String response) {
         this.tableParent.removeAll();
         JTextArea textArea = new JTextArea();
         textArea.setText(response);
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
-//        JScrollPane scroll = new JBScrollPane(textArea,
-//                JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+
         this.tableParent.add(textArea, BorderLayout.CENTER);
         this.tableParent.revalidate();
     }
