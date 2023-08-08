@@ -127,7 +127,7 @@ class ZipConsumer implements Runnable {
                 checkedArchivesList.add(sessionArchive.getName());
             }
             if (hasNewFiles) {
-                sessionInstance.scanDataAndBuildReplay();
+                sessionInstance.unlockNextScan();
             }
         } finally {
             boolean wasSetToFalse = isChecking.compareAndSet(true, false);

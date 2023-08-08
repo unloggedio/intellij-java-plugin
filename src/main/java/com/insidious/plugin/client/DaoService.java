@@ -6,15 +6,16 @@ import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.Descriptor;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.Constants;
-import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.factory.testcase.candidate.TestAssertion;
+import com.insidious.plugin.assertions.AssertionType;
+import com.insidious.plugin.assertions.TestAssertion;
+import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.dao.*;
-import com.insidious.plugin.ui.AssertionType;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.Strings;
 import com.intellij.notification.NotificationType;
@@ -31,6 +32,8 @@ import java.lang.reflect.Type;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 public class DaoService {
@@ -86,7 +89,7 @@ public class DaoService {
             "  and mc.methodName = ?\n" +
             "  and mc.methodAccess & 1 == 1\n" +
             "order by mc.methodName asc, tc.entryProbeIndex desc limit 50";
-    public static final String TEST_CANDIDATE_BY_ALL_METHOD_SELECT = "select tc.*\n" +
+    public static final String TEST_CANDIDATE_BY_METHOD_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
             "join method_definition md on md.id = mc.methodDefinitionId\n" +
@@ -94,6 +97,18 @@ public class DaoService {
             "  and mc.methodName = ?\n" +
             "  and md.argumentTypes = ?\n" +
             "order by tc.entryProbeIndex desc limit 50;";
+    public static final String TEST_CANDIDATE_BY_CLASS_SELECT = "select tc.*\n" +
+            "from test_candidate tc\n" +
+            "         join method_call mc on mc.id = mainMethod_id\n" +
+            "join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "where md.ownerType = ?\n" +
+            "order by tc.entryProbeIndex desc limit 50;";
+    public static final String TEST_CANDIDATE_BY_ALL_SELECT = "select tc.*\n" +
+            "from test_candidate tc\n" +
+            "         join method_call mc on mc.id = mainMethod_id\n" +
+            "join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "order by tc.entryProbeIndex desc limit 50;";
+
     public static final Type LIST_STRING_TYPE = new TypeToken<ArrayList<String>>() {
     }.getType();
     public static final Type LIST_CANDIDATE_TYPE = new TypeToken<ArrayList<TestCandidateMetadata>>() {
@@ -116,6 +131,7 @@ public class DaoService {
     private final Dao<ProbeInfo, Long> probeInfoDao;
     private final Dao<TestCandidateMetadata, Long> testCandidateDao;
     private final ParameterProvider parameterProvider;
+    private Lock dbBulkUpdate = new ReentrantLock();
 
     public DaoService(ConnectionSource connectionSource, ParameterProvider parameterProvider) throws SQLException {
         this.connectionSource = connectionSource;
@@ -571,7 +587,7 @@ public class DaoService {
         List<MethodDefinition> methodDefinitionList = methodDefinitionsResultSet.getResults();
 
         methodDefinitionsResultSet.close();
-        Map<Long, MethodDefinition> methodDefinitionMap = methodDefinitionList.stream()
+        Map<Integer, MethodDefinition> methodDefinitionMap = methodDefinitionList.stream()
                 .collect(Collectors.toMap(MethodDefinition::getId, e -> e));
 
         for (MethodCallExpressionInterface methodCallExpression : mceList) {
@@ -1260,21 +1276,45 @@ public class DaoService {
     }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-    getTestCandidatesForAllMethod(
-            String className, String methodName, String methodArgumentsClassNames, boolean loadCalls) {
+    getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
 
         try {
 
-            GenericRawResults<TestCandidateMetadata> parameterIds = testCandidateDao
-                    .queryRaw(TEST_CANDIDATE_BY_ALL_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className,
-                            methodName, methodArgumentsClassNames);
+            GenericRawResults<TestCandidateMetadata> parameterIds;
+            switch (candidateSearchQuery.getCandidateFilterType()) {
+
+                case ALL:
+                    parameterIds = testCandidateDao.queryRaw(TEST_CANDIDATE_BY_ALL_SELECT,
+                            testCandidateDao.getRawRowMapper());
+                    break;
+                case CLASS:
+                    parameterIds = testCandidateDao.queryRaw(TEST_CANDIDATE_BY_CLASS_SELECT,
+                            testCandidateDao.getRawRowMapper(),
+                            candidateSearchQuery.getClassName());
+
+                    break;
+                case METHOD:
+                    parameterIds = testCandidateDao.queryRaw(TEST_CANDIDATE_BY_METHOD_SELECT,
+                            testCandidateDao.getRawRowMapper(),
+                            candidateSearchQuery.getClassName(),
+                            candidateSearchQuery.getMethodName(),
+                            candidateSearchQuery.getArgumentsDescriptor());
+
+                    break;
+                default:
+                    parameterIds = testCandidateDao.queryRaw(TEST_CANDIDATE_BY_ALL_SELECT,
+                            testCandidateDao.getRawRowMapper(),
+                            candidateSearchQuery.getClassName(),
+                            candidateSearchQuery.getMethodName(),
+                            candidateSearchQuery.getArgumentsDescriptor());
+            }
 
             List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> resultList = new LinkedList<>();
 
             List<TestCandidateMetadata> testCandidates = parameterIds.getResults();
             for (TestCandidateMetadata testCandidate : testCandidates) {
                 com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
-                        convertTestCandidateMetadata(testCandidate, loadCalls);
+                        convertTestCandidateMetadata(testCandidate, candidateSearchQuery.isLoadCalls());
                 resultList.add(converted);
             }
 
@@ -1504,21 +1544,42 @@ public class DaoService {
     }
 
     public void createOrUpdateClassDefinitions(Collection<ClassDefinition> classDefinitions) {
+        if (!dbBulkUpdate.tryLock()) {
+            return;
+        }
+
         try {
-            logger.warn("create [" + classDefinitions.size() + "] class definitons");
+            logger.warn("create [" + classDefinitions.size() + "] class definitions");
             classDefinitionsDao.executeRaw("delete from class_definition");
             classDefinitionsDao.create(classDefinitions);
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
+        } finally {
+            dbBulkUpdate.unlock();
         }
 
     }
 
     public void createOrUpdateMethodDefinitions(List<MethodDefinition> methodDefinitions) {
+        if (!dbBulkUpdate.tryLock()) {
+            return;
+        }
+
         try {
             methodDefinitionsDao.executeRaw("delete from method_definition");
             methodDefinitionsDao.create(methodDefinitions);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        } finally {
+            dbBulkUpdate.unlock();
+        }
+    }
+
+    public List<MethodDefinition> getAllMethodDefinitions() {
+        try {
+            return methodDefinitionsDao.queryForAll();
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException(e);

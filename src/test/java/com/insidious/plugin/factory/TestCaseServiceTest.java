@@ -480,7 +480,7 @@ public class TestCaseServiceTest {
                 .get(0);
         client.setSessionInstance(new SessionInstance(session, project));
         SessionInstance sessionInstance = client.getSessionInstance();
-        sessionInstance.scanDataAndBuildReplay();
+        sessionInstance.unlockNextScan();
         sessionInstance.close();
 
     }

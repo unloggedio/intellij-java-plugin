@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.GutterClickNavigationStates;
 
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -47,6 +48,7 @@ public class AtomicTestContainer {
                 loadExecutionFlow();
                 break;
             default:
+                loadExecutionFlow();
                 methodExecutorComponent.refreshAndReloadCandidates(lastSelection, List.of());
         }
         currentState = state;
@@ -100,17 +102,23 @@ public class AtomicTestContainer {
 
         if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
             methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, List.of());
+            insidiousService.focusAtomicTestsWindow();
             return;
         }
 
 
+        CandidateSearchQuery candidateSearchQuery =
+                insidiousService.createSearchQueryForMethod(focussedMethod);
+
         List<StoredCandidate> methodTestCandidates =
                 ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
-                        insidiousService.getStoredCandidatesFor(focussedMethod));
+                        insidiousService.getStoredCandidatesFor(candidateSearchQuery));
+
+        loadExecutionFlow();
         if (methodTestCandidates.size() > 0) {
-            loadExecutionFlow();
             methodTestCandidates.sort(StoredCandidate::compareTo);
             methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, methodTestCandidates);
+            insidiousService.focusAtomicTestsWindow();
         } else {
             //runs for process_running
             insidiousService.focusDirectInvokeTab();
@@ -119,8 +127,7 @@ public class AtomicTestContainer {
 
     }
 
-    public void clearBoardOnMethodExecutor()
-    {
+    public void clearBoardOnMethodExecutor() {
         methodExecutorComponent.clearBoard();
     }
 

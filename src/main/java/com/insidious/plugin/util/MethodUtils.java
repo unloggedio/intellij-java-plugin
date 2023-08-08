@@ -9,14 +9,15 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MethodUtils {
     public static AgentCommandRequest createRequestWithParameters(
             MethodAdapter methodAdapter,
             PsiClass psiClass,
-            List<String> parameterValues
-    ) {
+            List<String> parameterValues,
+            boolean processArgumentTypes) {
 
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.EXECUTE);
@@ -36,6 +37,24 @@ public class MethodUtils {
 
                     return methodAdapter.getContainingClass().getQualifiedName();
                 });
+
+        if (processArgumentTypes && parameterValues != null) {
+            ArrayList<String> convertedParameterValues = new ArrayList<>(parameterValues.size());
+            List<String> parameterTypes = agentCommandRequest.getParameterTypes();
+            for (int i = 0; i < parameterValues.size(); i++) {
+                String parameterValue = parameterValues.get(i);
+                String parameterType = parameterTypes.get(i);
+                if (parameterType.equals("float")) {
+                    parameterValue = String.valueOf(Float.intBitsToFloat(Integer.parseInt(parameterValue)));
+                } else if (parameterType.equals("double")) {
+                    parameterValue = String.valueOf(Double.longBitsToDouble(Long.parseLong(parameterValue)));
+                }
+                convertedParameterValues.add(parameterValue);
+            }
+            parameterValues = convertedParameterValues;
+        }
+
+
         agentCommandRequest.setMethodParameters(parameterValues);
         agentCommandRequest.setRequestType(AgentCommandRequestType.REPEAT_INVOKE);
         return agentCommandRequest;

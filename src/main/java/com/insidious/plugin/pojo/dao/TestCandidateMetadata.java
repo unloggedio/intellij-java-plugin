@@ -10,8 +10,12 @@ import java.util.stream.Collectors;
 
 @DatabaseTable(tableName = "test_candidate")
 public class TestCandidateMetadata {
+    private final Set<Long> fieldIds = new HashSet<>();
+    private final Set<Integer> lineIds = new HashSet<>();
     @DatabaseField
     private String fields;
+    @DatabaseField
+    private String lines;
     @DatabaseField(index = true)
     private long mainMethod_id;
     @DatabaseField(index = true)
@@ -25,8 +29,6 @@ public class TestCandidateMetadata {
     @DatabaseField
     private String variables;
 
-    private Set<Long> fieldIds = new HashSet<>();
-
     public static com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata
     toTestCandidate(TestCandidateMetadata testCandidateMetadata) {
         com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata newCandidate
@@ -35,6 +37,12 @@ public class TestCandidateMetadata {
         newCandidate.setEntryProbeIndex(testCandidateMetadata.getEntryProbeIndex());
         newCandidate.setExitProbeIndex(testCandidateMetadata.getExitProbeIndex());
         newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
+        newCandidate.setLines(Arrays.stream(testCandidateMetadata
+                        .getLines()
+                        .split(","))
+                .map(Integer::parseInt)
+                .collect(Collectors.toList())
+        );
 
         return newCandidate;
     }
@@ -124,6 +132,23 @@ public class TestCandidateMetadata {
         } else {
             fields = fields + "," + parameterValue;
         }
+    }
+
+    public void addLineCovered(int line) {
+        if (lineIds.contains(line)) {
+            return;
+        }
+        lineIds.add(line);
+        if (lines == null || lines.length() == 0) {
+            lines = String.valueOf(line);
+        } else {
+            lines = lines + "," + line;
+        }
+
+    }
+
+    public String getLines() {
+        return lines;
     }
 }
 

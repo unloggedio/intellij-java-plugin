@@ -1,41 +1,23 @@
 package com.insidious.plugin.ui.methodscope;
 
-import java.util.List;
-import java.util.Map;
 import com.insidious.plugin.adapter.MethodAdapter;
-import com.insidious.plugin.agent.AgentCommand;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 
+import java.util.List;
+import java.util.Map;
+
 public class DifferenceResult {
     private final List<DifferenceInstance> differenceInstanceList;
-    private DiffResultType diffResultType;
     private final Map<String, Object> leftOnly;
     private final Map<String, Object> rightOnly;
-    private MethodAdapter methodAdapter;
+    private DiffResultType diffResultType;
+    //    private MethodAdapter methodAdapter;
     private AgentCommandRequest command;
     private AgentCommandResponse response;
-    private boolean useIndividualContext=false;
-    private String batchID=null;
-
-    public void setIndividualContext(boolean useIndividualContext) {
-        this.useIndividualContext = useIndividualContext;
-    }
-
-    public boolean isUseIndividualContext() {
-        return useIndividualContext;
-    }
-
-    public enum EXECUTION_MODE {DIRECT_INVOKE, ATOMIC_RUN_INDIVIDUAL, ATOMIC_RUN_REPLAY}
+    private boolean useIndividualContext = false;
+    private String batchID = null;
     private EXECUTION_MODE executionMode;
-
-    public Map<String, Object> getLeftOnly() {
-        return leftOnly;
-    }
-
-    public Map<String, Object> getRightOnly() {
-        return rightOnly;
-    }
 
     public DifferenceResult(List<DifferenceInstance> differenceInstanceList,
                             DiffResultType diffResultType,
@@ -47,6 +29,22 @@ public class DifferenceResult {
         this.rightOnly = rightOnly;
     }
 
+    public void setIndividualContext(boolean useIndividualContext) {
+        this.useIndividualContext = useIndividualContext;
+    }
+
+    public boolean isUseIndividualContext() {
+        return useIndividualContext;
+    }
+
+    public Map<String, Object> getLeftOnly() {
+        return leftOnly;
+    }
+
+    public Map<String, Object> getRightOnly() {
+        return rightOnly;
+    }
+
     public List<DifferenceInstance> getDifferenceInstanceList() {
         return differenceInstanceList;
     }
@@ -55,18 +53,17 @@ public class DifferenceResult {
         return diffResultType;
     }
 
-    public void setDiffResultType(DiffResultType type)
-    {
+    public void setDiffResultType(DiffResultType type) {
         this.diffResultType = type;
     }
 
-    public MethodAdapter getMethodAdapter() {
-        return methodAdapter;
-    }
+//    public MethodAdapter getMethodAdapter() {
+//        return methodAdapter;
+//    }
 
-    public void setMethodAdapter(MethodAdapter methodAdapter) {
-        this.methodAdapter = methodAdapter;
-    }
+//    public void setMethodAdapter(MethodAdapter methodAdapter) {
+//        this.methodAdapter = methodAdapter;
+//    }
 
     public AgentCommandRequest getCommand() {
         return command;
@@ -97,10 +94,9 @@ public class DifferenceResult {
         return "DifferenceResult{" +
                 "differenceInstanceList=" + differenceInstanceList +
                 ", diffResultType=" + diffResultType +
-                ", useIndividualContext="+ useIndividualContext +
+                ", useIndividualContext=" + useIndividualContext +
                 ", leftOnly=" + leftOnly +
                 ", rightOnly=" + rightOnly +
-                ", methodAdapter=" + methodAdapter +
                 ", command=" + command +
                 ", response=" + response +
                 ", executionMode=" + executionMode +
@@ -114,4 +110,6 @@ public class DifferenceResult {
     public void setBatchID(String batchID) {
         this.batchID = batchID;
     }
+
+    public enum EXECUTION_MODE {DIRECT_INVOKE, ATOMIC_RUN_INDIVIDUAL, ATOMIC_RUN_REPLAY}
 }

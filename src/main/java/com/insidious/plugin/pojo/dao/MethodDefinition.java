@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 public class MethodDefinition {
 
     @DatabaseField(id = true)
-    private long id;
+    private int id;
 
     @DatabaseField
     private String argumentTypes;
@@ -39,11 +39,14 @@ public class MethodDefinition {
 
     @DatabaseField
     private String methodDescriptor;
+    @DatabaseField
+    private int lineCount;
+
     private String methodHash;
     private String sourceFileName;
     private int classId;
 
-    public MethodDefinition(long id, String argumentTypes, String methodName, boolean isStatic,
+    public MethodDefinition(int id, String argumentTypes, String methodName, boolean isStatic,
                             boolean usesFields, String ownerType, String returnType, int methodAccess,
                             String methodDescriptor) {
         this.id = id;
@@ -60,11 +63,14 @@ public class MethodDefinition {
     public MethodDefinition() {
     }
 
-    public static MethodDefinition fromMethodInfo(MethodInfo methodInfo, ClassInfo classInfo, boolean usesFields) {
+    public static MethodDefinition fromMethodInfo(
+            MethodInfo methodInfo, ClassInfo classInfo,
+            boolean usesFields, int lineCount) {
         MethodDefinition methodDefinition = new MethodDefinition();
         methodDefinition.setMethodAccess(methodInfo.getAccess());
         methodDefinition.setMethodName(methodInfo.getMethodName());
         methodDefinition.setId(methodInfo.getMethodId());
+        methodDefinition.setLineCount(lineCount);
 
 
         methodDefinition.setMethodHash(methodInfo.getMethodHash());
@@ -90,11 +96,11 @@ public class MethodDefinition {
         return methodDefinition;
     }
 
-    public long getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -192,5 +198,13 @@ public class MethodDefinition {
 
     public void setClassId(int classId) {
         this.classId = classId;
+    }
+
+    public int getLineCount() {
+        return lineCount;
+    }
+
+    public void setLineCount(int lineCount) {
+        this.lineCount = lineCount;
     }
 }

@@ -1,205 +1,249 @@
 package com.insidious.plugin.ui.Components.AtomicRecord;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.assertions.*;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.AtomicRecordUtils;
+import com.insidious.plugin.util.JsonTreeUtils;
+import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.notification.NotificationType;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.ui.JBUI;
+import com.intellij.vcs.log.ui.frame.WrappedFlowLayout;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
+import java.util.ArrayList;
+import java.util.List;
 
-public class SaveForm extends JFrame {
+public class SaveForm {
 
-    private CandidateLifeListener listener;
-    private JLabel title;
-    private JLabel nameLabel;
-    private JLabel descriptionLabel;
-    private Container c;
-    private JTextField nameField;
-    private JTextArea description;
+    private static final Logger logger = LoggerUtil.getInstance(SaveForm.class);
+    private final static ObjectMapper objectMapper = new ObjectMapper();
+    private final CandidateLifeListener listener;
+    private final StoredCandidate storedCandidate;
+    private final AgentCommandResponse<String> agentCommandResponse;
+    private final AssertionBlock ruleEditor;
+    private final SaveFormMetadataPanel metadataForm;
+    private final JPanel mainPanel;
+    private final JsonNode responseNode;
     private JButton saveButton;
     private JButton cancelButton;
-    private SaveForm form = this;
     private JLabel assertionLabel;
-    private ButtonGroup radioGroup = new ButtonGroup();
-    private String selectedType = "Assert Equals";
-    private StoredCandidate storedCandidate;
     private JRadioButton b1;
     private JRadioButton b2;
-    private AgentCommandResponse agentCommandResponse;
+    private JTree candidateExplorerTree;
 
     //AgentCommandResponse is necessary for update flow and Assertions as well
-    public SaveForm(StoredCandidate storedCandidate,
-                    AgentCommandResponse<String> agentCommandResponse,
-                    CandidateLifeListener listener) {
+    public SaveForm(
+            StoredCandidate storedCandidate,
+            AgentCommandResponse<String> agentCommandResponse,
+            CandidateLifeListener listener
+    ) {
         this.storedCandidate = storedCandidate;
         this.listener = listener;
         this.agentCommandResponse = agentCommandResponse;
-        setTitle("Unlogged Inc.");
-        setBounds(400, 160, 500, 500);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setResizable(false);
 
-        c = getContentPane();
-        c.setLayout(null);
+        mainPanel = new JPanel();
+        mainPanel.setLayout(new BorderLayout());
 
-        title = new JLabel("Save Atomic Case");
-        title.setFont(new Font("", Font.PLAIN, 20));
-        title.setSize(300, 30);
-        title.setLocation(50, 15);
-        c.add(title);
+        candidateExplorerTree = new Tree(getTree());
 
-        nameLabel = new JLabel("Test Name:");
-        nameLabel.setSize(100, 30);
-        nameLabel.setLocation(50, 50);
-        c.add(nameLabel);
+        try {
+            responseNode = objectMapper.readValue(agentCommandResponse.getMethodReturnValue(), JsonNode.class);
+        } catch (JsonProcessingException e) {
+            // this shouldn't happen
+            throw new RuntimeException(e);
+        }
 
-        nameField = new JTextField();
-        nameField.setSize(400, 30);
-        nameField.setLocation(50, 50 + 24);
-        nameField.setToolTipText("Enter name for the case");
-        nameField.setText("Optional");
-        nameField.addFocusListener(new FocusListener() {
+        AtomicAssertion existingAssertion = storedCandidate.getTestAssertions();
+        if (existingAssertion == null || existingAssertion.getSubAssertions() == null ||
+                existingAssertion.getSubAssertions().size() == 0) {
+            List<AtomicAssertion> subAssertions = new ArrayList<>();
+            subAssertions.add(
+                    new AtomicAssertion(AssertionType.EQUAL, "/", agentCommandResponse.getMethodReturnValue()));
+            existingAssertion = new AtomicAssertion(AssertionType.ALLOF, subAssertions);
+        }
+        ruleEditor = new AssertionBlock(existingAssertion, new AssertionBlockManager() {
             @Override
-            public void focusGained(FocusEvent e) {
-                nameField.setForeground(UIManager.getColor("TextArea.foreground"));
-                if (nameField.getText().equals("Optional")) {
-                    nameField.setText("");
-                }
+            public void addNewRule() {
+
             }
 
             @Override
-            public void focusLost(FocusEvent e) {
-                if (nameField.getText().length() == 0) {
-                    nameField.setForeground(Color.GRAY);
-                    nameField.setText("Optional");
-                }
-            }
-        });
-        c.add(nameField);
+            public void addNewGroup() {
 
-        descriptionLabel = new JLabel("Description : ");
-        descriptionLabel.setSize(100, 30);
-        descriptionLabel.setLocation(50, 115);
-        c.add(descriptionLabel);
-
-        description = new JTextArea();
-        description.setLineWrap(false);
-        description.setText("Optional");
-        description.setForeground(Color.GRAY);
-        description.setEnabled(true);
-        description.setMargin(new Insets(4, 8, 2, 4));
-        description.addFocusListener(new FocusListener() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                description.setForeground(UIManager.getColor("TextArea.foreground"));
-                if (description.getText().equals("Optional")) {
-                    description.setText("");
-                }
             }
 
             @Override
-            public void focusLost(FocusEvent e) {
-                if (description.getText().length() == 0) {
-                    description.setForeground(Color.GRAY);
-                    description.setText("Optional");
-                }
+            public AssertionResult executeAssertion(AtomicAssertion atomicAssertion) {
+                return AssertionEngine.executeAssertions(atomicAssertion, responseNode);
             }
-        });
-        description.setEditable(true);
-        description.setToolTipText("Optional");
 
-        JBScrollPane scroll = new JBScrollPane(description,
-                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+            @Override
+            public void deleteAssertionRule(AssertionRule element) {
 
-        scroll.setSize(400, 160);
-        scroll.setLocation(50, 115 + 28);
-        c.add(scroll);
+            }
 
-        assertionLabel = new JLabel("Assertion : ");
-        assertionLabel.setSize(100, 30);
-        assertionLabel.setLocation(50, 325);
-        //c.add(assertionLabel);
+            @Override
+            public void removeAssertionGroup() {
+                InsidiousNotification.notifyMessage("Cannot delete this group.", NotificationType.ERROR);
+            }
 
-        b1 = new JRadioButton("Assert Equals");
-        b1.setActionCommand("Assert Equals");
-        b1.setSize(150, 30);
-        b1.setLocation(150, 325);
-        //c.add(b1);
-        radioGroup.add(b1);
+            @Override
+            public KeyValue getCurrentTreeKey() {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) candidateExplorerTree.getLastSelectedPathComponent();
+                String methodReturnValue = agentCommandResponse.getMethodReturnValue();
+                if (node == null) return new KeyValue("/", methodReturnValue);
+                TreeNode[] nodes = node.getPath();
+                String selectedKey = JsonTreeUtils.getFlatMap(nodes);
+                Object valueFromJsonNode = JsonTreeUtils.getValueFromJsonNode(
+                        methodReturnValue, selectedKey);
+                return new KeyValue(selectedKey, valueFromJsonNode);
+            }
 
-        b2 = new JRadioButton("Assert Not Equals");
-        b2.setActionCommand("Assert Not Equals");
-        b2.setSize(150, 30);
-        b2.setLocation(300, 325);
-        //c.add(b2);
-        radioGroup.add(b2);
+            @Override
+            public void removeAssertionGroup(AssertionBlock block) {
 
-        b1.setSelected(true);
+            }
+        }, true);
+        int topPanelHeight = 200;
 
-        JLabel infoLabel = new JLabel("Case will be saved here : ");
-        infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
-        infoLabel.setSize(400, 12);
-        infoLabel.setLocation(50, 360 - 30);
-        c.add(infoLabel);
+        JPanel ruleEditor = this.ruleEditor.getMainPanel();
+
+        JScrollPane assertionScrollPanel = new JBScrollPane(ruleEditor);
+//        scrollPane.setLocation(25, 320);
+//        scrollPane.setSize(950, 310);
+        assertionScrollPanel.setMaximumSize(new Dimension(1080, 300));
+        assertionScrollPanel.setPreferredSize(new Dimension(1080, 300));
+
+
+        JPanel topPanel = new JPanel();
+
+        GridLayout topPanelLayout = new GridLayout(1, 2);
+        topPanel.setLayout(topPanelLayout);
+
+        mainPanel.setMaximumSize(new Dimension(1080, 600));
+
+        candidateExplorerTree.setSize(new Dimension(400, 300));
+
+        JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
+        treeParent.setSize(new Dimension(400, topPanelHeight));
+        treeParent.setMaximumSize(new Dimension(400, topPanelHeight));
+        treeParent.setPreferredSize(new Dimension(400, topPanelHeight));
+
+
+        JPanel treeViewer = new JPanel();
+        treeViewer.setLayout(new BorderLayout());
+
+        JLabel treeTitleLabel = new JLabel();
+        treeTitleLabel.setText("<html><b>Available recorded objects</b></html>");
+        JPanel titleLabelContainer = new JPanel();
+
+        Border border = treeTitleLabel.getBorder();
+        Border margin = JBUI.Borders.empty(10);
+        CompoundBorder borderWithMargin = new CompoundBorder(border, margin);
+        treeTitleLabel.setBorder(borderWithMargin);
+
+        titleLabelContainer.add(treeTitleLabel);
+        treeViewer.add(treeTitleLabel, BorderLayout.NORTH);
+//        treeViewer.add(Box.createRigidArea(new Dimension(0, 5)));
+        treeViewer.add(treeParent, BorderLayout.CENTER);
+
+        //        objectScroller.setMaximumSize(new Dimension(300, 400));
+        treeViewer.setSize(new Dimension(400, topPanelHeight));
+        treeViewer.setMaximumSize(new Dimension(400, topPanelHeight));
+        treeViewer.setPreferredSize(new Dimension(400, topPanelHeight));
+        topPanel.add(treeViewer);
+
+
+        metadataForm = new SaveFormMetadataPanel(new MetadataViewPayload(storedCandidate.getName(),
+                storedCandidate.getDescription(),
+                storedCandidate.getMetadata()));
+
+        JPanel metadataFormPanel = metadataForm.getMainPanel();
+        metadataFormPanel.setSize(new Dimension(380, topPanelHeight));
+        metadataFormPanel.setMaximumSize(new Dimension(380, topPanelHeight));
+
+        topPanel.add(metadataFormPanel);
+
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+        mainPanel.add(assertionScrollPanel, BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.setLayout(new WrappedFlowLayout(8, 8));
 
         String saveLocation = listener.getSaveLocation();
-        infoLabel = new JLabel(formatLocation(saveLocation));
-        infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
-        infoLabel.setSize(400, 15);
-        infoLabel.setLocation(50, 375 - 30);
+        JLabel infoLabel = new JLabel("Case will be saved at " + formatLocation(saveLocation));
         infoLabel.setToolTipText(saveLocation);
-        c.add(infoLabel);
+        infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
+        infoLabel.setSize(400, 12);
+        bottomPanel.add(infoLabel);
 
-        saveButton = new JButton("Save and Close");
-        saveButton.setSize(150, 30);
-        saveButton.setLocation(305, 410 - 30);
-        saveButton.setIcon(UIUtils.SAVE_CANDIDATE_GREY);
-        saveButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                triggerSave();
-            }
-        });
-        c.add(saveButton);
+        JPanel bottomPanelRight = new JPanel();
+        bottomPanelRight.setAlignmentX(1);
 
         cancelButton = new JButton("Cancel");
         cancelButton.setSize(100, 30);
-        cancelButton.setLocation(200, 410 - 30);
 
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                form.dispose();
-            }
-        });
-        c.add(cancelButton);
+        cancelButton.addActionListener(e -> listener.onCancel());
+
+        saveButton = new JButton("Save and Close");
+        saveButton.setSize(150, 30);
+        saveButton.setIcon(UIUtils.SAVE_CANDIDATE_PINK);
+        saveButton.addActionListener(e -> triggerSave());
+
+        bottomPanelRight.add(cancelButton);
+        bottomPanelRight.add(saveButton);
+
+        bottomPanel.add(bottomPanelRight);
+        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
         setInfo();
     }
 
+    public JPanel getComponent() {
+        return mainPanel;
+    }
+
     private void triggerSave() {
-        String name_text = prepareString(nameField.getText());
-        String description_text = prepareString(description.getText());
-        ButtonModel model = radioGroup.getSelection();
-        StoredCandidate.AssertionType type = StoredCandidate.AssertionType.EQUAL;
-        if (model.getActionCommand().equals("Assert Not Equals")) {
-            type = StoredCandidate.AssertionType.NOT_EQUAL;
-        }
+
+        AtomicAssertion atomicAssertion = ruleEditor.getAssertion();
+//        try {
+//            logger.warn("Atomic assertion: \n" +
+//                    objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(atomicAssertion));
+//        } catch (JsonProcessingException e) {
+//            throw new RuntimeException(e);
+//        }
+
+        MetadataViewPayload payload = metadataForm.getPayload();
+        String name_text = prepareString(payload.getName());
+        String description_text = prepareString(payload.getDescription());
+        AssertionType type = AssertionType.EQUAL;
+//        if (model.getActionCommand().equals("Assert Not Equals")) {
+//            type = AssertionType.NOT_EQUAL;
+//        }
         //this call is necessary
         //Required if we cancel update/save
         //Required for upcoming assertion flows as well
         StoredCandidate candidate = AtomicRecordUtils.createCandidateFor(storedCandidate, agentCommandResponse);
+        candidate.setMetadata(payload.getStoredCandidateMetadata());
         candidate.setName(name_text);
         candidate.setDescription(description_text);
-        candidate.setAssertionType(type);
-        this.listener.onSaved(candidate);
-        this.dispose();
+        candidate.setTestAssertions(atomicAssertion);
+
+        listener.onSaved(candidate);
     }
 
     private String prepareString(String source) {
@@ -210,31 +254,16 @@ public class SaveForm extends JFrame {
         }
     }
 
-
     private void setInfo() {
         boolean updated = false;
         String name = storedCandidate.getName();
         String description = storedCandidate.getDescription();
-        StoredCandidate.AssertionType assertionType = storedCandidate.getAssertionType();
 
         if (name != null) {
-            this.nameField.setText(name);
             updated = true;
         }
         if (description != null) {
-            this.description.setText(description);
             updated = true;
-        }
-        if (assertionType != null) {
-            switch (assertionType) {
-                case EQUAL:
-                    b1.setSelected(true);
-                    updated = true;
-                    break;
-                default:
-                    b2.setSelected(true);
-                    updated = true;
-            }
         }
         if (updated) {
             saveButton.setText("Update");
@@ -250,5 +279,27 @@ public class SaveForm extends JFrame {
             left += ".../unlogged/";
             return left;
         }
+    }
+
+    public DefaultMutableTreeNode getTree() {
+        return JsonTreeUtils.buildJsonTree(agentCommandResponse.getMethodReturnValue(),
+                getSimpleName(agentCommandResponse.getResponseClassName()));
+    }
+
+    private String getSimpleName(String qualifiedName) {
+        String[] parts = qualifiedName.split("\\.");
+        return parts.length > 0 ? parts[parts.length - 1] : qualifiedName;
+    }
+
+    public AssertionBlock getRuleEditor() {
+        return this.ruleEditor;
+    }
+
+    public JTree getCandidateExplorerTree() {
+        return candidateExplorerTree;
+    }
+
+    public StoredCandidate getStoredCandidate() {
+        return storedCandidate;
     }
 }
