@@ -8,7 +8,6 @@ import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.assertions.*;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.util.AtomicRecordUtils;
 import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
@@ -231,13 +230,11 @@ public class SaveForm {
         String name_text = prepareString(payload.getName());
         String description_text = prepareString(payload.getDescription());
         AssertionType type = AssertionType.EQUAL;
-//        if (model.getActionCommand().equals("Assert Not Equals")) {
-//            type = AssertionType.NOT_EQUAL;
-//        }
+
         //this call is necessary
         //Required if we cancel update/save
         //Required for upcoming assertion flows as well
-        StoredCandidate candidate = AtomicRecordUtils.createCandidateFor(storedCandidate, agentCommandResponse);
+        StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate, agentCommandResponse);
         candidate.setMetadata(payload.getStoredCandidateMetadata());
         candidate.setName(name_text);
         candidate.setDescription(description_text);

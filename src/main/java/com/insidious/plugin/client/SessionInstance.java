@@ -24,6 +24,7 @@ import com.insidious.plugin.client.pojo.ArchiveFilesIndex;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.NameWithBytes;
+import com.insidious.plugin.coverage.CodeCoverageData;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.TestCandidateReceiver;
@@ -34,6 +35,7 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.util.LoggerUtil;
@@ -53,6 +55,7 @@ import com.intellij.psi.PsiPrimitiveType;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.rt.coverage.data.CoverageData;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
@@ -3548,6 +3551,10 @@ public class SessionInstance implements Runnable {
         }
     }
 
+    public CodeCoverageData createCoverageData() {
+        return new CodeCoverageData();
+    }
+
     private TypeInfoDocument getTypeFromTypeIndex(int typeId) throws FailedToReadClassWeaveException, IOException {
         TypeInfoDocument typeInfoDocument = typeInfoIndex.get(typeId);
         if (typeInfoDocument == null) {
@@ -3994,5 +4001,10 @@ public class SessionInstance implements Runnable {
                 //
             }
         }
+    }
+
+    public MethodDefinition getMethodDefinition(MethodUnderTest methodUnderTest1) {
+        return daoService.getAllMethodDefinitionBySignature(methodUnderTest1.getClassName(),
+                methodUnderTest1.getName(), methodUnderTest1.getSignature());
     }
 }

@@ -1,7 +1,6 @@
 package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.adapter.MethodAdapter;
-import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -11,33 +10,28 @@ import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
-import com.intellij.util.ui.JBImageIcon;
 import com.intellij.util.ui.JBUI;
 import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
-import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
-import javax.swing.event.TreeSelectionEvent;
-import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class TestCandidateListedItemComponent {
     public static final String TEST_FAIL_LABEL = "Fail";
     public static final String TEST_PASS_LABEL = "Pass";
     public static final String TEST_EXCEPTION_LABEL = "Exception";
     private static final Logger logger = LoggerUtil.getInstance(TestCandidateListedItemComponent.class);
-    private final MethodAdapter method;
     private final List<String> methodArgumentValues;
-    private final Map<String, String> parameterMap;
-    private final InsidiousService insidiousService;
+    private final Map<String, ArgumentNameValuePair> parameterMap;
     private StoredCandidate candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
@@ -47,14 +41,14 @@ public class TestCandidateListedItemComponent {
 
     public TestCandidateListedItemComponent(
             StoredCandidate storedCandidate,
-            MethodAdapter method,
+            List<ArgumentNameValuePair> argumentNameValuePairs,
             MethodExecutionListener methodExecutionListener,
-            CandidateSelectedListener candidateSelectedListener) {
+            CandidateSelectedListener candidateSelectedListener,
+            InsidiousService insidiousService,
+            MethodAdapter method) {
         this.candidateMetadata = storedCandidate;
-        this.insidiousService = method.getProject().getService(InsidiousService.class);
-        this.method = method;
         this.methodArgumentValues = candidateMetadata.getMethodArguments();
-        this.parameterMap = generateParameterMap(method.getParameters());
+        this.parameterMap = generateParameterMap(argumentNameValuePairs);
         mainContentPanel.setLayout(new BorderLayout());
 
         //saved candidate check
@@ -79,7 +73,6 @@ public class TestCandidateListedItemComponent {
                             Collections.singletonList(candidateMetadata), psiClass, "individual",
                             (candidateMetadata, agentCommandResponse, diffResult) -> {
                                 insidiousService.updateMethodHashForExecutedMethod(method);
-//                                setAndDisplayResponse(agentCommandResponse, diffResult);
                                 candidateSelectedListener.onCandidateSelected(candidateMetadata);
                                 insidiousService.triggerGutterIconReload();
                             }
@@ -123,14 +116,16 @@ public class TestCandidateListedItemComponent {
 
         mainContentPanel.removeAll();
         DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
-        Set<String> methodArgumentNames = this.parameterMap.keySet();
+        Set<String> methodArgumentNames = this.parameterMap.values()
+                .stream().map(ArgumentNameValuePair::getName)
+                .collect(Collectors.toSet());
         int methodArgumentCount = methodArgumentNames.size();
         if (methodArgumentCount == 0) {
             DefaultMutableTreeNode node = new DefaultMutableTreeNode("No inputs for this method.");
             inputRoot.add(node);
         } else {
             for (String key : methodArgumentNames) {
-                DefaultMutableTreeNode node = JsonTreeUtils.buildJsonTree(this.parameterMap.get(key), key);
+                DefaultMutableTreeNode node = JsonTreeUtils.buildJsonTree(this.parameterMap.get(key).getValue(), key);
                 inputRoot.add(node);
             }
         }
@@ -186,7 +181,7 @@ public class TestCandidateListedItemComponent {
             JPanel countPanel = new JPanel(new BorderLayout());
 
             Border border1 = countPanel.getBorder();
-            Border margin1 = JBUI.Borders.empty(5, 0, 0, 0);
+            Border margin1 = JBUI.Borders.emptyTop(5);
             CompoundBorder borderWithMargin1 = new CompoundBorder(border1, margin1);
             countPanel.setBorder(borderWithMargin1);
 
@@ -201,40 +196,31 @@ public class TestCandidateListedItemComponent {
         mainContentPanel.repaint();
     }
 
-    public Map<String, String> getParameterMap() {
-        if (this.parameterMap == null || this.parameterMap.size() == 0) {
-            return generateParameterMap(method.getParameters());
-        } else {
-            return this.parameterMap;
-        }
-    }
+    public Map<String, ArgumentNameValuePair> generateParameterMap(List<ArgumentNameValuePair> argumentNameTypeList) {
+        Map<String, ArgumentNameValuePair> argumentList = new HashMap<>();
 
-    public Map<String, String> generateParameterMap(ParameterAdapter[] parameters) {
-        Map<String, String> parameterInputMap = new TreeMap<>();
-        if (parameters != null) {
-            for (int i = 0; i < parameters.length; i++) {
-                ParameterAdapter methodParameter = parameters[i];
-                String parameterValue = methodArgumentValues == null || methodArgumentValues.size() <= i
-                        ? "" : methodArgumentValues.get(i);
-                String methodTypeCanonicalName = methodParameter.getType().getCanonicalText();
-                try {
+        for (int i = 0; i < argumentNameTypeList.size(); i++) {
+            ArgumentNameValuePair methodParameter = argumentNameTypeList.get(i);
+            String parameterValue = methodArgumentValues == null || methodArgumentValues.size() <= i
+                    ? "" : methodArgumentValues.get(i);
+            String argumentTypeCanonicalName = methodParameter.getType();
+            try {
 
-
-                    if (methodTypeCanonicalName.equals("float") || methodTypeCanonicalName.equals("java.lang.Float")) {
-                        parameterValue = String.valueOf(Float.intBitsToFloat(Integer.parseInt(parameterValue)));
-                    } else if (methodTypeCanonicalName.equals("double") || methodTypeCanonicalName.equals(
-                            "java.lang.Double")) {
-                        parameterValue = String.valueOf(Double.longBitsToDouble(Long.parseLong(parameterValue)));
-                    }
-                } catch (Exception e) {
-                    logger.warn("Failed to parse double/float [" + parameterValue + "]", e);
-                    //
+                if (argumentTypeCanonicalName.equals("float") ||
+                        argumentTypeCanonicalName.equals("java.lang.Float")) {
+                    parameterValue = String.valueOf(Float.intBitsToFloat(Integer.parseInt(parameterValue)));
+                } else if (argumentTypeCanonicalName.equals("double") ||
+                        argumentTypeCanonicalName.equals("java.lang.Double")) {
+                    parameterValue = String.valueOf(Double.longBitsToDouble(Long.parseLong(parameterValue)));
                 }
-
-                parameterInputMap.put(methodParameter.getName(), parameterValue);
+            } catch (Exception e) {
+                logger.warn("Failed to parse double/float [" + parameterValue + "]", e);
             }
+
+            argumentList.put(methodParameter.getName(),
+                    new ArgumentNameValuePair(methodParameter.getName(), argumentTypeCanonicalName, parameterValue));
         }
-        return parameterInputMap;
+        return argumentList;
     }
 
     public void setAndDisplayResponse(DifferenceResult differenceResult) {
@@ -263,8 +249,8 @@ public class TestCandidateListedItemComponent {
         int hash = -1;
         if (this.candidateMetadata != null && this.methodArgumentValues != null) {
             String output = this.candidateMetadata.getReturnValue();
-            String concat = this.methodArgumentValues.toString() + output;
-            hash = concat.toString().hashCode();
+            String concat = this.methodArgumentValues + output;
+            hash = concat.hashCode();
         }
         return hash;
     }

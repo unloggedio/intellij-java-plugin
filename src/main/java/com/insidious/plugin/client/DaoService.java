@@ -1586,6 +1586,26 @@ public class DaoService {
         }
     }
 
+    public MethodDefinition getAllMethodDefinitionBySignature(String className, String methodName,
+                                                              String methodSignature) {
+        try {
+            GenericRawResults<MethodDefinition> queryResult = methodDefinitionsDao.queryRaw(
+                    "select * from method_definition where ownerType = ? and methodName = ? and methodDescriptor = ?",
+                    methodDefinitionsDao.getRawRowMapper(),
+                    className, methodName, methodSignature
+            );
+            List<MethodDefinition> methodDefinitionList = queryResult.getResults();
+            queryResult.close();
+            if (methodDefinitionList.size() == 0) {
+                return new MethodDefinition();
+            }
+            return methodDefinitionList.get(0);
+        } catch (Exception e) {
+            logger.warn("Method definition not found: " + className + "." + methodName + methodSignature);
+            return new MethodDefinition();
+        }
+    }
+
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
     getTestCandidatePaginated(int page, int limit) throws SQLException {
         List<TestCandidateMetadata> dbCandidateList = testCandidateDao.queryBuilder()

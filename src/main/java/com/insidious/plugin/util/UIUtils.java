@@ -76,6 +76,8 @@ public class UIUtils {
     public static Icon ATOMIC_TESTS = IconLoader.getIcon("/icons/svg/atomic_tests_v2.svg", UIUtils.class);
     public static Icon DIRECT_INVOKE_EXECUTE = IconLoader.getIcon("/icons/svg/direct-invoke-execute.svg", UIUtils.class);
     public static Icon EXECUTE_METHOD = IconLoader.getIcon("/icons/svg/execute_method.svg", UIUtils.class);
+    public static Icon COVERAGE_TOOL_WINDOW_ICON = IconLoader.getIcon("/icons/svg/coverage-tool-window-icon.png",
+            UIUtils.class);
     public static Icon ORANGE_EXCEPTION = IconLoader.getIcon("/icons/svg/exception_orange.svg", UIUtils.class);
     public static Icon EXECUTE_ICON_OUTLINED_SVG = IconLoader.getIcon("/icons/svg/execute-button-outlined.svg", UIUtils.class);
     public static Icon ONBOARDING_ICON_DARK = IconLoader.getIcon("/icons/png/onboarding_icon_dark.png", UIUtils.class);

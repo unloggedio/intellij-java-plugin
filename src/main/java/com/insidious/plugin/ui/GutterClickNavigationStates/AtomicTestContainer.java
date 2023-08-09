@@ -73,7 +73,7 @@ public class AtomicTestContainer {
                 borderParent.getComponent(0).equals(methodExecutorComponent.getComponent())) {
             return;
         }
-        insidiousService.setAtomicWindowHeading("Atomic Tests");
+        insidiousService.setAtomicWindowHeading("Replay");
         borderParent.removeAll();
         borderParent.add(methodExecutorComponent.getComponent(), BorderLayout.CENTER);
         borderParent.revalidate();

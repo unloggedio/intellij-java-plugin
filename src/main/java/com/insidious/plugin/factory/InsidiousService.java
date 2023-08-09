@@ -30,6 +30,7 @@ import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.TestSuite;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
 import com.insidious.plugin.ui.GutterClickNavigationStates.AtomicTestContainer;
 import com.insidious.plugin.ui.InsidiousCaretListener;
@@ -37,10 +38,7 @@ import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
-import com.insidious.plugin.ui.methodscope.CandidateFilterType;
-import com.insidious.plugin.ui.methodscope.DiffResultType;
-import com.insidious.plugin.ui.methodscope.DifferenceResult;
-import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
+import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
@@ -70,8 +68,10 @@ import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.EditorCoreUtil;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.EditorEventMulticaster;
+import com.intellij.openapi.editor.highlighter.EditorHighlighter;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -97,7 +97,6 @@ import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
-import com.intellij.ui.content.impl.ContentManagerImpl;
 import com.intellij.util.FileContentUtil;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
@@ -669,9 +668,20 @@ final public class InsidiousService implements Disposable,
         this.directMethodInvokeContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         this.directMethodInvokeContent.setIcon(UIUtils.EXECUTE_METHOD);
         contentManager.addContent(this.directMethodInvokeContent);
+
+
         SingleWindowView singleWindowView = new SingleWindowView(project, this);
         singleWindowContent = contentFactory.createContent(singleWindowView.getContent(),
                 "Raw Cases", false);
+
+        CoverageReportComponent coverageReportComponent = new CoverageReportComponent();
+        Content coverageComponent = contentFactory.createContent(coverageReportComponent.getContent(),
+                "Coverage", false);
+
+        coverageComponent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        coverageComponent.setIcon(UIUtils.COVERAGE_TOOL_WINDOW_ICON);
+        contentManager.addContent(coverageComponent);
+
 
 
 //        gptWindow = new UnloggedGPT(this);
@@ -777,9 +787,11 @@ final public class InsidiousService implements Disposable,
         if (method == null) {
             return;
         }
-//        if (currentMethod != null && currentMethod.equals(method)) {
-//            return;
-//        }
+        DumbService dumbService = project.getService(DumbService.class);
+        if (dumbService.isDumb()) {
+            return;
+        }
+
         currentMethod = method;
         final ClassAdapter psiClass;
         try {
@@ -793,25 +805,6 @@ final public class InsidiousService implements Disposable,
             return;
         }
 
-        DumbService dumbService = project.getService(DumbService.class);
-
-        if (dumbService.isDumb()) {
-//            hasShownIndexWaitNotification = true;
-//            InsidiousNotification.notifyMessage("Please wait for IDE indexing to finish to start creating tests",
-//                    NotificationType.WARNING);
-//            dumbService.runWhenSmart(() -> {
-//                if (testCaseDesignerWindow == null) {
-//                    logger.warn("test case designer window is not ready to create test case");
-//                    return;
-//                }
-//                methodFocussedHandler(method);
-//            });
-            return;
-        }
-
-//        if (this.gptWindow != null) {
-//            this.gptWindow.updateUI(psiClass, method);
-//        }
 
         if (testCaseDesignerWindow == null || !this.toolWindow.isVisible()) {
             logger.warn("test case designer window is not ready to create test case");
@@ -824,8 +817,6 @@ final public class InsidiousService implements Disposable,
     }
 
     public void compile(ClassAdapter psiClass, CompileStatusNotification compileStatusNotification) {
-//        ModuleManager moduleManager = ModuleManager.getInstance(project);
-//        BuildManager buildManager = BuildManager.getInstance();
         XDebuggerManager xDebugManager = XDebuggerManager.getInstance(project);
         Optional<XDebugSession> currentSessionOption = Arrays
                 .stream(xDebugManager.getDebugSessions())
@@ -882,11 +873,6 @@ final public class InsidiousService implements Disposable,
         });
 
 
-//        Object myClassClass = Reflect.compile(psiClass.getQualifiedName(),
-//                psiClass.getContainingFile().getText()).create().get();
-//            Constructor<?> firstConstructor = myClassClass.getConstructors()[0];
-//            Object classInstance = firstConstructor.newInstance();
-
     }
 
     public AgentCommandRequest getAgentCommandRequests(AgentCommandRequest agentCommandRequest) {
@@ -914,10 +900,6 @@ final public class InsidiousService implements Disposable,
                 logger.warn("failed to execute command - " + e.getMessage(), e);
             }
         });
-    }
-
-    public boolean areModulesRegistered() {
-        return this.moduleMap.size() > 0;
     }
 
     public TestCaseService getTestCaseService() {
@@ -959,15 +941,6 @@ final public class InsidiousService implements Disposable,
         toolWindow.show(null);
     }
 
-//    public Pair<AgentCommandRequest, AgentCommandResponse> getExecutionPairs(String executionPairKey) {
-//        return executionPairs.get(executionPairKey);
-//    }
-
-    public void refreshGPTWindow() {
-//        if (this.gptContent != null) {
-//            this.toolWindow.getContentManager().setSelectedContent(this.gptContent);
-//        }
-    }
 
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
@@ -1648,6 +1621,19 @@ final public class InsidiousService implements Disposable,
 
     public void initAtomicRecordService() {
         this.atomicRecordService = new AtomicRecordService(this);
+    }
+
+    public MethodDefinition getMethodInformation(MethodUnderTest methodUnderTest) {
+        return sessionInstance.getMethodDefinition(methodUnderTest);
+    }
+
+    public void highlightLines(MethodUnderTest methodUnderTest, Set<Integer> coveredLines) {
+        Editor[] editors = EditorFactory.getInstance().getAllEditors();
+//        for (Editor editor : editors) {
+//            editor.getDocument().
+//            @NotNull EditorHighlighter highligher = EditorCoreUtil.createEmptyHighlighter(project, editor.getDocument());
+//        }
+
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}

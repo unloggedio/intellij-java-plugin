@@ -164,14 +164,12 @@
                     factoryClass="com.insidious.plugin.factory.DebuggerFactory"/>
 
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
-        <applicationService serviceImplementation="com.insidious.plugin.factory.AgentDownloadService" />
+        <applicationService serviceImplementation="com.insidious.plugin.factory.AgentDownloadService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
         <!--        <programRunner implementation="com.insidious.plugin.extension.InsidiousProgramRunner"/>-->
         <!--        <configurationType implementation="com.insidious.plugin.extension.InsidiousRunConfigType"/>-->
         <!--        <executor implementation="com.insidious.plugin.extension.InsidiousExecutor"/>-->
-    </extensions>
 
-    <extensions defaultExtensionNs="com.intellij">
         <codeInsight.lineMarkerProvider
                 language="JAVA"
                 implementationClass="com.insidious.plugin.ui.highlighter.LineHighlighter"/>
@@ -180,6 +178,9 @@
                 implementationClass="com.insidious.plugin.ui.highlighter.KotlinLineHighlighter"/>
         <codeInsight.inlayProvider implementationClass="com.insidious.plugin.inlay.InsidiousInlayHintsProvider"
                                    language="JAVA"/>
+
+<!--        <coverageEngine implementation="com.insidious.plugin.coverage.InsidiousCoverageEngine"-->
+<!--                        id="insidiousCoverageEngine"/>-->
     </extensions>
     <projectListeners>
         <listener class="com.insidious.plugin.factory.InsidiousService"

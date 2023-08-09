@@ -1,23 +1,22 @@
 package com.insidious.plugin.pojo.atomic;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.insidious.plugin.assertions.AssertionType;
+import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.util.TestCandidateUtils;
 import org.jetbrains.annotations.NotNull;
-import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
+
 public class StoredCandidate implements Comparable<StoredCandidate> {
 
-    public void setTestAssertions(AtomicAssertion testAssertions) {
-        this.testAssertions = testAssertions;
-    }
-
+    private List<Integer> lineNumbers = new ArrayList<>();
     private AtomicAssertion testAssertions = null;
     private String candidateId;
     private String name;
@@ -29,28 +28,64 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     private StoredCandidateMetadata metadata;
     private long entryProbeIndex;
     private byte[] probSerializedValue;
-
     private MethodUnderTest methodUnderTest;
 
-    public StoredCandidate() {
+    private StoredCandidate() {
+    }
+
+    public void setLineNumbers(List<Integer> lineNumbers) {
+        this.lineNumbers = lineNumbers;
+    }
+
+    public List<Integer> getLineNumbers() {
+        return lineNumbers;
     }
 
     public StoredCandidate(TestCandidateMetadata candidateMetadata) {
         this.setException(candidateMetadata.getMainMethod().getReturnValue().isException());
         byte[] serializedValue = candidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue();
-        String returnValue = serializedValue.length > 0 ? new String(serializedValue) :
+        this.returnValue = serializedValue.length > 0 ? new String(serializedValue) :
                 String.valueOf(candidateMetadata.getMainMethod().getReturnDataEvent().getValue());
-        this.setReturnValue(returnValue);
-        this.setMethodArguments(TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata));
-        this.setReturnValueClassname(candidateMetadata.getMainMethod().getReturnValue().getType());
-        this.setMethod(MethodUnderTest.fromTestCandidateMetadata(candidateMetadata));
-        this.setProbSerializedValue(candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue());
-        this.setEntryProbeIndex(generateIdentifier(candidateMetadata));
+        this.methodArguments = TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata);
+        this.returnValueClassname = candidateMetadata.getMainMethod().getReturnValue().getType();
+        this.methodUnderTest = MethodUnderTest.fromTestCandidateMetadata(candidateMetadata);
+        this.probSerializedValue = candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue();
+        this.entryProbeIndex = generateIdentifier(candidateMetadata);
+        this.lineNumbers = candidateMetadata.getLineNumbers();
         StoredCandidateMetadata metadata = new StoredCandidateMetadata();
         metadata.setHostMachineName(HOSTNAME);
         metadata.setRecordedBy(HOSTNAME);
         metadata.setTimestamp(candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt());
-        this.setMetadata(metadata);
+        this.metadata = metadata;
+    }
+
+    public static StoredCandidate createCandidateFor(StoredCandidate metadata, AgentCommandResponse<String> response) {
+        StoredCandidate candidate = new StoredCandidate();
+        candidate.setCandidateId(metadata.getCandidateId());
+        candidate.setMethodArguments(metadata.getMethodArguments());
+        candidate.setLineNumbers(metadata.getLineNumbers());
+        candidate.setException(!response.getResponseType().equals(ResponseType.NORMAL));
+        candidate.setReturnValue(response.getMethodReturnValue());
+        //to be updated
+        candidate.setProbSerializedValue(metadata.getProbSerializedValue());
+        //to be updated
+        candidate.setMethod(metadata.getMethod());
+        candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
+        candidate.setReturnValueClassname(response.getResponseClassName());
+
+        if (metadata.getMetadata() != null) {
+            candidate.setMetadata(metadata.getMetadata());
+            candidate.getMetadata().setHostMachineName(HOSTNAME);
+            candidate.getMetadata().setRecordedBy(HOSTNAME);
+        } else {
+            StoredCandidateMetadata metadata1 = new StoredCandidateMetadata();
+            metadata1.setCandidateStatus(null);
+            metadata1.setTimestamp(response.getTimestamp());
+            metadata1.setRecordedBy(HOSTNAME);
+            metadata1.setHostMachineName(HOSTNAME);
+            candidate.setMetadata(metadata1);
+        }
+        return candidate;
     }
 
     @Override
@@ -148,7 +183,6 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.metadata = metadata;
     }
 
-
     public MethodUnderTest getMethod() {
         return methodUnderTest;
     }
@@ -214,5 +248,9 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
 
     public AtomicAssertion getTestAssertions() {
         return testAssertions;
+    }
+
+    public void setTestAssertions(AtomicAssertion testAssertions) {
+        this.testAssertions = testAssertions;
     }
 }

@@ -23,12 +23,14 @@ public class AtomicAssertionUtils {
 
     public static int countAssertions(AtomicAssertion testAssertions) {
 
-        int count = 1;
+        if (testAssertions.getSubAssertions() == null || testAssertions.getSubAssertions().size() == 0) {
+            return 1;
+        }
 
-        if (testAssertions.getSubAssertions() != null) {
-            for (AtomicAssertion subAssertion : testAssertions.getSubAssertions()) {
-                count += countAssertions(subAssertion);
-            }
+        int count = 0;
+
+        for (AtomicAssertion subAssertion : testAssertions.getSubAssertions()) {
+            count += countAssertions(subAssertion);
         }
 
         return count;
