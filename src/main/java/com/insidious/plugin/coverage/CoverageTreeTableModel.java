@@ -9,22 +9,15 @@ import java.util.List;
 
 public class CoverageTreeTableModel extends DefaultTreeModel implements TreeTableModel {
     private final String[] columnNames;
-    protected List<PackageCoverageData> candidateRefactoringGroups;
+    protected List<PackageCoverageData> packageCoverageDataList;
 
-    public CoverageTreeTableModel(List<PackageCoverageData> candidateRefactoringGroups,
+    public CoverageTreeTableModel(List<PackageCoverageData> packageCoverageDataList,
                                   String[] columnNames) {
         super(new DefaultMutableTreeNode("root"));
-        this.candidateRefactoringGroups = candidateRefactoringGroups;
+        this.packageCoverageDataList = packageCoverageDataList;
         this.columnNames = columnNames;
     }
 
-    public List<PackageCoverageData> getCandidateRefactoringGroups() {
-        return this.candidateRefactoringGroups;
-    }
-
-    public void setCandidateRefactoringGroups(List<PackageCoverageData> candidateRefactoringGroups) {
-        this.candidateRefactoringGroups = candidateRefactoringGroups;
-    }
 
     @Override
     public int getColumnCount() {
@@ -79,7 +72,12 @@ public class CoverageTreeTableModel extends DefaultTreeModel implements TreeTabl
         return "";
     }
 
+
+
     private String formatAsPercent(int numerator, int denominator) {
+        if (denominator == 0) {
+            return "0% (0/0)";
+        }
         return (numerator * 100 / denominator) + "% (" + numerator + "/" + denominator + ")";
     }
 
@@ -107,7 +105,7 @@ public class CoverageTreeTableModel extends DefaultTreeModel implements TreeTabl
             return null;
         }
 
-        return candidateRefactoringGroups;
+        return packageCoverageDataList;
     }
 
     @Override

@@ -24,7 +24,10 @@ import com.insidious.plugin.client.pojo.ArchiveFilesIndex;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.NameWithBytes;
+import com.insidious.plugin.coverage.ClassCoverageData;
 import com.insidious.plugin.coverage.CodeCoverageData;
+import com.insidious.plugin.coverage.MethodCoverageData;
+import com.insidious.plugin.coverage.PackageCoverageData;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.TestCandidateReceiver;
@@ -55,7 +58,6 @@ import com.intellij.psi.PsiPrimitiveType;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.search.GlobalSearchScope;
-import com.intellij.rt.coverage.data.CoverageData;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
@@ -3552,7 +3554,54 @@ public class SessionInstance implements Runnable {
     }
 
     public CodeCoverageData createCoverageData() {
-        return new CodeCoverageData();
+
+        List<MethodDefinition> allMethods = daoService.getAllMethodDefinitions();
+
+        Map<String, List<ClassCoverageData>> byPackageMap = new HashMap<>();
+        Map<String, List<MethodCoverageData>> byClassMap = new HashMap<>();
+
+        for (MethodDefinition methodDefinition : allMethods) {
+            String className = methodDefinition.getOwnerType();
+
+            List<MethodCoverageData> classCoverageData = byClassMap.get(className);
+            if (classCoverageData == null) {
+                classCoverageData = new ArrayList<>();
+                byClassMap.put(className, classCoverageData);
+            }
+
+            classCoverageData.add(new MethodCoverageData(
+                    methodDefinition.getMethodName(), methodDefinition.getMethodDescriptor(),
+                    methodDefinition.getLineCount(), 0
+            ));
+
+        }
+
+        for (String className : byClassMap.keySet()) {
+            String packageName = className.substring(0, className.lastIndexOf("."));
+            List<MethodCoverageData> methodCoverageData = byClassMap.get(className);
+            methodCoverageData.sort(Comparator.comparing(MethodCoverageData::getMethodName));
+            ClassCoverageData classCoverageData = new ClassCoverageData(className.substring(
+                    className.lastIndexOf(".") + 1
+            ), methodCoverageData);
+            List<ClassCoverageData> packageCoverageData = byPackageMap.get(packageName);
+            if (packageCoverageData == null) {
+                packageCoverageData = new ArrayList<>();
+                byPackageMap.put(packageName, packageCoverageData);
+            }
+            packageCoverageData.add(classCoverageData);
+        }
+
+
+        List<PackageCoverageData> packageCoverageList = new ArrayList<>();
+
+        for (String packageName : byPackageMap.keySet()) {
+            List<ClassCoverageData> classCoverageDataList = byPackageMap.get(packageName);
+            classCoverageDataList.sort(Comparator.comparing(ClassCoverageData::getClassName));
+            packageCoverageList.add(new PackageCoverageData(packageName, classCoverageDataList));
+        }
+
+
+        return new CodeCoverageData(packageCoverageList);
     }
 
     private TypeInfoDocument getTypeFromTypeIndex(int typeId) throws FailedToReadClassWeaveException, IOException {

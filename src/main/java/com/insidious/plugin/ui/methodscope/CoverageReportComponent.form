@@ -82,7 +82,7 @@
                     <properties/>
                     <border type="none"/>
                     <children>
-                      <component id="9dba9" class="javax.swing.JProgressBar" binding="progressBar1" default-binding="true">
+                      <component id="9dba9" class="javax.swing.JProgressBar" binding="classPercentProgressBar">
                         <constraints>
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                         </constraints>
@@ -90,7 +90,7 @@
                           <value value="80"/>
                         </properties>
                       </component>
-                      <component id="4c212" class="javax.swing.JLabel">
+                      <component id="4c212" class="javax.swing.JLabel" binding="classPercentLabel">
                         <constraints>
                           <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
@@ -109,7 +109,7 @@
                     <properties/>
                     <border type="none"/>
                     <children>
-                      <component id="e3e5c" class="javax.swing.JLabel">
+                      <component id="e3e5c" class="javax.swing.JLabel" binding="classCoverageNumbers">
                         <constraints>
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
@@ -165,7 +165,7 @@
                     <properties/>
                     <border type="none"/>
                     <children>
-                      <component id="fce7c" class="javax.swing.JProgressBar" default-binding="true">
+                      <component id="fce7c" class="javax.swing.JProgressBar" binding="methodPercentProgressBar">
                         <constraints>
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                         </constraints>
@@ -173,7 +173,7 @@
                           <value value="60"/>
                         </properties>
                       </component>
-                      <component id="ca40d" class="javax.swing.JLabel">
+                      <component id="ca40d" class="javax.swing.JLabel" binding="methodPercentLabel">
                         <constraints>
                           <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
@@ -192,7 +192,7 @@
                     <properties/>
                     <border type="none"/>
                     <children>
-                      <component id="2d946" class="javax.swing.JLabel">
+                      <component id="2d946" class="javax.swing.JLabel" binding="methodCoverageNumbers">
                         <constraints>
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
@@ -248,7 +248,7 @@
                     <properties/>
                     <border type="none"/>
                     <children>
-                      <component id="d5ca1" class="javax.swing.JProgressBar" default-binding="true">
+                      <component id="d5ca1" class="javax.swing.JProgressBar" binding="linePercentProgressBar">
                         <constraints>
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                         </constraints>
@@ -256,7 +256,7 @@
                           <value value="70"/>
                         </properties>
                       </component>
-                      <component id="9e5c6" class="javax.swing.JLabel">
+                      <component id="9e5c6" class="javax.swing.JLabel" binding="linePercentLabel">
                         <constraints>
                           <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
@@ -275,7 +275,7 @@
                     <properties/>
                     <border type="none"/>
                     <children>
-                      <component id="86183" class="javax.swing.JLabel">
+                      <component id="86183" class="javax.swing.JLabel" binding="lineCoverageNumbers">
                         <constraints>
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
@@ -331,7 +331,7 @@
                     <properties/>
                     <border type="none"/>
                     <children>
-                      <component id="11354" class="javax.swing.JProgressBar" default-binding="true">
+                      <component id="11354" class="javax.swing.JProgressBar" binding="branchPercentProgressBar">
                         <constraints>
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                         </constraints>
@@ -339,7 +339,7 @@
                           <value value="50"/>
                         </properties>
                       </component>
-                      <component id="3865b" class="javax.swing.JLabel">
+                      <component id="3865b" class="javax.swing.JLabel" binding="branchPercentLabel">
                         <constraints>
                           <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
@@ -358,7 +358,7 @@
                     <properties/>
                     <border type="none"/>
                     <children>
-                      <component id="f9d4b" class="javax.swing.JLabel">
+                      <component id="f9d4b" class="javax.swing.JLabel" binding="branchCoverageNumbers">
                         <constraints>
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>

@@ -27,9 +27,9 @@ import java.util.TreeMap;
 public class AtomicRecordService {
     private static final Logger logger = LoggerUtil.getInstance(AtomicRecordService.class);
     private final String unloggedFolderName = "unlogged";
+    private final ObjectMapper objectMapper = new ObjectMapper();
     InsidiousService insidiousService;
     private String basePath;
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private Map<String, AtomicRecord> storedRecords = null;
     private boolean useNotifications = true;
 
@@ -202,8 +202,7 @@ public class AtomicRecordService {
         record.setStoredCandidateMap(listMap);
 
         this.storedRecords.put(classname, record);
-        writeToFile(new File(getFilenameForClass(classname))
-                , record, FileUpdateType.ADD, useNotifications);
+        writeToFile(new File(getFilenameForClass(classname)), record, FileUpdateType.ADD, useNotifications);
     }
 
     private void writeToFile(File file, AtomicRecord atomicRecord, FileUpdateType type,

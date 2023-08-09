@@ -1,25 +1,35 @@
 package com.insidious.plugin.coverage;
 
-public class ClassCoverageData {
-    String className;
-    private int totalMethodCount;
-    private int coveredMethodCount;
-    private int totalLineCount;
-    private int coveredLineCount;
-    private int totalBranchCount;
-    private int coveredBranchCount;
+import java.util.List;
 
-    public ClassCoverageData(String className,
-                             int totalMethodCount, int coveredMethodCount,
-                             int totalLineCount, int coveredLineCount,
-                             int totalBranchCount, int coveredBranchCount) {
+public class ClassCoverageData {
+    private final String className;
+    private final List<MethodCoverageData> methodCoverageData;
+    private final int totalMethodCount;
+    private final int coveredMethodCount;
+    private final int totalLineCount;
+    private final int coveredLineCount;
+    private final int totalBranchCount;
+    private final int coveredBranchCount;
+
+    public List<MethodCoverageData> getMethodCoverageData() {
+        return methodCoverageData;
+    }
+
+    public ClassCoverageData(String className, List<MethodCoverageData> methodCoverageData) {
         this.className = className;
-        this.totalMethodCount = totalMethodCount;
-        this.coveredMethodCount = coveredMethodCount;
-        this.totalLineCount = totalLineCount;
-        this.coveredLineCount = coveredLineCount;
-        this.totalBranchCount = totalBranchCount;
-        this.coveredBranchCount = coveredBranchCount;
+        this.methodCoverageData = methodCoverageData;
+        totalMethodCount = methodCoverageData.size();
+        coveredMethodCount = Math.toIntExact(
+                methodCoverageData.stream().filter(e -> e.getCoveredLineCount() > 0).count());
+        totalLineCount =
+                methodCoverageData.stream().mapToInt(MethodCoverageData::getTotalLineCount).sum();
+        coveredLineCount =
+                methodCoverageData.stream().mapToInt(MethodCoverageData::getCoveredLineCount).sum();
+        totalBranchCount =
+                methodCoverageData.stream().mapToInt(MethodCoverageData::getTotalBranchCount).sum();
+        coveredBranchCount =
+                methodCoverageData.stream().mapToInt(MethodCoverageData::getCoveredBranchCount).sum();
     }
 
     public String getClassName() {

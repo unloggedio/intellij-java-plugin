@@ -21,6 +21,9 @@ import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.coverage.ClassCoverageData;
+import com.insidious.plugin.coverage.CodeCoverageData;
+import com.insidious.plugin.coverage.PackageCoverageData;
 import com.insidious.plugin.datafile.AtomicRecordService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -28,6 +31,7 @@ import com.insidious.plugin.pojo.ModuleInformation;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.TestSuite;
+import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
@@ -166,6 +170,7 @@ final public class InsidiousService implements Disposable,
     private AtomicRecordService atomicRecordService;
     private Map<String, String> candidateIndividualContextMap = new TreeMap<>();
     private boolean isDisposed;
+    private CoverageReportComponent coverageReportComponent;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -674,14 +679,14 @@ final public class InsidiousService implements Disposable,
         singleWindowContent = contentFactory.createContent(singleWindowView.getContent(),
                 "Raw Cases", false);
 
-        CoverageReportComponent coverageReportComponent = new CoverageReportComponent();
+
+        coverageReportComponent = new CoverageReportComponent();
         Content coverageComponent = contentFactory.createContent(coverageReportComponent.getContent(),
                 "Coverage", false);
 
         coverageComponent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         coverageComponent.setIcon(UIUtils.COVERAGE_TOOL_WINDOW_ICON);
         contentManager.addContent(coverageComponent);
-
 
 
 //        gptWindow = new UnloggedGPT(this);
@@ -976,27 +981,37 @@ final public class InsidiousService implements Disposable,
             return;
         }
 
-//        if (currentMethod.equals(atomicTestContainerWindow.getCurrentMethod())) {
-//        ApplicationManager.getApplication().invokeLater(() -> {
-//            //show both
-////            ContentManager manager = this.toolWindow.getContentManager();
-////            if (manager.getContent(atomicTestContent.getComponent()) == null) {
-////                //only add atomic if method has candidates.
-//////                CandidateSearchQuery query = createSearchQueryForMethod(currentMethod);
-////
-//////                if (getStoredCandidatesFor(query).size() > 0) {
-//////                    manager.addContent(atomicTestContent, 0);
-//////                    focusAtomicTestsWindow();
-//////                }
-////            }
-////            if (manager.getContent(directMethodInvokeContent.getComponent()) == null) {
-////                manager.addContent(directMethodInvokeContent);
-////            }
-//        });
-//        }
         ApplicationManager.getApplication().invokeLater(() -> {
             atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
             methodDirectInvokeComponent.renderForMethod(currentMethod);
+            CodeCoverageData coverageData = sessionInstance.createCoverageData();
+
+            Map<String, AtomicRecord> recordMap = atomicRecordService.getStoredRecords();
+
+            for (PackageCoverageData packageCoverageData : coverageData.getPackageCoverageDataList()) {
+                for (ClassCoverageData classCoverageData : packageCoverageData.getClassCoverageDataList()) {
+                    AtomicRecord atomicRecord = recordMap.get(
+                            packageCoverageData.getPackageName() + "." + classCoverageData.getClassName());
+                    if (atomicRecord == null) {
+                        continue;
+                    }
+                    Map<String, List<StoredCandidate>> candidates = atomicRecord.getStoredCandidateMap();
+                    for (String methodName : candidates.keySet()) {
+                        // todo wip
+                    }
+
+                }
+
+
+            }
+
+
+            for (String className : recordMap.keySet()) {
+
+            }
+
+
+            coverageReportComponent.setCoverageData(coverageData);
         });
 
     }
@@ -1630,8 +1645,7 @@ final public class InsidiousService implements Disposable,
     public void highlightLines(MethodUnderTest methodUnderTest, Set<Integer> coveredLines) {
         Editor[] editors = EditorFactory.getInstance().getAllEditors();
 //        for (Editor editor : editors) {
-//            editor.getDocument().
-//            @NotNull EditorHighlighter highligher = EditorCoreUtil.createEmptyHighlighter(project, editor.getDocument());
+//            @NotNull EditorHighlighter highligher = editor.getHighlighter();
 //        }
 
     }
