@@ -32,6 +32,11 @@ public class ClassCoverageData {
                 methodCoverageData.stream().mapToInt(MethodCoverageData::getCoveredBranchCount).sum();
     }
 
+    @Override
+    public String toString() {
+        return className;
+    }
+
     public String getClassName() {
         return className;
     }

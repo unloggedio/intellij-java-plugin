@@ -87,7 +87,7 @@
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <value value="80"/>
+                          <value value="0"/>
                         </properties>
                       </component>
                       <component id="4c212" class="javax.swing.JLabel" binding="classPercentLabel">
@@ -96,7 +96,7 @@
                         </constraints>
                         <properties>
                           <font size="16" style="1"/>
-                          <text value="80%"/>
+                          <text value="0%"/>
                         </properties>
                       </component>
                     </children>
@@ -114,7 +114,7 @@
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <text value="8/10"/>
+                          <text value="0/0"/>
                         </properties>
                       </component>
                     </children>
@@ -170,7 +170,7 @@
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <value value="60"/>
+                          <value value="0"/>
                         </properties>
                       </component>
                       <component id="ca40d" class="javax.swing.JLabel" binding="methodPercentLabel">
@@ -179,7 +179,7 @@
                         </constraints>
                         <properties>
                           <font size="16" style="1"/>
-                          <text value="60%"/>
+                          <text value="0%"/>
                         </properties>
                       </component>
                     </children>
@@ -197,7 +197,7 @@
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <text value="8/10"/>
+                          <text value="0/0"/>
                         </properties>
                       </component>
                     </children>
@@ -253,7 +253,7 @@
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <value value="70"/>
+                          <value value="0"/>
                         </properties>
                       </component>
                       <component id="9e5c6" class="javax.swing.JLabel" binding="linePercentLabel">
@@ -262,7 +262,7 @@
                         </constraints>
                         <properties>
                           <font size="16" style="1"/>
-                          <text value="70%"/>
+                          <text value="0%"/>
                         </properties>
                       </component>
                     </children>
@@ -280,7 +280,7 @@
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <text value="8/10"/>
+                          <text value="0/0"/>
                         </properties>
                       </component>
                     </children>
@@ -336,7 +336,7 @@
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <value value="50"/>
+                          <value value="0"/>
                         </properties>
                       </component>
                       <component id="3865b" class="javax.swing.JLabel" binding="branchPercentLabel">
@@ -345,7 +345,7 @@
                         </constraints>
                         <properties>
                           <font size="16" style="1"/>
-                          <text value="50%"/>
+                          <text value="0%"/>
                         </properties>
                       </component>
                     </children>
@@ -363,7 +363,7 @@
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <text value="8/10"/>
+                          <text value="0/0"/>
                         </properties>
                       </component>
                     </children>

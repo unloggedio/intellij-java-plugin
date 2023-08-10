@@ -1,6 +1,10 @@
 package com.insidious.plugin.ui.methodscope;
 
+import com.insidious.plugin.factory.InsidiousService;
+
 import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class CoveragePanel {
     private JPanel rootPanel;
@@ -17,6 +21,11 @@ public class CoveragePanel {
     private JPanel pendingCoverageMessagePanel;
     private JLabel potentialCoverageInfoLabel;
     private JLabel potentialNewPercent;
+
+    public CoveragePanel(InsidiousService insidiousService) {
+        onRadioButton.addActionListener(e -> insidiousService.setCodeCoverageHighlightEnabled(true));
+        offRadioButton.addActionListener(e -> insidiousService.setCodeCoverageHighlightEnabled(false));
+    }
 
     public JPanel getContent() {
         return rootPanel;

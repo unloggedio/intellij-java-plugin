@@ -12,6 +12,7 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.tree.DefaultTreeCellRenderer;
+import javax.swing.tree.TreeCellRenderer;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -136,15 +137,15 @@ public class CoverageReportComponent {
 
         JXTreeTable treeTable = new JXTreeTable(treeTableModel);
         treeTable.createDefaultColumnsFromModel();
-        treeTable.getColumnModel().getColumn(0).setPreferredWidth(400);
+        treeTable.getColumnModel().getColumn(0).setPreferredWidth(300);
         treeTable.expandAll();
         treeTable.setRootVisible(false);
         treeTable.setAutoResizeMode(4);
         treeTable.setAutoscrolls(true);
         treeTable.setAutoCreateRowSorter(true);
 //        DefaultTreeCellRenderer cellRenderer = new DefaultTreeCellRenderer();
-//        cellRenderer.setLeafIcon(UIUtils.CLASS_ICON);
 //        treeTable.setTreeCellRenderer(cellRenderer);
+        TreeCellRenderer renderer = treeTable.getTreeCellRenderer();
         reportTableContainerPanel.setViewportView(treeTable);
     }
 

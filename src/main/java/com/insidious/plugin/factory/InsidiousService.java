@@ -23,6 +23,7 @@ import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.coverage.ClassCoverageData;
 import com.insidious.plugin.coverage.CodeCoverageData;
+import com.insidious.plugin.coverage.MethodCoverageData;
 import com.insidious.plugin.coverage.PackageCoverageData;
 import com.insidious.plugin.datafile.AtomicRecordService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
@@ -72,10 +73,11 @@ import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.EditorCoreUtil;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.EditorEventMulticaster;
-import com.intellij.openapi.editor.highlighter.EditorHighlighter;
+import com.intellij.openapi.editor.markup.HighlighterLayer;
+import com.intellij.openapi.editor.markup.MarkupModel;
+import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -98,6 +100,7 @@ import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.testFramework.LightVirtualFile;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
@@ -122,6 +125,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.insidious.plugin.util.AtomicRecordUtils.filterStoredCandidates;
 
@@ -166,11 +170,12 @@ final public class InsidiousService implements Disposable,
     private MethodAdapter currentMethod;
     private boolean hasShownIndexWaitNotification = false;
     private String basePackage = null;
-    private ReportingService reportingService = new ReportingService(this);
+    private final ReportingService reportingService = new ReportingService(this);
     private AtomicRecordService atomicRecordService;
-    private Map<String, String> candidateIndividualContextMap = new TreeMap<>();
-    private boolean isDisposed;
+    private final Map<String, String> candidateIndividualContextMap = new TreeMap<>();
     private CoverageReportComponent coverageReportComponent;
+    private boolean codeCoverageHighlightEnabled = true;
+    private Set<Integer> currentHighlightedLines = new HashSet<>();
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -262,6 +267,7 @@ final public class InsidiousService implements Disposable,
                 logger.info("current module - " + currentModule.getName());
             }
             this.atomicRecordService = new AtomicRecordService(this);
+            this.atomicRecordService.init();
             this.initiateUI();
 
         } catch (ServiceNotReadyException snre) {
@@ -715,7 +721,6 @@ final public class InsidiousService implements Disposable,
 
     @Override
     public void dispose() {
-        isDisposed = true;
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("projectName", project.getName());
         UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_DISPOSED", eventProperties);
@@ -984,36 +989,58 @@ final public class InsidiousService implements Disposable,
         ApplicationManager.getApplication().invokeLater(() -> {
             atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
             methodDirectInvokeComponent.renderForMethod(currentMethod);
-            CodeCoverageData coverageData = sessionInstance.createCoverageData();
-
-            Map<String, AtomicRecord> recordMap = atomicRecordService.getStoredRecords();
-
-            for (PackageCoverageData packageCoverageData : coverageData.getPackageCoverageDataList()) {
-                for (ClassCoverageData classCoverageData : packageCoverageData.getClassCoverageDataList()) {
-                    AtomicRecord atomicRecord = recordMap.get(
-                            packageCoverageData.getPackageName() + "." + classCoverageData.getClassName());
-                    if (atomicRecord == null) {
-                        continue;
-                    }
-                    Map<String, List<StoredCandidate>> candidates = atomicRecord.getStoredCandidateMap();
-                    for (String methodName : candidates.keySet()) {
-                        // todo wip
-                    }
-
-                }
-
-
-            }
-
-
-            for (String className : recordMap.keySet()) {
-
-            }
-
-
-            coverageReportComponent.setCoverageData(coverageData);
         });
 
+    }
+
+    public void updateCoverageReport() {
+        if (coverageReportComponent == null) {
+            return;
+        }
+        CodeCoverageData coverageData = sessionInstance.createCoverageData();
+
+        Map<String, AtomicRecord> recordMap = atomicRecordService.getStoredRecords();
+        List<PackageCoverageData> updatedPackageList = new ArrayList<>();
+
+        for (PackageCoverageData packageCoverageData : coverageData.getPackageCoverageDataList()) {
+            List<ClassCoverageData> updatedClassList = new ArrayList<>();
+
+            for (ClassCoverageData classCoverageData : packageCoverageData.getClassCoverageDataList()) {
+                AtomicRecord atomicRecord = recordMap.get(
+                        packageCoverageData.getPackageName() + "." + classCoverageData.getClassName());
+                if (atomicRecord == null) {
+                    updatedClassList.add(classCoverageData);
+                    continue;
+                }
+                Map<String, List<StoredCandidate>> candidateMapByMethodName = atomicRecord.getStoredCandidateMap();
+
+
+                List<MethodCoverageData> methodCoverageList = classCoverageData.getMethodCoverageData();
+                List<MethodCoverageData> updatedMethodList = new ArrayList<>();
+                for (MethodCoverageData methodCoverageData : methodCoverageList) {
+                    List<StoredCandidate> methodCandidates = candidateMapByMethodName.get(
+                            methodCoverageData.getMethodName() + "#" + methodCoverageData.getMethodSignature());
+                    if (methodCandidates != null && methodCandidates.size() > 0) {
+                        int coveredLineCount = methodCandidates.stream()
+                                .flatMap(e -> e.getLineNumbers().stream())
+                                .collect(Collectors.toSet())
+                                .size();
+                        methodCoverageData.setCoveredLineCount(coveredLineCount);
+                    }
+                    updatedMethodList.add(methodCoverageData);
+                }
+
+                updatedClassList.add(new ClassCoverageData(classCoverageData.getClassName(), updatedMethodList));
+
+
+            }
+            updatedPackageList.add(new PackageCoverageData(packageCoverageData.getPackageName(), updatedClassList));
+
+
+        }
+
+
+        coverageReportComponent.setCoverageData(new CodeCoverageData(updatedPackageList));
     }
 
     @NotNull
@@ -1634,20 +1661,34 @@ final public class InsidiousService implements Disposable,
         this.reportingService.toggleReportMode();
     }
 
-    public void initAtomicRecordService() {
-        this.atomicRecordService = new AtomicRecordService(this);
-    }
-
     public MethodDefinition getMethodInformation(MethodUnderTest methodUnderTest) {
         return sessionInstance.getMethodDefinition(methodUnderTest);
     }
 
-    public void highlightLines(MethodUnderTest methodUnderTest, Set<Integer> coveredLines) {
-        Editor[] editors = EditorFactory.getInstance().getAllEditors();
-//        for (Editor editor : editors) {
-//            @NotNull EditorHighlighter highligher = editor.getHighlighter();
-//        }
+    public void highlightLines(Set<Integer> coveredLines) {
 
+        MarkupModel markupModel = FileEditorManager.getInstance(project).getSelectedTextEditor().getMarkupModel();
+        markupModel.removeAllHighlighters();
+        if (!codeCoverageHighlightEnabled) {
+            return;
+        }
+        this.currentHighlightedLines = coveredLines;
+
+        TextAttributes attributes = new TextAttributes();
+        attributes.setBackgroundColor(new JBColor(
+                new Color(1, 204, 245, 20),
+                new Color(1, 204, 245, 20)
+        ));
+        for (Integer coveredLine : coveredLines) {
+            markupModel.addLineHighlighter(coveredLine - 1, HighlighterLayer.ERROR, attributes);
+        }
+
+
+    }
+
+    public void setCodeCoverageHighlightEnabled(boolean state) {
+        this.codeCoverageHighlightEnabled = state;
+        highlightLines(currentHighlightedLines);
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}

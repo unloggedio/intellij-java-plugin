@@ -35,11 +35,12 @@ public class AtomicRecordService {
 
     public AtomicRecordService(InsidiousService service) {
         this.insidiousService = service;
+    }
+
+    public void init() {
         DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
         if (dumbService != null) {
-            dumbService.runWhenSmart(() -> {
-                checkPreRequisits();
-            });
+            dumbService.runWhenSmart(this::checkPreRequisits);
         }
     }
 
@@ -151,6 +152,7 @@ public class AtomicRecordService {
             properties.put("hostMachineName", candidate.getMetadata().getHostMachineName());
             properties.put("timestamp", candidate.getMetadata().getTimestamp());
             UsageInsightTracker.getInstance().RecordEvent("Candidate_Added", properties);
+            insidiousService.updateCoverageReport();
         } catch (Exception e) {
             logger.info("Exception adding candidate : " + e);
         }
@@ -348,6 +350,7 @@ public class AtomicRecordService {
         writeToFile(new File(getFilenameForClass(classname)), record, FileUpdateType.DELETE, useNotifications);
         UsageInsightTracker.getInstance().RecordEvent("Candidate_Deleted", null);
         insidiousService.triggerGutterIconReload();
+        insidiousService.updateCoverageReport();
     }
 
     public String getSaveLocation() {
@@ -390,6 +393,7 @@ public class AtomicRecordService {
         ensureUnloggedFolder();
         if (this.storedRecords == null) {
             this.storedRecords = updateMap();
+            insidiousService.updateCoverageReport();
         }
     }
 

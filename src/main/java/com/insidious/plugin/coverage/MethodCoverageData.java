@@ -57,4 +57,13 @@ public class MethodCoverageData {
     public String getMethodSignature() {
         return methodSignature;
     }
+
+    @Override
+    public String toString() {
+        return "MethodCoverageData{" +
+                methodName +
+                methodSignature +
+                " = " + totalLineCount +
+                '}';
+    }
 }

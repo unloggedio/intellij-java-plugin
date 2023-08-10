@@ -97,8 +97,6 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
             }
         }
         this.isAgentServerRunning = true;
-        //reset atomicRecordMap
-        insidiousService.initAtomicRecordService();
 
         InsidiousNotification.notifyMessage("New session identified tracking package [" + finalIncludedPackageName
                         + "] connected, agent version: " + serverMetadata.getAgentVersion(),

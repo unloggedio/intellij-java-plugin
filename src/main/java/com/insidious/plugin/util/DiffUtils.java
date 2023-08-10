@@ -27,7 +27,7 @@ public class DiffUtils {
     ) {
 
         AtomicAssertion testAssertions = testCandidateMetadata.getTestAssertions();
-        if (testAssertions != null && AtomicAssertionUtils.countAssertions(testAssertions) > 1) {
+        if (testAssertions != null && AtomicAssertionUtils.countAssertions(testAssertions) > 0) {
             Map<String, Object> leftOnlyMap = new HashMap<>();
             Map<String, Object> rightOnlyMap = new HashMap<>();
             List<DifferenceInstance> differencesList = new ArrayList<>();

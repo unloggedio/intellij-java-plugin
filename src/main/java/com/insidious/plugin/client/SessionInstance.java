@@ -3577,7 +3577,10 @@ public class SessionInstance implements Runnable {
         }
 
         for (String className : byClassMap.keySet()) {
-            String packageName = className.substring(0, className.lastIndexOf("."));
+            String packageName = "";
+            if (className.contains(".")) {
+                packageName = className.substring(0, className.lastIndexOf("."));
+            }
             List<MethodCoverageData> methodCoverageData = byClassMap.get(className);
             methodCoverageData.sort(Comparator.comparing(MethodCoverageData::getMethodName));
             ClassCoverageData classCoverageData = new ClassCoverageData(className.substring(

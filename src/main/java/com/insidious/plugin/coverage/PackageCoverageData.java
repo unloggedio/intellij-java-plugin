@@ -30,4 +30,9 @@ public class PackageCoverageData {
     public long getCoveredClassCount() {
         return coveredClassCount;
     }
+
+    @Override
+    public String toString() {
+        return packageName;
+    }
 }

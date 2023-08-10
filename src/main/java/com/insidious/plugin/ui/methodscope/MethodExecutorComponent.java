@@ -90,7 +90,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
         executeAndShowDifferencesButton.setIcon(UIUtils.REPLAY_PINK);
 
-        coveragePanel = new CoveragePanel();
+        coveragePanel = new CoveragePanel(insidiousService);
         rootContent.add(coveragePanel.getContent(), BorderLayout.SOUTH);
     }
 
@@ -324,24 +324,27 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         List<StoredCandidate> savedCandidates = coveredLinesMap.get(true);
         List<StoredCandidate> unsavedCandidates = coveredLinesMap.get(false);
 
-        Set<Integer> savedLineCount = savedCandidates == null ? new HashSet<>() : savedCandidates.stream()
+        Set<Integer> savedLineCovered = savedCandidates == null ? new HashSet<>() : savedCandidates.stream()
                 .map(StoredCandidate::getLineNumbers)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
 
-        Set<Integer> unsavedLineCount = unsavedCandidates == null ? new HashSet<>() : unsavedCandidates.stream()
+        Set<Integer> unsavedLineCovered = unsavedCandidates == null ? new HashSet<>() : unsavedCandidates.stream()
                 .map(StoredCandidate::getLineNumbers)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
-        unsavedLineCount.removeAll(savedLineCount);
+        unsavedLineCovered.removeAll(savedLineCovered);
 
-        int coveredSavedLineCount = savedLineCount.size();
-        int coveredUnsavedLineCount = unsavedLineCount.size();
+        int coveredSavedLineCount = savedLineCovered.size();
+        int coveredUnsavedLineCount = unsavedLineCovered.size();
         int totalLineCount = methodInfo.getLineCount();
 
         coveragePanel.setCoverageData(totalLineCount, coveredSavedLineCount, coveredUnsavedLineCount);
 
-        insidiousService.highlightLines(methodUnderTest, savedLineCount);
+        Set<Integer> linesToHighlight = new HashSet<>();
+        linesToHighlight.addAll(savedLineCovered);
+        linesToHighlight.addAll(unsavedLineCovered);
+        insidiousService.highlightLines(linesToHighlight);
     }
 
     public List<ArgumentNameValuePair> generateParameterList(ParameterAdapter[] parameters) {
