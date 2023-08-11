@@ -42,7 +42,7 @@ public class CoverageReportComponent {
 
         Border border = reportTableContainerPanel.getBorder();
         CompoundBorder borderWithMargin = BorderFactory.createCompoundBorder(
-                border, BorderFactory.createEmptyBorder(5, 5, 5, 5)
+                border, BorderFactory.createEmptyBorder(5, 5, 0, 5)
         );
         reportTableContainerPanel.setBorder(borderWithMargin);
 
