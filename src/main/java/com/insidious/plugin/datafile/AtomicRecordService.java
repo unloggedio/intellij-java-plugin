@@ -318,6 +318,9 @@ public class AtomicRecordService {
 
     @NotNull
     public List<StoredCandidate> getStoredCandidatesForMethod(CandidateSearchQuery candidateSearchQuery) {
+        if (candidateSearchQuery.getClassName() == null) {
+            return new ArrayList<>();
+        }
         AtomicRecord record = this.storedRecords.get(candidateSearchQuery.getClassName());
         if (record == null) {
             return List.of();

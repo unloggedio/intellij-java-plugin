@@ -77,6 +77,7 @@ import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.EditorEventMulticaster;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
+import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditor;
@@ -148,6 +149,9 @@ final public class InsidiousService implements Disposable,
     final private int TOOL_WINDOW_WIDTH = 600;
     final private AgentStateProvider agentStateProvider;
     private final Map<String, ModuleInformation> moduleMap = new TreeMap<>();
+    private final List<RangeHighlighter> currentActiveHighlighters = new ArrayList<>();
+    private final ReportingService reportingService = new ReportingService(this);
+    private final Map<String, String> candidateIndividualContextMap = new TreeMap<>();
     Map<SaveForm, FileEditor> saveFormEditorMap = new HashMap<>();
     private Project project;
     private VideobugClientInterface client;
@@ -170,9 +174,7 @@ final public class InsidiousService implements Disposable,
     private MethodAdapter currentMethod;
     private boolean hasShownIndexWaitNotification = false;
     private String basePackage = null;
-    private final ReportingService reportingService = new ReportingService(this);
     private AtomicRecordService atomicRecordService;
-    private final Map<String, String> candidateIndividualContextMap = new TreeMap<>();
     private CoverageReportComponent coverageReportComponent;
     private boolean codeCoverageHighlightEnabled = true;
     private Set<Integer> currentHighlightedLines = new HashSet<>();
@@ -1668,19 +1670,28 @@ final public class InsidiousService implements Disposable,
     public void highlightLines(Set<Integer> coveredLines) {
 
         MarkupModel markupModel = FileEditorManager.getInstance(project).getSelectedTextEditor().getMarkupModel();
-        markupModel.removeAllHighlighters();
+        if (currentActiveHighlighters.size() > 0) {
+            for (RangeHighlighter currentActiveHighlighter : currentActiveHighlighters) {
+                markupModel.removeHighlighter(currentActiveHighlighter);
+            }
+            currentActiveHighlighters.clear();
+        }
+
         if (!codeCoverageHighlightEnabled) {
             return;
         }
         this.currentHighlightedLines = coveredLines;
 
         TextAttributes attributes = new TextAttributes();
-        attributes.setBackgroundColor(new JBColor(
-                new Color(1, 204, 245, 20),
-                new Color(1, 204, 245, 20)
-        ));
+        JBColor backgroundColor = new JBColor(
+                new Color(1, 204, 245, 100),
+                new Color(1, 204, 245, 50)
+        );
+        attributes.setBackgroundColor(backgroundColor);
         for (Integer coveredLine : coveredLines) {
-            markupModel.addLineHighlighter(coveredLine - 1, HighlighterLayer.ERROR, attributes);
+            RangeHighlighter addedHighlighters = markupModel.addLineHighlighter(
+                    coveredLine - 1, HighlighterLayer.ERROR, attributes);
+            currentActiveHighlighters.add(addedHighlighters);
         }
 
 

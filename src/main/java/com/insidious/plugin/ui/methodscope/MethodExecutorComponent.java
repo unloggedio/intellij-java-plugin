@@ -73,6 +73,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
+        scrollParent.setVisible(false);
         executeAndShowDifferencesButton.addActionListener(this::actionPerformed);
         gridPanel = createCandidateScrollPanel();
 
@@ -474,7 +475,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
 
-    private boolean showDiffernetStatus(DiffResultType type) {
+    private boolean showDifferentStatus(DiffResultType type) {
         switch (type) {
             case SAME:
                 return false;
@@ -495,7 +496,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     //refactor pending - if there are stored candidates show only from stored, else others.
     public String getExecutionStatusFromCandidates(long excludeKey, DiffResultType type) {
-        if (showDiffernetStatus(type)) {
+        if (showDifferentStatus(type)) {
             return "Diff";
         }
         boolean hasDiff = false;
@@ -533,6 +534,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         diffContentPanel.setMinimumSize(new Dimension(-1, 700));
 //        component.setMinimumSize(new Dimension(-1, 700));
         diffContentPanel.add(component);
+        scrollParent.setVisible(true);
         scrollParent.revalidate();
         scrollParent.repaint();
         diffContentPanel.revalidate();
