@@ -1,6 +1,6 @@
-package com.insidious.plugin.pages;
+package com.insidious.plugin.UITests.pages;
 
-import com.insidious.plugin.util.UITestUtils;
+import com.insidious.plugin.UITests.Utils.UITestUtils;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.data.RemoteComponent;
 import com.intellij.remoterobot.fixtures.*;
@@ -63,5 +63,17 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public ComponentFixture getDebugButton() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.DEBUG_BUTTON);
+    }
+
+    public ComponentFixture getExpandAllButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.EXPAND_ALL);
+    }
+
+    public ComponentFixture getStopButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.STOP_BUTTON);
+    }
+
+    public ComponentFixture getHideDebugToolBarIcon() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.HIDE_DEBUG_TOOLBAR);
     }
 }

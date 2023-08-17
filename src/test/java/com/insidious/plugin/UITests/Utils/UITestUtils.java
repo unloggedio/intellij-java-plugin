@@ -1,4 +1,4 @@
-package com.insidious.plugin.util;
+package com.insidious.plugin.UITests.Utils;
 
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
@@ -21,6 +21,9 @@ public class UITestUtils {
         OPEN_PROJECT("//div[@accessiblename.key='action.WelcomeScreen.OpenProject.text']"),
         MORE_ACTIONS("//div[@accessiblename='More Actions']"),
         OPEN_PROJECT_TEXT_FIELD("//div[@class='BorderlessTextField']"),
+        EXPAND_ALL("//div[contains(@myaction.key, 'action.ExpandAll.text')]"),
+        STOP_BUTTON("//div[contains(@myaction.key, 'action.stop')]"),
+        HIDE_DEBUG_TOOLBAR("//div[contains(@myvisibleactions, '[Options')]//div[@myaction.key='tool.window.hide.action.name']"),
         OPEN_PROJECT_OK_BUTTON("//div[@text.key='button.ok']");
 
         private String value;

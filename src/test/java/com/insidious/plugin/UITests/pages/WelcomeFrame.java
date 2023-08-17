@@ -1,6 +1,6 @@
-package com.insidious.plugin.pages;
+package com.insidious.plugin.UITests.pages;
 
-import com.insidious.plugin.util.UITestUtils;
+import com.insidious.plugin.UITests.Utils.UITestUtils;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.data.RemoteComponent;
 import com.intellij.remoterobot.fixtures.CommonContainerFixture;
