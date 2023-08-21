@@ -3188,10 +3188,10 @@ public class SessionInstance implements Runnable {
                                         "object info document is null for [" + existingParameter.getValue() + "] in " +
                                                 "log file: [" + "] in archive [" +
                                                 "]");
-//                                throw new NeedMoreLogsException(
-//                                        "object info document is null for [" + existingParameter.getValue() + "] in " +
-//                                                "log file: [" + "] in archive [" +
-//                                                "]");
+                                throw new NeedMoreLogsException(
+                                        "object info document is null for [" + existingParameter.getValue() + "] in " +
+                                                "log file: [" + "] in archive [" +
+                                                "]");
                             }
                         }
                         if (objectInfoDocument != null) {
@@ -3277,6 +3277,31 @@ public class SessionInstance implements Runnable {
                         existingParameter.setProb(dataEvent);
                         isModified = eventValue != 0;
                     }
+
+                    if (existingParameter.getType() == null && eventValue != 0) {
+                        ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
+                        if (objectInfoDocument == null) {
+                            this.sessionArchives = refreshSessionArchivesList(true);
+                            updateObjectInfoIndex();
+                            objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
+                            if (objectInfoDocument == null) {
+                                logger.warn(
+                                        "object info document is null for [" + existingParameter.getValue() + "] in " +
+                                                "log file: [" + "] in archive [" +
+                                                "]");
+                                throw new NeedMoreLogsException(
+                                        "object info document is null for [" + existingParameter.getValue() + "] in " +
+                                                "log file: [" + "] in archive [" +
+                                                "]");
+                            }
+                        }
+                        if (objectInfoDocument != null) {
+                            TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(objectInfoDocument.getTypeId());
+                            String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
+                            existingParameter.setType(typeName);
+                        }
+                    }
+
 
                     if (entryProbeEventType == EventType.CALL) {
                         // we don't pop it here, wait for the CALL_RETURN to pop the call
@@ -3522,11 +3547,11 @@ public class SessionInstance implements Runnable {
 
     private void addMethodAsTestCandidate(
             List<com.insidious.plugin.pojo.dao.TestCandidateMetadata> candidatesToSave,
-            com.insidious.plugin.pojo.dao.TestCandidateMetadata completedExceptional
+            com.insidious.plugin.pojo.dao.TestCandidateMetadata completedCandidated
     ) {
-        if (completedExceptional.getTestSubject() != 0) {
+        if (completedCandidated.getTestSubject() != 0) {
             com.insidious.plugin.pojo.dao.MethodCallExpression mainMethod = methodCallMap.get(
-                    completedExceptional.getMainMethod());
+                    completedCandidated.getMainMethod());
             ClassInfo subjectClassInfo = classInfoIndexByName.get(methodCallSubjectTypeMap.get(mainMethod.getId()));
             String candidateMethodName = mainMethod.getMethodName();
 
@@ -3548,7 +3573,7 @@ public class SessionInstance implements Runnable {
                     || candidateMethodName.equals("setCallbacks")) {
                 // don't save these methods as test candidates, since they are created by spring
             } else {
-                candidatesToSave.add(completedExceptional);
+                candidatesToSave.add(completedCandidated);
             }
         }
     }
@@ -3958,7 +3983,7 @@ public class SessionInstance implements Runnable {
         }
     }
 
-    public void close() throws Exception {
+    public void close() {
         logger.warn("Closing session instance: " + executionSession.getPath());
         try {
             if (zipConsumer != null) {

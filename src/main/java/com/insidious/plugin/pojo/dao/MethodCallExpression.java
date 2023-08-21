@@ -178,6 +178,7 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo_id());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
+        methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
@@ -186,44 +187,6 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         return methodCallExpression1;
     }
 
-
-    public static IncompleteMethodCallExpression IncompleteFromMCE(com.insidious.plugin.pojo.MethodCallExpression methodCallExpression) {
-        if (methodCallExpression == null) {
-            return null;
-        }
-
-        Parameter returnValue1 = methodCallExpression.getReturnValue();
-        long returnParameterValue = returnValue1 != null ? returnValue1.getValue() : 0L;
-        Parameter subject1 = methodCallExpression.getSubject();
-        long subjectParameterValue = subject1 != null ? subject1.getValue() : 0L;
-        IncompleteMethodCallExpression methodCallExpression1 = new IncompleteMethodCallExpression(
-                methodCallExpression.getMethodName(),
-                subjectParameterValue,
-                Strings.join(methodCallExpression.getArguments()
-                        .stream()
-                        .map(Parameter::getValue)
-                        .collect(Collectors.toList()), ","),
-                returnParameterValue
-        );
-        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe().getEventId());
-        methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
-        methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
-        methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo().getDataId());
-        methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
-        methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
-        methodCallExpression1.setId(methodCallExpression.getId());
-        methodCallExpression1.setParentId(methodCallExpression.getParentId());
-        methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-        methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes()
-                .stream()
-                .map(DataEventWithSessionId::getEventId)
-                .collect(Collectors.toList()), ","));
-        if (methodCallExpression.getReturnDataEvent() != null) {
-            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
-                    .getEventId());
-        }
-        return methodCallExpression1;
-    }
 
     public static com.insidious.plugin.pojo.MethodCallExpression ToMCEFromDao(MethodCallExpressionInterface methodCallExpression) {
         com.insidious.plugin.pojo.MethodCallExpression methodCallExpression1 = new com.insidious.plugin.pojo.MethodCallExpression(

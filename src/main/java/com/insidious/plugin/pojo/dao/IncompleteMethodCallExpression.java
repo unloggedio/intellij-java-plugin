@@ -85,6 +85,7 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo().getDataId());
         methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
+        methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
@@ -115,6 +116,7 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo().getDataId());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
+        methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
         methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());

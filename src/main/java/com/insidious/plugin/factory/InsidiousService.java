@@ -1674,7 +1674,7 @@ final public class InsidiousService implements Disposable,
             for (RangeHighlighter currentActiveHighlighter : currentActiveHighlighters) {
                 try {
                     markupModel.removeHighlighter(currentActiveHighlighter);
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     logger.warn("failed to remove highlight: " + e.getMessage());
                 }
             }
@@ -1697,7 +1697,7 @@ final public class InsidiousService implements Disposable,
                 RangeHighlighter addedHighlighters = markupModel.addLineHighlighter(coveredLine - 1,
                         HighlighterLayer.ERROR, attributes);
                 currentActiveHighlighters.add(addedHighlighters);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 logger.warn("Failed to highlight: " + e.getMessage());
             }
         }

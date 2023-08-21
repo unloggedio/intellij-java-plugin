@@ -45,7 +45,7 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
         this.response = agentCommandResponse;
         setupDefLayout();
         String simpleClassName = testCandidate.getReturnValueClassname();
-        if (simpleClassName.contains(".")) {
+        if (simpleClassName != null && simpleClassName.contains(".")) {
             simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
         }
         String methodLabel = simpleClassName + "." + testCandidate.getMethod().getName() + "()";

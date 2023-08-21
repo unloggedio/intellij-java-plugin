@@ -31,6 +31,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private final VideobugNetworkClient networkClient;
     private final ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
     private final Project project;
+    private final Map<String, SessionInstance> staleSessions = new HashMap<>();
     private SessionInstance sessionInstance;
     private ProjectItem currentProject;
 
@@ -130,10 +131,15 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     if (i == 0) {
                         continue;
                     }
-                    logger.debug("Deleting session: " + executionSession.getSessionId());
+                    logger.warn("Deleting session: " + executionSession.getSessionId());
+                    SessionInstance existingStaleSession = staleSessions.get(executionSession.getSessionId());
+                    if (existingStaleSession != null) {
+                        existingStaleSession.close();
+                        staleSessions.remove(executionSession.getSessionId());
+                    }
                     deleteDirectory(FileSystems.getDefault()
-                                    .getPath(this.pathToSessions, executionSession.getSessionId())
-                                    .toFile());
+                            .getPath(this.pathToSessions, executionSession.getSessionId())
+                            .toFile());
                 }
             }
         }
@@ -352,6 +358,9 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @Override
     public void setSessionInstance(SessionInstance sessionInstance) {
+        if (this.sessionInstance != null) {
+            staleSessions.put(this.sessionInstance.getExecutionSession().getSessionId(), this.sessionInstance);
+        }
         this.sessionInstance = sessionInstance;
     }
 

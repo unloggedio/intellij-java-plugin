@@ -239,11 +239,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
                         scrollerContainer.repaint();
 
                         ResponseType responseType1 = agentCommandResponse.getResponseType();
+                        DiffResultType diffResultType = responseType1.equals(
+                                ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
                         DifferenceResult diffResult = new DifferenceResult(null,
-                                responseType1.equals(
-                                        ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION,
-                                null,
-                                DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
+                                diffResultType, null, DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
 //                        diffResult.setMethodAdapter(methodElement);
                         diffResult.setResponse(agentCommandResponse);
