@@ -128,6 +128,7 @@ public class SessionInstance implements Runnable {
     private boolean isSessionCorrupted = false;
     private boolean hasShownCorruptedNotification = false;
     private BlockingQueue<Integer> scanLock;
+    private boolean shutdown = false;
 
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
@@ -2260,8 +2261,7 @@ public class SessionInstance implements Runnable {
                 checkProgressIndicator("Processing files for thread " + i + " / " + allThreads.size(), null);
                 List<LogFile> logFiles = logFilesByThreadMap.get(threadId);
                 ThreadProcessingState threadState = daoService.getThreadState(threadId);
-                boolean newCandidateIdentifiedNew = processPendingThreadFiles(threadState, logFiles,
-                        parameterContainer);
+                boolean newCandidateIdentifiedNew = processPendingThreadFiles(threadState, logFiles, parameterContainer);
                 newCandidateIdentified = newCandidateIdentified | newCandidateIdentifiedNew;
                 processedCount += logFiles.size();
             }
@@ -2284,14 +2284,17 @@ public class SessionInstance implements Runnable {
 //            eventProperties.put("session_folder_size", (size_folder / 1000000));
 //            UsageInsightTracker.getInstance().RecordEvent("ScanMetrics", eventProperties);
         } catch (Exception e) {
-            e.printStackTrace();
-            isSessionCorrupted = true;
+            logger.warn("Exception in scan and build session", e);
             JSONObject properties = new JSONObject();
             properties.put("project", this.project.getName());
             properties.put("session", executionSession.getPath());
             properties.put("message", e.getMessage());
             UsageInsightTracker.getInstance().RecordEvent("SESSION_CORRUPT", properties);
-            logger.warn("Exception in scan and build session", e);
+            if (shutdown) {
+                scanEnable = false;
+                return;
+            }
+            isSessionCorrupted = true;
         }
     }
 
@@ -3984,6 +3987,11 @@ public class SessionInstance implements Runnable {
     }
 
     public void close() {
+        if (shutdown) {
+            // already shutdown
+            return;
+        }
+        shutdown = true;
         logger.warn("Closing session instance: " + executionSession.getPath());
         try {
             if (zipConsumer != null) {
