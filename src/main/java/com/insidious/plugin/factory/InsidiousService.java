@@ -1672,7 +1672,11 @@ final public class InsidiousService implements Disposable,
         MarkupModel markupModel = FileEditorManager.getInstance(project).getSelectedTextEditor().getMarkupModel();
         if (currentActiveHighlighters.size() > 0) {
             for (RangeHighlighter currentActiveHighlighter : currentActiveHighlighters) {
-                markupModel.removeHighlighter(currentActiveHighlighter);
+                try {
+                    markupModel.removeHighlighter(currentActiveHighlighter);
+                } catch (Exception e) {
+                    logger.warn("failed to remove highlight: " + e.getMessage());
+                }
             }
             currentActiveHighlighters.clear();
         }
@@ -1689,9 +1693,13 @@ final public class InsidiousService implements Disposable,
         );
         attributes.setBackgroundColor(backgroundColor);
         for (Integer coveredLine : coveredLines) {
-            RangeHighlighter addedHighlighters = markupModel.addLineHighlighter(
-                    coveredLine - 1, HighlighterLayer.ERROR, attributes);
-            currentActiveHighlighters.add(addedHighlighters);
+            try {
+                RangeHighlighter addedHighlighters = markupModel.addLineHighlighter(coveredLine - 1,
+                        HighlighterLayer.ERROR, attributes);
+                currentActiveHighlighters.add(addedHighlighters);
+            } catch (Exception e) {
+                logger.warn("Failed to highlight: " + e.getMessage());
+            }
         }
 
 
