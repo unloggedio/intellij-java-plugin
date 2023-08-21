@@ -152,7 +152,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                     + agentCommandRequest.getClassName() + "].\nWaiting for response...");
             insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                     (agentCommandRequest1, agentCommandResponse) -> {
-                        logger.warn("Agent command execution response: " + agentCommandResponse);
+//                        logger.warn("Agent command execution response: " + agentCommandResponse);
                         if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
                             if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
                                 InsidiousNotification.notifyMessage(
@@ -176,9 +176,13 @@ public class MethodDirectInvokeComponent implements ActionListener {
                             targetClassName = agentCommandRequest.getClassName();
                         }
                         targetClassName = targetClassName.substring(targetClassName.lastIndexOf(".") + 1);
+                        String targetMethodName = agentCommandResponse.getTargetMethodName();
+                        if (targetMethodName == null) {
+                            targetMethodName = agentCommandRequest.getMethodName();
+                        }
                         returnValueTextArea.setToolTipText("Timestamp: " +
                                 new Timestamp(agentCommandResponse.getTimestamp()).toString() + " from "
-                                + targetClassName + "." + agentCommandResponse.getTargetMethodName() + "( " + " )");
+                                + targetClassName + "." + targetMethodName + "( " + " )");
                         if (responseType == null) {
                             panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);
                             returnValueTextArea.setText(responseMessage + methodReturnValue);
@@ -256,7 +260,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
             logger.info("DirectInvoke got null method");
             return;
         }
-        if (this.methodElement == methodElement) {
+        if (this.methodElement != null && this.methodElement.getPsiMethod() == methodElement.getPsiMethod()) {
             return;
         }
 
