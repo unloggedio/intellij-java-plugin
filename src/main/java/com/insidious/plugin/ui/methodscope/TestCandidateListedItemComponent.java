@@ -55,7 +55,9 @@ public class TestCandidateListedItemComponent {
         if (candidateMetadata.getName() != null) {
             setTitledBorder(candidateMetadata.getName());
         } else {
-            setTitledBorder("#Saved candidate with no name");
+            if (candidateMetadata.getCandidateId() != null) {
+                setTitledBorder("#Saved candidate with no name");
+            }
         }
 
 
