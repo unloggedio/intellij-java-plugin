@@ -2261,7 +2261,8 @@ public class SessionInstance implements Runnable {
                 checkProgressIndicator("Processing files for thread " + i + " / " + allThreads.size(), null);
                 List<LogFile> logFiles = logFilesByThreadMap.get(threadId);
                 ThreadProcessingState threadState = daoService.getThreadState(threadId);
-                boolean newCandidateIdentifiedNew = processPendingThreadFiles(threadState, logFiles, parameterContainer);
+                boolean newCandidateIdentifiedNew = processPendingThreadFiles(threadState, logFiles,
+                        parameterContainer);
                 newCandidateIdentified = newCandidateIdentified | newCandidateIdentifiedNew;
                 processedCount += logFiles.size();
             }
@@ -3986,7 +3987,7 @@ public class SessionInstance implements Runnable {
         }
     }
 
-    public void close() {
+    public synchronized void close() {
         if (shutdown) {
             // already shutdown
             return;
