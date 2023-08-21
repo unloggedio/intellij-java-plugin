@@ -3133,7 +3133,7 @@ public class SessionInstance implements Runnable {
 
 
                     if (!topCallSubjectType.equals(currentProbeClassOwner)
-                            && threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
+                            || threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
 
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
