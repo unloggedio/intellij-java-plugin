@@ -343,10 +343,6 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         throw new RuntimeException("not implemented");
     }
 
-    @Override
-    public ClassWeaveInfo getSessionClassWeave(String sessionId) {
-        throw new RuntimeException("not implemented");
-    }
 
     @Override
     public void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback) {

@@ -121,7 +121,7 @@ public class SessionInstance implements Runnable {
     private ChronicleMap<String, MethodInfo> methodInfoByNameIndex;
     private ChronicleMap<Integer, ClassInfo> classInfoIndex;
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexCollection;
-    private NewTestCandidateIdentifiedListener testCandidateListener;
+    private List<NewTestCandidateIdentifiedListener> testCandidateListener = new ArrayList<>();
     private File currentSessionArchiveBeingProcessed;
     private ChronicleVariableContainer parameterContainer;
     //    private Date lastScannedTimeStamp;
@@ -141,6 +141,7 @@ public class SessionInstance implements Runnable {
             if (created) {
                 scanEnable = true;
                 sessionLockFile.deleteOnExit();
+                logger.warn("scan lock file created: " + project.getName());
             } else {
                 logger.warn("scan lock file wasn't created, scanning is disabled: " + project.getName());
             }
@@ -168,7 +169,7 @@ public class SessionInstance implements Runnable {
                 Parameter.fromParameter(parameterContainer.getParameterByValue(value));
         daoService = new DaoService(connectionSource, parameterProvider);
 
-        if (!dbFileExists) {
+        if (!dbFileExists && scanEnable) {
             try {
                 TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
                 TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.MethodCallExpression.class);
@@ -2272,7 +2273,9 @@ public class SessionInstance implements Runnable {
 //            checkProgressIndicator("Saving " + allParameters.size() + " parameters", "");
 //            daoService.createOrUpdateParameter(allParameters);
             if (newCandidateIdentified && testCandidateListener != null) {
-                testCandidateListener.onNewTestCandidateIdentified(processedCount, logFilesToProcess.size());
+                int finalProcessedCount = processedCount;
+                testCandidateListener.forEach(e -> e.onNewTestCandidateIdentified(finalProcessedCount,
+                        logFilesToProcess.size()));
             }
 
 
@@ -3302,13 +3305,15 @@ public class SessionInstance implements Runnable {
                                 }
                             }
                             if (objectInfoDocument != null) {
-                                TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(objectInfoDocument.getTypeId());
+                                TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(
+                                        objectInfoDocument.getTypeId());
                                 String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
                                 existingParameter.setType(typeName);
                                 isModified = true;
                             }
-                        } else  {
-                            existingParameter.setType(ClassTypeUtils.getJavaClassName(probeInfo.getValueDesc().getString()));
+                        } else {
+                            existingParameter.setType(
+                                    ClassTypeUtils.getJavaClassName(probeInfo.getValueDesc().getString()));
                             isModified = true;
                         }
 
@@ -4048,8 +4053,12 @@ public class SessionInstance implements Runnable {
         }
     }
 
-    public void setTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener) {
-        this.testCandidateListener = testCandidateListener;
+    public void addTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener) {
+        this.testCandidateListener.add(testCandidateListener);
+    }
+
+    public void removeTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener) {
+        this.testCandidateListener.remove(testCandidateListener);
     }
 
     public Map<String, ClassInfo> getClassIndex() {

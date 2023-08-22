@@ -14,6 +14,7 @@ import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.coverage.ClassCoverageData;
 import com.insidious.plugin.coverage.CodeCoverageData;
 import com.insidious.plugin.coverage.MethodCoverageData;
@@ -119,11 +120,10 @@ import static com.insidious.plugin.util.AtomicRecordUtils.filterStoredCandidates
 final public class InsidiousService implements Disposable,
         NewTestCandidateIdentifiedListener,
         GutterStateProvider, ConnectionStateListener {
-    public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
     private final AgentClient agentClient;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final static ObjectMapper objectMapper = new ObjectMapper();
     private final SessionLoader sessionLoader;
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
@@ -133,6 +133,7 @@ final public class InsidiousService implements Disposable,
     final private AgentStateProvider agentStateProvider;
     private final ReportingService reportingService = new ReportingService(this);
     private final Map<String, String> candidateIndividualContextMap = new TreeMap<>();
+    private final ActiveSessionManager sessionManager;
     Map<SaveForm, FileEditor> saveFormEditorMap = new HashMap<>();
     private ActiveHighlight currentActiveHighlight = null;
     private Project project;
@@ -141,9 +142,9 @@ final public class InsidiousService implements Disposable,
     private ToolWindow toolWindow;
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
-    private boolean liveViewAdded = false;
-    private Content liveWindowContent;
-    private String selectedModule = null;
+//    private boolean liveViewAdded = false;
+//    private Content liveWindowContent;
+//    private String selectedModule = null;
     private TestCaseDesigner testCaseDesignerWindow;
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
@@ -154,12 +155,11 @@ final public class InsidiousService implements Disposable,
     private Content atomicTestContent;
     private AtomicTestContainer atomicTestContainerWindow;
     private MethodAdapter currentMethod;
-    private String basePackage = null;
     private AtomicRecordService atomicRecordService;
     private CoverageReportComponent coverageReportComponent;
     private boolean codeCoverageHighlightEnabled = true;
     private HighlightedRequest currentHighlightedRequest = null;
-    private JUnitTestCaseWriter junitTestCaseWriter;
+    private final JUnitTestCaseWriter junitTestCaseWriter;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -168,10 +168,11 @@ final public class InsidiousService implements Disposable,
         eventProperties.put("projectName", project.getName());
         UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_INIT", eventProperties);
 
+        sessionManager = ApplicationManager.getApplication().getService(ActiveSessionManager.class);
 
         String pathToSessions = Constants.HOME_PATH + "/sessions";
         FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
-        this.client = new VideobugLocalClient(pathToSessions, project);
+        this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
         this.sessionLoader = new SessionLoader(client, this);
         threadPoolExecutor.submit(sessionLoader);
 
@@ -372,7 +373,7 @@ final public class InsidiousService implements Disposable,
         }
     }
 
-    public void generateAndUploadReport() {
+    public void generateAndUploadReport() throws APICallException, IOException {
         UsageInsightTracker.getInstance()
                 .RecordEvent("DiagnosticReport", null);
         DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project,
@@ -554,11 +555,6 @@ final public class InsidiousService implements Disposable,
     }
 
     public synchronized void setSession(ExecutionSession executionSession) throws SQLException, IOException {
-        if (client == null) {
-            String pathToSessions = Constants.HOME_PATH + "/sessions";
-            FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
-            this.client = new VideobugLocalClient(pathToSessions, project);
-        }
 
         if (sessionInstance != null) {
             try {
@@ -570,9 +566,9 @@ final public class InsidiousService implements Disposable,
             }
         }
         this.executionRecord.clear();
-        logger.info("Loading new session: " + executionSession.getSessionId());
-        sessionInstance = new SessionInstance(executionSession, project);
-        sessionInstance.setTestCandidateListener(this);
+        logger.info("Loading new session: " + executionSession.getSessionId() + " => " + project.getName());
+        sessionInstance = sessionManager.createSessionInstance(executionSession, project);
+        sessionInstance.addTestCandidateListener(this);
         client.setSessionInstance(sessionInstance);
         testCaseService = new TestCaseService(sessionInstance);
 
@@ -585,7 +581,7 @@ final public class InsidiousService implements Disposable,
 
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
-        logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "]");
+        logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "] => " + project.getName());
         ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
 
 

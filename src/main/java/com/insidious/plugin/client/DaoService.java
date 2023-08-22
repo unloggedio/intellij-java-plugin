@@ -108,8 +108,10 @@ public class DaoService {
             "join method_definition md on md.id = mc.methodDefinitionId\n" +
             "order by tc.entryProbeIndex desc limit 50;";
 
-    public static final TypeReference<ArrayList<String>> LIST_STRING_TYPE = new TypeReference<ArrayList<String>>() {};
-    public static final TypeReference<List<Long>> LIST_LONG_TYPE = new TypeReference<List<Long>>() {};
+    public static final TypeReference<ArrayList<String>> LIST_STRING_TYPE = new TypeReference<ArrayList<String>>() {
+    };
+    public static final TypeReference<List<Long>> LIST_LONG_TYPE = new TypeReference<List<Long>>() {
+    };
     public static final TypeReference<ArrayList<TestCandidateMetadata>> LIST_CANDIDATE_TYPE = new TypeReference<ArrayList<TestCandidateMetadata>>() {
     };
     public static final TypeReference<ArrayList<MethodCallExpression>> LIST_MCE_TYPE = new TypeReference<ArrayList<MethodCallExpression>>() {
@@ -928,10 +930,9 @@ public class DaoService {
         }
     }
 
-    public void createOrUpdateTestCandidate(
-            Collection<TestCandidateMetadata> candidatesToSave) {
+    public void createOrUpdateTestCandidate(Collection<TestCandidateMetadata> candidatesToSave) {
         try {
-            TestCandidateMetadata toSave;
+//            TestCandidateMetadata toSave;
             for (TestCandidateMetadata testCandidateMetadata : candidatesToSave) {
 //                toSave = TestCandidateMetadata.FromTestCandidateMetadata(testCandidateMetadata);
                 testCandidateDao.create(testCandidateMetadata);
@@ -1353,16 +1354,18 @@ public class DaoService {
                     getMethodCallExpressionById(threadState.getMostRecentReturnedCall()));
         }
         threadProcessingState.setCallStack(callStack);
-        threadProcessingState.setNextNewObjectType(objectMapper.readValue(threadState.getNextNewObjectStack(), LIST_STRING_TYPE));
+        threadProcessingState.setNextNewObjectType(
+                objectMapper.readValue(threadState.getNextNewObjectStack(), LIST_STRING_TYPE));
         threadProcessingState.setValueStack(objectMapper.readValue(threadState.getValueStack(), LIST_LONG_TYPE));
-        List<TestCandidateMetadata> dbCandidateStack = objectMapper.readValue(threadState.getCandidateStack(), LIST_CANDIDATE_TYPE);
+        List<TestCandidateMetadata> dbCandidateStack = objectMapper.readValue(threadState.getCandidateStack(),
+                LIST_CANDIDATE_TYPE);
 
         threadProcessingState.setCandidateStack(dbCandidateStack);
         return threadProcessingState;
     }
 
 
-    public void createOrUpdateThreadState(ThreadProcessingState threadState) throws SQLException, JsonProcessingException {
+    public void createOrUpdateThreadState(ThreadProcessingState threadState) throws JsonProcessingException {
         ThreadState daoThreadState = new ThreadState();
         daoThreadState.setThreadId(threadState.getThreadId());
         if (threadState.getMostRecentReturnedCall() != null) {
@@ -1383,7 +1386,15 @@ public class DaoService {
         daoThreadState.setCallStack(callStackList);
         daoThreadState.setValueStack(objectMapper.writeValueAsString(threadState.getValueStack()));
         daoThreadState.setNextNewObjectStack(objectMapper.writeValueAsString(threadState.getNextNewObjectTypeStack()));
-        threadStateDao.createOrUpdate(daoThreadState);
+        try {
+            threadStateDao.createOrUpdate(daoThreadState);
+        } catch (SQLException e) {
+            if (shutDown) {
+                return;
+            }
+            logger.warn("Failed to save thread state", e);
+            throw new RuntimeException(e);
+        }
     }
 
     public void createOrUpdateClassDefinitions(Collection<ClassDefinition> classDefinitions) {

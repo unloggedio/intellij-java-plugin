@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
+import static com.insidious.plugin.Constants.HOSTNAME;
 
 public class StoredCandidate implements Comparable<StoredCandidate> {
 

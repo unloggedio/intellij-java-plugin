@@ -116,11 +116,10 @@ public class TestCaseServiceTest {
     private void printObjectHistory(Long objectId) throws SessionNotSelectedException, SQLException, IOException {
 
         Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath())
-                .thenReturn("./");
+        Mockito.when(project.getBasePath()).thenReturn("./");
 
         VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions",
-                project);
+                project, null);
 
 //        TestCaseService testCaseService = new TestCaseService(getDaoService("jdbc:sqlite:execution.db"), client);
 
@@ -133,8 +132,7 @@ public class TestCaseServiceTest {
 //        List<ObjectWithTypeInfo> allObjects = new LinkedList<>();
 
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-        ExecutionSession session = sessions.getItems()
-                .get(0);
+        ExecutionSession session = sessions.getItems().get(0);
 
 
         client.setSessionInstance(new SessionInstance(session, project));
@@ -400,17 +398,15 @@ public class TestCaseServiceTest {
     @Test
     public void testGetTestCaseUnit() throws Exception {
         Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath())
-                .thenReturn("./");
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions", project);
+        Mockito.when(project.getBasePath()).thenReturn("./");
+        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions", project,
+                null);
 
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-        if (sessions.getItems()
-                .size() == 0) {
+        if (sessions.getItems().size() == 0) {
             return;
         }
-        ExecutionSession session = sessions.getItems()
-                .get(0);
+        ExecutionSession session = sessions.getItems().get(0);
         SessionInstance sessionInstance = new SessionInstance(session, project);
         client.setSessionInstance(sessionInstance);
 
@@ -466,18 +462,16 @@ public class TestCaseServiceTest {
     public void testScanAndGenerateAll() throws Exception {
 
         Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath())
-                .thenReturn("./");
+        Mockito.when(project.getBasePath()).thenReturn("./");
 
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions", project);
+        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions", project,
+                null);
 
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-        if (sessions.getItems()
-                .size() == 0) {
+        if (sessions.getItems().size() == 0) {
             return;
         }
-        ExecutionSession session = sessions.getItems()
-                .get(0);
+        ExecutionSession session = sessions.getItems().get(0);
         client.setSessionInstance(new SessionInstance(session, project));
         SessionInstance sessionInstance = client.getSessionInstance();
         sessionInstance.unlockNextScan();

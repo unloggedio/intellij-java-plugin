@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
+import static com.insidious.plugin.Constants.HOSTNAME;
 
 public class UsageInsightTracker {
     private static final String OS_NAME = System.getProperty("os.name");

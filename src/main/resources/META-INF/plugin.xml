@@ -163,8 +163,8 @@
                     anchor="right"
                     factoryClass="com.insidious.plugin.factory.DebuggerFactory"/>
 
+        <applicationService serviceImplementation="com.insidious.plugin.factory.ActiveSessionManager"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
-        <applicationService serviceImplementation="com.insidious.plugin.factory.AgentDownloadService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
         <!--        <programRunner implementation="com.insidious.plugin.extension.InsidiousProgramRunner"/>-->
         <!--        <configurationType implementation="com.insidious.plugin.extension.InsidiousRunConfigType"/>-->

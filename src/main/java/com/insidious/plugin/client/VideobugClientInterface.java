@@ -53,8 +53,6 @@ public interface VideobugClientInterface {
                 .collect(Collectors.toList());
     }
 
-    ClassWeaveInfo getSessionClassWeave(String sessionId);
-
     void queryTracePointsByEventType(SearchQuery searchQuery, String sessionId,
                                      ClientCallBack<TracePoint> tracePointsCallback);
 
