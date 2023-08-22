@@ -1,13 +1,14 @@
 package com.insidious.plugin.ui.methodscope;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.ui.JBColor;
-import com.intellij.vcs.log.ui.frame.WrappedFlowLayout;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -18,6 +19,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 public class AgentResponseComponent implements Supplier<Component> {
+    public static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
     private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = true;
     private final AgentCommandResponse<String> agentCommandResponse;
@@ -170,7 +172,13 @@ public class AgentResponseComponent implements Supplier<Component> {
     }
 
     private void renderTableForResponse(Map<String, Object> rightOnly) {
-        ResponseMapTable newModel = new ResponseMapTable(rightOnly);
+        ObjectNode objectNode;
+        try {
+            objectNode = JsonTreeUtils.flatten(objectMapper.readTree(objectMapper.writeValueAsString(rightOnly)));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        ResponseMapTable newModel = new ResponseMapTable(objectNode);
         this.mainTable.setModel(newModel);
         this.mainTable.revalidate();
         this.mainTable.repaint();

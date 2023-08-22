@@ -1,7 +1,8 @@
 package com.insidious.plugin.client;
 
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.Descriptor;
 import com.insidious.common.weaver.EventType;
@@ -17,7 +18,7 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.Strings;
+import com.insidious.plugin.util.StringUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.j256.ormlite.dao.Dao;
@@ -25,10 +26,8 @@ import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.dao.GenericRawResults;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
-import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.reflect.Type;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
@@ -109,12 +108,12 @@ public class DaoService {
             "join method_definition md on md.id = mc.methodDefinitionId\n" +
             "order by tc.entryProbeIndex desc limit 50;";
 
-    public static final Type LIST_STRING_TYPE = new TypeToken<ArrayList<String>>() {
-    }.getType();
-    public static final Type LIST_CANDIDATE_TYPE = new TypeToken<ArrayList<TestCandidateMetadata>>() {
-    }.getType();
-    public static final Type LIST_MCE_TYPE = new TypeToken<ArrayList<MethodCallExpression>>() {
-    }.getType();
+    public static final TypeReference<ArrayList<String>> LIST_STRING_TYPE = new TypeReference<ArrayList<String>>() {};
+    public static final TypeReference<List<Long>> LIST_LONG_TYPE = new TypeReference<List<Long>>() {};
+    public static final TypeReference<ArrayList<TestCandidateMetadata>> LIST_CANDIDATE_TYPE = new TypeReference<ArrayList<TestCandidateMetadata>>() {
+    };
+    public static final TypeReference<ArrayList<MethodCallExpression>> LIST_MCE_TYPE = new TypeReference<ArrayList<MethodCallExpression>>() {
+    };
     public static final String QUERY_CLASS_METHOD_CALL_AGGREGATE = "select mc.methodName,\n" +
             "       count(*) as count,\n" +
             "       min(mc.callTimeNano / 1000) as minimum,\n" +
@@ -128,7 +127,7 @@ public class DaoService {
             "group by mc.methodName\n" +
             "order by mc.methodName;";
     private final static Logger logger = LoggerUtil.getInstance(DaoService.class);
-    private final static Gson gson = new Gson();
+    private final static ObjectMapper objectMapper = new ObjectMapper();
     private static final String QUERY_METHOD_DEFINITIONS_BY_ID_IN = "select * from method_definition where id in (IDS)";
     private final ConnectionSource connectionSource;
     private final Dao<DataEventWithSessionId, Long> dataEventDao;
@@ -272,8 +271,8 @@ public class DaoService {
             if (loadCalls) {
                 Optional<com.insidious.plugin.pojo.MethodCallExpression> callOnField =
                         callsList.stream()
-                        .filter(e -> e.getSubject().getValue() == fieldParameterValue)
-                        .findFirst();
+                                .filter(e -> e.getSubject().getValue() == fieldParameterValue)
+                                .findFirst();
                 if (callOnField.isPresent()) {
                     converted.getFields().add(callOnField.get().getSubject());
                     continue;
@@ -427,7 +426,7 @@ public class DaoService {
                 .collect(Collectors.toSet());
 
         GenericRawResults<MethodDefinition> methodDefinitionsResultSet = methodDefinitionsDao.queryRaw(
-                QUERY_METHOD_DEFINITIONS_BY_ID_IN.replace("IDS", Strings.join(methodDefinitionIds, ", ")),
+                QUERY_METHOD_DEFINITIONS_BY_ID_IN.replace("IDS", StringUtils.join(methodDefinitionIds, ", ")),
                 methodDefinitionsDao.getRawRowMapper());
         List<MethodDefinition> methodDefinitionList = methodDefinitionsResultSet.getResults();
 
@@ -1354,25 +1353,16 @@ public class DaoService {
                     getMethodCallExpressionById(threadState.getMostRecentReturnedCall()));
         }
         threadProcessingState.setCallStack(callStack);
-        threadProcessingState.setNextNewObjectType(
-                gson.fromJson(threadState.getNextNewObjectStack(), LIST_STRING_TYPE)
-        );
-        threadProcessingState.setValueStack(
-                gson.fromJson(threadState.getValueStack(), LIST_STRING_TYPE)
+        threadProcessingState.setNextNewObjectType(objectMapper.readValue(threadState.getNextNewObjectStack(), LIST_STRING_TYPE));
+        threadProcessingState.setValueStack(objectMapper.readValue(threadState.getValueStack(), LIST_LONG_TYPE));
+        List<TestCandidateMetadata> dbCandidateStack = objectMapper.readValue(threadState.getCandidateStack(), LIST_CANDIDATE_TYPE);
 
-        );
-        List<TestCandidateMetadata> dbCandidateStack = gson.fromJson(threadState.getCandidateStack(),
-                LIST_CANDIDATE_TYPE);
-
-        List<TestCandidateMetadata> candidateStack = dbCandidateStack;
-
-
-        threadProcessingState.setCandidateStack(candidateStack);
+        threadProcessingState.setCandidateStack(dbCandidateStack);
         return threadProcessingState;
     }
 
 
-    public void createOrUpdateThreadState(ThreadProcessingState threadState) throws SQLException {
+    public void createOrUpdateThreadState(ThreadProcessingState threadState) throws SQLException, JsonProcessingException {
         ThreadState daoThreadState = new ThreadState();
         daoThreadState.setThreadId(threadState.getThreadId());
         if (threadState.getMostRecentReturnedCall() != null) {
@@ -1381,20 +1371,18 @@ public class DaoService {
         }
 
         List<MethodCallExpression> callStack = threadState.getCallStack();
-        @NotNull String callStackList = Strings.join(callStack.stream()
+        @NotNull String callStackList = StringUtils.join(callStack.stream()
                 .map(MethodCallExpression::getId)
                 .collect(Collectors.toList()), ",");
 
 
         List<TestCandidateMetadata> candidateStack = threadState.getCandidateStack();
 
-        List<TestCandidateMetadata> dbCandidateStack = candidateStack;
-
-        daoThreadState.setCandidateStack(gson.toJson(dbCandidateStack));
+        daoThreadState.setCandidateStack(objectMapper.writeValueAsString(candidateStack));
 
         daoThreadState.setCallStack(callStackList);
-        daoThreadState.setValueStack(gson.toJson(threadState.getValueStack()));
-        daoThreadState.setNextNewObjectStack(gson.toJson(threadState.getNextNewObjectTypeStack()));
+        daoThreadState.setValueStack(objectMapper.writeValueAsString(threadState.getValueStack()));
+        daoThreadState.setNextNewObjectStack(objectMapper.writeValueAsString(threadState.getNextNewObjectTypeStack()));
         threadStateDao.createOrUpdate(daoThreadState);
     }
 

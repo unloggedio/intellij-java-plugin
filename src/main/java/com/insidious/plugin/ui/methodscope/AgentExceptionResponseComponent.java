@@ -2,6 +2,7 @@ package com.insidious.plugin.ui.methodscope;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
@@ -10,6 +11,9 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.DateUtils;
 import com.insidious.plugin.util.ExceptionUtils;
+import com.insidious.plugin.util.JsonTreeUtils;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -23,14 +27,15 @@ import java.util.stream.Stream;
 
 public class AgentExceptionResponseComponent implements Supplier<Component> {
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final Logger logger = LoggerUtil.getInstance(AgentExceptionResponseComponent.class);
     final private InsidiousService insidiousService;
     final private StoredCandidate testCandidate;
     final private AgentCommandResponse<String> response;
+    private final CandidateLifeListener candidateLifeListener;
     private JPanel mainPanel;
     private JPanel contentPanel;
     private JPanel afterSection;
     private JPanel beforeSection;
-    private CandidateLifeListener candidateLifeListener;
 
     public AgentExceptionResponseComponent(
             StoredCandidate testCandidate,
@@ -113,51 +118,50 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
     }
 
     private ResponseMapTable getModelFor(String s1) {
-        ObjectMapper om = new ObjectMapper();
         try {
-            Map<String, Object> m1;
+            ObjectNode m1;
             if (s1 == null || s1.isEmpty()) {
-                m1 = new TreeMap<>();
+                m1 = objectMapper.createObjectNode();
             } else {
-                m1 = (Map<String, Object>) (om.readValue(s1, Map.class));
-                m1 = flatten(m1);
+                m1 = JsonTreeUtils.flatten(objectMapper.readTree(s1));
             }
             return new ResponseMapTable(m1);
         } catch (Exception e) {
-            System.out.println("Model make Exception: " + e);
+            logger.warn("Model make Exception: ", e);
             e.printStackTrace();
-            Map<String, Object> m1 = new TreeMap<>();
-            m1.put("value", s1);
-            return new ResponseMapTable(m1);
+            ObjectNode newObjectNode = objectMapper.createObjectNode();
+            newObjectNode.put("value", s1);
+            return new ResponseMapTable(newObjectNode);
         }
     }
 
-    public Map<String, Object> flatten(Map<String, Object> map) {
-        return map.entrySet().stream()
-                .flatMap(this::flatten)
-                .collect(LinkedHashMap::new, (m, e) -> m.put("/" + e.getKey(), e.getValue()), LinkedHashMap::putAll);
-    }
+//    public Map<String, Object> flatten(Map<String, Object> map) {
+//        return map.entrySet().stream()
+//                .flatMap(this::flatten)
+//                .collect(LinkedHashMap::new, (m, e) -> m.put("/" + e.getKey(), e.getValue()), LinkedHashMap::putAll);
+//    }
 
-    private Stream<Map.Entry<String, Object>> flatten(Map.Entry<String, Object> entry) {
-        if (entry == null) {
-            return Stream.empty();
-        }
 
-        if (entry.getValue() instanceof Map<?, ?>) {
-            return ((Map<?, ?>) entry.getValue()).entrySet().stream()
-                    .flatMap(e -> flatten(
-                            new AbstractMap.SimpleEntry<>(entry.getKey() + "/" + e.getKey(), e.getValue())));
-        }
-
-        if (entry.getValue() instanceof List<?>) {
-            List<?> list = (List<?>) entry.getValue();
-            return IntStream.range(0, list.size())
-                    .mapToObj(i -> new AbstractMap.SimpleEntry<String, Object>(entry.getKey() + "/" + i, list.get(i)))
-                    .flatMap(this::flatten);
-        }
-
-        return Stream.of(entry);
-    }
+//    private Stream<Map.Entry<String, Object>> flatten(Map.Entry<String, Object> entry) {
+//        if (entry == null) {
+//            return Stream.empty();
+//        }
+//
+//        if (entry.getValue() instanceof Map<?, ?>) {
+//            return ((Map<?, ?>) entry.getValue()).entrySet().stream()
+//                    .flatMap(e -> flatten(
+//                            new AbstractMap.SimpleEntry<>(entry.getKey() + "/" + e.getKey(), e.getValue())));
+//        }
+//
+//        if (entry.getValue() instanceof List<?>) {
+//            List<?> list = (List<?>) entry.getValue();
+//            return IntStream.range(0, list.size())
+//                    .mapToObj(i -> new AbstractMap.SimpleEntry<String, Object>(entry.getKey() + "/" + i, list.get(i)))
+//                    .flatMap(this::flatten);
+//        }
+//
+//        return Stream.of(entry);
+//    }
 
     @Override
     public Component get() {

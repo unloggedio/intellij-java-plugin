@@ -2,7 +2,7 @@ package com.insidious.plugin.pojo.dao;
 
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.pojo.MethodCallExpression;
-import com.insidious.plugin.util.Strings;
+import com.insidious.plugin.util.StringUtils;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
@@ -77,7 +77,7 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
         IncompleteMethodCallExpression methodCallExpression1 = new IncompleteMethodCallExpression(
                 methodCallExpression.getMethodName(),
                 subjectParameterValue,
-                Strings.join(methodCallExpression.getArguments(), ","),
+                StringUtils.join(methodCallExpression.getArguments(), ","),
                 returnParameterValue
         );
         methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe().getEventId());
@@ -89,7 +89,7 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-        methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes(), ","));
+        methodCallExpression1.setArgumentProbes(StringUtils.join(methodCallExpression.getArgumentProbes(), ","));
         if (methodCallExpression.getReturnDataEvent() != null) {
             methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent().getEventId());
         }
@@ -108,7 +108,7 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
         IncompleteMethodCallExpression methodCallExpression1 = new IncompleteMethodCallExpression(
                 methodCallExpression.getMethodName(),
                 subjectParameterValue,
-                Strings.join(methodCallExpression.getArguments(), ","),
+                StringUtils.join(methodCallExpression.getArguments(), ","),
                 returnParameterValue
         );
         methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe().getEventId());
@@ -120,7 +120,7 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
         methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-        methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes()
+        methodCallExpression1.setArgumentProbes(StringUtils.join(methodCallExpression.getArgumentProbes()
                 .stream()
                 .map(DataEventWithSessionId::getEventId)
                 .collect(Collectors.toList()), ","));
@@ -270,13 +270,13 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
         return argsProbeList;
     }
 
-    public String getArgumentProbesString() {
-        return argumentProbes;
-    }
-
     @Override
     public void setArgumentProbes(String argumentProbes) {
         this.argumentProbes = argumentProbes;
+    }
+
+    public String getArgumentProbesString() {
+        return argumentProbes;
     }
 
     @Override

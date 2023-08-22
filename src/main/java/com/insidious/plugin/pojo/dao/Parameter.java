@@ -2,7 +2,7 @@ package com.insidious.plugin.pojo.dao;
 
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.util.Strings;
+import com.insidious.plugin.util.StringUtils;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
@@ -149,7 +149,7 @@ public class Parameter {
         if (names.size() == 0) {
             return;
         }
-        this.names = Strings.join(names.stream().filter(e -> e.length() > 1).collect(Collectors.toList()), ",");
+        this.names = StringUtils.join(names.stream().filter(e -> e.length() > 1).collect(Collectors.toList()), ",");
     }
 
     public long getValue() {

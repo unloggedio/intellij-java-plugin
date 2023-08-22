@@ -1,19 +1,23 @@
 package com.insidious.plugin.ui.Components;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Map;
 
 public class ResponseMapTable extends AbstractTableModel {
     private final String[] columnNames = {
             "Key", "Value"
     };
-    private ArrayList<String> keys = new ArrayList<>();
-    private Map<String, Object> response;
+    private final ArrayList<String> keys = new ArrayList<>();
+    private final ObjectNode response;
 
-    public ResponseMapTable(Map<String, Object> rightOnly) {
+    public ResponseMapTable(ObjectNode rightOnly) {
         this.response = rightOnly;
-        for (String key : response.keySet()) {
+        for (Iterator<String> it = response.fieldNames(); it.hasNext(); ) {
+            String key = it.next();
             keys.add(key);
         }
     }

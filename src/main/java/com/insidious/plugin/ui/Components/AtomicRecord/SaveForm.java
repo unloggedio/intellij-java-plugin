@@ -61,18 +61,18 @@ public class SaveForm {
         candidateExplorerTree = new Tree(getTree());
 
         try {
-            responseNode = objectMapper.readValue(agentCommandResponse.getMethodReturnValue(), JsonNode.class);
+            responseNode = objectMapper.readTree(agentCommandResponse.getMethodReturnValue());
         } catch (JsonProcessingException e) {
             // this shouldn't happen
             throw new RuntimeException(e);
         }
 
         AtomicAssertion existingAssertion = storedCandidate.getTestAssertions();
-        if (existingAssertion == null || existingAssertion.getSubAssertions() == null ||
+        if (existingAssertion == null ||
+                existingAssertion.getSubAssertions() == null ||
                 existingAssertion.getSubAssertions().size() == 0) {
             List<AtomicAssertion> subAssertions = new ArrayList<>();
-            subAssertions.add(
-                    new AtomicAssertion(AssertionType.EQUAL, "/", agentCommandResponse.getMethodReturnValue()));
+            subAssertions.add(new AtomicAssertion(AssertionType.EQUAL, "/", agentCommandResponse.getMethodReturnValue()));
             existingAssertion = new AtomicAssertion(AssertionType.ALLOF, subAssertions);
         }
         ruleEditor = new AssertionBlock(existingAssertion, new AssertionBlockManager() {
@@ -284,6 +284,9 @@ public class SaveForm {
     }
 
     private String getSimpleName(String qualifiedName) {
+        if (qualifiedName == null) {
+            return "";
+        }
         String[] parts = qualifiedName.split("\\.");
         return parts.length > 0 ? parts[parts.length - 1] : qualifiedName;
     }

@@ -68,10 +68,10 @@ public class InsidiousCaretListener implements EditorMouseListener {
             if (method != null) {
                 // Single Window flow update on non gutter method click
                 MethodAdapter methodAdapter = new JavaMethodAdapter(method);
-                long start = new Date().getTime();
-                GutterState state = insidiousService.getGutterStateFor(methodAdapter);
-                long end = new Date().getTime();
-                logger.warn("get gutter state took: " + (end - start) + " ms");
+//                long start = new Date().getTime();
+//                GutterState state = insidiousService.getGutterStateFor(methodAdapter);
+//                long end = new Date().getTime();
+//                logger.warn("get gutter state took: " + (end - start) + " ms");
 //                insidiousService.loadSingleWindowForState(state);
                 insidiousService.methodFocussedHandler(methodAdapter);
                 return;

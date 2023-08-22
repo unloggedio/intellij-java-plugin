@@ -171,42 +171,54 @@ public class AssertionRule {
                 logger.warn("Operator selected: " + selectedItem);
                 switch (selectedItem) {
                     case "is":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.EQUAL);
                         break;
                     case "is not":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.NOT_EQUAL);
                         break;
                     case ">":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.GREATER_THAN);
                         break;
                     case "<":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.LESS_THAN);
                         break;
                     case "<=":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.LESS_THAN_OR_EQUAL);
 
                         break;
                     case ">=":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.GREATER_THAN_OR_EQUAL);
                         break;
 
                     case "is null":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.NULL);
                         break;
                     case "is not null":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.NOT_NULL);
                         break;
                     case "is empty":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.EMPTY);
                         break;
                     case "is not empty":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.NOT_EMPTY);
                         break;
 
                     case "is true":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.TRUE);
                         break;
                     case "is false":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.FALSE);
                         break;
 
@@ -228,30 +240,39 @@ public class AssertionRule {
                         assertion.setAssertionType(AssertionType.NOT_EQUAL);
                         break;
                     case "contains key in object":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.CONTAINS_KEY);
                         break;
                     case "contains item in array":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.CONTAINS_ITEM);
                         break;
                     case "not contains item in array":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.NOT_CONTAINS_ITEM);
                         break;
                     case "contains substring":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.CONTAINS_STRING);
                         break;
                     case "not contains key in object":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.NOT_CONTAINS_KEY);
                         break;
                     case "not contains substring":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.NOT_CONTAINS_STRING);
                         break;
                     case "matches regex":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.MATCHES_REGEX);
                         break;
                     case "not matches regex":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.NOT_MATCHES_REGEX);
                         break;
                     case "equals ignore case":
+                        assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.EQUAL_IGNORE_CASE);
                         break;
 

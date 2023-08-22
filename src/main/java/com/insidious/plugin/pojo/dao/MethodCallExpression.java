@@ -2,7 +2,7 @@ package com.insidious.plugin.pojo.dao;
 
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.pojo.Parameter;
-import com.insidious.plugin.util.Strings;
+import com.insidious.plugin.util.StringUtils;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
@@ -53,26 +53,8 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
     private int threadId;
     @DatabaseField
     private long returnNanoTime;
-
-    public long getCallTimeNano() {
-        return callTimeNano;
-    }
-
-    public void setCallTimeNano(long callTimeNano) {
-        this.callTimeNano = callTimeNano;
-    }
-
-    public long getEnterNanoTime() {
-        return enterNanoTime;
-    }
-
-    public void setEnterNanoTime(long enterNanoTime) {
-        this.enterNanoTime = enterNanoTime;
-    }
-
     @DatabaseField
     private long enterNanoTime;
-
 
     public MethodCallExpression() {
     }
@@ -86,7 +68,7 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
     ) {
         this.methodName = methodName;
         this.subject_id = subject;
-        this.arguments = Strings.join(arguments, ",");
+        this.arguments = StringUtils.join(arguments, ",");
         this.returnValue_id = returnValue_id;
         this.callStack = callStack;
     }
@@ -120,7 +102,7 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-        methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes()
+        methodCallExpression1.setArgumentProbes(StringUtils.join(methodCallExpression.getArgumentProbes()
                 .stream()
                 .map(DataEventWithSessionId::getEventId)
                 .collect(Collectors.toList()), ","));
@@ -187,7 +169,6 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         return methodCallExpression1;
     }
 
-
     public static com.insidious.plugin.pojo.MethodCallExpression ToMCEFromDao(MethodCallExpressionInterface methodCallExpression) {
         com.insidious.plugin.pojo.MethodCallExpression methodCallExpression1 = new com.insidious.plugin.pojo.MethodCallExpression(
                 methodCallExpression.getMethodName(), null, new LinkedList<>(), null, 0
@@ -201,6 +182,22 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
         return methodCallExpression1;
+    }
+
+    public long getCallTimeNano() {
+        return callTimeNano;
+    }
+
+    public void setCallTimeNano(long callTimeNano) {
+        this.callTimeNano = callTimeNano;
+    }
+
+    public long getEnterNanoTime() {
+        return enterNanoTime;
+    }
+
+    public void setEnterNanoTime(long enterNanoTime) {
+        this.enterNanoTime = enterNanoTime;
     }
 
     public long getId() {
@@ -386,12 +383,12 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
                 '}';
     }
 
+    public long getReturnNanoTime() {
+        return returnNanoTime;
+    }
+
     public void setReturnNanoTime(long returnNanoTime) {
         this.returnNanoTime = returnNanoTime;
         this.callTimeNano = returnNanoTime - enterNanoTime;
-    }
-
-    public long getReturnNanoTime() {
-        return returnNanoTime;
     }
 }

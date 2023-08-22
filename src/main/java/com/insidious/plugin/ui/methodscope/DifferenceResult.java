@@ -1,6 +1,5 @@
 package com.insidious.plugin.ui.methodscope;
 
-import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 

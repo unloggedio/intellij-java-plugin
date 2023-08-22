@@ -2285,6 +2285,7 @@ public class SessionInstance implements Runnable {
 //            eventProperties.put("session_folder_size", (size_folder / 1000000));
 //            UsageInsightTracker.getInstance().RecordEvent("ScanMetrics", eventProperties);
         } catch (Exception e) {
+            e.printStackTrace();
             logger.warn("Exception in scan and build session", e);
             JSONObject properties = new JSONObject();
             properties.put("project", this.project.getName());

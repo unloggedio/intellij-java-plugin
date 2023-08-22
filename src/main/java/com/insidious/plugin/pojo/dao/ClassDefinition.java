@@ -1,7 +1,7 @@
 package com.insidious.plugin.pojo.dao;
 
 import com.insidious.common.weaver.ClassInfo;
-import com.insidious.plugin.util.Strings;
+import com.insidious.plugin.util.StringUtils;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
@@ -61,7 +61,7 @@ public class ClassDefinition {
         classDefinition.setContainer(e.getContainer());
         classDefinition.setLoglevel(e.getLoglevel()
                 .toString());
-        classDefinition.setInterfaceList(Strings.join(Arrays.asList(e.getInterfaces()), ","));
+        classDefinition.setInterfaceList(StringUtils.join(Arrays.asList(e.getInterfaces()), ","));
         classDefinition.setSuperName(e.getSuperName());
         classDefinition.setSignature(e.getClassName());
 
