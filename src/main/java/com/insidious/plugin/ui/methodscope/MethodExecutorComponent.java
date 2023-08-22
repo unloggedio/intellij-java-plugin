@@ -1,6 +1,5 @@
 package com.insidious.plugin.ui.methodscope;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
@@ -45,7 +44,6 @@ import java.util.stream.Collectors;
 
 public class MethodExecutorComponent implements MethodExecutionListener, CandidateSelectedListener, CandidateLifeListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
     private final InsidiousService insidiousService;
     private final Map<Long, AgentCommandResponse<String>> candidateResponseMap = new HashMap<>();
     private final JPanel gridPanel;
@@ -59,12 +57,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     private JLabel candidateCountLabel;
     private JPanel diffContentPanel;
     private JPanel topPanel;
-    //    private JPanel centerPanel;
     private JPanel centerParent;
     private JPanel topAligner;
     private JScrollPane scrollParent;
     private JPanel controlsPanel;
-    //    private JPanel filterButtonGroupPanel;
     private int callCount = 0;
     private SaveForm saveFormReference;
     private CandidateFilterType candidateFilterType = CandidateFilterType.METHOD;
@@ -199,10 +195,11 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     public void executeAll() {
         clearBottomPanel();
         List<StoredCandidate> methodTestCandidates = getCandidatesFromComponents();
+        String methodName = methodElement.getName();
         if (methodTestCandidates.size() == 0) {
             InsidiousNotification.notifyMessage(
                     "Please use the agent to record values for replay. " +
-                            "No candidates found for " + methodElement.getName(),
+                            "No candidates found for " + methodName,
                     NotificationType.WARNING
             );
             return;
@@ -213,7 +210,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
             ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass1 -> {
                 eventProperties.put("className", psiClass1.getQualifiedName());
-                eventProperties.put("methodName", methodElement.getName());
+                eventProperties.put("methodName", methodName);
                 UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
 
                 callCount = methodTestCandidates.size();
@@ -317,6 +314,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     private void refreshCoverageData() {
+
         Map<Boolean, List<StoredCandidate>> coveredLinesMap = candidateComponentMap.values()
                 .stream()
                 .map(TestCandidateListedItemComponent::getCandidateMetadata)
@@ -345,7 +343,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         Set<Integer> linesToHighlight = new HashSet<>();
         linesToHighlight.addAll(savedLineCovered);
         linesToHighlight.addAll(unsavedLineCovered);
-        insidiousService.highlightLines(linesToHighlight);
+        HighlightedRequest highlightedRequest = new HighlightedRequest(methodUnderTest, linesToHighlight);
+        insidiousService.highlightLines(highlightedRequest);
     }
 
     public List<ArgumentNameValuePair> generateParameterList(ParameterAdapter[] parameters) {
@@ -655,9 +654,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     @Override
     public void onDeleted(StoredCandidate storedCandidate) {
         insidiousService.getAtomicRecordService().deleteStoredCandidate(
-                methodElement.getContainingClass().getQualifiedName(),
-                methodElement.getName() + "#" + methodElement.getJVMSignature(),
-                storedCandidate.getCandidateId());
+                methodUnderTest.getClassName(), methodUnderTest.getMethodHashKey(), storedCandidate.getCandidateId());
         TestCandidateListedItemComponent testCandidateListedItemComponent = candidateComponentMap.get(
                 storedCandidate.getEntryProbeIndex());
         JPanel candidateComponent = testCandidateListedItemComponent.getComponent();

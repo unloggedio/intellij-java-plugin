@@ -19,7 +19,6 @@ import javax.swing.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class LineHighlighter implements LineMarkerProvider {
@@ -40,15 +39,7 @@ public class LineHighlighter implements LineMarkerProvider {
 
         if (element instanceof PsiIdentifier && element.getParent() instanceof PsiMethod) {
 
-//            Matcher fileMatcher = testFileNamePattern.matcher(element.getContainingFile().getName());
-//            if (fileMatcher.matches()) {
-//                return null;
-//            }
             PsiMethod psiMethod = (PsiMethod) element.getParent();
-//            Matcher methodMatcher = testMethodNamePattern.matcher(element.getText());
-//            if (methodMatcher.matches()) {
-//                return null;
-//            }
             if (psiMethod.isConstructor()) {
                 return null;
             }

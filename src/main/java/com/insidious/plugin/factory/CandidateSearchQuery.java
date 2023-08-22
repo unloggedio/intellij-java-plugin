@@ -1,45 +1,38 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
 
 import java.util.List;
 
 public class CandidateSearchQuery {
     private final boolean loadCalls;
+    MethodUnderTest methodUnderTest;
     private List<String> interfaceNames;
-    private String className;
-    private String methodName;
-    private String methodSignature;
     private String argumentsDescriptor;
     private CandidateFilterType candidateFilterType;
+
     public CandidateSearchQuery(
-            String className,
-            String methodName,
-            String methodSignature,
+            MethodUnderTest methodUnderTest,
             String argumentsDescriptor,
             List<String> interfaceNames,
             CandidateFilterType candidateFilterType,
             boolean loadCalls
     ) {
-        this.className = className;
-        this.methodName = methodName;
-        this.methodSignature = methodSignature;
+        this.methodUnderTest = methodUnderTest;
         this.argumentsDescriptor = argumentsDescriptor;
         this.interfaceNames = interfaceNames;
         this.candidateFilterType = candidateFilterType;
         this.loadCalls = loadCalls;
     }
+
     public CandidateSearchQuery(
-            String className,
-            String methodName,
-            String methodSignature,
+            MethodUnderTest methodUnderTest,
             String argumentsDescriptor,
             List<String> interfaceNames
     ) {
-        this.className = className;
-        this.methodName = methodName;
-        this.methodSignature = methodSignature;
+        this.methodUnderTest = methodUnderTest;
         this.argumentsDescriptor = argumentsDescriptor;
         this.interfaceNames = interfaceNames;
         this.candidateFilterType = CandidateFilterType.METHOD;
@@ -51,9 +44,7 @@ public class CandidateSearchQuery {
                                                   String argumentsDescriptor) {
 
         return new CandidateSearchQuery(
-                focussedMethod.getContainingClass().getQualifiedName(),
-                focussedMethod.getName(),
-                focussedMethod.getJVMSignature(),
+                MethodUnderTest.fromMethodAdapter(focussedMethod),
                 argumentsDescriptor,
                 interfaceQualifiedNamesWithSameMethod
         );
@@ -67,9 +58,7 @@ public class CandidateSearchQuery {
             boolean loadCalls
     ) {
         return new CandidateSearchQuery(
-                focussedMethod.getContainingClass().getQualifiedName(),
-                focussedMethod.getName(),
-                focussedMethod.getJVMSignature(),
+                MethodUnderTest.fromMethodAdapter(focussedMethod),
                 methodArgsDescriptor,
                 interfacesWithSameSignature,
                 candidateFilterType,
@@ -77,21 +66,23 @@ public class CandidateSearchQuery {
         );
     }
 
-    public boolean isLoadCalls() {
-        return loadCalls;
-    }
-
     public static CandidateSearchQuery cloneWithNewClassName(CandidateSearchQuery candidateSearchQuery, String interfaceName) {
+        MethodUnderTest existingMethodUnderTest = candidateSearchQuery.methodUnderTest;
+        MethodUnderTest newMethodUnderTest = new MethodUnderTest(existingMethodUnderTest.getName(),
+                existingMethodUnderTest.getSignature(),
+                existingMethodUnderTest.getMethodHash(), interfaceName);
         return new CandidateSearchQuery(
-                interfaceName,
-                candidateSearchQuery.methodName,
-                candidateSearchQuery.methodSignature,
+                newMethodUnderTest,
                 candidateSearchQuery.argumentsDescriptor,
                 candidateSearchQuery.interfaceNames,
                 candidateSearchQuery.candidateFilterType,
                 candidateSearchQuery.loadCalls
         );
 
+    }
+
+    public boolean isLoadCalls() {
+        return loadCalls;
     }
 
     public List<String> getInterfaceNames() {
@@ -103,17 +94,17 @@ public class CandidateSearchQuery {
     }
 
     public String getClassName() {
-        return className;
+        return methodUnderTest.getClassName();
     }
 
 
     public String getMethodName() {
-        return methodName;
+        return methodUnderTest.getName();
     }
 
 
     public String getMethodSignature() {
-        return methodSignature;
+        return methodUnderTest.getSignature();
     }
 
 

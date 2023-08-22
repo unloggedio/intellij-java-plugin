@@ -9,18 +9,19 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.Descriptor;
 import com.insidious.common.weaver.EventType;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.FieldAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.adapter.java.JavaClassAdapter;
+import com.insidious.plugin.assertions.AssertionType;
+import com.insidious.plugin.assertions.TestAssertion;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.JavaParserUtils;
 import com.insidious.plugin.factory.UsageInsightTracker;
-import com.insidious.plugin.assertions.TestAssertion;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
@@ -30,7 +31,6 @@ import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
-import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
@@ -124,7 +124,7 @@ public class TestCaseDesigner implements Disposable {
             String saveLocation = saveLocationTextField.getText();
             InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
             try {
-                insidiousService.ensureTestUtilClass(basePath);
+                insidiousService.getJUnitTestCaseWriter().ensureTestUtilClass(basePath);
             } catch (IOException ex) {
                 throw new RuntimeException(ex);
             }
@@ -272,7 +272,7 @@ public class TestCaseDesigner implements Disposable {
                 containingFile.getVirtualFile().getPath().contains("/test/")) {
             return;
         }
-        basePath = insidiousService.getBasePathForVirtualFile(containingFile.getVirtualFile());
+        basePath = insidiousService.getJUnitTestCaseWriter().getBasePathForVirtualFile(containingFile.getVirtualFile());
         if (basePath == null) {
             basePath = currentMethod.getProject().getBasePath();
         }
@@ -347,7 +347,8 @@ public class TestCaseDesigner implements Disposable {
 
                     PsiJavaFileImpl containingFile = currentClass.getContainingFile();
                     String packageName = containingFile.getPackageName();
-                    String testOutputDirPath = insidiousService.getTestDirectory(packageName, basePath);
+                    String testOutputDirPath = insidiousService.getJUnitTestCaseWriter()
+                            .getTestDirectory(packageName, basePath);
 
                     saveLocationTextField.setText(testOutputDirPath + "/Test" + currentClass.getName() + "V.java");
                 }

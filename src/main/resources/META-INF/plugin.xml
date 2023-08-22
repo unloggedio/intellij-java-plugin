@@ -179,11 +179,11 @@
         <codeInsight.inlayProvider implementationClass="com.insidious.plugin.inlay.InsidiousInlayHintsProvider"
                                    language="JAVA"/>
 
-<!--        <coverageEngine implementation="com.insidious.plugin.coverage.InsidiousCoverageEngine"-->
-<!--                        id="insidiousCoverageEngine"/>-->
+        <!--        <coverageEngine implementation="com.insidious.plugin.coverage.InsidiousCoverageEngine"-->
+        <!--                        id="insidiousCoverageEngine"/>-->
     </extensions>
     <projectListeners>
-        <listener class="com.insidious.plugin.factory.InsidiousService"
-                  topic="com.intellij.openapi.vcs.BranchChangeListener"/>
+        <listener class="com.insidious.plugin.factory.InsidiousToolWindowManagerListener"
+                  topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
     </projectListeners>
 </idea-plugin>

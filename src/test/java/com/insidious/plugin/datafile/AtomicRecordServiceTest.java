@@ -1,8 +1,12 @@
 package com.insidious.plugin.datafile;
 
+import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -50,7 +54,15 @@ public class AtomicRecordServiceTest {
         List<String> arguments = new ArrayList<>();
         arguments.add("1");
 
-        StoredCandidate candidate = new StoredCandidate();
+        TestCandidateMetadata candidateMetadata = new TestCandidateMetadata();
+        Parameter returnValue = new Parameter();
+        returnValue.setProb(new DataEventWithSessionId());
+        MethodCallExpression methodCallExpression = new MethodCallExpression("method",
+                new Parameter(), new ArrayList<>(), returnValue, 0);
+        methodCallExpression.setReturnDataEvent(new DataEventWithSessionId());
+        methodCallExpression.setEntryProbe(new DataEventWithSessionId());
+        candidateMetadata.setMainMethod(methodCallExpression);
+        StoredCandidate candidate = new StoredCandidate(candidateMetadata);
         candidate.setCandidateId(UUID.randomUUID().toString());
         candidate.setName("Candidate1");
         candidate.setDescription("Description 1");
@@ -62,18 +74,28 @@ public class AtomicRecordServiceTest {
         metadata.setTimestamp(System.currentTimeMillis());
         candidate.setMetadata(metadata);
 
-        atomicRecordService.saveCandidate(new MethodUnderTest(methodName, methodSignature, 0, classname), candidate);
+        MethodUnderTest methodUnderTest3 = new MethodUnderTest(methodName, methodSignature, 0, classname);
+        atomicRecordService.saveCandidate(methodUnderTest3, candidate);
         //make sure new record is added
         Assertions.assertEquals("Candidate1",
                 atomicRecordService.getStoredRecords().get(classname)
-                        .getStoredCandidateMap().get(methodName + "#" + methodSignature).get(0).getName());
+                        .getStoredCandidateMap().get(methodUnderTest3.getMethodHashKey()).get(0).getName());
         //get map from file
         Assertions.assertEquals("Candidate1",
                 atomicRecordService.updateMap().get(classname)
-                        .getStoredCandidateMap().get(methodName + "#" + methodSignature).get(0).getName());
+                        .getStoredCandidateMap().get(methodUnderTest3.getMethodHashKey()).get(0).getName());
 
         //replace existing candidate
-        candidate = new StoredCandidate();
+        TestCandidateMetadata candidateMetadata1 = new TestCandidateMetadata();
+        Parameter returnValue1 = new Parameter();
+        returnValue.setProb(new DataEventWithSessionId());
+        MethodCallExpression methodCallExpression1 = new MethodCallExpression("method",
+                new Parameter(), new ArrayList<>(), returnValue1, 0);
+        methodCallExpression1.setReturnDataEvent(new DataEventWithSessionId());
+        methodCallExpression1.setEntryProbe(new DataEventWithSessionId());
+        candidateMetadata1.setMainMethod(methodCallExpression);
+
+        candidate = new StoredCandidate(candidateMetadata1);
         candidate.setCandidateId(UUID.randomUUID().toString());
         candidate.setName("Candidate1_New");
         candidate.setDescription("Description 1 new");
@@ -85,17 +107,32 @@ public class AtomicRecordServiceTest {
         metadata.setTimestamp(System.currentTimeMillis());
         candidate.setMetadata(metadata);
 
-        atomicRecordService.saveCandidate(new MethodUnderTest(methodName, methodSignature, 0, classname), candidate);
+        MethodUnderTest methodUnderTest4 = new MethodUnderTest(methodName, methodSignature, 0, classname);
+        atomicRecordService.saveCandidate(methodUnderTest4, candidate);
 
         //length should be 1
         Assertions.assertEquals(1,
                 atomicRecordService.getStoredRecords().get(classname)
-                        .getStoredCandidateMap().get(methodName + "#" + methodSignature).size());
+                        .getStoredCandidateMap().get(methodUnderTest4.getMethodHashKey()).size());
 
         //add new method map to same class
         methodName = "methodB";
         methodSignature = "SignB";
-        candidate = new StoredCandidate();
+
+        TestCandidateMetadata candidateMetadata2 = new TestCandidateMetadata();
+        Parameter returnValue2 = new Parameter();
+        returnValue.setProb(new DataEventWithSessionId());
+        MethodCallExpression methodCallExpression2 = new MethodCallExpression("method",
+                new Parameter(), new ArrayList<>(), returnValue2, 0);
+        methodCallExpression2.setReturnDataEvent(new DataEventWithSessionId());
+        methodCallExpression2.setEntryProbe(new DataEventWithSessionId());
+        Parameter returnValue3 = new Parameter();
+        returnValue3.setProb(new DataEventWithSessionId());
+        methodCallExpression2.setReturnValue(returnValue3);
+        candidateMetadata2.setMainMethod(methodCallExpression2);
+
+
+        candidate = new StoredCandidate(candidateMetadata2);
         candidate.setCandidateId(UUID.randomUUID().toString());
         candidate.setName("Candidate2");
         candidate.setDescription("Description 2 new");
@@ -107,46 +144,45 @@ public class AtomicRecordServiceTest {
         metadata.setTimestamp(System.currentTimeMillis());
         candidate.setMetadata(metadata);
 
-        atomicRecordService.saveCandidate(new MethodUnderTest(methodName, methodSignature, 0, classname), candidate);
+        MethodUnderTest methodUnderTest = new MethodUnderTest(methodName, methodSignature, 0, classname);
+        atomicRecordService.saveCandidate(methodUnderTest, candidate);
         Assertions.assertEquals(2,
-                atomicRecordService.getStoredRecords().get(classname)
-                        .getStoredCandidateMap().size());
+                atomicRecordService.getStoredRecords().get(classname).getStoredCandidateMap().size());
 
-        CandidateSearchQuery query = new CandidateSearchQuery(classname, methodName, methodSignature, "", List.of());
+        CandidateSearchQuery query = new CandidateSearchQuery(methodUnderTest, "", List.of());
 
         //test hasStoredCandidates
-        boolean hasCandidates = atomicRecordService.hasStoredCandidateForMethod(query);
+        boolean hasCandidates = atomicRecordService.hasStoredCandidateForMethod(methodUnderTest);
         //true case
         Assertions.assertTrue(hasCandidates);
 
         //false case
-        CandidateSearchQuery query2 = new CandidateSearchQuery(classname, methodName, "1" + methodSignature, "",
-                List.of());
-        hasCandidates = atomicRecordService.hasStoredCandidateForMethod(query2);
+        MethodUnderTest methodUnderTest2 = new MethodUnderTest(methodName, "1" + methodSignature, 0, classname);
+        hasCandidates = atomicRecordService.hasStoredCandidateForMethod(methodUnderTest2);
         Assertions.assertFalse(hasCandidates);
 
         //get candidates case
 
         //positive case
-        List<StoredCandidate> candidateList = atomicRecordService.getStoredCandidatesForMethod(query);
+        List<StoredCandidate> candidateList = atomicRecordService.getStoredCandidatesForMethod(methodUnderTest);
         Assertions.assertEquals(1, candidateList.size());
 
         //negative case
-        candidateList = atomicRecordService.getStoredCandidatesForMethod(query2);
+        candidateList = atomicRecordService.getStoredCandidatesForMethod(methodUnderTest2);
         Assertions.assertEquals(List.of(), candidateList);
 
         //compute gutter status
         //data available state
-        GutterState state = atomicRecordService.computeGutterState(new MethodUnderTest(methodName, methodSignature,
-                1235, classname));
+        MethodUnderTest method = new MethodUnderTest(methodName, methodSignature, 1235, classname);
+        GutterState state = atomicRecordService.computeGutterState(method);
         Assertions.assertEquals(GutterState.DATA_AVAILABLE, state);
 
         //test update gutter status flow
         atomicRecordService.setCandidateStateForCandidate(candidate.getCandidateId(), classname,
-                methodName + "#" + methodSignature, StoredCandidateMetadata.CandidateStatus.PASSING);
+                method.getMethodHashKey(), StoredCandidateMetadata.CandidateStatus.PASSING);
 
         StoredCandidateMetadata.CandidateStatus savedStatus = atomicRecordService.getStoredRecords().get(classname)
-                .getStoredCandidateMap().get(methodName + "#" + methodSignature).get(0).getMetadata()
+                .getStoredCandidateMap().get(method.getMethodHashKey()).get(0).getMetadata()
                 .getCandidateStatus();
 
         Assertions.assertEquals(StoredCandidateMetadata.CandidateStatus.PASSING, savedStatus);
@@ -158,14 +194,15 @@ public class AtomicRecordServiceTest {
 
         //diff state
         atomicRecordService.setCandidateStateForCandidate(candidate.getCandidateId(), classname,
-                methodName + "#" + methodSignature, StoredCandidateMetadata.CandidateStatus.FAILING);
+                method.getMethodHashKey(), StoredCandidateMetadata.CandidateStatus.FAILING);
         state = atomicRecordService.computeGutterState(new MethodUnderTest(methodName, methodSignature,
                 1235, classname));
         Assertions.assertEquals(GutterState.DIFF, state);
 
         //code changed state
-        state = atomicRecordService.computeGutterState(new MethodUnderTest(methodName, methodSignature,
-                12345, classname));
+        MethodUnderTest method1 = new MethodUnderTest(methodName, methodSignature,
+                12345, classname);
+        state = atomicRecordService.computeGutterState(method1);
         Assertions.assertEquals(GutterState.EXECUTE, state);
 
         //test writeall sync
@@ -173,15 +210,15 @@ public class AtomicRecordServiceTest {
         atomicRecordService.writeAll();
         Assertions.assertEquals(StoredCandidateMetadata.CandidateStatus.FAILING,
                 atomicRecordService.updateMap().get(classname)
-                        .getStoredCandidateMap().get(methodName + "#" + methodSignature).get(0).getMetadata()
+                        .getStoredCandidateMap().get(method1.getMethodHashKey()).get(0).getMetadata()
                         .getCandidateStatus());
 
         //test delete flow
-        atomicRecordService.deleteStoredCandidate(classname, methodName + "#" + methodSignature,
+        atomicRecordService.deleteStoredCandidate(classname, method1.getMethodHashKey(),
                 candidate.getCandidateId());
         Assertions.assertEquals(0,
                 atomicRecordService.getStoredRecords().get(classname)
-                        .getStoredCandidateMap().get(methodName + "#" + methodSignature).size());
+                        .getStoredCandidateMap().get(method1.getMethodHashKey()).size());
 
         //add new candidate to existing method
         methodName = "methodA";
@@ -190,7 +227,20 @@ public class AtomicRecordServiceTest {
         arguments = new ArrayList<>();
         arguments.add("2");
 
-        candidate = new StoredCandidate();
+
+        TestCandidateMetadata candidateMetadata4 = new TestCandidateMetadata();
+        Parameter returnValue4 = new Parameter();
+        returnValue.setProb(new DataEventWithSessionId());
+        MethodCallExpression methodCallExpression4 = new MethodCallExpression("method",
+                new Parameter(), new ArrayList<>(), returnValue4, 0);
+        methodCallExpression4.setReturnDataEvent(new DataEventWithSessionId());
+        methodCallExpression4.setEntryProbe(new DataEventWithSessionId());
+        Parameter returnValue5 = new Parameter();
+        returnValue5.setProb(new DataEventWithSessionId());
+        methodCallExpression4.setReturnValue(returnValue5);
+        candidateMetadata4.setMainMethod(methodCallExpression4);
+
+        candidate = new StoredCandidate(candidateMetadata4);
         candidate.setCandidateId(UUID.randomUUID().toString());
         candidate.setName("Candidate1_New");
         candidate.setDescription("Description 1 new");
@@ -202,39 +252,40 @@ public class AtomicRecordServiceTest {
         metadata.setTimestamp(System.currentTimeMillis());
         candidate.setMetadata(metadata);
 
-        atomicRecordService.saveCandidate(new MethodUnderTest(methodName, methodSignature, 0, classname), candidate);
+        MethodUnderTest methodUnderTest1 = new MethodUnderTest(methodName, methodSignature, 0, classname);
+        atomicRecordService.saveCandidate(methodUnderTest1, candidate);
 
         //length should be 2
         Assertions.assertEquals(2,
                 atomicRecordService.getStoredRecords().get(classname)
-                        .getStoredCandidateMap().get(methodName + "#" + methodSignature).size());
+                        .getStoredCandidateMap().get(methodUnderTest1.getMethodHashKey()).size());
     }
 
     @Test
     public void testExceptionMessage() {
         //add flow
-        Assertions.assertEquals("Added Record.",
+        Assertions.assertEquals("Added test candidate",
                 atomicRecordService.getMessageForOperationType
                         (AtomicRecordService.FileUpdateType.ADD, true));
-        Assertions.assertEquals("Failed to add record." +
+        Assertions.assertEquals("Failed to add test candidate" +
                         "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                 atomicRecordService.getMessageForOperationType
                         (AtomicRecordService.FileUpdateType.ADD, false));
 
         //update flow
-        Assertions.assertEquals("Updated Record.",
+        Assertions.assertEquals("Updated test candidate",
                 atomicRecordService.getMessageForOperationType
                         (AtomicRecordService.FileUpdateType.UPDATE, true));
-        Assertions.assertEquals("Failed to update record." +
+        Assertions.assertEquals("Failed to update test candidate" +
                         "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                 atomicRecordService.getMessageForOperationType
                         (AtomicRecordService.FileUpdateType.UPDATE, false));
 
         //delete flow
-        Assertions.assertEquals("Deleted Record.",
+        Assertions.assertEquals("Deleted test candidate",
                 atomicRecordService.getMessageForOperationType
                         (AtomicRecordService.FileUpdateType.DELETE, true));
-        Assertions.assertEquals("Failed to delete record." +
+        Assertions.assertEquals("Failed to delete test candidate" +
                         "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                 atomicRecordService.getMessageForOperationType
                         (AtomicRecordService.FileUpdateType.DELETE, false));
@@ -254,7 +305,19 @@ public class AtomicRecordServiceTest {
         Map<String, List<StoredCandidate>> candidates = new TreeMap<>();
         String key1 = "A#a";
         List<StoredCandidate> storedCandidateList = new ArrayList<>();
-        StoredCandidate candidate = new StoredCandidate();
+        TestCandidateMetadata candidateMetadata = new TestCandidateMetadata();
+        Parameter returnValue = new Parameter();
+        returnValue.setProb(new DataEventWithSessionId());
+
+        MethodCallExpression methodCallExpression = new MethodCallExpression("method",
+                new Parameter(), new ArrayList<>(), returnValue, 0);
+
+        methodCallExpression.setReturnDataEvent(new DataEventWithSessionId());
+        methodCallExpression.setEntryProbe(new DataEventWithSessionId());
+        candidateMetadata.setMainMethod(methodCallExpression);
+
+
+        StoredCandidate candidate = new StoredCandidate(candidateMetadata);
         candidate.setCandidateId(UUID.randomUUID().toString());
         candidate.setName("Candidate1");
         candidate.setDescription("Description 1");
@@ -268,7 +331,17 @@ public class AtomicRecordServiceTest {
 
         storedCandidateList.add(candidate);
 
-        candidate = new StoredCandidate();
+        TestCandidateMetadata candidateMetadata1 = new TestCandidateMetadata();
+        Parameter returnValue1 = new Parameter();
+        returnValue.setProb(new DataEventWithSessionId());
+        MethodCallExpression methodCallExpression1 = new MethodCallExpression("method",
+                new Parameter(), new ArrayList<>(), returnValue1, 0);
+        methodCallExpression1.setReturnDataEvent(new DataEventWithSessionId());
+        methodCallExpression1.setEntryProbe(new DataEventWithSessionId());
+        candidateMetadata1.setMainMethod(methodCallExpression);
+
+
+        candidate = new StoredCandidate(candidateMetadata1);
         candidate.setCandidateId(UUID.randomUUID().toString());
         candidate.setName("Candidate11");
         candidate.setDescription("Description 11");
@@ -285,7 +358,20 @@ public class AtomicRecordServiceTest {
 
         String key2 = "B#b";
 
-        candidate = new StoredCandidate();
+
+        TestCandidateMetadata candidateMetadata4 = new TestCandidateMetadata();
+        Parameter returnValue4 = new Parameter();
+        returnValue.setProb(new DataEventWithSessionId());
+        MethodCallExpression methodCallExpression4 = new MethodCallExpression("method",
+                new Parameter(), new ArrayList<>(), returnValue4, 0);
+        methodCallExpression4.setReturnDataEvent(new DataEventWithSessionId());
+        methodCallExpression4.setEntryProbe(new DataEventWithSessionId());
+        Parameter returnValue5 = new Parameter();
+        returnValue5.setProb(new DataEventWithSessionId());
+        methodCallExpression4.setReturnValue(returnValue5);
+        candidateMetadata4.setMainMethod(methodCallExpression4);
+
+        candidate = new StoredCandidate(candidateMetadata4);
         candidate.setCandidateId(UUID.randomUUID().toString());
         candidate.setName("Candidate11");
         candidate.setDescription("Description 11");
@@ -324,13 +410,12 @@ public class AtomicRecordServiceTest {
 
     @Test
     public void testCandidateFetchForNonMehtodsnotStored() {
-        CandidateSearchQuery query = new CandidateSearchQuery("someclass", "some", "method", "", null);
-        boolean hasCandidates = atomicRecordService
-                .hasStoredCandidateForMethod(query);
+        MethodUnderTest methodUnderTest = new MethodUnderTest("some", "signature", 123, "someclass");
+
+        boolean hasCandidates = atomicRecordService.hasStoredCandidateForMethod(methodUnderTest);
         Assertions.assertEquals(false, hasCandidates);
 
-        List<StoredCandidate> candidates = atomicRecordService
-                .getStoredCandidatesForMethod(query);
+        List<StoredCandidate> candidates = atomicRecordService.getStoredCandidatesForMethod(methodUnderTest);
         Assertions.assertEquals(List.of(), candidates);
     }
 

@@ -2,7 +2,10 @@ package com.insidious.plugin.pojo.atomic;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+
+import java.util.Objects;
 
 public class MethodUnderTest {
     String name;
@@ -34,6 +37,12 @@ public class MethodUnderTest {
                 testCandidateMetadata.getMainMethod().getMethodName(), null, 0,
                 testCandidateMetadata.getFullyQualifiedClassname());
     }
+
+    public static MethodUnderTest fromCandidateSearchQuery(CandidateSearchQuery candidateSearchQuery) {
+        return new MethodUnderTest(candidateSearchQuery.getMethodName(),
+                candidateSearchQuery.getMethodSignature(), 0, candidateSearchQuery.getClassName());
+    }
+
 
     public String getName() {
         return name;
@@ -69,14 +78,27 @@ public class MethodUnderTest {
 
     @Override
     public String toString() {
-        return "Method{" +
+        return "MethodUnderTest{" +
                 className + "." + name + "(" + signature + ") " + methodHash +
                 '}';
     }
 
     @JsonIgnore
-    public String getMethodKey() {
-        return name + "#" + signature;
+    public String getMethodHashKey() {
+        return className + "#" + name + "#" + signature;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MethodUnderTest that = (MethodUnderTest) o;
+        return methodHash == that.methodHash && name.equals(that.name) && signature.equals(
+                that.signature) && className.equals(that.className);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, signature, className, methodHash);
+    }
 }

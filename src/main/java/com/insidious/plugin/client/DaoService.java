@@ -609,8 +609,7 @@ public class DaoService {
                 }
                 paramArgument.setProbeInfo(probeInfo);
 
-                String paramArgTypeFromProbe = probeInfo.getAttribute("Type", probeInfo.getValueDesc()
-                        .getString());
+                String paramArgTypeFromProbe = probeInfo.getAttribute("Type", probeInfo.getValueDesc().getString());
                 String argumentTypeFromProbe = ClassTypeUtils.getDottedClassName(paramArgTypeFromProbe);
                 // only set param type if the type is not already null or empty
                 String existingType = paramArgument.getType();
@@ -654,8 +653,7 @@ public class DaoService {
             String returnParamType = returnParam.getType();
             if ((returnParamType == null || returnParamType.equals("") || returnParam.isPrimitiveType())
                     && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
-                returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc()
-                        .getString()));
+                returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc().getString()));
             }
             if (returnParam.getType() != null && returnParam.getType()
                     .contains("$HibernateProxy")) {

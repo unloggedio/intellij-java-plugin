@@ -3,14 +3,12 @@ package com.insidious.plugin.util;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.intellij.openapi.util.IconLoader;
+import com.intellij.ui.Gray;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.IconUtil;
 
 import javax.swing.*;
-import javax.swing.border.Border;
-import javax.swing.plaf.basic.BasicSplitPaneDivider;
-import javax.swing.plaf.basic.BasicSplitPaneUI;
 import java.awt.*;
 
 public class UIUtils {
@@ -33,27 +31,32 @@ public class UIUtils {
     public static final Icon SAVE_CANDIDATE_GREY = IconLoader.getIcon("/icons/png/save_candidate.png", UIUtils.class);
     public static final Icon SAVE_CANDIDATE_PINK = IconLoader.getIcon("/icons/png/save-line-pink.png", UIUtils.class);
     public static final Icon SAVE_CANDIDATE_GREEN_SVG = IconLoader.getIcon("/icons/svg/save-line.svg", UIUtils.class);
-    public static final Icon DELETE_CANDIDATE_RED_SVG = IconLoader.getIcon("/icons/svg/delete-bin-6-line.svg", UIUtils.class);
+    public static final Icon DELETE_CANDIDATE_RED_SVG = IconLoader.getIcon("/icons/svg/delete-bin-6-line.svg",
+            UIUtils.class);
     public static final Icon REPLAY_PINK = IconLoader.getIcon("/icons/svg/replay-all-pink.svg", UIUtils.class);
     public static final Icon ICON_EXECUTE_METHOD = IconLoader.getIcon("/icons/play.png", UIUtils.class);
     public static final Icon ICON_EXECUTE_METHOD_SMALLER = IconUtil.scale(ICON_EXECUTE_METHOD, null,
             JBUIScale.scale(16.0f) / ICON_EXECUTE_METHOD.getIconWidth());
-    public static Color teal = new Color(1, 204, 245);
-    public static Color pink = new Color(254, 100, 216);
-    public static Color red = new Color(245, 101, 101);
-    public static Color green = new Color(56, 161, 105);
-    public static Color yellow_alert = new Color(225, 163, 54);
-    public static Color orange = new Color(221, 107, 32);
-    public static Color defaultForeground = new Color(187, 187, 187);
-    public static Color NeutralGrey = new Color(81, 85, 87);
-    public static Color black_custom = new Color(32, 32, 32);
+    public static final JBColor HIGHLIGHT_BACKGROUND_COLOR = new JBColor(
+            new Color(1, 204, 245, 100),
+            new Color(1, 204, 245, 50)
+    );
+    public static Color teal = new JBColor(new Color(1, 204, 245), new Color(1, 204, 245));
+    public static Color pink = new JBColor(new Color(254, 100, 216), new Color(254, 100, 216));
+    public static Color red = new JBColor(new Color(245, 101, 101), new Color(245, 101, 101));
+    public static Color green = new JBColor(new Color(56, 161, 105), new Color(56, 161, 105));
+    public static Color yellow_alert = new JBColor(new Color(225, 163, 54), new Color(225, 163, 54));
+    public static Color orange = new JBColor(new Color(221, 107, 32), new Color(221, 107, 32));
+    public static Color defaultForeground = Gray._187;
+    public static Color NeutralGrey = new JBColor(new Color(81, 85, 87), new Color(81, 85, 87));
+    public static Color black_custom = new JBColor(Gray._32, Gray._32);
 
     public static JBColor agentResponseBaseColor = new JBColor(
-            new Color(255, 255, 255),
+            Gray._255,
             new Color(43, 45, 48));
 
     public static JBColor inputViewerTreeForeground = new JBColor(
-            Color.BLACK,
+            JBColor.BLACK,
             defaultForeground);
 
     public static Icon UNLOGGED_ICON_DARK = IconLoader.getIcon("/icons/png/logo_unlogged.png", UIUtils.class);
@@ -75,12 +78,14 @@ public class UIUtils {
     public static Icon PROCESS_NOT_RUNNING = IconLoader.getIcon("/icons/svg/process_not_running.svg", UIUtils.class);
     public static Icon DATA_AVAILABLE = IconLoader.getIcon("/icons/svg/data_available_v2.svg", UIUtils.class);
     public static Icon ATOMIC_TESTS = IconLoader.getIcon("/icons/svg/atomic_tests_v2.svg", UIUtils.class);
-    public static Icon DIRECT_INVOKE_EXECUTE = IconLoader.getIcon("/icons/svg/direct-invoke-execute.svg", UIUtils.class);
+    public static Icon DIRECT_INVOKE_EXECUTE = IconLoader.getIcon("/icons/svg/direct-invoke-execute.svg",
+            UIUtils.class);
     public static Icon EXECUTE_METHOD = IconLoader.getIcon("/icons/svg/execute_method.svg", UIUtils.class);
     public static Icon COVERAGE_TOOL_WINDOW_ICON = IconLoader.getIcon("/icons/svg/coverage-tool-window-icon.png",
             UIUtils.class);
     public static Icon ORANGE_EXCEPTION = IconLoader.getIcon("/icons/svg/exception_orange.svg", UIUtils.class);
-    public static Icon EXECUTE_ICON_OUTLINED_SVG = IconLoader.getIcon("/icons/svg/execute-button-outlined.svg", UIUtils.class);
+    public static Icon EXECUTE_ICON_OUTLINED_SVG = IconLoader.getIcon("/icons/svg/execute-button-outlined.svg",
+            UIUtils.class);
     public static Icon ONBOARDING_ICON_DARK = IconLoader.getIcon("/icons/png/onboarding_icon_dark.png", UIUtils.class);
     public static Icon ONBOARDING_ICON_PINK = IconLoader.getIcon("/icons/png/onboarding_icon_pink.png", UIUtils.class);
     public static Icon ONBOARDING_ICON_TEAL = IconLoader.getIcon("/icons/png/onboarding_icon_teal.png", UIUtils.class);
@@ -116,27 +121,10 @@ public class UIUtils {
     public static Icon GENERATE_ICON = IconLoader.getIcon("/icons/png/generate_icon.png", UIUtils.class);
     public static Icon DOWNLOAD_WHITE = IconLoader.getIcon("/icons/png/download_white.png", UIUtils.class);
     public static Icon NO_AGENT_HEADER = IconLoader.getIcon("/icons/png/no_agent_header.png", UIUtils.class);
-    public static Icon PROCESS_RUNNING_HEADER = IconLoader.getIcon("/icons/png/process_running_header.png", UIUtils.class);
-    public static Icon DATA_AVAILABLE_HEADER = IconLoader.getIcon("/icons/png/data_available_header.png", UIUtils.class);
-
-    public static void setDividerColorForSplitPane(JSplitPane splitPane, Color color) {
-        splitPane.setUI(new BasicSplitPaneUI() {
-            @Override
-            public BasicSplitPaneDivider createDefaultDivider() {
-                return new BasicSplitPaneDivider(this) {
-                    public void setBorder(Border b) {
-                    }
-
-                    @Override
-                    public void paint(Graphics g) {
-                        g.setColor(color);
-                        g.fillRect(0, 0, getSize().width, getSize().height);
-                        super.paint(g);
-                    }
-                };
-            }
-        });
-    }
+    public static Icon PROCESS_RUNNING_HEADER = IconLoader.getIcon("/icons/png/process_running_header.png",
+            UIUtils.class);
+    public static Icon DATA_AVAILABLE_HEADER = IconLoader.getIcon("/icons/png/data_available_header.png",
+            UIUtils.class);
 
     public static void setGifIconForButton(JButton button, String gif, Icon fallback) {
         try {

@@ -3284,26 +3284,33 @@ public class SessionInstance implements Runnable {
 
                     if (existingParameter.getType() == null && eventValue != 0) {
                         ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
-                        if (objectInfoDocument == null) {
-                            this.sessionArchives = refreshSessionArchivesList(true);
-                            updateObjectInfoIndex();
-                            objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
+                        if (probeInfo.getValueDesc() == Descriptor.Object) {
                             if (objectInfoDocument == null) {
-                                logger.warn(
-                                        "object info document is null for [" + existingParameter.getValue() + "] in " +
-                                                "log file: [" + "] in archive [" +
-                                                "]");
-                                throw new NeedMoreLogsException(
-                                        "object info document is null for [" + existingParameter.getValue() + "] in " +
-                                                "log file: [" + "] in archive [" +
-                                                "]");
+                                this.sessionArchives = refreshSessionArchivesList(true);
+                                updateObjectInfoIndex();
+                                objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
+                                if (objectInfoDocument == null) {
+                                    logger.warn(
+                                            "object info document is null for [" + existingParameter.getValue() + "] in " +
+                                                    "log file: [" + "] in archive [" +
+                                                    "]");
+                                    throw new NeedMoreLogsException(
+                                            "object info document is null for [" + existingParameter.getValue() + "] in " +
+                                                    "log file: [" + "] in archive [" +
+                                                    "]");
+                                }
                             }
+                            if (objectInfoDocument != null) {
+                                TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(objectInfoDocument.getTypeId());
+                                String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
+                                existingParameter.setType(typeName);
+                                isModified = true;
+                            }
+                        } else  {
+                            existingParameter.setType(ClassTypeUtils.getJavaClassName(probeInfo.getValueDesc().getString()));
+                            isModified = true;
                         }
-                        if (objectInfoDocument != null) {
-                            TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(objectInfoDocument.getTypeId());
-                            String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
-                            existingParameter.setType(typeName);
-                        }
+
                     }
 
 

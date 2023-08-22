@@ -216,4 +216,10 @@ public class ClassUtils {
 
     }
 
+    public static String getSimpleName(String className) {
+        if (className.contains(".")) {
+            return className.substring(className.lastIndexOf(".") + 1);
+        }
+        return className;
+    }
 }
