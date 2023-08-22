@@ -1286,7 +1286,7 @@ final public class InsidiousService implements Disposable,
 
 
         // no new highlight if disabled or tool window is hidden
-        if (!codeCoverageHighlightEnabled || !toolWindow.isVisible() || !agentStateProvider.isAgentRunning()) {
+        if (!codeCoverageHighlightEnabled || (toolWindow == null || !toolWindow.isVisible()) || !agentStateProvider.isAgentRunning()) {
             currentHighlightedRequest = highlightRequest;
             removeCurrentActiveHighlights();
             return;

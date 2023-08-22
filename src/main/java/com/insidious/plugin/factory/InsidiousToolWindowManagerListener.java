@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory;
 
+import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ex.ToolWindowManagerListener;
 
 public class InsidiousToolWindowManagerListener implements ToolWindowManagerListener {
@@ -14,7 +15,8 @@ public class InsidiousToolWindowManagerListener implements ToolWindowManagerList
 
     @Override
     public synchronized void stateChanged() {
-        boolean newToolWindowVisibleState = insidiousService.getToolWindow().isVisible();
+        ToolWindow toolWindow = insidiousService.getToolWindow();
+        boolean newToolWindowVisibleState = toolWindow != null && toolWindow.isVisible();
         if (isToolWindowVisible && !newToolWindowVisibleState) {
             isToolWindowVisible = false;
             insidiousService.highlightLines(insidiousService.getCurrentHighlightRequest());
