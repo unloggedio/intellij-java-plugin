@@ -97,6 +97,7 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
             File logFile = new File(executionLogFile);
             BufferedReader logFileInputStream = new BufferedReader(
                     new InputStreamReader(Files.newInputStream(logFile.toPath())));
+            // do not remove
             String javaVersionLine = logFileInputStream.readLine();
             String agentVersionLine = logFileInputStream.readLine();
             String agentParamsLine = logFileInputStream.readLine();

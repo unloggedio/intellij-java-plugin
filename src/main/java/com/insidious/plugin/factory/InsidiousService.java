@@ -447,7 +447,7 @@ final public class InsidiousService implements Disposable,
         }
 
 
-        if (testCaseDesignerWindow == null || !this.toolWindow.isVisible()) {
+        if (!this.toolWindow.isVisible()) {
             logger.warn("test case designer window is not ready to create test case");
             return;
         }
@@ -625,7 +625,7 @@ final public class InsidiousService implements Disposable,
     }
 
     public void updateCoverageReport() {
-        if (coverageReportComponent == null) {
+        if (coverageReportComponent == null || sessionInstance == null) {
             return;
         }
         CodeCoverageData coverageData = sessionInstance.createCoverageData();

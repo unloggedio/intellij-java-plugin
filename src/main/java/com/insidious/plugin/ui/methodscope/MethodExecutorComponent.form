@@ -71,25 +71,14 @@
             </constraints>
             <properties/>
           </component>
-          <scrollpane id="788fe" binding="scrollParent">
+          <grid id="c5e45" binding="scrollContainer" layout-manager="BorderLayout" hgap="0" vgap="0">
             <constraints>
-              <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                <preferred-size width="-1" height="200"/>
-              </grid>
+              <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties/>
-            <border type="empty"/>
-            <children>
-              <grid id="c5a95" binding="diffContentPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
-                <constraints/>
-                <properties/>
-                <border type="empty">
-                  <color color="-105256"/>
-                </border>
-                <children/>
-              </grid>
-            </children>
-          </scrollpane>
+            <border type="none"/>
+            <children/>
+          </grid>
         </children>
       </grid>
     </children>

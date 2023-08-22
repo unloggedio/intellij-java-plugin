@@ -52,7 +52,7 @@ public class TestCandidateListedItemComponent {
         mainContentPanel.setLayout(new BorderLayout());
 
         //saved candidate check
-        if (candidateMetadata.getName() != null) {
+        if (candidateMetadata.getName() != null && candidateMetadata.getName().length() > 0) {
             setTitledBorder(candidateMetadata.getName());
         } else {
             if (candidateMetadata.getCandidateId() != null) {

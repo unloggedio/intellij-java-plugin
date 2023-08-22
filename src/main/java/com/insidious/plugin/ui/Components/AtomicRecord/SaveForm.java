@@ -182,14 +182,14 @@ public class SaveForm {
         mainPanel.add(assertionScrollPanel, BorderLayout.CENTER);
 
         JPanel bottomPanel = new JPanel();
-        bottomPanel.setLayout(new WrappedFlowLayout(8, 8));
+        bottomPanel.setLayout(new BorderLayout());
 
         String saveLocation = listener.getSaveLocation();
         JLabel infoLabel = new JLabel("Case will be saved at " + formatLocation(saveLocation));
         infoLabel.setToolTipText(saveLocation);
         infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
         infoLabel.setSize(400, 12);
-        bottomPanel.add(infoLabel);
+        bottomPanel.add(infoLabel, BorderLayout.WEST);
 
         JPanel bottomPanelRight = new JPanel();
         bottomPanelRight.setAlignmentX(1);
@@ -207,7 +207,7 @@ public class SaveForm {
         bottomPanelRight.add(cancelButton);
         bottomPanelRight.add(saveButton);
 
-        bottomPanel.add(bottomPanelRight);
+        bottomPanel.add(bottomPanelRight, BorderLayout.EAST);
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
         setInfo();
     }

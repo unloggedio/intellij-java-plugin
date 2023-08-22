@@ -55,12 +55,11 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     private JPanel rootContent;
     private JButton executeAndShowDifferencesButton;
     private JLabel candidateCountLabel;
-    private JPanel diffContentPanel;
     private JPanel topPanel;
     private JPanel centerParent;
     private JPanel topAligner;
-    private JScrollPane scrollParent;
     private JPanel controlsPanel;
+    private JPanel scrollContainer;
     private int callCount = 0;
     private SaveForm saveFormReference;
     private CandidateFilterType candidateFilterType = CandidateFilterType.METHOD;
@@ -69,7 +68,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
-        scrollParent.setVisible(false);
         executeAndShowDifferencesButton.addActionListener(this::actionPerformed);
         gridPanel = createCandidateScrollPanel();
 
@@ -382,15 +380,13 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     public void clearBoard() {
         candidateComponentMap.clear();
         gridPanel.removeAll();
-        diffContentPanel.removeAll();
-        diffContentPanel.revalidate();
+        scrollContainer.removeAll();
         centerParent.revalidate();
         centerParent.repaint();
     }
 
     public void clearBottomPanel() {
-        diffContentPanel.removeAll();
-        diffContentPanel.revalidate();
+        scrollContainer.removeAll();
     }
 
     @Override
@@ -460,7 +456,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                         insidiousService.getAtomicRecordService().setCandidateStateForCandidate(
                                 testCandidate.getCandidateId(),
                                 agentCommandRequest.getClassName(),
-                                agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature(),
+                                methodUnderTest.getMethodHashKey(),
                                 testCandidate.getMetadata().getCandidateStatus());
                     }
                     //possible bug vector, equal case check
@@ -527,17 +523,26 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
 
     public void displayResponse(Component component) {
-//        scrollParent.setMinimumSize(new Dimension(-1, 700));
-        diffContentPanel.removeAll();
-        diffContentPanel.setLayout(new GridLayout(1, 1));
-        diffContentPanel.setMinimumSize(new Dimension(-1, 700));
+
+        scrollContainer.removeAll();
+//        diffContentPanel = new JPanel()
+//        diffContentPanel.add(component, BorderLayout.CENTER);
+//        diffContentPanel.revalidate();
+//        diffContentPanel.repaint();
+
+        JBScrollPane scrollParent = new JBScrollPane(component);
+        scrollParent.setMinimumSize(new Dimension(-1, 300));
+        scrollParent.setMaximumSize(new Dimension(-1, 600));
+//        diffContentPanel.setMinimumSize(new Dimension(-1, 700));
 //        component.setMinimumSize(new Dimension(-1, 700));
-        diffContentPanel.add(component);
-        scrollParent.setVisible(true);
-        scrollParent.revalidate();
-        scrollParent.repaint();
-        diffContentPanel.revalidate();
-        diffContentPanel.repaint();
+//        scrollParent.setViewportView(diffContentPanel);
+//        scrollParent.setVisible(true);
+//        scrollParent.revalidate();
+//        scrollParent.repaint();
+        scrollContainer.add(scrollParent, BorderLayout.CENTER);
+        scrollContainer.revalidate();
+        scrollContainer.repaint();
+        logger.warn("diff component attached: " + component.getClass().getCanonicalName());
     }
 
 
@@ -664,7 +669,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         gridPanel.remove(candidateComponent);
         gridPanel.revalidate();
         gridPanel.repaint();
-        diffContentPanel.removeAll();
+        scrollContainer.removeAll();
         refreshCoverageData();
 
         if (candidateComponentMap.size() < 3) {

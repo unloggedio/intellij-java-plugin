@@ -206,8 +206,7 @@ public class AtomicRecordService {
         writeToFile(new File(getFilenameForClass(className)), record, FileUpdateType.ADD, useNotifications);
     }
 
-    private void writeToFile(File file, AtomicRecord atomicRecord, FileUpdateType type,
-                             boolean notify) {
+    private void writeToFile(File file, AtomicRecord atomicRecord, FileUpdateType type, boolean notify) {
         logger.info("[ATRS] writing to file : " + file.getName());
         try (FileOutputStream resourceFile = new FileOutputStream(file)) {
             String json = objectMapper.writerWithDefaultPrettyPrinter()
@@ -295,8 +294,7 @@ public class AtomicRecordService {
     }
 
     public void ensureUnloggedFolder() {
-        File unloggedFolder = new File(basePath + File.separator
-                + getResourcePath() + unloggedFolderName);
+        File unloggedFolder = new File(basePath + File.separator + getResourcePath() + unloggedFolderName);
         if (!(unloggedFolder.exists() && unloggedFolder.isDirectory())) {
             logger.info("unlogged directory created");
             System.out.println("unlogged directory created");
