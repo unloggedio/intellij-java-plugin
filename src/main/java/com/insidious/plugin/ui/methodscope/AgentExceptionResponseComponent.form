@@ -28,7 +28,7 @@
               </grid>
             </constraints>
             <properties/>
-            <border type="none"/>
+            <border type="empty"/>
             <children/>
           </grid>
           <grid id="4bc35" binding="beforeSection" layout-manager="BorderLayout" hgap="0" vgap="0">
@@ -38,7 +38,7 @@
               </grid>
             </constraints>
             <properties/>
-            <border type="none"/>
+            <border type="empty"/>
             <children/>
           </grid>
         </children>
