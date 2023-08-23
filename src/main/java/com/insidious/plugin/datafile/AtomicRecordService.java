@@ -12,34 +12,45 @@ import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.module.Module;
+import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.DumbService;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectUtil;
+import com.intellij.openapi.roots.ProjectFileIndex;
+import com.intellij.openapi.roots.ProjectRootManager;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.JavaPsiFacade;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.search.GlobalSearchScope;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
+
+import static java.io.File.separator;
 
 public class AtomicRecordService {
+    public static final String TEST_RESOURCES_PATH = "src" + separator + "test" + separator + "resources" + separator;
     private static final Logger logger = LoggerUtil.getInstance(AtomicRecordService.class);
-    private final String unloggedFolderName = "unlogged";
+    private final String UNLOGGED_RESOURCE_FOLDER_NAME = "unlogged";
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final String projectBasePath;
     InsidiousService insidiousService;
-    private String basePath;
     private Map<String, AtomicRecord> storedRecords = null;
     private boolean useNotifications = true;
 
     public AtomicRecordService(InsidiousService service) {
         this.insidiousService = service;
+        projectBasePath = insidiousService.getProject().getBasePath();
     }
 
     public void init() {
         DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
         if (dumbService != null) {
-            dumbService.runWhenSmart(this::checkPreRequisits);
+            dumbService.runWhenSmart(this::checkPreRequisites);
         }
     }
 
@@ -136,13 +147,13 @@ public class AtomicRecordService {
                     logger.info("[ATRS] Adding Candidate");
                     existingRecord.getStoredCandidateMap().get(methodKey).add(candidate);
                     existingRecord.setStoredCandidateMap(filterCandidates(existingRecord.getStoredCandidateMap()));
-                    writeToFile(new File(getFilenameForClass(methodUnderTest.getClassName()))
-                            , atomicRecord, FileUpdateType.UPDATE, useNotifications);
+                    writeToFile(new File(getFilenameForClass(methodUnderTest.getClassName())),
+                            atomicRecord, FileUpdateType.UPDATE, useNotifications);
                 } else {
                     logger.info("[ATRS] Replacing existing record (found)");
                     existingRecord.setStoredCandidateMap(filterCandidates(existingRecord.getStoredCandidateMap()));
-                    writeToFile(new File(getFilenameForClass(methodUnderTest.getClassName()))
-                            , atomicRecord, FileUpdateType.UPDATE, useNotifications);
+                    writeToFile(new File(getFilenameForClass(methodUnderTest.getClassName())),
+                            atomicRecord, FileUpdateType.UPDATE, useNotifications);
                 }
             }
             JSONObject properties = new JSONObject();
@@ -157,13 +168,95 @@ public class AtomicRecordService {
         }
     }
 
-    private String getFilenameForClass(String classname) {
-        return basePath + File.separator + getResourcePath() +
-                unloggedFolderName + File.separator + classname + ".json";
+    private List<File> getFilesInUnloggedFolder() {
+        ArrayList<File> returnFileList = new ArrayList<>();
+
+        File rootDir = new File(projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME);
+        File[] files = rootDir.listFiles();
+        if (files != null) {
+            Collections.addAll(returnFileList, files);
+        }
+
+        ModuleManager instance = ModuleManager.getInstance(insidiousService.getProject());
+        if (instance == null) {
+            return returnFileList;
+        }
+
+        Module[] modulesList = instance.getModules();
+        if (modulesList == null) {
+            return returnFileList;
+        }
+
+        Map<String, Boolean> checkedPaths = new HashMap<>();
+        for (Module module : modulesList) {
+            VirtualFile moduleRootPath = ProjectUtil.guessModuleDir(module);
+            if (moduleRootPath == null) {
+                continue;
+            }
+            String modulePath = buildTestResourcesPathFromModulePath(moduleRootPath);
+            if (checkedPaths.containsKey(modulePath)) {
+                continue;
+            }
+            checkedPaths.put(modulePath, true);
+            File moduleUnloggedResourcesDir = new File(modulePath);
+            if (moduleUnloggedResourcesDir.exists()) {
+                File[] moduleResourceFiles = moduleUnloggedResourcesDir.listFiles();
+                if (moduleResourceFiles != null) {
+                    Collections.addAll(returnFileList, moduleResourceFiles);
+                }
+            }
+        }
+
+
+        return returnFileList;
     }
 
-    public String getResourcePath() {
-        return "src" + File.separator + "test" + File.separator + "resources" + File.separator;
+
+    private String getFilenameForClass(String classname) {
+        Project project = insidiousService.getProject();
+        String destinationFileName = separator + classname + ".json";
+        PsiClass psiClassResult;
+        try {
+            psiClassResult = JavaPsiFacade.getInstance(project)
+                    .findClass(classname, GlobalSearchScope.projectScope(project));
+        } catch (Exception e) {
+            // failed to find modules and a more specific save path
+            logger.warn("Failed to specific module for class: " + classname, e);
+            return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
+        }
+
+        if (psiClassResult == null) {
+            // failed to find class file :o ooo o
+            return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
+        }
+
+        final ProjectFileIndex index = ProjectRootManager.getInstance(project).getFileIndex();
+        Module module = index.getModuleForFile(psiClassResult.getContainingFile().getVirtualFile());
+        assert module != null;
+        VirtualFile moduleDirectoryFile = ProjectUtil.guessModuleDir(module);
+
+        if (moduleDirectoryFile == null) {
+            return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
+        }
+
+        return buildTestResourcesPathFromModulePath(moduleDirectoryFile) + destinationFileName;
+
+    }
+
+    private String buildTestResourcesPathFromModulePath(VirtualFile virtualFile) {
+        String moduleSrcDirPath = virtualFile.getCanonicalPath();
+        String moduleBasePath = moduleSrcDirPath;
+        if (moduleSrcDirPath == null) {
+            return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME;
+        } else if (moduleSrcDirPath.endsWith("src/main")) {
+            moduleBasePath = moduleSrcDirPath.substring(0, moduleSrcDirPath.indexOf("/src/main"));
+            return moduleBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME;
+        } else if (moduleSrcDirPath.endsWith("/main")) {
+            moduleBasePath = moduleSrcDirPath.substring(0, moduleSrcDirPath.indexOf("/main"));
+            return moduleBasePath + separator + "test" + separator + "resources" + separator + UNLOGGED_RESOURCE_FOLDER_NAME;
+        } else {
+            return moduleBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME;
+        }
     }
 
     public Map<String, List<StoredCandidate>> filterCandidates(Map<String, List<StoredCandidate>> candidates) {
@@ -209,41 +302,40 @@ public class AtomicRecordService {
     private void writeToFile(File file, AtomicRecord atomicRecord, FileUpdateType type, boolean notify) {
         logger.info("[ATRS] writing to file : " + file.getName());
         try (FileOutputStream resourceFile = new FileOutputStream(file)) {
-            String json = objectMapper.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(atomicRecord);
+            String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(atomicRecord);
             resourceFile.write(json.getBytes(StandardCharsets.UTF_8));
-            logger.info("[ATRS] file write successful");
+            logger.info("[ATRS] file write successful => " + file.getAbsolutePath());
             if (notify) {
-                InsidiousNotification.notifyMessage(getMessageForOperationType(type, true),
+                InsidiousNotification.notifyMessage(getMessageForOperationType(type, file.getPath(), true),
                         NotificationType.INFORMATION);
             }
             resourceFile.close();
         } catch (Exception e) {
             logger.info("[ATRS] Failed to write to file : " + e);
-            InsidiousNotification.notifyMessage(getMessageForOperationType(type, false),
+            InsidiousNotification.notifyMessage(getMessageForOperationType(type, file.getPath(), false),
                     NotificationType.ERROR);
         }
     }
 
-    public String getMessageForOperationType(FileUpdateType type, boolean positive) {
+    public String getMessageForOperationType(FileUpdateType type, String path, boolean positive) {
         switch (type) {
             case ADD:
                 if (positive) {
-                    return "Added test candidate";
+                    return "Added test candidate" + (path == null ? "" : " at: " + path);
                 } else {
                     return "Failed to add test candidate" +
                             "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.";
                 }
             case UPDATE:
                 if (positive) {
-                    return "Updated test candidate";
+                    return "Updated test candidate" + (path == null ? "" : " at: " + path);
                 } else {
                     return "Failed to update test candidate" +
                             "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.";
                 }
             default:
                 if (positive) {
-                    return "Deleted test candidate";
+                    return "Deleted test candidate" + (path == null ? "" : " at: " + path);
                 } else {
                     return "Failed to delete test candidate" +
                             "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.";
@@ -254,24 +346,18 @@ public class AtomicRecordService {
     //called once in start, when map is null, updated after that.
     public Map<String, AtomicRecord> updateMap() {
         Map<String, AtomicRecord> recordsMap = new TreeMap<>();
-        File[] files = getFilesInUnloggedFolder();
-        if (files == null || files.length == 0) {
+        List<File> files = getFilesInUnloggedFolder();
+        if (files.size() == 0) {
             return new TreeMap<>();
         }
-        for (int i = 0; i < files.length; i++) {
-            AtomicRecord record = getAtomicRecordFromFile(files[i]);
+        for (File file : files) {
+            AtomicRecord record = getAtomicRecordFromFile(file);
             if (record != null) {
                 String classname = record.getClassname();
                 recordsMap.put(classname, record);
             }
         }
         return recordsMap;
-    }
-
-    private File[] getFilesInUnloggedFolder() {
-        File rootDir = new File(basePath + File.separator
-                + getResourcePath() + unloggedFolderName);
-        return rootDir.listFiles();
     }
 
     public Boolean hasStoredCandidateForMethod(MethodUnderTest methodUnderTest) {
@@ -293,22 +379,15 @@ public class AtomicRecordService {
         }
     }
 
-    public void ensureUnloggedFolder() {
-        File unloggedFolder = new File(basePath + File.separator + getResourcePath() + unloggedFolderName);
-        if (!(unloggedFolder.exists() && unloggedFolder.isDirectory())) {
-            logger.info("unlogged directory created");
-            System.out.println("unlogged directory created");
-            unloggedFolder.mkdirs();
-        }
-    }
-
     public AtomicRecord getAtomicRecordFromFile(File file) {
         try {
+            if (file == null || !file.exists()) {
+                return null;
+            }
             InputStream inputStream = new FileInputStream(file);
             return objectMapper.readValue(inputStream, AtomicRecord.class);
         } catch (IOException e) {
             logger.info("Exception getting atomic record from file: " + e);
-            ensureUnloggedFolder();
             return null;
         }
     }
@@ -353,8 +432,7 @@ public class AtomicRecordService {
     }
 
     public String getSaveLocation() {
-        return basePath + File.separator +
-                getResourcePath() + unloggedFolderName + File.separator;
+        return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + separator;
     }
 
     public void setCandidateStateForCandidate(@NotNull String candidateID, String classname,
@@ -386,11 +464,9 @@ public class AtomicRecordService {
         }
     }
 
-    public void checkPreRequisits() {
-        basePath = insidiousService.getProject().getBasePath();
-        ensureUnloggedFolder();
-        if (this.storedRecords == null) {
-            this.storedRecords = updateMap();
+    public void checkPreRequisites() {
+        if (storedRecords == null) {
+            storedRecords = updateMap();
             insidiousService.updateCoverageReport();
         }
     }

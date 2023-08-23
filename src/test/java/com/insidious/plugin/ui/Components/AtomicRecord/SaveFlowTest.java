@@ -68,7 +68,6 @@ public class SaveFlowTest {
     @BeforeEach
     public void setup() throws Exception {
         candidateLifeListener = Mockito.mock(CandidateLifeListener.class);
-        Mockito.when(candidateLifeListener.getSaveLocation()).thenReturn("testLoc");
         candidate = objectMapper.readValue(storedCandidateSource, StoredCandidate.class);
         agentCommandResponse = objectMapper.readValue(responseSource, AgentCommandResponse.class);
     }

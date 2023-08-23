@@ -13,6 +13,7 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
+import com.intellij.psi.search.GlobalSearchScope;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -33,38 +34,40 @@ public class ClassUtils {
             List<String> creationStack,
             Project project
     ) {
-        String creationKey = parameterType.getCanonicalText();
-        if (creationStack.contains(creationKey)) {
+        String parameterTypeCanonicalText = parameterType.getCanonicalText();
+        if (creationStack.contains(parameterTypeCanonicalText)) {
             return "null";
         }
 
         try {
-            creationStack.add(creationKey);
+            creationStack.add(parameterTypeCanonicalText);
             StringBuilder dummyValue = new StringBuilder();
-            if (parameterType.getCanonicalText().equals("java.lang.String")) {
-                return "\"string\"";
-            }
-            if (parameterType.getCanonicalText().startsWith("java.lang.")) {
-                return "0";
-            }
 
-            if (parameterType.getCanonicalText().equals("java.util.Random")) {
-                return "{}";
-            }
-            if (parameterType.getCanonicalText().equals("java.util.Date")) {
-                return String.valueOf(new Date().getTime());
-            }
-            if (parameterType.getCanonicalText().equals("java.time.Instant")) {
-//                Date date = new Date();
-                return String.valueOf(new Date().getTime() / 1000);
-
-            }
             if (parameterType instanceof PsiArrayType || parameterType instanceof PsiEllipsisType) {
                 PsiArrayType arrayType = (PsiArrayType) parameterType;
                 dummyValue.append("[");
                 dummyValue.append(createDummyValue(arrayType.getComponentType(), creationStack, project));
                 dummyValue.append("]");
                 return dummyValue.toString();
+            }
+
+            if (parameterTypeCanonicalText.equals("java.lang.String")) {
+                return "\"string\"";
+            }
+            if (parameterTypeCanonicalText.startsWith("java.lang.")) {
+                return "0";
+            }
+
+            if (parameterTypeCanonicalText.equals("java.util.Random")) {
+                return "{}";
+            }
+            if (parameterTypeCanonicalText.equals("java.util.Date")) {
+                return String.valueOf(new Date().getTime());
+            }
+            if (parameterTypeCanonicalText.equals("java.time.Instant")) {
+//                Date date = new Date();
+                return String.valueOf(new Date().getTime() / 1000);
+
             }
 
             if (parameterType instanceof PsiClassReferenceType) {
@@ -101,7 +104,7 @@ public class ClassUtils {
 
                 PsiClass resolvedClass = JavaPsiFacade
                         .getInstance(project)
-                        .findClass(classReferenceType.getCanonicalText(), parameterType.getResolveScope());
+                        .findClass(classReferenceType.getCanonicalText(), GlobalSearchScope.allScope(project));
 
                 if (resolvedClass == null) {
                     // class not resolved
@@ -153,7 +156,7 @@ public class ClassUtils {
             return dummyValue.toString();
 
         } finally {
-            creationStack.remove(creationKey);
+            creationStack.remove(parameterTypeCanonicalText);
         }
 
     }

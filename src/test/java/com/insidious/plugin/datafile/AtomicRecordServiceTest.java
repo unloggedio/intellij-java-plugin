@@ -11,6 +11,8 @@ import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
+import com.intellij.openapi.module.Module;
+import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +33,11 @@ public class AtomicRecordServiceTest {
 
         String currentDir = System.getProperty("user.dir");
         Project project = Mockito.mock(Project.class);
+        ModuleManager mockedModuleManager = Mockito.mock(ModuleManager.class);
+
+        Mockito.when(mockedModuleManager.getModules()).thenReturn(new Module[0]);
+        Mockito.when(project.getService(ModuleManager.class)).thenReturn(mockedModuleManager);
+
         Mockito.when(insidiousService.getProject()).thenReturn(project);
         Mockito.when(insidiousService.getProject().getBasePath()).thenReturn(currentDir);
         String saveLocation = currentDir + File.separator + getResourcePath() + "unlogged";
@@ -41,7 +48,7 @@ public class AtomicRecordServiceTest {
         }
 
         atomicRecordService = new AtomicRecordService(insidiousService);
-        atomicRecordService.checkPreRequisits();
+        atomicRecordService.checkPreRequisites();
 
         atomicRecordService.setUseNotifications(false);
     }
@@ -266,29 +273,29 @@ public class AtomicRecordServiceTest {
         //add flow
         Assertions.assertEquals("Added test candidate",
                 atomicRecordService.getMessageForOperationType
-                        (AtomicRecordService.FileUpdateType.ADD, true));
+                        (AtomicRecordService.FileUpdateType.ADD, null, true));
         Assertions.assertEquals("Failed to add test candidate" +
                         "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                 atomicRecordService.getMessageForOperationType
-                        (AtomicRecordService.FileUpdateType.ADD, false));
+                        (AtomicRecordService.FileUpdateType.ADD, null, false));
 
         //update flow
         Assertions.assertEquals("Updated test candidate",
                 atomicRecordService.getMessageForOperationType
-                        (AtomicRecordService.FileUpdateType.UPDATE, true));
+                        (AtomicRecordService.FileUpdateType.UPDATE, null, true));
         Assertions.assertEquals("Failed to update test candidate" +
                         "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                 atomicRecordService.getMessageForOperationType
-                        (AtomicRecordService.FileUpdateType.UPDATE, false));
+                        (AtomicRecordService.FileUpdateType.UPDATE, null, false));
 
         //delete flow
         Assertions.assertEquals("Deleted test candidate",
                 atomicRecordService.getMessageForOperationType
-                        (AtomicRecordService.FileUpdateType.DELETE, true));
+                        (AtomicRecordService.FileUpdateType.DELETE, null, true));
         Assertions.assertEquals("Failed to delete test candidate" +
                         "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                 atomicRecordService.getMessageForOperationType
-                        (AtomicRecordService.FileUpdateType.DELETE, false));
+                        (AtomicRecordService.FileUpdateType.DELETE, null, false));
     }
 
     @Test

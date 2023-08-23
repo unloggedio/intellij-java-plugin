@@ -10,12 +10,19 @@ import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
+import com.insidious.plugin.pojo.frameworks.JsonFramework;
+import com.insidious.plugin.pojo.frameworks.MockFramework;
+import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
 import com.insidious.plugin.ui.MethodExecutionListener;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
@@ -711,16 +718,50 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     @Override
+    public void onGenerateJunitTestCaseRequest(StoredCandidate testCandidate) {
+        logger.warn("Create test case: " + testCandidate);
+
+        TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
+                .getTestCandidateById(testCandidate.getEntryProbeIndex(), true);
+
+
+        String testMethodName =
+                "testMethod" + ClassTypeUtils.upperInstanceName(
+                        loadedTestCandidate.getMainMethod().getMethodName());
+        TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
+                TestFramework.JUnit5,
+                MockFramework.Mockito,
+                JsonFramework.Jackson,
+                ResourceEmbedMode.IN_FILE
+        );
+
+
+        // mock all calls by default
+        testCaseGenerationConfiguration.getCallExpressionList()
+                .addAll(loadedTestCandidate.getCallsList());
+
+
+        testCaseGenerationConfiguration.setTestMethodName(testMethodName);
+
+
+        testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
+        testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
+
+
+        try {
+            insidiousService.generateAndSaveTestCase(testCaseGenerationConfiguration);
+        } catch (Exception ex) {
+            InsidiousNotification.notifyMessage("Failed to generate test case: " + ex.getMessage(),
+                    NotificationType.ERROR);
+        }
+    }
+
+    @Override
     public void onCancel() {
         if (saveFormReference != null) {
             insidiousService.hideCandidateSaveForm(saveFormReference);
             saveFormReference = null;
         }
-    }
-
-    @Override
-    public String getSaveLocation() {
-        return insidiousService.getAtomicRecordService().getSaveLocation();
     }
 
     @Override

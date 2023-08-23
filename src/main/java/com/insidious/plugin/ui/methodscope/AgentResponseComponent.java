@@ -9,6 +9,7 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -42,21 +43,21 @@ public class AgentResponseComponent implements Supplier<Component> {
 
     public AgentResponseComponent(
             AgentCommandResponse<String> agentCommandResponse,
-            StoredCandidate storedCandidate,
+            StoredCandidate testCandidate,
             FullViewEventListener fullViewEventListener,
             CandidateLifeListener candidateLifeListener
     ) {
         this.agentCommandResponse = agentCommandResponse;
-        this.testCandidate = storedCandidate;
+        this.testCandidate = testCandidate;
 
-        DifferenceResult differences = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
+        DifferenceResult differences = DiffUtils.calculateDifferences(this.testCandidate, agentCommandResponse);
         computeDifferences(differences);
 
         String originalString;
-        if (testCandidate.isReturnValueIsBoolean() && DiffUtils.isNumeric(testCandidate.getReturnValue())) {
-            originalString = "0".equals(testCandidate.getReturnValue()) ? "false" : "true";
+        if (this.testCandidate.isReturnValueIsBoolean() && DiffUtils.isNumeric(this.testCandidate.getReturnValue())) {
+            originalString = "0".equals(this.testCandidate.getReturnValue()) ? "false" : "true";
         } else {
-            originalString = testCandidate.getReturnValue();
+            originalString = this.testCandidate.getReturnValue();
         }
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
@@ -70,56 +71,19 @@ public class AgentResponseComponent implements Supplier<Component> {
         viewFullButton.addActionListener(
                 e -> fullViewEventListener.generateCompareWindows(originalString, actualString));
 
-//        if (SHOW_TEST_CASE_CREATE_BUTTON) {
-//            JButton createTestCaseButton = new JButton("Create test case");
-//            bottomControlPanel.add(createTestCaseButton, new GridConstraints());
-//            createTestCaseButton.addActionListener(new ActionListener() {
-//                @Override
-//                public void actionPerformed(ActionEvent e) {
-//                    logger.warn("Create test case: " + testCandidateMetadata);
-//
-//                    TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
-//                            .getTestCandidateById(testCandidateMetadata.getEntryProbeIndex(), true);
-//
-//
-//                    String testMethodName =
-//                            "testMethod" + ClassTypeUtils.upperInstanceName(
-//                                    loadedTestCandidate.getMainMethod().getMethodName());
-//                    TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
-//                            TestFramework.JUnit5,
-//                            MockFramework.Mockito,
-//                            JsonFramework.JACKSON,
-//                            ResourceEmbedMode.IN_FILE
-//                    );
-//
-//
-//                    // mock all calls by default
-//                    testCaseGenerationConfiguration.getCallExpressionList()
-//                            .addAll(loadedTestCandidate.getCallsList());
-//
-//
-//                    testCaseGenerationConfiguration.setTestMethodName(testMethodName);
-//
-//
-//                    testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
-//                    testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
-//
-//
-//                    try {
-//                        insidiousService.generateAndSaveTestCase(testCaseGenerationConfiguration);
-//                    } catch (Exception ex) {
-//                        InsidiousNotification.notifyMessage("Failed to generate test case: " + ex.getMessage(),
-//                                NotificationType.ERROR);
-//                    }
-//                }
-//            });
-//        }
+        if (SHOW_TEST_CASE_CREATE_BUTTON) {
+            JButton createTestCaseButton = new JButton("Create test case");
+            buttonPanel.add(createTestCaseButton, new GridConstraints());
+            createTestCaseButton.addActionListener(
+                    e -> candidateLifeListener.onGenerateJunitTestCaseRequest(testCandidate));
+        }
 
-        acceptButton.addActionListener(e -> candidateLifeListener.onSaveRequest(testCandidate, agentCommandResponse));
-        if (testCandidate.getCandidateId() == null) {
+        acceptButton.addActionListener(
+                e -> candidateLifeListener.onSaveRequest(this.testCandidate, agentCommandResponse));
+        if (this.testCandidate.getCandidateId() == null) {
             deleteButton.setVisible(false);
         }
-        deleteButton.addActionListener(e -> candidateLifeListener.onDeleteRequest(testCandidate));
+        deleteButton.addActionListener(e -> candidateLifeListener.onDeleteRequest(this.testCandidate));
 
         deleteButton.setIcon(UIUtils.DELETE_CANDIDATE_RED_SVG);
         acceptButton.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
