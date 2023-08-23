@@ -1,12 +1,5 @@
 package com.insidious.plugin.util;
 
-import com.intellij.openapi.util.text.StringUtilRt;
-import com.intellij.util.Function;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.Arrays;
 import java.util.Collection;
 
 public class StringUtils {
@@ -64,28 +57,17 @@ public class StringUtils {
         return a;
     }
 
-    @Contract(pure = true)
-    public static @NotNull String join(@NotNull Collection<String> strings, @NotNull String separator) {
+
+    public static String join(Collection<String> strings, String separator) {
         if (strings.size() <= 1) {
-            return notNullize(strings.isEmpty() ? null : strings.iterator()
-                    .next());
+            return strings.isEmpty() ? "" : strings.iterator().next();
         }
         StringBuilder result = new StringBuilder();
         join(strings, separator, result);
         return result.toString();
     }
 
-    @Contract(pure = true)
-    public static @NotNull String notNullize(@Nullable String s) {
-        return StringUtilRt.notNullize(s);
-    }
-
-    @Contract(pure = true)
-    public static @NotNull String notNullize(@Nullable String s, @NotNull String defaultValue) {
-        return StringUtilRt.notNullize(s, defaultValue);
-    }
-
-    public static void join(@NotNull Collection<String> strings, @NotNull String separator, @NotNull StringBuilder result) {
+    public static void join(Collection<String> strings, String separator, StringBuilder result) {
         boolean isFirst = true;
         for (String string : strings) {
             if (string != null) {
@@ -99,8 +81,8 @@ public class StringUtils {
         }
     }
 
-    @Contract(pure = true)
-    public static @NotNull String join(final int @NotNull [] strings, final @NotNull String separator) {
+
+    public static String join(final int[] strings, final String separator) {
         final StringBuilder result = new StringBuilder();
         for (int i = 0; i < strings.length; i++) {
             if (i > 0) result.append(separator);
@@ -109,8 +91,8 @@ public class StringUtils {
         return result.toString();
     }
 
-    @Contract(pure = true)
-    public static @NotNull String join(final String @NotNull ... strings) {
+
+    public static String join(final String... strings) {
         if (strings.length == 0) return "";
 
         final StringBuilder builder = new StringBuilder();
@@ -121,44 +103,10 @@ public class StringUtils {
     }
 
 
-    @Contract(pure = true)
-    public static @NotNull <T> String join(@NotNull Iterable<? extends T> items,
-                                           @NotNull Function<? super T, ? extends CharSequence> f,
-                                           @NotNull String separator) {
-        StringBuilder result = new StringBuilder();
-        join(items, f, separator, result);
-        return result.toString();
-    }
-
-    public static <T> void join(@NotNull Iterable<? extends T> items,
-                                @NotNull Function<? super T, ? extends CharSequence> f,
-                                @NotNull String separator,
-                                @NotNull StringBuilder result) {
-        boolean isFirst = true;
-        for (T item : items) {
-            CharSequence string = f.fun(item);
-            if (!isEmpty(string)) {
-                if (isFirst) {
-                    isFirst = false;
-                } else {
-                    result.append(separator);
-                }
-                result.append(string);
-            }
-        }
-    }
-
-    @Contract(pure = true)
-    public static @NotNull <T> String join(T @NotNull [] items, @NotNull Function<? super T, String> f, @NotNull String separator) {
-        return join(Arrays.asList(items), f, separator);
-    }
-
-    @Contract(pure = true)
-    public static @NotNull String join(@NotNull Iterable<?> items, @NotNull String separator) {
+    public static String join(Iterable<?> items, String separator) {
         StringBuilder result = new StringBuilder();
         for (Object item : items) {
-            result.append(item)
-                    .append(separator);
+            result.append(item).append(separator);
         }
         if (result.length() > 0) {
             result.setLength(result.length() - separator.length());

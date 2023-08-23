@@ -3,6 +3,7 @@ package com.insidious.plugin.factory;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.agent.ConnectionStateListener;
 import com.insidious.plugin.agent.ServerMetadata;
+import com.insidious.plugin.ui.methodscope.HighlightedRequest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -97,6 +98,7 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
             insidiousService.getAtomicRecordService().writeAll();
         }
         ApplicationManager.getApplication().invokeLater(() -> {
+            insidiousService.removeCurrentActiveHighlights();
             insidiousService.triggerGutterIconReload();
             insidiousService.setAgentProcessState(GutterState.PROCESS_NOT_RUNNING);
             insidiousService.clearAtomicBoard();

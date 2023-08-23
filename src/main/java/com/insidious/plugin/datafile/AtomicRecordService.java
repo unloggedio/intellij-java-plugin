@@ -124,7 +124,10 @@ public class AtomicRecordService {
                     existingRecord = atomicRecord;
                     List<StoredCandidate> candidates = atomicRecord.getStoredCandidateMap().get(methodKey);
                     for (StoredCandidate storedCandidate : candidates) {
-                        if (storedCandidate.getMethodArguments().equals(candidate.getMethodArguments())) {
+                        if (
+                                (candidate.getCandidateId() != null && candidate.getCandidateId().equals(storedCandidate.getCandidateId()))
+                                || storedCandidate.getMethodArguments().equals(candidate.getMethodArguments())
+                        ) {
                             foundCandidate = true;
                             //replace
                             if (useNotifications) {
@@ -133,6 +136,7 @@ public class AtomicRecordService {
                             }
                             logger.info("[ATRS] Replacing existing record");
                             storedCandidate.copyFrom(candidate);
+                            break;
                         }
                     }
                 }

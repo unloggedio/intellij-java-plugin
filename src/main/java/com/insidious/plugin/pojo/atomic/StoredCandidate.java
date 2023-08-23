@@ -244,6 +244,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.setProbSerializedValue(candidate.getProbSerializedValue());
         this.setException(candidate.isException());
         this.setReturnValueClassname(candidate.getReturnValueClassname());
+        this.setLineNumbers(candidate.getLineNumbers());
     }
 
     public AtomicAssertion getTestAssertions() {

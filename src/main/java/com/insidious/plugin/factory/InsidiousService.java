@@ -15,10 +15,7 @@ import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
-import com.insidious.plugin.coverage.ClassCoverageData;
-import com.insidious.plugin.coverage.CodeCoverageData;
-import com.insidious.plugin.coverage.MethodCoverageData;
-import com.insidious.plugin.coverage.PackageCoverageData;
+import com.insidious.plugin.coverage.*;
 import com.insidious.plugin.datafile.AtomicRecordService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -80,7 +77,6 @@ import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -121,9 +117,9 @@ final public class InsidiousService implements Disposable,
         NewTestCandidateIdentifiedListener,
         GutterStateProvider, ConnectionStateListener {
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
+    private final static ObjectMapper objectMapper = new ObjectMapper();
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
     private final AgentClient agentClient;
-    private final static ObjectMapper objectMapper = new ObjectMapper();
     private final SessionLoader sessionLoader;
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
@@ -134,6 +130,8 @@ final public class InsidiousService implements Disposable,
     private final ReportingService reportingService = new ReportingService(this);
     private final Map<String, String> candidateIndividualContextMap = new TreeMap<>();
     private final ActiveSessionManager sessionManager;
+    private final JUnitTestCaseWriter junitTestCaseWriter;
+    private final Map<String, Boolean> classModifiedFlagMap = new HashMap<>();
     Map<SaveForm, FileEditor> saveFormEditorMap = new HashMap<>();
     private ActiveHighlight currentActiveHighlight = null;
     private Project project;
@@ -142,7 +140,7 @@ final public class InsidiousService implements Disposable,
     private ToolWindow toolWindow;
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
-//    private boolean liveViewAdded = false;
+    //    private boolean liveViewAdded = false;
 //    private Content liveWindowContent;
 //    private String selectedModule = null;
     private TestCaseDesigner testCaseDesignerWindow;
@@ -159,7 +157,6 @@ final public class InsidiousService implements Disposable,
     private CoverageReportComponent coverageReportComponent;
     private boolean codeCoverageHighlightEnabled = true;
     private HighlightedRequest currentHighlightedRequest = null;
-    private final JUnitTestCaseWriter junitTestCaseWriter;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -187,10 +184,8 @@ final public class InsidiousService implements Disposable,
         ApplicationManager.getApplication().invokeLater(() -> {
             this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
         });
-
     }
 
-    @NotNull
     private static String getClassMethodHashKey(AgentCommandRequest agentCommandRequest) {
         return agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
     }
@@ -566,6 +561,8 @@ final public class InsidiousService implements Disposable,
             }
         }
         this.executionRecord.clear();
+        this.methodHash.clear();
+        this.classModifiedFlagMap.clear();
         logger.info("Loading new session: " + executionSession.getSessionId() + " => " + project.getName());
         sessionInstance = sessionManager.createSessionInstance(executionSession, project);
         sessionInstance.addTestCandidateListener(this);
@@ -650,7 +647,7 @@ final public class InsidiousService implements Disposable,
                 for (MethodCoverageData methodCoverageData : methodCoverageList) {
                     List<StoredCandidate> methodCandidates = candidateMapByMethodName.get(
                             fqcn + "#" +
-                            methodCoverageData.getMethodName() + "#" + methodCoverageData.getMethodSignature());
+                                    methodCoverageData.getMethodName() + "#" + methodCoverageData.getMethodSignature());
                     if (methodCandidates != null && methodCandidates.size() > 0) {
                         int coveredLineCount = methodCandidates.stream()
                                 .flatMap(e -> e.getLineNumbers().stream())
@@ -769,6 +766,8 @@ final public class InsidiousService implements Disposable,
             //re-execute as there are hash diffs
             //update hash after execution is complete for this method,
             //to prevent state change before exec complete.
+            classModifiedFlagMap.put(methodUnderTest.getClassName(), true);
+            ApplicationManager.getApplication().invokeLater(() -> highlightLines(currentHighlightedRequest));
             return GutterState.EXECUTE;
         }
 
@@ -889,7 +888,21 @@ final public class InsidiousService implements Disposable,
                 .forEach(storedCandidates::add);
 
 //        logger.info("StoredCandidates pre filter for " + method.getName() + " -> " + storedCandidates);
-        return filterStoredCandidates(storedCandidates);
+        FilteredCandidateResponseList filterStoredCandidates = filterStoredCandidates(storedCandidates);
+        List<String> updatedCandidateIds = filterStoredCandidates.getUpdatedCandidateIds();
+        if (updatedCandidateIds.size() > 0) {
+            atomicRecordService.setUseNotifications(false);
+            // because we are dealing with objects
+            // and line numbers are changed in the objects originally returned
+            // so they are changed in the cache map of the ARS
+            // so updating just one record by this call will actually persist all the changes we have made
+            atomicRecordService.saveCandidate(methodUnderTest, filterStoredCandidates.getCandidateList().get(0));
+//            filterStoredCandidates.getCandidateList().stream()
+//                    .filter(e -> updatedCandidateIds.contains(e.getCandidateId()))
+//                    .forEach(e -> atomicRecordService.saveCandidate(methodUnderTest, e));
+            atomicRecordService.setUseNotifications(true);
+        }
+        return filterStoredCandidates.getCandidateList();
     }
 
     @NotNull
@@ -920,7 +933,7 @@ final public class InsidiousService implements Disposable,
         String classMethodHashKey = methodUnderTest.getMethodHashKey();
         if (this.executionRecord.containsKey(classMethodHashKey)) {
 
-            String methodBody = ApplicationManager.getApplication().runReadAction((Computable<String>) method::getText);
+            String methodBody = method.getText();
             int methodBodyHashCode = methodBody.hashCode();
             this.methodHash.put(classMethodHashKey, methodBodyHashCode);
             DaemonCodeAnalyzer.getInstance(project).restart(method.getContainingFile());
@@ -1278,8 +1291,22 @@ final public class InsidiousService implements Disposable,
         return sessionInstance.getMethodDefinition(methodUnderTest);
     }
 
+    public void clearClassModifiedMap() {
+        classModifiedFlagMap.clear();
+    }
+
     public void highlightLines(HighlightedRequest highlightRequest) {
         if (highlightRequest == null) {
+            return;
+        }
+
+        if (currentHighlightedRequest != null && classModifiedFlagMap.containsKey(
+                currentHighlightedRequest.getMethodUnderTest().getClassName())) {
+            removeCurrentActiveHighlights();
+            currentHighlightedRequest = null;
+        }
+
+        if (classModifiedFlagMap.containsKey(highlightRequest.getMethodUnderTest().getClassName())) {
             return;
         }
 
@@ -1335,7 +1362,7 @@ final public class InsidiousService implements Disposable,
 
     }
 
-    private void removeCurrentActiveHighlights() {
+    public void removeCurrentActiveHighlights() {
         // remove existing highlighters
         if (currentActiveHighlight != null) {
             Editor editor = currentActiveHighlight.getEditor();

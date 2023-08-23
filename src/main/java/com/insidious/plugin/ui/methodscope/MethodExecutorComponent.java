@@ -370,7 +370,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         return Math.min(candidateComponentMap.values().stream()
                 .map(e -> e.getComponent().getPreferredSize().getHeight())
                 .mapToInt(Double::intValue)
-                .sum() + 20, 300);
+                .sum() + 50, 300);
     }
 
     private void setListDimensions(int panelHeight) {

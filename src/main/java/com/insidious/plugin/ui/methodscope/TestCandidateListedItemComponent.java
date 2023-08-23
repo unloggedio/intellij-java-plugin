@@ -144,10 +144,10 @@ public class TestCandidateListedItemComponent {
         inputTree.setShowsRootHandles(true);
 
 //        GridLayout gridLayout = new GridLayout(1, 1);
-        int desiredHeightPerInput = 25;
+        int desiredHeightPerInput = 50;
         int desiredHeight = inputRoot.getLeafCount() * desiredHeightPerInput;
-        if (desiredHeight < 40) {
-            desiredHeight = 40;
+        if (desiredHeight < 70) {
+            desiredHeight = 70;
         }
         if (desiredHeight > 220) {
             desiredHeight = 220;

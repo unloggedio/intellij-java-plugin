@@ -47,6 +47,7 @@ public class AgentClient {
     }
 
     public AgentCommandResponse<String> executeCommand(AgentCommandRequest agentCommandRequest) throws IOException {
+        agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
 
         RequestBody body = RequestBody.create(objectMapper.writeValueAsString(agentCommandRequest), JSON);
         Request request = new Request.Builder()
