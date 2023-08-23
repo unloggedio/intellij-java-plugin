@@ -21,6 +21,7 @@ public class UsageInsightTracker {
     private final VersionManager versionManager;
     private final List<String> UsersToSkip = Arrays.asList(
             "artpar",
+            "Amogh",
             "testerfresher"
     );
 

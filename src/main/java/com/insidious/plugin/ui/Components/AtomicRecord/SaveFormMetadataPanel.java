@@ -24,6 +24,11 @@ public class SaveFormMetadataPanel {
     private JLabel statusLabel;
     private JLabel hostLabel;
     private JLabel timestampLabel;
+    private JPanel actionPanel;
+    private JPanel eastPanel;
+    private JButton saveAndCloseButton;
+    private JButton cancelButton;
+    private JPanel westPanel;
 
     public SaveFormMetadataPanel(MetadataViewPayload payload) {
         loadView(payload);
@@ -76,5 +81,12 @@ public class SaveFormMetadataPanel {
 
     public JPanel getMainPanel() {
         return this.mainPanel;
+    }
+
+    public AbstractButton getCancelButton() {
+        return cancelButton;
+    }
+    public AbstractButton getSaveButton() {
+        return saveAndCloseButton;
     }
 }

@@ -275,6 +275,22 @@ public class AssertionRule {
                         assertion.setExpression(Expression.SELF);
                         assertion.setAssertionType(AssertionType.EQUAL_IGNORE_CASE);
                         break;
+                    case "starts with":
+                        assertion.setExpression(Expression.SELF);
+                        assertion.setAssertionType(AssertionType.STARTS_WITH);
+                        break;
+                    case "not starts with":
+                        assertion.setExpression(Expression.SELF);
+                        assertion.setAssertionType(AssertionType.NOT_STARTS_WITH);
+                        break;
+                    case "ends with":
+                        assertion.setExpression(Expression.SELF);
+                        assertion.setAssertionType(AssertionType.ENDS_WITH);
+                        break;
+                    case "not ends with":
+                        assertion.setExpression(Expression.SELF);
+                        assertion.setAssertionType(AssertionType.NOT_ENDS_WITH);
+                        break;
 
                 }
                 updateResult();
@@ -325,11 +341,12 @@ public class AssertionRule {
 
 
         operationSelector.addItem("is null");
-        operationSelector.addItem("is not null");
         operationSelector.addItem("is empty");
-        operationSelector.addItem("is not empty");
         operationSelector.addItem("is true");
+
         operationSelector.addItem("is false");
+        operationSelector.addItem("is not empty");
+        operationSelector.addItem("is not null");
 
         operationSelector.addItem("size is");
         operationSelector.addItem("size is not");
@@ -338,17 +355,19 @@ public class AssertionRule {
 
         operationSelector.addItem("equals ignore case");
 
-        operationSelector.addItem("contains item in array");
-        operationSelector.addItem("not contains item in array");
-
-        operationSelector.addItem("contains key in object");
-        operationSelector.addItem("not contains key in object");
-
         operationSelector.addItem("contains substring");
-        operationSelector.addItem("not contains substring");
-
         operationSelector.addItem("matches regex");
+        operationSelector.addItem("contains item in array");
+        operationSelector.addItem("contains key in object");
+        operationSelector.addItem("starts with");
+        operationSelector.addItem("ends with");
+
+        operationSelector.addItem("not contains substring");
         operationSelector.addItem("not matches regex");
+        operationSelector.addItem("not contains item in array");
+        operationSelector.addItem("not contains key in object");
+        operationSelector.addItem("not starts with");
+        operationSelector.addItem("not ends with");
 
 
     }

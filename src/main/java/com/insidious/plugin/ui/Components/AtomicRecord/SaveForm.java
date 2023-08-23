@@ -10,13 +10,11 @@ import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
-import com.intellij.vcs.log.ui.frame.WrappedFlowLayout;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -38,8 +36,8 @@ public class SaveForm {
     private final SaveFormMetadataPanel metadataForm;
     private final JPanel mainPanel;
     private final JsonNode responseNode;
-    private JButton saveButton;
-    private JButton cancelButton;
+    //    private JButton saveButton;
+//    private JButton cancelButton;
     private JLabel assertionLabel;
     private JRadioButton b1;
     private JRadioButton b2;
@@ -72,7 +70,8 @@ public class SaveForm {
                 existingAssertion.getSubAssertions() == null ||
                 existingAssertion.getSubAssertions().size() == 0) {
             List<AtomicAssertion> subAssertions = new ArrayList<>();
-            subAssertions.add(new AtomicAssertion(AssertionType.EQUAL, "/", agentCommandResponse.getMethodReturnValue()));
+            subAssertions.add(
+                    new AtomicAssertion(AssertionType.EQUAL, "/", agentCommandResponse.getMethodReturnValue()));
             existingAssertion = new AtomicAssertion(AssertionType.ALLOF, subAssertions);
         }
         ruleEditor = new AssertionBlock(existingAssertion, new AssertionBlockManager() {
@@ -181,34 +180,35 @@ public class SaveForm {
         mainPanel.add(topPanel, BorderLayout.NORTH);
         mainPanel.add(assertionScrollPanel, BorderLayout.CENTER);
 
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setLayout(new BorderLayout());
+//        JPanel bottomPanel = new JPanel();
+//        bottomPanel.setLayout(new BorderLayout());
 
-        String saveLocation = listener.getSaveLocation();
-        JLabel infoLabel = new JLabel("Case will be saved at " + formatLocation(saveLocation));
-        infoLabel.setToolTipText(saveLocation);
-        infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
-        infoLabel.setSize(400, 12);
-        bottomPanel.add(infoLabel, BorderLayout.WEST);
+//        String saveLocation = listener.getSaveLocation();
+//        JLabel infoLabel = new JLabel("Case will be saved at " + formatLocation(saveLocation));
+//        infoLabel.setToolTipText(saveLocation);
+//        infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
+//        infoLabel.setSize(400, 12);
+//        bottomPanel.add(infoLabel, BorderLayout.WEST);
 
-        JPanel bottomPanelRight = new JPanel();
-        bottomPanelRight.setAlignmentX(1);
+//        JPanel bottomPanelRight = new JPanel();
+//        bottomPanelRight.setAlignmentX(1);
 
-        cancelButton = new JButton("Cancel");
-        cancelButton.setSize(100, 30);
+//        cancelButton = new JButton("Cancel");
+//        cancelButton.setSize(100, 30);
+//
+//
+//        saveButton = new JButton("Save and Close");
+//        saveButton.setSize(150, 30);
+//        saveButton.setIcon(UIUtils.SAVE_CANDIDATE_PINK);
+//
+        metadataForm.getCancelButton().addActionListener(e -> listener.onCancel());
+        metadataForm.getSaveButton().addActionListener(e -> triggerSave());
 
-        cancelButton.addActionListener(e -> listener.onCancel());
+//        bottomPanelRight.add(cancelButton);
+//        bottomPanelRight.add(saveButton);
 
-        saveButton = new JButton("Save and Close");
-        saveButton.setSize(150, 30);
-        saveButton.setIcon(UIUtils.SAVE_CANDIDATE_PINK);
-        saveButton.addActionListener(e -> triggerSave());
-
-        bottomPanelRight.add(cancelButton);
-        bottomPanelRight.add(saveButton);
-
-        bottomPanel.add(bottomPanelRight, BorderLayout.EAST);
-        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
+//        bottomPanel.add(bottomPanelRight, BorderLayout.EAST);
+//        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
         setInfo();
     }
 
@@ -263,7 +263,7 @@ public class SaveForm {
             updated = true;
         }
         if (updated) {
-            saveButton.setText("Update");
+            metadataForm.getSaveButton().setText("Update");
         }
     }
 

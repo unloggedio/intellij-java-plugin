@@ -35,6 +35,10 @@ public enum AssertionType {
     NOT_CONTAINS_ITEM,
     CONTAINS_STRING,
     NOT_CONTAINS_KEY,
+    STARTS_WITH,
+    ENDS_WITH,
+    NOT_STARTS_WITH,
+    NOT_ENDS_WITH,
     NOT_CONTAINS_STRING;
 
     private static final Logger logger = LoggerUtil.getInstance(AssertionType.class);
@@ -98,6 +102,14 @@ public enum AssertionType {
                 return "object does not have field";
             case NOT_CONTAINS_STRING:
                 return "not has substring";
+            case STARTS_WITH:
+                return "starts with";
+            case NOT_STARTS_WITH:
+                return "not starts with";
+            case ENDS_WITH:
+                return "ends with";
+            case NOT_ENDS_WITH:
+                return "not ends with";
         }
         return "unknown-assertion-type";
     }
@@ -160,6 +172,19 @@ public enum AssertionType {
                     return actualValue.asText().contains(expectedValue.asText());
                 case NOT_CONTAINS_STRING:
                     return !actualValue.asText().contains(expectedValue.asText());
+
+                case ENDS_WITH:
+                    return actualValue.asText().endsWith(expectedValue.asText());
+
+                case NOT_ENDS_WITH:
+                    return !actualValue.asText().endsWith(expectedValue.asText());
+
+
+                case STARTS_WITH:
+                    return actualValue.asText().startsWith(expectedValue.asText());
+
+                case NOT_STARTS_WITH:
+                    return !actualValue.asText().startsWith(expectedValue.asText());
 
             }
             return false;
