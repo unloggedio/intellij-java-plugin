@@ -22,7 +22,7 @@ import java.util.function.Supplier;
 public class AgentResponseComponent implements Supplier<Component> {
     public static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
-    private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = true;
+    private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = false;
     private final AgentCommandResponse<String> agentCommandResponse;
     private final StoredCandidate testCandidate;
     private JPanel mainPanel;

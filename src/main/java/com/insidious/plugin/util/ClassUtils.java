@@ -86,7 +86,16 @@ public class ClassUtils {
 
                 if (classReferenceType.rawType().getCanonicalText().equals("java.util.Map") ||
                         // either from apache-collections or from spring
-                        classReferenceType.rawType().getName().equals("MultiValueMap")) {
+                        classReferenceType.rawType().getName().endsWith("MultiValueMap")) {
+                    dummyValue.append("{");
+                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
+                    dummyValue.append(": ");
+                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[1], creationStack, project));
+                    dummyValue.append("}");
+                    return dummyValue.toString();
+                }
+
+                if (classReferenceType.rawType().getCanonicalText().equals("java.util.Map.Entry")) {
                     dummyValue.append("{");
                     dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
                     dummyValue.append(": ");
