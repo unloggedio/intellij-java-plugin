@@ -262,7 +262,11 @@ public class DiffUtils {
         } else if (leftFieldNameCount > 0 && rightFieldNameCount == 0) {
             rightOnly.put(Objects.equals(path, "") ? "/" : path, node2.asText());
         } else if (leftFieldNameCount == 0 && rightFieldNameCount == 0) {
-            differences.put(Objects.equals(path, "") ? "/" : path, new ValueDifference(node1.asText(), node2.asText()));
+            if (node1.equals(node2)) {
+                common.put(Objects.equals(path, "") ? "/" : path, node1.asText());
+            } else {
+                differences.put(Objects.equals(path, "") ? "/" : path, new ValueDifference(node1.asText(), node2.asText()));
+            }
         } else {
             // both objects had fields
         }
@@ -277,7 +281,7 @@ public class DiffUtils {
     public static Map<String, Object> getFlatMapFor(String s1) {
         try {
             Map<String, Object> m1;
-            if (s1 == null || s1.isEmpty()) {
+            if (s1 == null || s1.isEmpty() || s1.equals("null")) {
                 m1 = new TreeMap<>();
             } else {
                 m1 = (Map<String, Object>) (objectMapper.readValue(s1, Map.class));

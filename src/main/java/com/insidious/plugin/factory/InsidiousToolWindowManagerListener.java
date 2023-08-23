@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory;
 
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ex.ToolWindowManagerListener;
 
@@ -9,7 +10,7 @@ public class InsidiousToolWindowManagerListener implements ToolWindowManagerList
     private final InsidiousService insidiousService;
     private boolean isToolWindowVisible = false;
 
-    public InsidiousToolWindowManagerListener(com.intellij.openapi.project.Project project) {
+    public InsidiousToolWindowManagerListener(Project project) {
         insidiousService = project.getService(InsidiousService.class);
     }
 

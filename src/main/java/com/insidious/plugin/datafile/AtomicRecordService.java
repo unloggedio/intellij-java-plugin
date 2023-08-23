@@ -300,6 +300,10 @@ public class AtomicRecordService {
     }
 
     private void writeToFile(File file, AtomicRecord atomicRecord, FileUpdateType type, boolean notify) {
+        File parentDir = file.getParentFile();
+        if (!parentDir.exists()) {
+            parentDir.mkdirs();
+        }
         logger.info("[ATRS] writing to file : " + file.getName());
         try (FileOutputStream resourceFile = new FileOutputStream(file)) {
             String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(atomicRecord);

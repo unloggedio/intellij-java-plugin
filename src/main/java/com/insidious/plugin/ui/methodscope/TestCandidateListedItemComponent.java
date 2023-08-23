@@ -144,10 +144,10 @@ public class TestCandidateListedItemComponent {
         inputTree.setShowsRootHandles(true);
 
 //        GridLayout gridLayout = new GridLayout(1, 1);
-        int desiredHeightPerInput = 30;
+        int desiredHeightPerInput = 25;
         int desiredHeight = inputRoot.getLeafCount() * desiredHeightPerInput;
-        if (desiredHeight < 100) {
-            desiredHeight = 100;
+        if (desiredHeight < 40) {
+            desiredHeight = 40;
         }
         if (desiredHeight > 220) {
             desiredHeight = 220;
@@ -174,7 +174,7 @@ public class TestCandidateListedItemComponent {
         scrollPane.setOpaque(false);
         scrollPane.getViewport().setOpaque(false);
         inputTree.setOpaque(false);
-
+//        inputTree.path
         inputTree.setBackground(UIUtils.agentResponseBaseColor);
         mainContentPanel.add(scrollPane, BorderLayout.CENTER);
 
