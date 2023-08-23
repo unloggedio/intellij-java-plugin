@@ -53,28 +53,23 @@ public class ReportingService {
 
         XSSFWorkbook workbook = getWorkbook();
         if (workbook == null) {
-//            System.out.println("Workbook is null");
             return;
         }
         XSSFSheet sheet = workbook.getSheetAt(0);
         int rowNum = sheet.getLastRowNum() + 1;
         XSSFRow row = sheet.createRow(rowNum);
 
-//        System.out.println("Report entry Start ----");
         AgentCommandRequest agentCommandRequest = result.getCommand();
         String classname = agentCommandRequest.getClassName();
-//        System.out.println("Class : "+classname);
 
         Cell cell = row.createCell(0);
         cell.setCellValue(classname);
 
         String method = agentCommandRequest.getMethodName() + "\n" + agentCommandRequest.getMethodSignature();
-//        System.out.println("Method : "+method);
         cell = row.createCell(1);
         cell.setCellValue(method);
 
         String executionMode = result.getExecutionMode().toString();
-//        System.out.println("Execution mode : "+executionMode);
         cell = row.createCell(2);
         cell.setCellValue(executionMode);
 
@@ -92,7 +87,6 @@ public class ReportingService {
                 pluginException = true;
             }
         } else {
-//            System.out.println("Execution Status : "+result.getDiffResultType());
             executionStatus = result.getDiffResultType().toString();
             if (result.getDiffResultType().equals(DiffResultType.BOTH_EXCEPTION)
                     || result.getDiffResultType().equals(DiffResultType.ACTUAL_EXCEPTION)) {
@@ -103,7 +97,6 @@ public class ReportingService {
         cell.setCellValue(executionStatus);
 
         List<String> input = getInputs(result.getCommand());
-//        System.out.println("Input Serialized : "+input.toString());
         cell = row.createCell(4);
         cell.setCellValue(input.toString());
 
@@ -117,7 +110,6 @@ public class ReportingService {
         } else {
             output = result.getResponse().getMethodReturnValue().toString();
         }
-//        System.out.println("Output Serialized : "+output);
         if (isException) {
             if (result.getResponse().getResponseType().equals(ResponseType.FAILED)) {
                 isAgentException = true;
@@ -127,8 +119,12 @@ public class ReportingService {
         cell.setCellValue(output);
 
         //make check for plugin exception
-        String exceptionTrace = isException ? result.getResponse().getMethodReturnValue().toString() : "";
-//        System.out.println("Exception trace : "+exceptionTrace);
+        String exceptionTrace = "";
+        if (isException) {
+            if (result.getResponse().getMethodReturnValue() == null) {
+                exceptionTrace = result.getResponse().getMessage();
+            }
+        }
         if (pluginException) {
             exceptionTrace = "plugin exception, no response";
         }
@@ -145,7 +141,6 @@ public class ReportingService {
                 exceptionType = "Expected Exception";
             }
         }
-//        System.out.println("Exception type : "+exceptionType);
         cell = row.createCell(7);
         cell.setCellValue(exceptionType);
 
@@ -154,7 +149,6 @@ public class ReportingService {
         if (!pluginException) {
             time = convertTimestamp(timestamp);
         }
-//        System.out.println("Timestamp : "+time);
         cell = row.createCell(8);
         cell.setCellValue(time);
 
@@ -163,9 +157,8 @@ public class ReportingService {
                     + "/" + this.output_file_name));
             workbook.write(out);
             out.close();
-//            System.out.println("Execution record added [+]");
         } catch (Exception e) {
-            System.out.println("Exception writing record to file " + e);
+            InsidiousNotification.notifyMessage("Logging Exception during add : " + e.getMessage(), NotificationType.ERROR);
             e.printStackTrace();
         }
     }
@@ -181,7 +174,6 @@ public class ReportingService {
     }
 
     private XSSFWorkbook getWorkbook() {
-        Date today = new Date();
         LocalDate now = LocalDate.now();
         String filename = insidiousService.getProject().getName() + "_" + now.getYear() + "_" + now.getMonth()
                 + "_" + now.getDayOfMonth() + ".xlsx";
@@ -231,7 +223,8 @@ public class ReportingService {
 
                 return workbook;
             } catch (Exception e) {
-                System.out.println("Exception when creating excel file " + e);
+                InsidiousNotification.notifyMessage("Exception when creating excel file  : " + e.getMessage(),
+                        NotificationType.ERROR);
                 e.printStackTrace();
                 return null;
             }
@@ -241,7 +234,8 @@ public class ReportingService {
                         new FileInputStream(insidiousService.getProject().getBasePath() + "/" + filename));
                 return workbook;
             } catch (Exception e) {
-                System.out.println("Exception opening existing excel file " + e);
+                InsidiousNotification.notifyMessage("Exception opening excel file  : " + e.getMessage(),
+                        NotificationType.ERROR);
                 e.printStackTrace();
                 return null;
             }

@@ -3,12 +3,14 @@ package com.insidious.plugin.UITests;
 import com.insidious.plugin.UITests.pages.IdeaFrame;
 import com.insidious.plugin.UITests.pages.WelcomeFrame;
 import com.intellij.remoterobot.RemoteRobot;
+import com.intellij.remoterobot.client.IdeaSideException;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.*;
 import java.util.List;
 
 import static com.intellij.remoterobot.stepsProcessing.StepWorkerKt.step;
@@ -18,27 +20,10 @@ import static org.assertj.swing.timing.Pause.pause;
 
 //To run these :
 //1. Run "runIdeForUiTests"
-//2. Once an ide instace is created run the tests below.
+//2. Once an ide instance is created run the tests below.
 public class UiTest {
     private RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8082");
     private final Keyboard keyboard = new Keyboard(remoteRobot);
-//
-//    @BeforeEach
-//    public void waitForIde(RemoteRobot remoteRobot) {
-//        waitForIgnoringError(ofMinutes(3), () ->
-//                remoteRobot.callJs("true"));
-//    }
-
-//    @AfterEach
-//    public void closeProject(final RemoteRobot remoteRobot) {
-//        step("Close the project", () -> {
-//            if (remoteRobot.isMac()) {
-//                keyboard.hotKey(VK_SHIFT, VK_META, VK_A);
-//                keyboard.enterText("Close Project");
-//                keyboard.enter();
-//            }
-//        });
-//    }
 
     //To be run after clean, will fail in other cases
     @Test
@@ -58,14 +43,6 @@ public class UiTest {
         final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
         waitFor(ofMinutes(5), () -> !idea.isDumbMode());
 
-//        step("Open Unlogged and click DirectInvoke test invoke", () -> {
-//            pause(ofSeconds(5).toMillis());
-//            idea.getUnloggedToolbarComponent().click();
-//            pause(ofSeconds(5).toMillis());
-//            idea.getDirectInvokeTabHeader().click();
-//            idea.getExecuteMethodButton().click();
-//        });
-
         idea.getProjectNavItem().click();
         pause(ofSeconds(3).toMillis());
         final ContainerFixture projectView = idea.getProjectViewTree();
@@ -80,15 +57,6 @@ public class UiTest {
             projectView.findText("java").doubleClick();
             projectView.findText("TestController").doubleClick();
         });
-
-//        idea.getDebugButton().click();
-//        step("Check console output", () -> {
-//            final Locator locator = byXpath("//div[@class='ConsoleViewImpl']");
-//            waitFor(ofMinutes(1), () -> idea.findAll(ContainerFixture.class, locator).size() > 0);
-//            waitFor(ofMinutes(1), () -> idea.find(ComponentFixture.class, locator)
-//                    .hasText("Started AutoUItestApplication"));
-//            System.out.println("Started application");
-//        });
     }
 
     //to be run once a project is indexed, will open and execute
@@ -105,18 +73,9 @@ public class UiTest {
         final TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
         idea.getDebugButton().click();
 
-//        step("Check console output", () -> {
-//            final Locator locator = byXpath("//div[@class='ConsoleViewImpl']");
-//            waitFor(ofMinutes(1), () -> idea.findAll(ContainerFixture.class, locator).size() > 0);
-//            waitFor(ofMinutes(1), () -> idea.find(ComponentFixture.class, locator)
-//                    .hasText("Started AutoUItestApplication"));
-//            System.out.println("Started application");
-//        });
-
-        //wait till process starts - 20 seconds as default
-        pause(ofSeconds(20).toMillis());
+        //wait till process starts - 10 seconds as default
+        pause(ofSeconds(10).toMillis());
         List<GutterIcon> icons = editor.getGutter().getIcons();
-        System.out.println("Icons : " + icons.toString());
 
         for (GutterIcon icon : icons) {
             if (icon.toString().contains("overriddenPath='/icons/svg/process_running.svg'")) {
@@ -128,21 +87,31 @@ public class UiTest {
         }
     }
 
+    //Needs your project to be up and running to run this test.
+    //Also needs the project tree to be visible.
     @Test
-    public void executeAllMethodsInProject() {
+    public void DirectInvokeAll() {
+        //set to true if project has multiple modules
+        boolean multiModule = false;
         final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
-        waitFor(ofMinutes(5), () -> !idea.isDumbMode());
 
-        idea.getDebugButton().click();
-        pause(ofSeconds(10).toMillis());
+        //ensure this file is visible in the project tree if using startFrom
+        String startWith = "ESSearchQuery";
+        boolean startFrom = false;
+        ContainerFixture projectView;
+        if (!startFrom) {
+            idea.getExpandAllButton().click();
+            pause(ofSeconds(1).toMillis());
 
-        idea.getHideDebugToolBarIcon().click();
-        pause(ofSeconds(1).toMillis());
+            projectView = idea.getProjectViewTree();
+            projectView.getData().getAll().get(0).click();
 
-        idea.getExpandAllButton().click();
-        pause(ofSeconds(3).toMillis());
+            keyboard.enterText("src");
+        } else {
+            System.out.println("Custom start");
+            projectView = idea.getProjectViewTree();
+        }
 
-        final ContainerFixture projectView = idea.getProjectViewTree();
         String currentFile = "";
         try {
             TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
@@ -153,72 +122,195 @@ public class UiTest {
         }
 
         List<RemoteText> treeNodes = projectView.getData().getAll();
-        int fullSize = treeNodes.size();
+        if (startFrom) {
+            treeNodes = filterCustomStart(treeNodes, startWith);
+            System.out.println("New Treenodes " + treeNodes.toString());
+            System.out.println("start : " + treeNodes.get(0).getText());
+            System.out.println("End : " + treeNodes.get(treeNodes.size() - 1).getText());
+        }
+        List<RemoteText> toVisit = new ArrayList<>();
+
         //0 - main package not found yet
         //1 - inside main/java
         //2 - found resources
+        int index = 0;
         int status = 0;
-        for (RemoteText text : treeNodes) {
+        if (startFrom) {
+            status = 1;
+        }
+        boolean done = false;
+        toVisit.addAll(treeNodes);
+        while (!done) {
+            RemoteText text = toVisit.get(index);
             if (status == 0) {
                 if (text.getText().equals("java")) {
                     status = 1;
                 }
             } else if (status == 1) {
-                if (text.getText().equals("resources")) {
+                if (text.getText().equals("resources")
+                        || text.getText().equals("test")
+                        || text.getText().equals("target")) {
                     status = 2;
                 } else {
 
                     if (text.getText().contains(".")) {
+                        index++;
+                        if (index == toVisit.size()) {
+                            toVisit = updateToVisit(toVisit, text, idea, projectView);
+                        }
                         continue;
                     }
 
                     text.doubleClick();
                     pause(ofSeconds(2).toMillis());
-                    //try to execute
 
                     TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
                     if (editor.getEditor().getFileName().equals(currentFile)) {
                         if (!currentFile.contains(text.getText())) {
-                            //skip directories
                             idea.getExpandAllButton().click();
-                            pause(ofSeconds(1).toMillis());
+                            index++;
+                            if (index == toVisit.size()) {
+                                toVisit = updateToVisit(toVisit, text, idea, projectView);
+                            }
+                            //skip directories
                             continue;
                         }
                     }
 
-                    List<GutterIcon> icons = editor.getGutter().getIcons();
+                    if (!editor.getEditor().getFileName().endsWith(".java")) {
+                        idea.getExpandAllButton().click();
+                        index++;
+                        if (index == toVisit.size()) {
+                            toVisit = updateToVisit(toVisit, text, idea, projectView);
+                        }
+                        //skip non java files
+                        continue;
+                    }
 
+                    expandJavaFile(editor.getEditor());
+                    List<GutterIcon> icons = editor.getGutter().getIcons();
+                    TreeMap<Integer, GutterIcon> iconTreeMap = new TreeMap<>();
                     for (GutterIcon icon : icons) {
+                        iconTreeMap.put(icon.getLineNumber(), icon);
+                    }
+
+                    if (iconTreeMap.size() == 0) {
+                        index++;
+                        if (index == toVisit.size()) {
+                            toVisit = updateToVisit(toVisit, text, idea, projectView);
+                        }
+                        currentFile = editor.getEditor().getFileName();
+                        idea.getExpandAllButton().click();
+                        //skip files with no gutter icons
+                        continue;
+                    }
+
+                    //start from the top of the file, useful if that file was previously open
+                    editor.getEditor().scrollToOffset(1);
+                    RemoteText packageText = editor.getEditor().findText("package");
+                    packageText.click();
+
+                    editor = idea.textEditor(Duration.ofSeconds(2));
+                    pause(ofSeconds(1).toMillis());
+
+                    for (Integer key : iconTreeMap.keySet()) {
+                        GutterIcon icon = iconTreeMap.get(key);
                         if (icon.toString().contains("name=Unlogged")) {
                             //unlogged icon found, click it.
-                            icon.click();
-                            if (!icon.toString().contains("overriddenPath='/icons/svg/process_running.svg'")) {
-                                //open direct Invoke if not process running
-                                idea.getDirectInvokeTabHeader().click();
-                            }
+                            scrollDownToIcon(editor, icon);
                             pause(ofSeconds(1).toMillis());
-                            idea.getExecuteMethodButton().click();
-                            //wait for response
-                            pause(ofSeconds(5).toMillis());
+                            icon.click();
+
+                            if (icon.toString().contains("overriddenPath='/icons/svg/execute_v2.svg'")) {
+                                //skip if execute all, no need to hot reload as this test is for
+                                //Direct Invoke only
+                                continue;
+                            }
+
+                            step("Direct Invoke method", () -> {
+                                pause(ofSeconds(1).toMillis());
+                                idea.getDirectInvokeTabHeader().click();
+                                try {
+                                    idea.getExecuteMethodButton().click();
+                                } catch (Exception exception) {
+                                    //atomic window in focus right after button click
+                                    System.out.println("Atomic window in view when trying to click direct Invoke");
+                                    idea.getDirectInvokeTabHeader().click();
+                                    idea.getExecuteMethodButton().click();
+                                }
+                                //wait for response
+                                pause(ofSeconds(5).toMillis());
+                            });
                         }
                     }
                     currentFile = editor.getEditor().getFileName();
-                    pause(ofSeconds(1).toMillis());
+                    idea.getExpandAllButton().click();
                 }
             } else {
                 //break for single module projects.
-                break;
+                //continue for multi module
+                //break;
+                done = true;
+
+                //go to state 1, new module found with java base package.
+                if (!multiModule) {
+                    break;
+                }
+                //found a new java directory
+                if (text.getText().equals("java")) {
+                    status = 1;
+                }
+            }
+            index++;
+            if (index == toVisit.size()) {
+                toVisit = updateToVisit(toVisit, text, idea, projectView);
             }
         }
-        idea.getStopButton().click();
+    }
 
-//        projectView.findText(fileName).doubleClick();
-//        Project project
-//        = idea.getProject();
+    private List<RemoteText> filterCustomStart(List<RemoteText> treeNodes, String startWith) {
+        int index = 0;
+        for (RemoteText text : treeNodes) {
+            if (text.getText().contains(startWith)) {
+                break;
+            }
+            index++;
+        }
+        return treeNodes.subList(index, treeNodes.size());
+    }
 
-//        Collection<VirtualFile> virtualFiles = FileTypeIndex.getFiles(JavaFileType.INSTANCE,
-//                GlobalSearchScope.projectScope(project));
-//
-//        System.out.println("virtual files :"+virtualFiles.toString());
+    private void expandJavaFile(EditorFixture editor) {
+        for (RemoteText text : editor.getData().getAll()) {
+            if (text.getText().equals("...")) {
+                text.click();
+            }
+        }
+    }
+
+    private void scrollDownToIcon(TextEditorFixture editorFixture, GutterIcon icon) {
+        int startingOffset = editorFixture.getEditor().callJs("local.get('editor').getDocument().getLineStartOffset(" + icon.getLineNumber() + ")", true);
+        editorFixture.getEditor().scrollToOffset(startingOffset);
+        System.out.println("Scrolling down to line number : " + icon.getLineNumber() + ", Offset : " + startingOffset);
+    }
+
+    private List<RemoteText> updateToVisit(List<RemoteText> toVisit, RemoteText text,
+                                           IdeaFrame idea, ContainerFixture projectView) {
+        projectView = idea.getProjectViewTree();
+        List<RemoteText> newRefs = projectView.getData().getAll();
+        newRefs = getNewSubList(newRefs, text);
+        toVisit.addAll(newRefs);
+        return toVisit;
+    }
+
+    private List<RemoteText> getNewSubList(List<RemoteText> newRefs, RemoteText current) {
+        int index = 0;
+        for (RemoteText remoteText : newRefs) {
+            if (remoteText.getText().equals(current.getText())) {
+                index++;
+                break;
+            }
+            index++;
+        }
+        return newRefs.subList(index, newRefs.size());
     }
 }

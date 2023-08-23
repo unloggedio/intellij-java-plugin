@@ -29,12 +29,6 @@ public class IdeaFrame extends CommonContainerFixture {
         return callJs("component.getProject().getName();");
     }
 
-//    public ComponentFixture getMenuBar() {
-//        Locator menuBarFixture = byXpath("JMenuBarFixture", "//div[@class='JMenuBarFixture']");
-//        ComponentFixture projectViewTree = remoteRobot.find(JMenuBarFixture.class, menuBarFixture);
-//        return projectViewTree;
-//    }
-
     public boolean isDumbMode() {
         return callJs(
                 """
@@ -75,5 +69,9 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public ComponentFixture getHideDebugToolBarIcon() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.HIDE_DEBUG_TOOLBAR);
+    }
+
+    public ComponentFixture getEditorScrollBar() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.EDITOR_SCROLL_BAR);
     }
 }

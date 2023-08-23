@@ -24,7 +24,8 @@ public class UITestUtils {
         EXPAND_ALL("//div[contains(@myaction.key, 'action.ExpandAll.text')]"),
         STOP_BUTTON("//div[contains(@myaction.key, 'action.stop')]"),
         HIDE_DEBUG_TOOLBAR("//div[contains(@myvisibleactions, '[Options')]//div[@myaction.key='tool.window.hide.action.name']"),
-        OPEN_PROJECT_OK_BUTTON("//div[@text.key='button.ok']");
+        OPEN_PROJECT_OK_BUTTON("//div[@text.key='button.ok']"),
+        EDITOR_SCROLL_BAR("//div[@class='MyScrollPane']");
 
         private String value;
 
