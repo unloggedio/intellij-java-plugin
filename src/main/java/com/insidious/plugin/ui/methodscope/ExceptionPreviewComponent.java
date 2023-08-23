@@ -21,14 +21,16 @@ public class ExceptionPreviewComponent {
     private final String stackTrace;
     private final InsidiousService service;
     private JPanel mainPanel;
-    private JPanel buttonControlPanel;
+    private JPanel scrollGrid;
     private JButton showfulltrace;
     private JButton accept;
     private JTextArea exceptionArea;
     private JLabel iconLabel;
-    private JPanel topPanel;
-    private JPanel topAligner;
     private JButton deleteButton;
+    private JPanel topAligner;
+    private JPanel topPanel;
+    private JPanel buttonControlPanel;
+    private JPanel bottomPanel;
     private SaveForm saveForm;
     private StoredCandidate candidate;
     private AgentCommandResponse<String> agentCommandResponse;
@@ -64,6 +66,8 @@ public class ExceptionPreviewComponent {
             }
         });
 
+        accept.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
+        deleteButton.setIcon(UIUtils.DELETE_CANDIDATE_RED_SVG);
         if (!showDelete) {
             this.deleteButton.setVisible(false);
         }
