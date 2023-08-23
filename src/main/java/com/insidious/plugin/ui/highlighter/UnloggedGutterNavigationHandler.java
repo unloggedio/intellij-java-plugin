@@ -28,7 +28,7 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
     }
 
     @Override
-    public void navigate(MouseEvent e, PsiIdentifier identifier) {
+    public void navigate(MouseEvent mouseEvent, PsiIdentifier identifier) {
         PsiMethod method = (PsiMethod) identifier.getParent();
         PsiClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(method.getContainingFile(),
                 method.getTextOffset(), PsiClass.class, false);

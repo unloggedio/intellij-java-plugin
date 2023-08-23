@@ -178,7 +178,7 @@ final public class InsidiousService implements Disposable,
 
 
         EditorEventMulticaster multicaster = EditorFactory.getInstance().getEventMulticaster();
-        InsidiousCaretListener listener = new InsidiousCaretListener(project);
+        InsidiousCaretListener listener = new InsidiousCaretListener();
         multicaster.addEditorMouseListener(listener, this);
         agentStateProvider = new DefaultAgentStateProvider(this);
 //        threadPoolExecutor.submit(agentStateProvider);
@@ -622,6 +622,9 @@ final public class InsidiousService implements Disposable,
 
     public void updateCoverageReport() {
         if (coverageReportComponent == null || sessionInstance == null) {
+            return;
+        }
+        if (sessionInstance.getProject() != project) {
             return;
         }
         CodeCoverageData coverageData = sessionInstance.createCoverageData();

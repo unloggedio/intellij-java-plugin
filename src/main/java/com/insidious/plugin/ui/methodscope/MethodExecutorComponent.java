@@ -262,6 +262,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     public void refreshAndReloadCandidates(final MethodAdapter method, List<StoredCandidate> candidates) {
+        logger.warn("load and refresh candidates in mec for");
 
         if (methodElement == null || method == null || method.getPsiMethod() != methodElement.getPsiMethod()) {
             clearBoard();

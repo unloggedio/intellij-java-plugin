@@ -1451,7 +1451,8 @@ public class DaoService {
                                                               String methodSignature) {
         try {
             GenericRawResults<MethodDefinition> queryResult = methodDefinitionsDao.queryRaw(
-                    "select * from method_definition where ownerType = ? and methodName = ? and methodDescriptor = ?",
+                    "select * from method_definition where ownerType = ? and methodName = ? and methodDescriptor = ? " +
+                            "order by id desc limit 1",
                     methodDefinitionsDao.getRawRowMapper(),
                     className, methodName, methodSignature
             );
