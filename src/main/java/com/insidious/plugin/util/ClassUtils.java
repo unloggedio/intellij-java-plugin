@@ -2,8 +2,9 @@ package com.insidious.plugin.util;
 
 //import com.fasterxml.jackson.databind.ObjectMapper;
 //import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.insidious.plugin.adapter.ClassAdapter;
+
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.ui.methodscope.ClassChosenListener;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
 import com.intellij.lang.jvm.JvmModifier;
@@ -74,9 +75,9 @@ public class ClassUtils {
                 PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
                 if (
                         classReferenceType.rawType().getCanonicalText().equals("java.util.List") ||
-                        classReferenceType.rawType().getCanonicalText().equals("java.util.ArrayList") ||
-                        classReferenceType.rawType().getCanonicalText().equals("java.util.LinkedList") ||
-                        classReferenceType.rawType().getCanonicalText().equals("java.util.Set")
+                                classReferenceType.rawType().getCanonicalText().equals("java.util.ArrayList") ||
+                                classReferenceType.rawType().getCanonicalText().equals("java.util.LinkedList") ||
+                                classReferenceType.rawType().getCanonicalText().equals("java.util.Set")
                 ) {
                     dummyValue.append("[");
                     dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
@@ -86,16 +87,9 @@ public class ClassUtils {
 
                 if (classReferenceType.rawType().getCanonicalText().equals("java.util.Map") ||
                         // either from apache-collections or from spring
-                        classReferenceType.rawType().getName().endsWith("MultiValueMap")) {
-                    dummyValue.append("{");
-                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
-                    dummyValue.append(": ");
-                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[1], creationStack, project));
-                    dummyValue.append("}");
-                    return dummyValue.toString();
-                }
-
-                if (classReferenceType.rawType().getCanonicalText().equals("java.util.Map.Entry")) {
+                        classReferenceType.rawType().getName().endsWith("MultiValueMap") ||
+                        classReferenceType.rawType().getCanonicalText().equals("java.util.Map.Entry")
+                ) {
                     dummyValue.append("{");
                     dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
                     dummyValue.append(": ");
