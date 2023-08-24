@@ -103,7 +103,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         AgentStateProvider agentStateProvider = insidiousService.getAgentStateProvider();
 
         if (!agentStateProvider.isAgentRunning()) {
-            String message = "Start your application with Unlogged JAVA agent to start using " +
+            String message = "Start your application with Java unlogged-sdk to start using " +
                     "method DirectInvoke";
             InsidiousNotification.notifyMessage(message, NotificationType.INFORMATION);
             returnValueTextArea.setText(message);
