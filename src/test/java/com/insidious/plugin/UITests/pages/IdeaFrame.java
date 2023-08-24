@@ -74,4 +74,8 @@ public class IdeaFrame extends CommonContainerFixture {
     public ComponentFixture getEditorScrollBar() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.EDITOR_SCROLL_BAR);
     }
+
+    public ComponentFixture getLocateButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.LOCATE_FILE);
+    }
 }

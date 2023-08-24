@@ -96,7 +96,7 @@ public class UiTest {
         final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
 
         //ensure this file is visible in the project tree if using startFrom
-        String startWith = "ESSearchQuery";
+        String startWith = "CabezaRedissonClient";
         boolean startFrom = false;
         ContainerFixture projectView;
         if (!startFrom) {
@@ -124,9 +124,6 @@ public class UiTest {
         List<RemoteText> treeNodes = projectView.getData().getAll();
         if (startFrom) {
             treeNodes = filterCustomStart(treeNodes, startWith);
-            System.out.println("New Treenodes " + treeNodes.toString());
-            System.out.println("start : " + treeNodes.get(0).getText());
-            System.out.println("End : " + treeNodes.get(treeNodes.size() - 1).getText());
         }
         List<RemoteText> toVisit = new ArrayList<>();
 
@@ -141,6 +138,13 @@ public class UiTest {
         boolean done = false;
         toVisit.addAll(treeNodes);
         while (!done) {
+            if (index == toVisit.size()) {
+                //should update map and click locate to ensure expand all moves again
+                idea.getLocateButton().click();
+                pause(ofSeconds(1).toMillis());
+                RemoteText text = toVisit.get(index - 1);
+                toVisit = updateToVisit(toVisit, text, idea, projectView);
+            }
             RemoteText text = toVisit.get(index);
             if (status == 0) {
                 if (text.getText().equals("java")) {
@@ -187,6 +191,7 @@ public class UiTest {
                         continue;
                     }
 
+                    pause(ofSeconds(1).toMillis());
                     expandJavaFile(editor.getEditor());
                     List<GutterIcon> icons = editor.getGutter().getIcons();
                     TreeMap<Integer, GutterIcon> iconTreeMap = new TreeMap<>();

@@ -25,6 +25,7 @@ public class UITestUtils {
         STOP_BUTTON("//div[contains(@myaction.key, 'action.stop')]"),
         HIDE_DEBUG_TOOLBAR("//div[contains(@myvisibleactions, '[Options')]//div[@myaction.key='tool.window.hide.action.name']"),
         OPEN_PROJECT_OK_BUTTON("//div[@text.key='button.ok']"),
+        LOCATE_FILE("//div[@tooltiptext.key='action.SelectOpenedFileInProjectView.text']"),
         EDITOR_SCROLL_BAR("//div[@class='MyScrollPane']");
 
         private String value;
