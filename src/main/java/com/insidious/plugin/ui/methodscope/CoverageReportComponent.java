@@ -45,26 +45,30 @@ public class CoverageReportComponent {
                 border, BorderFactory.createEmptyBorder(5, 5, 0, 5)
         );
         reportTableContainerPanel.setBorder(borderWithMargin);
+        branchPercentBoxPanel.setVisible(false);
 
     }
 
     public void setCoverageData(CodeCoverageData codeCoverageData) {
         String[] columnNames = new String[]{
-                "Element",
-                "Class, %",
-                "Method, %",
-                "Line, %",
-                "Branch, %"
+                "Element"
+                , "Class, %"
+                , "Method, %"
+                , "Line, %"
+//                , "Branch, %"
         };
 
         List<PackageCoverageData> packageCoverageDataList = codeCoverageData.getPackageCoverageDataList();
         CoverageTreeTableModel treeTableModel = new CoverageTreeTableModel(packageCoverageDataList, columnNames);
         AtomicInteger totalClassCount = new AtomicInteger();
         AtomicInteger coveredClassCount = new AtomicInteger();
+
         AtomicInteger totalMethodCount = new AtomicInteger();
         AtomicInteger coveredMethodCount = new AtomicInteger();
+
         AtomicInteger totalLineCount = new AtomicInteger();
         AtomicInteger coveredLineCount = new AtomicInteger();
+
         AtomicInteger totalBranchCount = new AtomicInteger();
         AtomicInteger coveredBranchCount = new AtomicInteger();
 

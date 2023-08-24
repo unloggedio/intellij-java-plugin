@@ -3598,11 +3598,27 @@ public class SessionInstance implements Runnable {
     public CodeCoverageData createCoverageData() {
 
         List<MethodDefinition> allMethods = daoService.getAllMethodDefinitions();
+        allMethods.sort(Collections.reverseOrder(MethodDefinition::compareTo));
+
+        List<MethodDefinition> onlyUpdatedMethod = new ArrayList<>();
+//        Map<String, Integer> classNameToIdMap = new HashMap<>();
+        Map<String, Boolean> methodByKeyMap = new HashMap<>();
+
+        for (MethodDefinition methodDefinition : allMethods) {
+            String className = methodDefinition.getOwnerType();
+            String methodHashKey = className + methodDefinition.getMethodName() + methodDefinition.getMethodDescriptor();
+            if (methodByKeyMap.containsKey(methodHashKey)) {
+                continue;
+            }
+            methodByKeyMap.put(methodHashKey, true);
+            onlyUpdatedMethod.add(methodDefinition);
+        }
+
 
         Map<String, List<ClassCoverageData>> byPackageMap = new HashMap<>();
         Map<String, List<MethodCoverageData>> byClassMap = new HashMap<>();
 
-        for (MethodDefinition methodDefinition : allMethods) {
+        for (MethodDefinition methodDefinition : onlyUpdatedMethod) {
             String className = methodDefinition.getOwnerType();
 
             List<MethodCoverageData> classCoverageData = byClassMap.get(className);
