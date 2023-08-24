@@ -9,7 +9,6 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -17,14 +16,14 @@ import java.awt.*;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
-public class AgentResponseComponent implements Supplier<Component> {
+public class AgentResponseComponent implements ResponsePreviewComponent {
     public static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
     private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = true;
     private final AgentCommandResponse<String> agentCommandResponse;
-    private final StoredCandidate testCandidate;
+    private final JButton createTestCaseButton;
+    private StoredCandidate testCandidate;
     private JPanel mainPanel;
     private JPanel centerPanel;
     private JButton viewFullButton;
@@ -73,8 +72,12 @@ public class AgentResponseComponent implements Supplier<Component> {
                 e -> fullViewEventListener.generateCompareWindows(originalString, actualString));
 
         if (SHOW_TEST_CASE_CREATE_BUTTON) {
-            JButton createTestCaseButton = new JButton("Create test case");
+            createTestCaseButton = new JButton("Create test case");
             buttonRightPanel.add(createTestCaseButton);
+            if (testCandidate.getEntryProbeIndex() < 1) {
+                createTestCaseButton.setEnabled(false);
+                createTestCaseButton.setText("Test case generation waiting for scan");
+            }
             createTestCaseButton.addActionListener(
                     e -> candidateLifeListener.onGenerateJunitTestCaseRequest(testCandidate));
         }
@@ -163,6 +166,15 @@ public class AgentResponseComponent implements Supplier<Component> {
     @Override
     public Component get() {
         return this.mainPanel;
+    }
+
+    @Override
+    public void setTestCandidate(StoredCandidate candidate) {
+        this.testCandidate = candidate;
+        if (testCandidate.getEntryProbeIndex() > 1) {
+            createTestCaseButton.setEnabled(true);
+            createTestCaseButton.setText("Generate JUnit Test");
+        }
     }
 
 }

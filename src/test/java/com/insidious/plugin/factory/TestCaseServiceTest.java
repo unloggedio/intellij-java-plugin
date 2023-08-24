@@ -14,6 +14,7 @@ import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.testcase.TestCaseService;
+import com.insidious.plugin.factory.testcase.ValueResourceContainer;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
@@ -41,18 +42,6 @@ public class TestCaseServiceTest {
 
     private final static Logger logger = Logger.getLogger(TestCaseServiceTest.class.getName());
 
-
-    @NotNull
-    private static DaoService getDaoService(String url) throws SQLException {
-        ConnectionSource connectionSource = new JdbcConnectionSource(url);
-        DaoService daoService = new DaoService(connectionSource, new ParameterProvider() {
-            @Override
-            public com.insidious.plugin.pojo.dao.Parameter getParameterByValue(Long value) {
-                return null;
-            }
-        });
-        return daoService;
-    }
 
     private static void copyTestCaseToClipboard(TestCaseUnit testCaseUnit) {
         System.out.println(testCaseUnit);
@@ -451,10 +440,10 @@ public class TestCaseServiceTest {
         @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
 
         copyTestCaseToClipboard(testCaseUnit);
-        Map<String, Object> valueResourceMap = testCaseUnit.getTestGenerationState()
+        ValueResourceContainer valueResourceMap = testCaseUnit.getTestGenerationState()
                 .getValueResourceMap();
-        if (valueResourceMap.size() > 0) {
-            System.out.println(new Gson().toJson(valueResourceMap));
+        if (valueResourceMap.getValueResourceMap().size() > 0) {
+            System.out.println(new Gson().toJson(valueResourceMap.getValueResourceMap()));
         }
     }
 

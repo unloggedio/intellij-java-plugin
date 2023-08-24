@@ -25,11 +25,11 @@ import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class AgentExceptionResponseComponent implements Supplier<Component> {
+public class AgentExceptionResponseComponent implements ResponsePreviewComponent {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger logger = LoggerUtil.getInstance(AgentExceptionResponseComponent.class);
     final private InsidiousService insidiousService;
-    final private StoredCandidate testCandidate;
+    private StoredCandidate testCandidate;
     final private AgentCommandResponse<String> response;
     private final CandidateLifeListener candidateLifeListener;
     private JPanel mainPanel;
@@ -166,6 +166,11 @@ public class AgentExceptionResponseComponent implements Supplier<Component> {
     @Override
     public Component get() {
         return this.mainPanel;
+    }
+
+    @Override
+    public void setTestCandidate(StoredCandidate candidate) {
+        this.testCandidate = candidate;
     }
 
     public void setInfoLabel(String info) {

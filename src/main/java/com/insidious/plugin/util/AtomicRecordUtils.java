@@ -37,6 +37,7 @@ public class AtomicRecordUtils {
             if (!savedCandidatesByArgumentsMap.containsKey(commaSeparatedArguments)) {
                 finalCandidateList.addAll(unsavedCandidatesByArguments.get(commaSeparatedArguments));
             } else {
+                StoredCandidate oneUnsavedCandidate = unsavedCandidatesByArguments.get(commaSeparatedArguments).get(0);
                 Set<Integer> newLineNumberSet = unsavedCandidatesByArguments
                         .get(commaSeparatedArguments)
                         .stream().map(StoredCandidate::getLineNumbers).flatMap(Collection::stream)
@@ -52,10 +53,18 @@ public class AtomicRecordUtils {
                 if (!existingLineNumberSet.equals(newLineNumberSet)) {
                     updatedCandidateIds.addAll(
                             savedCandidatesByArgumentList.stream()
-                                    .peek(e -> e.setLineNumbers(new ArrayList<>(newLineNumberList)))
+                                    .peek(e -> {
+                                        e.setLineNumbers(new ArrayList<>(newLineNumberList));
+                                        e.setEntryProbeIndex(oneUnsavedCandidate.getEntryProbeIndex());
+                                    })
                                     .map(StoredCandidate::getCandidateId)
                                     .collect(Collectors.toList())
                     );
+                } else {
+                    savedCandidatesByArgumentList
+                            .forEach(e -> {
+                                e.setEntryProbeIndex(oneUnsavedCandidate.getEntryProbeIndex());
+                            });
                 }
             }
         }

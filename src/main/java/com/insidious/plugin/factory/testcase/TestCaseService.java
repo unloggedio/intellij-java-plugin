@@ -158,7 +158,9 @@ public class TestCaseService {
 
         return new TestCaseUnit(javaFile.toString(),
                 objectRoutineContainer.getPackageName(),
-                generatedTestClassName, testCaseScript.getTestMethodName(), testCaseScript.getTestGenerationState(),
+                generatedTestClassName,
+                testCaseScript.getTestMethodName(),
+                testCaseScript.getTestGenerationState(),
                 testClassSpec);
     }
 

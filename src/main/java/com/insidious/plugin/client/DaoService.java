@@ -659,9 +659,7 @@ public class DaoService {
             if (returnParam.getType() != null && returnParam.getType()
                     .contains("$HibernateProxy")) {
                 returnParam.setTypeForced(
-                        returnParam.getType()
-                                .substring(0, returnParam.getType()
-                                        .indexOf("$Hibernate"))
+                        returnParam.getType().substring(0, returnParam.getType().indexOf("$Hibernate"))
                 );
             }
             returnParam.setProbeInfo(eventProbe);
@@ -1282,10 +1280,9 @@ public class DaoService {
     getTestCandidateById(Long testCandidateId, boolean loadCalls) {
         try {
             TestCandidateMetadata dbCandidate = testCandidateDao.queryForId(testCandidateId);
-            com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata =
-                    convertTestCandidateMetadata(dbCandidate, loadCalls);
-            return testCandidateMetadata;
+            return convertTestCandidateMetadata(dbCandidate, loadCalls);
         } catch (Exception e) {
+            logger.error("failed to load test candidate by id [" + testCandidateId + "]", e);
             throw new RuntimeException(e);
         }
     }

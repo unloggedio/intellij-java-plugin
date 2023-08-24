@@ -37,12 +37,14 @@ public class TestCandidateMetadata {
         newCandidate.setEntryProbeIndex(testCandidateMetadata.getEntryProbeIndex());
         newCandidate.setExitProbeIndex(testCandidateMetadata.getExitProbeIndex());
         newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
-        newCandidate.setLines(Arrays.stream(testCandidateMetadata
-                        .getLines()
-                        .split(","))
-                .map(Integer::parseInt)
-                .collect(Collectors.toList())
-        );
+        if (testCandidateMetadata.getLines() != null) {
+            newCandidate.setLines(Arrays.stream(testCandidateMetadata
+                            .getLines()
+                            .split(","))
+                    .map(Integer::parseInt)
+                    .collect(Collectors.toList())
+            );
+        }
 
         return newCandidate;
     }

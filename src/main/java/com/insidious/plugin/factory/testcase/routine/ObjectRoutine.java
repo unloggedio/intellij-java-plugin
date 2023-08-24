@@ -187,18 +187,14 @@ public class ObjectRoutine {
             ObjectRoutineScript script1 = CandidateMetadataFactory
                     .mainMethodToObjectScript(testCandidateMetadata, testGenerationState, generationConfiguration);
 
-            scriptContainer.getStatements()
-                    .addAll(script1.getStatements());
-            scriptContainer.getStaticMocks()
-                    .addAll(script1.getStaticMocks());
+            scriptContainer.getStatements().addAll(script1.getStatements());
+            scriptContainer.getStaticMocks().addAll(script1.getStaticMocks());
 
         }
         testGenerationState.setVariableContainer(variableContainer);
 
-        if (generationConfiguration.getResourceEmbedMode()
-                .equals(ResourceEmbedMode.IN_FILE)) {
-            if (testGenerationState.getValueResourceMap()
-                    .size() > 0) {
+        if (generationConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_FILE)) {
+            if (testGenerationState.getValueResourceMap().getValueResourceMap().size() > 0) {
                 String resourceFileName = this.testCandidateList
                         .get(this.testCandidateList.size() - 1)
                         .getMainMethod().getMethodName();
@@ -206,6 +202,7 @@ public class ObjectRoutine {
                     resourceFileName = "setup";
                     testGenerationState.setSetupNeedsJsonResources(true);
                 }
+                testGenerationState.getValueResourceMap().setResourceFileName(resourceFileName);
                 scriptContainer.getStatements()
                         .add(0, Pair.create(
                                 CodeLineFactory.StatementCodeLine("LoadResources(this.getClass(), $S)"), new Object[]{

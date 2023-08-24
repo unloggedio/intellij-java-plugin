@@ -16,6 +16,8 @@ import static com.insidious.plugin.Constants.HOSTNAME;
 
 public class StoredCandidate implements Comparable<StoredCandidate> {
 
+    @JsonIgnore
+    private long entryProbeIndex;
     private List<Integer> lineNumbers = new ArrayList<>();
     private AtomicAssertion testAssertions = null;
     private String candidateId;
@@ -26,19 +28,10 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     private boolean isException;
     private String returnValueClassname;
     private StoredCandidateMetadata metadata;
-    private long entryProbeIndex;
+    private long sessionIdentifier;
     private byte[] probSerializedValue;
     private MethodUnderTest methodUnderTest;
-
     private StoredCandidate() {
-    }
-
-    public void setLineNumbers(List<Integer> lineNumbers) {
-        this.lineNumbers = lineNumbers;
-    }
-
-    public List<Integer> getLineNumbers() {
-        return lineNumbers;
     }
 
     public StoredCandidate(TestCandidateMetadata candidateMetadata) {
@@ -50,7 +43,8 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.returnValueClassname = candidateMetadata.getMainMethod().getReturnValue().getType();
         this.methodUnderTest = MethodUnderTest.fromTestCandidateMetadata(candidateMetadata);
         this.probSerializedValue = candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue();
-        this.entryProbeIndex = generateIdentifier(candidateMetadata);
+        this.sessionIdentifier = generateIdentifier(candidateMetadata);
+        this.entryProbeIndex = candidateMetadata.getEntryProbeIndex();
         this.lineNumbers = candidateMetadata.getLineNumbers();
         StoredCandidateMetadata metadata = new StoredCandidateMetadata();
         metadata.setHostMachineName(HOSTNAME);
@@ -70,6 +64,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         candidate.setProbSerializedValue(metadata.getProbSerializedValue());
         //to be updated
         candidate.setMethod(metadata.getMethod());
+        candidate.setSessionIdentifier(metadata.getSessionIdentifier());
         candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
         candidate.setReturnValueClassname(response.getResponseClassName());
 
@@ -88,10 +83,26 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         return candidate;
     }
 
+    public long getEntryProbeIndex() {
+        return entryProbeIndex;
+    }
+
+    public void setEntryProbeIndex(long entryProbeIndex) {
+        this.entryProbeIndex = entryProbeIndex;
+    }
+
+    public List<Integer> getLineNumbers() {
+        return lineNumbers;
+    }
+
+    public void setLineNumbers(List<Integer> lineNumbers) {
+        this.lineNumbers = lineNumbers;
+    }
+
     @Override
     public int hashCode() {
         return Objects.requireNonNullElseGet(this.candidateId,
-                () -> this.entryProbeIndex + "-" + this.metadata.getHostMachineName()).hashCode();
+                () -> this.sessionIdentifier + "-" + this.metadata.getHostMachineName()).hashCode();
     }
 
     @Override
@@ -111,7 +122,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
             return this.getCandidateId().equals(otherCandidate.getCandidateId());
         }
 
-        return this.entryProbeIndex == otherCandidate.getEntryProbeIndex();
+        return this.sessionIdentifier == otherCandidate.getSessionIdentifier();
     }
 
     @Override
@@ -191,12 +202,12 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.methodUnderTest = methodUnderTest1;
     }
 
-    public long getEntryProbeIndex() {
-        return entryProbeIndex;
+    public long getSessionIdentifier() {
+        return sessionIdentifier;
     }
 
-    public void setEntryProbeIndex(long entryProbeIndex) {
-        this.entryProbeIndex = entryProbeIndex;
+    public void setSessionIdentifier(long sessionIdentifier) {
+        this.sessionIdentifier = sessionIdentifier;
     }
 
     @JsonIgnore
@@ -225,7 +236,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
                 ", returnValueClassname='" + returnValueClassname + '\'' +
                 ", metadata=" + metadata +
                 ", method=" + methodUnderTest +
-                ", entryProbeIndex=" + entryProbeIndex +
+                ", entryProbeIndex=" + sessionIdentifier +
                 '}';
     }
 
@@ -240,6 +251,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.setName(candidate.getName());
         this.setDescription(candidate.getDescription());
         this.setReturnValue(candidate.getReturnValue());
+        this.setSessionIdentifier(candidate.getSessionIdentifier());
         this.setEntryProbeIndex(candidate.getEntryProbeIndex());
         this.setProbSerializedValue(candidate.getProbSerializedValue());
         this.setException(candidate.isException());

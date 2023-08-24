@@ -8,6 +8,7 @@ import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.JavaParserUtils;
+import com.insidious.plugin.factory.testcase.ValueResourceContainer;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.TestSuite;
@@ -55,16 +56,17 @@ public class JUnitTestCaseWriter {
                 basePath = project.getBasePath();
             }
             logger.info("[TEST CASE SAVE] basepath : " + basePath);
-            Map<String, Object> valueResourceMap = testCaseScript.getTestGenerationState()
+            ValueResourceContainer valueResourceContainer = testCaseScript.getTestGenerationState()
                     .getValueResourceMap();
-            if (valueResourceMap.values().size() > 0) {
+            if (valueResourceContainer.getValueResourceMap().size() > 0) {
                 String testResourcesDirPath =
                         basePath + "/src/test/resources/unlogged-fixtures/" + testCaseScript.getClassName();
                 File resourcesDirFile = new File(testResourcesDirPath);
                 resourcesDirFile.mkdirs();
-                String resourceJson = objectMapper.writeValueAsString(valueResourceMap);
+                String resourceJson = objectMapper.writeValueAsString(valueResourceContainer.getValueResourceMap());
 
-                String testResourcesFilePath = testResourcesDirPath + "/" + testCaseScript.getTestMethodName() + ".json";
+                String testResourcesFilePath =
+                        testResourcesDirPath + "/" + valueResourceContainer.getResourceFileName() + ".json";
                 try (FileOutputStream resourceFile = new FileOutputStream(testResourcesFilePath)) {
                     resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
                 }

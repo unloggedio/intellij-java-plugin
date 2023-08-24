@@ -156,5 +156,4 @@ public class ObjectRoutineScript {
         this.staticMocks.add(staticCallSubjectMockInstance);
     }
 
-
 }

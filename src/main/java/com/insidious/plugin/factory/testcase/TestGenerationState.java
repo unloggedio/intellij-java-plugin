@@ -1,9 +1,7 @@
 package com.insidious.plugin.factory.testcase;
 
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonSyntaxException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
@@ -29,11 +27,10 @@ import java.util.regex.Pattern;
  * - mocked calls
  */
 public class TestGenerationState {
-    private static final Gson gson = new Gson();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Pattern ENDS_WITH_DIGITS = Pattern.compile("(.+)([0-9]+)$");
     private static final Logger logger = LoggerUtil.getInstance(TestGenerationState.class);
-    private final Map<String, Object> valueResourceMap = new HashMap<>();
-    private final Map<String, String> valueResourceStringMap = new HashMap<>();
+    private final ValueResourceContainer valueResourceContainer = new ValueResourceContainer();
     private final ParameterNameFactory parameterNameFactory;
     private VariableContainer variableContainer;
     private Map<String, Boolean> mockedCallsMap = new HashMap<>();
@@ -63,8 +60,8 @@ public class TestGenerationState {
         this.mockedCallsMap = mockedCallsMap;
     }
 
-    public Map<String, Object> getValueResourceMap() {
-        return valueResourceMap;
+    public ValueResourceContainer getValueResourceMap() {
+        return valueResourceContainer;
     }
 
     public String addObjectToResource(Parameter lhsExpression) {
@@ -74,26 +71,23 @@ public class TestGenerationState {
             targetObjectName = matcher.group(1);
         }
 
-        String value = new String(lhsExpression.getProb()
-                .getSerializedValue());
+        String value = new String(lhsExpression.getProb().getSerializedValue());
         String valueHash = DigestUtils.md5Hex(value);
-        if (valueResourceStringMap.containsKey(valueHash)) {
-            valueResourceStringMap.get(valueHash);
+        if (valueResourceContainer.containsHash(valueHash)) {
+            return valueResourceContainer.getByHash(valueHash);
         }
         String referenceNameForValue = null;
         for (int i = 0; i < 100; i++) {
             referenceNameForValue = targetObjectName + i;
-            if (!valueResourceMap.containsKey(referenceNameForValue)) {
+            if (!valueResourceContainer.containsName(referenceNameForValue)) {
                 Object value1;
                 try {
-                    value1 = gson.fromJson(value, JsonElement.class);
-                } catch (JsonSyntaxException jse) {
-                    value1 = new String(lhsExpression.getProb()
-                            .getSerializedValue());
+                    value1 = objectMapper.readTree(value);
+                } catch (Exception jse) {
+                    value1 = new String(lhsExpression.getProb().getSerializedValue());
                     logger.warn("Object was not serialized properly: " + value1 + " -> " + jse.getMessage());
                 }
-                valueResourceMap.put(referenceNameForValue, value1);
-                valueResourceStringMap.put(valueHash, referenceNameForValue);
+                valueResourceContainer.addValue(referenceNameForValue, valueHash, value1);
                 break;
             }
         }

@@ -45,9 +45,7 @@ public class ArchiveFilesIndex {
         List<UploadFile> files = new LinkedList<>();
         for (KaitaiInsidiousIndexParser.IndexedFile indexFile : archiveIndex.indexFiles()) {
             BloomFilter<Long> fileValueFilter = BloomFilterConverter.fromJson(
-                    GSON.fromJson(
-                            new String(indexFile.valueIdIndex()), JsonElement.class),
-                    Long.class); //{"size":240,"hashes":4,"HashMethod":"MD5","bits":"AAAAEAAAAACAgAAAAAAAAAAAAAAQ"}
+                    GSON.fromJson(new String(indexFile.valueIdIndex()), JsonElement.class), Long.class); //{"size":240,"hashes":4,"HashMethod":"MD5","bits":"AAAAEAAAAACAgAAAAAAAAAAAAAAQ"}
             if (fileValueFilter.contains(valueId)) {
                 UploadFile uploadFile = new UploadFile(
                         new String(indexFile.filePath().value()),
@@ -64,9 +62,7 @@ public class ArchiveFilesIndex {
         List<UploadFile> files = new LinkedList<>();
         for (KaitaiInsidiousIndexParser.IndexedFile indexFile : archiveIndex.indexFiles()) {
             BloomFilter<Integer> probeIdFilter = BloomFilterConverter.fromJson(
-                    GSON.fromJson(
-                            new String(indexFile.probeIdIndex()), JsonElement.class),
-                    Integer.class); //{"size":240,"hashes":4,"HashMethod":"MD5","bits":"AAAAEAAAAACAgAAAAAAAAAAAAAAQ"}
+                    GSON.fromJson(new String(indexFile.probeIdIndex()), JsonElement.class), Integer.class); //{"size":240,"hashes":4,"HashMethod":"MD5","bits":"AAAAEAAAAACAgAAAAAAAAAAAAAAQ"}
             if (probeIdFilter.contains(probeId)) {
                 UploadFile uploadFile = new UploadFile(
                         new String(indexFile.filePath().value()),
