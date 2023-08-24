@@ -55,15 +55,29 @@ public class DiffUtils {
                                     atomicAssertion.getAssertionType() == AssertionType.NOTANYOF ||
                                     atomicAssertion.getAssertionType() == AssertionType.ANYOF
                     ) {
+                        Boolean subResult = results.get(atomicAssertion.getId());
+                        if (!subResult) {
+                            differencesList.add(
+                                    new DifferenceInstance(
+                                            atomicAssertion.getAssertionType().toString()
+                                                    + " " + atomicAssertion.getSubAssertions().size()
+                                                    + " assertions",
+                                            "true",
+                                            "false",
+                                            DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE));
+                        }
+
                         continue;
                     }
                     Boolean subResult = results.get(atomicAssertion.getId());
                     if (!subResult) {
+                        String key = atomicAssertion.getExpression() == Expression.SELF ?
+                                atomicAssertion.getKey() : atomicAssertion.getExpression()
+                                + "(" + atomicAssertion.getKey() + ")";
+                        key = "[" + key + "] " + atomicAssertion.getAssertionType().toString();
                         differencesList.add(
                                 new DifferenceInstance(
-                                        atomicAssertion.getExpression() == Expression.SELF ?
-                                                atomicAssertion.getKey() : atomicAssertion.getExpression()
-                                                + "(" + atomicAssertion.getKey() + ")",
+                                        key,
                                         atomicAssertion.getExpectedValue(),
                                         JsonTreeUtils.getValueFromJsonNode(responseNode, atomicAssertion.getKey()),
                                         DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE));
@@ -235,14 +249,18 @@ public class DiffUtils {
             JsonNode value2 = node2.get(fieldName);
 
             if (value2 == null) {
-                leftOnly.put(fieldName, value1.textValue());
+                leftOnly.put(fieldName, value1.toString());
             } else if (value1.equals(value2)) {
-                common.put(fieldName, value1.textValue());
+                common.put(fieldName, value1.toString());
             } else {
                 if (value1.isObject() && value2.isObject()) {
                     compareObjectNodes(value1, value2, path + fieldName + ".", differencesMap);
                 } else {
-                    differences.put(fieldName, new ValueDifference(value1.textValue(), value2.textValue()));
+                    if (value1.isTextual()) {
+                        differences.put(fieldName, new ValueDifference(value1.textValue(), value2.textValue()));
+                    } else {
+                        differences.put(fieldName, new ValueDifference(value1.toString(), value2.toString()));
+                    }
                 }
             }
         }
@@ -254,18 +272,19 @@ public class DiffUtils {
             String fieldName = fieldNames.next();
             JsonNode value1 = node1.get(fieldName);
             if (value1 == null) {
-                rightOnly.put(fieldName, node2.get(fieldName).asText());
+                rightOnly.put(fieldName, node2.get(fieldName).toString());
             }
         }
         if (leftFieldNameCount == 0 && rightFieldNameCount > 0) {
-            leftOnly.put(Objects.equals(path, "") ? "/" : path, node1.asText());
+            leftOnly.put(Objects.equals(path, "") ? "/" : path, node1.toString());
         } else if (leftFieldNameCount > 0 && rightFieldNameCount == 0) {
-            rightOnly.put(Objects.equals(path, "") ? "/" : path, node2.asText());
+            rightOnly.put(Objects.equals(path, "") ? "/" : path, node2.toString());
         } else if (leftFieldNameCount == 0 && rightFieldNameCount == 0) {
             if (node1.equals(node2)) {
-                common.put(Objects.equals(path, "") ? "/" : path, node1.asText());
+                common.put(Objects.equals(path, "") ? "/" : path, node1.toString());
             } else {
-                differences.put(Objects.equals(path, "") ? "/" : path, new ValueDifference(node1.asText(), node2.asText()));
+                differences.put(Objects.equals(path, "") ? "/" : path,
+                        new ValueDifference(node1.toString(), node2.toString()));
             }
         } else {
             // both objects had fields

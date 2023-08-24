@@ -53,13 +53,13 @@ public enum AssertionType {
         switch (this) {
 
             case ANYOF:
-                return "or";
+                return "any of";
             case ALLOF:
-                return "and";
+                return "all of";
             case NOTALLOF:
-                return "not and";
+                return "not all of";
             case NOTANYOF:
-                return "not or";
+                return "not any of";
             case EQUAL:
                 return "equals";
             case EQUAL_IGNORE_CASE:
@@ -73,15 +73,15 @@ public enum AssertionType {
             case LESS_THAN:
                 return "less than";
             case LESS_THAN_OR_EQUAL:
-                return "<=";
+                return "less than or equal";
             case GREATER_THAN:
                 return "greater than";
+            case GREATER_THAN_OR_EQUAL:
+                return "greater than or equal";
             case MATCHES_REGEX:
                 return "matches regex";
             case NOT_MATCHES_REGEX:
                 return "not matches regex";
-            case GREATER_THAN_OR_EQUAL:
-                return ">=";
             case NOT_NULL:
                 return "is not null";
             case NULL:

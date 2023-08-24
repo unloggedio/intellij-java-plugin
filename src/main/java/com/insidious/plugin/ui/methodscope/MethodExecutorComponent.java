@@ -93,7 +93,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         executeAndShowDifferencesButton.setIcon(UIUtils.REPLAY_PINK);
 
         coveragePanel = new CoveragePanel(insidiousService);
-        rootContent.add(coveragePanel.getContent(), BorderLayout.SOUTH);
+        JPanel coveragePanelContent = coveragePanel.getContent();
+        coveragePanelContent.setMinimumSize(new Dimension(-1, 300));
+        rootContent.add(coveragePanelContent, BorderLayout.SOUTH);
     }
 
     public void setFilterButtonsListeners() {

@@ -22,7 +22,7 @@ import java.util.function.Supplier;
 public class AgentResponseComponent implements Supplier<Component> {
     public static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
-    private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = false;
+    private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = true;
     private final AgentCommandResponse<String> agentCommandResponse;
     private final StoredCandidate testCandidate;
     private JPanel mainPanel;
@@ -34,12 +34,13 @@ public class AgentResponseComponent implements Supplier<Component> {
     private JButton acceptButton;
     private JPanel topAlign;
     private JButton deleteButton;
-    private JPanel buttonPanel;
+    private JPanel buttonRightPanel;
     private JScrollPane scrollParent;
     private JPanel statusPanel;
     private JPanel informationPanel;
     private JLabel informationLabel;
     private JPanel mainContentPanel;
+    private JPanel newBottomPanel;
 
     public AgentResponseComponent(
             AgentCommandResponse<String> agentCommandResponse,
@@ -73,7 +74,7 @@ public class AgentResponseComponent implements Supplier<Component> {
 
         if (SHOW_TEST_CASE_CREATE_BUTTON) {
             JButton createTestCaseButton = new JButton("Create test case");
-            buttonPanel.add(createTestCaseButton, new GridConstraints());
+            buttonRightPanel.add(createTestCaseButton);
             createTestCaseButton.addActionListener(
                     e -> candidateLifeListener.onGenerateJunitTestCaseRequest(testCandidate));
         }
