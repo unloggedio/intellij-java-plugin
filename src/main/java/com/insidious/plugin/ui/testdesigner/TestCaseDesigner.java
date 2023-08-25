@@ -144,7 +144,8 @@ public class TestCaseDesigner implements Disposable {
         });
 
         resourceEmberModeComboBox.addActionListener((e) -> {
-            currentTestGenerationConfiguration.setResourceEmbedMode((ResourceEmbedMode) resourceEmberModeComboBox.getSelectedItem());
+            currentTestGenerationConfiguration.setResourceEmbedMode(
+                    (ResourceEmbedMode) resourceEmberModeComboBox.getSelectedItem());
             updatePreviewTestCase();
         });
 
@@ -458,7 +459,7 @@ public class TestCaseDesigner implements Disposable {
             }
             setParameterTypeFromPsiType(fieldParameter, fieldType, false);
             fieldParameter.setValue(random.nextLong());
-            fieldParameter.setProb(new DataEventWithSessionId());
+            fieldParameter.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
             fieldContainer.add(fieldParameter);
             fieldMapByName.put(fieldName, fieldParameter);
         }
@@ -469,7 +470,7 @@ public class TestCaseDesigner implements Disposable {
         testSubjectParameter.setType(currentClass.getQualifiedName());
         testSubjectParameter.setValue(random.nextLong());
         DataEventWithSessionId testSubjectParameterProbe = new DataEventWithSessionId();
-        testSubjectParameter.setProb(testSubjectParameterProbe);
+        testSubjectParameter.setProbeAndProbeInfo(testSubjectParameterProbe, new DataInfo());
 
         // constructor
 
@@ -490,7 +491,7 @@ public class TestCaseDesigner implements Disposable {
             setParameterTypeFromPsiType(returnValue, returnType, true);
 
             DataEventWithSessionId returnValueProbe = new DataEventWithSessionId();
-            returnValue.setProb(returnValueProbe);
+            returnValue.setProbeAndProbeInfo(returnValueProbe, new DataInfo());
         }
 
         // method parameters
@@ -505,7 +506,7 @@ public class TestCaseDesigner implements Disposable {
             setParameterTypeFromPsiType(argumentParameter, parameterPsiType, false);
 
             DataEventWithSessionId parameterProbe = new DataEventWithSessionId();
-            argumentParameter.setProb(parameterProbe);
+            argumentParameter.setProbeAndProbeInfo(parameterProbe, new DataInfo());
             String parameterName = parameter.getName();
             argumentParameter.setName(parameterName);
 
@@ -537,9 +538,7 @@ public class TestCaseDesigner implements Disposable {
         if (currentMethod.getReturnType() != null && !currentMethod.getReturnType().getCanonicalText().equals("void")) {
             Parameter assertionExpectedValue = new Parameter();
             assertionExpectedValue.setName(returnValue.getName() + "Expected");
-            assertionExpectedValue.setProb(new DataEventWithSessionId());
-            assertionExpectedValue.setProbeInfo(new DataInfo());
-
+            assertionExpectedValue.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
 
             setParameterTypeFromPsiType(assertionExpectedValue, currentMethod.getReturnType(), true);
 
@@ -631,8 +630,7 @@ public class TestCaseDesigner implements Disposable {
 
                         List<Parameter> methodArguments = new ArrayList<>();
                         Parameter methodReturnValue = new Parameter();
-                        methodReturnValue.setProbeInfo(new DataInfo(0, 0, 0, 0, 0, EventType.LOCAL_LOAD,
-                                Descriptor.Void, null));
+                        methodReturnValue.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
 
                         ClassAdapter calledMethodClassReference = getClassByName(fieldByName.getType());
                         if (calledMethodClassReference == null) {
@@ -713,12 +711,11 @@ public class TestCaseDesigner implements Disposable {
                                 prob.setSerializedValue(serializedStringValue.getBytes());
 
                             }
-                            callParameter.setProb(prob);
                             callParameter.setName(parameter.getName());
                             DataInfo probeInfo = new DataInfo(
                                     0, 0, 0, 0, 0, EventType.ARRAY_LENGTH, Descriptor.Boolean, ""
                             );
-                            callParameter.setProbeInfo(probeInfo);
+                            callParameter.setProbeAndProbeInfo(prob, probeInfo);
                             methodArguments.add(callParameter);
                         }
 
@@ -729,11 +726,10 @@ public class TestCaseDesigner implements Disposable {
                         DataInfo probeInfo = new DataInfo(
                                 0, 0, 0, 0, 0, EventType.ARRAY_LENGTH, Descriptor.Boolean, ""
                         );
-                        methodReturnValue.setProbeInfo(probeInfo);
                         DataEventWithSessionId returnValueDataEvent = new DataEventWithSessionId();
                         returnValueDataEvent.setSerializedValue(ClassUtils.createDummyValue(methodReturnPsiReference,
                                 new LinkedList<>(), currentClass.getProject()).getBytes());
-                        methodReturnValue.setProb(returnValueDataEvent);
+                        methodReturnValue.setProbeAndProbeInfo(returnValueDataEvent, probeInfo);
 
 
                         MethodCallExpression mce = new MethodCallExpression(
@@ -953,7 +949,7 @@ public class TestCaseDesigner implements Disposable {
                     candidateList.addAll(constructorMetadata);
                 }
 
-                methodArgumentParameter.setProb(argumentProbe);
+                methodArgumentParameter.setProbeAndProbeInfo(argumentProbe, new DataInfo());
 
                 methodArguments.add(methodArgumentParameter);
             }

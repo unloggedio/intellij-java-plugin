@@ -12,7 +12,6 @@ import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -37,7 +36,7 @@ public class CandidateMetadataFactory {
         Collection<MethodCallExpression> callToMock = new ArrayList<>();
         Set<MethodCallExpression> staticCallsList = new HashSet<>();
 
-        Map<String, Boolean> mockedStaticTypes = new HashMap<>();
+//        Map<String, Boolean> mockedStaticTypes = new HashMap<>();
 
         for (MethodCallExpression e : callsList) {
             if (!testConfiguration.getCallExpressionList().contains(e)) {
@@ -69,7 +68,7 @@ public class CandidateMetadataFactory {
                     continue;
                 }
                 staticCallsList.add(e);
-                mockedStaticTypes.put(callSubject.getType(), true);
+//                mockedStaticTypes.put(callSubject.getType(), true);
                 continue;
             }
             if (!e.isMethodPublic() && !e.isMethodProtected()) {
@@ -109,7 +108,6 @@ public class CandidateMetadataFactory {
                 List<MethodCallExpression> callsOnSubject = stringListEntry.getValue();
                 callsOnSubject.sort((e1, e2) ->
                         Math.toIntExact(e1.getEntryProbe().getEventId() - e2.getEntryProbe().getEventId()));
-                Parameter subject = callsOnSubject.get(0).getSubject();
                 boolean firstCall = true;
                 PendingStatement pendingStatement = null;
                 Parameter previousReturnValue = null;
@@ -193,7 +191,7 @@ public class CandidateMetadataFactory {
 
                 if (!objectRoutineScript.getCreatedVariables()
                         .contains(nameFactory.getNameForUse(staticCallSubjectMockInstance, null))) {
-                    @NotNull Parameter subjectStaticFieldMock = new Parameter(staticCallSubjectMockInstance);
+                    Parameter subjectStaticFieldMock = new Parameter(staticCallSubjectMockInstance);
 
                     subjectStaticFieldMock.setContainer(true);
                     Parameter childParameter = new Parameter();
@@ -287,7 +285,6 @@ public class CandidateMetadataFactory {
     }
 
 
-    @NotNull
     private static String buildCallSignature(MethodCallExpression methodCallExpression) {
         Parameter subject = methodCallExpression.getSubject();
 

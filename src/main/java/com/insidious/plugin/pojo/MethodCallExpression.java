@@ -18,6 +18,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class MethodCallExpression implements Expression, Serializable {
@@ -41,6 +42,15 @@ public class MethodCallExpression implements Expression, Serializable {
     private int methodDefinitionId;
 
     public MethodCallExpression() {
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof MethodCallExpression)) {
+            return false;
+        }
+        MethodCallExpression mceObject = (MethodCallExpression) obj;
+        return mceObject.id == this.id;
     }
 
     public MethodCallExpression(
@@ -197,7 +207,7 @@ public class MethodCallExpression implements Expression, Serializable {
             TestCaseGenerationConfiguration testConfiguration,
             TestGenerationState testGenerationState) {
 
-        Parameter mainMethodReturnValue = getReturnValue();
+        Parameter mainMethodReturnValue = returnValue;
 
         mainMethodReturnValue = generateParameterName(mainMethodReturnValue, objectRoutineScript);
 
@@ -396,7 +406,6 @@ public class MethodCallExpression implements Expression, Serializable {
             TestCaseGenerationConfiguration testCaseGenerationConfiguration,
             TestGenerationState testGenerationState
     ) {
-        Parameter returnValue = getReturnValue();
         if (returnValue.getType() == null || returnValue.getValue() == 0) {
             return;
         }
@@ -562,5 +571,10 @@ public class MethodCallExpression implements Expression, Serializable {
                 ", subject=" + subject.getType() +
                 ", id=" + id +
                 '}';
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, threadId);
     }
 }

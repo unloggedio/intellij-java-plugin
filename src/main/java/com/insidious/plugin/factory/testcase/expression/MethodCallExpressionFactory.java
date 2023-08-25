@@ -112,7 +112,7 @@ public class MethodCallExpressionFactory {
         Parameter whenExpression = new Parameter();
         whenExpression.setValue(param1);
         whenExpression.setType("java.lang.Class");
-        whenExpression.setProb(new DataEventWithSessionId());
+        whenExpression.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
 
 
         MethodCallExpression mock = new MethodCallExpression("mock",
@@ -131,7 +131,7 @@ public class MethodCallExpressionFactory {
         Parameter whenExpression = new Parameter();
         whenExpression.setValue(param1);
         whenExpression.setType("java.lang.Class");
-        whenExpression.setProb(new DataEventWithSessionId());
+        whenExpression.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
 
 
         MethodCallExpression mockStatic = new MethodCallExpression("mockStatic",

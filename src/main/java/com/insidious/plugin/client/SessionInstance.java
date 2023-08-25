@@ -608,15 +608,14 @@ public class SessionInstance implements Runnable {
 
         Parameter averageValue = new Parameter(1L);
         averageValue.setType("com.package.class.sub.package.ClassName");
-        averageValue.setProbeInfo(new DataInfo(1, 2, 3, 4, 5,
-                EventType.CALL, Descriptor.Boolean, "some=attributes,here=fornothing,here=fornothing,here=fornothing"));
         DataEventWithSessionId prob = new DataEventWithSessionId(1L);
         prob.setEventId(1L);
         prob.setSerializedValue(new byte[2000]);
         prob.setRecordedAt(1L);
         prob.setProbeId(1);
         prob.setThreadId(1L);
-        averageValue.setProb(prob);
+        averageValue.setProbeAndProbeInfo(prob, new DataInfo(1, 2, 3, 4, 5,
+                EventType.CALL, Descriptor.Boolean, "some=attributes,here=fornothing,here=fornothing,here=fornothing"));
 
         averageValue.setName("name1-name1-name1");
         averageValue.setName("name2-name2");
@@ -2612,8 +2611,7 @@ public class SessionInstance implements Runnable {
                             }
 
                             dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                            existingParameter.setProbeInfo(probeInfo);
-                            existingParameter.setProb(dataEvent);
+                            existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
 
                             saveProbe = true;
                             isModified = true;
@@ -2658,8 +2656,7 @@ public class SessionInstance implements Runnable {
                     }
                     saveProbe = true;
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                    existingParameter.setProbeInfo(probeInfo);
-                    existingParameter.setProb(dataEvent);
+                    existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
 
                     threadState.getTopCandidate().addField(existingParameter.getValue());
                     if (typeFromProbe.startsWith("org.slf4j") || typeFromProbe.startsWith("com.google")) {
@@ -2707,8 +2704,7 @@ public class SessionInstance implements Runnable {
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
                                 existingParameter);
-                        existingParameter.setProbeInfo(probeInfo);
-                        existingParameter.setProb(dataEvent);
+                        existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         existingParameter.setType(ClassTypeUtils.getDottedClassName(
                                 probeInfo.getAttribute("Type", "V")));
 
@@ -2764,8 +2760,7 @@ public class SessionInstance implements Runnable {
 
 //                        existingParameter.addName(
 //                                probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
-                        existingParameter.setProbeInfo(probeInfo);
-                        existingParameter.setProb(dataEvent);
+                        existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
 
                         saveProbe = true;
                         isModified = true;
@@ -2798,9 +2793,7 @@ public class SessionInstance implements Runnable {
                             existingParameter.setType(ClassTypeUtils.getDottedClassName(
                                     probeInfo.getAttribute("Type", "V")));
 
-                            existingParameter.setProbeInfo(probeInfo);
-                            existingParameter.setProb(dataEvent);
-
+                            existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                             saveProbe = true;
 
                         } else {
@@ -2835,8 +2828,7 @@ public class SessionInstance implements Runnable {
                     isModified = false;
 
                     if (existingParameter.getProbeInfo() == null) {
-                        existingParameter.setProbeInfo(probeInfo);
-                        existingParameter.setProb(dataEvent);
+                        existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         isModified = eventValue != 0;
                     }
                     if ((existingParameter.getType() == null || existingParameter.getType()
@@ -2947,8 +2939,7 @@ public class SessionInstance implements Runnable {
                                         !existingParameter.getProbeInfo().getEventType()
                                                 .equals(GET_INSTANCE_FIELD_RESULT)
                         )) {
-                            existingParameter.setProbeInfo(probeInfo);
-                            existingParameter.setProb(dataEvent);
+                            existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                             isModified = true;
                         }
                     }
@@ -3012,14 +3003,11 @@ public class SessionInstance implements Runnable {
                             existingParameter.setValue(ownerClass.hashCode());
                             isModified = true;
                             existingParameter.setType(ownerClass);
-                            existingParameter.setProbeInfo(probeInfo);
-                            existingParameter.setProb(dataEvent);
+                            existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         }
                         if (existingParameter.getProb() == null) {
 
-                            existingParameter.setProbeInfo(probeInfo);
-                            existingParameter.setProb(dataEvent);
-
+                            existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                             existingParameter.setType(ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
                             isModified = true;
                         }
@@ -3093,8 +3081,7 @@ public class SessionInstance implements Runnable {
 
                     isModified = false;
                     if (existingParameter.getProb() == null) {
-                        existingParameter.setProbeInfo(probeInfo);
-                        existingParameter.setProb(dataEvent);
+                        existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         isModified = true;
                     }
                     if (existingParameter.getType() == null) {
@@ -3156,8 +3143,7 @@ public class SessionInstance implements Runnable {
                             }
                         }
                         saveProbe = true;
-                        existingParameter.setProbeInfo(probeInfo);
-                        existingParameter.setProb(dataEvent);
+                        existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         topCall = threadState.popCall();
                         topCall.setReturnValue_id(existingParameter.getValue());
                         topCall.setReturnDataEvent(dataEvent.getEventId());
@@ -3209,8 +3195,7 @@ public class SessionInstance implements Runnable {
                         }
                     }
 
-                    existingParameter.setProbeInfo(probeInfo);
-                    existingParameter.setProb(dataEvent);
+                    existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                     isModified = true;
                     saveProbe = true;
 
@@ -3281,8 +3266,7 @@ public class SessionInstance implements Runnable {
                     isModified = false;
                     saveProbe = true;
                     if (existingParameter.getProb() == null || existingParameter.getProbeInfo() == null) {
-                        existingParameter.setProbeInfo(probeInfo);
-                        existingParameter.setProb(dataEvent);
+                        existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         isModified = eventValue != 0;
                     }
 
@@ -3396,8 +3380,7 @@ public class SessionInstance implements Runnable {
                     saveProbe = true;
                     if ((existingParameter.getType() == null || existingParameter.getType()
                             .endsWith(".Object"))) {
-                        existingParameter.setProbeInfo(probeInfo);
-                        existingParameter.setProb(dataEvent);
+                        existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         saveProbe = true;
                         existingParameter.setType(ClassTypeUtils.getDottedClassName(
                                 probeInfo.getAttribute("Type", "V")));
@@ -3450,9 +3433,10 @@ public class SessionInstance implements Runnable {
                     String upcomingObjectType = threadState.popNextNewObjectType();
                     existingParameter = parameterContainer.getParameterByValue(theCallThatJustEnded.getSubject());
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                    existingParameter.setProbeInfo(probeInfo);
-                    existingParameter.setValue(0L);
-                    existingParameter.setProb(dataEvent);
+//                    existingParameter.setValue(0L);
+                    if (existingParameter.getProb() == null) {
+                        existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
+                    }
                     existingParameter.setType(ClassTypeUtils.getDottedClassName(upcomingObjectType));
                     theCallThatJustEnded.setReturnValue_id(existingParameter.getValue());
                     theCallThatJustEnded.setSubject(existingParameter.getValue());
@@ -3466,8 +3450,9 @@ public class SessionInstance implements Runnable {
                     topCall = threadState.getTopCall();
                     existingParameter = parameterContainer.getParameterByValue(topCall.getSubject());
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                    existingParameter.setProbeInfo(probeInfo);
-                    existingParameter.setProb(dataEvent);
+                    if (existingParameter.getProb() == null) {
+                        existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
+                    }
                     saveProbe = true;
                     topCall.setSubject(existingParameter.getValue());
                     topCall.setReturnValue_id(existingParameter.getValue());

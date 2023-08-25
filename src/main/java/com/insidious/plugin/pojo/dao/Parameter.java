@@ -165,6 +165,9 @@ public class Parameter {
     }
 
     public void setEventId(DataEventWithSessionId dataEvent) {
+        if (dataEvent == null) {
+            return;
+        }
         this.eventId = dataEvent.getEventId();
     }
 
@@ -172,8 +175,11 @@ public class Parameter {
         return probeInfo_id;
     }
 
-    public void setProbeInfo_id(DataInfo probeInfo_id) {
-        this.probeInfo_id = probeInfo_id.getDataId();
+    public void setProbeInfo_id(DataInfo dataInfo) {
+        if (dataInfo == null) {
+            return;
+        }
+        this.probeInfo_id = dataInfo.getDataId();
     }
 
     @Override

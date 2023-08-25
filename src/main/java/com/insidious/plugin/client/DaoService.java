@@ -291,19 +291,19 @@ public class DaoService {
                     && !mainMethodReturnValue.getType().equals("V")) {
 
                 // deserialize and compare objects
-                byte[] serializedBytes = mainMethodReturnValue.getProb().getSerializedValue();
                 com.insidious.plugin.pojo.Parameter expectedValue;
                 String expectedParameterName = mainMethodReturnValue.getName() + "Expected";
                 expectedValue = new com.insidious.plugin.pojo.Parameter(mainMethodReturnValue);
                 expectedValue.clearNames();
                 expectedValue.setName(expectedParameterName);
                 DataEventWithSessionId expectedValueProbe = new DataEventWithSessionId();
-                expectedValueProbe.setSerializedValue(serializedBytes);
-                expectedValue.setProb(expectedValueProbe);
+                if (mainMethodReturnValue.getProb() != null) {
+                    expectedValueProbe.setSerializedValue(mainMethodReturnValue.getProb().getSerializedValue());
+                }
+                expectedValue.setProbeAndProbeInfo(expectedValueProbe, new DataInfo());
 
 
-                TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, expectedValue,
-                        mainMethodReturnValue);
+                TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, expectedValue, mainMethodReturnValue);
                 converted.getAssertionList().add(testAssertion);
             }
         }
@@ -480,10 +480,8 @@ public class DaoService {
 
         for (com.insidious.plugin.pojo.Parameter parameter : parameters) {
             Parameter dbParameter = dbParameterMap.get(parameter.getValue());
-            parameter.setProb(probesMap.get(dbParameter.getEventId()));
-            if (probeInfoMap.get(dbParameter.getProbeInfo_id()) != null) {
-                parameter.setProbeInfo(probeInfoMap.get(dbParameter.getProbeInfo_id()));
-            }
+            parameter.setProbeAndProbeInfo(probesMap.get(dbParameter.getEventId()),
+                    probeInfoMap.get(dbParameter.getProbeInfo_id()));
         }
 
         Map<Long, com.insidious.plugin.pojo.Parameter> parameterMap = parameters.stream()
@@ -501,7 +499,8 @@ public class DaoService {
 
 
             if (methodCallExpression.isStaticCall() || dbMce.getSubject() == 0) {
-                com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter(parameterMap.get(dbMce.getSubject()));
+                com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter(
+                        parameterMap.get(dbMce.getSubject()));
                 staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
                 methodCallExpression.setSubject(staticSubject);
             } else {
@@ -598,8 +597,7 @@ public class DaoService {
                     argumentTypeFromMethodDefinition = argumentTypesFromMethodDefinition[i];
                 }
                 Long argument = dbMceArguments.get(i);
-                DataEventWithSessionId dataEvent = probesMap.get(dbMce.getArgumentProbes()
-                        .get(i));
+                DataEventWithSessionId dataEvent = probesMap.get(dbMce.getArgumentProbes().get(i));
                 DataInfo probeInfo = probeInfoMap.get((int) dataEvent.getProbeId());
                 com.insidious.plugin.pojo.Parameter paramArgument = parameterMap.get(argument);
                 if (paramArgument == null) {
@@ -607,7 +605,7 @@ public class DaoService {
                 } else {
                     paramArgument = new com.insidious.plugin.pojo.Parameter(paramArgument);
                 }
-                paramArgument.setProbeInfo(probeInfo);
+                paramArgument.setProbeAndProbeInfo(dataEvent, probeInfo);
 
                 String paramArgTypeFromProbe = probeInfo.getAttribute("Type", probeInfo.getValueDesc().getString());
                 String argumentTypeFromProbe = ClassTypeUtils.getDottedClassName(paramArgTypeFromProbe);
@@ -622,8 +620,6 @@ public class DaoService {
                         argumentTypeFromMethodDefinition) && (existingType == null || existingType.contains("$"))) {
                     paramArgument.setTypeForced(argumentTypeFromMethodDefinition);
                 }
-
-                paramArgument.setProb(dataEvent);
 
                 arguments.add(paramArgument);
             }
@@ -647,7 +643,6 @@ public class DaoService {
             methodCallExpression.setReturnValue(returnParam);
 
             DataEventWithSessionId returnDataEvent = probesMap.get(dbMce.getReturnDataEvent());
-            returnParam.setProb(returnDataEvent);
             DataInfo eventProbe = probeInfoMap.get((int) returnDataEvent.getProbeId());
 
             String returnParamType = returnParam.getType();
@@ -661,7 +656,8 @@ public class DaoService {
                         returnParam.getType().substring(0, returnParam.getType().indexOf("$Hibernate"))
                 );
             }
-            returnParam.setProbeInfo(eventProbe);
+            returnParam.setProbeAndProbeInfo(returnDataEvent, eventProbe);
+
             String typeFromProbe = ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", null));
             if (typeFromProbe != null && !typeFromProbe.equals("java.lang.Object")) {
                 returnParam.setTypeForced(typeFromProbe);
@@ -847,8 +843,7 @@ public class DaoService {
         DataEventWithSessionId dataEvent = this.getDataEventById(parameter.getEventId());
         if (dataEvent != null) {
             DataInfo probeInfo = getProbeInfoById(parameter.getProbeInfo_id());
-            convertedParameter.setProbeInfo(probeInfo);
-            convertedParameter.setProb(dataEvent);
+            convertedParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
         }
 
         return convertedParameter;

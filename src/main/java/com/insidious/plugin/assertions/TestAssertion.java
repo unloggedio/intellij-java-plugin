@@ -1,5 +1,6 @@
 package com.insidious.plugin.assertions;
 
+import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
@@ -114,16 +115,14 @@ public class TestAssertion implements Expression {
                 }
             }
 
-        } else if (testConfiguration.getResourceEmbedMode()
-                .equals(ResourceEmbedMode.IN_FILE)) {
+        } else if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_FILE)) {
 
             String nameForObject = testGenerationState.addObjectToResource(mainMethodReturnValue);
             Parameter jsonParameter = new Parameter(mainMethodReturnValue);
             DataEventWithSessionId prob = new DataEventWithSessionId();
             prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
-            jsonParameter.setProb(prob);
-            MethodCallExpression jsonFromFileCall = null;
-            jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(jsonParameter);
+            jsonParameter.setProbeAndProbeInfo(prob, new DataInfo());
+            MethodCallExpression jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(jsonParameter);
 
             if (expectedValue.getIsEnum()) {
                 PendingStatement.in(objectRoutineScript, testGenerationState)

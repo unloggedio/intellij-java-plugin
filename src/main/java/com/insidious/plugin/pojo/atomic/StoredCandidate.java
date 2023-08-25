@@ -31,6 +31,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     private long sessionIdentifier;
     private byte[] probSerializedValue;
     private MethodUnderTest methodUnderTest;
+
     private StoredCandidate() {
     }
 
@@ -42,7 +43,10 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.methodArguments = TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata);
         this.returnValueClassname = candidateMetadata.getMainMethod().getReturnValue().getType();
         this.methodUnderTest = MethodUnderTest.fromTestCandidateMetadata(candidateMetadata);
-        this.probSerializedValue = candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue();
+        if (candidateMetadata.getMainMethod().getReturnValue().getProb() != null) {
+            this.probSerializedValue = candidateMetadata.getMainMethod().getReturnValue().getProb()
+                    .getSerializedValue();
+        }
         this.sessionIdentifier = generateIdentifier(candidateMetadata);
         this.entryProbeIndex = candidateMetadata.getEntryProbeIndex();
         this.lineNumbers = candidateMetadata.getLineNumbers();

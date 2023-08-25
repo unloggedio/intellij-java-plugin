@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.writer;
 
+import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -154,8 +155,7 @@ public class PendingStatement {
         }
 
 
-        String parameterString = parameterStringBuilder.toString();
-        return parameterString;
+        return parameterStringBuilder.toString();
     }
 
     // handling order: [ array(name), null, boolean, primitive,]  name,    all ,
@@ -787,17 +787,16 @@ public class PendingStatement {
             return this;
         }
 
-        if ((targetClassname.startsWith("java.lang") && !targetClassname.equals(
-                "java.lang.Object")) || targetClassname.length() == 1) {
+        if ((targetClassname.startsWith("java.lang")
+                && !targetClassname.equals("java.lang.Object"))
+                || targetClassname.length() == 1) {
             // primitive variable types
             Parameter parameter = lhsExpression;
             long returnValue = parameter.getValue();
 
             String serializedValue = "";
-            if (parameter.getProb() != null && parameter.getProb()
-                    .getSerializedValue().length > 0)
-                serializedValue = new String(parameter.getProb()
-                        .getSerializedValue());
+            if (parameter.getProb() != null && parameter.getProb().getSerializedValue().length > 0)
+                serializedValue = new String(parameter.getProb().getSerializedValue());
 
             if (serializedValue.equals("null")) {
                 this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(serializedValue));
@@ -816,8 +815,7 @@ public class PendingStatement {
 
             } else if (targetClassname.equals("java.lang.StringBuilder")) {
                 Parameter parameterWithValue = new Parameter();
-                parameterWithValue.setValue(new String(parameter.getProb()
-                        .getSerializedValue()));
+                parameterWithValue.setValue(new String(parameter.getProb().getSerializedValue()));
                 parameterWithValue.setType("java.lang.String");
                 MethodCallExpression mce = new MethodCallExpression("<init>", parameter,
                         Collections.singletonList(parameterWithValue), parameter, 0);
@@ -848,7 +846,7 @@ public class PendingStatement {
                     Parameter buildWithJson = new Parameter(lhsExpression);
                     DataEventWithSessionId prob = new DataEventWithSessionId();
                     prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
-                    buildWithJson.setProb(prob);
+                    buildWithJson.setProbeAndProbeInfo(prob, new DataInfo());
                     buildWithJson.clearNames();
                     buildWithJson.setName(nameForObject);
                     this.expressionList.add(MethodCallExpressionFactory.FromJsonFetchedFromFile(buildWithJson));
