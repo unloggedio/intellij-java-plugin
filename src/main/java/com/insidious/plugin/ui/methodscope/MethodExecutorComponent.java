@@ -742,7 +742,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 TestFramework.JUnit5,
                 MockFramework.Mockito,
                 JsonFramework.Jackson,
-                ResourceEmbedMode.IN_FILE
+                ResourceEmbedMode.IN_CODE
         );
 
 
@@ -758,7 +758,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
 
         try {
-            insidiousService.generateAndSaveTestCase(testCaseGenerationConfiguration);
+            insidiousService.previewTestCase(methodElement, testCaseGenerationConfiguration);
         } catch (Exception ex) {
             InsidiousNotification.notifyMessage("Failed to generate test case: " + ex.getMessage(),
                     NotificationType.ERROR);

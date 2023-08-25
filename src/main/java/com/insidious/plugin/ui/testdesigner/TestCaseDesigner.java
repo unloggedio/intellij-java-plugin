@@ -5,7 +5,6 @@ import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.body.MethodDeclaration;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.Descriptor;
 import com.insidious.common.weaver.EventType;
@@ -28,6 +27,7 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
+import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
@@ -43,10 +43,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
@@ -96,15 +94,18 @@ public class TestCaseDesigner implements Disposable {
     private JPanel mockFrameworkPanel;
     private JPanel useMockitoConfigPanel;
     private JPanel addFieldMocksConfigPanel;
+    private JPanel jsonFrameworkChoicePanel;
+    private JComboBox<ResourceEmbedMode> resourceEmberModeComboBox;
+    private JPanel resourceEmbedModeChoicePanel;
     private JTable assertionTable;
     //    private JButton addNewAssertionButton;
     private MethodAdapter currentMethod;
     private ClassAdapter currentClass;
-    private String basePath;
     private Editor editor;
     private MethodCallExpression mainMethod;
     private List<String> methodChecked;
     private Map<String, Parameter> fieldMapByName;
+    private TestCaseGenerationConfiguration currentTestGenerationConfiguration;
 
     public TestCaseDesigner() {
         saveTestCaseButton.setEnabled(false);
@@ -112,17 +113,46 @@ public class TestCaseDesigner implements Disposable {
         testFrameworkComboBox.setModel(new DefaultComboBoxModel<>(TestFramework.values()));
         mockFrameworkComboBox.setModel(new DefaultComboBoxModel<>(MockFramework.values()));
         jsonFrameworkComboBox.setModel(new DefaultComboBoxModel<>(JsonFramework.values()));
+        resourceEmberModeComboBox.setModel(new DefaultComboBoxModel<>(ResourceEmbedMode.values()));
 
-        addFieldMocksCheckBox.addActionListener(e -> updatePreviewTestCase());
-        testFrameworkComboBox.addActionListener(e -> updatePreviewTestCase());
-        mockFrameworkComboBox.addActionListener(e -> updatePreviewTestCase());
-        jsonFrameworkComboBox.addActionListener(e -> updatePreviewTestCase());
-        useMockitoAnnotationsMockCheckBox.addActionListener((e) -> updatePreviewTestCase());
+        resourceEmberModeComboBox.setSelectedItem(ResourceEmbedMode.IN_CODE);
+
+        addFieldMocksCheckBox.addActionListener(e -> {
+            updatePreviewTestCase();
+        });
+
+
+        testFrameworkComboBox.addActionListener(e -> {
+            currentTestGenerationConfiguration.setTestFramework(
+                    (TestFramework) testFrameworkComboBox.getSelectedItem());
+            updatePreviewTestCase();
+        });
+        mockFrameworkComboBox.addActionListener(e -> {
+            currentTestGenerationConfiguration.setMockFramework(
+                    (MockFramework) mockFrameworkComboBox.getSelectedItem());
+            updatePreviewTestCase();
+        });
+        jsonFrameworkComboBox.addActionListener(e -> {
+            currentTestGenerationConfiguration.setJsonFramework(
+                    (JsonFramework) jsonFrameworkComboBox.getSelectedItem());
+            updatePreviewTestCase();
+        });
+
+        useMockitoAnnotationsMockCheckBox.addActionListener((e) -> {
+            currentTestGenerationConfiguration.setUseMockitoAnnotations(useMockitoAnnotationsMockCheckBox.isSelected());
+            updatePreviewTestCase();
+        });
+
+        resourceEmberModeComboBox.addActionListener((e) -> {
+            currentTestGenerationConfiguration.setResourceEmbedMode((ResourceEmbedMode) resourceEmberModeComboBox.getSelectedItem());
+            updatePreviewTestCase();
+        });
 
 
         saveTestCaseButton.addActionListener(e -> {
             String saveLocation = saveLocationTextField.getText();
             InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
+            String basePath = insidiousService.guessModuleBasePath(currentClass);
             try {
                 insidiousService.getJUnitTestCaseWriter().ensureTestUtilClass(basePath);
             } catch (IOException ex) {
@@ -162,7 +192,7 @@ public class TestCaseDesigner implements Disposable {
             List<VirtualFile> newFile1 = new ArrayList<>();
             newFile1.add(newFile);
             FileContentUtil.reparseFiles(currentClass.getProject(), newFile1, true);
-            Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
+//            Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
 
             FileEditorManager.getInstance(currentClass.getProject())
                     .openFile(newFile, true, true);
@@ -210,8 +240,7 @@ public class TestCaseDesigner implements Disposable {
                         " add new test case. <br/>" + parsedFile.getProblems() + "</html>", NotificationType.ERROR);
                 return;
             }
-            CompilationUnit existingCompilationUnit = parsedFile.getResult()
-                    .get();
+            CompilationUnit existingCompilationUnit = parsedFile.getResult().get();
 
             ParseResult<CompilationUnit> parseResult = javaParser.parse(
                     new ByteArrayInputStream(editor.getDocument().getText().getBytes()));
@@ -233,11 +262,11 @@ public class TestCaseDesigner implements Disposable {
                     .getResult()
                     .get();
 
-            MethodDeclaration newMethodDeclaration =
-                    newCompilationUnit.getClassByName("Test" + currentClass.getName() + "V")
-                            .get()
-                            .getMethodsByName("testMethod" + ClassTypeUtils.upperInstanceName(currentMethod.getName()))
-                            .get(0);
+//            MethodDeclaration newMethodDeclaration =
+//                    newCompilationUnit.getClassByName("Test" + currentClass.getName() + "V")
+//                            .get()
+//                            .getMethodsByName("testMethod" + ClassTypeUtils.upperInstanceName(currentMethod.getName()))
+//                            .get(0);
 
             JavaParserUtils.mergeCompilationUnits(existingCompilationUnit, newCompilationUnit);
 
@@ -260,45 +289,27 @@ public class TestCaseDesigner implements Disposable {
         return mainContainer;
     }
 
-    public void renderTestDesignerInterface(MethodAdapter method) {
+    public void generateTestCaseBoilerPlace(MethodAdapter method) {
         if (this.currentMethod != null && this.currentMethod.equals(method)) {
             return;
         }
-        Project project = method.getProject();
-        InsidiousService insidiousService = project.getService(InsidiousService.class);
-
         PsiFile containingFile = method.getContainingFile();
-        if (containingFile.getVirtualFile() == null ||
-                containingFile.getVirtualFile().getPath().contains("/test/")) {
+        if (containingFile.getVirtualFile() == null || containingFile.getVirtualFile().getPath().contains("/test/")) {
             return;
         }
-        basePath = insidiousService.getJUnitTestCaseWriter().getBasePathForVirtualFile(containingFile.getVirtualFile());
-        if (basePath == null) {
-            basePath = currentMethod.getProject().getBasePath();
-        }
-
 
         saveLocationTextField.setText("");
 
         this.currentMethod = method;
         this.currentClass = method.getContainingClass();
 
-
-        selectedMethodNameLabel.setText(currentClass.getName() + "." + method.getName() + "()");
-        updatePreviewTestCase();
-        saveTestCaseButton.setEnabled(true);
-        bottomControlPanel.setEnabled(true);
-
-    }
-
-    public void updatePreviewTestCase() {
-
         List<TestCandidateMetadata> testCandidateMetadataList =
                 ApplicationManager.getApplication().runReadAction(
                         (Computable<List<TestCandidateMetadata>>) this::createTestCandidate);
 
         String testMethodName = "testMethod" + ClassTypeUtils.upperInstanceName(currentMethod.getName());
-        TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
+
+        currentTestGenerationConfiguration = new TestCaseGenerationConfiguration(
                 (TestFramework) testFrameworkComboBox.getSelectedItem(),
                 (MockFramework) mockFrameworkComboBox.getSelectedItem(),
                 (JsonFramework) jsonFrameworkComboBox.getSelectedItem(),
@@ -306,20 +317,35 @@ public class TestCaseDesigner implements Disposable {
         );
 
         if (useMockitoAnnotationsMockCheckBox.isSelected()) {
-            testCaseGenerationConfiguration.setUseMockitoAnnotations(true);
+            currentTestGenerationConfiguration.setUseMockitoAnnotations(true);
         }
 
         for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
             // mock all calls by default
-            testCaseGenerationConfiguration.getCallExpressionList().addAll(testCandidateMetadata.getCallsList());
+            currentTestGenerationConfiguration.getCallExpressionList().addAll(testCandidateMetadata.getCallsList());
         }
 
 
-        testCaseGenerationConfiguration.setTestMethodName(testMethodName);
+        currentTestGenerationConfiguration.setTestMethodName(testMethodName);
 
 
-        testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
-        testCaseGenerationConfiguration.getTestCandidateMetadataList().addAll(testCandidateMetadataList);
+        currentTestGenerationConfiguration.getTestCandidateMetadataList().clear();
+        currentTestGenerationConfiguration.getTestCandidateMetadataList().addAll(testCandidateMetadataList);
+
+        updatePreviewTestCase();
+
+    }
+
+    public void updatePreviewTestCase() {
+        generateAndPreviewTestCase(currentTestGenerationConfiguration, currentMethod);
+    }
+
+    public void generateAndPreviewTestCase(TestCaseGenerationConfiguration testCaseGenerationConfiguration, MethodAdapter currentMethod) {
+        this.currentMethod = currentMethod;
+        this.currentClass = currentMethod.getContainingClass();
+        this.currentTestGenerationConfiguration = testCaseGenerationConfiguration;
+
+        selectedMethodNameLabel.setText(currentClass.getName() + "." + currentMethod.getName() + "()");
 
         InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
 
@@ -330,49 +356,55 @@ public class TestCaseDesigner implements Disposable {
             EditorFactory.getInstance().releaseEditor(editor);
         }
         try {
-            if (mainMethod.isMethodPublic() && !currentMethod.isConstructor()) {
-
-
-                String testCaseScriptCode = currentMethod.getProject().getService(InsidiousService.class)
-                        .getTestCandidateCode(testCaseGenerationConfiguration);
-                if (testCaseScriptCode == null) {
-                    UsageInsightTracker.getInstance().RecordEvent("SESSION_NOT_FOUND", new JSONObject());
-                    InsidiousNotification.notifyMessage("Session not found, please try again",
-                            NotificationType.WARNING);
-                    return;
-                }
-
-
-                if (saveLocationTextField.getText().isEmpty()) {
-
-                    PsiJavaFileImpl containingFile = currentClass.getContainingFile();
-                    String packageName = containingFile.getPackageName();
-                    String testOutputDirPath = insidiousService.getJUnitTestCaseWriter()
-                            .getTestDirectory(packageName, basePath);
-
-                    saveLocationTextField.setText(testOutputDirPath + "/Test" + currentClass.getName() + "V.java");
-                }
-
-
-                String[] codeLines = testCaseScriptCode.split("\n");
-                int classStartIndex = 0;
-                offset = testCaseScriptCode.indexOf(testCaseGenerationConfiguration.getTestMethodName());
-                for (String codeLine : codeLines) {
-                    if (codeLine.contains(testCaseGenerationConfiguration.getTestMethodName())) {
-                        break;
-                    }
-                    classStartIndex++;
-                }
-                scrollIndex = Math.min(classStartIndex + 10, codeLines.length);
-
-                Document document = editorFactory.createDocument(testCaseScriptCode);
-                editor = editorFactory.createEditor(document, currentMethod.getProject(), JavaFileType.INSTANCE, false);
-            } else {
-                editor = editorFactory.createEditor(
-                        editorFactory.createDocument("Test case can be generated only for public methods."),
-                        currentMethod.getProject(), JavaFileType.INSTANCE, true);
-
+//            if (mainMethod.isMethodPublic() && !currentMethod.isConstructor()) {
+            TestCaseUnit testCaseScript = currentMethod
+                    .getProject()
+                    .getService(InsidiousService.class)
+                    .getTestCandidateCode(testCaseGenerationConfiguration);
+            if (testCaseScript == null) {
+                InsidiousNotification.notifyMessage("Failed to generate test case", NotificationType.ERROR);
+                return;
             }
+
+
+            if (saveLocationTextField.getText().isEmpty()) {
+
+
+                String moduleBasePath = insidiousService.guessModuleBasePath(currentClass);
+
+                PsiJavaFileImpl containingFile = currentClass.getContainingFile();
+                String packageName = containingFile.getPackageName();
+                String testOutputDirPath = insidiousService.getJUnitTestCaseWriter()
+                        .getTestDirectory(packageName, moduleBasePath);
+
+                saveLocationTextField.setText(testOutputDirPath + "/Test" + currentClass.getName() + "V.java");
+            }
+
+
+            String testCaseScriptCode = testCaseScript.getCode();
+            String[] codeLines = testCaseScriptCode.split("\n");
+            int classStartIndex = 0;
+            offset = testCaseScriptCode.indexOf(testCaseGenerationConfiguration.getTestMethodName());
+            for (String codeLine : codeLines) {
+                if (codeLine.contains(testCaseGenerationConfiguration.getTestMethodName())) {
+                    break;
+                }
+                classStartIndex++;
+            }
+            scrollIndex = Math.min(classStartIndex + 10, codeLines.length);
+
+            Document document = editorFactory.createDocument(testCaseScriptCode);
+            editor = editorFactory.createEditor(document, currentMethod.getProject(), JavaFileType.INSTANCE, false);
+
+            saveTestCaseButton.setEnabled(true);
+            bottomControlPanel.setEnabled(true);
+
+//            } else {
+//                editor = editorFactory.createEditor(
+//                        editorFactory.createDocument("Test case can be generated only for public methods."),
+//                        currentMethod.getProject(), JavaFileType.INSTANCE, true);
+//
+//            }
         } catch (Exception e) {
             e.printStackTrace();
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -380,8 +412,10 @@ public class TestCaseDesigner implements Disposable {
             e.printStackTrace(stringWriter);
             Document document = editorFactory.createDocument(out.toString());
             editor = editorFactory.createEditor(document, currentMethod.getProject(), PlainTextFileType.INSTANCE, true);
-            currentClass = null;
-            currentMethod = null;
+
+            saveTestCaseButton.setEnabled(false);
+            bottomControlPanel.setEnabled(false);
+
         }
 
 
@@ -392,7 +426,6 @@ public class TestCaseDesigner implements Disposable {
         editor.getScrollingModel().scroll(1, offset);
         testCasePreviewPanel.revalidate();
         testCasePreviewPanel.repaint();
-
     }
 
     private List<TestCandidateMetadata> createTestCandidate() {

@@ -45,7 +45,7 @@ public class VariableContainer {
     public VariableContainer clone() {
         VariableContainer newContainer = new VariableContainer();
         for (Parameter parameter : this.parameterList) {
-            newContainer.add(parameter);
+            newContainer.add(new Parameter(parameter));
         }
         return newContainer;
     }

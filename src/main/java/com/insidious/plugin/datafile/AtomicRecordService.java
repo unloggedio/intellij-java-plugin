@@ -33,7 +33,8 @@ import java.util.*;
 import static java.io.File.separator;
 
 public class AtomicRecordService {
-    public static final String TEST_RESOURCES_PATH = "src" + separator + "test" + separator + "resources" + separator;
+    public static final String TEST_CONTENT_PATH = "src" + separator + "test" + separator;
+    public static final String TEST_RESOURCES_PATH = TEST_CONTENT_PATH + "resources" + separator;
     private static final Logger logger = LoggerUtil.getInstance(AtomicRecordService.class);
     private final String UNLOGGED_RESOURCE_FOLDER_NAME = "unlogged";
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -125,8 +126,9 @@ public class AtomicRecordService {
                     List<StoredCandidate> candidates = atomicRecord.getStoredCandidateMap().get(methodKey);
                     for (StoredCandidate storedCandidate : candidates) {
                         if (
-                                (candidate.getCandidateId() != null && candidate.getCandidateId().equals(storedCandidate.getCandidateId()))
-                                || storedCandidate.getMethodArguments().equals(candidate.getMethodArguments())
+                                (candidate.getCandidateId() != null && candidate.getCandidateId()
+                                        .equals(storedCandidate.getCandidateId()))
+                                        || storedCandidate.getMethodArguments().equals(candidate.getMethodArguments())
                         ) {
                             foundCandidate = true;
                             //replace
@@ -197,12 +199,13 @@ public class AtomicRecordService {
             if (moduleRootPath == null) {
                 continue;
             }
-            String modulePath = buildTestResourcesPathFromModulePath(moduleRootPath);
-            if (checkedPaths.containsKey(modulePath)) {
+            String moduleTestResourcesPath = buildModuleBasePath(moduleRootPath)
+                    + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME;
+            if (checkedPaths.containsKey(moduleTestResourcesPath)) {
                 continue;
             }
-            checkedPaths.put(modulePath, true);
-            File moduleUnloggedResourcesDir = new File(modulePath);
+            checkedPaths.put(moduleTestResourcesPath, true);
+            File moduleUnloggedResourcesDir = new File(moduleTestResourcesPath);
             if (moduleUnloggedResourcesDir.exists()) {
                 File[] moduleResourceFiles = moduleUnloggedResourcesDir.listFiles();
                 if (moduleResourceFiles != null) {
@@ -243,23 +246,60 @@ public class AtomicRecordService {
             return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
         }
 
-        return buildTestResourcesPathFromModulePath(moduleDirectoryFile) + destinationFileName;
+        String testContentPathFromModule = buildModuleBasePath(moduleDirectoryFile);
+
+
+        String testResourcesPathFromModulePath = testContentPathFromModule + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME;
+
+        return testResourcesPathFromModulePath + destinationFileName;
 
     }
 
-    private String buildTestResourcesPathFromModulePath(VirtualFile virtualFile) {
+    public String guessModuleBasePath(String className) {
+        Project project = insidiousService.getProject();
+
+        PsiClass psiClass;
+        try {
+            psiClass = JavaPsiFacade.getInstance(project)
+                    .findClass(className, GlobalSearchScope.projectScope(project));
+        } catch (Exception e) {
+            // failed to find modules and a more specific save path
+            logger.warn("Failed to specific module for class: " + className, e);
+            return projectBasePath;
+        }
+
+        if (psiClass == null) {
+            // failed to find class file :o ooo o
+            return projectBasePath;
+        }
+
+        return guessModuleBasePath(psiClass);
+    }
+
+    public String guessModuleBasePath(PsiClass psiClass) {
+        try {
+            final ProjectFileIndex index = ProjectRootManager.getInstance(psiClass.getProject()).getFileIndex();
+            Module module = index.getModuleForFile(psiClass.getContainingFile().getVirtualFile());
+            VirtualFile moduleDirectoryFile = ProjectUtil.guessModuleDir(module);
+            return buildModuleBasePath(moduleDirectoryFile);
+        } catch (Exception e) {
+            return projectBasePath;
+        }
+    }
+
+    private String buildModuleBasePath(VirtualFile virtualFile) {
         String moduleSrcDirPath = virtualFile.getCanonicalPath();
         String moduleBasePath = moduleSrcDirPath;
         if (moduleSrcDirPath == null) {
-            return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME;
+            return projectBasePath + separator;
         } else if (moduleSrcDirPath.endsWith("src/main")) {
             moduleBasePath = moduleSrcDirPath.substring(0, moduleSrcDirPath.indexOf("/src/main"));
-            return moduleBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME;
-        } else if (moduleSrcDirPath.endsWith("/main")) {
-            moduleBasePath = moduleSrcDirPath.substring(0, moduleSrcDirPath.indexOf("/main"));
-            return moduleBasePath + separator + "test" + separator + "resources" + separator + UNLOGGED_RESOURCE_FOLDER_NAME;
+            return moduleBasePath + separator;
+//        } else if (moduleSrcDirPath.endsWith("/main")) {
+//            moduleBasePath = moduleSrcDirPath.substring(0, moduleSrcDirPath.indexOf("/main"));
+//            return moduleBasePath + separator + "test" + separator + "resources" + separator + UNLOGGED_RESOURCE_FOLDER_NAME;
         } else {
-            return moduleBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME;
+            return moduleBasePath + separator;
         }
     }
 

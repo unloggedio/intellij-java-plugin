@@ -56,17 +56,18 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JPanel scrollerContainer;
     private JLabel methodNameLabel;
     private JButton executeButton;
+    private JPanel directInvokeDescriptionPanel;
+    private JPanel descriptionPanel;
+    private JEditorPane descriptionEditorPane;
+    private JScrollPane descriptionScrollContainer;
     private MethodAdapter methodElement;
-    private ActionListener NOP_KEY_ADAPTER = new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-
-        }
-    };
+    private static final ActionListener NOP_KEY_ADAPTER = e -> {};
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
         this.objectMapper = this.insidiousService.getObjectMapper();
+
+//        h1WhatIsDirectInvokeEditorPane.setContentType("text/html");
 
         methodNameLabel.setText("This will be available after IDEA indexing is complete");
         executeButton.setEnabled(false);
@@ -117,6 +118,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
             InsidiousNotification.notifyMessage(message, NotificationType.WARNING);
             return;
         }
+
+        descriptionScrollContainer.setVisible(false);
 
 
         ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {

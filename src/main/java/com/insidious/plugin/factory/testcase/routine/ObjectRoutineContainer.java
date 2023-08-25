@@ -202,7 +202,7 @@ public class ObjectRoutineContainer {
         ObjectRoutine constructorRoutine = getConstructor();
         ObjectRoutineScript builderMethodScript = constructorRoutine
                 .toObjectRoutineScript(generationConfiguration, testGenerationState, sessionInstance,
-                        fieldsContainer.clone());
+                        (VariableContainer) fieldsContainer.clone());
 
         builderMethodScript.setRoutineName("setup");
         builderMethodScript.addAnnotation(generationConfiguration.getTestBeforeAnnotationType());
@@ -272,7 +272,7 @@ public class ObjectRoutineContainer {
 
             ObjectRoutineScript objectScript =
                     objectRoutine.toObjectRoutineScript(generationConfiguration, testGenerationState, sessionInstance,
-                            fieldsContainer.clone());
+                            (VariableContainer) fieldsContainer.clone());
             container.getObjectRoutines().add(objectScript);
 
             List<Parameter> staticMockList = objectScript.getStaticMocks();

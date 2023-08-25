@@ -294,7 +294,7 @@ public class DaoService {
                 byte[] serializedBytes = mainMethodReturnValue.getProb().getSerializedValue();
                 com.insidious.plugin.pojo.Parameter expectedValue;
                 String expectedParameterName = mainMethodReturnValue.getName() + "Expected";
-                expectedValue = com.insidious.plugin.pojo.Parameter.cloneParameter(mainMethodReturnValue);
+                expectedValue = new com.insidious.plugin.pojo.Parameter(mainMethodReturnValue);
                 expectedValue.clearNames();
                 expectedValue.setName(expectedParameterName);
                 DataEventWithSessionId expectedValueProbe = new DataEventWithSessionId();
@@ -501,13 +501,12 @@ public class DaoService {
 
 
             if (methodCallExpression.isStaticCall() || dbMce.getSubject() == 0) {
-                com.insidious.plugin.pojo.Parameter staticSubject = com.insidious.plugin.pojo.Parameter.cloneParameter(
-                        parameterMap.get(dbMce.getSubject()));
+                com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter(parameterMap.get(dbMce.getSubject()));
                 staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
                 methodCallExpression.setSubject(staticSubject);
             } else {
                 methodCallExpression.setSubject(
-                        com.insidious.plugin.pojo.Parameter.cloneParameter(parameterMap.get(dbMce.getSubject()))
+                        new com.insidious.plugin.pojo.Parameter(parameterMap.get(dbMce.getSubject()))
                 );
             }
             com.insidious.plugin.pojo.Parameter subjectParameter = methodCallExpression.getSubject();
@@ -606,7 +605,7 @@ public class DaoService {
                 if (paramArgument == null) {
                     paramArgument = new com.insidious.plugin.pojo.Parameter(0L);
                 } else {
-                    paramArgument = com.insidious.plugin.pojo.Parameter.cloneParameter(paramArgument);
+                    paramArgument = new com.insidious.plugin.pojo.Parameter(paramArgument);
                 }
                 paramArgument.setProbeInfo(probeInfo);
 
@@ -643,7 +642,7 @@ public class DaoService {
             if (returnParam == null) {
                 returnParam = new com.insidious.plugin.pojo.Parameter();
             } else {
-                returnParam = com.insidious.plugin.pojo.Parameter.cloneParameter(returnParam);
+                returnParam = new com.insidious.plugin.pojo.Parameter(returnParam);
             }
             methodCallExpression.setReturnValue(returnParam);
 

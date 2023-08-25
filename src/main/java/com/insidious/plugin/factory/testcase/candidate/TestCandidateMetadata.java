@@ -7,6 +7,7 @@ import com.insidious.plugin.pojo.Parameter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> {
@@ -18,19 +19,30 @@ public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> 
     private long callTimeNanoSecond;
     private long entryProbeIndex;
     private long exitProbeIndex;
-    private boolean isUIselected = false;
     private List<Integer> lineNumbers;
+
+    public TestCandidateMetadata(TestCandidateMetadata original) {
+
+        assertionList.addAll(original.assertionList
+                .stream().map(TestAssertion::new)
+                .collect(Collectors.toList()));
+        methodCallExpressions = original.methodCallExpressions
+                .stream().map(MethodCallExpression::new)
+                .collect(Collectors.toList());
+        fields = (VariableContainer) original.fields.clone();
+        mainMethod = new MethodCallExpression(original.mainMethod);
+        testSubject = new Parameter(original.testSubject);
+        callTimeNanoSecond = original.callTimeNanoSecond;
+        entryProbeIndex = original.entryProbeIndex;
+        exitProbeIndex = original.exitProbeIndex;
+        lineNumbers = new ArrayList<>(original.lineNumbers);
+    }
+
+    public TestCandidateMetadata() {
+    }
 
     public List<Integer> getLineNumbers() {
         return lineNumbers;
-    }
-
-    public boolean isUIselected() {
-        return isUIselected;
-    }
-
-    public void setUIselected(boolean UIselected) {
-        isUIselected = UIselected;
     }
 
     public long getExitProbeIndex() {

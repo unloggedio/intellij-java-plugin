@@ -91,7 +91,7 @@ public class ObjectRoutine {
                 generationConfiguration, testGenerationState
         );
 
-        scriptContainer.setCreatedVariables(testGenerationState.getVariableContainer().clone());
+        scriptContainer.setCreatedVariables((VariableContainer) testGenerationState.getVariableContainer().clone());
 
         List<ClassName> annotations = Collections.singletonList(generationConfiguration.getTestAnnotationType());
         if (getRoutineName().equals("<init>")) {

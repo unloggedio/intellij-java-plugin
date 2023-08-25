@@ -51,29 +51,23 @@ public class Parameter implements Serializable, BytesMarshallable {
     public Parameter() {
     }
 
-    @NotNull
-    public static Parameter cloneParameter(Parameter parameter) {
-        if (parameter == null) {
-            return new Parameter();
-        }
-        Parameter clonedParameter = new Parameter();
-        clonedParameter.setNamesList(new ArrayList<>(parameter.getNamesList()));
+    public Parameter(Parameter original) {
 
+        names = new ArrayList<>(original.names);
 
         List<Parameter> deepCopyTemplateMap = new ArrayList<>();
-        for (Parameter p : parameter.getTemplateMap()) {
-            deepCopyTemplateMap.add(Parameter.cloneParameter(p));
+        for (Parameter p : original.templateMap) {
+            deepCopyTemplateMap.add(new Parameter(p));
         }
-        clonedParameter.setTemplateMap(deepCopyTemplateMap);
+        templateMap = deepCopyTemplateMap;
 
 
-        clonedParameter.setType(parameter.getType());
-        clonedParameter.setContainer(parameter.isContainer());
-        clonedParameter.setProbeInfo(parameter.getProbeInfo());
-        clonedParameter.setValue(parameter.getValue());
-        clonedParameter.setProb(parameter.getProb());
-        clonedParameter.setIsEnum(parameter.getIsEnum());
-        return clonedParameter;
+        type = original.type;
+        isContainer = original.isContainer;
+        dataInfo = original.dataInfo;
+        value = original.value;
+        prob = original.prob;
+        isEnum = original.isEnum;
     }
 
     @Override
@@ -159,7 +153,7 @@ public class Parameter implements Serializable, BytesMarshallable {
     }
 
     public boolean getIsEnum() {
-        return this.isEnum;
+        return isEnum;
     }
 
     public void setIsEnum(boolean isEnum) {

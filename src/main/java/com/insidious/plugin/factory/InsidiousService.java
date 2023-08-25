@@ -83,6 +83,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
+import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiPrimitiveType;
@@ -157,6 +158,7 @@ final public class InsidiousService implements Disposable,
     private CoverageReportComponent coverageReportComponent;
     private boolean codeCoverageHighlightEnabled = true;
     private HighlightedRequest currentHighlightedRequest = null;
+    private boolean testCaseDesignerWindowAdded = false;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -234,25 +236,35 @@ final public class InsidiousService implements Disposable,
         start();
     }
 
-    public String getTestCandidateCode(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
+    public TestCaseUnit getTestCandidateCode(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
         TestCaseService testCaseService = getTestCaseService();
         if (testCaseService == null) {
             return null;
         }
-        TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-        return testCaseUnit.getCode();
+        return testCaseService.buildTestCaseUnit(generationConfiguration);
     }
 
-    public void generateAndSaveTestCase(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
-        TestCaseService testCaseService = getTestCaseService();
-        if (testCaseService == null) {
-            return;
+//    public void generateAndSaveTestCase(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
+//        TestCaseService testCaseService = getTestCaseService();
+//        if (testCaseService == null) {
+//            return;
+//        }
+//        TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+//        ArrayList<TestCaseUnit> testCaseScripts = new ArrayList<>();
+//        testCaseScripts.add(testCaseUnit);
+//        TestSuite testSuite = new TestSuite(testCaseScripts);
+//        junitTestCaseWriter.saveTestSuite(testSuite);
+//    }
+
+    public synchronized void previewTestCase(MethodAdapter methodElement, TestCaseGenerationConfiguration generationConfiguration) {
+
+        if (!testCaseDesignerWindowAdded) {
+            ContentManager contentManager = toolWindow.getContentManager();
+            contentManager.addContent(testDesignerContent);
+            testCaseDesignerWindowAdded = true;
         }
-        TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-        ArrayList<TestCaseUnit> testCaseScripts = new ArrayList<>();
-        testCaseScripts.add(testCaseUnit);
-        TestSuite testSuite = new TestSuite(testCaseScripts);
-        junitTestCaseWriter.saveTestSuite(testSuite);
+        testCaseDesignerWindow.generateAndPreviewTestCase(generationConfiguration, methodElement);
+        focusTestCaseDesignerTab();
     }
 
     private synchronized void initiateUI() {
@@ -280,7 +292,7 @@ final public class InsidiousService implements Disposable,
         testCaseDesignerWindow = new TestCaseDesigner();
         Disposer.register(this, testCaseDesignerWindow);
         testDesignerContent =
-                contentFactory.createContent(testCaseDesignerWindow.getContent(), "TestCase Boilerplate", false);
+                contentFactory.createContent(testCaseDesignerWindow.getContent(), "JUnit Test Preview", false);
         testDesignerContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         testDesignerContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
 //        contentManager.addContent(testDesignerContent);
@@ -541,10 +553,7 @@ final public class InsidiousService implements Disposable,
 
     public TestCaseService getTestCaseService() {
         if (testCaseService == null) {
-//            InsidiousNotification.notifyMessage(
-//                    "Session isn't loaded yet, loading session", NotificationType.WARNING);
             loadDefaultSession();
-//            return testCaseService;
         }
         return testCaseService;
     }
@@ -975,6 +984,14 @@ final public class InsidiousService implements Disposable,
                 () -> toolWindow.getContentManager().setSelectedContent(directMethodInvokeContent, false));
     }
 
+    public void focusTestCaseDesignerTab() {
+        if (toolWindow == null || directMethodInvokeContent == null) {
+            return;
+        }
+        ApplicationManager.getApplication().invokeLater(
+                () -> toolWindow.getContentManager().setSelectedContent(testDesignerContent, true));
+    }
+
     public void generateCompareWindows(String before, String after) {
         DocumentContent content1 = DiffContentFactory.getInstance().create(getPrettyJsonString(before));
         DocumentContent content2 = DiffContentFactory.getInstance().create(getPrettyJsonString(after));
@@ -1393,6 +1410,10 @@ final public class InsidiousService implements Disposable,
 
     public JUnitTestCaseWriter getJUnitTestCaseWriter() {
         return junitTestCaseWriter;
+    }
+
+    public String guessModuleBasePath(ClassAdapter currentClass) {
+        return atomicRecordService.guessModuleBasePath((PsiClass) currentClass.getSource());
     }
 
 

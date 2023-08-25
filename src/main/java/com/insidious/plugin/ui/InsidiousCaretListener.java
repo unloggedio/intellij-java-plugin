@@ -3,7 +3,6 @@ package com.insidious.plugin.ui;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.adapter.kotlin.KotlinMethodAdapter;
-import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -22,13 +21,14 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.testFramework.LightVirtualFile;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.psi.KtNamedFunction;
 
-import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class InsidiousCaretListener implements EditorMouseListener {
     final static private Logger logger = LoggerUtil.getInstance(InsidiousCaretListener.class);
+    private static final Pattern testFileNamePattern = Pattern.compile("^Test.*V.java$");
 
     public InsidiousCaretListener() {
     }
@@ -65,6 +65,12 @@ public class InsidiousCaretListener implements EditorMouseListener {
             if (file == null) {
                 return;
             }
+
+            Matcher fileMatcher = testFileNamePattern.matcher(file.getName());
+            if (fileMatcher.matches()) {
+                return;
+            }
+
             PsiMethod method = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiMethod.class, false);
             if (method != null) {
                 MethodAdapter methodAdapter = new JavaMethodAdapter(method);

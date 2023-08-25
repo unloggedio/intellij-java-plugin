@@ -7,6 +7,7 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.JavaParserUtils;
 import com.insidious.plugin.factory.testcase.ValueResourceContainer;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
@@ -325,6 +326,7 @@ public class JUnitTestCaseWriter {
         if (!basePath.endsWith("/")) {
             basePath = basePath + "/";
         }
+
         return basePath + "src/test/java/" + packageName.replaceAll("\\.", "/");
     }
 

@@ -193,8 +193,7 @@ public class CandidateMetadataFactory {
 
                 if (!objectRoutineScript.getCreatedVariables()
                         .contains(nameFactory.getNameForUse(staticCallSubjectMockInstance, null))) {
-                    @NotNull Parameter subjectStaticFieldMock = Parameter.cloneParameter(
-                            staticCallSubjectMockInstance);
+                    @NotNull Parameter subjectStaticFieldMock = new Parameter(staticCallSubjectMockInstance);
 
                     subjectStaticFieldMock.setContainer(true);
                     Parameter childParameter = new Parameter();

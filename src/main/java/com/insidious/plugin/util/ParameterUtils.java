@@ -2,12 +2,9 @@ package com.insidious.plugin.util;
 
 import com.insidious.plugin.constants.PrimitiveDataType;
 import com.insidious.plugin.pojo.Parameter;
-import org.apache.commons.lang.StringUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import static com.insidious.plugin.factory.testcase.util.ClassTypeUtils.createTypeFromNameString;
 import static com.insidious.plugin.factory.testcase.util.ClassTypeUtils.createTypeFromTypeDeclaration;
 
 public class ParameterUtils {
@@ -42,6 +39,9 @@ public class ParameterUtils {
     }
 
     public static String addParameterTypeSuffix(String valueString, String parameterType) {
+        if (parameterType == null) {
+            return valueString;
+        }
         switch (parameterType) {
             case PrimitiveDataType.BOXED_LONG:
                 valueString += "L";

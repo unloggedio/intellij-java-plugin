@@ -11,7 +11,6 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -30,6 +29,13 @@ public class TestAssertion implements Expression {
         this.assertionType = assertionType;
         this.expectedValue = expectedValue;
         this.actualValue = actualValue;
+    }
+
+    public TestAssertion(TestAssertion original) {
+        id = original.id;
+        assertionType = original.assertionType;
+        expectedValue = new Parameter(original.expectedValue);
+        actualValue = new Parameter(original.actualValue);
     }
 
     public String getId() {
@@ -97,7 +103,7 @@ public class TestAssertion implements Expression {
                 if (serializedBytes.length > 0) {
                     PendingStatement.in(objectRoutineScript, testGenerationState)
                             .assignVariable(expectedValue)
-                            .writeExpression(MethodCallExpressionFactory.StringExpression(new String(serializedBytes)))
+                            .fromRecordedValue(testConfiguration)
                             .endStatement();
                 } else {
                     PendingStatement.in(objectRoutineScript, testGenerationState)
@@ -112,7 +118,7 @@ public class TestAssertion implements Expression {
                 .equals(ResourceEmbedMode.IN_FILE)) {
 
             String nameForObject = testGenerationState.addObjectToResource(mainMethodReturnValue);
-            @NotNull Parameter jsonParameter = Parameter.cloneParameter(mainMethodReturnValue);
+            Parameter jsonParameter = new Parameter(mainMethodReturnValue);
             DataEventWithSessionId prob = new DataEventWithSessionId();
             prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
             jsonParameter.setProb(prob);

@@ -14,11 +14,11 @@ import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
-import com.squareup.javapoet.ClassName;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MethodCallExpression implements Expression, Serializable {
 
@@ -38,8 +38,6 @@ public class MethodCallExpression implements Expression, Serializable {
     private List<DataEventWithSessionId> argumentProbes = new ArrayList<>();
     private DataEventWithSessionId returnDataEvent;
     private boolean usesFields;
-
-    private boolean isUIselected = false;
     private int methodDefinitionId;
 
     public MethodCallExpression() {
@@ -58,6 +56,25 @@ public class MethodCallExpression implements Expression, Serializable {
         this.callStack = callStack;
     }
 
+    public MethodCallExpression(MethodCallExpression original) {
+        methodName = original.methodName;
+        subject = new Parameter(original.subject);
+        arguments = original.arguments.stream().map(Parameter::new).collect(Collectors.toList());
+        methodAccess = original.methodAccess;
+        returnValue = new Parameter(original.returnValue);
+        callStack = original.callStack;
+        threadId = original.threadId;
+        parentId = original.parentId;
+        id = original.id;
+        isStaticCall = original.isStaticCall;
+        entryProbeInfo = original.entryProbeInfo;
+        entryProbe = original.entryProbe;
+        returnDataEvent = original.returnDataEvent;
+        methodDefinitionId = original.methodDefinitionId;
+        usesFields = original.usesFields;
+        argumentProbes = original.argumentProbes;
+    }
+
     public int getThreadId() {
         return threadId;
     }
@@ -74,14 +91,6 @@ public class MethodCallExpression implements Expression, Serializable {
         this.parentId = parentId;
     }
 
-
-    public boolean isUIselected() {
-        return isUIselected;
-    }
-
-    public void setUIselected(boolean UIselected) {
-        isUIselected = UIselected;
-    }
 
     public boolean getUsesFields() {
         return usesFields;
@@ -368,7 +377,8 @@ public class MethodCallExpression implements Expression, Serializable {
         }
         if (returnValue != null) {
 
-            String returnValueType = returnValue.getType() == null ? "" : ClassTypeUtils.createTypeFromNameString(returnValue.getType()).toString();
+            String returnValueType = returnValue.getType() == null ? "" : ClassTypeUtils.createTypeFromNameString(
+                    returnValue.getType()).toString();
             objectRoutine.addComment(
                     returnValueType + " " + nameFactory.getNameForUse(returnValue, getMethodName())
                             + " = " + subjectName + "." + getMethodName() + "(" + callArgumentsString + ");");

@@ -19,14 +19,15 @@ import javax.swing.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class LineHighlighter implements LineMarkerProvider {
 
     private static final Logger logger = LoggerUtil.getInstance(LineHighlighter.class);
-    private final Pattern testFileNamePattern = Pattern.compile("^Test.*V.java$");
-    private final Pattern testMethodNamePattern = Pattern.compile("^test.*");
-    private final Supplier<String> accessibleNameProvider = () -> "Execute method";
+    private static final Pattern testFileNamePattern = Pattern.compile("^Test.*V.java$");
+    private static final Pattern testMethodNamePattern = Pattern.compile("^test.*");
+    private static final Supplier<String> accessibleNameProvider = () -> "Execute method";
     private final Map<GutterState, UnloggedGutterNavigationHandler> navHandlerMap = new HashMap<>();
 
     public LineHighlighter() {
@@ -38,6 +39,16 @@ public class LineHighlighter implements LineMarkerProvider {
     public LineMarkerInfo<PsiIdentifier> getLineMarkerInfo(@NotNull PsiElement element) {
 
         if (element instanceof PsiIdentifier && element.getParent() instanceof PsiMethod) {
+
+            if (element.getContainingFile() == null) {
+                return null;
+            }
+
+            Matcher fileMatcher = testFileNamePattern.matcher(element.getContainingFile().getName());
+            if (fileMatcher.matches()) {
+                return null;
+            }
+
 
             PsiMethod psiMethod = (PsiMethod) element.getParent();
             if (psiMethod.isConstructor()) {
