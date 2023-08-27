@@ -184,7 +184,15 @@ final public class InsidiousService implements Disposable,
         agentClient = new AgentClient("http://localhost:12100", (ConnectionStateListener) agentStateProvider);
         junitTestCaseWriter = new JUnitTestCaseWriter(project, objectMapper);
         ApplicationManager.getApplication().invokeLater(() -> {
-            this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
+            ToolWindow unlogged = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
+            if (unlogged != null) {
+                this.init(this.project, unlogged);
+            } else {
+                project.getService(DumbService.class)
+                        .runWhenSmart(() -> {
+                            this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
+                        });
+            }
         });
     }
 
@@ -227,6 +235,9 @@ final public class InsidiousService implements Disposable,
     }
 
     public synchronized void init(Project project, ToolWindow toolWindow) {
+        if (toolWindow == null) {
+            return;
+        }
         if (this.initiated) {
             return;
         }

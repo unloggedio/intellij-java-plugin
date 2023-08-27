@@ -34,7 +34,7 @@ public class UIUtils {
     public static final Icon DELETE_CANDIDATE_RED_SVG = IconLoader.getIcon("/icons/svg/delete-bin-6-line.svg",
             UIUtils.class);
     public static final Icon REPLAY_PINK = IconLoader.getIcon("/icons/svg/replay-all-pink.svg", UIUtils.class);
-    public static final Icon ICON_EXECUTE_METHOD = IconLoader.getIcon("/icons/play.png", UIUtils.class);
+    public static final Icon ICON_EXECUTE_METHOD = IconLoader.getIcon("/icons/png/play-icon.png", UIUtils.class);
     public static final Icon ICON_EXECUTE_METHOD_SMALLER = IconUtil.scale(ICON_EXECUTE_METHOD, null,
             JBUIScale.scale(16.0f) / ICON_EXECUTE_METHOD.getIconWidth());
     public static final JBColor HIGHLIGHT_BACKGROUND_COLOR = new JBColor(

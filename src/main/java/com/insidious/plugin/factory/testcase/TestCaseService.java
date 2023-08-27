@@ -261,6 +261,7 @@ public class TestCaseService {
 
         if (psiMethodByName.length == 0) {
             // method not found
+            return;
         }
         JvmMethod selectedPsiMethod = psiMethodByName[0];
         if (psiMethodByName.length > 1) {
