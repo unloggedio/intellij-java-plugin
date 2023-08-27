@@ -1,11 +1,14 @@
 package com.insidious.plugin.factory.testcase.writer;
 
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ParameterUtils;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.psi.PsiType;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
 
 import java.util.List;
 
@@ -13,6 +16,83 @@ public class TestCaseWriter {
 
     private static final Logger logger = LoggerUtil.getInstance(TestCaseWriter.class);
 
+    private static String psiTypeToJvmType(String canonicalText, boolean isReturnParameter) {
+        if (canonicalText.endsWith("[]")) {
+            canonicalText = psiTypeToJvmType(canonicalText.substring(0, canonicalText.length() - 2), isReturnParameter);
+            return "[" + canonicalText;
+        }
+        switch (canonicalText) {
+            case "void":
+                canonicalText = "V";
+                break;
+            case "boolean":
+                canonicalText = "Z";
+                break;
+            case "byte":
+                canonicalText = "B";
+                break;
+            case "char":
+                canonicalText = "C";
+                break;
+            case "short":
+                canonicalText = "S";
+                break;
+            case "int":
+                canonicalText = "I";
+                break;
+            case "long":
+                canonicalText = "J";
+                break;
+            case "float":
+                canonicalText = "F";
+                break;
+            case "double":
+                canonicalText = "D";
+                break;
+            case "java.util.Map":
+                if (!isReturnParameter) {
+                    canonicalText = "java.util.HashMap";
+                }
+                break;
+            case "java.util.List":
+                if (!isReturnParameter) {
+                    canonicalText = "java.util.ArrayList";
+                }
+                break;
+            case "java.util.Set":
+                if (!isReturnParameter) {
+                    canonicalText = "java.util.HashSet";
+                }
+                break;
+            case "java.util.Collection":
+                if (!isReturnParameter) {
+                    canonicalText = "java.util.ArrayList";
+                }
+                break;
+            default:
+        }
+        return canonicalText;
+    }
+
+    static public void setParameterTypeFromPsiType(Parameter parameter, PsiType psiType, boolean isReturnParameter) {
+        if (psiType instanceof PsiClassReferenceType) {
+            PsiClassReferenceType returnClassType = (PsiClassReferenceType) psiType;
+            if (returnClassType.getCanonicalText().equals(returnClassType.getName())) {
+                logger.warn("return class type canonical text[" + returnClassType.getCanonicalText()
+                        + "] is same as its name [" + returnClassType.getName() + "]");
+                // this is a generic template type <T>, and not a real class
+                parameter.setTypeForced("java.lang.Object");
+                return;
+            }
+            parameter.setTypeForced(psiTypeToJvmType(returnClassType.rawType().getCanonicalText(), isReturnParameter));
+            if (returnClassType.hasParameters()) {
+                SessionInstance.extractTemplateMap(returnClassType, parameter.getTemplateMap());
+                parameter.setContainer(true);
+            }
+        } else {
+            parameter.setTypeForced(psiTypeToJvmType(psiType.getCanonicalText(), isReturnParameter));
+        }
+    }
 
     public static String
     createMethodParametersStringMock(List<Parameter> variableContainer, TestGenerationState testGenerationState) {

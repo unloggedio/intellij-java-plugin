@@ -129,7 +129,7 @@ public class ObjectRoutine {
                 .collect(Collectors.toList());
 
         for (Parameter nonPojoParameter : nonPojoParameters) {
-            if (fieldsContainer.getParameterByValue(nonPojoParameter.getValue()) != null) {
+            if (fieldsContainer.getParameterByValue(nonPojoParameter.getValue()).getProb() != null) {
                 continue;
             }
             if (testCandidateSubjectValues.contains(nonPojoParameter.getValue())) {

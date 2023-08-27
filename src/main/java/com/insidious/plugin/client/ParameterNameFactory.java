@@ -1,6 +1,5 @@
 package com.insidious.plugin.client;
 
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
 import org.apache.commons.lang.StringUtils;
 
@@ -16,7 +15,11 @@ public class ParameterNameFactory {
         if (parameterNameMapByObject.containsKey(parameter)) {
             return parameterNameMapByObject.get(parameter);
         }
-        String key = parameter.getType() + "-" + parameter.getValue();
+        String key = String.valueOf(parameter.getValue());
+        if (parameter.getType().length() == 1) {
+            key = parameter.getType() + "-" + parameter.getValue();
+        }
+
         String nameUsed = nameByIdMap.get(key);
         if (nameUsed != null) {
             parameter.clearNames();
@@ -43,7 +46,7 @@ public class ParameterNameFactory {
             names.removeAll(namesAlreadyUsed);
             for (String nameAlreadyUsed : namesAlreadyUsed) {
                 int i = 1;
-                while(true) {
+                while (true) {
                     if (!nameToParameterMap.containsKey(nameAlreadyUsed + i)) {
                         names.add(nameAlreadyUsed + i);
                         break;

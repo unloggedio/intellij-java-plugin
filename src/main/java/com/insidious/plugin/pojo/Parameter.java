@@ -308,7 +308,7 @@ public class Parameter implements Serializable, BytesMarshallable {
 
         if (this.dataInfo == null
                 || !this.dataInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT)
-                || probeInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT)
+                || (probeInfo.getEventType() != null &&  probeInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT))
         ) {
             this.dataInfo = probeInfo;
             this.prob = prob;

@@ -1,9 +1,9 @@
 package com.insidious.plugin.factory.testcase;
 
 import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.mock.MockFactory;
@@ -13,6 +13,8 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
+import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
+import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.TestCaseUnit;
@@ -21,6 +23,8 @@ import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.lang.jvm.JvmMethod;
+import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.IndexNotReadyException;
@@ -28,6 +32,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiField;
+import com.intellij.psi.PsiType;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.squareup.javapoet.*;
@@ -102,7 +107,8 @@ public class TestCaseService {
 
             JsonFramework jsonFramework = testGenerationConfig.getJsonFramework();
             ClassName jsonMapperClassName = ClassName.bestGuess(jsonFramework.getInstance().getType());
-            FieldSpec.Builder jsonMapperField = FieldSpec.builder(jsonMapperClassName, jsonFramework.getInstance().getName(),
+            FieldSpec.Builder jsonMapperField = FieldSpec.builder(jsonMapperClassName,
+                    jsonFramework.getInstance().getName(),
                     Modifier.PRIVATE);
             jsonMapperField.initializer("new $T()", jsonMapperClassName);
             testClassSpecBuilder.addField(jsonMapperField.build());
@@ -184,6 +190,8 @@ public class TestCaseService {
             generationConfiguration.getTestCandidateMetadataList().add(0, constructorCandidate);
         }
 
+        normalizeTypeInformationUsingProject(generationConfiguration);
+
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
 
         List<TestCandidateMetadata> mockCreatorCandidates = createFieldMocks(objectRoutineContainer);
@@ -217,8 +225,72 @@ public class TestCaseService {
                 objectRoutineContainer.toObjectRoutineScriptContainer(sessionInstance, testGenerationState);
 
 
-        TestCaseUnit testCaseUnit = buildTestUnitFromScript(objectRoutineContainer, testCaseScript);
-        return testCaseUnit;
+        return buildTestUnitFromScript(objectRoutineContainer, testCaseScript);
+    }
+
+    private void normalizeTypeInformationUsingProject(TestCaseGenerationConfiguration generationConfiguration) {
+
+        for (TestCandidateMetadata testCandidateMetadata : generationConfiguration.getTestCandidateMetadataList()) {
+            normalizeMethodTypes(testCandidateMetadata.getMainMethod());
+            for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
+                normalizeMethodTypes(methodCallExpression);
+            }
+
+        }
+
+
+    }
+
+    private void normalizeMethodTypes(MethodCallExpression mainMethod) {
+        String className = mainMethod.getSubject().getType();
+        String methodName = mainMethod.getMethodName();
+
+        JavaPsiFacade javaPsiFacade = JavaPsiFacade.getInstance(project);
+        PsiClass psiClassInstance = javaPsiFacade.findClass(className, GlobalSearchScope.allScope(project));
+        if (psiClassInstance == null) {
+            // failed to find class in project
+            return;
+        }
+
+        JvmMethod[] psiMethodByName;
+        if (methodName.equals("<init>")) {
+            psiMethodByName = psiClassInstance.getConstructors();
+        } else {
+            psiMethodByName = psiClassInstance.findMethodsByName(methodName);
+        }
+
+        if (psiMethodByName.length == 0) {
+            // method not found
+        }
+        JvmMethod selectedPsiMethod = psiMethodByName[0];
+        if (psiMethodByName.length > 1) {
+            // need to select correctMethod
+            for (JvmMethod jvmMethod : psiMethodByName) {
+                if (jvmMethod.getParameters().length == mainMethod.getArguments().size()) {
+                    // potential match
+                    // would still fail for overridden methods with same argument count
+                    selectedPsiMethod = jvmMethod;
+                    break;
+                }
+            }
+        }
+
+        // fix argument types
+        JvmParameter[] methodParameters = selectedPsiMethod.getParameters();
+        List<Parameter> methodArguments = mainMethod.getArguments();
+        for (int i = 0; i < methodParameters.length; i++) {
+            JvmParameter parameter = methodParameters[i];
+            Parameter ourParam = methodArguments.get(i);
+            ourParam.addName(parameter.getName());
+            TestCaseWriter.setParameterTypeFromPsiType(ourParam, (PsiType) parameter.getType(), false);
+        }
+
+        if (selectedPsiMethod.getReturnType() != null) {
+            TestCaseWriter.setParameterTypeFromPsiType(mainMethod.getReturnValue(),
+                    (PsiType) selectedPsiMethod.getReturnType(), true);
+        }
+
+
     }
 
     public List<TestCandidateMetadata> createFieldMocks(ObjectRoutineContainer objectRoutineContainer) {

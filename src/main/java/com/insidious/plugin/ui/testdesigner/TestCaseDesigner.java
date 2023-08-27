@@ -17,7 +17,6 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.adapter.java.JavaClassAdapter;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.TestAssertion;
-import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.JavaParserUtils;
@@ -26,6 +25,7 @@ import com.insidious.plugin.factory.testcase.ValueResourceContainer;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
@@ -174,7 +174,8 @@ public class TestCaseDesigner implements Disposable {
                 String resourceDirectory = insidiousService.getJUnitTestCaseWriter()
                         .getTestResourcesDirectory(basePath) + "unlogged-fixtures" + File.pathSeparator;
 
-                ValueResourceContainer valueResourceContainer = testCaseScript.getTestGenerationState().getValueResourceMap();
+                ValueResourceContainer valueResourceContainer = testCaseScript.getTestGenerationState()
+                        .getValueResourceMap();
                 String resourceFileName = valueResourceContainer.getResourceFileName();
                 new File(resourceDirectory).mkdirs();
                 File resourceFile = new File(resourceDirectory + resourceFileName);
@@ -376,7 +377,8 @@ public class TestCaseDesigner implements Disposable {
         currentTestGenerationConfiguration.setMockFramework((MockFramework) mockFrameworkComboBox.getSelectedItem());
         currentTestGenerationConfiguration.setJsonFramework((JsonFramework) jsonFrameworkComboBox.getSelectedItem());
         currentTestGenerationConfiguration.setUseMockitoAnnotations(useMockitoAnnotationsMockCheckBox.isSelected());
-        currentTestGenerationConfiguration.setResourceEmbedMode((ResourceEmbedMode) resourceEmberModeComboBox.getSelectedItem());
+        currentTestGenerationConfiguration.setResourceEmbedMode(
+                (ResourceEmbedMode) resourceEmberModeComboBox.getSelectedItem());
 
 
         selectedMethodNameLabel.setText(currentClass.getName() + "." + currentMethod.getName() + "()");
@@ -404,7 +406,8 @@ public class TestCaseDesigner implements Disposable {
 
             PsiJavaFileImpl containingFile = currentClass.getContainingFile();
             String packageName = containingFile.getPackageName();
-            String testOutputDirPath = insidiousService.getJUnitTestCaseWriter().getTestDirectory(packageName, moduleBasePath);
+            String testOutputDirPath = insidiousService.getJUnitTestCaseWriter()
+                    .getTestDirectory(packageName, moduleBasePath);
 
             saveLocationTextField.setText(testOutputDirPath + "/Test" + currentClass.getName() + "V.java");
 
@@ -477,7 +480,7 @@ public class TestCaseDesigner implements Disposable {
             ) {
                 continue;
             }
-            setParameterTypeFromPsiType(fieldParameter, fieldType, false);
+            TestCaseWriter.setParameterTypeFromPsiType(fieldParameter, fieldType, false);
             fieldParameter.setValue(random.nextLong());
             fieldParameter.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
             fieldContainer.add(fieldParameter);
@@ -508,7 +511,7 @@ public class TestCaseDesigner implements Disposable {
             returnValue.setValue(random.nextLong());
 
             PsiType returnType = currentMethod.getReturnType();
-            setParameterTypeFromPsiType(returnValue, returnType, true);
+            TestCaseWriter.setParameterTypeFromPsiType(returnValue, returnType, true);
 
             DataEventWithSessionId returnValueProbe = new DataEventWithSessionId();
             returnValue.setProbeAndProbeInfo(returnValueProbe, new DataInfo());
@@ -523,7 +526,7 @@ public class TestCaseDesigner implements Disposable {
             argumentParameter.setValue(random.nextLong());
 
             PsiType parameterPsiType = parameter.getType();
-            setParameterTypeFromPsiType(argumentParameter, parameterPsiType, false);
+            TestCaseWriter.setParameterTypeFromPsiType(argumentParameter, parameterPsiType, false);
 
             DataEventWithSessionId parameterProbe = new DataEventWithSessionId();
             argumentParameter.setProbeAndProbeInfo(parameterProbe, new DataInfo());
@@ -560,7 +563,7 @@ public class TestCaseDesigner implements Disposable {
             assertionExpectedValue.setName(returnValue.getName() + "Expected");
             assertionExpectedValue.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
 
-            setParameterTypeFromPsiType(assertionExpectedValue, currentMethod.getReturnType(), true);
+            TestCaseWriter.setParameterTypeFromPsiType(assertionExpectedValue, currentMethod.getReturnType(), true);
 
             TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, assertionExpectedValue, returnValue);
 
@@ -680,7 +683,7 @@ public class TestCaseDesigner implements Disposable {
                             if (typeToAssignFrom == null || typeToAssignFrom.getCanonicalText().equals("null")) {
                                 typeToAssignFrom = parameter.getType();
                             }
-                            setParameterTypeFromPsiType(callParameter, typeToAssignFrom, false);
+                            TestCaseWriter.setParameterTypeFromPsiType(callParameter, typeToAssignFrom, false);
 
 
                             long nextValue;
@@ -742,7 +745,7 @@ public class TestCaseDesigner implements Disposable {
                         PsiType methodReturnPsiReference = matchedMethod.getReturnType();
 
                         methodReturnValue.setValue(random.nextLong());
-                        setParameterTypeFromPsiType(methodReturnValue, methodReturnPsiReference, true);
+                        TestCaseWriter.setParameterTypeFromPsiType(methodReturnValue, methodReturnPsiReference, true);
                         DataInfo probeInfo = new DataInfo(
                                 0, 0, 0, 0, 0, EventType.ARRAY_LENGTH, Descriptor.Boolean, ""
                         );
@@ -936,7 +939,7 @@ public class TestCaseDesigner implements Disposable {
             } else {
                 Parameter methodArgumentParameter = new Parameter();
                 methodArgumentParameter.setName(parameterName);
-                setParameterTypeFromPsiType(methodArgumentParameter, parameterType, false);
+                TestCaseWriter.setParameterTypeFromPsiType(methodArgumentParameter, parameterType, false);
                 methodArgumentParameter.setValue(random.nextLong());
 //                methodArgumentParameter.setProbeInfo(new DataInfo());
                 DataEventWithSessionId argumentProbe = new DataEventWithSessionId();
@@ -998,25 +1001,6 @@ public class TestCaseDesigner implements Disposable {
         return new JavaClassAdapter(aClass);
     }
 
-    private void setParameterTypeFromPsiType(Parameter parameter, PsiType psiType, boolean isReturnParameter) {
-        if (psiType instanceof PsiClassReferenceType) {
-            PsiClassReferenceType returnClassType = (PsiClassReferenceType) psiType;
-            if (returnClassType.getCanonicalText().equals(returnClassType.getName())) {
-                logger.warn("return class type canonical text[" + returnClassType.getCanonicalText()
-                        + "] is same as its name [" + returnClassType.getName() + "]");
-                // this is a generic template type <T>, and not a real class
-                parameter.setType("java.lang.Object");
-                return;
-            }
-            parameter.setType(psiTypeToJvmType(returnClassType.rawType().getCanonicalText(), isReturnParameter));
-            if (returnClassType.hasParameters()) {
-                SessionInstance.extractTemplateMap(returnClassType, parameter.getTemplateMap());
-                parameter.setContainer(true);
-            }
-        } else {
-            parameter.setType(psiTypeToJvmType(psiType.getCanonicalText(), isReturnParameter));
-        }
-    }
 
     public List<PsiMethodCallExpression> collectMethodCallExpressions(PsiElement element) {
         ArrayList<PsiMethodCallExpression> returnList = new ArrayList<>();
@@ -1036,64 +1020,6 @@ public class TestCaseDesigner implements Disposable {
 
 
         return returnList;
-    }
-
-    private String psiTypeToJvmType(String canonicalText, boolean isReturnParameter) {
-        if (canonicalText.endsWith("[]")) {
-            canonicalText = psiTypeToJvmType(canonicalText.substring(0, canonicalText.length() - 2), isReturnParameter);
-            return "[" + canonicalText;
-        }
-        switch (canonicalText) {
-            case "void":
-                canonicalText = "V";
-                break;
-            case "boolean":
-                canonicalText = "Z";
-                break;
-            case "byte":
-                canonicalText = "B";
-                break;
-            case "char":
-                canonicalText = "C";
-                break;
-            case "short":
-                canonicalText = "S";
-                break;
-            case "int":
-                canonicalText = "I";
-                break;
-            case "long":
-                canonicalText = "J";
-                break;
-            case "float":
-                canonicalText = "F";
-                break;
-            case "double":
-                canonicalText = "D";
-                break;
-            case "java.util.Map":
-                if (!isReturnParameter) {
-                    canonicalText = "java.util.HashMap";
-                }
-                break;
-            case "java.util.List":
-                if (!isReturnParameter) {
-                    canonicalText = "java.util.ArrayList";
-                }
-                break;
-            case "java.util.Set":
-                if (!isReturnParameter) {
-                    canonicalText = "java.util.HashSet";
-                }
-                break;
-            case "java.util.Collection":
-                if (!isReturnParameter) {
-                    canonicalText = "java.util.ArrayList";
-                }
-                break;
-            default:
-        }
-        return canonicalText;
     }
 
     @Override
