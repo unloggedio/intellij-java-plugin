@@ -357,7 +357,6 @@ public class TestCaseDesigner implements Disposable {
             EditorFactory.getInstance().releaseEditor(editor);
         }
         try {
-//            if (mainMethod.isMethodPublic() && !currentMethod.isConstructor()) {
             TestCaseUnit testCaseScript = currentMethod
                     .getProject()
                     .getService(InsidiousService.class)
@@ -368,19 +367,16 @@ public class TestCaseDesigner implements Disposable {
             }
 
 
-            if (saveLocationTextField.getText().isEmpty()) {
 
 
-                String moduleBasePath = insidiousService.guessModuleBasePath(currentClass);
+            String moduleBasePath = insidiousService.guessModuleBasePath(currentClass);
 
-                PsiJavaFileImpl containingFile = currentClass.getContainingFile();
-                String packageName = containingFile.getPackageName();
-                String testOutputDirPath = insidiousService.getJUnitTestCaseWriter()
-                        .getTestDirectory(packageName, moduleBasePath);
+            PsiJavaFileImpl containingFile = currentClass.getContainingFile();
+            String packageName = containingFile.getPackageName();
+            String testOutputDirPath = insidiousService.getJUnitTestCaseWriter()
+                    .getTestDirectory(packageName, moduleBasePath);
 
-                saveLocationTextField.setText(testOutputDirPath + "/Test" + currentClass.getName() + "V.java");
-            }
-
+            saveLocationTextField.setText(testOutputDirPath + "/Test" + currentClass.getName() + "V.java");
 
             String testCaseScriptCode = testCaseScript.getCode();
             String[] codeLines = testCaseScriptCode.split("\n");
@@ -400,12 +396,6 @@ public class TestCaseDesigner implements Disposable {
             saveTestCaseButton.setEnabled(true);
             bottomControlPanel.setEnabled(true);
 
-//            } else {
-//                editor = editorFactory.createEditor(
-//                        editorFactory.createDocument("Test case can be generated only for public methods."),
-//                        currentMethod.getProject(), JavaFileType.INSTANCE, true);
-//
-//            }
         } catch (Exception e) {
             e.printStackTrace();
             ByteArrayOutputStream out = new ByteArrayOutputStream();

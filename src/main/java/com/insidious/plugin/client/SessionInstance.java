@@ -3378,8 +3378,7 @@ public class SessionInstance implements Runnable {
 
                     isModified = false;
                     saveProbe = true;
-                    if ((existingParameter.getType() == null || existingParameter.getType()
-                            .endsWith(".Object"))) {
+                    if ((existingParameter.getType() == null || existingParameter.getType().endsWith(".Object"))) {
                         existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         saveProbe = true;
                         existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -3434,9 +3433,9 @@ public class SessionInstance implements Runnable {
                     existingParameter = parameterContainer.getParameterByValue(theCallThatJustEnded.getSubject());
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
 //                    existingParameter.setValue(0L);
-                    if (existingParameter.getProb() == null) {
-                        existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
-                    }
+//                    if (existingParameter.getProb() == null) {
+                    existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
+//                    }
                     existingParameter.setType(ClassTypeUtils.getDottedClassName(upcomingObjectType));
                     theCallThatJustEnded.setReturnValue_id(existingParameter.getValue());
                     theCallThatJustEnded.setSubject(existingParameter.getValue());
@@ -3450,9 +3449,9 @@ public class SessionInstance implements Runnable {
                     topCall = threadState.getTopCall();
                     existingParameter = parameterContainer.getParameterByValue(topCall.getSubject());
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                    if (existingParameter.getProb() == null) {
-                        existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
-                    }
+//                    if (existingParameter.getProb() == null) {
+                    existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
+//                    }
                     saveProbe = true;
                     topCall.setSubject(existingParameter.getValue());
                     topCall.setReturnValue_id(existingParameter.getValue());

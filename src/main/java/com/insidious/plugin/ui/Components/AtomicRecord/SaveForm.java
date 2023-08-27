@@ -65,10 +65,11 @@ public class SaveForm {
             throw new RuntimeException(e);
         }
 
-        AtomicAssertion existingAssertion = storedCandidate.getTestAssertions();
-        if (existingAssertion == null ||
-                existingAssertion.getSubAssertions() == null ||
-                existingAssertion.getSubAssertions().size() == 0) {
+
+        // clone the assertions
+        AtomicAssertion existingAssertion = new AtomicAssertion(storedCandidate.getTestAssertions());
+
+        if (existingAssertion.getSubAssertions() == null || existingAssertion.getSubAssertions().size() == 0) {
             List<AtomicAssertion> subAssertions = new ArrayList<>();
             subAssertions.add(
                     new AtomicAssertion(AssertionType.EQUAL, "/", agentCommandResponse.getMethodReturnValue()));
@@ -219,16 +220,10 @@ public class SaveForm {
     private void triggerSave() {
 
         AtomicAssertion atomicAssertion = ruleEditor.getAssertion();
-//        try {
-//            logger.warn("Atomic assertion: \n" +
-//                    objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(atomicAssertion));
-//        } catch (JsonProcessingException e) {
-//            throw new RuntimeException(e);
-//        }
 
         MetadataViewPayload payload = metadataForm.getPayload();
-        String name_text = prepareString(payload.getName());
-        String description_text = prepareString(payload.getDescription());
+        String assertionName = prepareString(payload.getName());
+        String assertionDescription = prepareString(payload.getDescription());
         AssertionType type = AssertionType.EQUAL;
 
         //this call is necessary
@@ -236,8 +231,8 @@ public class SaveForm {
         //Required for upcoming assertion flows as well
         StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate, agentCommandResponse);
         candidate.setMetadata(payload.getStoredCandidateMetadata());
-        candidate.setName(name_text);
-        candidate.setDescription(description_text);
+        candidate.setName(assertionName);
+        candidate.setDescription(assertionDescription);
         candidate.setTestAssertions(atomicAssertion);
 
         listener.onSaved(candidate);

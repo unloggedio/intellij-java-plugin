@@ -292,18 +292,20 @@ public class DaoService {
 
                 // deserialize and compare objects
                 com.insidious.plugin.pojo.Parameter expectedValue;
-                String expectedParameterName = mainMethodReturnValue.getName() + "Expected";
+                String expectedParameterName = (mainMethodReturnValue.getName() == null ? "value" : mainMethodReturnValue.getName())
+                        + "Expected";
                 expectedValue = new com.insidious.plugin.pojo.Parameter(mainMethodReturnValue);
                 expectedValue.clearNames();
                 expectedValue.setName(expectedParameterName);
                 DataEventWithSessionId expectedValueProbe = new DataEventWithSessionId();
                 if (mainMethodReturnValue.getProb() != null) {
-                    expectedValueProbe.setSerializedValue(mainMethodReturnValue.getProb().getSerializedValue());
+                    expectedValueProbe.setSerializedValue(mainMethodCall.getReturnDataEvent().getSerializedValue());
                 }
                 expectedValue.setProbeAndProbeInfo(expectedValueProbe, new DataInfo());
 
 
-                TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, expectedValue, mainMethodReturnValue);
+                TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, expectedValue,
+                        mainMethodReturnValue);
                 converted.getAssertionList().add(testAssertion);
             }
         }

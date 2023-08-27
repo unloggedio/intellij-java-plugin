@@ -241,7 +241,7 @@ final public class InsidiousService implements Disposable,
         if (testCaseService == null) {
             return null;
         }
-        return testCaseService.buildTestCaseUnit(generationConfiguration);
+        return testCaseService.buildTestCaseUnit(new TestCaseGenerationConfiguration(generationConfiguration));
     }
 
 //    public void generateAndSaveTestCase(TestCaseGenerationConfiguration generationConfiguration) throws Exception {

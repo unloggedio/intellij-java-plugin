@@ -168,8 +168,6 @@ public class TestCaseService {
     public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
 
 
-        generationConfiguration = new TestCaseGenerationConfiguration(generationConfiguration);
-
         ParameterNameFactory parameterNameFactory = new ParameterNameFactory();
         TestGenerationState testGenerationState = new TestGenerationState(parameterNameFactory);
 

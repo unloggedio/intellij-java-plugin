@@ -230,7 +230,7 @@ public class MethodCallExpression implements Expression, Serializable {
             return;
         }
         if (entryProbe != null) {
-            DataEventWithSessionId returnProbe = getReturnValue().getProb();
+            DataEventWithSessionId returnProbe = returnValue.getProb();
             if (!getMethodName().equals("<init>")) {
                 objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
                         "[" + entryProbe.getEventId() + "," + entryProbe.getThreadId() + "] - took " +

@@ -102,7 +102,7 @@ public class AtomicTestContainer {
 
         if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
             methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, List.of());
-            insidiousService.focusAtomicTestsWindow();
+//            insidiousService.focusAtomicTestsWindow();
             return;
         }
 
@@ -118,7 +118,7 @@ public class AtomicTestContainer {
         if (methodTestCandidates.size() > 0) {
             methodTestCandidates.sort(StoredCandidate::compareTo);
             methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, methodTestCandidates);
-            insidiousService.focusAtomicTestsWindow();
+//            insidiousService.focusAtomicTestsWindow();
         } else {
             //runs for process_running
             insidiousService.focusDirectInvokeTab();

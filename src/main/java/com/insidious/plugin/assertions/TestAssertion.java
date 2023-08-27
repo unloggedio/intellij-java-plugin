@@ -88,12 +88,11 @@ public class TestAssertion implements Expression {
         byte[] serializedBytes = expectedValueProbe.getSerializedValue();
 
 
-        String expectedParameterName = returnSubjectInstanceName + "Expected";
+        String expectedParameterName = returnSubjectInstanceName == null ? expectedValue.getName() : returnSubjectInstanceName + "Expected";
         testGenerationState.getParameterNameFactory().setNameForParameter(expectedValue, expectedParameterName);
 
 
-        if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE)
-                || expectedValue.isPrimitiveType()) {
+        if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE) || expectedValue.isPrimitiveType()) {
             if (expectedValue.isPrimitiveType()) {
                 PendingStatement.in(objectRoutineScript, testGenerationState)
                         .assignVariable(expectedValue)
@@ -143,10 +142,8 @@ public class TestAssertion implements Expression {
         // If the type of the returnSubjectExpectedObject is a array (int[], long[], byte[])
         // then use assertArrayEquals
         if (expectedValue.getType().endsWith("[]")) {
-            PendingStatement
-                    .in(objectRoutineScript, testGenerationState)
-                    .writeExpression(
-                            MethodCallExpressionFactory.MockitoAssertArrayEquals
+            PendingStatement.in(objectRoutineScript, testGenerationState)
+                    .writeExpression(MethodCallExpressionFactory.MockitoAssertArrayEquals
                                     (expectedValue, mainMethodReturnValue, testConfiguration))
                     .endStatement();
         } else {
