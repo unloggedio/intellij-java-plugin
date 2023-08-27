@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.testdesigner;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
@@ -21,6 +22,7 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.JavaParserUtils;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.factory.testcase.ValueResourceContainer;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
@@ -72,11 +74,11 @@ import java.util.stream.Collectors;
 
 public class TestCaseDesigner implements Disposable {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseDesigner.class);
+    private static final ObjectMapper objectMapper = new ObjectMapper();
     Random random = new Random(new Date().getTime());
     private JPanel mainContainer;
     private JPanel selectedClassDetailsPanel;
     private JLabel selectedMethodNameLabel;
-    private JLabel returnValueTypeLabel;
     private JPanel testCasePreviewPanel;
     private JTextField saveLocationTextField;
     private JButton saveTestCaseButton;
@@ -97,8 +99,6 @@ public class TestCaseDesigner implements Disposable {
     private JPanel jsonFrameworkChoicePanel;
     private JComboBox<ResourceEmbedMode> resourceEmberModeComboBox;
     private JPanel resourceEmbedModeChoicePanel;
-    private JTable assertionTable;
-    //    private JButton addNewAssertionButton;
     private MethodAdapter currentMethod;
     private ClassAdapter currentClass;
     private Editor editor;
@@ -106,6 +106,7 @@ public class TestCaseDesigner implements Disposable {
     private List<String> methodChecked;
     private Map<String, Parameter> fieldMapByName;
     private TestCaseGenerationConfiguration currentTestGenerationConfiguration;
+    private TestCaseUnit testCaseScript;
 
     public TestCaseDesigner() {
         saveTestCaseButton.setEnabled(false);
@@ -166,6 +167,31 @@ public class TestCaseDesigner implements Disposable {
 
             logger.info("[TEST CASE SAVE] testcaseFile : " + testcaseFile.getAbsolutePath());
             UsageInsightTracker.getInstance().RecordEvent("TestCaseSaved", new JSONObject());
+
+
+            TestCaseGenerationConfiguration generationConfig = testCaseScript.getTestGenerationConfig();
+            if (generationConfig.getResourceEmbedMode() == ResourceEmbedMode.IN_FILE) {
+                String resourceDirectory = insidiousService.getJUnitTestCaseWriter()
+                        .getTestResourcesDirectory(basePath) + "unlogged-fixtures" + File.pathSeparator;
+
+                ValueResourceContainer valueResourceContainer = testCaseScript.getTestGenerationState().getValueResourceMap();
+                String resourceFileName = valueResourceContainer.getResourceFileName();
+                new File(resourceDirectory).mkdirs();
+                File resourceFile = new File(resourceDirectory + resourceFileName);
+
+                try (FileOutputStream resourceFileOutput = new FileOutputStream(resourceFile)) {
+                    resourceFileOutput.write(
+                            objectMapper.writerWithDefaultPrettyPrinter()
+                                    .writeValueAsBytes(valueResourceContainer)
+                    );
+                } catch (Exception e1) {
+                    InsidiousNotification.notifyMessage(
+                            "Failed to write test resource case: " + e1.getMessage(), NotificationType.ERROR
+                    );
+                    return;
+                }
+
+            }
 
             if (!testcaseFile.exists()) {
                 try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
@@ -346,6 +372,13 @@ public class TestCaseDesigner implements Disposable {
         this.currentClass = currentMethod.getContainingClass();
         this.currentTestGenerationConfiguration = testCaseGenerationConfiguration;
 
+        currentTestGenerationConfiguration.setTestFramework((TestFramework) testFrameworkComboBox.getSelectedItem());
+        currentTestGenerationConfiguration.setMockFramework((MockFramework) mockFrameworkComboBox.getSelectedItem());
+        currentTestGenerationConfiguration.setJsonFramework((JsonFramework) jsonFrameworkComboBox.getSelectedItem());
+        currentTestGenerationConfiguration.setUseMockitoAnnotations(useMockitoAnnotationsMockCheckBox.isSelected());
+        currentTestGenerationConfiguration.setResourceEmbedMode((ResourceEmbedMode) resourceEmberModeComboBox.getSelectedItem());
+
+
         selectedMethodNameLabel.setText(currentClass.getName() + "." + currentMethod.getName() + "()");
 
         InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
@@ -357,7 +390,7 @@ public class TestCaseDesigner implements Disposable {
             EditorFactory.getInstance().releaseEditor(editor);
         }
         try {
-            TestCaseUnit testCaseScript = currentMethod
+            testCaseScript = currentMethod
                     .getProject()
                     .getService(InsidiousService.class)
                     .getTestCandidateCode(testCaseGenerationConfiguration);
@@ -367,14 +400,11 @@ public class TestCaseDesigner implements Disposable {
             }
 
 
-
-
             String moduleBasePath = insidiousService.guessModuleBasePath(currentClass);
 
             PsiJavaFileImpl containingFile = currentClass.getContainingFile();
             String packageName = containingFile.getPackageName();
-            String testOutputDirPath = insidiousService.getJUnitTestCaseWriter()
-                    .getTestDirectory(packageName, moduleBasePath);
+            String testOutputDirPath = insidiousService.getJUnitTestCaseWriter().getTestDirectory(packageName, moduleBasePath);
 
             saveLocationTextField.setText(testOutputDirPath + "/Test" + currentClass.getName() + "V.java");
 

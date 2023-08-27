@@ -161,7 +161,9 @@ public class TestCaseService {
                 generatedTestClassName,
                 testCaseScript.getTestMethodName(),
                 testCaseScript.getTestGenerationState(),
-                testClassSpec);
+                testClassSpec,
+                testGenerationConfig
+        );
     }
 
     @NotNull
@@ -215,7 +217,8 @@ public class TestCaseService {
                 objectRoutineContainer.toObjectRoutineScriptContainer(sessionInstance, testGenerationState);
 
 
-        return buildTestUnitFromScript(objectRoutineContainer, testCaseScript);
+        TestCaseUnit testCaseUnit = buildTestUnitFromScript(objectRoutineContainer, testCaseScript);
+        return testCaseUnit;
     }
 
     public List<TestCandidateMetadata> createFieldMocks(ObjectRoutineContainer objectRoutineContainer) {

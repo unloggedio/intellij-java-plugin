@@ -7,7 +7,6 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.JavaParserUtils;
 import com.insidious.plugin.factory.testcase.ValueResourceContainer;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
@@ -35,7 +34,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -109,8 +107,7 @@ public class JUnitTestCaseWriter {
                 JavaParser javaParser = new JavaParser(new ParserConfiguration());
                 ParseResult<CompilationUnit> parsedFile = javaParser.parse(
                         testcaseFile);
-                if (!parsedFile.getResult()
-                        .isPresent() || !parsedFile.isSuccessful()) {
+                if (!parsedFile.getResult().isPresent() || !parsedFile.isSuccessful()) {
                     InsidiousNotification.notifyMessage("<html>Failed to parse existing test case in the file, unable" +
                             " to" +
                             " add new test case. <br/>" + parsedFile.getProblems() + "</html>", NotificationType.ERROR);
@@ -323,11 +320,20 @@ public class JUnitTestCaseWriter {
     }
 
     public String getTestDirectory(String packageName, String basePath) {
-        if (!basePath.endsWith("/")) {
-            basePath = basePath + "/";
+        if (!basePath.endsWith(File.pathSeparator)) {
+            basePath = basePath + File.pathSeparator;
         }
 
-        return basePath + "src/test/java/" + packageName.replaceAll("\\.", "/");
+        return basePath + "src" + File.pathSeparator + "test" + File.pathSeparator + "java"
+                + File.pathSeparator + packageName.replaceAll("\\.", File.pathSeparator);
+    }
+
+    public String getTestResourcesDirectory(String basePath) {
+        if (!basePath.endsWith(File.pathSeparator)) {
+            basePath = basePath + File.pathSeparator;
+        }
+
+        return basePath + "src" + File.pathSeparator + "test" + File.pathSeparator + "resources" + File.pathSeparator;
     }
 
     public String getBasePathForVirtualFile(VirtualFile classFound) {
