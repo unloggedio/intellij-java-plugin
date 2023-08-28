@@ -161,7 +161,8 @@ public class SessionInstance implements Runnable {
                 .getPath(executionSession.getDatabasePath())
                 .toFile()
                 .exists();
-        ConnectionSource connectionSource = new JdbcConnectionSource(executionSession.getDatabaseConnectionString());
+        JdbcConnectionSource connectionSource = new JdbcConnectionSource(executionSession.getDatabaseConnectionString());
+
         ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
         parameterContainer = new ChronicleVariableContainer(parameterIndex);
 
@@ -4046,6 +4047,9 @@ public class SessionInstance implements Runnable {
         }
         if (objectInfoIndex != null) {
             objectInfoIndex.close();
+        }
+        if (parameterContainer != null) {
+            parameterContainer.close();
         }
         if (archiveIndex != null) {
             archiveIndex.close();

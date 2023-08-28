@@ -54,6 +54,7 @@ public class ActiveSessionManager {
                 deleteDirectory(file);
             }
         }
+        logger.warn("[1] Delete file: " + directoryToBeDeleted.getAbsolutePath());
         directoryToBeDeleted.delete();
     }
 

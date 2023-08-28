@@ -24,6 +24,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.dao.GenericRawResults;
+import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import org.jetbrains.annotations.NotNull;
@@ -131,7 +132,7 @@ public class DaoService {
     private final static Logger logger = LoggerUtil.getInstance(DaoService.class);
     private final static ObjectMapper objectMapper = new ObjectMapper();
     private static final String QUERY_METHOD_DEFINITIONS_BY_ID_IN = "select * from method_definition where id in (IDS)";
-    private final ConnectionSource connectionSource;
+    private final JdbcConnectionSource connectionSource;
     private final Dao<DataEventWithSessionId, Long> dataEventDao;
     private final Dao<MethodCallExpression, Long> methodCallExpressionDao;
     private final Dao<MethodDefinition, Long> methodDefinitionsDao;
@@ -147,7 +148,7 @@ public class DaoService {
     private final Lock dbBulkUpdate = new ReentrantLock();
     private boolean shutDown = false;
 
-    public DaoService(ConnectionSource connectionSource, ParameterProvider parameterProvider) throws SQLException {
+    public DaoService(JdbcConnectionSource connectionSource, ParameterProvider parameterProvider) throws SQLException {
         this.connectionSource = connectionSource;
         this.parameterProvider = parameterProvider;
 
@@ -963,7 +964,10 @@ public class DaoService {
         }
     }
 
-    public void close() throws Exception {
+    public synchronized void close() throws Exception {
+        if (shutDown) {
+            return;
+        }
         shutDown = true;
         connectionSource.close();
     }
