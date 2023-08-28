@@ -736,45 +736,40 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     public void onGenerateJunitTestCaseRequest(StoredCandidate testCandidate) {
         logger.warn("Create test case: " + testCandidate);
 
-        ProgressIndicator progressIndicator = ProgressIndicatorProvider.getInstance()
-                .getProgressIndicator();
-        ProgressManager.getInstance()
-                .executeProcessUnderProgress(() -> {
-                    progressIndicator.setText("Generating JUnit Test case");
+//        progressIndicator.setText("Generating JUnit Test case");
 
-                    TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
-                            .getTestCandidateById(testCandidate.getEntryProbeIndex(), true);
+        TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
+                .getTestCandidateById(testCandidate.getEntryProbeIndex(), true);
 
 
-                    String testMethodName =
-                            "testMethod" + ClassTypeUtils.upperInstanceName(
-                                    loadedTestCandidate.getMainMethod().getMethodName());
-                    TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
-                            TestFramework.JUnit5,
-                            MockFramework.Mockito,
-                            JsonFramework.Jackson,
-                            ResourceEmbedMode.IN_CODE
-                    );
+        String testMethodName =
+                "testMethod" + ClassTypeUtils.upperInstanceName(
+                        loadedTestCandidate.getMainMethod().getMethodName());
+        TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
+                TestFramework.JUnit5,
+                MockFramework.Mockito,
+                JsonFramework.Jackson,
+                ResourceEmbedMode.IN_CODE
+        );
 
 
-                    // mock all calls by default
-                    testCaseGenerationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
+        // mock all calls by default
+        testCaseGenerationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
 
 
-                    testCaseGenerationConfiguration.setTestMethodName(testMethodName);
+        testCaseGenerationConfiguration.setTestMethodName(testMethodName);
 
 
-                    testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
-                    testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
+        testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
+        testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
 
 
-                    try {
-                        insidiousService.previewTestCase(methodElement, testCaseGenerationConfiguration);
-                    } catch (Exception ex) {
-                        InsidiousNotification.notifyMessage("Failed to generate test case: " + ex.getMessage(),
-                                NotificationType.ERROR);
-                    }
-                }, progressIndicator);
+        try {
+            insidiousService.previewTestCase(methodElement, testCaseGenerationConfiguration);
+        } catch (Exception ex) {
+            InsidiousNotification.notifyMessage("Failed to generate test case: " + ex.getMessage(),
+                    NotificationType.ERROR);
+        }
     }
 
     @Override

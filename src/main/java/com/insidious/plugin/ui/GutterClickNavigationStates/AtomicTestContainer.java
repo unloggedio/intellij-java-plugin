@@ -122,11 +122,17 @@ public class AtomicTestContainer {
         loadExecutionFlow();
         if (methodTestCandidates.size() > 0) {
 
-            String key = candidateSearchQuery.getClassName() + "." + candidateSearchQuery.getMethodName();
+            String className = candidateSearchQuery.getClassName();
+            if (className.contains(".")) {
+                className = className.substring(className.lastIndexOf(".") + 1);
+            }
+            String key = className + "." + candidateSearchQuery.getMethodName();
             if (!hasShownNewCandidateNotification.containsKey(key)) {
                 hasShownNewCandidateNotification.put(key, true);
                 InsidiousNotification.notifyMessage(
-                        "New replay candidate available for " + key + "()", NotificationType.INFORMATION
+                        "New replay candidate available for " + key + "(). \n You can now generate a JUnit test case " +
+                                "after replaying it.",
+                        NotificationType.INFORMATION
                 );
             }
 
