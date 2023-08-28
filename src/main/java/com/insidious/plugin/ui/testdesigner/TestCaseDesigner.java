@@ -172,7 +172,7 @@ public class TestCaseDesigner implements Disposable {
             TestCaseGenerationConfiguration generationConfig = testCaseScript.getTestGenerationConfig();
             if (generationConfig.getResourceEmbedMode() == ResourceEmbedMode.IN_FILE) {
                 String resourceDirectory = insidiousService.getJUnitTestCaseWriter()
-                        .getTestResourcesDirectory(basePath) + "unlogged-fixtures" + File.pathSeparator;
+                        .getTestResourcesDirectory(basePath) + "unlogged-fixtures" + File.separator;
 
                 ValueResourceContainer valueResourceContainer = testCaseScript.getTestGenerationState()
                         .getValueResourceMap();

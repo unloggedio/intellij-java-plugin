@@ -319,20 +319,20 @@ public class JUnitTestCaseWriter {
     }
 
     public String getTestDirectory(String packageName, String basePath) {
-        if (!basePath.endsWith(File.pathSeparator)) {
-            basePath = basePath + File.pathSeparator;
+        if (!basePath.endsWith(File.separator)) {
+            basePath = basePath + File.separator;
         }
 
-        return basePath + "src" + File.pathSeparator + "test" + File.pathSeparator + "java"
-                + File.pathSeparator + packageName.replaceAll("\\.", File.pathSeparator);
+        return basePath + "src" + File.separator + "test" + File.separator + "java"
+                + File.separator + packageName.replaceAll("\\.", File.separator);
     }
 
     public String getTestResourcesDirectory(String basePath) {
-        if (!basePath.endsWith(File.pathSeparator)) {
-            basePath = basePath + File.pathSeparator;
+        if (!basePath.endsWith(File.separator)) {
+            basePath = basePath + File.separator;
         }
 
-        return basePath + "src" + File.pathSeparator + "test" + File.pathSeparator + "resources" + File.pathSeparator;
+        return basePath + "src" + File.separator + "test" + File.separator + "resources" + File.separator;
     }
 
     public String getBasePathForVirtualFile(VirtualFile classFound) {
