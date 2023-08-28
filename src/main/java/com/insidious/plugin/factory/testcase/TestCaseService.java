@@ -398,8 +398,8 @@ public class TestCaseService {
 
     }
 
-    public List<TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName, boolean loadCalls) {
-        return sessionInstance.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
-    }
+//    public List<TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName, boolean loadCalls) {
+//        return sessionInstance.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
+//    }
 
 }

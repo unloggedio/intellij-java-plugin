@@ -3747,9 +3747,9 @@ public class SessionInstance implements Runnable {
         return daoService.getTestCandidateAggregatesForType(className);
     }
 
-    public List<TestCandidateMetadata> getTestCandidatesForPublicMethod(String className, String methodName, boolean loadCalls) {
-        return daoService.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
-    }
+//    public List<TestCandidateMetadata> getTestCandidatesForPublicMethod(String className, String methodName, boolean loadCalls) {
+//        return daoService.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
+//    }
 
     public List<TestCandidateMetadata> getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
         try {

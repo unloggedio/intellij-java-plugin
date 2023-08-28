@@ -80,14 +80,14 @@ public class DaoService {
             "                          or (mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
             "                              mc.isStaticCall = true and mc.usesFields = true and mc.subject_id != 0 and\n" +
             "                              mc.threadId = ?)))";
-    public static final String QUERY_TEST_CANDIDATE_BY_PUBLIC_METHOD_SELECT = "select tc.*\n" +
-            "from test_candidate tc\n" +
-            "         join method_call mc on mc.id = mainMethod_id\n" +
-            "join method_definition md on md.id = mc.methodDefinitionId\n" +
-            "where md.ownerType = ?\n" +
-            "  and mc.methodName = ?\n" +
-            "  and mc.methodAccess & 1 == 1\n" +
-            "order by mc.methodName asc, tc.entryProbeIndex desc limit 50";
+//    public static final String QUERY_TEST_CANDIDATE_BY_PUBLIC_METHOD_SELECT = "select tc.*\n" +
+//            "from test_candidate tc\n" +
+//            "         join method_call mc on mc.id = mainMethod_id\n" +
+//            "join method_definition md on md.id = mc.methodDefinitionId\n" +
+//            "where md.ownerType = ?\n" +
+//            "  and mc.methodName = ?\n" +
+//            "  and mc.methodAccess & 1 == 1\n" +
+//            "order by mc.methodName asc, tc.entryProbeIndex desc limit 10";
     public static final String QUERY_TEST_CANDIDATE_BY_METHOD_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
@@ -95,18 +95,18 @@ public class DaoService {
             "where md.ownerType = ?\n" +
             "  and md.methodName = ?\n" +
             "  and md.argumentTypes = ?\n" +
-            "order by tc.entryProbeIndex desc limit 50;";
+            "order by tc.entryProbeIndex desc limit 10;";
     public static final String QUERY_TEST_CANDIDATE_BY_CLASS_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
             "join method_definition md on md.id = mc.methodDefinitionId\n" +
             "where md.ownerType = ?\n" +
-            "order by tc.entryProbeIndex desc limit 50;";
+            "order by tc.entryProbeIndex desc limit 20;";
     public static final String QUERY_TEST_CANDIDATE_BY_ALL_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
             "join method_definition md on md.id = mc.methodDefinitionId\n" +
-            "order by tc.entryProbeIndex desc limit 50;";
+            "order by tc.entryProbeIndex desc limit 10;";
 
     public static final TypeReference<ArrayList<String>> LIST_STRING_TYPE = new TypeReference<ArrayList<String>>() {
     };
@@ -1097,32 +1097,32 @@ public class DaoService {
 
     }
 
-    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-    getTestCandidatesForPublicMethod(String className, String methodName, boolean loadCalls) {
-
-        try {
-
-            GenericRawResults<TestCandidateMetadata> parameterIds = testCandidateDao
-                    .queryRaw(QUERY_TEST_CANDIDATE_BY_PUBLIC_METHOD_SELECT, testCandidateDao.getRawRowMapper(),
-                            className,
-                            methodName);
-
-            List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> resultList = new LinkedList<>();
-
-            List<TestCandidateMetadata> testCandidates = parameterIds.getResults();
-            for (TestCandidateMetadata testCandidate : testCandidates) {
-                com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
-                        convertTestCandidateMetadata(testCandidate, loadCalls);
-                resultList.add(converted);
-            }
-
-            parameterIds.close();
-            return resultList;
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-    }
+//    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
+//    getTestCandidatesForPublicMethod(String className, String methodName, boolean loadCalls) {
+//
+//        try {
+//
+//            GenericRawResults<TestCandidateMetadata> parameterIds = testCandidateDao
+//                    .queryRaw(QUERY_TEST_CANDIDATE_BY_PUBLIC_METHOD_SELECT, testCandidateDao.getRawRowMapper(),
+//                            className,
+//                            methodName);
+//
+//            List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> resultList = new LinkedList<>();
+//
+//            List<TestCandidateMetadata> testCandidates = parameterIds.getResults();
+//            for (TestCandidateMetadata testCandidate : testCandidates) {
+//                com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
+//                        convertTestCandidateMetadata(testCandidate, loadCalls);
+//                resultList.add(converted);
+//            }
+//
+//            parameterIds.close();
+//            return resultList;
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            throw new RuntimeException(e);
+//        }
+//    }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
     getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
@@ -1164,6 +1164,11 @@ public class DaoService {
             for (TestCandidateMetadata testCandidate : testCandidates) {
                 com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
                         convertTestCandidateMetadata(testCandidate, candidateSearchQuery.isLoadCalls());
+                String candidateArgs = StringUtils.join(converted.getMainMethod().getArguments().stream()
+                        .map(e -> e.getProb().getSerializedValue().length > 0 ?
+                                e.getProb().getSerializedValue().length : e.getValue())
+                        .collect(Collectors.toList()), ",");
+
                 resultList.add(converted);
             }
 

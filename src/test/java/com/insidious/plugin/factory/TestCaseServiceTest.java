@@ -384,68 +384,67 @@ public class TestCaseServiceTest {
 //
 //    }
 
-    @Test
-    public void testGetTestCaseUnit() throws Exception {
-        Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath()).thenReturn("./");
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions", project,
-                null);
-
-        DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-        if (sessions.getItems().size() == 0) {
-            return;
-        }
-        ExecutionSession session = sessions.getItems().get(0);
-        SessionInstance sessionInstance = new SessionInstance(session, project);
-        client.setSessionInstance(sessionInstance);
-
-
-        TestCaseService testCaseService = new TestCaseService(sessionInstance);
-
+//    @Test
+//    public void testGetTestCaseUnit() throws Exception {
+//        Project project = Mockito.mock(Project.class);
+//        Mockito.when(project.getBasePath()).thenReturn("./");
+//        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions", project,
+//                null);
+//
+//        DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+//        if (sessions.getItems().size() == 0) {
+//            return;
+//        }
+//        ExecutionSession session = sessions.getItems().get(0);
+//        SessionInstance sessionInstance = new SessionInstance(session, project);
+//        client.setSessionInstance(sessionInstance);
+//
+//
+//        TestCaseService testCaseService = new TestCaseService(sessionInstance);
+//
+////        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
+////                "com.ayu.cabeza.service.PatientLeadService", "changePatientForCase", true);
+//
+////        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
+////                "com.repyute.helper.snaphrm.SnapHrmHelper", "createLendingProfile", true);
+//
 //        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-//                "com.ayu.cabeza.service.PatientLeadService", "changePatientForCase", true);
-
-//        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-//                "com.repyute.helper.snaphrm.SnapHrmHelper", "createLendingProfile", true);
-
-        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-                "com.ayu.cabeza.service.LoyaltyCardService",
-                "generateCardForCustomer", true);
-
-//        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-//                "com.repyute.service.paybooks.PaybooksService", "getLendingProfile", true);
-
-        if (candidateList.size() == 0) {
-            return;
-        }
-
-        TestCandidateMetadata testCandidateMetadata = candidateList.get(0);
-        testCandidateMetadata = sessionInstance.getTestCandidateById(testCandidateMetadata.getEntryProbeIndex(), false);
-
-        List<TestCandidateMetadata> list =
-                testCaseService.getTestCandidatesForMethod(
-                        testCandidateMetadata.getTestSubject()
-                                .getType(), "<init>", true);
-
-        list.add(testCandidateMetadata);
-        TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Gson, ResourceEmbedMode.IN_FILE
-        );
-        generationConfiguration.getTestCandidateMetadataList()
-                .addAll(list);
-        for (TestCandidateMetadata candidateMetadata : list) {
-            generationConfiguration.getCallExpressionList()
-                    .addAll(candidateMetadata.getCallsList());
-        }
-        @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-
-        copyTestCaseToClipboard(testCaseUnit);
-        ValueResourceContainer valueResourceMap = testCaseUnit.getTestGenerationState()
-                .getValueResourceMap();
-        if (valueResourceMap.getValueResourceMap().size() > 0) {
-            System.out.println(new Gson().toJson(valueResourceMap.getValueResourceMap()));
-        }
-    }
+//                "com.ayu.cabeza.service.LoyaltyCardService",
+//                "generateCardForCustomer", true);
+//
+////        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
+////                "com.repyute.service.paybooks.PaybooksService", "getLendingProfile", true);
+//
+//        if (candidateList.size() == 0) {
+//            return;
+//        }
+//
+//        TestCandidateMetadata testCandidateMetadata = candidateList.get(0);
+//        testCandidateMetadata = sessionInstance.getTestCandidateById(testCandidateMetadata.getEntryProbeIndex(), false);
+//
+//        List<TestCandidateMetadata> list =
+//                testCaseService.getTestCandidatesForMethod(
+//                        testCandidateMetadata.getTestSubject()
+//                                .getType(), "<init>", true);
+//
+//        list.add(testCandidateMetadata);
+//        TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
+//                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Gson, ResourceEmbedMode.IN_FILE
+//        );
+//        generationConfiguration.getTestCandidateMetadataList().addAll(list);
+//        for (TestCandidateMetadata candidateMetadata : list) {
+//            generationConfiguration.getCallExpressionList()
+//                    .addAll(candidateMetadata.getCallsList());
+//        }
+//        @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+//
+//        copyTestCaseToClipboard(testCaseUnit);
+//        ValueResourceContainer valueResourceMap = testCaseUnit.getTestGenerationState()
+//                .getValueResourceMap();
+//        if (valueResourceMap.getValueResourceMap().size() > 0) {
+//            System.out.println(new Gson().toJson(valueResourceMap.getValueResourceMap()));
+//        }
+//    }
 
     @Test
     public void testScanAndGenerateAll() throws Exception {
