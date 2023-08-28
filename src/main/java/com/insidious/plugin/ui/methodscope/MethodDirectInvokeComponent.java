@@ -66,6 +66,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
         this.objectMapper = this.insidiousService.getObjectMapper();
+        scrollerContainer.setVisible(false);
 
 //        h1WhatIsDirectInvokeEditorPane.setContentType("text/html");
 
@@ -120,6 +121,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         }
 
         descriptionScrollContainer.setVisible(false);
+        scrollerContainer.setVisible(true);
 
 
         ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {

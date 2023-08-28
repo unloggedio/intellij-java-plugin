@@ -33,13 +33,18 @@ public class ActiveSessionManager {
         if (sessionInstance == null) {
             logger.warn("called to delete unknown session id: " + executionSession.getSessionId()
                     + " -> " + executionSession.getPath());
+        } else {
+            sessionInstance.close();
+            sessionInstanceMap.remove(executionSession.getSessionId());
+        }
+        File directoryToBeDeleted = FileSystems.getDefault()
+                .getPath(executionSession.getPath())
+                .toFile();
+        if (!directoryToBeDeleted.exists()) {
             return;
         }
-        sessionInstance.close();
-        sessionInstanceMap.remove(executionSession.getSessionId());
-        deleteDirectory(FileSystems.getDefault()
-                .getPath(executionSession.getPath())
-                .toFile());
+        logger.warn("Deleting directory: " + directoryToBeDeleted);
+        deleteDirectory(directoryToBeDeleted);
     }
 
     void deleteDirectory(File directoryToBeDeleted) {

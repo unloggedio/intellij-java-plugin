@@ -434,7 +434,8 @@ public class TestCaseDesigner implements Disposable {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             PrintStream stringWriter = new PrintStream(out);
             e.printStackTrace(stringWriter);
-            Document document = editorFactory.createDocument(out.toString());
+            String exceptionText = out.toString().replace("\r", "");
+            Document document = editorFactory.createDocument(exceptionText);
             editor = editorFactory.createEditor(document, currentMethod.getProject(), PlainTextFileType.INSTANCE, true);
 
             saveTestCaseButton.setEnabled(false);

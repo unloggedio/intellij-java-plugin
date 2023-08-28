@@ -324,7 +324,7 @@ public class JUnitTestCaseWriter {
         }
 
         return basePath + "src" + File.separator + "test" + File.separator + "java"
-                + File.separator + packageName.replaceAll("\\.", File.separator);
+                + File.separator + packageName.replace('.', File.separatorChar);
     }
 
     public String getTestResourcesDirectory(String basePath) {
