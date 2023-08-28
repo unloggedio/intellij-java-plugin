@@ -16,7 +16,7 @@ public class ParameterNameFactory {
             return parameterNameMapByObject.get(parameter);
         }
         String key = String.valueOf(parameter.getValue());
-        if (parameter.getType().length() == 1) {
+        if (parameter.getType() != null && parameter.getType().length() == 1) {
             key = parameter.getType() + "-" + parameter.getValue();
         }
 

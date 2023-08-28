@@ -306,8 +306,7 @@ public class JUnitTestCaseWriter {
             IOUtils.copy(testUtilClassCode, writer);
         }
         @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
-                .refreshAndFindFileByUrl(
-                        FileSystems.getDefault().getPath(utilFile.getAbsolutePath()).toUri().toString());
+                .refreshAndFindFileByUrl(FileSystems.getDefault().getPath(utilFile.getAbsolutePath()).toUri().toString());
 
         if (newFile == null) {
             InsidiousNotification.notifyMessage("UnloggedTestUtil file was not created: "

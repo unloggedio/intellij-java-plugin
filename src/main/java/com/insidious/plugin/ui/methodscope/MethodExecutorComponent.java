@@ -28,6 +28,9 @@ import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressIndicatorProvider;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Computable;
@@ -578,7 +581,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         if (agentCommandResponse == null) {
             return;
         }
-        currentResponsePreviewComponent = createTestCandidateChangeComponent(testCandidateMetadata, agentCommandResponse);
+        currentResponsePreviewComponent = createTestCandidateChangeComponent(testCandidateMetadata,
+                agentCommandResponse);
         displayResponse(currentResponsePreviewComponent.get());
     }
 
@@ -609,13 +613,13 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     @Override
     public void onSaved(StoredCandidate candidate) {
+        TestCandidateListedItemComponent candidateItem = candidateComponentMap.get(getKeyForCandidate(candidate));
         if (candidate.getCandidateId() == null) {
             candidate.setCandidateId(UUID.randomUUID().toString());
+            candidateComponentMap.put(getKeyForCandidate(candidate), candidateItem);
         }
         insidiousService.getAtomicRecordService()
                 .saveCandidate(MethodUnderTest.fromMethodAdapter(methodElement), candidate);
-        TestCandidateListedItemComponent candidateItem = candidateComponentMap.get(getKeyForCandidate(candidate));
-        candidateItem.setTitledBorder(candidate.getName());
         candidateItem.getComponent().setEnabled(true);
         candidateItem.setCandidate(candidate);
         triggerReExecute(candidate);
@@ -732,37 +736,45 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     public void onGenerateJunitTestCaseRequest(StoredCandidate testCandidate) {
         logger.warn("Create test case: " + testCandidate);
 
-        TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
-                .getTestCandidateById(testCandidate.getEntryProbeIndex(), true);
+        ProgressIndicator progressIndicator = ProgressIndicatorProvider.getInstance()
+                .getProgressIndicator();
+        ProgressManager.getInstance()
+                .executeProcessUnderProgress(() -> {
+                    progressIndicator.setText("Generating JUnit Test case");
+
+                    TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
+                            .getTestCandidateById(testCandidate.getEntryProbeIndex(), true);
 
 
-        String testMethodName =
-                "testMethod" + ClassTypeUtils.upperInstanceName(loadedTestCandidate.getMainMethod().getMethodName());
-        TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUnit5,
-                MockFramework.Mockito,
-                JsonFramework.Jackson,
-                ResourceEmbedMode.IN_CODE
-        );
+                    String testMethodName =
+                            "testMethod" + ClassTypeUtils.upperInstanceName(
+                                    loadedTestCandidate.getMainMethod().getMethodName());
+                    TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
+                            TestFramework.JUnit5,
+                            MockFramework.Mockito,
+                            JsonFramework.Jackson,
+                            ResourceEmbedMode.IN_CODE
+                    );
 
 
-        // mock all calls by default
-        testCaseGenerationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
+                    // mock all calls by default
+                    testCaseGenerationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
 
 
-        testCaseGenerationConfiguration.setTestMethodName(testMethodName);
+                    testCaseGenerationConfiguration.setTestMethodName(testMethodName);
 
 
-        testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
-        testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
+                    testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
+                    testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
 
 
-        try {
-            insidiousService.previewTestCase(methodElement, testCaseGenerationConfiguration);
-        } catch (Exception ex) {
-            InsidiousNotification.notifyMessage("Failed to generate test case: " + ex.getMessage(),
-                    NotificationType.ERROR);
-        }
+                    try {
+                        insidiousService.previewTestCase(methodElement, testCaseGenerationConfiguration);
+                    } catch (Exception ex) {
+                        InsidiousNotification.notifyMessage("Failed to generate test case: " + ex.getMessage(),
+                                NotificationType.ERROR);
+                    }
+                }, progressIndicator);
     }
 
     @Override

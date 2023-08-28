@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.GutterClickNavigationStates;
 
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.GutterState;
@@ -7,13 +8,16 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Computable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AtomicTestContainer {
     private static final Logger logger = LoggerUtil.getInstance(AtomicTestContainer.class);
@@ -23,6 +27,7 @@ public class AtomicTestContainer {
     private JPanel borderParent;
     private GutterState currentState;
     private MethodAdapter lastSelection;
+    private Map<String, Boolean> hasShownNewCandidateNotification = new HashMap<>();
 
     public AtomicTestContainer(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -116,6 +121,15 @@ public class AtomicTestContainer {
 
         loadExecutionFlow();
         if (methodTestCandidates.size() > 0) {
+
+            String key = candidateSearchQuery.getClassName() + "." + candidateSearchQuery.getMethodName();
+            if (!hasShownNewCandidateNotification.containsKey(key)) {
+                hasShownNewCandidateNotification.put(key, true);
+                InsidiousNotification.notifyMessage(
+                        "New replay candidate available for " + key + "()", NotificationType.INFORMATION
+                );
+            }
+
             methodTestCandidates.sort(StoredCandidate::compareTo);
             methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, methodTestCandidates);
 //            insidiousService.focusAtomicTestsWindow();

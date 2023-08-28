@@ -72,7 +72,7 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
                 e -> fullViewEventListener.generateCompareWindows(originalString, actualString));
 
         if (SHOW_TEST_CASE_CREATE_BUTTON) {
-            createTestCaseButton = new JButton("Create test case");
+            createTestCaseButton = new JButton("Create JUnit test case");
             buttonRightPanel.add(createTestCaseButton);
             if (testCandidate.getEntryProbeIndex() < 1) {
                 createTestCaseButton.setEnabled(false);

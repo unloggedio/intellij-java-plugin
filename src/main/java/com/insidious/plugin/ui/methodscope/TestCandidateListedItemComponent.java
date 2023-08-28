@@ -38,6 +38,7 @@ public class TestCandidateListedItemComponent {
     private JPanel mainContentPanel;
     private JLabel executeLabel;
     private JPanel controlPanel;
+    private JLabel assertionCountLabel;
 
     public TestCandidateListedItemComponent(
             StoredCandidate storedCandidate,
@@ -106,6 +107,8 @@ public class TestCandidateListedItemComponent {
         executeLabel.setIcon(UIUtils.EXECUTE_ICON_OUTLINED_SVG);
         mainContentPanel.setOpaque(false);
         controlPanel.setOpaque(false);
+
+
     }
 
     public JPanel getComponent() {
@@ -180,7 +183,7 @@ public class TestCandidateListedItemComponent {
 
         if (candidateMetadata.getCandidateId() != null && candidateMetadata.getTestAssertions() != null) {
             int assertionCount = AtomicAssertionUtils.countAssertions(candidateMetadata.getTestAssertions());
-            JLabel assertionCountLabel = new JLabel(assertionCount + " assertions");
+            assertionCountLabel = new JLabel(assertionCount + " assertions");
             assertionCountLabel.setAlignmentY(1.0F);
             JPanel countPanel = new JPanel(new BorderLayout());
 
@@ -270,6 +273,11 @@ public class TestCandidateListedItemComponent {
 
     public void setCandidate(StoredCandidate storedCandidate) {
         this.candidateMetadata = storedCandidate;
+        setTitledBorder(storedCandidate.getName());
+        if (assertionCountLabel != null) {
+            int assertionCount = AtomicAssertionUtils.countAssertions(candidateMetadata.getTestAssertions());
+            assertionCountLabel.setText(assertionCount + " assertions");
+        }
     }
 
     public void setStatus(String statusText) {

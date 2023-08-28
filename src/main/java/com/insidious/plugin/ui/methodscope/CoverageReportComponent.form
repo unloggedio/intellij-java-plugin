@@ -8,7 +8,7 @@
     <properties/>
     <border type="none"/>
     <children>
-      <grid id="6d2ef" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+      <grid id="6d2ef" binding="titlePanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
         <margin top="5" left="0" bottom="5" right="0"/>
         <constraints>
           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
@@ -380,7 +380,14 @@
         </constraints>
         <properties/>
         <border type="none"/>
-        <children/>
+        <children>
+          <component id="a5a98" class="javax.swing.JEditorPane" binding="codeCoverageReportCodeEditorPane" default-binding="true">
+            <constraints/>
+            <properties>
+              <text value="&lt;html&gt;&#10;  &lt;head&gt;&#10;    &#10;  &lt;/head&gt;&#10;  &lt;body&gt;&#10;    &lt;h1&gt;&#10;      Code coverage report&#10;    &lt;/h1&gt;&#10;    Code coverage report will be generated based on saved test candidates&#10;&#10;    &lt;ul&gt;&#10;      &lt;li&gt;&#10;        Class coverage in packages&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Method coverage in classes&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Line covereage in methods&#10;      &lt;/li&gt;&#10;    &lt;/ul&gt;&#10;    &lt;h1&gt;&#10;      How to see code coverage&#10;    &lt;/h1&gt;&#10;    Start saving test candidates to see the code coverage report&#10;      &#10;    &lt;h1&gt;&#10;      How does it work&#10;    &lt;/h1&gt;&#10;    The &lt;b&gt;unlogged-sdk&lt;/b&gt; will keep a track of line numbers which are executed and generate a code coverage report based on it&#10;  &lt;/body&gt;&#10;&lt;/html&gt;&#10;&#10;"/>
+            </properties>
+          </component>
+        </children>
       </scrollpane>
     </children>
   </grid>

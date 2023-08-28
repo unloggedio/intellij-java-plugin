@@ -20,7 +20,6 @@ import com.insidious.plugin.datafile.AtomicRecordService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.TestCaseUnit;
-import com.insidious.plugin.pojo.TestSuite;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -48,11 +47,6 @@ import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffManager;
 import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.SimpleDiffRequest;
-import com.intellij.execution.*;
-import com.intellij.execution.application.ApplicationConfiguration;
-import com.intellij.execution.configurations.RunConfiguration;
-import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
-import com.intellij.ide.DataManager;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
@@ -159,6 +153,7 @@ final public class InsidiousService implements Disposable,
     private boolean codeCoverageHighlightEnabled = true;
     private HighlightedRequest currentHighlightedRequest = null;
     private boolean testCaseDesignerWindowAdded = false;
+    private MethodUnderTest currentMethodUnderTest;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -453,6 +448,7 @@ final public class InsidiousService implements Disposable,
         }
 
         currentMethod = method;
+        currentMethodUnderTest = MethodUnderTest.fromMethodAdapter(method);
         final ClassAdapter psiClass;
         try {
             psiClass = method.getContainingClass();
@@ -1170,64 +1166,64 @@ final public class InsidiousService implements Disposable,
         return agentStateProvider.fetchVersionFromLibName(name, dependency);
     }
 
-    public void startProjectWithUnloggedAgent(String javaAgentString) {
-        RunManager runManager = RunManagerEx.getInstance(project);
-
-        RunnerAndConfigurationSettings selectedConfig = runManager.getSelectedConfiguration();
-
-        if (selectedConfig != null && selectedConfig.getConfiguration() instanceof ApplicationConfiguration) {
-            ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) selectedConfig.getConfiguration();
-            String currentVMParams = applicationConfiguration.getVMParameters();
-            String newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
-            applicationConfiguration.setVMParameters(newVmOptions.trim());
-
-            ExecutionManager executionManager = ExecutionManager.getInstance(project);
-
-            DataManager.getInstance().getDataContextFromFocusAsync().onSuccess(dataContext -> {
-                ExecutorRegistry executorRegistry = ExecutorRegistryImpl.getInstance();
-                @Nullable Executor debugExecutor = executorRegistry.getExecutorById("Debug");
-                if (debugExecutor == null) {
-                    InsidiousNotification.notifyMessage("Debug run config not found for: " + selectedConfig.getName()
-                            + ". Failed to start process in debug mode", NotificationType.ERROR);
-                    return;
-                }
-
-                ExecutionEnvironmentBuilder builder = ExecutionEnvironmentBuilder.createOrNull(debugExecutor,
-                        selectedConfig);
-
-                executionManager.restartRunProfile(
-                        builder.activeTarget().dataContext(dataContext).build());
-                UsageInsightTracker.getInstance().RecordEvent("START_WITH_UNLOGGED_SUCCESS", new JSONObject());
-
-            });
-
-        } else {
-
-            List<RunConfiguration> allConfigurations = runManager.getAllConfigurationsList();
-
-            JSONObject eventProperties = new JSONObject();
-            for (RunConfiguration allConfiguration : allConfigurations) {
-                eventProperties.put(allConfiguration.getName(), allConfiguration.getType().getDisplayName());
-//                if (allConfiguration instanceof ApplicationConfiguration) {
-//                    OkCancelDialogBuilder.okCancel()
+//    public void startProjectWithUnloggedAgent(String javaAgentString) {
+//        RunManager runManager = RunManagerEx.getInstance(project);
+//
+//        RunnerAndConfigurationSettings selectedConfig = runManager.getSelectedConfiguration();
+//
+//        if (selectedConfig != null && selectedConfig.getConfiguration() instanceof ApplicationConfiguration) {
+//            ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) selectedConfig.getConfiguration();
+//            String currentVMParams = applicationConfiguration.getVMParameters();
+//            String newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
+//            applicationConfiguration.setVMParameters(newVmOptions.trim());
+//
+//            ExecutionManager executionManager = ExecutionManager.getInstance(project);
+//
+//            DataManager.getInstance().getDataContextFromFocusAsync().onSuccess(dataContext -> {
+//                ExecutorRegistry executorRegistry = ExecutorRegistryImpl.getInstance();
+//                @Nullable Executor debugExecutor = executorRegistry.getExecutorById("Debug");
+//                if (debugExecutor == null) {
+//                    InsidiousNotification.notifyMessage("Debug run config not found for: " + selectedConfig.getName()
+//                            + ". Failed to start process in debug mode", NotificationType.ERROR);
+//                    return;
 //                }
-            }
-
-
-            UsageInsightTracker.getInstance().RecordEvent("START_WITH_UNLOGGED_NO_CONFIG", eventProperties);
-            if (selectedConfig == null) {
-                InsidiousNotification.notifyMessage("Please select or configure a JAVA Application Run configuration " +
-                                "in IntelliJ",
-                        NotificationType.WARNING);
-            } else {
-                InsidiousNotification.notifyMessage(
-                        "Current run configuration [" + selectedConfig.getName() + "] is not " +
-                                "a java application run configuration. Failed to start.",
-                        NotificationType.WARNING);
-            }
-        }
-
-    }
+//
+//                ExecutionEnvironmentBuilder builder = ExecutionEnvironmentBuilder.createOrNull(debugExecutor,
+//                        selectedConfig);
+//
+//                executionManager.restartRunProfile(
+//                        builder.activeTarget().dataContext(dataContext).build());
+//                UsageInsightTracker.getInstance().RecordEvent("START_WITH_UNLOGGED_SUCCESS", new JSONObject());
+//
+//            });
+//
+//        } else {
+//
+//            List<RunConfiguration> allConfigurations = runManager.getAllConfigurationsList();
+//
+//            JSONObject eventProperties = new JSONObject();
+//            for (RunConfiguration allConfiguration : allConfigurations) {
+//                eventProperties.put(allConfiguration.getName(), allConfiguration.getType().getDisplayName());
+////                if (allConfiguration instanceof ApplicationConfiguration) {
+////                    OkCancelDialogBuilder.okCancel()
+////                }
+//            }
+//
+//
+//            UsageInsightTracker.getInstance().RecordEvent("START_WITH_UNLOGGED_NO_CONFIG", eventProperties);
+//            if (selectedConfig == null) {
+//                InsidiousNotification.notifyMessage("Please select or configure a JAVA Application Run configuration " +
+//                                "in IntelliJ",
+//                        NotificationType.WARNING);
+//            } else {
+//                InsidiousNotification.notifyMessage(
+//                        "Current run configuration [" + selectedConfig.getName() + "] is not " +
+//                                "a java application run configuration. Failed to start.",
+//                        NotificationType.WARNING);
+//            }
+//        }
+//
+//    }
 
     public void focusAtomicTestsWindow() {
         if (this.atomicTestContent != null) {

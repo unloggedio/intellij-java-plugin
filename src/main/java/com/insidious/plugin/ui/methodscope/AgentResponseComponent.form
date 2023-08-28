@@ -58,8 +58,8 @@
                     <properties>
                       <contentAreaFilled value="false"/>
                       <icon value="icons/png/save_candidate.png"/>
-                      <label value="Save"/>
-                      <text value="Save"/>
+                      <label value="Save Replay"/>
+                      <text value="Save Replay"/>
                     </properties>
                   </component>
                 </children>

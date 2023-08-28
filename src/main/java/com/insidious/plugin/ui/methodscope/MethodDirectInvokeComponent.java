@@ -257,23 +257,22 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
     }
 
-    public void renderForMethod(MethodAdapter methodElement) {
-        if (methodElement == null) {
+    public void renderForMethod(MethodAdapter methodElement1) {
+        if (methodElement1 == null) {
             logger.info("DirectInvoke got null method");
             return;
         }
-        if (this.methodElement != null && this.methodElement.getPsiMethod() == methodElement.getPsiMethod()) {
+        if (this.methodElement != null && this.methodElement.getPsiMethod() == methodElement1.getPsiMethod()) {
             return;
         }
 
         clearOutputSection();
 
+        this.methodElement = methodElement1;
         String methodName = methodElement.getName();
         ClassAdapter containingClass = methodElement.getContainingClass();
-        String classQualifiedName = containingClass.getQualifiedName();
 
         logger.warn("render method executor for: " + methodName);
-        this.methodElement = methodElement;
         String methodNameForLabel = methodName.length() > 25 ? methodName.substring(0, 25) : methodName;
         methodNameLabel.setText(methodNameForLabel);
         TitledBorder titledBorder = (TitledBorder) actionControlPanel.getBorder();
@@ -310,7 +309,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         JPanel methodParameterContainer = new JPanel();
 
         parameterInputComponents.clear();
-        Project project = containingClass.getProject();
+        Project project = methodElement.getProject();
         ProjectAndLibrariesScope projectAndLibrariesScope = new ProjectAndLibrariesScope(project);
 
         if (methodParameters.length > 0) {

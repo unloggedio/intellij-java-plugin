@@ -4,14 +4,12 @@ import com.insidious.plugin.coverage.CodeCoverageData;
 import com.insidious.plugin.coverage.CoverageTreeTableModel;
 import com.insidious.plugin.coverage.PackageCoverageData;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
 import org.jdesktop.swingx.JXTreeTable;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
-import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreeCellRenderer;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,6 +35,8 @@ public class CoverageReportComponent {
     private JProgressBar branchPercentProgressBar;
     private JLabel branchPercentLabel;
     private JLabel branchCoverageNumbers;
+    private JPanel titlePanel;
+    private JEditorPane codeCoverageReportCodeEditorPane;
 
     public CoverageReportComponent() {
 
@@ -149,7 +149,8 @@ public class CoverageReportComponent {
         treeTable.setAutoCreateRowSorter(true);
 //        DefaultTreeCellRenderer cellRenderer = new DefaultTreeCellRenderer();
 //        treeTable.setTreeCellRenderer(cellRenderer);
-        TreeCellRenderer renderer = treeTable.getTreeCellRenderer();
+//        TreeCellRenderer renderer = treeTable.getTreeCellRenderer();
+        codeCoverageReportCodeEditorPane.setVisible(false);
         reportTableContainerPanel.setViewportView(treeTable);
     }
 

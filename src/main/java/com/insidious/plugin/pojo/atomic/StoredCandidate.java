@@ -261,6 +261,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.setException(candidate.isException());
         this.setReturnValueClassname(candidate.getReturnValueClassname());
         this.setLineNumbers(candidate.getLineNumbers());
+        this.setTestAssertions(candidate.getTestAssertions());
     }
 
     public AtomicAssertion getTestAssertions() {
