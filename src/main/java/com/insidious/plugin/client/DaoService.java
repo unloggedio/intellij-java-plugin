@@ -28,6 +28,7 @@ import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import org.jetbrains.annotations.NotNull;
+import org.sqlite.javax.SQLiteConnectionPoolDataSource;
 
 import java.sql.SQLException;
 import java.time.Instant;

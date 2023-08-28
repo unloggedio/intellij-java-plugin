@@ -157,10 +157,10 @@ public class SessionInstance implements Runnable {
         cacheDir.mkdirs();
         this.executionSession = executionSession;
 
-        boolean dbFileExists = FileSystems.getDefault()
+        File file = FileSystems.getDefault()
                 .getPath(executionSession.getDatabasePath())
-                .toFile()
-                .exists();
+                .toFile();
+        boolean dbFileExists = file.exists();
         JdbcConnectionSource connectionSource = new JdbcConnectionSource(executionSession.getDatabaseConnectionString());
 
         ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();

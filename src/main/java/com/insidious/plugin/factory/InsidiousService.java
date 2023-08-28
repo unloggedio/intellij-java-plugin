@@ -269,6 +269,11 @@ final public class InsidiousService implements Disposable,
             contentManager.addContent(testDesignerContent);
             testCaseDesignerWindowAdded = true;
         }
+
+        UsageInsightTracker.getInstance().RecordEvent(
+                "CREATE_JUNIT_TEST",
+                null
+        );
         testCaseDesignerWindow.generateAndPreviewTestCase(generationConfiguration, methodElement);
         focusTestCaseDesignerTab();
     }

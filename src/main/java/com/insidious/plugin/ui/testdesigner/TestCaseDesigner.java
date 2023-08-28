@@ -152,12 +152,24 @@ public class TestCaseDesigner implements Disposable {
 
 
         saveTestCaseButton.addActionListener(e -> {
+
+            UsageInsightTracker.getInstance().RecordEvent(
+                    "SAVE_JUNIT_TEST_CASE",
+                    null
+            );
+
             String saveLocation = saveLocationTextField.getText();
             InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
             String basePath = insidiousService.guessModuleBasePath(currentClass);
             try {
                 insidiousService.getJUnitTestCaseWriter().ensureTestUtilClass(basePath);
             } catch (IOException ex) {
+                JSONObject properties = new JSONObject();
+                properties.put("message", ex.getMessage());
+                UsageInsightTracker.getInstance().RecordEvent(
+                        "FAIL_SAVE_TEST_CASE",
+                        properties
+                );
                 throw new RuntimeException(ex);
             }
 
@@ -186,6 +198,15 @@ public class TestCaseDesigner implements Disposable {
                                     .writeValueAsBytes(valueResourceContainer)
                     );
                 } catch (Exception e1) {
+
+                    JSONObject properties = new JSONObject();
+                    properties.put("message", e1.getMessage());
+                    UsageInsightTracker.getInstance().RecordEvent(
+                            "FAIL_SAVE_TEST_CASE_RESOURCE",
+                            properties
+                    );
+
+
                     InsidiousNotification.notifyMessage(
                             "Failed to write test resource case: " + e1.getMessage(), NotificationType.ERROR
                     );
