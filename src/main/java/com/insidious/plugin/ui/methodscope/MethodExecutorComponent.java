@@ -320,7 +320,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
         executeAndShowDifferencesButton.revalidate();
         executeAndShowDifferencesButton.repaint();
-        candidateCountLabel.setText(candidateComponentMap.size() + " recorded method executions");
+        candidateCountLabel.setText(gridPanel.getComponents().length + " recorded method executions");
         TitledBorder topPanelTitledBorder = (TitledBorder) topPanel.getBorder();
         topPanelTitledBorder.setTitle(
                 methodElement.getContainingClass().getName() + "." + methodElement.getName() + "()");
@@ -688,11 +688,11 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         JPanel candidateComponent = testCandidateListedItemComponent.getComponent();
 
         candidateComponentMap.remove(getKeyForCandidate(storedCandidate));
-        candidateCountLabel.setText(candidateComponentMap.size() + " recorded method executions");
         gridPanel.remove(candidateComponent);
         gridPanel.revalidate();
         gridPanel.repaint();
         scrollContainer.removeAll();
+        candidateCountLabel.setText(gridPanel.getComponents().length + " recorded method executions");
         refreshCoverageData();
 
         if (candidateComponentMap.size() < 3) {
