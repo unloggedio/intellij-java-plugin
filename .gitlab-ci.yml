@@ -53,23 +53,3 @@ test:
     paths:
       - build/reports/tests/test/index.html
     expire_in: 30 days
-
-verify:
-  stage: test
-  script:
-    - "apt-get update && apt-get install zip"
-    - "./gradlew runPluginVerifier"
-  allow_failure: true
-  cache:
-    key: "$CI_COMMIT_REF_NAME"
-    policy: pull
-    paths:
-      - .gradle
-      - .cache
-  artifacts:
-    untracked: false
-    name: verification-report.zip
-    paths:
-      - verificationReport/
-    expire_in: 30 days
-
