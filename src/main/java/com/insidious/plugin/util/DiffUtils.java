@@ -1,6 +1,5 @@
 package com.insidious.plugin.util;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.agent.AgentCommandResponse;
@@ -29,6 +28,10 @@ public class DiffUtils {
 
 
         String returnValueAsString = String.valueOf(agentCommandResponse.getMethodReturnValue());
+        if (agentCommandResponse.getResponseClassName().equals("java.lang.String")
+                && !returnValueAsString.startsWith("\"") && !returnValueAsString.endsWith("\"")) {
+            returnValueAsString = "\"" + returnValueAsString + "\"";
+        }
 
         if (testAssertions != null && AtomicAssertionUtils.countAssertions(testAssertions) > 0) {
             Map<String, Object> leftOnlyMap = new HashMap<>();
@@ -101,14 +104,10 @@ public class DiffUtils {
         }
 
         String expectedStringFromCandidate = testCandidateMetadata.getReturnValue();
-        if (testCandidateMetadata.getReturnValueClassname().equals("java.lang.String")
-                && expectedStringFromCandidate.startsWith("\"")
-                && expectedStringFromCandidate.endsWith("\"") ) {
-            try {
-                expectedStringFromCandidate = objectMapper.readTree(expectedStringFromCandidate).asText();
-            } catch (JsonProcessingException e) {
-                // failed to read as a json node
-            }
+        if ("java.lang.String".equals(testCandidateMetadata.getReturnValueClassname())
+                && !expectedStringFromCandidate.startsWith("\"")
+                && !expectedStringFromCandidate.endsWith("\"")) {
+            expectedStringFromCandidate = "\"" + expectedStringFromCandidate + "\"";
         }
 
         if (testCandidateMetadata.isReturnValueIsBoolean()) {
