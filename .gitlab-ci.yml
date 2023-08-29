@@ -22,7 +22,9 @@ before_script:
 
 build:
   stage: build
-  script: ./gradlew buildPlugin
+  script:
+    - "apt-get update && apt-get install zip"
+    - "./gradlew buildPlugin"
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: push
@@ -54,7 +56,9 @@ test:
 
 verify:
   stage: test
-  script: ./gradlew runPluginVerifier
+  script:
+    - "apt-get update && apt-get install zip"
+    - "./gradlew runPluginVerifier"
   allow_failure: true
   cache:
     key: "$CI_COMMIT_REF_NAME"

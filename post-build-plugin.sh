@@ -1,3 +1,5 @@
+pwd
+ls -lah
 cd build/distributions
 unzip plugin-${PLUGIN_VERSION}.zip
 
@@ -12,3 +14,7 @@ zip -r -Z deflate plugin-${PLUGIN_VERSION}.zip plugin/*
 rm -rf plugin
 
 cd ../..
+ls -lah
+ls -lah build
+ls -lah build/distributions
+
