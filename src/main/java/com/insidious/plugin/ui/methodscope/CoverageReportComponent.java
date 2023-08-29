@@ -138,6 +138,10 @@ public class CoverageReportComponent {
             branchCoverageNumbers.setText("0/0");
         }
 
+        if (coveredClassCount.get() == 0 && coveredMethodCount.get() == 0 && coveredLineCount.get() == 0) {
+            return;
+        }
+
 
         JXTreeTable treeTable = new JXTreeTable(treeTableModel);
         treeTable.createDefaultColumnsFromModel();
