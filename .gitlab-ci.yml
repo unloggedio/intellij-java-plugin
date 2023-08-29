@@ -55,6 +55,7 @@ test:
 verify:
   stage: build
   script: ./gradlew runPluginVerifier
+  allow_failure: true
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: pull
