@@ -127,7 +127,7 @@ public class AtomicTestContainer {
                 className = className.substring(className.lastIndexOf(".") + 1);
             }
             String key = className + "." + candidateSearchQuery.getMethodName();
-            if (!hasShownNewCandidateNotification.containsKey(key)) {
+            if (hasShownNewCandidateNotification.size() == 0) {
                 hasShownNewCandidateNotification.put(key, true);
                 InsidiousNotification.notifyMessage(
                         "New replay candidate available for " + key + "(). \n You can now generate a JUnit test case " +
