@@ -4,12 +4,17 @@ public class StoredCandidateMetadata {
     private String recordedBy;
     private String hostMachineName;
     private long timestamp;
-    private CandidateStatus candidateStatus;
+    private CandidateStatus candidateStatus = CandidateStatus.NA;
     public StoredCandidateMetadata(String recordedBy, String hostMachineName, long timestamp, CandidateStatus candidateStatus) {
         this.recordedBy = recordedBy;
         this.hostMachineName = hostMachineName;
         this.timestamp = timestamp;
         this.candidateStatus = candidateStatus;
+    }
+    public StoredCandidateMetadata(String recordedBy, String hostMachineName, long timestamp) {
+        this.recordedBy = recordedBy;
+        this.hostMachineName = hostMachineName;
+        this.timestamp = timestamp;
     }
 
     public String getRecordedBy() {
@@ -30,6 +35,9 @@ public class StoredCandidateMetadata {
 
     public long getTimestamp() {
         return timestamp;
+    }
+
+    public StoredCandidateMetadata() {
     }
 
     public void setTimestamp(long timestamp) {
@@ -54,5 +62,5 @@ public class StoredCandidateMetadata {
                 '}';
     }
 
-    public enum CandidateStatus {PASSING, FAILING}
+    public enum CandidateStatus {NA, PASSING, FAILING}
 }

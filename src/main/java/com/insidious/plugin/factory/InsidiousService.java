@@ -89,8 +89,9 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+//import io.unlogged.Unlogged;
+
+
 import org.json.JSONObject;
 
 import java.awt.*;
@@ -154,6 +155,11 @@ final public class InsidiousService implements Disposable,
     private HighlightedRequest currentHighlightedRequest = null;
     private boolean testCaseDesignerWindowAdded = false;
     private MethodUnderTest currentMethodUnderTest;
+
+//    @Unlogged
+    public static void main(String[] args) {
+
+    }
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -610,7 +616,7 @@ final public class InsidiousService implements Disposable,
                 continue;
             }
 
-            @Nullable PsiFile psiFile = ApplicationManager.getApplication().runReadAction(
+             PsiFile psiFile = ApplicationManager.getApplication().runReadAction(
                     (ThrowableComputable<PsiFile, RuntimeException>) () -> PsiDocumentManager.getInstance(project)
                             .getPsiFile(editor.getDocument()));
             if (psiFile == null) {
@@ -692,7 +698,7 @@ final public class InsidiousService implements Disposable,
         coverageReportComponent.setCoverageData(new CodeCoverageData(updatedPackageList));
     }
 
-    @NotNull
+    
     public CandidateSearchQuery createSearchQueryForMethod(
             MethodAdapter currentMethod,
             CandidateFilterType candidateFilterType,
@@ -705,7 +711,7 @@ final public class InsidiousService implements Disposable,
         );
     }
 
-    @NotNull
+    
     public CandidateSearchQuery createSearchQueryForMethod(MethodAdapter currentMethod) {
         return CandidateSearchQuery.fromMethod(currentMethod,
                 getInterfacesWithSameSignature(currentMethod),
@@ -864,7 +870,7 @@ final public class InsidiousService implements Disposable,
         return candidates;
     }
 
-    @NotNull
+    
     public List<String> getInterfacesWithSameSignature(MethodAdapter method) {
         String methodName = method.getName();
         ClassAdapter containingClass = method.getContainingClass();
@@ -926,7 +932,7 @@ final public class InsidiousService implements Disposable,
         return filterStoredCandidates.getCandidateList();
     }
 
-    @NotNull
+    
     public String getMethodArgsDescriptor(MethodAdapter method) {
         ParameterAdapter[] methodParams = method.getParameters();
         StringBuilder methodArgumentsClassnames = new StringBuilder();
@@ -1030,7 +1036,7 @@ final public class InsidiousService implements Disposable,
 
     public void showCandidateSaveForm(SaveForm saveForm) {
         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-        @Nullable FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
+         FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
         if (selectedEditor == null) {
             StoredCandidate candidate = saveForm.getStoredCandidate();
             selectedEditor = InsidiousUtils.focusProbeLocationInEditor(0,
@@ -1186,7 +1192,7 @@ final public class InsidiousService implements Disposable,
 //
 //            DataManager.getInstance().getDataContextFromFocusAsync().onSuccess(dataContext -> {
 //                ExecutorRegistry executorRegistry = ExecutorRegistryImpl.getInstance();
-//                @Nullable Executor debugExecutor = executorRegistry.getExecutorById("Debug");
+//                 Executor debugExecutor = executorRegistry.getExecutorById("Debug");
 //                if (debugExecutor == null) {
 //                    InsidiousNotification.notifyMessage("Debug run config not found for: " + selectedConfig.getName()
 //                            + ". Failed to start process in debug mode", NotificationType.ERROR);

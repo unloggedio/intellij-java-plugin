@@ -2,7 +2,7 @@ package com.insidious.plugin.pojo.dao;
 
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import org.jetbrains.annotations.NotNull;
+
 
 @DatabaseTable(tableName = "log_file")
 public class LogFile implements Comparable<LogFile> {
@@ -60,7 +60,7 @@ public class LogFile implements Comparable<LogFile> {
     }
 
     @Override
-    public int compareTo(@NotNull LogFile o) {
+    public int compareTo( LogFile o) {
         return this.name.compareTo(o.name);
     }
 

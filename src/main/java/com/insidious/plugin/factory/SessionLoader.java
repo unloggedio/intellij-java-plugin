@@ -13,7 +13,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiPackage;
-import org.jetbrains.annotations.Nullable;
+
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -128,7 +128,7 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
             }
 
             String finalIncludedPackagedName = includedPackagedName.replace('/', '.');
-            @Nullable PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
+             PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
                     (Computable<PsiPackage>) () -> JavaPsiFacade.getInstance(project)
                             .findPackage(finalIncludedPackagedName));
             if (locatedPackage == null) {

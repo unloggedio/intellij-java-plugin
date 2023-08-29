@@ -27,7 +27,7 @@ import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.FileContentUtil;
 import org.apache.commons.io.IOUtils;
-import org.jetbrains.annotations.Nullable;
+
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -160,7 +160,7 @@ public class JUnitTestCaseWriter {
                 logger.info("[ERROR] Failed to save UnloggedUtils to correct spot.");
             }
 
-            @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
+             VirtualFile newFile = VirtualFileManager.getInstance()
                     .refreshAndFindFileByUrl(FileSystems.getDefault()
                             .getPath(testcaseFile.getAbsolutePath())
                             .toUri()
@@ -174,7 +174,7 @@ public class JUnitTestCaseWriter {
             List<VirtualFile> newFile1 = new ArrayList<>();
             newFile1.add(newFile);
             FileContentUtil.reparseFiles(project, newFile1, true);
-            @Nullable Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
+             Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
 
             FileEditorManager.getInstance(project).openFile(newFile, true, true);
 
@@ -244,7 +244,7 @@ public class JUnitTestCaseWriter {
                     .getPath(oldFilePath)
                     .toFile();
             if (oldUtilFile.exists()) {
-                @Nullable VirtualFile oldFileInstance = VirtualFileManager.getInstance()
+                 VirtualFile oldFileInstance = VirtualFileManager.getInstance()
                         .refreshAndFindFileByUrl(FileSystems.getDefault()
                                 .getPath(oldUtilFile.getAbsolutePath())
                                 .toUri()
@@ -254,7 +254,7 @@ public class JUnitTestCaseWriter {
                 if (oldFileInstance != null) {
                     oldFileInstance.refresh(true, false);
                 }
-                @Nullable VirtualFile oldFolderInstance = VirtualFileManager.getInstance()
+                 VirtualFile oldFolderInstance = VirtualFileManager.getInstance()
                         .refreshAndFindFileByUrl(FileSystems.getDefault()
                                 .getPath(oldFolder.getAbsolutePath())
                                 .toUri()
@@ -305,7 +305,7 @@ public class JUnitTestCaseWriter {
             assert testUtilClassCode != null;
             IOUtils.copy(testUtilClassCode, writer);
         }
-        @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
+         VirtualFile newFile = VirtualFileManager.getInstance()
                 .refreshAndFindFileByUrl(FileSystems.getDefault().getPath(utilFile.getAbsolutePath()).toUri().toString());
 
         if (newFile == null) {

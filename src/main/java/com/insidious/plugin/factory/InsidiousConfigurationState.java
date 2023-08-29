@@ -6,8 +6,6 @@ import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.util.xmlb.XmlSerializerUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,13 +22,10 @@ import java.util.stream.Collectors;
 public class InsidiousConfigurationState implements PersistentStateComponent<InsidiousConfigurationState> {
 
     private final List<SearchRecord> searchRecords = new LinkedList<>();
-    public String username = "";
     private final String CLOUD_SERVER_URL = "https://cloud.bug.video";
+    public String username = "";
     public String serverUrl = CLOUD_SERVER_URL;
     public Map<String, Boolean> exceptionClassMap;
-    public String getDefaultCloudServerUrl() {
-        return CLOUD_SERVER_URL;
-    }
     private InsidiousOnboardingStatus onboardingStatus;
 
     public InsidiousConfigurationState() {
@@ -47,6 +42,10 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
         exceptionClassMap.put("java.net.SocketException", true);
         exceptionClassMap.put("java.net.UnknownHostException", true);
         exceptionClassMap.put("java.lang.ArithmeticException", true);
+    }
+
+    public String getDefaultCloudServerUrl() {
+        return CLOUD_SERVER_URL;
     }
 
 //    public static InsidiousConfigurationState getInstance() {
@@ -69,14 +68,14 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
         this.serverUrl = serverUrl;
     }
 
-    @Nullable
+
     @Override
     public InsidiousConfigurationState getState() {
         return this;
     }
 
     @Override
-    public void loadState(@NotNull InsidiousConfigurationState state) {
+    public void loadState(InsidiousConfigurationState state) {
         XmlSerializerUtil.copyBean(state, this);
     }
 
@@ -91,19 +90,19 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
 
     public void addSearchQuery(String traceValue, int resultCount) {
         SearchRecord newSearchRecord = new SearchRecord(traceValue, resultCount);
-        List<SearchRecord> matched = searchRecords.stream().filter(sr -> sr.getQuery().equals(traceValue)).collect(Collectors.toList());
+        List<SearchRecord> matched = searchRecords.stream().filter(sr -> sr.getQuery().equals(traceValue))
+                .collect(Collectors.toList());
         searchRecords.removeAll(matched);
         searchRecords.add(newSearchRecord);
         if (searchRecords.size() > 50) {
             List<SearchRecord> recordsToRemove = searchRecords.stream().sorted(
                     Comparator.comparing(SearchRecord::getLastQueryDate)).limit(
-                            searchRecords.size() - 10).collect(Collectors.toList());
+                    searchRecords.size() - 10).collect(Collectors.toList());
             searchRecords.removeAll(recordsToRemove);
         }
     }
 
-    public InsidiousOnboardingStatus getOnboardingStatus()
-    {
+    public InsidiousOnboardingStatus getOnboardingStatus() {
         return this.onboardingStatus;
     }
 

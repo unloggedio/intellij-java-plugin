@@ -18,7 +18,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
-import org.jetbrains.annotations.NotNull;
+
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -223,7 +223,7 @@ public class EventLogWindow {
                     service.getProject(), "Unlogged", true
             ) {
                 @Override
-                protected ReplayData compute(@NotNull ProgressIndicator indicator) throws Exception {
+                protected ReplayData compute( ProgressIndicator indicator) throws Exception {
                     try {
                         return loadHistory(objectId, currentPage);
                     } catch (SessionNotSelectedException e) {

@@ -6,7 +6,7 @@ import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
-import org.jetbrains.annotations.NotNull;
+
 import org.json.JSONObject;
 
 public class DebuggerFactory implements ToolWindowFactory, DumbAware {
@@ -19,7 +19,7 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
      * @param project    current project
      * @param toolWindow current tool window
      */
-    public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
+    public void createToolWindowContent( Project project,  ToolWindow toolWindow) {
         try {
             logger.info("Start unlogged tool window");
             this.currentProject = project;

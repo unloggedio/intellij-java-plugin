@@ -6,7 +6,7 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.util.TestCandidateUtils;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,8 +51,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.entryProbeIndex = candidateMetadata.getEntryProbeIndex();
         this.lineNumbers = candidateMetadata.getLineNumbers();
         this.metadata = new StoredCandidateMetadata(
-                HOSTNAME, HOSTNAME, candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt(),
-                StoredCandidateMetadata.CandidateStatus.PASSING
+                HOSTNAME, HOSTNAME, candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt()
         );
     }
 
@@ -77,7 +76,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
             candidate.getMetadata().setRecordedBy(HOSTNAME);
         } else {
             StoredCandidateMetadata metadata1 = new StoredCandidateMetadata(
-                    HOSTNAME, HOSTNAME, response.getTimestamp(), StoredCandidateMetadata.CandidateStatus.PASSING
+                    HOSTNAME, HOSTNAME, response.getTimestamp()
             );
             candidate.setMetadata(metadata1);
         }
@@ -127,7 +126,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     }
 
     @Override
-    public int compareTo(@NotNull StoredCandidate o) {
+    public int compareTo( StoredCandidate o) {
         return Long.compare(this.metadata.getTimestamp(), o.metadata.getTimestamp());
     }
 

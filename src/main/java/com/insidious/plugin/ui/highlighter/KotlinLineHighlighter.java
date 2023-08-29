@@ -30,7 +30,7 @@ public class KotlinLineHighlighter implements LineMarkerProvider {
     private final Pattern testMethodNamePattern = Pattern.compile("^test.*");
     private final Supplier<String> accessibleNameProvider = () -> "Execute method";
 
-    public LineMarkerInfo<LeafPsiElement> getLineMarkerInfo(@NotNull PsiElement element) {
+    public LineMarkerInfo<LeafPsiElement> getLineMarkerInfo( PsiElement element) {
         if (element instanceof LeafPsiElement &&
                 element.getParent() instanceof KtNamedFunction) {
             IElementType elementType = ((LeafPsiElement) element).getElementType();

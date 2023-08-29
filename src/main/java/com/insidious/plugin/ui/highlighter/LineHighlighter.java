@@ -36,7 +36,7 @@ public class LineHighlighter implements LineMarkerProvider {
         }
     }
 
-    public LineMarkerInfo<PsiIdentifier> getLineMarkerInfo(@NotNull PsiElement element) {
+    public LineMarkerInfo<PsiIdentifier> getLineMarkerInfo( PsiElement element) {
 
         if (element instanceof PsiIdentifier && element.getParent() instanceof PsiMethod) {
 

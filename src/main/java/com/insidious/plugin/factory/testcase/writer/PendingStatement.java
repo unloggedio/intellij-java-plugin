@@ -16,7 +16,7 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.ParameterUtils;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
-import org.jetbrains.annotations.Nullable;
+
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -363,7 +363,7 @@ public class PendingStatement {
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue()));
 
-                @Nullable TypeName typeOfParam =
+                 TypeName typeOfParam =
                         ClassTypeUtils.createTypeFromNameString(
                                 ClassTypeUtils.getJavaClassName(objectToDeserialize.getType()));
 //                statementParameters.add(ClassName.bestGuess(typeOfParam));
@@ -589,7 +589,7 @@ public class PendingStatement {
                 lhsExpression.setName(generateNameForParameter(lhsExpression));
             }
 
-            @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromNameString(
+             TypeName lhsTypeName = ClassTypeUtils.createTypeFromNameString(
                     ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
 
             if (!createdVariables.contains(nameFactory.getNameForUse(lhsExpression, null))) {

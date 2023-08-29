@@ -26,7 +26,7 @@ import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.dao.GenericRawResults;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.table.TableUtils;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.sql.SQLException;
 import java.time.Instant;
@@ -203,7 +203,7 @@ public class DaoService {
         return testCandidateList;
     }
 
-    @NotNull
+    
     private com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata
     convertTestCandidateMetadata(TestCandidateMetadata testCandidateMetadata, Boolean loadCalls) throws Exception {
 //        logger.warn("Build test candidate - " + testCandidateMetadata.getEntryProbeIndex());
@@ -346,7 +346,7 @@ public class DaoService {
 
     }
 
-    @NotNull
+    
     private List<MethodCallExpression> getMethodCallExpressionsInCandidate(TestCandidateMetadata testCandidateMetadata) throws Exception {
         long mainMethodId = testCandidateMetadata.getMainMethod();
         GenericRawResults<MethodCallExpression> results = methodCallExpressionDao
@@ -407,7 +407,7 @@ public class DaoService {
     }
 
 
-    @NotNull
+    
     private List<com.insidious.plugin.pojo.MethodCallExpression> buildFromDbMce(
             List<MethodCallExpressionInterface> mceList
     ) throws Exception {
@@ -1285,7 +1285,7 @@ public class DaoService {
         return archiveFileDao.queryForId(name);
     }
 
-    @NotNull Map<String, ArchiveFile> getArchiveFileMap() {
+     Map<String, ArchiveFile> getArchiveFileMap() {
         List<ArchiveFile> archiveFileList = getArchiveList();
         Map<String, ArchiveFile> archiveFileMap = new HashMap<>();
         for (ArchiveFile archiveFile : archiveFileList) {
@@ -1326,7 +1326,7 @@ public class DaoService {
 
         String[] callIdsList = threadState.getCallStack()
                 .split(",");
-        @NotNull List<MethodCallExpression> callStack;
+         List<MethodCallExpression> callStack;
         callStack = new ArrayList<>(callIdsList.length);
         for (String callId : callIdsList) {
             if (callId.equals("")) {
@@ -1365,7 +1365,7 @@ public class DaoService {
         }
 
         List<MethodCallExpression> callStack = threadState.getCallStack();
-        @NotNull String callStackList = StringUtils.join(callStack.stream()
+         String callStackList = StringUtils.join(callStack.stream()
                 .map(MethodCallExpression::getId)
                 .collect(Collectors.toList()), ",");
 

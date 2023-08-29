@@ -6,7 +6,7 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 import org.apache.commons.lang.StringUtils;
-import org.jetbrains.annotations.NotNull;
+
 import org.objectweb.asm.Opcodes;
 
 import java.util.List;
@@ -210,7 +210,7 @@ public class MethodDefinition implements Comparable<MethodDefinition> {
     }
 
     @Override
-    public int compareTo(@NotNull MethodDefinition o) {
+    public int compareTo( MethodDefinition o) {
         return Integer.compare(this.id, o.id);
     }
 }

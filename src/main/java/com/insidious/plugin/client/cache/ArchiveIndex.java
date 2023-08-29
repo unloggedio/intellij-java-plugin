@@ -17,7 +17,7 @@ import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -42,7 +42,7 @@ public class ArchiveIndex {
         return typeInfoIndex;
     }
 
-    @NotNull
+    
     public List<Long> getStringIdsFromStringValues(String value) {
         Query<StringInfoDocument> query = equal(StringInfoDocument.STRING_VALUE, value);
         ResultSet<StringInfoDocument> searchResult = stringInfoIndex.retrieve(query);

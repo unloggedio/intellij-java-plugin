@@ -20,7 +20,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.testFramework.LightVirtualFile;
-import org.jetbrains.annotations.NotNull;
+
 import org.jetbrains.kotlin.psi.KtNamedFunction;
 
 import java.util.regex.Matcher;
@@ -35,7 +35,7 @@ public class InsidiousCaretListener implements EditorMouseListener {
 
 
     @Override
-    public void mouseReleased(@NotNull EditorMouseEvent event) {
+    public void mouseReleased( EditorMouseEvent event) {
         Project project = event.getEditor().getProject();
         if (project == null) {
             // non project based mouse event

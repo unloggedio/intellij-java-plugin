@@ -1,7 +1,7 @@
 package com.insidious.plugin.util;
 
 import com.insidious.plugin.pojo.TracePoint;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.util.Date;
 import java.util.List;
@@ -34,7 +34,7 @@ public class VectorUtils {
         );
     }
 
-    @NotNull
+    
     private static String getUnqualifiedClassName(String className) {
         if (className.contains(".")) {
             return className.substring(className.lastIndexOf('.') + 1);

@@ -6,9 +6,6 @@ import com.intellij.lang.Language;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.psi.PsiFile;
-import org.jetbrains.annotations.Nls;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 
@@ -18,45 +15,44 @@ public class InsidiousInlayHintsProvider implements InlayHintsProvider<NoSetting
     private final SettingsKey<NoSettings> noSettingsSettingsKey = new SettingsKey<>("com.indisious.java");
     private final NoSettings noSettings = new NoSettings();
 
-    @NotNull
+
     @Override
     public SettingsKey<NoSettings> getKey() {
         return noSettingsSettingsKey;
     }
 
-    @Nls(capitalization = Nls.Capitalization.Sentence)
-    @NotNull
+
     @Override
     public String getName() {
         return "Unlogged recorded metrics";
     }
 
-    @Nullable
+
     @Override
     public String getPreviewText() {
         return "Unlogged recorded metrics";
     }
 
-    @NotNull
+
     @Override
-    public ImmediateConfigurable createConfigurable(@NotNull NoSettings noSettings) {
+    public ImmediateConfigurable createConfigurable(NoSettings noSettings) {
         return new ImmediateConfigurable() {
-            @NotNull
+
             @Override
-            public JComponent createComponent(@NotNull ChangeListener changeListener) {
+            public JComponent createComponent(ChangeListener changeListener) {
                 logger.warn("create component: " + noSettings + " => " + changeListener);
                 return null;
             }
         };
     }
 
-    @Nullable
+
     @Override
     public InlayHintsCollector getCollectorFor(
-            @NotNull PsiFile psiFile,
-            @NotNull Editor editor,
-            @NotNull NoSettings noSettings,
-            @NotNull InlayHintsSink inlayHintsSink) {
+            PsiFile psiFile,
+            Editor editor,
+            NoSettings noSettings,
+            InlayHintsSink inlayHintsSink) {
         return new InsidiousInlayHintsCollector(editor);
     }
 
@@ -66,11 +62,11 @@ public class InsidiousInlayHintsProvider implements InlayHintsProvider<NoSetting
     }
 
     @Override
-    public boolean isLanguageSupported(@NotNull Language language) {
+    public boolean isLanguageSupported(Language language) {
         return true;
     }
 
-    @NotNull
+
     @Override
     public NoSettings createSettings() {
         return noSettings;

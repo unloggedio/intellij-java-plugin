@@ -7,7 +7,7 @@ import com.intellij.codeInsight.daemon.GutterIconNavigationHandler;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.psi.impl.source.tree.LeafPsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
-import org.jetbrains.annotations.NotNull;
+
 import org.jetbrains.kotlin.psi.KtClass;
 import org.jetbrains.kotlin.psi.KtNamedFunction;
 
@@ -28,7 +28,7 @@ public class KotlinUnloggedGutterNavigationHandler implements GutterIconNavigati
             UsageInsightTracker.getInstance().RecordEvent("TestIconClick", null);
 
 
-        @NotNull List<LineMarkerInfo<?>> lineMarkerInfoList = new LinkedList<>();
+         List<LineMarkerInfo<?>> lineMarkerInfoList = new LinkedList<>();
         lineMarkerInfoList.add(new LineHighlighter().getLineMarkerInfo(identifier));
 
 //        insidiousService.executeWithAgentForMethod(method);
@@ -36,7 +36,7 @@ public class KotlinUnloggedGutterNavigationHandler implements GutterIconNavigati
 
 //        MethodExecutorComponent gutterMethodPanel = new MethodExecutorComponent((PsiMethod) identifier.getParent());
 //        JComponent gutterMethodComponent = gutterMethodPanel.getContent();
-//        @NotNull ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+//         ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
 //                .createComponentPopupBuilder(gutterMethodComponent, null);
 //
 //        gutterMethodComponentPopup

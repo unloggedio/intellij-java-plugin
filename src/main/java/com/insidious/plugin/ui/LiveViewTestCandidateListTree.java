@@ -12,7 +12,7 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import org.jetbrains.annotations.NotNull;
+
 
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -45,7 +45,7 @@ public class LiveViewTestCandidateListTree implements TreeModel {
         videobugTreeClassAggregateNodes = ProgressManager.getInstance().run(
                 new Task.WithResult<List<VideobugTreeClassAggregateNode>, Exception>(project, "Unlogged", false) {
                     @Override
-                    protected List<VideobugTreeClassAggregateNode> compute(@NotNull ProgressIndicator indicator) throws Exception {
+                    protected List<VideobugTreeClassAggregateNode> compute( ProgressIndicator indicator) throws Exception {
 //                        checkProgressIndicator("Loading candidates available for test", null);
                         return sessionInstance.getTestCandidateAggregates();
                     }
@@ -102,7 +102,7 @@ public class LiveViewTestCandidateListTree implements TreeModel {
                     methodAggregateList = ProgressManager.getInstance().run(
                             new Task.WithResult<List<TestCandidateMethodAggregate>, Exception>(project, "Unlogged", false) {
                                 @Override
-                                protected List<TestCandidateMethodAggregate> compute(@NotNull ProgressIndicator indicator) {
+                                protected List<TestCandidateMethodAggregate> compute( ProgressIndicator indicator) {
                                     //                                checkProgressIndicator("Loading candidates available for test", null);
                                     return sessionInstance
                                             .getTestCandidateAggregatesByClassName(classAggregateNode.getClassName());

@@ -12,7 +12,7 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiPackage;
-import org.jetbrains.annotations.Nullable;
+
 import org.json.JSONObject;
 
 import java.util.Arrays;
@@ -59,7 +59,7 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
 
             finalIncludedPackageName = includedPackageName;
             String finalIncludedPackageName1 = finalIncludedPackageName;
-            @Nullable PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
+             PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
                     (Computable<PsiPackage>) () -> JavaPsiFacade.getInstance(insidiousService.getProject())
                             .findPackage(finalIncludedPackageName1));
             if (locatedPackage == null) {

@@ -15,7 +15,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.search.GlobalSearchScope;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -203,7 +203,7 @@ public class ClassUtils {
             classChosenListener.classSelected(implementationOptions.get(0));
             return;
         }
-        @NotNull JBPopup implementationChooserPopup = JBPopupFactory
+         JBPopup implementationChooserPopup = JBPopupFactory
                 .getInstance()
                 .createPopupChooserBuilder(implementationOptions.stream()
                         .map(PsiClass::getQualifiedName)

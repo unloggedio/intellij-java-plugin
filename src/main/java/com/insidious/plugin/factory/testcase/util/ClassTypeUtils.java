@@ -11,7 +11,7 @@ import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.util.LinkedList;
 import java.util.List;
@@ -93,7 +93,7 @@ public class ClassTypeUtils {
     }
 
 
-    @NotNull
+    
     public static String getDescriptorName(String className) {
         if (className.contains("$")) {
             className = className.substring(0, className.indexOf('$'));

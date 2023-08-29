@@ -12,7 +12,7 @@ import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import net.openhft.chronicle.core.util.Time;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.awt.*;
 import java.io.File;
@@ -49,7 +49,7 @@ public class ReportIssue {
             String pathPrefix;
 
             @Override
-            public void run(@NotNull ProgressIndicator indicator) {
+            public void run( ProgressIndicator indicator) {
                 ZipFiles zipFiles = new ZipFiles();
                 seLogDirPath = getLatestSeLogFolderPath();
                 if (!seLogDirPath.equals("")) {

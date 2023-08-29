@@ -67,8 +67,8 @@ import net.openhft.chronicle.map.ChronicleMapBuilder;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
+
 import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
 
@@ -212,7 +212,7 @@ public class SessionInstance implements Runnable {
         return Integer.parseInt(archiveFile.substring(archiveFile.lastIndexOf("-") + 1, archiveFile.lastIndexOf(".")));
     }
 
-    @NotNull
+    
     private static DataEventWithSessionId createDataEventFromBlock(int fileThreadId, KaitaiInsidiousEventParser.DetailedEventBlock eventBlock) {
         DataEventWithSessionId dataEvent = new DataEventWithSessionId(fileThreadId);
         dataEvent.setProbeId(eventBlock.probeId());
@@ -275,7 +275,7 @@ public class SessionInstance implements Runnable {
         }
     }
 
-    @NotNull
+    
     private Map<String, LogFile> getLogFileMap() {
         Map<String, LogFile> logFileMap = new HashMap<>();
         List<LogFile> logFiles = daoService.getLogFiles();
@@ -289,7 +289,7 @@ public class SessionInstance implements Runnable {
         return executionSession;
     }
 
-    @NotNull
+    
     private List<File> refreshSessionArchivesList(boolean forceRefresh) throws IOException {
         long start = new Date().getTime();
         if (sessionDirectory.listFiles() == null) {
@@ -943,7 +943,7 @@ public class SessionInstance implements Runnable {
 
     }
 
-    private KaitaiInsidiousClassWeaveParser readClassWeaveInfo(@NotNull File sessionFile) throws IOException {
+    private KaitaiInsidiousClassWeaveParser readClassWeaveInfo( File sessionFile) throws IOException {
 
         KaitaiInsidiousClassWeaveParser classWeaveInfo1;
         logger.warn("creating class weave info from scratch from file [1012]: " + sessionFile.getName());
@@ -958,7 +958,7 @@ public class SessionInstance implements Runnable {
         return classWeaveInfo1;
     }
 
-    private void readClassWeaveInfoStream(@NotNull File sessionFile) throws IOException, FailedToReadClassWeaveException {
+    private void readClassWeaveInfoStream( File sessionFile) throws IOException, FailedToReadClassWeaveException {
 
         try {
             logger.warn("creating class weave info from scratch from file [1026]: " + sessionFile.getName());
@@ -1138,7 +1138,7 @@ public class SessionInstance implements Runnable {
         return new ArchiveIndex(typeInfoIndex, sII, oII, null);
     }
 
-    @NotNull
+    
     private String bytesHex(byte[] bytes, String indexFilterType) {
         String md5Hex = DigestUtils.md5Hex(bytes);
         return md5Hex + "-" + indexFilterType;
@@ -1710,7 +1710,7 @@ public class SessionInstance implements Runnable {
         return new ClassWeaveInfo(classInfoList, methodInfoList, dataInfoList);
     }
 
-    @Nullable
+    
     private ArchiveFilesIndex getEventIndex(File sessionArchive) {
         NameWithBytes eventIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
                 INDEX_EVENTS_DAT_FILE.getFileName());
@@ -2960,7 +2960,7 @@ public class SessionInstance implements Runnable {
                     // in which case this is actually a separate method call
                     if (threadState.getCallStackSize() > 0) {
                         methodCall = threadState.getTopCall();
-                        @NotNull String expectedClassName = ClassTypeUtils.getDottedClassName(
+                         String expectedClassName = ClassTypeUtils.getDottedClassName(
                                 methodInfo.getClassName());
                         String owner = ClassTypeUtils.getDottedClassName(
                                 probeInfoIndex.get(methodCall.getEntryProbeInfo_id()).getAttribute("Owner", null));
@@ -3890,12 +3890,12 @@ public class SessionInstance implements Runnable {
                 continue;
             }
 
-            JvmParameter @NotNull [] parameters = jvmMethod.getParameters();
+            JvmParameter[] parameters = jvmMethod.getParameters();
             // to resolve generics
             for (int i = 0; i < parameters.length; i++) {
                 JvmParameter parameterFromSourceCode = parameters[i];
                 Parameter parameterFromProbe = methodArguments.get(i);
-                @NotNull JvmType typeFromSourceCode = parameterFromSourceCode.getType();
+                 JvmType typeFromSourceCode = parameterFromSourceCode.getType();
                 if (typeFromSourceCode instanceof PsiPrimitiveType) {
                     PsiPrimitiveType primitiveType = (PsiPrimitiveType) typeFromSourceCode;
                 } else if (typeFromSourceCode instanceof PsiClassReferenceType) {

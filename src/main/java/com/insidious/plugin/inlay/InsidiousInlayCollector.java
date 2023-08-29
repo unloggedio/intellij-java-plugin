@@ -13,7 +13,7 @@ import com.intellij.openapi.editor.ex.util.EditorUtil;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiMethod;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.awt.*;
 import java.util.Arrays;
@@ -36,7 +36,7 @@ public class InsidiousInlayCollector {
 //    }
 //
 //    @Override
-//    public boolean collect(@NotNull PsiElement psiElement, @NotNull Editor editor, @NotNull InlayHintsSink inlayHintsSink) {
+//    public boolean collect( PsiElement psiElement,  Editor editor,  InlayHintsSink inlayHintsSink) {
 //        return false;
 ////        int offset = psiElement.getTextOffset();
 ////
@@ -72,7 +72,7 @@ public class InsidiousInlayCollector {
 ////        return true;
 //    }
 //
-//    @NotNull
+//    
 //    private InlayPresentation createInlayPresentation(String elementTypeClass) {
 ////        InlayPresentation textInlay = presentationFactory.text(elementTypeClass);
 ////        InlayPresentation inlayContainer = presentationFactory.container(textInlay,

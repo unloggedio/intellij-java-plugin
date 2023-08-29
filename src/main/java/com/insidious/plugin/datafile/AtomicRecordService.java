@@ -23,7 +23,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.search.GlobalSearchScope;
-import org.jetbrains.annotations.NotNull;
+
 import org.json.JSONObject;
 
 import java.io.*;
@@ -88,7 +88,7 @@ public class AtomicRecordService {
             if (hashChange) {
                 return GutterState.EXECUTE;
             }
-            if (status == null) {
+            if (status == null || status == StoredCandidateMetadata.CandidateStatus.NA) {
                 return GutterState.DATA_AVAILABLE;
             }
             if (status.equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
@@ -440,7 +440,7 @@ public class AtomicRecordService {
         }
     }
 
-    @NotNull
+    
     public List<StoredCandidate> getStoredCandidatesForMethod(MethodUnderTest methodUnderTest) {
         if (methodUnderTest.getClassName() == null) {
             return new ArrayList<>();
@@ -483,7 +483,7 @@ public class AtomicRecordService {
         return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + separator;
     }
 
-    public void setCandidateStateForCandidate(@NotNull String candidateID, String classname,
+    public void setCandidateStateForCandidate( String candidateID, String classname,
                                               String methodKey, StoredCandidateMetadata.CandidateStatus state) {
         AtomicRecord record = this.storedRecords.get(classname);
         if (record == null || record.getStoredCandidateMap().get(methodKey).size() == 0) {

@@ -1,7 +1,7 @@
 package com.insidious.plugin;
 
 import com.intellij.AbstractBundle;
-import org.jetbrains.annotations.NotNull;
+
 import org.jetbrains.annotations.PropertyKey;
 
 public class InsidiousBundle extends AbstractBundle {
@@ -13,8 +13,8 @@ public class InsidiousBundle extends AbstractBundle {
     }
 
 
-    @NotNull
-    public static String message(@NotNull @PropertyKey(resourceBundle = "META-INF.configuration") String key, @NotNull Object... params) {
+    
+    public static String message( @PropertyKey(resourceBundle = "META-INF.configuration") String key,  Object... params) {
         return ourInstance.getMessage(key, params);
     }
 }

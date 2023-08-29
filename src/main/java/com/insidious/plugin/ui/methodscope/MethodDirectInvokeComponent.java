@@ -29,7 +29,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
-import org.jetbrains.annotations.NotNull;
+
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -295,7 +295,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         } else {
             SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
             if (sessionInstance != null) {
-                @NotNull CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
+                 CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
                         methodElement, CandidateFilterType.METHOD, false);
 
                 List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(query);

@@ -333,7 +333,7 @@ public class MethodCallExpression implements Expression, Serializable {
 //                .equals(ResourceEmbedMode.IN_FILE)) {
 //
 //            String nameForObject = testGenerationState.addObjectToResource(mainMethodReturnValue);
-//            @NotNull Parameter jsonParameter = Parameter.cloneParameter(mainMethodReturnValue);
+//             Parameter jsonParameter = Parameter.cloneParameter(mainMethodReturnValue);
 //            DataEventWithSessionId prob = new DataEventWithSessionId();
 //            prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
 //            jsonParameter.setProb(prob);

@@ -14,7 +14,7 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.squareup.javapoet.ClassName;
-import org.jetbrains.annotations.NotNull;
+
 
 import javax.lang.model.element.Modifier;
 import java.util.*;
@@ -213,7 +213,7 @@ public class ObjectRoutineContainer {
         }
 
 
-        @NotNull List<Parameter> constructorNonPojoParams =
+         List<Parameter> constructorNonPojoParams =
                 ObjectRoutine.getNonPojoParameters(constructorRoutine.getTestCandidateList(), sessionInstance);
 
 
@@ -340,7 +340,7 @@ public class ObjectRoutineContainer {
         return container;
     }
 
-    @NotNull
+    
     public Set<? extends Parameter> collectFieldsFromRoutines() {
 
         //            boolean isPresent = false;

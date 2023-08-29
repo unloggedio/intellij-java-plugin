@@ -20,7 +20,7 @@ import com.intellij.psi.*;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.ui.JBColor;
 import com.intellij.util.containers.JBIterable;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.awt.*;
 import java.util.Arrays;
@@ -63,7 +63,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     }
 
     @Override
-    public boolean collect(@NotNull PsiElement element, @NotNull Editor editor, @NotNull InlayHintsSink inlayHintsSink) {
+    public boolean collect( PsiElement element,  Editor editor,  InlayHintsSink inlayHintsSink) {
         if (element instanceof PsiClass) {
             currentClass = (PsiClass) element;
             classMethodAggregates = insidiousService.getClassMethodAggregates(currentClass.getQualifiedName());
@@ -169,7 +169,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         return TextRange.create(start.getTextRange().getStartOffset(), element.getTextRange().getEndOffset());
     }
 
-    @NotNull
+    
     private InlayPresentation createInlayPresentation(String inlayText) {
 
         PresentationFactory factory = getFactory();
@@ -193,7 +193,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 //        });
     }
 
-    @NotNull
+    
     private InlayPresentation createInlayPresentation(Map valueInMap) {
 
         PresentationFactory factory = getFactory();

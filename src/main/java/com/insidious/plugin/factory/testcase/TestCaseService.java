@@ -36,8 +36,8 @@ import com.intellij.psi.PsiType;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.squareup.javapoet.*;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
+
 import org.json.JSONObject;
 
 import javax.lang.model.element.Modifier;
@@ -54,7 +54,7 @@ public class TestCaseService {
         this.project = sessionInstance.getProject();
     }
 
-    @NotNull
+    
     private static TestCaseUnit
     buildTestUnitFromScript(ObjectRoutineContainer objectRoutineContainer, ObjectRoutineScriptContainer testCaseScript) {
         String generatedTestClassName = "Test" + testCaseScript.getName() + "V";
@@ -172,7 +172,7 @@ public class TestCaseService {
         );
     }
 
-    @NotNull
+    
     public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
 
 
@@ -303,7 +303,7 @@ public class TestCaseService {
         Set<? extends Parameter> fields = objectRoutineContainer.collectFieldsFromRoutines();
 
 
-        @Nullable PsiClass classPsiInstance = null;
+         PsiClass classPsiInstance = null;
         try {
             classPsiInstance = JavaPsiFacade.getInstance(project)
                     .findClass(ClassTypeUtils.getJavaClassName(target.getType()), GlobalSearchScope.allScope(project));

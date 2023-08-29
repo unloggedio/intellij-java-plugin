@@ -18,7 +18,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import okhttp3.*;
-import org.jetbrains.annotations.NotNull;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -82,12 +82,12 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                 "{\"email\":\"%s\", \"password\":\"%s\"}", username, password
         ), new Callback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+            public void onFailure( Call call,  IOException e) {
                 callback.error(e.getMessage());
             }
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+            public void onResponse( Call call,  Response response) throws IOException {
                 try {
 
                     if (response.code() == 200) {
@@ -111,12 +111,12 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                         "{\"email\":\"%s\", \"password\":\"%s\"}", signinRequest.getEmail(), signinRequest.getPassword()
                 ), new Callback() {
                     @Override
-                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                    public void onFailure( Call call,  IOException e) {
                         signInCallback.error(e.getMessage());
                     }
 
                     @Override
-                    public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                    public void onResponse( Call call,  Response response) throws IOException {
                         try {
                             if (response.code() == 401) {
                                 signInCallback.error("invalid credentials");
@@ -146,12 +146,12 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
         get(Constants.PROJECT_URL + "?name=" + projectName, new Callback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+            public void onFailure( Call call,  IOException e) {
                 getProjectCallback.error(e.getMessage());
             }
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+            public void onResponse( Call call,  Response response) throws IOException {
 
                 try {
                     JSONObject jsonProjects = new JSONObject(
@@ -195,13 +195,13 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         logger.info("create project on server - [" + projectName + "]");
         post(PROJECT_URL + "?name=" + projectName, "", new Callback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+            public void onFailure( Call call,  IOException e) {
                 logger.error("failed to create project", e);
                 newProjectCallback.error(e.getMessage());
             }
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+            public void onResponse( Call call,  Response response) throws IOException {
                 try {
                     String responseBody = Objects.requireNonNull(response.body())
                             .string();
@@ -221,13 +221,13 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         logger.info("get project token - " + project.getId());
         post(GENERATE_PROJECT_TOKEN_URL + "?projectId=" + project.getId(), "", new Callback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+            public void onFailure( Call call,  IOException e) {
                 logger.error("failed to generate project token", e);
                 projectTokenCallback.error(e.getMessage());
             }
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+            public void onResponse( Call call,  Response response) throws IOException {
                 String responseBody = Objects.requireNonNull(response.body())
                         .string();
                 logger.info("project token response - " + responseBody);
@@ -339,7 +339,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public @NotNull List<TracePoint> getTracePoints(DataResponse<DataEventWithSessionId> traceResponse) {
+    public  List<TracePoint> getTracePoints(DataResponse<DataEventWithSessionId> traceResponse) {
         throw new RuntimeException("not implemented");
     }
 
@@ -350,13 +350,13 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         String executionsUrl = PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
         get(executionsUrl, new Callback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+            public void onFailure( Call call,  IOException e) {
                 logger.error("failed to get project sessions", e);
                 getProjectSessionsCallback.error("ioexception");
             }
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+            public void onResponse( Call call,  Response response) throws IOException {
                 try {
                     if (response.body() == null) {
                         logger.error("get project session response is empty");
@@ -420,14 +420,14 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
         get(url, new Callback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+            public void onFailure( Call call,  IOException e) {
                 ExceptionResponse errorResponse = new ExceptionResponse();
                 errorResponse.setMessage(e.getMessage());
                 getProjectSessionErrorsCallback.error(errorResponse);
             }
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+            public void onResponse( Call call,  Response response) throws IOException {
 
                 try {
                     if (response.code() != 200) {
@@ -502,14 +502,14 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
         get(url, new Callback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+            public void onFailure( Call call,  IOException e) {
                 ExceptionResponse errorResponse = new ExceptionResponse();
                 errorResponse.setMessage(e.getMessage());
                 getProjectSessionErrorsCallback.error(errorResponse);
             }
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+            public void onResponse( Call call,  Response response) throws IOException {
 
                 try {
 
@@ -638,12 +638,12 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     public void getAgentDownloadUrl(AgentDownloadUrlCallback agentDownloadUrlCallback) {
         get("https://cloud.bug.video" + "/api/data/java-agent-jar-link", new Callback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+            public void onFailure( Call call,  IOException e) {
                 agentDownloadUrlCallback.error(e.getMessage());
             }
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+            public void onResponse( Call call,  Response response) throws IOException {
                 agentDownloadUrlCallback.success(Objects.requireNonNull(response.body())
                         .string());
             }

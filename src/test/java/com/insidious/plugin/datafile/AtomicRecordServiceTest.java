@@ -77,7 +77,7 @@ public class AtomicRecordServiceTest {
         candidate.setMethodArguments(arguments);
         candidate.setMethod(new MethodUnderTest(methodName, methodSignature, 123, classname));
         StoredCandidateMetadata metadata = new StoredCandidateMetadata("unlogged", "unlogged",
-                System.currentTimeMillis(), StoredCandidateMetadata.CandidateStatus.PASSING);
+                System.currentTimeMillis());
 
         candidate.setMetadata(metadata);
 
@@ -109,7 +109,7 @@ public class AtomicRecordServiceTest {
         candidate.setMethodArguments(arguments);
         candidate.setMethod(new MethodUnderTest(methodName, null, 123, classname));
         metadata = new StoredCandidateMetadata("unlogged", "unlogged",
-                System.currentTimeMillis(), StoredCandidateMetadata.CandidateStatus.PASSING);
+                System.currentTimeMillis());
 
         candidate.setMetadata(metadata);
 
@@ -145,7 +145,7 @@ public class AtomicRecordServiceTest {
         candidate.setMethod(new MethodUnderTest(methodName, null, 1235, classname));
 
         metadata = new StoredCandidateMetadata("unlogged", "unlogged",
-                System.currentTimeMillis(), StoredCandidateMetadata.CandidateStatus.PASSING);
+                System.currentTimeMillis());
 
         candidate.setMetadata(metadata);
 
@@ -252,7 +252,7 @@ public class AtomicRecordServiceTest {
         candidate.setMethod(new MethodUnderTest(methodName, null, 123, classname));
 
         metadata = new StoredCandidateMetadata("unlogged", "unlogged",
-                System.currentTimeMillis(), StoredCandidateMetadata.CandidateStatus.PASSING);
+                System.currentTimeMillis());
 
         candidate.setMetadata(metadata);
 
@@ -329,7 +329,7 @@ public class AtomicRecordServiceTest {
         candidate.setMethod(new MethodUnderTest("a", null, 123, null));
 
         StoredCandidateMetadata metadata = new StoredCandidateMetadata("unlogged", "unlogged",
-                System.currentTimeMillis(), StoredCandidateMetadata.CandidateStatus.PASSING);
+                System.currentTimeMillis());
 
         candidate.setMetadata(metadata);
 
@@ -352,7 +352,7 @@ public class AtomicRecordServiceTest {
         candidate.setMethod(new MethodUnderTest("a", null, 123, null));
 
         metadata = new StoredCandidateMetadata("unlogged", "unlogged",
-                System.currentTimeMillis(), StoredCandidateMetadata.CandidateStatus.PASSING);
+                System.currentTimeMillis());
 
 
         candidate.setMetadata(metadata);
@@ -382,7 +382,7 @@ public class AtomicRecordServiceTest {
         candidate.setMethod(new MethodUnderTest("b", null, 123, null));
 
         metadata = new StoredCandidateMetadata("unlogged", "unlogged",
-                System.currentTimeMillis(), StoredCandidateMetadata.CandidateStatus.PASSING);
+                System.currentTimeMillis());
 
 
         candidate.setMetadata(metadata);

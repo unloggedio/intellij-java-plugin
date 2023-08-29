@@ -3,7 +3,7 @@ package com.insidious.plugin.ui;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
-import org.jetbrains.annotations.NotNull;
+
 
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.TreeModel;
@@ -45,7 +45,7 @@ public class TestCandidateTreeModel implements TreeModel {
 
     }
 
-    @NotNull
+    
     private static RootNode createRootNode(String testSubjectType, MethodCallExpression mainMethod) {
         return new RootNode(testSubjectType.substring(testSubjectType.lastIndexOf('.') + 1) + "." +
                 mainMethod.getMethodName());

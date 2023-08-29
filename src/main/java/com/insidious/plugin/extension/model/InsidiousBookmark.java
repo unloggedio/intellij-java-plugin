@@ -2,7 +2,7 @@ package com.insidious.plugin.extension.model;
 
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
-import org.jetbrains.annotations.NotNull;
+
 
 public class InsidiousBookmark
         implements Comparable<InsidiousBookmark> {
@@ -45,7 +45,7 @@ public class InsidiousBookmark
     }
 
 
-    public int compareTo(@NotNull InsidiousBookmark that) {
+    public int compareTo( InsidiousBookmark that) {
         return this.name.compareTo(that.name);
     }
 }

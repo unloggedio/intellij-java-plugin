@@ -24,7 +24,7 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.intellij.openapi.project.Project;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
-import org.jetbrains.annotations.NotNull;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -436,7 +436,7 @@ public class TestCaseServiceTest {
 //            generationConfiguration.getCallExpressionList()
 //                    .addAll(candidateMetadata.getCallsList());
 //        }
-//        @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+//         TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
 //
 //        copyTestCaseToClipboard(testCaseUnit);
 //        ValueResourceContainer valueResourceMap = testCaseUnit.getTestGenerationState()

@@ -2,14 +2,14 @@ package com.insidious.plugin.visitor;
 
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiRecursiveElementVisitor;
-import org.jetbrains.annotations.NotNull;
+
 
 public class PomFileVisitor extends PsiRecursiveElementVisitor {
     private String packageName;
     private Boolean insideParent = false;
 
     @Override
-    public void visitElement(@NotNull PsiElement element) {
+    public void visitElement( PsiElement element) {
         super.visitElement(element);
         if (packageName != null) {
             return;

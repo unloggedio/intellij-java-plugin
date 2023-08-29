@@ -4,7 +4,7 @@ import com.insidious.plugin.assertions.TestAssertion;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -151,7 +151,7 @@ public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> 
     }
 
     @Override
-    public int compareTo(@NotNull TestCandidateMetadata o) {
+    public int compareTo( TestCandidateMetadata o) {
         return Long.compare(this.entryProbeIndex, o.entryProbeIndex);
     }
 

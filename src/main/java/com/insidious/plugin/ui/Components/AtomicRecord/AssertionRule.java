@@ -8,7 +8,7 @@ import com.insidious.plugin.ui.Components.AtomicAssertionConstants;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.DocumentAdapter;
-import org.jetbrains.annotations.NotNull;
+
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -301,7 +301,7 @@ public class AssertionRule {
         valueField.setCaretPosition(0);
         valueField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
-            protected void textChanged(@NotNull DocumentEvent e) {
+            protected void textChanged( DocumentEvent e) {
                 logger.warn("Value field updated: " + valueField.getText().trim());
                 assertion.setExpectedValue(valueField.getText().trim());
                 updateResult();

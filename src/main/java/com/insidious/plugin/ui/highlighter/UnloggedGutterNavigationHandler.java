@@ -12,7 +12,7 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiIdentifier;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.util.PsiTreeUtil;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.awt.event.MouseEvent;
 import java.util.LinkedList;
@@ -39,7 +39,7 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
 
         UsageInsightTracker.getInstance().RecordEvent("ICON_CLICK_" + this.state, null);
 
-//        @NotNull List<LineMarkerInfo<?>> lineMarkerInfoList = new LinkedList<>();
+//         List<LineMarkerInfo<?>> lineMarkerInfoList = new LinkedList<>();
 //        lineMarkerInfoList.add(new LineHighlighter().getLineMarkerInfo(identifier));
 
 //        if (!this.state.equals(GutterState.DIFF) &&
