@@ -76,10 +76,9 @@ public class AtomicRecordServiceTest {
         candidate.setDescription("Description 1");
         candidate.setMethodArguments(arguments);
         candidate.setMethod(new MethodUnderTest(methodName, methodSignature, 123, classname));
-        StoredCandidateMetadata metadata = new StoredCandidateMetadata();
-        metadata.setRecordedBy("unlogged");
-        metadata.setHostMachineName("unlogged");
-        metadata.setTimestamp(System.currentTimeMillis());
+        StoredCandidateMetadata metadata = new StoredCandidateMetadata("unlogged", "unlogged",
+                System.currentTimeMillis(), StoredCandidateMetadata.CandidateStatus.PASSING);
+
         candidate.setMetadata(metadata);
 
         MethodUnderTest methodUnderTest3 = new MethodUnderTest(methodName, methodSignature, 0, classname);
@@ -109,10 +108,9 @@ public class AtomicRecordServiceTest {
         candidate.setDescription("Description 1 new");
         candidate.setMethodArguments(arguments);
         candidate.setMethod(new MethodUnderTest(methodName, null, 123, classname));
-        metadata = new StoredCandidateMetadata();
-        metadata.setRecordedBy("unlogged");
-        metadata.setHostMachineName("unlogged");
-        metadata.setTimestamp(System.currentTimeMillis());
+        metadata = new StoredCandidateMetadata("unlogged", "unlogged",
+                System.currentTimeMillis(), StoredCandidateMetadata.CandidateStatus.PASSING);
+
         candidate.setMetadata(metadata);
 
         MethodUnderTest methodUnderTest4 = new MethodUnderTest(methodName, methodSignature, 0, classname);
@@ -145,10 +143,10 @@ public class AtomicRecordServiceTest {
         candidate.setDescription("Description 2 new");
         candidate.setMethodArguments(arguments);
         candidate.setMethod(new MethodUnderTest(methodName, null, 1235, classname));
-        metadata = new StoredCandidateMetadata();
-        metadata.setRecordedBy("unlogged");
-        metadata.setHostMachineName("unlogged");
-        metadata.setTimestamp(System.currentTimeMillis());
+
+        metadata = new StoredCandidateMetadata("unlogged", "unlogged",
+                System.currentTimeMillis(), StoredCandidateMetadata.CandidateStatus.PASSING);
+
         candidate.setMetadata(metadata);
 
         MethodUnderTest methodUnderTest = new MethodUnderTest(methodName, methodSignature, 0, classname);
@@ -252,10 +250,10 @@ public class AtomicRecordServiceTest {
         candidate.setDescription("Description 1 new");
         candidate.setMethodArguments(arguments);
         candidate.setMethod(new MethodUnderTest(methodName, null, 123, classname));
-        metadata = new StoredCandidateMetadata();
-        metadata.setRecordedBy("unlogged");
-        metadata.setHostMachineName("unlogged");
-        metadata.setTimestamp(System.currentTimeMillis());
+
+        metadata = new StoredCandidateMetadata("unlogged", "unlogged",
+                System.currentTimeMillis(), StoredCandidateMetadata.CandidateStatus.PASSING);
+
         candidate.setMetadata(metadata);
 
         MethodUnderTest methodUnderTest1 = new MethodUnderTest(methodName, methodSignature, 0, classname);
@@ -329,10 +327,10 @@ public class AtomicRecordServiceTest {
         candidate.setDescription("Description 1");
         candidate.setMethodArguments(new ArrayList<>());
         candidate.setMethod(new MethodUnderTest("a", null, 123, null));
-        StoredCandidateMetadata metadata = new StoredCandidateMetadata();
-        metadata.setRecordedBy("unlogged");
-        metadata.setHostMachineName("unlogged");
-        metadata.setTimestamp(System.currentTimeMillis());
+
+        StoredCandidateMetadata metadata = new StoredCandidateMetadata("unlogged", "unlogged",
+                System.currentTimeMillis(), StoredCandidateMetadata.CandidateStatus.PASSING);
+
         candidate.setMetadata(metadata);
 
         storedCandidateList.add(candidate);
@@ -352,10 +350,11 @@ public class AtomicRecordServiceTest {
         candidate.setDescription("Description 11");
         candidate.setMethodArguments(new ArrayList<>());
         candidate.setMethod(new MethodUnderTest("a", null, 123, null));
-        metadata = new StoredCandidateMetadata();
-        metadata.setRecordedBy("unlogged");
-        metadata.setHostMachineName("unlogged");
-        metadata.setTimestamp(System.currentTimeMillis());
+
+        metadata = new StoredCandidateMetadata("unlogged", "unlogged",
+                System.currentTimeMillis(), StoredCandidateMetadata.CandidateStatus.PASSING);
+
+
         candidate.setMetadata(metadata);
 
         storedCandidateList.add(candidate);
@@ -381,10 +380,11 @@ public class AtomicRecordServiceTest {
         candidate.setDescription("Description 11");
         candidate.setMethodArguments(new ArrayList<>());
         candidate.setMethod(new MethodUnderTest("b", null, 123, null));
-        metadata = new StoredCandidateMetadata();
-        metadata.setRecordedBy("unlogged");
-        metadata.setHostMachineName("unlogged");
-        metadata.setTimestamp(System.currentTimeMillis());
+
+        metadata = new StoredCandidateMetadata("unlogged", "unlogged",
+                System.currentTimeMillis(), StoredCandidateMetadata.CandidateStatus.PASSING);
+
+
         candidate.setMetadata(metadata);
 
         storedCandidateList = new ArrayList<>();

@@ -50,11 +50,10 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.sessionIdentifier = generateIdentifier(candidateMetadata);
         this.entryProbeIndex = candidateMetadata.getEntryProbeIndex();
         this.lineNumbers = candidateMetadata.getLineNumbers();
-        StoredCandidateMetadata metadata = new StoredCandidateMetadata();
-        metadata.setHostMachineName(HOSTNAME);
-        metadata.setRecordedBy(HOSTNAME);
-        metadata.setTimestamp(candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt());
-        this.metadata = metadata;
+        this.metadata = new StoredCandidateMetadata(
+                HOSTNAME, HOSTNAME, candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt(),
+                StoredCandidateMetadata.CandidateStatus.PASSING
+        );
     }
 
     public static StoredCandidate createCandidateFor(StoredCandidate metadata, AgentCommandResponse<String> response) {
@@ -77,11 +76,9 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
             candidate.getMetadata().setHostMachineName(HOSTNAME);
             candidate.getMetadata().setRecordedBy(HOSTNAME);
         } else {
-            StoredCandidateMetadata metadata1 = new StoredCandidateMetadata();
-            metadata1.setCandidateStatus(null);
-            metadata1.setTimestamp(response.getTimestamp());
-            metadata1.setRecordedBy(HOSTNAME);
-            metadata1.setHostMachineName(HOSTNAME);
+            StoredCandidateMetadata metadata1 = new StoredCandidateMetadata(
+                    HOSTNAME, HOSTNAME, response.getTimestamp(), StoredCandidateMetadata.CandidateStatus.PASSING
+            );
             candidate.setMetadata(metadata1);
         }
         return candidate;

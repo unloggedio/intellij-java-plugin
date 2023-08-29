@@ -47,6 +47,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static com.insidious.plugin.Constants.HOSTNAME;
+
 public class MethodExecutorComponent implements MethodExecutionListener, CandidateSelectedListener, CandidateLifeListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
     private final InsidiousService insidiousService;
@@ -475,7 +477,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
                     StoredCandidateMetadata meta = testCandidate.getMetadata();
                     if (meta == null) {
-                        meta = new StoredCandidateMetadata();
+                        meta = new StoredCandidateMetadata(HOSTNAME, HOSTNAME, agentCommandResponse.getTimestamp(),
+                                getStatusForState(diffResult.getDiffResultType()));
                     }
                     meta.setTimestamp(agentCommandResponse.getTimestamp());
                     meta.setCandidateStatus(getStatusForState(diffResult.getDiffResultType()));

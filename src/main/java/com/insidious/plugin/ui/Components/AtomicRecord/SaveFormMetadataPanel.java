@@ -54,22 +54,20 @@ public class SaveFormMetadataPanel {
     }
 
     public MetadataViewPayload getPayload() {
-        StoredCandidateMetadata metadata = new StoredCandidateMetadata();
         StoredCandidateMetadata.CandidateStatus status = StoredCandidateMetadata.CandidateStatus.PASSING;
         if (this.statusLabel.getText().equalsIgnoreCase("failing")) {
             status = StoredCandidateMetadata.CandidateStatus.FAILING;
         }
-        metadata.setCandidateStatus(status);
-        metadata.setTimestamp(Long.parseLong(timestampLabel.getToolTipText()));
-        metadata.setRecordedBy(createdByLabel.getText());
-        metadata.setHostMachineName(hostLabel.getText());
+        StoredCandidateMetadata metadata = new StoredCandidateMetadata(
+                hostLabel.getText(), createdByLabel.getText(),
+                Long.parseLong(timestampLabel.getToolTipText()), status
+        );
 
-        MetadataViewPayload payload = new MetadataViewPayload(
+        return new MetadataViewPayload(
                 nameText.getText(),
                 descriptionText.getText(),
                 metadata
         );
-        return payload;
     }
 
     private String convertTimestamp(long timestamp) {

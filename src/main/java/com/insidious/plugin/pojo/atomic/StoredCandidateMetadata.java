@@ -3,9 +3,14 @@ package com.insidious.plugin.pojo.atomic;
 public class StoredCandidateMetadata {
     private String recordedBy;
     private String hostMachineName;
-
     private long timestamp;
     private CandidateStatus candidateStatus;
+    public StoredCandidateMetadata(String recordedBy, String hostMachineName, long timestamp, CandidateStatus candidateStatus) {
+        this.recordedBy = recordedBy;
+        this.hostMachineName = hostMachineName;
+        this.timestamp = timestamp;
+        this.candidateStatus = candidateStatus;
+    }
 
     public String getRecordedBy() {
         return recordedBy;
