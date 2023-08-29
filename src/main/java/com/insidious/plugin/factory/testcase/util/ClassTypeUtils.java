@@ -6,6 +6,7 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
+import com.intellij.psi.JavaPsiFacade;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -186,7 +187,14 @@ public class ClassTypeUtils {
             if (typeName.endsWith("[]")) {
                 return ArrayTypeName.of(createTypeFromNameString(typeName.substring(0, typeName.length() - 2)));
             }
-            returnValueSquareClass = ClassName.bestGuess(typeName);
+            try {
+                returnValueSquareClass = ClassName.bestGuess(typeName);
+            }catch (Exception exception) {
+                // java poet failed to create class name from string
+                String packageName = typeName.substring(0, typeName.lastIndexOf("."));
+                String simpleName = typeName.substring(typeName.lastIndexOf("."));
+                return ClassName.get(packageName, simpleName);
+            }
             return returnValueSquareClass;
         }
 
