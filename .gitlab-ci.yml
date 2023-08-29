@@ -22,7 +22,7 @@ before_script:
 
 build:
   stage: build
-  script: ./gradlew --build-cache assemble --exclude-task test
+  script: ./gradlew buildPlugin
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: push
@@ -50,5 +50,21 @@ test:
     name: test-report.html
     paths:
       - build/reports/tests/test/index.html
+    expire_in: 30 days
+
+verify:
+  stage: test
+  script: ./gradlew runPluginVerifier
+  cache:
+    key: "$CI_COMMIT_REF_NAME"
+    policy: pull
+    paths:
+      - .gradle
+      - .cache
+  artifacts:
+    untracked: false
+    name: verification-report.zip
+    paths:
+      - verificationReport/
     expire_in: 30 days
 
