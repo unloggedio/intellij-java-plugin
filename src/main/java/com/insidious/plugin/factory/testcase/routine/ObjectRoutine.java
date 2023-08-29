@@ -135,6 +135,9 @@ public class ObjectRoutine {
             if (testCandidateSubjectValues.contains(nonPojoParameter.getValue())) {
                 continue;
             }
+            if (nonPojoParameter.getProb() != null && nonPojoParameter.getProb().getSerializedValue().length > 0) {
+                continue;
+            }
 
             TestCandidateMetadata metadata = MockFactory.createParameterMock(nonPojoParameter, generationConfiguration);
             if (metadata == null) {

@@ -183,10 +183,15 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
     @Override
     public void setTestCandidate(StoredCandidate candidate) {
         this.testCandidate = candidate;
-        if (testCandidate.getEntryProbeIndex() > 1) {
+        if (testCandidate.getEntryProbeIndex() > 1 && !createTestCaseButton.isEnabled()) {
             createTestCaseButton.setEnabled(true);
-            createTestCaseButton.setText("Generate JUnit Test");
+            createTestCaseButton.setText("Create JUnit test case");
         }
+    }
+
+    @Override
+    public StoredCandidate getTestCandidate() {
+        return testCandidate;
     }
 
 }

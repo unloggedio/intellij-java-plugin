@@ -19,19 +19,15 @@ import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.io.IOException;
-import java.util.List;
-import java.util.*;
-import java.util.function.Supplier;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
+import java.util.Date;
 
 public class AgentExceptionResponseComponent implements ResponsePreviewComponent {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger logger = LoggerUtil.getInstance(AgentExceptionResponseComponent.class);
     final private InsidiousService insidiousService;
-    private StoredCandidate testCandidate;
     final private AgentCommandResponse<String> response;
     private final CandidateLifeListener candidateLifeListener;
+    private StoredCandidate testCandidate;
     private JPanel mainPanel;
     private JPanel contentPanel;
     private JPanel afterSection;
@@ -171,6 +167,11 @@ public class AgentExceptionResponseComponent implements ResponsePreviewComponent
     @Override
     public void setTestCandidate(StoredCandidate candidate) {
         this.testCandidate = candidate;
+    }
+
+    @Override
+    public StoredCandidate getTestCandidate() {
+        return testCandidate;
     }
 
     public void setInfoLabel(String info) {

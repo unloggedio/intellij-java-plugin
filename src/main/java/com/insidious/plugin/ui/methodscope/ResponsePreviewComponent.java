@@ -7,4 +7,5 @@ import java.awt.*;
 public interface ResponsePreviewComponent {
     Component get();
     void setTestCandidate(StoredCandidate candidate);
+    StoredCandidate getTestCandidate();
 }

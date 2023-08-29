@@ -59,7 +59,6 @@ import com.intellij.psi.PsiType;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
-import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import io.kaitai.struct.RandomAccessFileKaitaiStream;
@@ -161,13 +160,13 @@ public class SessionInstance implements Runnable {
                 .getPath(executionSession.getDatabasePath())
                 .toFile();
         boolean dbFileExists = file.exists();
-        JdbcConnectionSource connectionSource = new JdbcConnectionSource(executionSession.getDatabaseConnectionString());
+        JdbcConnectionSource connectionSource = new JdbcConnectionSource(
+                executionSession.getDatabaseConnectionString());
 
         ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
         parameterContainer = new ChronicleVariableContainer(parameterIndex);
 
-        ParameterProvider parameterProvider = value -> com.insidious.plugin.pojo.dao.
-                Parameter.fromParameter(parameterContainer.getParameterByValue(value));
+        ParameterProvider parameterProvider = value -> parameterContainer.getParameterByValue(value);
         daoService = new DaoService(connectionSource, parameterProvider);
 
         if (!dbFileExists && scanEnable) {
@@ -318,7 +317,8 @@ public class SessionInstance implements Runnable {
         classInfoIndex = createClassInfoIndex();
         try {
             classInfoIndex.values().forEach(classInfo1 ->
-                    classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()), classInfo1));
+                    classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()),
+                            ClassDefinition.ClassInfoFromClassInfo(classInfo1)));
 
         } catch (Throwable e) {
 //            e.printStackTrace();

@@ -4,7 +4,10 @@ import com.insidious.common.weaver.ClassInfo;
 import com.insidious.plugin.util.StringUtils;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
+import net.openhft.chronicle.bytes.Bytes;
+import net.openhft.chronicle.bytes.BytesOut;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -59,11 +62,22 @@ public class ClassDefinition {
         classDefinition.setFilename(e.getFilename());
         classDefinition.setHash(e.getHash());
         classDefinition.setContainer(e.getContainer());
-        classDefinition.setLoglevel(e.getLoglevel()
-                .toString());
+        classDefinition.setLoglevel(e.getLoglevel().toString());
         classDefinition.setInterfaceList(StringUtils.join(Arrays.asList(e.getInterfaces()), ","));
         classDefinition.setSuperName(e.getSuperName());
         classDefinition.setSignature(e.getClassName());
+
+        return classDefinition;
+    }
+
+    public static ClassInfo ClassInfoFromClassInfo(ClassInfo e) {
+
+        BytesOut<ByteBuffer> bytesOut = Bytes.elasticByteBuffer();
+        e.writeMarshallable(bytesOut);
+
+        ClassInfo classDefinition = new ClassInfo();
+        classDefinition.readMarshallable(bytesOut.bytesForRead());
+
 
         return classDefinition;
     }

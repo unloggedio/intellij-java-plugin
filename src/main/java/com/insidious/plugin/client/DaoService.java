@@ -25,10 +25,8 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.dao.GenericRawResults;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
-import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import org.jetbrains.annotations.NotNull;
-import org.sqlite.javax.SQLiteConnectionPoolDataSource;
 
 import java.sql.SQLException;
 import java.time.Instant;
@@ -82,7 +80,7 @@ public class DaoService {
             "                          or (mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
             "                              mc.isStaticCall = true and mc.usesFields = true and mc.subject_id != 0 and\n" +
             "                              mc.threadId = ?)))";
-//    public static final String QUERY_TEST_CANDIDATE_BY_PUBLIC_METHOD_SELECT = "select tc.*\n" +
+    //    public static final String QUERY_TEST_CANDIDATE_BY_PUBLIC_METHOD_SELECT = "select tc.*\n" +
 //            "from test_candidate tc\n" +
 //            "         join method_call mc on mc.id = mainMethod_id\n" +
 //            "join method_definition md on md.id = mc.methodDefinitionId\n" +
@@ -454,12 +452,12 @@ public class DaoService {
         }
 
 
-        List<Parameter> dbParameters = getParameterByValue(parametersToLoad);
+        List<com.insidious.plugin.pojo.Parameter> dbParameters = getParameterByValue(parametersToLoad);
 
-        for (Parameter parameter : dbParameters) {
-            probesToLoad.add(parameter.getEventId());
-            probeInfoToLoad.add(parameter.getProbeInfo_id());
-        }
+//        for (Parameter parameter : dbParameters) {
+//            probesToLoad.add(parameter.getEventId());
+//            probeInfoToLoad.add(parameter.getProbeInfo_id());
+//        }
 
         List<DataEventWithSessionId> allProbes = getProbes(probesToLoad);
         for (DataEventWithSessionId allProbe : allProbes) {
@@ -475,20 +473,11 @@ public class DaoService {
         Map<Integer, DataInfo> probeInfoMap = allProbesInfo.stream()
                 .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
 
-        Map<Object, Parameter> dbParameterMap = dbParameters.stream()
-                .collect(Collectors.toMap(Parameter::getValue, e -> e));
+//        Map<Object, com.insidious.plugin.pojo.Parameter> dbParameterMap = dbParameters.stream()
+//                .collect(Collectors.toMap(com.insidious.plugin.pojo.Parameter::getValue, e -> e));
 
-        List<com.insidious.plugin.pojo.Parameter> parameters = dbParameters.stream()
-                .map(Parameter::toParameter)
-                .collect(Collectors.toList());
 
-        for (com.insidious.plugin.pojo.Parameter parameter : parameters) {
-            Parameter dbParameter = dbParameterMap.get(parameter.getValue());
-            parameter.setProbeAndProbeInfo(probesMap.get(dbParameter.getEventId()),
-                    probeInfoMap.get(dbParameter.getProbeInfo_id()));
-        }
-
-        Map<Long, com.insidious.plugin.pojo.Parameter> parameterMap = parameters.stream()
+        Map<Long, com.insidious.plugin.pojo.Parameter> parameterMap = dbParameters.stream()
                 .collect(Collectors.toMap(com.insidious.plugin.pojo.Parameter::getValue, e -> e));
 
         List<com.insidious.plugin.pojo.MethodCallExpression> finalCallsList = new ArrayList<>();
@@ -733,8 +722,7 @@ public class DaoService {
         return finalCallsList;
     }
 
-    public List<Parameter>
-    getParameterByValue(Collection<Long> values) {
+    public List<com.insidious.plugin.pojo.Parameter> getParameterByValue(Collection<Long> values) {
         if (values.size() == 0) {
             return Collections.emptyList();
         }
@@ -841,16 +829,16 @@ public class DaoService {
 //        if (parameterList.size() == 0) {
 //            return null;
 //        }
-        Parameter parameter = parameterProvider.getParameterByValue(value);
-        com.insidious.plugin.pojo.Parameter convertedParameter = Parameter.toParameter(parameter);
-
-        DataEventWithSessionId dataEvent = this.getDataEventById(parameter.getEventId());
-        if (dataEvent != null) {
-            DataInfo probeInfo = getProbeInfoById(parameter.getProbeInfo_id());
-            convertedParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
-        }
-
-        return convertedParameter;
+        return parameterProvider.getParameterByValue(value);
+//        com.insidious.plugin.pojo.Parameter convertedParameter = Parameter.toParameter(parameter);
+//
+//        DataEventWithSessionId dataEvent = this.getDataEventById(parameter.getEventId());
+//        if (dataEvent != null) {
+//            DataInfo probeInfo = getProbeInfoById(parameter.getProbeInfo_id());
+//            convertedParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
+//        }
+//
+//        return convertedParameter;
     }
 
     private DataInfo getProbeInfoById(long probeId) throws SQLException {
