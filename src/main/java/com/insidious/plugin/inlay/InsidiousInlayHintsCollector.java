@@ -110,11 +110,11 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
                 Arrays.asList(new SpacePresentation(column * columnWidth, 0), inlayShowingCount,
                         inlayShowingAverage, inlayShowingStdDev));
 
-        logger.warn("PSIElement " +
-                "[" + element.getClass().getSimpleName() + "]" +
-                "[" + elementLineNumber + "," + column + "]: "
-                + currentClass.getQualifiedName() + "."
-                + methodElement.getName() + "()");
+//        logger.warn("PSIElement " +
+//                "[" + element.getClass().getSimpleName() + "]" +
+//                "[" + elementLineNumber + "," + column + "]: "
+//                + currentClass.getQualifiedName() + "."
+//                + methodElement.getName() + "()");
 
 //            inlayHintsSink.addBlockElement(line, true, root, constraints);
         inlayHintsSink.addBlockElement(startOffset, true, true, UNLOGGED_APM_GROUP, sequenceOfInlays);
