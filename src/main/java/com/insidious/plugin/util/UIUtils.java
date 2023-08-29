@@ -59,6 +59,10 @@ public class UIUtils {
             JBColor.BLACK,
             defaultForeground);
 
+    public static JBColor buttonBorderColor = new JBColor(
+            new Color(196, 196, 196),
+            new Color(94, 96, 96));
+
     public static Icon UNLOGGED_ICON_DARK = IconLoader.getIcon("/icons/png/logo_unlogged.png", UIUtils.class);
     public static Icon UNLOGGED_GPT_ICON_PINK = IconLoader.getIcon("/icons/png/unloggedGPT_pink.png", UIUtils.class);
     public static Icon UNLOGGED_ICON_DARK_SVG = IconLoader.getIcon("/icons/svg/unlogged_logo.svg", UIUtils.class);

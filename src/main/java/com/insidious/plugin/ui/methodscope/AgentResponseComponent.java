@@ -11,6 +11,7 @@ import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
 
 import javax.swing.*;
+import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.util.Date;
@@ -40,6 +41,7 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
     private JLabel informationLabel;
     private JPanel mainContentPanel;
     private JPanel newBottomPanel;
+    private JPanel topRightbuttonPanel;
 
     public AgentResponseComponent(
             AgentCommandResponse<String> agentCommandResponse,
@@ -73,6 +75,9 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
 
         if (SHOW_TEST_CASE_CREATE_BUTTON) {
             createTestCaseButton = new JButton("Create JUnit test case");
+            createTestCaseButton.setOpaque(false);
+            createTestCaseButton.setContentAreaFilled(false);
+            createTestCaseButton.setIcon(UIUtils.TEST_CASES_ICON_PINK);
             buttonRightPanel.add(createTestCaseButton);
             if (testCandidate.getEntryProbeIndex() < 1) {
                 createTestCaseButton.setEnabled(false);
@@ -91,6 +96,12 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
 
         deleteButton.setIcon(UIUtils.DELETE_CANDIDATE_RED_SVG);
         acceptButton.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
+
+        deleteButton.setBorder(new LineBorder(UIUtils.buttonBorderColor));
+        acceptButton.setBorder(new LineBorder(UIUtils.buttonBorderColor));
+        createTestCaseButton.setBorder(new LineBorder(UIUtils.buttonBorderColor));
+        viewFullButton.setBorder(new LineBorder(UIUtils.buttonBorderColor));
+        mainContentPanel.setBackground(UIUtils.agentResponseBaseColor);
     }
 
     public void setInfoLabel(String info) {
@@ -104,9 +115,8 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
 
         switch (differenceResult.getDiffResultType()) {
             case DIFF:
-                this.statusLabel.setText("Failing.");
+                this.statusLabel.setText("Failing");
                 this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
-                this.statusLabel.setForeground(UIUtils.red);
                 renderTableWithDifferences(differenceResult.getDifferenceInstanceList());
                 break;
             case NO_ORIGINAL:
@@ -114,9 +124,8 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
                 renderTableForResponse(differenceResult.getRightOnly());
                 break;
             case SAME:
-                this.statusLabel.setText("Passing.");
+                this.statusLabel.setText("Passing");
                 this.statusLabel.setIcon(UIUtils.CHECK_GREEN_SMALL);
-                this.statusLabel.setForeground(UIUtils.green);
                 this.tableParent.setVisible(false);
                 break;
             default:
@@ -135,6 +144,9 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
     private void renderTableWithDifferences(List<DifferenceInstance> differenceInstances) {
         CompareTableModel newModel = new CompareTableModel(differenceInstances, this.mainTable);
         this.mainTable.setModel(newModel);
+        this.mainTable.setBackground(UIUtils.agentResponseBaseColor);
+        this.scrollParent.getViewport().setOpaque(true);
+        this.scrollParent.getViewport().setBackground(UIUtils.agentResponseBaseColor);
         this.mainTable.revalidate();
         this.mainTable.repaint();
     }
