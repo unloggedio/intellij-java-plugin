@@ -1,5 +1,6 @@
 package com.insidious.plugin.datafile;
 
+import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.GutterState;
@@ -63,7 +64,7 @@ public class AtomicRecordServiceTest {
 
         TestCandidateMetadata candidateMetadata = new TestCandidateMetadata();
         Parameter returnValue = new Parameter();
-        returnValue.setProb(new DataEventWithSessionId());
+        returnValue.setProbeAndProbeInfo(new DataEventWithSessionId(), null);
         MethodCallExpression methodCallExpression = new MethodCallExpression("method",
                 new Parameter(), new ArrayList<>(), returnValue, 0);
         methodCallExpression.setReturnDataEvent(new DataEventWithSessionId());
@@ -95,7 +96,7 @@ public class AtomicRecordServiceTest {
         //replace existing candidate
         TestCandidateMetadata candidateMetadata1 = new TestCandidateMetadata();
         Parameter returnValue1 = new Parameter();
-        returnValue.setProb(new DataEventWithSessionId());
+        returnValue.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
         MethodCallExpression methodCallExpression1 = new MethodCallExpression("method",
                 new Parameter(), new ArrayList<>(), returnValue1, 0);
         methodCallExpression1.setReturnDataEvent(new DataEventWithSessionId());
@@ -128,13 +129,12 @@ public class AtomicRecordServiceTest {
 
         TestCandidateMetadata candidateMetadata2 = new TestCandidateMetadata();
         Parameter returnValue2 = new Parameter();
-        returnValue.setProb(new DataEventWithSessionId());
         MethodCallExpression methodCallExpression2 = new MethodCallExpression("method",
                 new Parameter(), new ArrayList<>(), returnValue2, 0);
         methodCallExpression2.setReturnDataEvent(new DataEventWithSessionId());
         methodCallExpression2.setEntryProbe(new DataEventWithSessionId());
         Parameter returnValue3 = new Parameter();
-        returnValue3.setProb(new DataEventWithSessionId());
+        returnValue3.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
         methodCallExpression2.setReturnValue(returnValue3);
         candidateMetadata2.setMainMethod(methodCallExpression2);
 
@@ -237,13 +237,12 @@ public class AtomicRecordServiceTest {
 
         TestCandidateMetadata candidateMetadata4 = new TestCandidateMetadata();
         Parameter returnValue4 = new Parameter();
-        returnValue.setProb(new DataEventWithSessionId());
         MethodCallExpression methodCallExpression4 = new MethodCallExpression("method",
                 new Parameter(), new ArrayList<>(), returnValue4, 0);
         methodCallExpression4.setReturnDataEvent(new DataEventWithSessionId());
         methodCallExpression4.setEntryProbe(new DataEventWithSessionId());
         Parameter returnValue5 = new Parameter();
-        returnValue5.setProb(new DataEventWithSessionId());
+        returnValue5.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
         methodCallExpression4.setReturnValue(returnValue5);
         candidateMetadata4.setMainMethod(methodCallExpression4);
 
@@ -314,7 +313,7 @@ public class AtomicRecordServiceTest {
         List<StoredCandidate> storedCandidateList = new ArrayList<>();
         TestCandidateMetadata candidateMetadata = new TestCandidateMetadata();
         Parameter returnValue = new Parameter();
-        returnValue.setProb(new DataEventWithSessionId());
+        returnValue.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
 
         MethodCallExpression methodCallExpression = new MethodCallExpression("method",
                 new Parameter(), new ArrayList<>(), returnValue, 0);
@@ -340,7 +339,6 @@ public class AtomicRecordServiceTest {
 
         TestCandidateMetadata candidateMetadata1 = new TestCandidateMetadata();
         Parameter returnValue1 = new Parameter();
-        returnValue.setProb(new DataEventWithSessionId());
         MethodCallExpression methodCallExpression1 = new MethodCallExpression("method",
                 new Parameter(), new ArrayList<>(), returnValue1, 0);
         methodCallExpression1.setReturnDataEvent(new DataEventWithSessionId());
@@ -368,13 +366,12 @@ public class AtomicRecordServiceTest {
 
         TestCandidateMetadata candidateMetadata4 = new TestCandidateMetadata();
         Parameter returnValue4 = new Parameter();
-        returnValue.setProb(new DataEventWithSessionId());
         MethodCallExpression methodCallExpression4 = new MethodCallExpression("method",
                 new Parameter(), new ArrayList<>(), returnValue4, 0);
         methodCallExpression4.setReturnDataEvent(new DataEventWithSessionId());
         methodCallExpression4.setEntryProbe(new DataEventWithSessionId());
         Parameter returnValue5 = new Parameter();
-        returnValue5.setProb(new DataEventWithSessionId());
+        returnValue5.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
         methodCallExpression4.setReturnValue(returnValue5);
         candidateMetadata4.setMainMethod(methodCallExpression4);
 
