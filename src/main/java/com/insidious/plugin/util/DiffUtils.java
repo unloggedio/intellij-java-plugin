@@ -1,5 +1,6 @@
 package com.insidious.plugin.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.agent.AgentCommandResponse;
@@ -27,11 +28,7 @@ public class DiffUtils {
         AtomicAssertion testAssertions = testCandidateMetadata.getTestAssertions();
 
 
-//        if (testAssertions == null || AtomicAssertionUtils.countAssertions(testAssertions) < 1) {
-//            List<AtomicAssertion> subAssertions = new ArrayList<>();
-//            subAssertions.add(new AtomicAssertion(AssertionType.EQUAL, "/", agentCommandResponse.getMethodReturnValue()));
-//            testAssertions = new AtomicAssertion(AssertionType.ALLOF, subAssertions);
-//        }
+        String returnValueAsString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
         if (testAssertions != null && AtomicAssertionUtils.countAssertions(testAssertions) > 0) {
             Map<String, Object> leftOnlyMap = new HashMap<>();
@@ -39,7 +36,7 @@ public class DiffUtils {
             List<DifferenceInstance> differencesList = new ArrayList<>();
             DiffResultType diffResultType;
             try {
-                JsonNode responseNode = objectMapper.readTree(agentCommandResponse.getMethodReturnValue());
+                JsonNode responseNode = objectMapper.readTree(returnValueAsString);
                 AssertionResult result = AssertionEngine.executeAssertions(
                         testAssertions, responseNode);
 
@@ -103,29 +100,39 @@ public class DiffUtils {
             return new DifferenceResult(differencesList, diffResultType, leftOnlyMap, rightOnlyMap);
         }
 
-        String originalString = testCandidateMetadata.getReturnValue();
+        String expectedStringFromCandidate = testCandidateMetadata.getReturnValue();
+        if (testCandidateMetadata.getReturnValueClassname().equals("java.lang.String")
+                && expectedStringFromCandidate.startsWith("\"")
+                && expectedStringFromCandidate.endsWith("\"") ) {
+            try {
+                expectedStringFromCandidate = objectMapper.readTree(expectedStringFromCandidate).asText();
+            } catch (JsonProcessingException e) {
+                // failed to read as a json node
+            }
+        }
 
         if (testCandidateMetadata.isReturnValueIsBoolean()) {
-            if (isNumeric(originalString)) {
-                originalString = "0".equals(originalString) ? "false" : "true";
+            if (isNumeric(expectedStringFromCandidate)) {
+                expectedStringFromCandidate = "0".equals(expectedStringFromCandidate) ? "false" : "true";
             }
         }
 
         // void return value
-        if ("void".equals(agentCommandResponse.getResponseClassName()) && "0".equals(originalString)) {
-            originalString = "null";
+        if ("void".equals(agentCommandResponse.getResponseClassName()) && "0".equals(expectedStringFromCandidate)) {
+            expectedStringFromCandidate = "null";
         }
 
-        String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
         if ("float".equals(agentCommandResponse.getResponseClassName())) {
-            originalString = String.valueOf(Float.intBitsToFloat(Integer.parseInt(originalString)));
-            actualString = String.valueOf(Float.intBitsToFloat(Integer.parseInt(actualString)));
+            expectedStringFromCandidate = String.valueOf(
+                    Float.intBitsToFloat(Integer.parseInt(expectedStringFromCandidate)));
+            returnValueAsString = String.valueOf(Float.intBitsToFloat(Integer.parseInt(returnValueAsString)));
         }
 
         if ("double".equals(agentCommandResponse.getResponseClassName())) {
-            originalString = String.valueOf(Double.longBitsToDouble(Long.parseLong(originalString)));
-            actualString = String.valueOf(Double.longBitsToDouble(Long.parseLong(actualString)));
+            expectedStringFromCandidate = String.valueOf(
+                    Double.longBitsToDouble(Long.parseLong(expectedStringFromCandidate)));
+            returnValueAsString = String.valueOf(Double.longBitsToDouble(Long.parseLong(returnValueAsString)));
         }
 
         if (testCandidateMetadata.isException() ||
@@ -133,7 +140,7 @@ public class DiffUtils {
             //exception flow wip
             if (testCandidateMetadata.isException()) {
                 //load before as exception
-                DifferenceResult res = calculateDifferences(originalString, actualString,
+                DifferenceResult res = calculateDifferences(expectedStringFromCandidate, returnValueAsString,
                         agentCommandResponse.getResponseType());
                 if (res.getDiffResultType().equals(DiffResultType.ACTUAL_EXCEPTION)) {
                     res.setDiffResultType(DiffResultType.BOTH_EXCEPTION);
@@ -143,7 +150,8 @@ public class DiffUtils {
                 return res;
             } else {
                 //load before as normal
-                return calculateDifferences(originalString, actualString, agentCommandResponse.getResponseType());
+                return calculateDifferences(expectedStringFromCandidate, returnValueAsString,
+                        agentCommandResponse.getResponseType());
             }
         }
         boolean isDifferent;
@@ -167,7 +175,8 @@ public class DiffUtils {
                                 agentCommandResponse + "\n" + testCandidateMetadata, e);
             }
         }
-        return calculateDifferences(originalString, actualString, agentCommandResponse.getResponseType());
+        return calculateDifferences(expectedStringFromCandidate, returnValueAsString,
+                agentCommandResponse.getResponseType());
     }
 
     static private DifferenceResult calculateDifferences(String originalString, String actualString, ResponseType responseType) {

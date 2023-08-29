@@ -35,7 +35,7 @@ public class SaveForm {
     private final AssertionBlock ruleEditor;
     private final SaveFormMetadataPanel metadataForm;
     private final JPanel mainPanel;
-    private final JsonNode responseNode;
+    private JsonNode responseNode;
     //    private JButton saveButton;
 //    private JButton cancelButton;
     private JLabel assertionLabel;
@@ -58,11 +58,24 @@ public class SaveForm {
 
         candidateExplorerTree = new Tree(getTree());
 
+        String methodReturnValue = agentCommandResponse.getMethodReturnValue();
+
+
         try {
-            responseNode = objectMapper.readTree(agentCommandResponse.getMethodReturnValue());
+            responseNode = objectMapper.readTree(methodReturnValue);
         } catch (JsonProcessingException e) {
             // this shouldn't happen
-            throw new RuntimeException(e);
+            if ("java.lang.String".equals(agentCommandResponse.getResponseClassName())
+                    && !methodReturnValue.startsWith("\"")
+                    && !methodReturnValue.endsWith("\"")) {
+                try {
+                    responseNode = objectMapper.readTree("\"" + methodReturnValue + "\"");
+                } catch (JsonProcessingException e1) {
+                    // failed to read as a json node
+                    throw new RuntimeException(e1);
+                }
+            }
+
         }
 
 
@@ -72,7 +85,7 @@ public class SaveForm {
         if (existingAssertion.getSubAssertions() == null || existingAssertion.getSubAssertions().size() == 0) {
             List<AtomicAssertion> subAssertions = new ArrayList<>();
             subAssertions.add(
-                    new AtomicAssertion(AssertionType.EQUAL, "/", agentCommandResponse.getMethodReturnValue()));
+                    new AtomicAssertion(AssertionType.EQUAL, "/", methodReturnValue));
             existingAssertion = new AtomicAssertion(AssertionType.ALLOF, subAssertions);
         }
         ruleEditor = new AssertionBlock(existingAssertion, new AssertionBlockManager() {
@@ -108,8 +121,7 @@ public class SaveForm {
                 if (node == null) return new KeyValue("/", methodReturnValue);
                 TreeNode[] nodes = node.getPath();
                 String selectedKey = JsonTreeUtils.getFlatMap(nodes);
-                Object valueFromJsonNode = JsonTreeUtils.getValueFromJsonNode(
-                        methodReturnValue, selectedKey);
+                Object valueFromJsonNode = JsonTreeUtils.getValueFromJsonNode(responseNode, selectedKey);
                 return new KeyValue(selectedKey, valueFromJsonNode);
             }
 
