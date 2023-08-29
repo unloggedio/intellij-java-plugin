@@ -44,6 +44,7 @@ test:
     policy: pull
     paths:
       - .gradle
+      - .cache
   artifacts:
     untracked: false
     name: test-report.html

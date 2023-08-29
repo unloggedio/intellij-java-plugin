@@ -541,7 +541,7 @@ class AssertionEngineTest {
                         		"expression": "SELF",
                         		"expectedValue": "1",
                         		"id": "76318875-44f0-4864-9580-45a5fa9c6887",
-                        		"assertionType": "NOT",
+                        		"assertionType": "NOTALLOF",
                         		"key": "/c/b"
                         	}],
                         	"expression": "SELF",
