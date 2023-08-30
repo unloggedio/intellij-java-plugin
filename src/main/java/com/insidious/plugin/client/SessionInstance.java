@@ -975,7 +975,8 @@ public class SessionInstance implements Runnable {
             ConcurrentIndexedCollection<TypeInfoDocument> typeIndex = archiveIndex.getTypeInfoIndex();
             typeIndex.parallelStream().forEach(e -> typeInfoIndex.put(e.getTypeId(), e));
         } catch (Exception e) {
-            logger.warn("failed to read archive for types index: " + e.getMessage());
+            logger.warn("failed to read archive for types index: " + e.getMessage()
+                    + " from file [" + sessionFile + "]");
             throw new FailedToReadClassWeaveException("Failed to read " + INDEX_TYPE_DAT_FILE + " in "
                     + sessionFile.getPath() + " -> " + e.getMessage(), e);
         }
