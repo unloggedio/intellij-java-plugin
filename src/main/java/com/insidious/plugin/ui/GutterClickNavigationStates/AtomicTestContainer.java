@@ -119,6 +119,8 @@ public class AtomicTestContainer {
                 ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
                         insidiousService.getStoredCandidatesFor(candidateSearchQuery));
 
+        logger.warn("Candidates for [ " + candidateSearchQuery + "] => " + methodTestCandidates.size());
+
         loadExecutionFlow();
         if (methodTestCandidates.size() > 0) {
 

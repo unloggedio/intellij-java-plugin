@@ -2444,6 +2444,7 @@ public class SessionInstance implements Runnable {
 
         String existingParameterType;
         Parameter parameterInstance = new Parameter();
+        logger.warn("processing [" + eventsSublist.size() + "] events from [" + logFileList.size() + "] log files");
         for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
             KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = e.block();
@@ -3484,7 +3485,7 @@ public class SessionInstance implements Runnable {
         daoService.createOrUpdateProbeInfo(probesToSave);
 
 
-        if (threadState.getCallStack().size() > 50) {
+        if (threadState.getCallStack().size() > 100) {
             StringBuilder infiniteRecursionDetectedMessage = new StringBuilder(
                     "<html>There was an infinite recursion " +
                             "detected. Events cannot be processed further for thread [" + threadId + "]. " +

@@ -178,7 +178,7 @@ public class ClassTypeUtils {
 
         if (typeName.contains(".")) {
             if (typeName.contains("$")) {
-                typeName = typeName.substring(0, typeName.indexOf("$"));
+                typeName = typeName.replace("$", ".");
             }
             // for class array should be an ArrayTypeName instead of ClassName
             // though the string value is same but the
@@ -192,7 +192,7 @@ public class ClassTypeUtils {
             }catch (Exception exception) {
                 // java poet failed to create class name from string
                 String packageName = typeName.substring(0, typeName.lastIndexOf("."));
-                String simpleName = typeName.substring(typeName.lastIndexOf("."));
+                String simpleName = typeName.substring(typeName.lastIndexOf(".") + 1);
                 return ClassName.get(packageName, simpleName);
             }
             return returnValueSquareClass;

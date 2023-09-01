@@ -93,8 +93,10 @@ public class MethodUnderTest {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         MethodUnderTest that = (MethodUnderTest) o;
-        return methodHash == that.methodHash && name.equals(that.name) && signature.equals(
-                that.signature) && className.equals(that.className);
+        return methodHash == that.methodHash
+                && Objects.equals(name, that.name)
+                && Objects.equals(signature, that.signature)
+                && Objects.equals(className, that.className);
     }
 
     @Override

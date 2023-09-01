@@ -853,7 +853,6 @@ final public class InsidiousService implements Disposable,
         if (DumbService.getInstance(project).isDumb()) {
             return List.of();
         }
-
         List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesForAllMethod(candidateSearchQuery);
 
 
@@ -896,9 +895,11 @@ final public class InsidiousService implements Disposable,
 
     public List<StoredCandidate> getStoredCandidatesFor(CandidateSearchQuery candidateSearchQuery) {
         if (candidateSearchQuery == null) {
+            logger.warn("get stored candidates query is null");
             return List.of();
         }
         if (DumbService.getInstance(project).isDumb()) {
+            logger.warn("get stored candidates project is in dumb mode [" + project.getName() + "]") ;
             return List.of();
         }
 
@@ -1359,11 +1360,14 @@ final public class InsidiousService implements Disposable,
             removeCurrentActiveHighlights();
         }
         currentHighlightedRequest = highlightRequest;
+        MethodUnderTest methodUnderTest = currentHighlightedRequest.getMethodUnderTest();
+        if (methodUnderTest.getClassName() == null) {
+            return;
+        }
 
         // add new highlights to the current editor
         Editor selectedTextEditor = FileEditorManager.getInstance(project).getSelectedTextEditor();
         MarkupModel markupModel = selectedTextEditor.getMarkupModel();
-        MethodUnderTest methodUnderTest = highlightRequest.getMethodUnderTest();
         Document currentDocument = selectedTextEditor.getDocument();
 
         String simpleClassName = ClassUtils.getSimpleName(methodUnderTest.getClassName());

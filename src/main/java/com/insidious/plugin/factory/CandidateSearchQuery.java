@@ -111,4 +111,15 @@ public class CandidateSearchQuery {
     public CandidateFilterType getCandidateFilterType() {
         return candidateFilterType;
     }
+
+    @Override
+    public String toString() {
+        return "CandidateSearchQuery{" +
+                "loadCalls=" + loadCalls +
+                ", methodUnderTest=" + methodUnderTest +
+                ", interfaceNames=" + interfaceNames +
+                ", argumentsDescriptor='" + argumentsDescriptor + '\'' +
+                ", candidateFilterType=" + candidateFilterType +
+                '}';
+    }
 }

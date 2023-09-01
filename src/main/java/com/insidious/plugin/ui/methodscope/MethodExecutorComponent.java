@@ -28,6 +28,7 @@ import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Computable;
@@ -273,6 +274,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     public void refreshAndReloadCandidates(final MethodAdapter method, List<StoredCandidate> candidates) {
         logger.warn("load and refresh candidates in mec for");
+
+
 
         if (methodElement == null || method == null || method.getPsiMethod() != methodElement.getPsiMethod()) {
             clearBoard();
@@ -725,6 +728,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         List<StoredCandidate> methodTestCandidates =
                 ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
                         insidiousService.getStoredCandidatesFor(query));
+        logger.warn("Candidates for [ " + query + "] in refreshSearchAndLoad => " + methodTestCandidates.size());
 
         refreshAndReloadCandidates(methodElement, methodTestCandidates);
     }
