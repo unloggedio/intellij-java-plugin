@@ -51,7 +51,13 @@ public class ReportingService {
         boolean isAgentException = false;
         boolean pluginException = false;
 
-        XSSFWorkbook workbook = getWorkbook();
+        XSSFWorkbook workbook = null;
+        try {
+            workbook = getWorkbook();
+        } catch (Exception e) {
+            System.out.println("Exception writing record for : " + result.toString());
+            return;
+        }
         if (workbook == null) {
             return;
         }

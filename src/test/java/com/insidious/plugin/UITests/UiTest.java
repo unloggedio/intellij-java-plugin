@@ -89,6 +89,7 @@ public class UiTest {
 
     //Needs your project to be up and running to run this test.
     //Also needs the project tree to be visible.
+    //disable debugging on code when running this/don't run oit in debug mode.
     @Test
     public void DirectInvokeAll() {
         //set to true if project has multiple modules
@@ -96,8 +97,11 @@ public class UiTest {
         final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
 
         //ensure this file is visible in the project tree if using startFrom
-        String startWith = "CabezaRedissonClient";
-        boolean startFrom = false;
+        // possible cause for corruption : PaymentTerminalDao
+        // OUT OF BOUNDS exception for click in EntityTagMap, AppointmentRes
+        // Keep an eye out for ui freezes (of runIdeForTests Instance)
+        String startWith = "PatientLeadRes";
+        boolean startFrom = true;
         ContainerFixture projectView;
         if (!startFrom) {
             idea.getExpandAllButton().click();
@@ -105,10 +109,8 @@ public class UiTest {
 
             projectView = idea.getProjectViewTree();
             projectView.getData().getAll().get(0).click();
-
             keyboard.enterText("src");
         } else {
-            System.out.println("Custom start");
             projectView = idea.getProjectViewTree();
         }
 
@@ -192,6 +194,13 @@ public class UiTest {
                     }
 
                     pause(ofSeconds(1).toMillis());
+
+                    //start from the top of the file, useful if that file was previously open
+                    editor.getEditor().scrollToOffset(1);
+                    pause(ofSeconds(1).toMillis());
+                    RemoteText packageText = editor.getEditor().findText("package");
+                    packageText.click();
+
                     expandJavaFile(editor.getEditor());
                     List<GutterIcon> icons = editor.getGutter().getIcons();
                     TreeMap<Integer, GutterIcon> iconTreeMap = new TreeMap<>();
@@ -210,11 +219,6 @@ public class UiTest {
                         continue;
                     }
 
-                    //start from the top of the file, useful if that file was previously open
-                    editor.getEditor().scrollToOffset(1);
-                    RemoteText packageText = editor.getEditor().findText("package");
-                    packageText.click();
-
                     editor = idea.textEditor(Duration.ofSeconds(2));
                     pause(ofSeconds(1).toMillis());
 
@@ -224,7 +228,12 @@ public class UiTest {
                             //unlogged icon found, click it.
                             scrollDownToIcon(editor, icon);
                             pause(ofSeconds(1).toMillis());
-                            icon.click();
+                            try {
+                                icon.click();
+                            } catch (Exception e) {
+                                scrollDownToIcon(editor, icon);
+                                icon.click();
+                            }
 
                             if (icon.toString().contains("overriddenPath='/icons/svg/execute_v2.svg'")) {
                                 //skip if execute all, no need to hot reload as this test is for
