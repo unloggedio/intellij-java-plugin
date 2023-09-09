@@ -1,16 +1,28 @@
 package com.insidious.plugin.agent;
 
+import com.insidious.plugin.mocking.DeclaredMock;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class AgentCommandRequest {
     private AgentCommand command;
     private String className;
-//    private List<String> alternateClassNames;
+    //    private List<String> alternateClassNames;
     private String methodName;
     private String methodSignature;
     private List<String> methodParameters;
     private AgentCommandRequestType requestType;
     private List<String> parameterTypes;
+    private List<DeclaredMock> declaredMocks = new ArrayList<>();
+
+    public List<DeclaredMock> getDeclaredMocks() {
+        return declaredMocks;
+    }
+
+    public void setDeclaredMocks(List<DeclaredMock> declaredMocks) {
+        this.declaredMocks = declaredMocks;
+    }
 
 //    public List<String> getAlternateClassNames() {
 //        return alternateClassNames;
@@ -79,11 +91,11 @@ public class AgentCommandRequest {
         this.requestType = requestType;
     }
 
-    public void setParameterTypes(List<String> parameterTypes) {
-        this.parameterTypes = parameterTypes;
-    }
-
     public List<String> getParameterTypes() {
         return parameterTypes;
+    }
+
+    public void setParameterTypes(List<String> parameterTypes) {
+        this.parameterTypes = parameterTypes;
     }
 }

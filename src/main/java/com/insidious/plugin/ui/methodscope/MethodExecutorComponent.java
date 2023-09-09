@@ -285,8 +285,13 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             return;
         }
         methodUnderTest = MethodUnderTest.fromMethodAdapter(methodElement);
-
         methodInfo = insidiousService.getMethodInformation(methodUnderTest);
+
+        if (candidates.size() == 0) {
+            return;
+        }
+
+
 
         List<ArgumentNameValuePair> methodArgumentNameList = generateParameterList(methodElement.getParameters());
 
@@ -720,7 +725,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         refreshSearchAndLoad();
     }
 
-    private void refreshSearchAndLoad() {
+    public void refreshSearchAndLoad() {
 
         CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(methodElement, candidateFilterType,
                 false);
