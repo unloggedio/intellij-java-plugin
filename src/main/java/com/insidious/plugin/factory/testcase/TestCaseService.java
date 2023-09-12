@@ -9,7 +9,7 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.mock.MockFactory;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutine;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;

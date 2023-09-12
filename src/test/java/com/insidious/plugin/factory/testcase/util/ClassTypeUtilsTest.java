@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.util;
 
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;

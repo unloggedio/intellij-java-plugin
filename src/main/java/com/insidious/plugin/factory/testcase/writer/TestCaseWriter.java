@@ -2,7 +2,7 @@ package com.insidious.plugin.factory.testcase.writer;
 
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ParameterUtils;

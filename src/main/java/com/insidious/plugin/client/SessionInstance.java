@@ -34,7 +34,7 @@ import com.insidious.plugin.factory.TestCandidateReceiver;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.ChronicleVariableContainer;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.*;

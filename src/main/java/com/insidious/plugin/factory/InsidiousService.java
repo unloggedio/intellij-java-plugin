@@ -19,6 +19,8 @@ import com.insidious.plugin.coverage.*;
 import com.insidious.plugin.datafile.AtomicRecordService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.mocking.DeclaredMockManager;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
@@ -89,9 +91,6 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
-//import io.unlogged.Unlogged;
-
-
 import org.json.JSONObject;
 
 import java.awt.*;
@@ -155,11 +154,7 @@ final public class InsidiousService implements Disposable,
     private HighlightedRequest currentHighlightedRequest = null;
     private boolean testCaseDesignerWindowAdded = false;
     private MethodUnderTest currentMethodUnderTest;
-
-//    @Unlogged
-    public static void main(String[] args) {
-
-    }
+    private DeclaredMockManager declaredMockManager;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -184,6 +179,9 @@ final public class InsidiousService implements Disposable,
 //        threadPoolExecutor.submit(agentStateProvider);
         agentClient = new AgentClient("http://localhost:12100", (ConnectionStateListener) agentStateProvider);
         junitTestCaseWriter = new JUnitTestCaseWriter(project, objectMapper);
+
+        declaredMockManager = new DeclaredMockManager(project);
+
         ApplicationManager.getApplication().invokeLater(() -> {
             if (project.isDisposed()) {
                 return;
@@ -198,6 +196,11 @@ final public class InsidiousService implements Disposable,
                         });
             }
         });
+    }
+
+    //    @Unlogged
+    public static void main(String[] args) {
+
     }
 
     private static String getClassMethodHashKey(AgentCommandRequest agentCommandRequest) {
@@ -619,7 +622,7 @@ final public class InsidiousService implements Disposable,
                 continue;
             }
 
-             PsiFile psiFile = ApplicationManager.getApplication().runReadAction(
+            PsiFile psiFile = ApplicationManager.getApplication().runReadAction(
                     (ThrowableComputable<PsiFile, RuntimeException>) () -> PsiDocumentManager.getInstance(project)
                             .getPsiFile(editor.getDocument()));
             if (psiFile == null) {
@@ -701,7 +704,7 @@ final public class InsidiousService implements Disposable,
         coverageReportComponent.setCoverageData(new CodeCoverageData(updatedPackageList));
     }
 
-    
+
     public CandidateSearchQuery createSearchQueryForMethod(
             MethodAdapter currentMethod,
             CandidateFilterType candidateFilterType,
@@ -714,7 +717,7 @@ final public class InsidiousService implements Disposable,
         );
     }
 
-    
+
     public CandidateSearchQuery createSearchQueryForMethod(MethodAdapter currentMethod) {
         return CandidateSearchQuery.fromMethod(currentMethod,
                 getInterfacesWithSameSignature(currentMethod),
@@ -872,7 +875,7 @@ final public class InsidiousService implements Disposable,
         return candidates;
     }
 
-    
+
     public List<String> getInterfacesWithSameSignature(MethodAdapter method) {
         String methodName = method.getName();
         ClassAdapter containingClass = method.getContainingClass();
@@ -902,7 +905,7 @@ final public class InsidiousService implements Disposable,
             return List.of();
         }
         if (DumbService.getInstance(project).isDumb()) {
-            logger.warn("get stored candidates project is in dumb mode [" + project.getName() + "]") ;
+            logger.warn("get stored candidates project is in dumb mode [" + project.getName() + "]");
             return List.of();
         }
 
@@ -936,7 +939,7 @@ final public class InsidiousService implements Disposable,
         return filterStoredCandidates.getCandidateList();
     }
 
-    
+
     public String getMethodArgsDescriptor(MethodAdapter method) {
         ParameterAdapter[] methodParams = method.getParameters();
         StringBuilder methodArgumentsClassnames = new StringBuilder();
@@ -1040,7 +1043,7 @@ final public class InsidiousService implements Disposable,
 
     public void showCandidateSaveForm(SaveForm saveForm) {
         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-         FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
+        FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
         if (selectedEditor == null) {
             StoredCandidate candidate = saveForm.getStoredCandidate();
             selectedEditor = InsidiousUtils.focusProbeLocationInEditor(0,
@@ -1439,6 +1442,10 @@ final public class InsidiousService implements Disposable,
 
     public String guessModuleBasePath(ClassAdapter currentClass) {
         return atomicRecordService.guessModuleBasePath((PsiClass) currentClass.getSource());
+    }
+
+    public List<DeclaredMock> getDeclaredMocks(MethodUnderTest methodUnderTest) {
+        return declaredMockManager.getDeclaredMocks(methodUnderTest);
     }
 
 

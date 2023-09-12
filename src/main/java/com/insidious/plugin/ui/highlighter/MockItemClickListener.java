@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.highlighter;
 
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.ui.mocking.MockDefinitionPanel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
@@ -33,9 +34,11 @@ public class MockItemClickListener extends MouseAdapter {
     public void mouseClicked(MouseEvent mouseEvent) {
         logger.warn("Clicked item: " + methodItemPanel);
 
-        MockDefinitionPanel gutterMethodPanel = new MockDefinitionPanel();
+        MockDefinitionPanel gutterMethodPanel =
+                new MockDefinitionPanel(methodCallExpression);
+
         JComponent gutterMethodComponent = gutterMethodPanel.getComponent();
-//        gutterMethodComponent.setMaximumSize(new Dimension(-1, 600));
+
         ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
                 .createComponentPopupBuilder(gutterMethodComponent, null);
 

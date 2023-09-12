@@ -5,7 +5,7 @@ import com.insidious.plugin.pojo.Parameter;
 
 import java.util.List;
 
-import static com.insidious.plugin.factory.testcase.util.ClassTypeUtils.createTypeFromTypeDeclaration;
+import static com.insidious.plugin.util.ClassTypeUtils.createTypeFromTypeDeclaration;
 
 public class ParameterUtils {
     public static String makeParameterValueForPrimitiveType(Parameter parameter) {

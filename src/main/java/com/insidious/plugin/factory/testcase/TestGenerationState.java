@@ -4,7 +4,7 @@ package com.insidious.plugin.factory.testcase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
