@@ -185,6 +185,9 @@ final public class InsidiousService implements Disposable,
         agentClient = new AgentClient("http://localhost:12100", (ConnectionStateListener) agentStateProvider);
         junitTestCaseWriter = new JUnitTestCaseWriter(project, objectMapper);
         ApplicationManager.getApplication().invokeLater(() -> {
+            if (project.isDisposed()) {
+                return;
+            }
             ToolWindow unlogged = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
             if (unlogged != null) {
                 this.init(this.project, unlogged);

@@ -66,4 +66,22 @@ class ClassTypeUtilsTest {
         Assertions.assertEquals(ArrayTypeName.class, typeName.getClass());
         Assertions.assertEquals("java.lang.String[]", typeName.toString());
     }
+
+    @Test
+    void testBadlyNamedClass() {
+        TypeName typeName = ClassTypeUtils.createTypeFromNameString("com.package.name.BadPackage.dadlyNamed.ActualClassName");
+        Assertions.assertTrue(typeName instanceof ClassName);
+        ClassName className = (ClassName) typeName;
+        Assertions.assertEquals("ActualClassName", className.simpleName());
+        Assertions.assertEquals("com.package.name.BadPackage.dadlyNamed", className.packageName());
+    }
+
+    @Test
+    void testBadlyNamedClass1() {
+        TypeName typeName = ClassTypeUtils.createTypeFromNameString("com.example.WebFluxDemo.models.Task");
+        Assertions.assertTrue(typeName instanceof ClassName);
+        ClassName className = (ClassName) typeName;
+        Assertions.assertEquals("Task", className.simpleName());
+        Assertions.assertEquals("com.example.WebFluxDemo.models", className.packageName());
+    }
 }

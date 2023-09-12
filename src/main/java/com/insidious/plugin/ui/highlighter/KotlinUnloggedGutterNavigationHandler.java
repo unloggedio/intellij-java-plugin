@@ -28,8 +28,8 @@ public class KotlinUnloggedGutterNavigationHandler implements GutterIconNavigati
             UsageInsightTracker.getInstance().RecordEvent("TestIconClick", null);
 
 
-         List<LineMarkerInfo<?>> lineMarkerInfoList = new LinkedList<>();
-        lineMarkerInfoList.add(new LineHighlighter().getLineMarkerInfo(identifier));
+//         List<LineMarkerInfo<?>> lineMarkerInfoList = new LinkedList<>();
+//        lineMarkerInfoList.add(new LineHighlighter().getLineMarkerInfo(identifier));
 
 //        insidiousService.executeWithAgentForMethod(method);
 

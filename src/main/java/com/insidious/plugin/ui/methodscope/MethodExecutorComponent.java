@@ -220,6 +220,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass1 -> {
                 eventProperties.put("className", psiClass1.getQualifiedName());
                 eventProperties.put("methodName", methodName);
+                eventProperties.put("count", methodTestCandidates.size());
                 UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
 
                 callCount = methodTestCandidates.size();
