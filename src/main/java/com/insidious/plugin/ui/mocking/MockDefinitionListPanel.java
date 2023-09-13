@@ -24,8 +24,8 @@ import java.util.List;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
 
-public class MockDefinitionPanel {
-    private static final Logger logger = LoggerUtil.getInstance(MockDefinitionPanel.class);
+public class MockDefinitionListPanel {
+    private static final Logger logger = LoggerUtil.getInstance(MockDefinitionListPanel.class);
     private final InsidiousService insidiousService;
     private final MethodUnderTest methodUnderTest;
     private final PsiMethodCallExpression methodCallExpression;
@@ -45,7 +45,7 @@ public class MockDefinitionPanel {
     private JScrollPane savedItemScrollPanel;
     private JPanel northPanel;
 
-    public MockDefinitionPanel(PsiMethodCallExpression methodCallExpression) {
+    public MockDefinitionListPanel(PsiMethodCallExpression methodCallExpression) {
         this.methodCallExpression = methodCallExpression;
 
         insidiousService = methodCallExpression.getProject().getService(InsidiousService.class);
@@ -54,6 +54,8 @@ public class MockDefinitionPanel {
         methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethod));
 
         mockSwitchPanel.add(new OnOffButton(), BorderLayout.EAST);
+
+        mockedMethodText.setText(methodCallExpression.getMethodExpression().getText());
 
         List<DeclaredMock> declaredMockList = insidiousService.getDeclaredMocks(methodUnderTest);
 
@@ -109,7 +111,7 @@ public class MockDefinitionPanel {
         MockDefinitionEditor mockDefinitionEditor;
         if (declaredMock == null) {
             mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest,
-                    methodCallExpression.getMethodExpression().getQualifiedName());
+                    methodCallExpression);
         } else {
             mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest, declaredMock);
         }

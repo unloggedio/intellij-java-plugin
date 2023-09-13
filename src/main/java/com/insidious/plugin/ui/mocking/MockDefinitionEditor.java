@@ -5,6 +5,7 @@ import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.psi.PsiMethodCallExpression;
 
 import javax.swing.*;
 import java.util.ArrayList;
@@ -33,7 +34,7 @@ public class MockDefinitionEditor {
     private JButton cancelButton;
     private JButton saveButton;
 
-    public MockDefinitionEditor(MethodUnderTest methodUnderTest, String fieldName) {
+    public MockDefinitionEditor(MethodUnderTest methodUnderTest, PsiMethodCallExpression methodCallExpression) {
         this.methodUnderTest = methodUnderTest;
         List<String> methodSignatureItems = ClassTypeUtils.splitMethodDesc(methodUnderTest.getSignature());
         String returnTypeName = methodSignatureItems.remove(methodSignatureItems.size() - 1);
@@ -50,9 +51,9 @@ public class MockDefinitionEditor {
 
 
         this.declaredMock = new DeclaredMock(
-                "new mock for method " + methodUnderTest.getName(),
-                methodUnderTest.getClassName(), fieldName, methodUnderTest.getName(),
-                parameterList, returnValue, MethodExitType.NORMAL
+                "mock response " + methodCallExpression.getMethodExpression().getText(),
+                methodUnderTest.getClassName(), methodCallExpression.getMethodExpression().getQualifiedName(),
+                methodUnderTest.getName(), parameterList, returnValue, MethodExitType.NORMAL
         );
     }
 
