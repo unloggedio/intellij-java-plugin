@@ -17,6 +17,7 @@ public class DeclaredMock {
     private List<ThenParameter> thenParameter;
 
     public DeclaredMock(DeclaredMock declaredMock) {
+        this.id = declaredMock.id;
         this.name = declaredMock.name;
         this.fieldTypeName = declaredMock.fieldTypeName;
         this.fieldName = declaredMock.fieldName;

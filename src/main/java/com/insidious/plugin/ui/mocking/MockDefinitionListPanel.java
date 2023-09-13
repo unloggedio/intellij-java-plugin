@@ -176,5 +176,6 @@ public class MockDefinitionListPanel implements UpdateDeleteListener<DeclaredMoc
     @Override
     public void onDeleteRequest(DeclaredMock declaredMock) {
         insidiousService.deleteMockDefinition(methodUnderTest, declaredMock);
+        loadDefinitions(true);
     }
 }
