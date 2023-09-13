@@ -6,6 +6,7 @@ import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.popup.ActiveIcon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
+import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.ui.JBColor;
@@ -37,17 +38,17 @@ public class MockItemClickListener extends MouseAdapter {
                 new MockDefinitionListPanel(methodCallExpression);
 
         JComponent gutterMethodComponent = gutterMethodPanel.getComponent();
-        gutterMethodComponent.setPreferredSize(new Dimension(600, 400));
+//        gutterMethodComponent.setPreferredSize(new Dimension(600, 100));
 
         ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
                 .createComponentPopupBuilder(gutterMethodComponent, null);
 
-        gutterMethodComponentPopup
+        JBPopup componentPopUp = gutterMethodComponentPopup
                 .setProject(methodCallExpression.getProject())
                 .setShowBorder(true)
                 .setShowShadow(true)
                 .setFocusable(true)
-                .setMinSize(new Dimension(600, 400))
+                .setMinSize(new Dimension(600, -1))
                 .setRequestFocus(true)
                 .setResizable(true)
                 .setCancelOnClickOutside(true)
@@ -57,8 +58,9 @@ public class MockItemClickListener extends MouseAdapter {
                 .setBelongsToGlobalPopupStack(false)
                 .setTitle("Manage Mocks")
                 .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
-                .createPopup()
-                .show(new RelativePoint(mouseEvent));
+                .createPopup();
+        componentPopUp.show(new RelativePoint(mouseEvent));
+        gutterMethodPanel.setPopupHandle(componentPopUp);
 
 
     }

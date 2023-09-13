@@ -42,6 +42,7 @@ public class MockDefinitionListPanel implements UpdateDeleteListener<DeclaredMoc
     private JScrollPane savedItemScrollPanel;
     private JPanel northPanel;
     private JLabel mockCountLabel;
+    private JBPopup componentPopUp;
 
     public MockDefinitionListPanel(PsiMethodCallExpression methodCallExpression) {
         this.methodCallExpression = methodCallExpression;
@@ -72,7 +73,6 @@ public class MockDefinitionListPanel implements UpdateDeleteListener<DeclaredMoc
     }
 
     private void loadDefinitions(boolean showAddNewIfEmpty) {
-        logger.warn("Load mock definitions for " + methodUnderTest);
         List<DeclaredMock> declaredMockList = insidiousService.getDeclaredMocks(methodUnderTest);
 
         int savedCandidateCount = declaredMockList.size();
@@ -112,10 +112,18 @@ public class MockDefinitionListPanel implements UpdateDeleteListener<DeclaredMoc
             savedItemScrollPanel.setPreferredSize(new Dimension(-1, containerHeight));
             savedItemScrollPanel.setSize(new Dimension(-1, containerHeight));
 
+
             itemListPanel.revalidate();
             itemListPanel.repaint();
             savedItemScrollPanel.revalidate();
             savedItemScrollPanel.repaint();
+            mainPanel.repaint();
+            mainPanel.revalidate();
+            if (componentPopUp != null) {
+                Dimension currentSize = componentPopUp.getSize();
+                componentPopUp.setSize(new Dimension((int) currentSize.getWidth(), containerHeight + 150));
+            }
+
         }
     }
 
@@ -151,8 +159,10 @@ public class MockDefinitionListPanel implements UpdateDeleteListener<DeclaredMoc
                 .addListener(new JBPopupListener() {
                     @Override
                     public void onClosed(LightweightWindowEvent event) {
-                        loadDefinitions(false);
                         JBPopupListener.super.onClosed(event);
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            loadDefinitions(false);
+                        });
                     }
                 })
                 .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
@@ -176,6 +186,12 @@ public class MockDefinitionListPanel implements UpdateDeleteListener<DeclaredMoc
     @Override
     public void onDeleteRequest(DeclaredMock declaredMock) {
         insidiousService.deleteMockDefinition(methodUnderTest, declaredMock);
-        loadDefinitions(true);
+        ApplicationManager.getApplication().invokeLater(() -> {
+            loadDefinitions(false);
+        });
+    }
+
+    public void setPopupHandle(JBPopup componentPopUp) {
+        this.componentPopUp = componentPopUp;
     }
 }
