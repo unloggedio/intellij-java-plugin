@@ -6,7 +6,7 @@ import java.util.Map;
 public class AtomicRecord {
 
     private String classname;
-    private Map<String,List<StoredCandidate>> storedCandidateMap;
+    private Map<String, List<StoredCandidate>> storedCandidateMap;
 
     public String getClassname() {
         return classname;
@@ -16,11 +16,11 @@ public class AtomicRecord {
         this.classname = classname;
     }
 
-    public Map<String,List<StoredCandidate>> getStoredCandidateMap() {
+    public Map<String, List<StoredCandidate>> getStoredCandidateMap() {
         return storedCandidateMap;
     }
 
-    public void setStoredCandidateMap(Map<String,List<StoredCandidate>> storedCandidateList) {
+    public void setStoredCandidateMap(Map<String, List<StoredCandidate>> storedCandidateList) {
         this.storedCandidateMap = storedCandidateList;
     }
 

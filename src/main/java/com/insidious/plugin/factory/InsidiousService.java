@@ -20,9 +20,7 @@ import com.insidious.plugin.datafile.AtomicRecordService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
-import com.insidious.plugin.mocking.DeclaredMockManager;
 import com.insidious.plugin.pojo.TestCaseUnit;
-import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
@@ -113,14 +111,14 @@ final public class InsidiousService implements Disposable,
         GutterStateProvider, ConnectionStateListener {
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final static ObjectMapper objectMapper = new ObjectMapper();
+    final static private int TOOL_WINDOW_HEIGHT = 430;
+    final static private int TOOL_WINDOW_WIDTH = 500;
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
     private final AgentClient agentClient;
     private final SessionLoader sessionLoader;
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
-    final private int TOOL_WINDOW_HEIGHT = 430;
-    final private int TOOL_WINDOW_WIDTH = 600;
     final private AgentStateProvider agentStateProvider;
     private final ReportingService reportingService = new ReportingService(this);
     private final Map<String, String> candidateIndividualContextMap = new TreeMap<>();
@@ -154,7 +152,6 @@ final public class InsidiousService implements Disposable,
     private HighlightedRequest currentHighlightedRequest = null;
     private boolean testCaseDesignerWindowAdded = false;
     private MethodUnderTest currentMethodUnderTest;
-    private DeclaredMockManager declaredMockManager;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -176,11 +173,8 @@ final public class InsidiousService implements Disposable,
         InsidiousCaretListener listener = new InsidiousCaretListener();
         multicaster.addEditorMouseListener(listener, this);
         agentStateProvider = new DefaultAgentStateProvider(this);
-//        threadPoolExecutor.submit(agentStateProvider);
         agentClient = new AgentClient("http://localhost:12100", (ConnectionStateListener) agentStateProvider);
         junitTestCaseWriter = new JUnitTestCaseWriter(project, objectMapper);
-
-        declaredMockManager = new DeclaredMockManager(project);
 
         ApplicationManager.getApplication().invokeLater(() -> {
             if (project.isDisposed()) {
@@ -659,7 +653,6 @@ final public class InsidiousService implements Disposable,
         }
         CodeCoverageData coverageData = sessionInstance.createCoverageData();
 
-        Map<String, AtomicRecord> recordMap = atomicRecordService.getStoredRecords();
         List<PackageCoverageData> updatedPackageList = new ArrayList<>();
 
         for (PackageCoverageData packageCoverageData : coverageData.getPackageCoverageDataList()) {
@@ -667,20 +660,18 @@ final public class InsidiousService implements Disposable,
 
             for (ClassCoverageData classCoverageData : packageCoverageData.getClassCoverageDataList()) {
                 String fqcn = packageCoverageData.getPackageName() + "." + classCoverageData.getClassName();
-                AtomicRecord atomicRecord = recordMap.get(fqcn);
-                if (atomicRecord == null) {
+                Map<String, List<StoredCandidate>> candidateMapByMethodName =
+                        atomicRecordService.getCandidatesByClass(fqcn);
+                if (candidateMapByMethodName == null) {
                     updatedClassList.add(classCoverageData);
                     continue;
                 }
-                Map<String, List<StoredCandidate>> candidateMapByMethodName = atomicRecord.getStoredCandidateMap();
-
 
                 List<MethodCoverageData> methodCoverageList = classCoverageData.getMethodCoverageData();
                 List<MethodCoverageData> updatedMethodList = new ArrayList<>();
                 for (MethodCoverageData methodCoverageData : methodCoverageList) {
-                    List<StoredCandidate> methodCandidates = candidateMapByMethodName.get(
-                            fqcn + "#" +
-                                    methodCoverageData.getMethodName() + "#" + methodCoverageData.getMethodSignature());
+                    String key = fqcn + "#" + methodCoverageData.getMethodName() + "#" + methodCoverageData.getMethodSignature();
+                    List<StoredCandidate> methodCandidates = candidateMapByMethodName.get(key);
                     if (methodCandidates != null && methodCandidates.size() > 0) {
                         int coveredLineCount = methodCandidates.stream()
                                 .flatMap(e -> e.getLineNumbers().stream())
@@ -1445,7 +1436,11 @@ final public class InsidiousService implements Disposable,
     }
 
     public List<DeclaredMock> getDeclaredMocks(MethodUnderTest methodUnderTest) {
-        return declaredMockManager.getDeclaredMocks(methodUnderTest);
+        return atomicRecordService.getDeclaredMocks(methodUnderTest);
+    }
+
+    public void saveMockDefinition(DeclaredMock declaredMock, MethodUnderTest methodUnderTest) {
+        atomicRecordService.saveMockDefinition(methodUnderTest, declaredMock);
     }
 
 

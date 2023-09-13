@@ -16,7 +16,6 @@ import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.search.GlobalSearchScope;
 
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -73,11 +72,13 @@ public class ClassUtils {
 
             if (parameterType instanceof PsiClassReferenceType) {
                 PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
+                PsiClassType psiClassRawType = classReferenceType.rawType();
+                String rawTypeCanonicalText = psiClassRawType.getCanonicalText();
                 if (
-                        classReferenceType.rawType().getCanonicalText().equals("java.util.List") ||
-                                classReferenceType.rawType().getCanonicalText().equals("java.util.ArrayList") ||
-                                classReferenceType.rawType().getCanonicalText().equals("java.util.LinkedList") ||
-                                classReferenceType.rawType().getCanonicalText().equals("java.util.Set")
+                        rawTypeCanonicalText.equals("java.util.List") ||
+                                rawTypeCanonicalText.equals("java.util.ArrayList") ||
+                                rawTypeCanonicalText.equals("java.util.LinkedList") ||
+                                rawTypeCanonicalText.equals("java.util.Set")
                 ) {
                     dummyValue.append("[");
                     dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
@@ -85,10 +86,10 @@ public class ClassUtils {
                     return dummyValue.toString();
                 }
 
-                if (classReferenceType.rawType().getCanonicalText().equals("java.util.Map") ||
+                if (rawTypeCanonicalText.equals("java.util.Map") ||
                         // either from apache-collections or from spring
-                        classReferenceType.rawType().getName().endsWith("MultiValueMap") ||
-                        classReferenceType.rawType().getCanonicalText().equals("java.util.Map.Entry")
+                        psiClassRawType.getName().endsWith("MultiValueMap") ||
+                        rawTypeCanonicalText.equals("java.util.Map.Entry")
                 ) {
                     dummyValue.append("{");
                     dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
@@ -98,10 +99,22 @@ public class ClassUtils {
                     return dummyValue.toString();
                 }
 
-                if (classReferenceType.rawType().getCanonicalText().equals("java.util.UUID")) {
+                if (rawTypeCanonicalText.equals("java.util.UUID")) {
                     dummyValue.append("\"");
                     dummyValue.append(UUID.randomUUID());
                     dummyValue.append("\"");
+                    return dummyValue.toString();
+                }
+
+                if (rawTypeCanonicalText.equals("reactor.core.publisher.Flux")) {
+                    dummyValue.append("[");
+                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
+                    dummyValue.append("]");
+                    return dummyValue.toString();
+                }
+
+                if (rawTypeCanonicalText.equals("reactor.core.publisher.Mono")) {
+                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
                     return dummyValue.toString();
                 }
 
@@ -203,7 +216,7 @@ public class ClassUtils {
             classChosenListener.classSelected(implementationOptions.get(0));
             return;
         }
-         JBPopup implementationChooserPopup = JBPopupFactory
+        JBPopup implementationChooserPopup = JBPopupFactory
                 .getInstance()
                 .createPopupChooserBuilder(implementationOptions.stream()
                         .map(PsiClass::getQualifiedName)

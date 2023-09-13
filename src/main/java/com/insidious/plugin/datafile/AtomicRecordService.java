@@ -5,6 +5,7 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -23,7 +24,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.search.GlobalSearchScope;
-
 import org.json.JSONObject;
 
 import java.io.*;
@@ -40,7 +40,7 @@ public class AtomicRecordService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String projectBasePath;
     InsidiousService insidiousService;
-    private Map<String, AtomicRecord> storedRecords = null;
+    private Map<String, AtomicRecord> classAtomicRecordMap = null;
     private boolean useNotifications = true;
 
     public AtomicRecordService(InsidiousService service) {
@@ -59,7 +59,7 @@ public class AtomicRecordService {
 
         try {
             String methodKey = method.getMethodHashKey();
-            AtomicRecord record = this.storedRecords.get(method.getClassName());
+            AtomicRecord record = this.classAtomicRecordMap.get(method.getClassName());
             if (record == null) {
                 return null;
             }
@@ -108,7 +108,7 @@ public class AtomicRecordService {
     public void saveCandidate(MethodUnderTest methodUnderTest, StoredCandidate candidate) {
         try {
             AtomicRecord existingRecord = null;
-            AtomicRecord atomicRecord = this.storedRecords.get(methodUnderTest.getClassName());
+            AtomicRecord atomicRecord = this.classAtomicRecordMap.get(methodUnderTest.getClassName());
             String methodKey = methodUnderTest.getMethodHashKey();
             if (atomicRecord == null) {
                 //create record
@@ -184,9 +184,6 @@ public class AtomicRecordService {
         }
 
         ModuleManager instance = ModuleManager.getInstance(insidiousService.getProject());
-        if (instance == null) {
-            return returnFileList;
-        }
 
         Module[] modulesList = instance.getModules();
         if (modulesList == null) {
@@ -339,7 +336,7 @@ public class AtomicRecordService {
         listMap.put(methodHashKey, candidates);
         record.setStoredCandidateMap(listMap);
 
-        this.storedRecords.put(className, record);
+        this.classAtomicRecordMap.put(className, record);
         writeToFile(new File(getFilenameForClass(className)), record, FileUpdateType.ADD, useNotifications);
     }
 
@@ -410,7 +407,7 @@ public class AtomicRecordService {
 
     public Boolean hasStoredCandidateForMethod(MethodUnderTest methodUnderTest) {
         try {
-            AtomicRecord record = this.storedRecords.get(methodUnderTest.getClassName());
+            AtomicRecord record = this.classAtomicRecordMap.get(methodUnderTest.getClassName());
             if (record == null) {
                 return false;
             }
@@ -427,7 +424,7 @@ public class AtomicRecordService {
         }
     }
 
-    public AtomicRecord getAtomicRecordFromFile(File file) {
+    private AtomicRecord getAtomicRecordFromFile(File file) {
         try {
             if (file == null || !file.exists()) {
                 return null;
@@ -440,12 +437,12 @@ public class AtomicRecordService {
         }
     }
 
-    
+
     public List<StoredCandidate> getStoredCandidatesForMethod(MethodUnderTest methodUnderTest) {
         if (methodUnderTest.getClassName() == null) {
             return new ArrayList<>();
         }
-        AtomicRecord record = this.storedRecords.get(methodUnderTest.getClassName());
+        AtomicRecord record = this.classAtomicRecordMap.get(methodUnderTest.getClassName());
         if (record == null) {
             return List.of();
         }
@@ -456,7 +453,7 @@ public class AtomicRecordService {
         if (className == null || methodKey == null) {
             return;
         }
-        AtomicRecord record = this.storedRecords.get(className);
+        AtomicRecord record = this.classAtomicRecordMap.get(className);
         if (record == null || record.getStoredCandidateMap().get(methodKey).size() == 0) {
             return;
         }
@@ -483,9 +480,9 @@ public class AtomicRecordService {
         return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + separator;
     }
 
-    public void setCandidateStateForCandidate( String candidateID, String classname,
+    public void setCandidateStateForCandidate(String candidateID, String classname,
                                               String methodKey, StoredCandidateMetadata.CandidateStatus state) {
-        AtomicRecord record = this.storedRecords.get(classname);
+        AtomicRecord record = this.classAtomicRecordMap.get(classname);
         if (record == null || record.getStoredCandidateMap().get(methodKey).size() == 0) {
             return;
         }
@@ -500,11 +497,11 @@ public class AtomicRecordService {
     //call to sync at session close
     public void writeAll() {
         try {
-            if (storedRecords.size() == 0) {
+            if (classAtomicRecordMap.size() == 0) {
                 return;
             }
-            for (String classname : storedRecords.keySet()) {
-                AtomicRecord recordForClass = storedRecords.get(classname);
+            for (String classname : classAtomicRecordMap.keySet()) {
+                AtomicRecord recordForClass = classAtomicRecordMap.get(classname);
                 writeToFile(new File(getFilenameForClass(classname)), recordForClass, FileUpdateType.UPDATE, false);
             }
         } catch (Exception e) {
@@ -513,14 +510,10 @@ public class AtomicRecordService {
     }
 
     public void checkPreRequisites() {
-        if (storedRecords == null) {
-            storedRecords = updateMap();
+        if (classAtomicRecordMap == null) {
+            classAtomicRecordMap = updateMap();
             insidiousService.updateCoverageReport();
         }
-    }
-
-    public Map<String, AtomicRecord> getStoredRecords() {
-        return this.storedRecords;
     }
 
     public boolean isUseNotifications() {
@@ -529,6 +522,21 @@ public class AtomicRecordService {
 
     public void setUseNotifications(boolean useNotifications) {
         this.useNotifications = useNotifications;
+    }
+
+    public List<DeclaredMock> getDeclaredMocks(MethodUnderTest methodUnderTest) {
+        return new ArrayList<>();
+    }
+
+    public void saveMockDefinition(MethodUnderTest method, DeclaredMock declaredMock) {
+
+    }
+
+    public Map<String, List<StoredCandidate>> getCandidatesByClass(String fqcn) {
+        if (!classAtomicRecordMap.containsKey(fqcn)) {
+            return null;
+        }
+        return classAtomicRecordMap.get(fqcn).getStoredCandidateMap();
     }
 
     public enum FileUpdateType {ADD, UPDATE, DELETE}

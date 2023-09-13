@@ -2,12 +2,25 @@ package com.insidious.plugin.mocking;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ReturnValue {
-    private final String value;
-    private final ReturnValueType returnValueType;
+    public void setValue(String value) {
+        this.value = value;
+    }
+
+    public void setReturnValueType(ReturnValueType returnValueType) {
+        this.returnValueType = returnValueType;
+    }
+
+    public void setClassName(String className) {
+        this.className = className;
+    }
+
     private final List<DeclaredMock> declaredMocks = new ArrayList<>();
-    private final String className;
+    private String value;
+    private ReturnValueType returnValueType;
+    private String className;
 
     public ReturnValue(String value, String returnValueClassName, ReturnValueType returnValueType) {
         this.value = value;
@@ -20,6 +33,15 @@ public class ReturnValue {
         this.className = returnValueClassName;
         this.returnValueType = returnValueType;
         this.declaredMocks.addAll(declaredMocks);
+    }
+
+    public ReturnValue(ReturnValue returnParameter) {
+        this.value = returnParameter.value;
+        this.className = returnParameter.className;
+        this.returnValueType = returnParameter.returnValueType;
+        this.declaredMocks.addAll(returnParameter.declaredMocks
+                .stream().map(DeclaredMock::new).collect(Collectors.toList()));
+
     }
 
     public String getClassName() {

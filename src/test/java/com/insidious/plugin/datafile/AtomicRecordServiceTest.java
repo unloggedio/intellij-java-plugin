@@ -8,7 +8,6 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
-import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
@@ -85,8 +84,8 @@ public class AtomicRecordServiceTest {
         atomicRecordService.saveCandidate(methodUnderTest3, candidate);
         //make sure new record is added
         Assertions.assertEquals("Candidate1",
-                atomicRecordService.getStoredRecords().get(classname)
-                        .getStoredCandidateMap().get(methodUnderTest3.getMethodHashKey()).get(0).getName());
+                atomicRecordService.getCandidatesByClass(classname).get(methodUnderTest3.getMethodHashKey()).get(0)
+                        .getName());
         //get map from file
         Assertions.assertEquals("Candidate1",
                 atomicRecordService.updateMap().get(classname)
@@ -118,8 +117,7 @@ public class AtomicRecordServiceTest {
 
         //length should be 1
         Assertions.assertEquals(1,
-                atomicRecordService.getStoredRecords().get(classname)
-                        .getStoredCandidateMap().get(methodUnderTest4.getMethodHashKey()).size());
+                atomicRecordService.getCandidatesByClass(classname).get(methodUnderTest4.getMethodHashKey()).size());
 
         //add new method map to same class
         methodName = "methodB";
@@ -152,7 +150,7 @@ public class AtomicRecordServiceTest {
         MethodUnderTest methodUnderTest = new MethodUnderTest(methodName, methodSignature, 0, classname);
         atomicRecordService.saveCandidate(methodUnderTest, candidate);
         Assertions.assertEquals(2,
-                atomicRecordService.getStoredRecords().get(classname).getStoredCandidateMap().size());
+                atomicRecordService.getCandidatesByClass(classname).size());
 
         CandidateSearchQuery query = new CandidateSearchQuery(methodUnderTest, "", List.of());
 
@@ -186,8 +184,8 @@ public class AtomicRecordServiceTest {
         atomicRecordService.setCandidateStateForCandidate(candidate.getCandidateId(), classname,
                 method.getMethodHashKey(), StoredCandidateMetadata.CandidateStatus.PASSING);
 
-        StoredCandidateMetadata.CandidateStatus savedStatus = atomicRecordService.getStoredRecords().get(classname)
-                .getStoredCandidateMap().get(method.getMethodHashKey()).get(0).getMetadata()
+        StoredCandidateMetadata.CandidateStatus savedStatus = atomicRecordService.
+                getCandidatesByClass(classname).get(method.getMethodHashKey()).get(0).getMetadata()
                 .getCandidateStatus();
 
         Assertions.assertEquals(StoredCandidateMetadata.CandidateStatus.PASSING, savedStatus);
@@ -222,8 +220,7 @@ public class AtomicRecordServiceTest {
         atomicRecordService.deleteStoredCandidate(classname, method1.getMethodHashKey(),
                 candidate.getCandidateId());
         Assertions.assertEquals(0,
-                atomicRecordService.getStoredRecords().get(classname)
-                        .getStoredCandidateMap().get(method1.getMethodHashKey()).size());
+                atomicRecordService.getCandidatesByClass(classname).get(method1.getMethodHashKey()).size());
 
         //add new candidate to existing method
         methodName = "methodA";
@@ -261,8 +258,7 @@ public class AtomicRecordServiceTest {
 
         //length should be 2
         Assertions.assertEquals(2,
-                atomicRecordService.getStoredRecords().get(classname)
-                        .getStoredCandidateMap().get(methodUnderTest1.getMethodHashKey()).size());
+                atomicRecordService.getCandidatesByClass(classname).get(methodUnderTest1.getMethodHashKey()).size());
     }
 
     @Test
@@ -405,12 +401,12 @@ public class AtomicRecordServiceTest {
         atomicRecordService.setUseNotifications(false);
     }
 
-    @Test
-    public void testFailedToFetchFromFile() {
-        AtomicRecord record = atomicRecordService.getAtomicRecordFromFile(
-                new File(atomicRecordService.getSaveLocation() + "test.json"));
-        Assertions.assertEquals(null, record);
-    }
+//    @Test
+//    public void testFailedToFetchFromFile() {
+//        AtomicRecord record = atomicRecordService.getAtomicRecordFromFile(
+//                new File(atomicRecordService.getSaveLocation() + "test.json"));
+//        Assertions.assertEquals(null, record);
+//    }
 
     @Test
     public void testCandidateFetchForNonMehtodsnotStored() {

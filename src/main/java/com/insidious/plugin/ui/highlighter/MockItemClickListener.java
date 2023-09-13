@@ -53,7 +53,7 @@ public class MockItemClickListener extends MouseAdapter {
                 .setCancelKeyEnabled(true)
 //                .setCancelButton(gutterMethodPanel.getCloseButton())
                 .setBelongsToGlobalPopupStack(false)
-                .setTitle("Define mocks for " + methodCallExpression.getText())
+                .setTitle("Manage Mocks")
                 .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
                 .createPopup()
                 .show(new RelativePoint(mouseEvent));

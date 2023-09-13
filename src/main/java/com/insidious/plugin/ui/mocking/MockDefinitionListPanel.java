@@ -8,18 +8,15 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.ui.popup.ActiveIcon;
-import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.ui.popup.*;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.ui.components.OnOffButton;
 import com.intellij.uiDesigner.core.GridConstraints;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.List;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
@@ -55,13 +52,26 @@ public class MockDefinitionListPanel {
 
         mockSwitchPanel.add(new OnOffButton(), BorderLayout.EAST);
 
-        mockedMethodText.setText(methodCallExpression.getMethodExpression().getText());
+        int argumentCount = methodCallExpression.getArgumentList().getExpressionCount();
+        mockedMethodText.setText(
+                methodCallExpression.getMethodExpression().getText()
+                        + "( " + (
+                        argumentCount == 1 ? "1 Argument" : (argumentCount + " Arguments")
+                ) + ")"
+        );
 
+        addNewMockButton.addActionListener(e -> showMockEditor(null));
+        loadDefinitions(true);
+
+
+    }
+
+    private void loadDefinitions(boolean showAddNewIfEmpty) {
         List<DeclaredMock> declaredMockList = insidiousService.getDeclaredMocks(methodUnderTest);
 
         int savedCandidateCount = declaredMockList.size();
 
-        if (savedCandidateCount == 0) {
+        if (savedCandidateCount == 0 && showAddNewIfEmpty) {
             ApplicationManager.getApplication().invokeLater(() -> {
                 showMockEditor(null);
             });
@@ -95,25 +105,17 @@ public class MockDefinitionListPanel {
             savedItemScrollPanel.setViewportView(itemListPanel);
 
         }
-
-        addNewMockButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                showMockEditor(null);
-            }
-        });
-
-
     }
 
     private void showMockEditor(DeclaredMock declaredMock) {
+        JBPopup editorPopup = null;
 
         MockDefinitionEditor mockDefinitionEditor;
         if (declaredMock == null) {
-            mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest,
-                    methodCallExpression);
+            mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest, methodCallExpression,
+                    methodCallExpression.getProject());
         } else {
-            mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest, declaredMock);
+            mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest, new DeclaredMock(declaredMock), methodCallExpression.getProject());
         }
 
         JComponent gutterMethodComponent = mockDefinitionEditor.getComponent();
@@ -121,7 +123,7 @@ public class MockDefinitionListPanel {
         ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
                 .createComponentPopupBuilder(gutterMethodComponent, null);
 
-        gutterMethodComponentPopup
+        editorPopup = gutterMethodComponentPopup
                 .setProject(methodCallExpression.getProject())
                 .setShowBorder(true)
                 .setShowShadow(true)
@@ -131,12 +133,20 @@ public class MockDefinitionListPanel {
                 .setCancelOnClickOutside(true)
                 .setCancelOnOtherWindowOpen(true)
                 .setCancelKeyEnabled(true)
-//                .setCancelButton(gutterMethodPanel.getCloseButton())
                 .setBelongsToGlobalPopupStack(false)
-                .setTitle("Define mocks for " + methodCallExpression.getText())
+                .setTitle("Mock Editor")
+                .addListener(new JBPopupListener() {
+                    @Override
+                    public void onClosed(@NotNull LightweightWindowEvent event) {
+                        JBPopupListener.super.onClosed(event);
+                        loadDefinitions(false);
+                    }
+                })
                 .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
-                .createPopup()
-                .showUnderneathOf(addNewMockButton);
+                .createPopup();
+        editorPopup.showUnderneathOf(addNewMockButton);
+
+        mockDefinitionEditor.setPopupHandle(editorPopup);
 
 
     }

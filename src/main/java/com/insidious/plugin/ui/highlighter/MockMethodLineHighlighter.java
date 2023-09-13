@@ -12,10 +12,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.containers.ContainerUtil;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class MockMethodLineHighlighter implements LineMarkerProvider {
@@ -37,9 +34,19 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
             return false;
         }
 
+        String expressionParentClass = PsiTreeUtil.getParentOfType(
+                methodCall, PsiClass.class).getQualifiedName();
+
+        String fieldParentClass = ((PsiClass) ((PsiReferenceExpression) qualifier).resolve()
+                .getParent()).getQualifiedName();
+        if (!Objects.equals(fieldParentClass, expressionParentClass)) {
+            // this field belongs to some other class
+            return false;
+        }
+
         // not mocking static calls for now
-        if (((PsiMethod) methodCall.getMethodExpression().getReference().resolve()).getModifierList()
-                .hasModifierProperty(PsiModifier.STATIC)) {
+        PsiMethod targetMethod = (PsiMethod) methodCall.getMethodExpression().getReference().resolve();
+        if (targetMethod.getModifierList().hasModifierProperty(PsiModifier.STATIC)) {
             return false;
         }
 
@@ -74,10 +81,10 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
 
         }
     }
+
     public LineMarkerInfo<PsiIdentifier> getLineMarkerInfo(PsiElement element) {
         return null;
     }
-
 
 
 }

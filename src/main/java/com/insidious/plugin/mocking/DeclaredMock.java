@@ -1,6 +1,7 @@
 package com.insidious.plugin.mocking;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class DeclaredMock {
 
@@ -9,22 +10,30 @@ public class DeclaredMock {
     private String fieldName;
     private String methodName;
     private List<ParameterMatcher> whenParameter;
-    private ReturnValue returnParameter;
-    private MethodExitType methodExitType;
+    private List<ThenParameter> thenParameter;
 
-    public DeclaredMock() {
+    public DeclaredMock(DeclaredMock declaredMock) {
+        this.name = declaredMock.name;
+        this.fieldTypeName = declaredMock.fieldTypeName;
+        this.fieldName = declaredMock.fieldName;
+        this.methodName = declaredMock.methodName;
+        this.whenParameter = declaredMock.whenParameter.stream()
+                .map(ParameterMatcher::new).collect(Collectors.toList());
+        this.thenParameter = declaredMock.thenParameter
+                .stream().map(ThenParameter::new).collect(Collectors.toList());
+
     }
 
     public DeclaredMock(String name, String fieldTypeName, String fieldName, String methodName,
-                        List<ParameterMatcher> whenParameter,
-                        ReturnValue returnParameter, MethodExitType methodExitType) {
+                        List<ParameterMatcher> whenParameterLists,
+                        List<ThenParameter> thenParameterList
+    ) {
         this.name = name;
         this.fieldTypeName = fieldTypeName;
         this.fieldName = fieldName;
         this.methodName = methodName;
-        this.whenParameter = whenParameter;
-        this.returnParameter = returnParameter;
-        this.methodExitType = methodExitType;
+        this.whenParameter = whenParameterLists;
+        this.thenParameter = thenParameterList;
     }
 
     public String getName() {
@@ -35,31 +44,44 @@ public class DeclaredMock {
         this.name = name;
     }
 
-    public MethodExitType getMethodExitType() {
-        return methodExitType;
-    }
 
     public String getFieldTypeName() {
         return fieldTypeName;
+    }
+
+    public void setFieldTypeName(String fieldTypeName) {
+        this.fieldTypeName = fieldTypeName;
     }
 
     public String getFieldName() {
         return fieldName;
     }
 
+    public void setFieldName(String fieldName) {
+        this.fieldName = fieldName;
+    }
+
     public String getMethodName() {
         return methodName;
+    }
+
+    public void setMethodName(String methodName) {
+        this.methodName = methodName;
     }
 
     public List<ParameterMatcher> getWhenParameter() {
         return whenParameter;
     }
 
-    public ReturnValue getReturnParameter() {
-        return returnParameter;
+    public void setWhenParameter(List<ParameterMatcher> whenParameter) {
+        this.whenParameter = whenParameter;
     }
 
-    public MethodExitType getReturnType() {
-        return methodExitType;
+    public List<ThenParameter> getThenParameter() {
+        return thenParameter;
+    }
+
+    public void setThenParameter(List<ThenParameter> thenParameter) {
+        this.thenParameter = thenParameter;
     }
 }
