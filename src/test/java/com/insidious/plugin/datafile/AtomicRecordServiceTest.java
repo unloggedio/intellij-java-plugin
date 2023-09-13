@@ -266,29 +266,29 @@ public class AtomicRecordServiceTest {
         //add flow
         Assertions.assertEquals("Added test candidate",
                 atomicRecordService.getMessageForOperationType
-                        (AtomicRecordService.FileUpdateType.ADD, null, true));
+                        (AtomicRecordService.FileUpdateType.ADD_CANDIDATE, null, true));
         Assertions.assertEquals("Failed to add test candidate" +
                         "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                 atomicRecordService.getMessageForOperationType
-                        (AtomicRecordService.FileUpdateType.ADD, null, false));
+                        (AtomicRecordService.FileUpdateType.ADD_CANDIDATE, null, false));
 
         //update flow
         Assertions.assertEquals("Updated test candidate",
                 atomicRecordService.getMessageForOperationType
-                        (AtomicRecordService.FileUpdateType.UPDATE, null, true));
+                        (AtomicRecordService.FileUpdateType.UPDATE_CANDIDATE, null, true));
         Assertions.assertEquals("Failed to update test candidate" +
                         "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                 atomicRecordService.getMessageForOperationType
-                        (AtomicRecordService.FileUpdateType.UPDATE, null, false));
+                        (AtomicRecordService.FileUpdateType.UPDATE_CANDIDATE, null, false));
 
         //delete flow
         Assertions.assertEquals("Deleted test candidate",
                 atomicRecordService.getMessageForOperationType
-                        (AtomicRecordService.FileUpdateType.DELETE, null, true));
+                        (AtomicRecordService.FileUpdateType.DELETE_CANDIDATE, null, true));
         Assertions.assertEquals("Failed to delete test candidate" +
                         "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                 atomicRecordService.getMessageForOperationType
-                        (AtomicRecordService.FileUpdateType.DELETE, null, false));
+                        (AtomicRecordService.FileUpdateType.DELETE_CANDIDATE, null, false));
     }
 
     @Test

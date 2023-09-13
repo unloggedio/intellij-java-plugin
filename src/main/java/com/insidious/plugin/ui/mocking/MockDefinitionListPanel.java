@@ -13,7 +13,6 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.ui.components.OnOffButton;
 import com.intellij.uiDesigner.core.GridConstraints;
-import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -21,11 +20,12 @@ import java.util.List;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
 
-public class MockDefinitionListPanel {
+public class MockDefinitionListPanel implements UpdateDeleteListener<DeclaredMock> {
     private static final Logger logger = LoggerUtil.getInstance(MockDefinitionListPanel.class);
     private final InsidiousService insidiousService;
     private final MethodUnderTest methodUnderTest;
     private final PsiMethodCallExpression methodCallExpression;
+    private final JPanel itemListPanel = new JPanel();
     private JPanel mockDefinitionTitlePanel;
     private JLabel mockedMethodText;
     private JLabel mockEnableSwitchLabel;
@@ -41,9 +41,14 @@ public class MockDefinitionListPanel {
     private JPanel titlePanelParent;
     private JScrollPane savedItemScrollPanel;
     private JPanel northPanel;
+    private JLabel mockCountLabel;
 
     public MockDefinitionListPanel(PsiMethodCallExpression methodCallExpression) {
         this.methodCallExpression = methodCallExpression;
+
+        savedItemScrollPanel.setViewportView(itemListPanel);
+        itemListPanel.setBorder(BorderFactory.createEmptyBorder());
+        itemListPanel.setAlignmentY(0);
 
         insidiousService = methodCallExpression.getProject().getService(InsidiousService.class);
 
@@ -52,12 +57,12 @@ public class MockDefinitionListPanel {
 
         mockSwitchPanel.add(new OnOffButton(), BorderLayout.EAST);
 
-        int argumentCount = methodCallExpression.getArgumentList().getExpressionCount();
+        int argumentCount = targetMethod.getParameterList().getParametersCount();
         mockedMethodText.setText(
                 methodCallExpression.getMethodExpression().getText()
                         + "( " + (
                         argumentCount == 1 ? "1 Argument" : (argumentCount + " Arguments")
-                ) + ")"
+                ) + " )"
         );
 
         addNewMockButton.addActionListener(e -> showMockEditor(null));
@@ -67,22 +72,26 @@ public class MockDefinitionListPanel {
     }
 
     private void loadDefinitions(boolean showAddNewIfEmpty) {
+        logger.warn("Load mock definitions for " + methodUnderTest);
         List<DeclaredMock> declaredMockList = insidiousService.getDeclaredMocks(methodUnderTest);
 
         int savedCandidateCount = declaredMockList.size();
 
+        if (savedCandidateCount == 1) {
+            mockCountLabel.setText(savedCandidateCount + " declared mock");
+        } else {
+            mockCountLabel.setText(savedCandidateCount + " declared mocks");
+        }
         if (savedCandidateCount == 0 && showAddNewIfEmpty) {
             ApplicationManager.getApplication().invokeLater(() -> {
                 showMockEditor(null);
             });
         } else {
-            JPanel itemListPanel = new JPanel();
 
-            itemListPanel.setBorder(BorderFactory.createEmptyBorder());
+            itemListPanel.removeAll();
             itemListPanel.setLayout(new GridLayout(savedCandidateCount, 1));
-            itemListPanel.setAlignmentY(0);
             for (int i = 0; i < savedCandidateCount; i++) {
-                SavedMockItemPanel savedMockItem = new SavedMockItemPanel(declaredMockList.get(i));
+                SavedMockItemPanel savedMockItem = new SavedMockItemPanel(declaredMockList.get(i), this);
                 GridConstraints constraints = new GridConstraints(
                         i, 0, 1, 1, ANCHOR_NORTH,
                         GridConstraints.FILL_HORIZONTAL, SIZEPOLICY_CAN_GROW | SIZEPOLICY_CAN_SHRINK,
@@ -102,8 +111,11 @@ public class MockDefinitionListPanel {
             savedItemScrollPanel.getViewport().setPreferredSize(new Dimension(-1, containerHeight));
             savedItemScrollPanel.setPreferredSize(new Dimension(-1, containerHeight));
             savedItemScrollPanel.setSize(new Dimension(-1, containerHeight));
-            savedItemScrollPanel.setViewportView(itemListPanel);
 
+            itemListPanel.revalidate();
+            itemListPanel.repaint();
+            savedItemScrollPanel.revalidate();
+            savedItemScrollPanel.repaint();
         }
     }
 
@@ -115,7 +127,8 @@ public class MockDefinitionListPanel {
             mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest, methodCallExpression,
                     methodCallExpression.getProject());
         } else {
-            mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest, new DeclaredMock(declaredMock), methodCallExpression.getProject());
+            mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest, new DeclaredMock(declaredMock),
+                    methodCallExpression.getProject());
         }
 
         JComponent gutterMethodComponent = mockDefinitionEditor.getComponent();
@@ -137,9 +150,9 @@ public class MockDefinitionListPanel {
                 .setTitle("Mock Editor")
                 .addListener(new JBPopupListener() {
                     @Override
-                    public void onClosed(@NotNull LightweightWindowEvent event) {
-                        JBPopupListener.super.onClosed(event);
+                    public void onClosed(LightweightWindowEvent event) {
                         loadDefinitions(false);
+                        JBPopupListener.super.onClosed(event);
                     }
                 })
                 .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
@@ -153,5 +166,15 @@ public class MockDefinitionListPanel {
 
     public JComponent getComponent() {
         return mainPanel;
+    }
+
+    @Override
+    public void onUpdateRequest(DeclaredMock declaredMock) {
+        showMockEditor(declaredMock);
+    }
+
+    @Override
+    public void onDeleteRequest(DeclaredMock declaredMock) {
+        insidiousService.deleteMockDefinition(methodUnderTest, declaredMock);
     }
 }

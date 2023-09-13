@@ -17,6 +17,9 @@ public class ParameterMatcher {
         this.value = e.value;
     }
 
+    public ParameterMatcher() {
+    }
+
     public ParameterMatcherType getType() {
         return type;
     }

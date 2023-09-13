@@ -15,6 +15,9 @@ public class ThenParameter {
 
     }
 
+    public ThenParameter() {
+    }
+
     public ReturnValue getReturnParameter() {
         return returnParameter;
     }

@@ -1443,6 +1443,8 @@ final public class InsidiousService implements Disposable,
         atomicRecordService.saveMockDefinition(methodUnderTest, declaredMock);
     }
 
+    public void deleteMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {
+        atomicRecordService.deleteMockDefinition(methodUnderTest, declaredMock);
+    }
 
-    public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
 }

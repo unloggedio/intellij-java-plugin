@@ -110,7 +110,7 @@ public class MethodMockGutterNavigationHandler implements GutterIconNavigationHa
                 .setCancelOnOtherWindowOpen(true)
                 .setCancelKeyEnabled(true)
                 .setBelongsToGlobalPopupStack(false)
-                .setTitle("Mock Methods")
+                .setTitle("Mock Method Calls")
                 .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
                 .createPopup()
                 .show(new RelativePoint(mouseEvent));

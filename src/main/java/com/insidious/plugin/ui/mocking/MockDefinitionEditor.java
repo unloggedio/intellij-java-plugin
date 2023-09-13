@@ -43,7 +43,6 @@ public class MockDefinitionEditor {
     private JButton chainAnotherReturnButton;
     private JPanel returnItemList;
     private JPanel bottomControlPanel;
-    private JButton cancelButton;
     private JButton saveButton;
     private JLabel callExpressionLabel;
     private JPanel mockTypeParentPanel;
@@ -65,7 +64,8 @@ public class MockDefinitionEditor {
         returnDummyValue = ClassUtils.createDummyValue(returnType, new ArrayList<>(), destinationMethod.getProject());
         methodReturnTypeName = returnType.getCanonicalText();
 
-        callExpressionLabel.setText(methodCallExpression.getMethodExpression().getText());
+        String expressionText = methodCallExpression.getMethodExpression().getText();
+        callExpressionLabel.setText(expressionText);
 
 //        PsiExpressionList argumentList = methodCallExpression.getArgumentList();
         PsiParameterList methodParameters = destinationMethod.getParameterList();
@@ -84,8 +84,8 @@ public class MockDefinitionEditor {
         ArrayList<ThenParameter> thenParameterList = new ArrayList<>();
         thenParameterList.add(createDummyThenParameter());
         this.declaredMock = new DeclaredMock(
-                "mock response " + methodCallExpression.getMethodExpression().getText(),
-                methodUnderTest.getClassName(), methodCallExpression.getMethodExpression().getQualifiedName(),
+                "mock response " + expressionText,
+                methodUnderTest.getClassName(), methodCallExpression.getMethodExpression().getQualifier().getText(),
                 methodUnderTest.getName(), parameterList, thenParameterList
         );
         updateUiValues();

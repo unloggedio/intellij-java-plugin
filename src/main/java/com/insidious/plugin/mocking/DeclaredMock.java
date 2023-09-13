@@ -1,10 +1,14 @@
 package com.insidious.plugin.mocking;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class DeclaredMock {
 
+
+    private String id = UUID.randomUUID().toString();
     private String name;
     private String fieldTypeName;
     private String fieldName;
@@ -34,6 +38,30 @@ public class DeclaredMock {
         this.methodName = methodName;
         this.whenParameter = whenParameterLists;
         this.thenParameter = thenParameterList;
+    }
+
+    public DeclaredMock() {
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DeclaredMock that = (DeclaredMock) o;
+        return id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 
     public String getName() {

@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ReturnValue {
+    public ReturnValue() {
+    }
+
     public void setValue(String value) {
         this.value = value;
     }

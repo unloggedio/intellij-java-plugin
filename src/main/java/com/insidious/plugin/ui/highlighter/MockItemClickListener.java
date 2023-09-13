@@ -37,6 +37,7 @@ public class MockItemClickListener extends MouseAdapter {
                 new MockDefinitionListPanel(methodCallExpression);
 
         JComponent gutterMethodComponent = gutterMethodPanel.getComponent();
+        gutterMethodComponent.setPreferredSize(new Dimension(600, 400));
 
         ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
                 .createComponentPopupBuilder(gutterMethodComponent, null);
@@ -46,6 +47,7 @@ public class MockItemClickListener extends MouseAdapter {
                 .setShowBorder(true)
                 .setShowShadow(true)
                 .setFocusable(true)
+                .setMinSize(new Dimension(600, 400))
                 .setRequestFocus(true)
                 .setResizable(true)
                 .setCancelOnClickOutside(true)

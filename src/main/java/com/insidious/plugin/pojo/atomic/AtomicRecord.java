@@ -1,12 +1,31 @@
 package com.insidious.plugin.pojo.atomic;
 
+import com.insidious.plugin.mocking.DeclaredMock;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class AtomicRecord {
 
     private String classname;
-    private Map<String, List<StoredCandidate>> storedCandidateMap;
+    private Map<String, List<StoredCandidate>> storedCandidateMap = new HashMap<>();
+    private Map<String, List<DeclaredMock>> declaredMockMap = new HashMap<>();
+
+    public AtomicRecord() {
+    }
+
+    public AtomicRecord(String classname) {
+        this.classname = classname;
+    }
+
+    public Map<String, List<DeclaredMock>> getDeclaredMockMap() {
+        return declaredMockMap;
+    }
+
+    public void setDeclaredMockMap(Map<String, List<DeclaredMock>> declaredMockMap) {
+        this.declaredMockMap = declaredMockMap;
+    }
 
     public String getClassname() {
         return classname;
@@ -28,7 +47,8 @@ public class AtomicRecord {
     public String toString() {
         return "AtomicRecord{" +
                 "classname='" + classname + '\'' +
-                ", storedCandidateList=" + storedCandidateMap +
+                ", storedCandidateList=" + storedCandidateMap.size() + " candidates" +
+                ", declaredMocks=" + declaredMockMap.size() + " mocks" +
                 '}';
     }
 }
