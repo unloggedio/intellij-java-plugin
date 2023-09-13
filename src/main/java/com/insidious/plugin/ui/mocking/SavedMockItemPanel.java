@@ -5,6 +5,8 @@ import com.intellij.ui.components.OnOffButton;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -21,20 +23,35 @@ public class SavedMockItemPanel {
     private JLabel deleteButton;
     private JLabel editButton;
 
-    public SavedMockItemPanel(DeclaredMock declaredMock, UpdateDeleteListener<DeclaredMock> updateDeleteListener) {
+    public SavedMockItemPanel(DeclaredMock declaredMock,
+                              DeclaredMockLifecycleListener declaredMockLifecycleListener,
+                              boolean mockEnabled) {
         this.declaredMock = declaredMock;
-        enableDisableSwitchPanel.add(new OnOffButton(), BorderLayout.CENTER);
+        OnOffButton onOffButton = new OnOffButton();
+        enableDisableSwitchPanel.add(onOffButton, BorderLayout.CENTER);
+        if (mockEnabled) {
+            onOffButton.setSelected(true);
+        }
+
+        onOffButton.addActionListener(e -> {
+            if (onOffButton.isSelected()) {
+                declaredMockLifecycleListener.onEnable(declaredMock);
+            } else {
+                declaredMockLifecycleListener.onDisable(declaredMock);
+            }
+        });
+
         mockNameLabel.setText(declaredMock.getName());
         deleteButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                updateDeleteListener.onDeleteRequest(declaredMock);
+                declaredMockLifecycleListener.onDeleteRequest(declaredMock);
             }
         });
         editButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                updateDeleteListener.onUpdateRequest(declaredMock);
+                declaredMockLifecycleListener.onUpdateRequest(declaredMock);
             }
         });
     }

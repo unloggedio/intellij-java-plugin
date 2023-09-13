@@ -20,7 +20,7 @@ import java.util.List;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
 
-public class MockDefinitionListPanel implements UpdateDeleteListener<DeclaredMock> {
+public class MockDefinitionListPanel implements DeclaredMockLifecycleListener {
     private static final Logger logger = LoggerUtil.getInstance(MockDefinitionListPanel.class);
     private final InsidiousService insidiousService;
     private final MethodUnderTest methodUnderTest;
@@ -91,7 +91,9 @@ public class MockDefinitionListPanel implements UpdateDeleteListener<DeclaredMoc
             itemListPanel.removeAll();
             itemListPanel.setLayout(new GridLayout(savedCandidateCount, 1));
             for (int i = 0; i < savedCandidateCount; i++) {
-                SavedMockItemPanel savedMockItem = new SavedMockItemPanel(declaredMockList.get(i), this);
+                DeclaredMock declaredMock = declaredMockList.get(i);
+                SavedMockItemPanel savedMockItem = new SavedMockItemPanel(declaredMock, this,
+                        insidiousService.isMockEnabled(declaredMock));
                 GridConstraints constraints = new GridConstraints(
                         i, 0, 1, 1, ANCHOR_NORTH,
                         GridConstraints.FILL_HORIZONTAL, SIZEPOLICY_CAN_GROW | SIZEPOLICY_CAN_SHRINK,
@@ -121,7 +123,7 @@ public class MockDefinitionListPanel implements UpdateDeleteListener<DeclaredMoc
             mainPanel.revalidate();
             if (componentPopUp != null) {
                 Dimension currentSize = componentPopUp.getSize();
-                componentPopUp.setSize(new Dimension((int) currentSize.getWidth(), containerHeight + 150));
+                componentPopUp.setSize(new Dimension((int) currentSize.getWidth(), containerHeight + 130));
             }
 
         }
@@ -189,6 +191,16 @@ public class MockDefinitionListPanel implements UpdateDeleteListener<DeclaredMoc
         ApplicationManager.getApplication().invokeLater(() -> {
             loadDefinitions(false);
         });
+    }
+
+    @Override
+    public void onEnable(DeclaredMock declaredMock) {
+        insidiousService.enableMock(declaredMock);
+    }
+
+    @Override
+    public void onDisable(DeclaredMock declaredMock) {
+        insidiousService.disableMock(declaredMock);
     }
 
     public void setPopupHandle(JBPopup componentPopUp) {

@@ -11,6 +11,7 @@ public class DeclaredMock {
     private String id = UUID.randomUUID().toString();
     private String name;
     private String fieldTypeName;
+    private String sourceClassName;
     private String fieldName;
     private String methodName;
     private List<ParameterMatcher> whenParameter;
@@ -19,6 +20,7 @@ public class DeclaredMock {
     public DeclaredMock(DeclaredMock declaredMock) {
         this.id = declaredMock.id;
         this.name = declaredMock.name;
+        this.sourceClassName = declaredMock.sourceClassName;
         this.fieldTypeName = declaredMock.fieldTypeName;
         this.fieldName = declaredMock.fieldName;
         this.methodName = declaredMock.methodName;
@@ -29,12 +31,14 @@ public class DeclaredMock {
 
     }
 
-    public DeclaredMock(String name, String fieldTypeName, String fieldName, String methodName,
+    public DeclaredMock(String name, String fieldTypeName, String sourceClassName,
+                        String fieldName, String methodName,
                         List<ParameterMatcher> whenParameterLists,
                         List<ThenParameter> thenParameterList
     ) {
         this.name = name;
         this.fieldTypeName = fieldTypeName;
+        this.sourceClassName = sourceClassName;
         this.fieldName = fieldName;
         this.methodName = methodName;
         this.whenParameter = whenParameterLists;
@@ -42,6 +46,14 @@ public class DeclaredMock {
     }
 
     public DeclaredMock() {
+    }
+
+    public String getSourceClassName() {
+        return sourceClassName;
+    }
+
+    public void setSourceClassName(String sourceClassName) {
+        this.sourceClassName = sourceClassName;
     }
 
     public String getId() {

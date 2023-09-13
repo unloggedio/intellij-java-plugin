@@ -1,14 +1,17 @@
 package com.insidious.plugin.ui.mocking;
 
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.*;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.psi.*;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.uiDesigner.core.GridConstraints;
 import org.jetbrains.annotations.NotNull;
 
@@ -64,10 +67,17 @@ public class MockDefinitionEditor {
         returnDummyValue = ClassUtils.createDummyValue(returnType, new ArrayList<>(), destinationMethod.getProject());
         methodReturnTypeName = returnType.getCanonicalText();
 
+        PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCallExpression,
+                PsiClass.class);
+        if (parentClass == null) {
+            InsidiousNotification.notifyMessage("Failed to identify parent class for the call [" +
+                    methodCallExpression.getText() + "]", NotificationType.ERROR);
+            throw new RuntimeException("Failed to identify parent class for the call [" +
+                    methodCallExpression.getText() + "]");
+        }
         String expressionText = methodCallExpression.getMethodExpression().getText();
         callExpressionLabel.setText(expressionText);
 
-//        PsiExpressionList argumentList = methodCallExpression.getArgumentList();
         PsiParameterList methodParameters = destinationMethod.getParameterList();
         List<ParameterMatcher> parameterList = new ArrayList<>();
         for (int i = 0; i < methodParameters.getParametersCount(); i++) {
@@ -85,7 +95,8 @@ public class MockDefinitionEditor {
         thenParameterList.add(createDummyThenParameter());
         this.declaredMock = new DeclaredMock(
                 "mock response " + expressionText,
-                methodUnderTest.getClassName(), methodCallExpression.getMethodExpression().getQualifier().getText(),
+                methodUnderTest.getClassName(), parentClass.getQualifiedName(),
+                methodCallExpression.getMethodExpression().getQualifier().getText(),
                 methodUnderTest.getName(), parameterList, thenParameterList
         );
         updateUiValues();

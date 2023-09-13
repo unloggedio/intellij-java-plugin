@@ -116,6 +116,7 @@ final public class InsidiousService implements Disposable,
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
     private final AgentClient agentClient;
     private final SessionLoader sessionLoader;
+    private final Map<DeclaredMock, Boolean> mockActiveMap = new HashMap<>();
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
@@ -552,6 +553,14 @@ final public class InsidiousService implements Disposable,
     ) {
 
         methodArgumentValueCache.addArgumentSet(agentCommandRequest);
+
+        String targetClassName = agentCommandRequest.getClassName();
+        List<DeclaredMock> activeMocks = mockActiveMap.entrySet()
+                .stream()
+                .filter(e -> e.getValue() && e.getKey().getSourceClassName().equals(targetClassName))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+        agentCommandRequest.setDeclaredMocks(activeMocks);
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
@@ -1447,4 +1456,15 @@ final public class InsidiousService implements Disposable,
         atomicRecordService.deleteMockDefinition(methodUnderTest, declaredMock);
     }
 
+    public void enableMock(DeclaredMock declaredMock) {
+        mockActiveMap.put(declaredMock, true);
+    }
+
+    public void disableMock(DeclaredMock declaredMock) {
+        mockActiveMap.put(declaredMock, false);
+    }
+
+    public boolean isMockEnabled(DeclaredMock declaredMock) {
+        return mockActiveMap.containsKey(declaredMock) && mockActiveMap.get(declaredMock);
+    }
 }
