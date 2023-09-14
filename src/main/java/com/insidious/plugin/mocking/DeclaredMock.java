@@ -24,10 +24,8 @@ public class DeclaredMock {
         this.fieldTypeName = declaredMock.fieldTypeName;
         this.fieldName = declaredMock.fieldName;
         this.methodName = declaredMock.methodName;
-        this.whenParameter = declaredMock.whenParameter.stream()
-                .map(ParameterMatcher::new).collect(Collectors.toList());
-        this.thenParameter = declaredMock.thenParameter
-                .stream().map(ThenParameter::new).collect(Collectors.toList());
+        this.whenParameter = declaredMock.whenParameter.stream().map(ParameterMatcher::new).collect(Collectors.toList());
+        this.thenParameter = declaredMock.thenParameter.stream().map(ThenParameter::new).collect(Collectors.toList());
 
     }
 

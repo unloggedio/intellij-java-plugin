@@ -1,12 +1,14 @@
 package com.insidious.plugin.ui.highlighter;
 
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.ui.mocking.MockDefinitionListPanel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.popup.ActiveIcon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
+import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -19,7 +21,9 @@ import javax.swing.border.CompoundBorder;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MethodMockGutterNavigationHandler implements GutterIconNavigationHandler<PsiIdentifier> {
 
@@ -54,21 +58,26 @@ public class MethodMockGutterNavigationHandler implements GutterIconNavigationHa
 
         PsiMethodCallExpression[] methodCallExpressions = getChildrenOfTypeRecursive(
                 statement, PsiMethodCallExpression.class);
+        if (methodCallExpressions == null) {
+            return;
+        }
 
-
-//        IPopupChooserBuilder<LineMarkerInfo<?>> builder = JBPopupFactory.getInstance()
-//                .createPopupChooserBuilder(lineMarkerInfoList);
 
         RelativePoint relativePoint = new RelativePoint(mouseEvent);
         Point point = relativePoint.getPoint();
         point.setLocation(point.getX(), point.getY() + 40);
 
-        JPanel gutterMethodPanel = new JPanel();
-        gutterMethodPanel.setLayout(new GridLayout(0, 1));
-        gutterMethodPanel.setMinimumSize(new Dimension(400, 300));
 
-        for (PsiMethodCallExpression methodCallExpression : methodCallExpressions) {
-            if (MockMethodLineHighlighter.isNonStaticDependencyCall(methodCallExpression)) {
+        List<PsiMethodCallExpression> mockableCallExpressions = Arrays.stream(methodCallExpressions)
+                .filter(MockMethodLineHighlighter::isNonStaticDependencyCall)
+                .collect(Collectors.toList());
+
+        if (mockableCallExpressions.size() > 1) {
+            JPanel gutterMethodPanel = new JPanel();
+            gutterMethodPanel.setLayout(new GridLayout(0, 1));
+            gutterMethodPanel.setMinimumSize(new Dimension(400, 300));
+
+            for (PsiMethodCallExpression methodCallExpression : mockableCallExpressions) {
                 PsiReferenceExpression methodExpression = methodCallExpression.getMethodExpression();
                 String methodCallText = methodExpression.getText();
                 JPanel methodItemPanel = new JPanel();
@@ -91,98 +100,60 @@ public class MethodMockGutterNavigationHandler implements GutterIconNavigationHa
 
                 gutterMethodPanel.add(methodItemPanel);
 
-
             }
+
+
+            ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+                    .createComponentPopupBuilder(gutterMethodPanel, null);
+
+            gutterMethodComponentPopup
+                    .setProject(identifier.getProject())
+                    .setShowBorder(true)
+                    .setShowShadow(true)
+                    .setFocusable(true)
+                    .setRequestFocus(true)
+                    .setCancelOnClickOutside(true)
+                    .setCancelOnOtherWindowOpen(true)
+                    .setCancelKeyEnabled(true)
+                    .setBelongsToGlobalPopupStack(false)
+                    .setTitle("Mock Method Calls")
+                    .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
+                    .createPopup()
+                    .show(new RelativePoint(mouseEvent));
+
+        } else if (mockableCallExpressions.size() == 1) {
+
+            // there is only a single mockable call on this line
+
+            PsiMethodCallExpression methodCallExpression = mockableCallExpressions.get(0);
+            MockDefinitionListPanel gutterMethodPanel = new MockDefinitionListPanel(methodCallExpression);
+
+            JComponent gutterMethodComponent = gutterMethodPanel.getComponent();
+
+            ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+                    .createComponentPopupBuilder(gutterMethodComponent, null);
+
+            JBPopup componentPopUp = gutterMethodComponentPopup
+                    .setProject(methodCallExpression.getProject())
+                    .setShowBorder(true)
+                    .setShowShadow(true)
+                    .setFocusable(true)
+                    .setMinSize(new Dimension(600, -1))
+                    .setRequestFocus(true)
+                    .setResizable(true)
+                    .setCancelOnClickOutside(true)
+                    .setCancelOnOtherWindowOpen(true)
+                    .setCancelKeyEnabled(true)
+//                .setCancelButton(gutterMethodPanel.getCloseButton())
+                    .setBelongsToGlobalPopupStack(false)
+                    .setTitle("Manage Mocks")
+                    .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
+                    .createPopup();
+            componentPopUp.show(new RelativePoint(mouseEvent));
+            gutterMethodPanel.setPopupHandle(componentPopUp);
+
+
         }
-
-
-        JComponent gutterMethodComponent = gutterMethodPanel;
-        ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
-                .createComponentPopupBuilder(gutterMethodComponent, null);
-
-        gutterMethodComponentPopup
-                .setProject(identifier.getProject())
-                .setShowBorder(true)
-                .setShowShadow(true)
-                .setFocusable(true)
-                .setRequestFocus(true)
-                .setCancelOnClickOutside(true)
-                .setCancelOnOtherWindowOpen(true)
-                .setCancelKeyEnabled(true)
-                .setBelongsToGlobalPopupStack(false)
-                .setTitle("Mock Method Calls")
-                .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
-                .createPopup()
-                .show(new RelativePoint(mouseEvent));
-
-//        builder.setRenderer(new SelectionAwareListCellRenderer<>(dom -> {
-//                    Icon icon = null;
-//                    GutterIconRenderer renderer = dom.createGutterRenderer();
-//                    if (renderer != null) {
-//                        Icon originalIcon = renderer.getIcon();
-//                        icon = IconUtil.scale(originalIcon, null, JBUIScale.scale(16.0f) / originalIcon.getIconWidth());
-//                    }
-//                    PsiElement element = dom.getElement();
-//                    String elementPresentation;
-//                    if (element == null) {
-//                        elementPresentation = IdeBundle.message("node.structureview.invalid");
-//                    } else if (dom instanceof MergeableLineMarkerInfo) {
-//                        elementPresentation = ((MergeableLineMarkerInfo<?>) dom).getElementPresentation(element);
-//                    } else {
-//                        elementPresentation = element.getText();
-//                    }
-//                    String text = StringUtil.first(elementPresentation, 100, true).replace('\n', ' ');
-//
-//                    JBLabel label = new JBLabel(text, icon, SwingConstants.LEFT);
-//                    label.setBorder(JBUI.Borders.empty(2));
-//                    JPanel panel = new JPanel();
-//                    panel.setLayout(new BorderLayout());
-//                    panel.add(label, BorderLayout.CENTER);
-//                    OnOffButton toggleActionButton = new OnOffButton();
-//                    toggleActionButton.setOnText("Mocking enabled");
-//                    toggleActionButton.setOffText("Mocking disabled");
-//                    toggleActionButton.addActionListener(e -> logger.warn("Enable/Disable toggled"));
-//                    panel.add(toggleActionButton, BorderLayout.EAST);
-//                    Border existingBorder = panel.getBorder();
-//                    existingBorder = BorderFactory.createCompoundBorder(existingBorder,
-//                            BorderFactory.createEmptyBorder(5, 5, 5, 5));
-//                    panel.setBorder(existingBorder);
-//                    return panel;
-//                })).setItemChosenCallback(value -> {
-//                    logger.warn("gutter menu item chosen: " + value.getElement());
-//                    //noinspection unchecked
-//                    GutterIconNavigationHandler<PsiElement> handler = (GutterIconNavigationHandler<PsiElement>) value.getNavigationHandler();
-////                    if (handler != null) {
-////                        handler.navigate(mouseEvent, value.getElement());
-////                    }
-//
-//                    MethodExecutorComponent gutterMethodPanel = new MethodExecutorComponent(insidiousService);
-//                    gutterMethodPanel.refreshAndReloadCandidates(new JavaMethodAdapter(method), new ArrayList<>());
-//                    gutterMethodPanel.refreshSearchAndLoad();
-//                    JComponent gutterMethodComponent = gutterMethodPanel.getContent();
-//                    ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
-//                            .createComponentPopupBuilder(gutterMethodComponent, null);
-//
-//                    gutterMethodComponentPopup
-//                            .setProject(identifier.getProject())
-//                            .setShowBorder(true)
-//                            .setShowShadow(true)
-//                            .setFocusable(true)
-//                            .setRequestFocus(true)
-//                            .setCancelOnClickOutside(true)
-//                            .setCancelOnOtherWindowOpen(true)
-//                            .setCancelKeyEnabled(true)
-//                            .setBelongsToGlobalPopupStack(false)
-//                            .setTitle("Execute " + method.getName())
-//                            .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
-//                            .createPopup()
-//                            .show(new RelativePoint(mouseEvent));
-//
-//                })
-//                .setCancelOnClickOutside(true)
-//                .setCancelKeyEnabled(true)
-//                .createPopup()
-//                .show(relativePoint);
 
     }
 

@@ -34,8 +34,12 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
             return false;
         }
 
-        String expressionParentClass = PsiTreeUtil.getParentOfType(
-                methodCall, PsiClass.class).getQualifiedName();
+        PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCall, PsiClass.class);
+        if (parentClass == null) {
+            logger.error("parent class is null [" + methodCall.getText() + " ]");
+            return false;
+        }
+        String expressionParentClass = parentClass.getQualifiedName();
 
         String fieldParentClass = ((PsiClass) ((PsiReferenceExpression) qualifier).resolve()
                 .getParent()).getQualifiedName();

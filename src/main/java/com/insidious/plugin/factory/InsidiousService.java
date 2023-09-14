@@ -1010,7 +1010,7 @@ final public class InsidiousService implements Disposable,
     }
 
     public void focusTestCaseDesignerTab() {
-        if (toolWindow == null || directMethodInvokeContent == null) {
+        if (toolWindow == null || testDesignerContent == null) {
             return;
         }
         ApplicationManager.getApplication().invokeLater(
@@ -1020,8 +1020,8 @@ final public class InsidiousService implements Disposable,
     public void generateCompareWindows(String before, String after) {
         DocumentContent content1 = DiffContentFactory.getInstance().create(getPrettyJsonString(before));
         DocumentContent content2 = DiffContentFactory.getInstance().create(getPrettyJsonString(after));
-        SimpleDiffRequest request = new SimpleDiffRequest("Comparing Before and After", content1, content2, "Before",
-                "After");
+        SimpleDiffRequest request = new SimpleDiffRequest(
+                "Comparing Before and After", content1, content2, "Before", "After");
         showDiffEditor(request);
     }
 
@@ -1038,7 +1038,6 @@ final public class InsidiousService implements Disposable,
 
     public void showDiffEditor(SimpleDiffRequest request) {
         DiffManager.getInstance().showDiff(project, request);
-//        VcsEditorTabFilesManager.getInstance().
     }
 
     public void showCandidateSaveForm(SaveForm saveForm) {
@@ -1103,62 +1102,6 @@ final public class InsidiousService implements Disposable,
         toolWindow.getContentManager().setSelectedContent(directMethodInvokeContent, true);
     }
 
-//    public synchronized String fetchBasePackage() {
-//        if (basePackage != null) {
-//            return basePackage;
-//        }
-//
-//        Collection<VirtualFile> virtualFiles = FileTypeIndex.getFiles(JavaFileType.INSTANCE,
-//                GlobalSearchScope.projectScope(project));
-//
-//
-//        List<String> components = new ArrayList<String>();
-//        for (VirtualFile vf : virtualFiles) {
-//            PsiFile psifile = PsiManager.getInstance(project).findFile(vf);
-//            if (psifile instanceof PsiJavaFile) {
-//                PsiJavaFile psiJavaFile = (PsiJavaFile) psifile;
-//                String packageName = psiJavaFile.getPackageName();
-//                if (packageName.contains(".")) {
-//                    if (components.size() == 0) {
-//                        String[] parts = packageName.split("\\.");
-//                        components = Arrays.asList(parts);
-//                    } else {
-//                        List<String> sp = Arrays.asList(packageName.split("\\."));
-//                        List<String> intersection = intersection(components, sp);
-//                        if (intersection.size() >= 2) {
-//                            components = intersection;
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//        basePackage = buildPackageNameFromList(components);
-//        return basePackage;
-//    }
-
-//    private String buildPackageNameFromList(List<String> parts) {
-//        if (parts.size() < 2) {
-//            return "?";
-//        }
-//        StringBuilder packagename = new StringBuilder();
-//        for (String part : parts) {
-//            packagename.append(part)
-//                    .append(".");
-//        }
-//        packagename.deleteCharAt(packagename.length() - 1);
-//        return packagename.toString();
-//    }
-
-//    public <T> List<T> intersection(List<T> list1, List<T> list2) {
-//        List<T> list = new ArrayList<T>();
-//        for (T t : list1) {
-//            if (list2.contains(t)) {
-//                list.add(t);
-//            }
-//        }
-//        return list;
-//    }
-
     public void setAgentProcessState(GutterState newState) {
         loadSingleWindowForState(newState);
         if (this.atomicTestContainerWindow != null) {
@@ -1171,77 +1114,6 @@ final public class InsidiousService implements Disposable,
         atomicTestContainerWindow.triggerCompileAndExecute();
     }
 
-//    public void loadMethodInAtomicTests(JavaMethodAdapter methodAdapter) {
-//        atomicTestContainerWindow.triggerMethodExecutorRefresh(methodAdapter);
-//    }
-
-    public void showNewTestCandidateGotIt() {
-//        new GotItTooltip("io.unlogged.newtestcase." + new Date().getTime(), "New test candidate found",
-//                this).show();
-    }
-
-    public String fetchVersionFromLibName(String name, String dependency) {
-        return agentStateProvider.fetchVersionFromLibName(name, dependency);
-    }
-
-//    public void startProjectWithUnloggedAgent(String javaAgentString) {
-//        RunManager runManager = RunManagerEx.getInstance(project);
-//
-//        RunnerAndConfigurationSettings selectedConfig = runManager.getSelectedConfiguration();
-//
-//        if (selectedConfig != null && selectedConfig.getConfiguration() instanceof ApplicationConfiguration) {
-//            ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) selectedConfig.getConfiguration();
-//            String currentVMParams = applicationConfiguration.getVMParameters();
-//            String newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
-//            applicationConfiguration.setVMParameters(newVmOptions.trim());
-//
-//            ExecutionManager executionManager = ExecutionManager.getInstance(project);
-//
-//            DataManager.getInstance().getDataContextFromFocusAsync().onSuccess(dataContext -> {
-//                ExecutorRegistry executorRegistry = ExecutorRegistryImpl.getInstance();
-//                 Executor debugExecutor = executorRegistry.getExecutorById("Debug");
-//                if (debugExecutor == null) {
-//                    InsidiousNotification.notifyMessage("Debug run config not found for: " + selectedConfig.getName()
-//                            + ". Failed to start process in debug mode", NotificationType.ERROR);
-//                    return;
-//                }
-//
-//                ExecutionEnvironmentBuilder builder = ExecutionEnvironmentBuilder.createOrNull(debugExecutor,
-//                        selectedConfig);
-//
-//                executionManager.restartRunProfile(
-//                        builder.activeTarget().dataContext(dataContext).build());
-//                UsageInsightTracker.getInstance().RecordEvent("START_WITH_UNLOGGED_SUCCESS", new JSONObject());
-//
-//            });
-//
-//        } else {
-//
-//            List<RunConfiguration> allConfigurations = runManager.getAllConfigurationsList();
-//
-//            JSONObject eventProperties = new JSONObject();
-//            for (RunConfiguration allConfiguration : allConfigurations) {
-//                eventProperties.put(allConfiguration.getName(), allConfiguration.getType().getDisplayName());
-////                if (allConfiguration instanceof ApplicationConfiguration) {
-////                    OkCancelDialogBuilder.okCancel()
-////                }
-//            }
-//
-//
-//            UsageInsightTracker.getInstance().RecordEvent("START_WITH_UNLOGGED_NO_CONFIG", eventProperties);
-//            if (selectedConfig == null) {
-//                InsidiousNotification.notifyMessage("Please select or configure a JAVA Application Run configuration " +
-//                                "in IntelliJ",
-//                        NotificationType.WARNING);
-//            } else {
-//                InsidiousNotification.notifyMessage(
-//                        "Current run configuration [" + selectedConfig.getName() + "] is not " +
-//                                "a java application run configuration. Failed to start.",
-//                        NotificationType.WARNING);
-//            }
-//        }
-//
-//    }
 
     public void focusAtomicTestsWindow() {
         if (this.atomicTestContent != null) {

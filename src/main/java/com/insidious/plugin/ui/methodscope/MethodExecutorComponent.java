@@ -28,6 +28,7 @@ import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Computable;
@@ -284,6 +285,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         if (methodElement == null) {
             return;
         }
+        if (DumbService.getInstance(getProject()).isDumb()) {
+            return;
+        }
         methodUnderTest = MethodUnderTest.fromMethodAdapter(methodElement);
         methodInfo = insidiousService.getMethodInformation(methodUnderTest);
 
@@ -325,7 +329,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
 
         executeAndShowDifferencesButton.setEnabled(true);
-        insidiousService.showNewTestCandidateGotIt();
 
         gridPanel.revalidate();
         gridPanel.repaint();

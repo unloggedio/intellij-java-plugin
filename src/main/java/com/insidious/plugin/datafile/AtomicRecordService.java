@@ -217,26 +217,17 @@ public class AtomicRecordService {
 
 
     private String getFilenameForClass(String classname) {
-        Project project = insidiousService.getProject();
+        return getFilenameForClass(classname, guessModuleForClassName(classname));
+    }
+
+
+    private String getFilenameForClass(String classname, Module module) {
         String destinationFileName = separator + classname + ".json";
-        PsiClass psiClassResult;
-        try {
-            psiClassResult = JavaPsiFacade.getInstance(project)
-                    .findClass(classname, GlobalSearchScope.projectScope(project));
-        } catch (Exception e) {
-            // failed to find modules and a more specific save path
-            logger.warn("Failed to specific module for class: " + classname, e);
+
+        if (module == null) {
             return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
         }
 
-        if (psiClassResult == null) {
-            // failed to find class file :o ooo o
-            return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
-        }
-
-        final ProjectFileIndex index = ProjectRootManager.getInstance(project).getFileIndex();
-        Module module = index.getModuleForFile(psiClassResult.getContainingFile().getVirtualFile());
-        assert module != null;
         VirtualFile moduleDirectoryFile = ProjectUtil.guessModuleDir(module);
 
         if (moduleDirectoryFile == null) {
@@ -244,43 +235,62 @@ public class AtomicRecordService {
         }
 
         String testContentPathFromModule = buildModuleBasePath(moduleDirectoryFile);
-
-
-        String testResourcesPathFromModulePath = testContentPathFromModule + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME;
+        String testResourcesPathFromModulePath = testContentPathFromModule +
+                TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME;
 
         return testResourcesPathFromModulePath + destinationFileName;
-
     }
 
-    public String guessModuleBasePath(String className) {
+    private Module getModuleForClass(PsiClass psiClassResult) {
+        final ProjectFileIndex index = ProjectRootManager.getInstance(psiClassResult.getProject()).getFileIndex();
+        return index.getModuleForFile(psiClassResult.getContainingFile().getVirtualFile());
+    }
+
+    public Module guessModuleForClassName(String className) {
         Project project = insidiousService.getProject();
 
         PsiClass psiClass;
         try {
-            psiClass = JavaPsiFacade.getInstance(project)
-                    .findClass(className, GlobalSearchScope.projectScope(project));
+            psiClass = JavaPsiFacade.getInstance(project).findClass(className, GlobalSearchScope.projectScope(project));
+            return guessModuleForPsiClass(psiClass);
         } catch (Exception e) {
             // failed to find modules and a more specific save path
             logger.warn("Failed to specific module for class: " + className, e);
-            return projectBasePath;
+            Module[] modules = ModuleManager.getInstance(project).getModules();
+            if (modules.length > 0) {
+                return modules[0];
+            } else {
+                return null;
+            }
         }
-
-        if (psiClass == null) {
-            // failed to find class file :o ooo o
-            return projectBasePath;
-        }
-
-        return guessModuleBasePath(psiClass);
     }
 
     public String guessModuleBasePath(PsiClass psiClass) {
         try {
-            final ProjectFileIndex index = ProjectRootManager.getInstance(psiClass.getProject()).getFileIndex();
-            Module module = index.getModuleForFile(psiClass.getContainingFile().getVirtualFile());
+            Module module = getModuleForClass(psiClass);
+            if (module == null) {
+                return projectBasePath;
+            }
             VirtualFile moduleDirectoryFile = ProjectUtil.guessModuleDir(module);
+            if (moduleDirectoryFile == null) {
+                return projectBasePath;
+            }
             return buildModuleBasePath(moduleDirectoryFile);
         } catch (Exception e) {
             return projectBasePath;
+        }
+    }
+
+    public Module guessModuleForPsiClass(PsiClass psiClass) {
+        try {
+            final ProjectFileIndex index = ProjectRootManager.getInstance(psiClass.getProject()).getFileIndex();
+            return index.getModuleForFile(psiClass.getContainingFile().getVirtualFile());
+        } catch (Exception e) {
+            Module[] modules = ModuleManager.getInstance(psiClass.getProject()).getModules();
+            if (modules.length > 0) {
+                return modules[0];
+            }
+            return null;
         }
     }
 
@@ -292,9 +302,6 @@ public class AtomicRecordService {
         } else if (moduleSrcDirPath.endsWith("src/main")) {
             moduleBasePath = moduleSrcDirPath.substring(0, moduleSrcDirPath.indexOf("/src/main"));
             return moduleBasePath + separator;
-//        } else if (moduleSrcDirPath.endsWith("/main")) {
-//            moduleBasePath = moduleSrcDirPath.substring(0, moduleSrcDirPath.indexOf("/main"));
-//            return moduleBasePath + separator + "test" + separator + "resources" + separator + UNLOGGED_RESOURCE_FOLDER_NAME;
         } else {
             return moduleBasePath + separator;
         }
@@ -329,7 +336,7 @@ public class AtomicRecordService {
 
     private void addNewRecord(String methodHashKey, String className, StoredCandidate candidate) {
         AtomicRecord record = new AtomicRecord(className);
-        record.getStoredCandidateMap().put(methodHashKey, Arrays.asList(candidate));
+        record.getStoredCandidateMap().put(methodHashKey, Collections.singletonList(candidate));
         classAtomicRecordMap.put(className, record);
         writeToFile(new File(getFilenameForClass(className)), record, FileUpdateType.ADD_CANDIDATE, useNotifications);
     }
@@ -348,7 +355,6 @@ public class AtomicRecordService {
                 InsidiousNotification.notifyMessage(getMessageForOperationType(type, file.getPath(), true),
                         NotificationType.INFORMATION);
             }
-            resourceFile.close();
         } catch (Exception e) {
             logger.info("[ATRS] Failed to write to file : " + e);
             InsidiousNotification.notifyMessage(getMessageForOperationType(type, file.getPath(), false),
@@ -429,14 +435,11 @@ public class AtomicRecordService {
                 return false;
             }
             String methodKey = methodUnderTest.getMethodHashKey();
-            if (record.getStoredCandidateMap().get(methodKey) != null &&
-                    record.getStoredCandidateMap().get(methodKey).size() > 0) {
-                return true;
-
-            }
-            return false;
+            Map<String, List<StoredCandidate>> storedCandidateMap = record.getStoredCandidateMap();
+            return storedCandidateMap.containsKey(methodKey) &&
+                    storedCandidateMap.get(methodKey).size() > 0;
         } catch (Exception e) {
-            logger.info("Exception checking if method has stored candidates." + e);
+            logger.warn("Exception checking if method has stored candidates", e);
             return false;
         }
     }
@@ -492,10 +495,6 @@ public class AtomicRecordService {
         UsageInsightTracker.getInstance().RecordEvent("Candidate_Deleted", null);
         insidiousService.triggerGutterIconReload();
         insidiousService.updateCoverageReport();
-    }
-
-    public String getSaveLocation() {
-        return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + separator;
     }
 
     public void setCandidateStateForCandidate(String candidateID, String classname,
@@ -582,7 +581,9 @@ public class AtomicRecordService {
         }
 
         existingMocks.add(declaredMock);
-        writeToFile(new File(getFilenameForClass(className)), record,
+        writeToFile(
+                new File(getFilenameForClass(className, guessModuleForClassName(declaredMock.getSourceClassName()))),
+                record,
                 updated ? FileUpdateType.UPDATE_MOCK : FileUpdateType.ADD_MOCK, true);
     }
 

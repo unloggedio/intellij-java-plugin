@@ -81,16 +81,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
         methodParameterScrollContainer.addKeyListener(new KeyAdapter() {
 
             @Override
-            public void keyTyped(KeyEvent e) {
-                super.keyTyped(e);
-            }
-
-            @Override
-            public void keyReleased(KeyEvent e) {
-                super.keyReleased(e);
-            }
-
-            @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     executeMethodWithParameters();
@@ -398,11 +388,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-//        if (e.getKeyCode() == 10) {
         executeMethodWithParameters();
-//        } else {
-//            super.actionPerformed(e);
-//        }
     }
 
     private void clearOutputSection() {

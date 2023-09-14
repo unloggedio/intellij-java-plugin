@@ -118,6 +118,11 @@ public class ClassUtils {
                     return dummyValue.toString();
                 }
 
+                if (rawTypeCanonicalText.equals("java.util.Optional")) {
+                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
+                    return dummyValue.toString();
+                }
+
                 PsiClass resolvedClass = JavaPsiFacade
                         .getInstance(project)
                         .findClass(classReferenceType.getCanonicalText(), GlobalSearchScope.allScope(project));

@@ -292,15 +292,6 @@ public class AtomicRecordServiceTest {
     }
 
     @Test
-    public void testBasePathLocation() {
-        String saveLocation = atomicRecordService.getSaveLocation();
-        String currentDir = System.getProperty("user.dir");
-        currentDir = currentDir + File.separator + getResourcePath()
-                + "unlogged" + File.separator;
-        Assertions.assertEquals(currentDir, saveLocation);
-    }
-
-    @Test
     public void testFilterCandidates() {
         Map<String, List<StoredCandidate>> candidates = new TreeMap<>();
         String key1 = "A#a";
