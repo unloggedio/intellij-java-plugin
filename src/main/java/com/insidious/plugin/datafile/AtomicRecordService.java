@@ -252,7 +252,7 @@ public class AtomicRecordService {
 
         PsiClass psiClass;
         try {
-            psiClass = JavaPsiFacade.getInstance(project).findClass(className, GlobalSearchScope.projectScope(project));
+            psiClass = JavaPsiFacade.getInstance(project).findClass(className, GlobalSearchScope.allScope(project));
             if (psiClass == null) {
                 logger.error("Class not found [" + className + "] for saving atomic records");
             } else {
@@ -557,12 +557,16 @@ public class AtomicRecordService {
     public List<DeclaredMock> getDeclaredMocksOf(MethodUnderTest methodUnderTest) {
 
         if (!classAtomicRecordMap.containsKey(methodUnderTest.getClassName())) {
-            return new ArrayList<>();
+            return List.of();
         }
-        return classAtomicRecordMap
+        Map<String, List<DeclaredMock>> declaredMockMap = classAtomicRecordMap
                 .get(methodUnderTest.getClassName())
-                .getDeclaredMockMap()
-                .get(methodUnderTest.getMethodHashKey());
+                .getDeclaredMockMap();
+        String methodHashKey = methodUnderTest.getMethodHashKey();
+        if (!declaredMockMap.containsKey(methodHashKey)) {
+            return List.of();
+        }
+        return declaredMockMap.get(methodHashKey);
 
 
     }
