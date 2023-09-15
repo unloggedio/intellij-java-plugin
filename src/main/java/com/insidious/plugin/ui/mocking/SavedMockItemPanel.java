@@ -1,12 +1,13 @@
 package com.insidious.plugin.ui.mocking;
 
 import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.mocking.MethodExitType;
+import com.insidious.plugin.mocking.ReturnValue;
+import com.insidious.plugin.mocking.ThenParameter;
 import com.intellij.ui.components.OnOffButton;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -40,6 +41,22 @@ public class SavedMockItemPanel {
                 declaredMockLifecycleListener.onDisable(declaredMock);
             }
         });
+
+        ThenParameter thenParameter = declaredMock.getThenParameter().get(0);
+        ReturnValue returnParameter = thenParameter.getReturnParameter();
+        if (thenParameter.getMethodExitType() == MethodExitType.NORMAL) {
+        }
+        switch (thenParameter.getMethodExitType()) {
+            case NORMAL:
+                mockMetadataLabel.setText("Returns " + returnParameter.getClassName());
+                break;
+            case EXCEPTION:
+                mockMetadataLabel.setText("Throws " + returnParameter.getClassName());
+                break;
+            case NULL:
+                mockMetadataLabel.setText("Returns null");
+                break;
+        }
 
         mockNameLabel.setText(declaredMock.getName());
         deleteButton.addMouseListener(new MouseAdapter() {

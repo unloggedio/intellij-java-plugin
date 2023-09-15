@@ -1,7 +1,6 @@
 package com.insidious.plugin.ui.mocking;
 
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.*;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.util.ClassUtils;
@@ -17,6 +16,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +30,7 @@ public class MockDefinitionEditor {
     private final List<WhenParameterInputPanel> whenPanelList = new ArrayList<>();
     private final List<ThenParameterInputPanel> thenPanelList = new ArrayList<>();
     private final Project project;
+    private final OnSaveListener onSaveListener;
     //    private final CancelOrOkListener<DeclaredMock> cancelOrOkListener;
     private JPanel mainPanel;
     private JPanel namePanel;
@@ -56,7 +58,8 @@ public class MockDefinitionEditor {
     public MockDefinitionEditor(
             MethodUnderTest methodUnderTest,
             PsiMethodCallExpression methodCallExpression,
-            Project project) {
+            Project project, OnSaveListener onSaveListener) {
+        this.onSaveListener = onSaveListener;
         this.methodUnderTest = methodUnderTest;
         this.project = project;
         mockTypeParentPanel.setVisible(false);
@@ -103,7 +106,13 @@ public class MockDefinitionEditor {
         addListeners();
     }
 
-    public MockDefinitionEditor(MethodUnderTest methodUnderTest, DeclaredMock declaredMock, Project project) {
+    public MockDefinitionEditor(
+            MethodUnderTest methodUnderTest,
+            DeclaredMock declaredMock,
+            Project project,
+            OnSaveListener onSaveListener
+    ) {
+        this.onSaveListener = onSaveListener;
         this.methodUnderTest = methodUnderTest;
         this.project = project;
         this.declaredMock = declaredMock;
@@ -118,7 +127,7 @@ public class MockDefinitionEditor {
             ThenParameter newThenParameter = createDummyThenParameter();
             declaredMock.getThenParameter().add(newThenParameter);
             returnItemList.setLayout(new GridLayout(declaredMock.getThenParameter().size(), 1));
-            ThenParameterInputPanel thenParameterInputPanel = new ThenParameterInputPanel(newThenParameter);
+            ThenParameterInputPanel thenParameterInputPanel = new ThenParameterInputPanel(newThenParameter, project);
             GridConstraints constraints = new GridConstraints(
                     declaredMock.getThenParameter().size() - 1, 0, 1, 1, ANCHOR_NORTH,
                     FILL_HORIZONTAL, SIZEPOLICY_CAN_GROW | SIZEPOLICY_CAN_SHRINK, SIZEPOLICY_FIXED,
@@ -134,14 +143,9 @@ public class MockDefinitionEditor {
         });
 
         saveButton.addActionListener(e -> {
-            InsidiousService insidiousService = project.getService(InsidiousService.class);
-            insidiousService.saveMockDefinition(declaredMock, methodUnderTest);
+            onSaveListener.onSaveDeclaredMock(declaredMock);
             editorPopup.cancel();
         });
-    }
-
-    public DeclaredMock getDeclaredMock() {
-        return declaredMock;
     }
 
     @NotNull
@@ -158,11 +162,19 @@ public class MockDefinitionEditor {
 
         nameTextField.setText(declaredMock.getName());
 
+        nameTextField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                super.keyReleased(e);
+                declaredMock.setName(nameTextField.getText());
+            }
+        });
+
         List<ParameterMatcher> whenParameter = declaredMock.getWhenParameter();
         parameterListContainerPanel.setLayout(new GridLayout(whenParameter.size(), 1));
         for (int i = 0; i < whenParameter.size(); i++) {
             ParameterMatcher parameterMatcher = whenParameter.get(i);
-            WhenParameterInputPanel parameterInputPanel = new WhenParameterInputPanel(parameterMatcher);
+            WhenParameterInputPanel parameterInputPanel = new WhenParameterInputPanel(parameterMatcher, project);
             GridConstraints constraints = new GridConstraints(
                     i, 0, 1, 1, ANCHOR_NORTH,
                     FILL_HORIZONTAL, SIZEPOLICY_CAN_GROW | SIZEPOLICY_CAN_SHRINK, SIZEPOLICY_FIXED,
@@ -179,7 +191,7 @@ public class MockDefinitionEditor {
         returnItemList.setLayout(new GridLayout(thenParameters.size(), 1));
         for (int i = 0; i < thenParameters.size(); i++) {
             ThenParameter thenParameter = thenParameters.get(i);
-            ThenParameterInputPanel thenParameterInputPanel = new ThenParameterInputPanel(thenParameter);
+            ThenParameterInputPanel thenParameterInputPanel = new ThenParameterInputPanel(thenParameter, project);
             GridConstraints constraints = new GridConstraints(
                     i, 0, 1, 1, ANCHOR_NORTH,
                     FILL_HORIZONTAL, SIZEPOLICY_CAN_GROW | SIZEPOLICY_CAN_SHRINK, SIZEPOLICY_FIXED,

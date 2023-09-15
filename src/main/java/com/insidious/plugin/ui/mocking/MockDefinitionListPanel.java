@@ -9,8 +9,10 @@ import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.popup.*;
+import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.components.OnOffButton;
 import com.intellij.uiDesigner.core.GridConstraints;
 
@@ -20,17 +22,20 @@ import java.util.List;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
 
-public class MockDefinitionListPanel implements DeclaredMockLifecycleListener {
+public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, OnSaveListener {
     private static final Logger logger = LoggerUtil.getInstance(MockDefinitionListPanel.class);
     private final InsidiousService insidiousService;
     private final MethodUnderTest methodUnderTest;
     private final PsiMethodCallExpression methodCallExpression;
     private final JPanel itemListPanel = new JPanel();
+    private final String fieldName;
+    private final String parentClassName;
+    private final OnOffButton fieldMockSwitch;
     private JPanel mockDefinitionTitlePanel;
     private JLabel mockedMethodText;
     private JLabel mockEnableSwitchLabel;
     private JPanel mockSwitchContainer;
-    private JPanel mockSwitchPanel;
+    private JPanel mockFieldSwitchPanel;
     private JButton addNewMockButton;
     private JPanel savedMocksListParent;
     private JPanel savedMocksTitlePanel;
@@ -47,16 +52,33 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener {
     public MockDefinitionListPanel(PsiMethodCallExpression methodCallExpression) {
         this.methodCallExpression = methodCallExpression;
 
+        this.fieldName = methodCallExpression.getMethodExpression().getQualifierExpression().getText();
         savedItemScrollPanel.setViewportView(itemListPanel);
         itemListPanel.setBorder(BorderFactory.createEmptyBorder());
         itemListPanel.setAlignmentY(0);
+
+        parentClassName = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class).getQualifiedName();
 
         insidiousService = methodCallExpression.getProject().getService(InsidiousService.class);
 
         PsiMethod targetMethod = methodCallExpression.resolveMethod();
         methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethod));
 
-        mockSwitchPanel.add(new OnOffButton(), BorderLayout.EAST);
+        boolean fieldMockIsActive = insidiousService.isFieldMockActive(parentClassName, fieldName);
+        fieldMockSwitch = new OnOffButton();
+        fieldMockSwitch.setSelected(fieldMockIsActive);
+
+
+        mockFieldSwitchPanel.add(fieldMockSwitch, BorderLayout.EAST);
+        fieldMockSwitch.addActionListener(e -> {
+            boolean isActive = fieldMockSwitch.isSelected();
+            logger.warn("Field active changed: " + isActive);
+            if (isActive) {
+                insidiousService.enableFieldMock(parentClassName, fieldName);
+            } else {
+                insidiousService.disableFieldMock(parentClassName, fieldName);
+            }
+        });
 
         int argumentCount = targetMethod.getParameterList().getParametersCount();
         mockedMethodText.setText(
@@ -73,7 +95,7 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener {
     }
 
     private void loadDefinitions(boolean showAddNewIfEmpty) {
-        List<DeclaredMock> declaredMockList = insidiousService.getDeclaredMocks(methodUnderTest);
+        List<DeclaredMock> declaredMockList = insidiousService.getDeclaredMocksOf(methodUnderTest);
 
         int savedCandidateCount = declaredMockList.size();
 
@@ -135,10 +157,10 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener {
         MockDefinitionEditor mockDefinitionEditor;
         if (declaredMock == null) {
             mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest, methodCallExpression,
-                    methodCallExpression.getProject());
+                    methodCallExpression.getProject(), this);
         } else {
             mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest, new DeclaredMock(declaredMock),
-                    methodCallExpression.getProject());
+                    methodCallExpression.getProject(), this);
         }
 
         JComponent gutterMethodComponent = mockDefinitionEditor.getComponent();
@@ -196,6 +218,9 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener {
     @Override
     public void onEnable(DeclaredMock declaredMock) {
         insidiousService.enableMock(declaredMock);
+        if (!fieldMockSwitch.isSelected()) {
+            fieldMockSwitch.setSelected(true);
+        }
     }
 
     @Override
@@ -205,5 +230,13 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener {
 
     public void setPopupHandle(JBPopup componentPopUp) {
         this.componentPopUp = componentPopUp;
+    }
+
+    @Override
+    public void onSaveDeclaredMock(DeclaredMock declaredMock) {
+        insidiousService.saveMockDefinition(declaredMock, methodUnderTest);
+        insidiousService.enableMock(declaredMock);
+        insidiousService.enableFieldMock(parentClassName, fieldName);
+        fieldMockSwitch.setSelected(true);
     }
 }

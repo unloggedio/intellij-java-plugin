@@ -1,17 +1,41 @@
 package com.insidious.plugin.ui.mocking;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.mocking.MethodExitType;
 import com.insidious.plugin.mocking.ThenParameter;
+import com.insidious.plugin.util.UIUtils;
+import com.intellij.openapi.project.Project;
+import com.intellij.psi.JavaPsiFacade;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.search.GlobalSearchScope;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public class ThenParameterInputPanel {
+
+    private final static Set<String> baseClassNames = new HashSet<>(Arrays.asList(
+            "int",
+            "short",
+            "byte",
+            "char",
+            "boolean",
+            "float",
+            "double",
+            "long"
+    ));
+
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final ThenParameter thenParameter;
+    private final Project project;
+    private final Color originalBackgroundColor;
     private JPanel mainPanel;
     private JTextField returnTypeTextField;
     private JTextArea returnValueTextArea;
@@ -19,8 +43,10 @@ public class ThenParameterInputPanel {
     private JScrollPane textAreaScrollPanel;
     private JPanel textAreaScrollParent;
 
-    public ThenParameterInputPanel(ThenParameter thenParameter) {
+    public ThenParameterInputPanel(ThenParameter thenParameter, Project project) {
+        this.project = project;
         this.thenParameter = thenParameter;
+        this.originalBackgroundColor = returnValueTextArea.getBackground();
         returnType.setModel(new DefaultComboBoxModel<>(MethodExitType.values()));
         returnTypeTextField.setText(thenParameter.getReturnParameter().getClassName());
         String thenParamValue = thenParameter.getReturnParameter().getValue();
@@ -36,41 +62,47 @@ public class ThenParameterInputPanel {
 
         returnValueTextArea.addKeyListener(new KeyAdapter() {
             @Override
-            public void keyPressed(KeyEvent e) {
+            public void keyReleased(KeyEvent e) {
                 thenParameter.getReturnParameter().setValue(returnValueTextArea.getText());
+                validateValueValid();
             }
         });
 
         returnTypeTextField.addKeyListener(new KeyAdapter() {
             @Override
-            public void keyPressed(KeyEvent e) {
+            public void keyReleased(KeyEvent e) {
                 String text = returnTypeTextField.getText();
-//                PsiClass classFound = JavaPsiFacade.getInstance(project)
-//                        .findClass(text, GlobalSearchScope.projectScope(project));
-//                if (classFound == null) {
-//                    returnTypeTextField.setBackground(JBColor.RED);
-//                }
                 thenParameter.getReturnParameter().setClassName(text);
+                validateTypeValid();
             }
         });
 
-//        if (thenParamValue.split("\\n").length > 7) {
-//            int height = 500;
-//            textAreaScrollPanel.setPreferredSize(new Dimension(-1, height));
-//            textAreaScrollPanel.setSize(new Dimension(-1, height));
-//            textAreaScrollPanel.setMaximumSize(new Dimension(-1, height));
-//            textAreaScrollParent.setPreferredSize(new Dimension(-1, height));
-//            textAreaScrollParent.setSize(new Dimension(-1, height));
-//            textAreaScrollParent.setMaximumSize(new Dimension(-1, height));
-//            textAreaScrollPanel.revalidate();
-//            textAreaScrollPanel.repaint();
-//            textAreaScrollParent.revalidate();
-//            textAreaScrollParent.repaint();
-//        }
     }
 
-    public ThenParameter getThenParameter() {
-        return thenParameter;
+    public void validateTypeValid() {
+        String className = thenParameter.getReturnParameter().getClassName();
+        if (baseClassNames.contains(className)) {
+            returnTypeTextField.setBackground(originalBackgroundColor);
+            return;
+        }
+        PsiClass locatedClass = JavaPsiFacade.getInstance(project)
+                .findClass(className, GlobalSearchScope.allScope(project));
+        if (locatedClass == null) {
+            returnTypeTextField.setBackground(UIUtils.WARNING_RED);
+        } else {
+            returnTypeTextField.setBackground(originalBackgroundColor);
+        }
+
+    }
+
+    public void validateValueValid() {
+        String value = thenParameter.getReturnParameter().getValue();
+        try {
+            JsonNode jsonNode = objectMapper.readTree(value);
+            returnValueTextArea.setBackground(originalBackgroundColor);
+        } catch (Exception e) {
+            returnValueTextArea.setBackground(UIUtils.WARNING_RED);
+        }
     }
 
     public JComponent getComponent() {

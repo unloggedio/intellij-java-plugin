@@ -29,6 +29,7 @@ import org.json.JSONObject;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.io.File.separator;
 
@@ -252,16 +253,20 @@ public class AtomicRecordService {
         PsiClass psiClass;
         try {
             psiClass = JavaPsiFacade.getInstance(project).findClass(className, GlobalSearchScope.projectScope(project));
-            return guessModuleForPsiClass(psiClass);
+            if (psiClass == null) {
+                logger.error("Class not found [" + className + "] for saving atomic records");
+            } else {
+                return guessModuleForPsiClass(psiClass);
+            }
         } catch (Exception e) {
             // failed to find modules and a more specific save path
             logger.warn("Failed to specific module for class: " + className, e);
-            Module[] modules = ModuleManager.getInstance(project).getModules();
-            if (modules.length > 0) {
-                return modules[0];
-            } else {
-                return null;
-            }
+        }
+        Module[] modules = ModuleManager.getInstance(project).getModules();
+        if (modules.length > 0) {
+            return modules[0];
+        } else {
+            return null;
         }
     }
 
@@ -542,12 +547,40 @@ public class AtomicRecordService {
         this.useNotifications = useNotifications;
     }
 
-    public List<DeclaredMock> getDeclaredMocks(MethodUnderTest methodUnderTest) {
+
+    /**
+     * Returns mocks of the class
+     *
+     * @param methodUnderTest target method
+     * @return mocks which can be used in the class
+     */
+    public List<DeclaredMock> getDeclaredMocksOf(MethodUnderTest methodUnderTest) {
+
         if (!classAtomicRecordMap.containsKey(methodUnderTest.getClassName())) {
             return new ArrayList<>();
         }
-        return classAtomicRecordMap.get(methodUnderTest.getClassName())
-                .getDeclaredMockMap().get(methodUnderTest.getMethodHashKey());
+        return classAtomicRecordMap
+                .get(methodUnderTest.getClassName())
+                .getDeclaredMockMap()
+                .get(methodUnderTest.getMethodHashKey());
+
+
+    }
+
+    /**
+     * returns mocks which can be used in the class
+     *
+     * @param methodUnderTest source method
+     * @return mocks which can be used in the class
+     */
+    public List<DeclaredMock> getDeclaredMocksFor(MethodUnderTest methodUnderTest) {
+        return classAtomicRecordMap.values()
+                .stream().map(e -> e.getDeclaredMockMap().values())
+                .flatMap(Collection::stream)
+                .flatMap(Collection::stream)
+                .filter(e -> e.getSourceClassName().equals(methodUnderTest.getClassName()))
+                .collect(Collectors.toList());
+
     }
 
     public void saveMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {

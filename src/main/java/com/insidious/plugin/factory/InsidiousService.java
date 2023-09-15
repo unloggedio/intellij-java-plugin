@@ -106,8 +106,8 @@ import java.util.stream.Collectors;
 import static com.insidious.plugin.util.AtomicRecordUtils.filterStoredCandidates;
 
 @Storage("insidious.xml")
-final public class InsidiousService implements Disposable,
-        NewTestCandidateIdentifiedListener,
+final public class InsidiousService implements
+        Disposable, NewTestCandidateIdentifiedListener,
         GutterStateProvider, ConnectionStateListener {
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final static ObjectMapper objectMapper = new ObjectMapper();
@@ -116,7 +116,6 @@ final public class InsidiousService implements Disposable,
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
     private final AgentClient agentClient;
     private final SessionLoader sessionLoader;
-    private final Map<DeclaredMock, Boolean> mockActiveMap = new HashMap<>();
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
@@ -126,7 +125,8 @@ final public class InsidiousService implements Disposable,
     private final ActiveSessionManager sessionManager;
     private final JUnitTestCaseWriter junitTestCaseWriter;
     private final Map<String, Boolean> classModifiedFlagMap = new HashMap<>();
-    Map<SaveForm, FileEditor> saveFormEditorMap = new HashMap<>();
+    private final Map<SaveForm, FileEditor> saveFormEditorMap = new HashMap<>();
+    private final InsidiousConfigurationState configurationState;
     private ActiveHighlight currentActiveHighlight = null;
     private Project project;
     private VideobugClientInterface client;
@@ -134,9 +134,6 @@ final public class InsidiousService implements Disposable,
     private ToolWindow toolWindow;
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
-    //    private boolean liveViewAdded = false;
-//    private Content liveWindowContent;
-//    private String selectedModule = null;
     private TestCaseDesigner testCaseDesignerWindow;
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
@@ -152,7 +149,6 @@ final public class InsidiousService implements Disposable,
     private boolean codeCoverageHighlightEnabled = true;
     private HighlightedRequest currentHighlightedRequest = null;
     private boolean testCaseDesignerWindowAdded = false;
-    private MethodUnderTest currentMethodUnderTest;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -176,6 +172,7 @@ final public class InsidiousService implements Disposable,
         agentStateProvider = new DefaultAgentStateProvider(this);
         agentClient = new AgentClient("http://localhost:12100", (ConnectionStateListener) agentStateProvider);
         junitTestCaseWriter = new JUnitTestCaseWriter(project, objectMapper);
+        configurationState = project.getService(InsidiousConfigurationState.class);
 
         ApplicationManager.getApplication().invokeLater(() -> {
             if (project.isDisposed()) {
@@ -460,7 +457,7 @@ final public class InsidiousService implements Disposable,
         }
 
         currentMethod = method;
-        currentMethodUnderTest = MethodUnderTest.fromMethodAdapter(method);
+        MethodUnderTest currentMethodUnderTest = MethodUnderTest.fromMethodAdapter(method);
         final ClassAdapter psiClass;
         try {
             psiClass = method.getContainingClass();
@@ -554,12 +551,17 @@ final public class InsidiousService implements Disposable,
 
         methodArgumentValueCache.addArgumentSet(agentCommandRequest);
 
-        String targetClassName = agentCommandRequest.getClassName();
-        List<DeclaredMock> activeMocks = mockActiveMap.entrySet()
+        List<DeclaredMock> availableMocks = getDeclaredMocksFor(new MethodUnderTest(
+                agentCommandRequest.getMethodName(), agentCommandRequest.getMethodSignature(),
+                0, agentCommandRequest.getClassName()
+        ));
+
+        List<DeclaredMock> activeMocks = availableMocks
                 .stream()
-                .filter(e -> e.getValue() && e.getKey().getSourceClassName().equals(targetClassName))
-                .map(Map.Entry::getKey)
+                .filter(e -> isFieldMockActive(e.getSourceClassName(), e.getFieldName()))
+                .filter(this::isMockEnabled)
                 .collect(Collectors.toList());
+
         agentCommandRequest.setDeclaredMocks(activeMocks);
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -1316,27 +1318,48 @@ final public class InsidiousService implements Disposable,
         return atomicRecordService.guessModuleBasePath((PsiClass) currentClass.getSource());
     }
 
-    public List<DeclaredMock> getDeclaredMocks(MethodUnderTest methodUnderTest) {
-        return atomicRecordService.getDeclaredMocks(methodUnderTest);
+    public List<DeclaredMock> getDeclaredMocksOf(MethodUnderTest methodUnderTest) {
+        return atomicRecordService.getDeclaredMocksOf(methodUnderTest);
+    }
+
+    public List<DeclaredMock> getDeclaredMocksFor(MethodUnderTest methodUnderTest) {
+        return atomicRecordService.getDeclaredMocksFor(methodUnderTest);
     }
 
     public void saveMockDefinition(DeclaredMock declaredMock, MethodUnderTest methodUnderTest) {
         atomicRecordService.saveMockDefinition(methodUnderTest, declaredMock);
+        if (!isMockEnabled(declaredMock)) {
+            enableMock(declaredMock);
+        }
     }
 
     public void deleteMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {
+        disableMock(declaredMock);
         atomicRecordService.deleteMockDefinition(methodUnderTest, declaredMock);
     }
 
     public void enableMock(DeclaredMock declaredMock) {
-        mockActiveMap.put(declaredMock, true);
+        configurationState.addMock(declaredMock.getId());
+        enableFieldMock(declaredMock.getSourceClassName(), declaredMock.getFieldName());
+    }
+
+    public void disableFieldMock(String className, String fieldName) {
+        configurationState.removeFieldMock(className + "." + fieldName);
+    }
+
+    public void enableFieldMock(String className, String fieldName) {
+        configurationState.addFieldMock(className + "." + fieldName);
+    }
+
+    public boolean isFieldMockActive(String className, String fieldName) {
+        return configurationState.isFieldMockActive(className + "." + fieldName);
     }
 
     public void disableMock(DeclaredMock declaredMock) {
-        mockActiveMap.put(declaredMock, false);
+        configurationState.removeMock(declaredMock.getId());
     }
 
     public boolean isMockEnabled(DeclaredMock declaredMock) {
-        return mockActiveMap.containsKey(declaredMock) && mockActiveMap.get(declaredMock);
+        return configurationState.isActiveMock(declaredMock.getId());
     }
 }
