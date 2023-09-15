@@ -89,7 +89,7 @@ public class MockDefinitionEditor {
             PsiType parameterType = methodParameter.getType();
             String parameterTypeName = parameterType.getCanonicalText();
             ParameterMatcher parameterMatcher = new ParameterMatcher(methodParameter.getName(),
-                    ParameterMatcherType.ANY, parameterTypeName);
+                    ParameterMatcherType.ANY_OF_TYPE, parameterTypeName);
             parameterList.add(parameterMatcher);
         }
 

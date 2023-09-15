@@ -27,6 +27,15 @@ public class WhenParameterInputPanel {
             "double",
             "long"
     ));
+    private static final Set<ParameterMatcherType> NEED_VALUE = new HashSet<>(
+            Arrays.asList(
+                    ParameterMatcherType.EQUAL,
+                    ParameterMatcherType.ANY_OF_TYPE,
+                    ParameterMatcherType.STARTS_WITH,
+                    ParameterMatcherType.ENDS_WITH,
+                    ParameterMatcherType.MATCHES_REGEX
+            )
+    );
     private final ParameterMatcher parameterMatcher;
     private final Project project;
     private final Color originalValueTextFieldColor;
@@ -60,7 +69,9 @@ public class WhenParameterInputPanel {
     }
 
     public void checkMatcherValueValid() {
-        if (parameterMatcher.getType() == ParameterMatcherType.ANY) {
+        matcherValueTextField.setEnabled(NEED_VALUE.contains(parameterMatcher.getType()));
+
+        if (parameterMatcher.getType() == ParameterMatcherType.ANY_OF_TYPE) {
             String className = parameterMatcher.getValue();
             if (baseClassNames.contains(className)) {
                 matcherValueTextField.setBackground(originalValueTextFieldColor);
