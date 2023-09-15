@@ -48,6 +48,7 @@ public class ThenParameterInputPanel {
         this.thenParameter = thenParameter;
         this.originalBackgroundColor = returnValueTextArea.getBackground();
         returnType.setModel(new DefaultComboBoxModel<>(MethodExitType.values()));
+        returnType.setSelectedItem(thenParameter.getMethodExitType());
         returnTypeTextField.setText(thenParameter.getReturnParameter().getClassName());
         String thenParamValue = thenParameter.getReturnParameter().getValue();
         textAreaScrollPanel.setBorder(BorderFactory.createEmptyBorder());
@@ -68,6 +69,12 @@ public class ThenParameterInputPanel {
             }
         });
 
+        returnType.addActionListener(e -> {
+            MethodExitType selectedItem = (MethodExitType) returnType.getSelectedItem();
+            thenParameter.setMethodExitType(selectedItem);
+            updateVisibleControls();
+        });
+
         returnTypeTextField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
@@ -76,6 +83,17 @@ public class ThenParameterInputPanel {
                 validateTypeValid();
             }
         });
+        updateVisibleControls();
+    }
+
+    public void updateVisibleControls() {
+        if (thenParameter.getMethodExitType() == MethodExitType.NULL) {
+            returnTypeTextField.setEnabled(false);
+            returnValueTextArea.setEnabled(false);
+        } else {
+            returnTypeTextField.setEnabled(true);
+            returnValueTextArea.setEnabled(true);
+        }
 
     }
 

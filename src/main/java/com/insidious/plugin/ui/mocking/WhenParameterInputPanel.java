@@ -47,6 +47,7 @@ public class WhenParameterInputPanel {
         matcherTypeComboBox.addActionListener(e -> {
             ParameterMatcherType newSelection = (ParameterMatcherType) matcherTypeComboBox.getSelectedItem();
             parameterMatcher.setType(newSelection);
+            checkMatcherValueValid();
         });
         matcherValueTextField.addKeyListener(new KeyAdapter() {
             @Override
@@ -55,6 +56,7 @@ public class WhenParameterInputPanel {
                 checkMatcherValueValid();
             }
         });
+        checkMatcherValueValid();
     }
 
     public void checkMatcherValueValid() {
@@ -71,6 +73,8 @@ public class WhenParameterInputPanel {
             } else {
                 matcherValueTextField.setBackground(originalValueTextFieldColor);
             }
+        } else {
+            matcherValueTextField.setBackground(originalValueTextFieldColor);
         }
     }
 
