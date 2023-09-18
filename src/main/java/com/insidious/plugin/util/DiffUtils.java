@@ -28,7 +28,8 @@ public class DiffUtils {
 
 
         String returnValueAsString = String.valueOf(agentCommandResponse.getMethodReturnValue());
-        if (agentCommandResponse.getResponseClassName().equals("java.lang.String")
+        if (agentCommandResponse.getResponseClassName() != null
+                && agentCommandResponse.getResponseClassName().equals("java.lang.String")
                 && !returnValueAsString.startsWith("\"") && !returnValueAsString.endsWith("\"")) {
             returnValueAsString = "\"" + returnValueAsString + "\"";
         }
