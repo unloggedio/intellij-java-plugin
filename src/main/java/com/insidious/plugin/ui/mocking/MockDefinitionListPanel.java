@@ -145,9 +145,10 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
             mainPanel.revalidate();
             if (componentPopUp != null) {
                 Dimension currentSize = componentPopUp.getSize();
-                componentPopUp.setSize(new Dimension((int) currentSize.getWidth(), containerHeight + 140));
+                if (currentSize != null) {
+                    componentPopUp.setSize(new Dimension((int) currentSize.getWidth(), containerHeight + 140));
+                }
             }
-
         }
     }
 

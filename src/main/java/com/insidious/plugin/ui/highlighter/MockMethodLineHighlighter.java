@@ -50,7 +50,12 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
 
         // not mocking static calls for now
         PsiMethod targetMethod = (PsiMethod) methodCall.getMethodExpression().getReference().resolve();
-        if (targetMethod.getModifierList().hasModifierProperty(PsiModifier.STATIC)) {
+        if (targetMethod == null) {
+            logger.warn("Failed to resolve target method call: " + methodCall.getText());
+            return false;
+        }
+        PsiModifierList modifierList = targetMethod.getModifierList();
+        if (modifierList.hasModifierProperty(PsiModifier.STATIC)) {
             return false;
         }
 
