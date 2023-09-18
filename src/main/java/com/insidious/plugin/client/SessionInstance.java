@@ -2850,7 +2850,7 @@ public class SessionInstance implements Runnable {
                             && !methodName.startsWith("<") && !methodName.contains("$")) {
                         String ownerClass = ClassTypeUtils.getJavaClassName(
                                 probeInfo.getAttribute("Owner", null));
-                        existingParameter.setValue((long) ownerClass.hashCode());
+                        existingParameter.setValue(ownerClass.hashCode());
                         isModified = true;
                     }
 

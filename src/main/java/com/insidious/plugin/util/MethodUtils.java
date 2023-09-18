@@ -5,6 +5,7 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.agent.AgentCommand;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
+import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
@@ -15,7 +16,7 @@ import java.util.List;
 public class MethodUtils {
     public static AgentCommandRequest createRequestWithParameters(
             MethodAdapter methodAdapter,
-            PsiClass psiClass,
+            ClassUnderTest classUnderTest,
             List<String> parameterValues,
             boolean processArgumentTypes) {
 
@@ -25,7 +26,7 @@ public class MethodUtils {
         String qualifiedName = ApplicationManager.getApplication().runReadAction(
                 (Computable<String>) () -> {
                     agentCommandRequest.setMethodSignature(methodAdapter.getJVMSignature());
-                    agentCommandRequest.setClassName(psiClass.getQualifiedName());
+                    agentCommandRequest.setClassName(classUnderTest.getQualifiedClassName());
                     agentCommandRequest.setMethodName(methodAdapter.getName());
                     ParameterAdapter[] methodParameters = methodAdapter.getParameters();
                     String[] parameterCanonicalStrings = new String[methodParameters.length];

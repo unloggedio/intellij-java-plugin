@@ -11,8 +11,8 @@ import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
+import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
@@ -32,7 +32,6 @@ import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Computable;
-import com.intellij.psi.PsiClass;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBRadioButton;
 import com.intellij.ui.components.JBScrollPane;
@@ -218,7 +217,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             JSONObject eventProperties = new JSONObject();
 
             ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass1 -> {
-                eventProperties.put("className", psiClass1.getQualifiedName());
+                eventProperties.put("className", psiClass1.getQualifiedClassName());
                 eventProperties.put("methodName", methodName);
                 eventProperties.put("count", methodTestCandidates.size());
                 UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
@@ -277,7 +276,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         logger.warn("load and refresh candidates in mec for");
 
 
-
         if (methodElement == null || method == null || method.getPsiMethod() != methodElement.getPsiMethod()) {
             clearBoard();
         }
@@ -294,7 +292,6 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         if (candidates.size() == 0) {
             return;
         }
-
 
 
         List<ArgumentNameValuePair> methodArgumentNameList = generateParameterList(methodElement.getParameters());
@@ -432,24 +429,24 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     @Override
     public void executeCandidate(
             List<StoredCandidate> testCandidateList,
-            PsiClass psiClass,
+            ClassUnderTest classUnderTest,
             String source,
             AgentCommandResponseListener<String> agentCommandResponseListener
     ) {
         for (StoredCandidate testCandidate : testCandidateList) {
-            executeSingleCandidate(testCandidate, psiClass, source, agentCommandResponseListener);
+            executeSingleCandidate(testCandidate, classUnderTest, source, agentCommandResponseListener);
         }
     }
 
     private void executeSingleCandidate(
             StoredCandidate testCandidate,
-            PsiClass psiClass,
+            ClassUnderTest classUnderTest,
             String source,
             AgentCommandResponseListener<String> agentCommandResponseListener
     ) {
         List<String> methodArgumentValues = testCandidate.getMethodArguments();
         AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(
-                methodElement, psiClass, methodArgumentValues, true);
+                methodElement, classUnderTest, methodArgumentValues, true);
 
         TestCandidateListedItemComponent candidateComponent =
                 candidateComponentMap.get(getKeyForCandidate(testCandidate));
@@ -654,7 +651,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 getKeyForCandidate(candidate));
         ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {
             JSONObject eventProperties = new JSONObject();
-            eventProperties.put("className", psiClass.getQualifiedName());
+            eventProperties.put("className", psiClass.getQualifiedClassName());
             eventProperties.put("methodName", methodElement.getName());
             UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE_UPDATE", eventProperties);
             executeCandidate(

@@ -5,9 +5,11 @@ package com.insidious.plugin.util;
 
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
+import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.ui.methodscope.ClassChosenListener;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
 import com.intellij.lang.jvm.JvmModifier;
+import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
@@ -91,12 +93,16 @@ public class ClassUtils {
                         psiClassRawType.getName().endsWith("MultiValueMap") ||
                         rawTypeCanonicalText.equals("java.util.Map.Entry")
                 ) {
-                    dummyValue.append("{");
-                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
-                    dummyValue.append(": ");
-                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[1], creationStack, project));
-                    dummyValue.append("}");
-                    return dummyValue.toString();
+                    if (classReferenceType.getParameters().length == 2) {
+                        dummyValue.append("{");
+                        dummyValue.append(
+                                createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
+                        dummyValue.append(": ");
+                        dummyValue.append(
+                                createDummyValue(classReferenceType.getParameters()[1], creationStack, project));
+                        dummyValue.append("}");
+                        return dummyValue.toString();
+                    }
                 }
 
                 if (rawTypeCanonicalText.equals("java.util.UUID")) {
@@ -185,7 +191,7 @@ public class ClassUtils {
     public static void chooseClassImplementation(ClassAdapter psiClass, ClassChosenListener classChosenListener) {
 
 
-        JavaPsiFacade.getInstance(psiClass.getProject());
+//        JavaPsiFacade.getInstance(psiClass.getProject());
         ImplementationSearcher implementationSearcher = new ImplementationSearcher();
         PsiElement[] implementations = implementationSearcher.searchImplementations(
                 psiClass.getSource(), null, true, false
@@ -202,7 +208,7 @@ public class ClassUtils {
                         NotificationType.ERROR);
                 return;
             }
-            classChosenListener.classSelected(singleImplementation);
+            classChosenListener.classSelected(new ClassUnderTest(JvmClassUtil.getJvmClassName(singleImplementation)));
             return;
         }
 
@@ -218,7 +224,7 @@ public class ClassUtils {
             return;
         }
         if (implementationOptions.size() == 1) {
-            classChosenListener.classSelected(implementationOptions.get(0));
+            classChosenListener.classSelected(new ClassUnderTest(JvmClassUtil.getJvmClassName(implementationOptions.get(0))));
             return;
         }
         JBPopup implementationChooserPopup = JBPopupFactory
@@ -232,7 +238,7 @@ public class ClassUtils {
                     Arrays.stream(implementations)
                             .filter(e -> Objects.equals(((PsiClass) e).getQualifiedName(), psiElementName))
                             .findFirst().ifPresent(e -> {
-                                classChosenListener.classSelected((PsiClass) e);
+                                classChosenListener.classSelected(new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) e)));
                             });
                 })
                 .createPopup();

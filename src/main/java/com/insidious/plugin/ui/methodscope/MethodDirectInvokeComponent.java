@@ -13,7 +13,9 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.*;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.util.*;
+import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -116,7 +118,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
         ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {
             JSONObject eventProperties = new JSONObject();
-            eventProperties.put("className", psiClass.getQualifiedName());
+            eventProperties.put("className", psiClass.getQualifiedClassName());
             eventProperties.put("methodName", methodElement.getName());
 
             UsageInsightTracker.getInstance().RecordEvent("DIRECT_INVOKE", eventProperties);
@@ -277,7 +279,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 //        TestCandidateMetadata mostRecentTestCandidate = null;
         List<String> methodArgumentValues = null;
         AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(methodElement,
-                (PsiClass) containingClass.getSource(), methodArgumentValues, false);
+                new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) containingClass.getSource())), methodArgumentValues, false);
 
         AgentCommandRequest existingRequests = insidiousService.getAgentCommandRequests(agentCommandRequest);
         if (existingRequests != null) {

@@ -70,7 +70,7 @@ public class TestCandidateListedItemComponent {
             public void mouseClicked(MouseEvent e) {
                 ClassUtils.chooseClassImplementation(method.getContainingClass(), psiClass -> {
                     JSONObject eventProperties = new JSONObject();
-                    eventProperties.put("className", psiClass.getQualifiedName());
+                    eventProperties.put("className", psiClass.getQualifiedClassName());
                     eventProperties.put("methodName", storedCandidate.getMethod().getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
                     statusLabel.setText("Executing");
