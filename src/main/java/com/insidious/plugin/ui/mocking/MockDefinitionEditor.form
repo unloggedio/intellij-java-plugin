@@ -51,9 +51,7 @@
         <constraints>
           <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
         </constraints>
-        <properties>
-          <background color="-1"/>
-        </properties>
+        <properties/>
         <border type="line">
           <color color="-3026479"/>
         </border>
@@ -63,9 +61,7 @@
             <constraints>
               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
             </constraints>
-            <properties>
-              <background color="-1"/>
-            </properties>
+            <properties/>
             <border type="none"/>
             <children>
               <component id="5cc02" class="javax.swing.JLabel">
@@ -102,9 +98,7 @@
             <constraints>
               <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
             </constraints>
-            <properties>
-              <background color="-1"/>
-            </properties>
+            <properties/>
             <border type="none"/>
             <children>
               <component id="20179" class="javax.swing.JLabel">
@@ -120,9 +114,7 @@
                 <constraints>
                   <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
-                <properties>
-                  <background color="-1"/>
-                </properties>
+                <properties/>
                 <border type="none"/>
                 <children>
                   <component id="9ccd6" class="javax.swing.JRadioButton" binding="passThruRadioButton" default-binding="true">
@@ -130,7 +122,6 @@
                       <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                     </constraints>
                     <properties>
-                      <background color="-1"/>
                       <selected value="true"/>
                       <text value="Pass thru"/>
                       <toolTipText value="Call original implementation if no matching mock definition found"/>
@@ -141,7 +132,6 @@
                       <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                     </constraints>
                     <properties>
-                      <background color="-1"/>
                       <text value="Return null by default"/>
                       <toolTipText value="Returns null if no matching mock definition found"/>
                     </properties>
@@ -157,9 +147,7 @@
         <constraints>
           <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
         </constraints>
-        <properties>
-          <background color="-1"/>
-        </properties>
+        <properties/>
         <border type="line">
           <color color="-3026479"/>
         </border>
@@ -169,9 +157,7 @@
             <constraints>
               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
             </constraints>
-            <properties>
-              <background color="-1"/>
-            </properties>
+            <properties/>
             <border type="none"/>
             <children>
               <grid id="d852c" binding="whenTitlePanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
@@ -179,9 +165,7 @@
                 <constraints>
                   <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
-                <properties>
-                  <background color="-1"/>
-                </properties>
+                <properties/>
                 <border type="none"/>
                 <children>
                   <component id="29d8c" class="javax.swing.JLabel">
@@ -211,9 +195,7 @@
                 <constraints>
                   <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
-                <properties>
-                  <background color="-1"/>
-                </properties>
+                <properties/>
                 <border type="none"/>
                 <children/>
               </grid>
@@ -235,9 +217,7 @@
             <constraints>
               <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
             </constraints>
-            <properties>
-              <background color="-1"/>
-            </properties>
+            <properties/>
             <border type="none"/>
             <children>
               <grid id="4dab4" binding="thenTitlePanel" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
@@ -245,9 +225,7 @@
                 <constraints>
                   <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
-                <properties>
-                  <background color="-1"/>
-                </properties>
+                <properties/>
                 <border type="none"/>
                 <children>
                   <component id="5b10d" class="javax.swing.JLabel">
@@ -270,9 +248,7 @@
                     <constraints>
                       <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                     </constraints>
-                    <properties>
-                      <background color="-1"/>
-                    </properties>
+                    <properties/>
                     <border type="none"/>
                     <children>
                       <component id="be8c5" class="javax.swing.JButton" binding="chainAnotherReturnButton" default-binding="true">
@@ -280,7 +256,6 @@
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <background color="-1"/>
                           <icon value="icons/png/add-line.png"/>
                           <text value="Chain another return"/>
                         </properties>
@@ -299,9 +274,7 @@
                 <constraints>
                   <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
-                <properties>
-                  <background color="-1"/>
-                </properties>
+                <properties/>
                 <border type="none"/>
                 <children/>
               </grid>
