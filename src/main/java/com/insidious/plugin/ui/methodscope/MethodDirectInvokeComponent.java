@@ -209,7 +209,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                             panelTitledBoarder.setTitle("Method response: " + returnTypePresentableText);
                             ObjectMapper objectMapper = insidiousService.getObjectMapper();
                             try {
-                                String returnValueString = methodReturnValue.toString();
+                                String returnValueString = String.valueOf(methodReturnValue);
 
                                 String responseClassName = agentCommandResponse.getResponseClassName();
                                 if (responseClassName.equals("float")

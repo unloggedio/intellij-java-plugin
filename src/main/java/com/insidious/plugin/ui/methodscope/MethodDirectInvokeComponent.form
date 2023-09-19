@@ -99,6 +99,7 @@
                 </constraints>
                 <properties>
                   <text value="Permanent Mocks"/>
+                  <toolTipText value="Mocking will work in all contexts (and not just via DirectInvoke/Replay)"/>
                 </properties>
               </component>
             </children>

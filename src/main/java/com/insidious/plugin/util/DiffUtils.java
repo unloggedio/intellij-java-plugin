@@ -30,7 +30,9 @@ public class DiffUtils {
         String returnValueAsString = String.valueOf(agentCommandResponse.getMethodReturnValue());
         if (agentCommandResponse.getResponseClassName() != null
                 && agentCommandResponse.getResponseClassName().equals("java.lang.String")
-                && !returnValueAsString.startsWith("\"") && !returnValueAsString.endsWith("\"")) {
+                && !returnValueAsString.startsWith("\"") && !returnValueAsString.endsWith("\"")
+                && !returnValueAsString.equals("null")
+        ) {
             returnValueAsString = "\"" + returnValueAsString + "\"";
         }
 
@@ -107,7 +109,9 @@ public class DiffUtils {
         String expectedStringFromCandidate = testCandidateMetadata.getReturnValue();
         if ("java.lang.String".equals(testCandidateMetadata.getReturnValueClassname())
                 && !expectedStringFromCandidate.startsWith("\"")
-                && !expectedStringFromCandidate.endsWith("\"")) {
+                && !expectedStringFromCandidate.endsWith("\"")
+                && !"null".equals(expectedStringFromCandidate)
+        ) {
             expectedStringFromCandidate = "\"" + expectedStringFromCandidate + "\"";
         }
 
