@@ -87,6 +87,13 @@ public class ClassUtils {
                     dummyValue.append("]");
                     return dummyValue.toString();
                 }
+                if (
+                        rawTypeCanonicalText.equals("net.minidev.json.JSONObject") ||
+                        rawTypeCanonicalText.equals("com.google.gson.JsonObject") ||
+                        rawTypeCanonicalText.equals("com.fasterxml.jackson.databind.JsonNode")
+                ){
+                    return "{}";
+                }
 
                 if (rawTypeCanonicalText.equals("java.util.Map") ||
                         // either from apache-collections or from spring
