@@ -8,13 +8,12 @@ import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.util.Computable;
-import com.intellij.psi.PsiClass;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MethodUtils {
-    public static AgentCommandRequest createRequestWithParameters(
+    public static AgentCommandRequest createExecuteRequestWithParameters(
             MethodAdapter methodAdapter,
             ClassUnderTest classUnderTest,
             List<String> parameterValues,

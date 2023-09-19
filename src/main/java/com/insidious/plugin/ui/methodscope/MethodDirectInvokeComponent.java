@@ -31,7 +31,6 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
-
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -47,6 +46,8 @@ import java.util.List;
 
 public class MethodDirectInvokeComponent implements ActionListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodDirectInvokeComponent.class);
+    private static final ActionListener NOP_KEY_ADAPTER = e -> {
+    };
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private final ObjectMapper objectMapper;
@@ -62,8 +63,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JPanel descriptionPanel;
     private JEditorPane descriptionEditorPane;
     private JScrollPane descriptionScrollContainer;
+    private JCheckBox permanentMocksCheckBox;
     private MethodAdapter methodElement;
-    private static final ActionListener NOP_KEY_ADAPTER = e -> {};
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -90,6 +91,14 @@ public class MethodDirectInvokeComponent implements ActionListener {
             }
         });
         executeButton.setIcon(UIUtils.DIRECT_INVOKE_EXECUTE);
+
+        permanentMocksCheckBox.addActionListener(e -> {
+            if (permanentMocksCheckBox.isSelected()) {
+                insidiousService.injectMocksInRunningProcess();
+            } else {
+                insidiousService.removeMocksInRunningProcess();
+            }
+        });
     }
 
     private void executeMethodWithParameters() {
@@ -140,7 +149,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
             }
 
             AgentCommandRequest agentCommandRequest =
-                    MethodUtils.createRequestWithParameters(methodElement, psiClass, methodArgumentValues, false);
+                    MethodUtils.createExecuteRequestWithParameters(methodElement, psiClass, methodArgumentValues,
+                            false);
             agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
             returnValueTextArea.setText("");
 
@@ -239,7 +249,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
                         DiffResultType diffResultType = responseType1.equals(
                                 ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
                         DifferenceResult diffResult = new DifferenceResult(null,
-                                diffResultType, null, DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
+                                diffResultType, null,
+                                DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
 //                        diffResult.setMethodAdapter(methodElement);
                         diffResult.setResponse(agentCommandResponse);
@@ -278,8 +289,9 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
 //        TestCandidateMetadata mostRecentTestCandidate = null;
         List<String> methodArgumentValues = null;
-        AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(methodElement,
-                new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) containingClass.getSource())), methodArgumentValues, false);
+        AgentCommandRequest agentCommandRequest = MethodUtils.createExecuteRequestWithParameters(methodElement,
+                new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) containingClass.getSource())),
+                methodArgumentValues, false);
 
         AgentCommandRequest existingRequests = insidiousService.getAgentCommandRequests(agentCommandRequest);
         if (existingRequests != null) {
@@ -287,7 +299,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         } else {
             SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
             if (sessionInstance != null) {
-                 CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
+                CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
                         methodElement, CandidateFilterType.METHOD, false);
 
                 List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(query);
@@ -413,5 +425,9 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
     public JComponent getContent() {
         return mainContainer;
+    }
+
+    public void uncheckPermanentMocks() {
+        permanentMocksCheckBox.setSelected(false);
     }
 }

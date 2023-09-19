@@ -58,8 +58,7 @@ public class AgentClient {
         try (Response response = client.newCall(request).execute()) {
             String responseBody = response.body().string();
             AgentCommandResponse<String> agentCommandResponse = objectMapper.readValue(responseBody,
-                    new TypeReference<AgentCommandResponse<String>>() {
-                    });
+                    new TypeReference<AgentCommandResponse<String>>() {});
             JSONObject eventProperties = new JSONObject();
             if (
                     agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION) ||

@@ -445,7 +445,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             AgentCommandResponseListener<String> agentCommandResponseListener
     ) {
         List<String> methodArgumentValues = testCandidate.getMethodArguments();
-        AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(
+        AgentCommandRequest agentCommandRequest = MethodUtils.createExecuteRequestWithParameters(
                 methodElement, classUnderTest, methodArgumentValues, true);
 
         TestCandidateListedItemComponent candidateComponent =

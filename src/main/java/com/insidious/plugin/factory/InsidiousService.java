@@ -149,6 +149,7 @@ final public class InsidiousService implements
     private boolean codeCoverageHighlightEnabled = true;
     private HighlightedRequest currentHighlightedRequest = null;
     private boolean testCaseDesignerWindowAdded = false;
+    private boolean isPermanentMocks;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -544,6 +545,55 @@ final public class InsidiousService implements
         return methodArgumentValueCache.getArgumentSets(agentCommandRequest);
     }
 
+    public void injectMocksInRunningProcess() {
+        isPermanentMocks = true;
+        List<DeclaredMock> allDeclaredMocks = getAllDeclaredMocks();
+        AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
+        agentCommandRequest.setCommand(AgentCommand.INJECT_MOCKS);
+        agentCommandRequest.setDeclaredMocks(allDeclaredMocks);
+
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+
+            try {
+                AgentCommandResponse<String> agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
+                logger.warn("agent command response - " + agentCommandResponse);
+                InsidiousNotification.notifyMessage(
+                        agentCommandResponse.getMessage(), NotificationType.INFORMATION
+                );
+            } catch (IOException e) {
+                logger.warn("failed to execute command - " + e.getMessage(), e);
+                InsidiousNotification.notifyMessage(
+                        "Failed to inject mocks [" + e.getMessage() + "]", NotificationType.ERROR
+                );
+            }
+        });
+
+    }
+
+    public void removeMocksInRunningProcess() {
+        isPermanentMocks = false;
+
+        AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
+        agentCommandRequest.setCommand(AgentCommand.REMOVE_MOCKS);
+
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+
+            try {
+                AgentCommandResponse<String> agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
+                logger.warn("agent command response - " + agentCommandResponse);
+                InsidiousNotification.notifyMessage(
+                        agentCommandResponse.getMessage(), NotificationType.INFORMATION
+                );
+            } catch (IOException e) {
+                logger.warn("failed to execute command - " + e.getMessage(), e);
+                InsidiousNotification.notifyMessage(
+                        "Failed to remove mocks [" + e.getMessage() + "]", NotificationType.ERROR
+                );
+            }
+        });
+
+    }
+
     public void executeMethodInRunningProcess(
             AgentCommandRequest agentCommandRequest,
             ExecutionResponseListener executionResponseListener
@@ -551,18 +601,20 @@ final public class InsidiousService implements
 
         methodArgumentValueCache.addArgumentSet(agentCommandRequest);
 
-        List<DeclaredMock> availableMocks = getDeclaredMocksFor(new MethodUnderTest(
-                agentCommandRequest.getMethodName(), agentCommandRequest.getMethodSignature(),
-                0, agentCommandRequest.getClassName()
-        ));
+        if (!isPermanentMocks) {
+            List<DeclaredMock> availableMocks = getDeclaredMocksFor(new MethodUnderTest(
+                    agentCommandRequest.getMethodName(), agentCommandRequest.getMethodSignature(),
+                    0, agentCommandRequest.getClassName()
+            ));
 
-        List<DeclaredMock> activeMocks = availableMocks
-                .stream()
-                .filter(e -> isFieldMockActive(e.getSourceClassName(), e.getFieldName()))
-                .filter(this::isMockEnabled)
-                .collect(Collectors.toList());
+            List<DeclaredMock> activeMocks = availableMocks
+                    .stream()
+                    .filter(e -> isFieldMockActive(e.getSourceClassName(), e.getFieldName()))
+                    .filter(this::isMockEnabled)
+                    .collect(Collectors.toList());
 
-        agentCommandRequest.setDeclaredMocks(activeMocks);
+            agentCommandRequest.setDeclaredMocks(activeMocks);
+        }
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
@@ -617,6 +669,14 @@ final public class InsidiousService implements
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
         logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "] => " + project.getName());
+        DumbService dumbService = DumbService.getInstance(project);
+        if (dumbService.isDumb()) {
+            dumbService.runWhenSmart(() -> {
+                onNewTestCandidateIdentified(completedCount, totalCount);
+            });
+            return;
+        }
+
         ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
 
 
@@ -1135,6 +1195,8 @@ final public class InsidiousService implements
     @Override
     public void onDisconnectedFromAgentServer() {
         atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+        isPermanentMocks = false;
+        methodDirectInvokeComponent.uncheckPermanentMocks();
     }
 
     public void clearAtomicBoard() {
@@ -1324,6 +1386,10 @@ final public class InsidiousService implements
 
     public List<DeclaredMock> getDeclaredMocksFor(MethodUnderTest methodUnderTest) {
         return atomicRecordService.getDeclaredMocksFor(methodUnderTest);
+    }
+
+    public List<DeclaredMock> getAllDeclaredMocks() {
+        return atomicRecordService.getAllDeclaredMocks();
     }
 
     public void saveMockDefinition(DeclaredMock declaredMock, MethodUnderTest methodUnderTest) {

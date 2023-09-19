@@ -524,8 +524,13 @@ public class AtomicRecordService {
             }
             for (String classname : classAtomicRecordMap.keySet()) {
                 AtomicRecord recordForClass = classAtomicRecordMap.get(classname);
-                writeToFile(new File(getFilenameForClass(classname)), recordForClass, FileUpdateType.UPDATE_CANDIDATE,
-                        false);
+                try {
+                    writeToFile(new File(getFilenameForClass(classname)), recordForClass, FileUpdateType.UPDATE_CANDIDATE,
+                            false);
+                }catch (Exception e) {
+                    // class not found... class was renamed
+                    // this record is now orphan
+                }
             }
         } catch (Exception e) {
             logger.info("Failed to sync on exit " + e);
@@ -583,6 +588,15 @@ public class AtomicRecordService {
                 .flatMap(Collection::stream)
                 .flatMap(Collection::stream)
                 .filter(e -> e.getSourceClassName().equals(methodUnderTest.getClassName()))
+                .collect(Collectors.toList());
+
+    }
+
+    public List<DeclaredMock> getAllDeclaredMocks() {
+        return classAtomicRecordMap.values()
+                .stream().map(e -> e.getDeclaredMockMap().values())
+                .flatMap(Collection::stream)
+                .flatMap(Collection::stream)
                 .collect(Collectors.toList());
 
     }
