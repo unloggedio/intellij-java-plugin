@@ -77,6 +77,10 @@ public class WhenParameterInputPanel {
                 matcherValueTextField.setBackground(originalValueTextFieldColor);
                 return;
             }
+            if (className.contains("<")) {
+                className = className.substring(0, className.indexOf("<"));
+            }
+
             PsiClass locatedClass = JavaPsiFacade.getInstance(
                     project).findClass(className, GlobalSearchScope.allScope(project));
             if (locatedClass == null) {

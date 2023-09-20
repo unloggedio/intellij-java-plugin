@@ -84,6 +84,7 @@ public class ThenParameterInputPanel {
             }
         });
         updateVisibleControls();
+        validateTypeValid();
     }
 
     public void updateVisibleControls() {
@@ -103,6 +104,10 @@ public class ThenParameterInputPanel {
             returnTypeTextField.setBackground(originalBackgroundColor);
             return;
         }
+        if (className.contains("<")) {
+            className = className.substring(0, className.indexOf("<"));
+        }
+
         PsiClass locatedClass = JavaPsiFacade.getInstance(project)
                 .findClass(className, GlobalSearchScope.allScope(project));
         if (locatedClass == null) {

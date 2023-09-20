@@ -94,9 +94,9 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
         permanentMocksCheckBox.addActionListener(e -> {
             if (permanentMocksCheckBox.isSelected()) {
-                insidiousService.injectMocksInRunningProcess();
+                insidiousService.injectMocksInRunningProcess(null);
             } else {
-                insidiousService.removeMocksInRunningProcess();
+                insidiousService.removeMocksInRunningProcess(null);
             }
         });
     }

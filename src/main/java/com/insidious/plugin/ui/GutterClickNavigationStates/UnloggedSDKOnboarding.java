@@ -8,12 +8,10 @@ import com.intellij.notification.NotificationType;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 
 public class UnloggedSDKOnboarding {
-    private final String UNLOGGED_SDK_VERSION = "0.1.4";
+    private final String UNLOGGED_SDK_VERSION = "0.1.6";
     private JPanel mainPanel;
     private JPanel topAligner;
     private JPanel infoPanel;

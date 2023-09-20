@@ -545,9 +545,11 @@ final public class InsidiousService implements
         return methodArgumentValueCache.getArgumentSets(agentCommandRequest);
     }
 
-    public void injectMocksInRunningProcess() {
+    public void injectMocksInRunningProcess(List<DeclaredMock> allDeclaredMocks) {
         isPermanentMocks = true;
-        List<DeclaredMock> allDeclaredMocks = getAllDeclaredMocks();
+        if (allDeclaredMocks == null || allDeclaredMocks.size() == 0) {
+            allDeclaredMocks = getAllDeclaredMocks();
+        }
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.INJECT_MOCKS);
         agentCommandRequest.setDeclaredMocks(allDeclaredMocks);
@@ -570,11 +572,12 @@ final public class InsidiousService implements
 
     }
 
-    public void removeMocksInRunningProcess() {
+    public void removeMocksInRunningProcess(List<DeclaredMock> declaredMocks) {
         isPermanentMocks = false;
 
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.REMOVE_MOCKS);
+        agentCommandRequest.setDeclaredMocks(declaredMocks);
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
@@ -1397,16 +1400,24 @@ final public class InsidiousService implements
         if (!isMockEnabled(declaredMock)) {
             enableMock(declaredMock);
         }
+        if (isPermanentMocks) {
+            injectMocksInRunningProcess(List.of(declaredMock));
+        }
     }
 
     public void deleteMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {
         disableMock(declaredMock);
-        atomicRecordService.deleteMockDefinition(methodUnderTest, declaredMock);
+        if (isPermanentMocks) {
+            atomicRecordService.deleteMockDefinition(methodUnderTest, declaredMock);
+        }
     }
 
     public void enableMock(DeclaredMock declaredMock) {
         configurationState.addMock(declaredMock.getId());
         enableFieldMock(declaredMock.getSourceClassName(), declaredMock.getFieldName());
+        if (isPermanentMocks) {
+            injectMocksInRunningProcess(List.of(declaredMock));
+        }
     }
 
     public void disableFieldMock(String className, String fieldName) {
@@ -1423,6 +1434,10 @@ final public class InsidiousService implements
 
     public void disableMock(DeclaredMock declaredMock) {
         configurationState.removeMock(declaredMock.getId());
+        if (isPermanentMocks) {
+            removeMocksInRunningProcess(List.of(declaredMock));
+        }
+
     }
 
     public boolean isMockEnabled(DeclaredMock declaredMock) {
