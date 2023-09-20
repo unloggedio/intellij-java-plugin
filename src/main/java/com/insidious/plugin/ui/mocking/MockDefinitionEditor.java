@@ -1,10 +1,13 @@
 package com.insidious.plugin.ui.mocking;
 
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.adapter.java.JavaParameterAdapter;
 import com.insidious.plugin.mocking.*;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.lang.jvm.JvmParameter;
+import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -82,13 +85,14 @@ public class MockDefinitionEditor {
         callExpressionLabel.setText(expressionText);
 
         PsiParameterList methodParameters = destinationMethod.getParameterList();
+        JvmParameter[] jvmParameters = destinationMethod.getParameters();
         List<ParameterMatcher> parameterList = new ArrayList<>();
         for (int i = 0; i < methodParameters.getParametersCount(); i++) {
-//            String methodSignatureItem = methodSignatureItems.get(i);
-            PsiParameter methodParameter = methodParameters.getParameter(i);
-            PsiType parameterType = methodParameter.getType();
+            JavaParameterAdapter param = new JavaParameterAdapter(jvmParameters[i]);
+            PsiType parameterType = param.getType();
+
             String parameterTypeName = parameterType.getCanonicalText();
-            ParameterMatcher parameterMatcher = new ParameterMatcher(methodParameter.getName(),
+            ParameterMatcher parameterMatcher = new ParameterMatcher(param.getName(),
                     ParameterMatcherType.ANY_OF_TYPE, parameterTypeName);
             parameterList.add(parameterMatcher);
         }
