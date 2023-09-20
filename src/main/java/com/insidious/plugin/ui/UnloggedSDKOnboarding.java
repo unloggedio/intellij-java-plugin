@@ -8,6 +8,8 @@ import com.intellij.notification.NotificationType;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 
 public class UnloggedSDKOnboarding {
@@ -31,6 +33,7 @@ public class UnloggedSDKOnboarding {
     private JComboBox jdkSelector;
     private JTextArea importIoUnloggedUnloggedTextArea;
     private JTextArea mavenDependencyAreaAnnotation;
+    private JButton showFeaturesButton;
     private InsidiousService insidiousService;
     private String currentJDK = "JDK 1.8";
     private final String maven_default =
@@ -72,6 +75,13 @@ public class UnloggedSDKOnboarding {
         mavenDependencyAreaAnnotation.setText(maven_annotated);
         mavenDependencyAreaAnnotation.setVisible(false);
         gradleTextArea.setText(gradle_dependency);
+
+        showFeaturesButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                insidiousService.showIntroductionPanel();
+            }
+        });
 
         jdkSelector.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {

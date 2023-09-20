@@ -166,9 +166,7 @@
         <applicationService serviceImplementation="com.insidious.plugin.factory.ActiveSessionManager"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
-        <!--        <programRunner implementation="com.insidious.plugin.extension.InsidiousProgramRunner"/>-->
-        <!--        <configurationType implementation="com.insidious.plugin.extension.InsidiousRunConfigType"/>-->
-        <!--        <executor implementation="com.insidious.plugin.extension.InsidiousExecutor"/>-->
+        <applicationService serviceImplementation="com.insidious.plugin.factory.ApplicationConfigurationState"/>
 
         <codeInsight.lineMarkerProvider
                 language="JAVA"

@@ -9,6 +9,7 @@ import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.*;
+import com.insidious.plugin.atomicrecord.AtomicRecordService;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
@@ -16,7 +17,6 @@ import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.coverage.*;
-import com.insidious.plugin.atomicrecord.AtomicRecordService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
@@ -24,12 +24,8 @@ import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
+import com.insidious.plugin.ui.*;
 import com.insidious.plugin.ui.assertions.SaveForm;
-import com.insidious.plugin.ui.AtomicTestContainer;
-import com.insidious.plugin.ui.InsidiousCaretListener;
-import com.insidious.plugin.ui.InsidiousUtils;
-import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
-import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
@@ -127,6 +123,7 @@ final public class InsidiousService implements
     private final Map<String, Boolean> classModifiedFlagMap = new HashMap<>();
     private final Map<SaveForm, FileEditor> saveFormEditorMap = new HashMap<>();
     private final InsidiousConfigurationState configurationState;
+    private final ApplicationConfigurationState applicationConfigurationState;
     private ActiveHighlight currentActiveHighlight = null;
     private Project project;
     private VideobugClientInterface client;
@@ -150,6 +147,7 @@ final public class InsidiousService implements
     private HighlightedRequest currentHighlightedRequest = null;
     private boolean testCaseDesignerWindowAdded = false;
     private boolean isPermanentMocks;
+    private Content introPanelContent = null;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -174,6 +172,8 @@ final public class InsidiousService implements
         agentClient = new AgentClient("http://localhost:12100", (ConnectionStateListener) agentStateProvider);
         junitTestCaseWriter = new JUnitTestCaseWriter(project, objectMapper);
         configurationState = project.getService(InsidiousConfigurationState.class);
+        applicationConfigurationState =
+                ApplicationManager.getApplication().getService(ApplicationConfigurationState.class);
 
         ApplicationManager.getApplication().invokeLater(() -> {
             if (project.isDisposed()) {
@@ -304,6 +304,29 @@ final public class InsidiousService implements
         }
         ContentManager contentManager = this.toolWindow.getContentManager();
 
+        if (!configurationState.hasShownFeatures()) {
+            configurationState.setShownFeatures();
+            IntroductionPanel introPanel = new IntroductionPanel(this);
+            introPanelContent =
+                    contentFactory.createContent(introPanel.getContent(), "Unlogged Features", false);
+            introPanelContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+            introPanelContent.setIcon(UIUtils.ONBOARDING_ICON_PINK);
+            contentManager.addContent(introPanelContent);
+        } else {
+            addAllTabs();
+        }
+
+
+    }
+
+    public void addAllTabs() {
+
+        if (testCaseDesignerWindow != null) {
+            return;
+        }
+        ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
+        ContentManager contentManager = this.toolWindow.getContentManager();
+
         // test case designer form
         testCaseDesignerWindow = new TestCaseDesigner();
         Disposer.register(this, testCaseDesignerWindow);
@@ -349,25 +372,6 @@ final public class InsidiousService implements
         coverageComponent.setIcon(UIUtils.COVERAGE_TOOL_WINDOW_ICON);
         contentManager.addContent(coverageComponent);
 
-
-//        gptWindow = new UnloggedGPT(this);
-//        gptContent = contentFactory.createContent(gptWindow.getComponent(), "UnloggedGPT", false);
-//        gptContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-//        gptContent.setIcon(UIUtils.UNLOGGED_GPT_ICON_PINK);
-//        contentManager.addContent(gptContent);
-
-        // test candidate list by packages
-//        liveViewWindow = new LiveViewWindow(project);
-//        liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
-//        liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-//        liveWindowContent.setIcon(UIUtils.TEST_CASES_ICON_PINK);
-        //contentManager.addContent(liveWindowContent);
-
-//        contentManager.addContent(onboardingConfigurationWindowContent);
-//        if (areLogsPresent()) {
-//            contentManager.setSelectedContent(liveWindowContent, true);
-//            liveViewAdded = true;
-//        }
     }
 
     public VideobugClientInterface getClient() {
@@ -474,6 +478,9 @@ final public class InsidiousService implements
 
         if (!this.toolWindow.isVisible()) {
             logger.warn("test case designer window is not ready to create test case");
+            return;
+        }
+        if (methodDirectInvokeComponent == null) {
             return;
         }
 
@@ -1163,12 +1170,7 @@ final public class InsidiousService implements
         reportingService.addRecord(result);
     }
 
-    public void openDirectExecuteWindow() {
-        toolWindow.getContentManager().setSelectedContent(directMethodInvokeContent, true);
-    }
-
     public void setAgentProcessState(GutterState newState) {
-        loadSingleWindowForState(newState);
         if (this.atomicTestContainerWindow != null) {
             atomicTestContainerWindow.loadComponentForState(newState);
         }
@@ -1222,38 +1224,6 @@ final public class InsidiousService implements
         } else {
             atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
         }
-    }
-
-    public void loadSingleWindowForState(GutterState state) {
-//        ContentManager manager = this.toolWindow.getContentManager();
-//        if (((ContentManagerImpl) manager).getUI() == null) {
-//            return;
-//        }
-//        List<Content> contentList = Arrays.asList(manager.getContents());
-//        if (state.equals(GutterState.PROCESS_RUNNING)) {
-//            if (contentList.contains(atomicTestContent)) {
-//                manager.removeContent(atomicTestContent, false);
-//            }
-//            if (!contentList.contains(directMethodInvokeContent)) {
-//                manager.addContent(directMethodInvokeContent);
-//            }
-//        } else if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
-//            //show get started only
-//            if (contentList.contains(directMethodInvokeContent)) {
-//                manager.removeContent(directMethodInvokeContent, false);
-//            }
-//            if (!contentList.contains(atomicTestContent)) {
-//                manager.addContent(atomicTestContent);
-//            }
-//        } else {
-        //show both
-//        if (!contentList.contains(atomicTestContent)) {
-//            manager.addContent(atomicTestContent, 0);
-//        }
-//        if (!contentList.contains(directMethodInvokeContent)) {
-//            manager.addContent(directMethodInvokeContent, 1);
-//        }
-//        }
     }
 
     public Map<String, String> getIndividualCandidateContextMap() {
@@ -1442,5 +1412,19 @@ final public class InsidiousService implements
 
     public boolean isMockEnabled(DeclaredMock declaredMock) {
         return configurationState.isActiveMock(declaredMock.getId());
+    }
+
+    public void showIntroductionPanel() {
+        ContentManager contentManager = toolWindow.getContentManager();
+        if (introPanelContent == null) {
+            ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
+            IntroductionPanel introPanel = new IntroductionPanel(this);
+            introPanelContent =
+                    contentFactory.createContent(introPanel.getContent(), "Unlogged Features", false);
+            introPanelContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+            introPanelContent.setIcon(UIUtils.ONBOARDING_ICON_PINK);
+            contentManager.addContent(introPanelContent);
+        }
+        contentManager.setSelectedContent(introPanelContent);
     }
 }
