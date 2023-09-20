@@ -4,7 +4,7 @@ import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
+import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.PlainTextFileType;

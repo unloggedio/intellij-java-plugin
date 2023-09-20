@@ -1,6 +1,5 @@
 package com.insidious.plugin.upload.zip;
 
-import com.intellij.idea.LoggerFactory;
 import com.intellij.openapi.application.PathManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
@@ -47,7 +46,8 @@ public class ZipFiles {
             for (String filePath : filesListInDir) {
                 File fileTobeZipped = new File(filePath);
 
-                checkProgressIndicator("Zipping report logs " + i + "/" + filesListInDir.size(), fileTobeZipped.getName());
+                checkProgressIndicator("Zipping report logs " + i + "/" + filesListInDir.size(),
+                        fileTobeZipped.getName());
 
                 //for ZipEntry we need to keep only relative file path, so we used substring on absolute path
                 ZipEntry ze = new ZipEntry(fileTobeZipped.getName());
@@ -81,7 +81,8 @@ public class ZipFiles {
         File[] files = dir.listFiles();
         for (File file : files) {
             if (file.isFile()) {
-                if (!file.getName().endsWith(".dat") && !file.getName().endsWith(".dat-wal") && !file.getName().endsWith(".dat-shm"))
+                if (!file.getName().endsWith(".dat") && !file.getName().endsWith(".dat-wal") && !file.getName()
+                        .endsWith(".dat-shm"))
                     filesListInDir.add(file.getAbsolutePath());
             } else {
                 if (!file.getName().equals("cache")) {

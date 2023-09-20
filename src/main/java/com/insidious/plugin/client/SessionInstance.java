@@ -30,7 +30,6 @@ import com.insidious.plugin.coverage.MethodCoverageData;
 import com.insidious.plugin.coverage.PackageCoverageData;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.CandidateSearchQuery;
-import com.insidious.plugin.factory.TestCandidateReceiver;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.ChronicleVariableContainer;
@@ -82,6 +81,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -4072,14 +4072,14 @@ public class SessionInstance implements Runnable {
         return classInfoIndexByName;
     }
 
-    public void getAllTestCandidates(TestCandidateReceiver testCandidateReceiver) throws SQLException {
+    public void getAllTestCandidates(Consumer<TestCandidateMetadata> testCandidateReceiver) throws SQLException {
 
         int page = 0;
         int limit = 100;
         while (true) {
             List<TestCandidateMetadata> testCandidateMetadataList = daoService.getTestCandidatePaginated(page, limit);
             for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
-                testCandidateReceiver.handleTestCandidate(testCandidateMetadata);
+                testCandidateReceiver.accept(testCandidateMetadata);
             }
             page++;
             if (testCandidateMetadataList.size() < limit) {

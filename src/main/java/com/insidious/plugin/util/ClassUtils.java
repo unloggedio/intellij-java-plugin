@@ -1,8 +1,5 @@
 package com.insidious.plugin.util;
 
-//import com.fasterxml.jackson.databind.ObjectMapper;
-//import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
@@ -89,9 +86,9 @@ public class ClassUtils {
                 }
                 if (
                         rawTypeCanonicalText.equals("net.minidev.json.JSONObject") ||
-                        rawTypeCanonicalText.equals("com.google.gson.JsonObject") ||
-                        rawTypeCanonicalText.equals("com.fasterxml.jackson.databind.JsonNode")
-                ){
+                                rawTypeCanonicalText.equals("com.google.gson.JsonObject") ||
+                                rawTypeCanonicalText.equals("com.fasterxml.jackson.databind.JsonNode")
+                ) {
                     return "{}";
                 }
 
@@ -231,7 +228,8 @@ public class ClassUtils {
             return;
         }
         if (implementationOptions.size() == 1) {
-            classChosenListener.classSelected(new ClassUnderTest(JvmClassUtil.getJvmClassName(implementationOptions.get(0))));
+            classChosenListener.classSelected(
+                    new ClassUnderTest(JvmClassUtil.getJvmClassName(implementationOptions.get(0))));
             return;
         }
         JBPopup implementationChooserPopup = JBPopupFactory
@@ -245,7 +243,8 @@ public class ClassUtils {
                     Arrays.stream(implementations)
                             .filter(e -> Objects.equals(((PsiClass) e).getQualifiedName(), psiElementName))
                             .findFirst().ifPresent(e -> {
-                                classChosenListener.classSelected(new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) e)));
+                                classChosenListener.classSelected(
+                                        new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) e)));
                             });
                 })
                 .createPopup();

@@ -1,8 +1,6 @@
 package com.insidious.plugin.factory;
 
-import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
-
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,7 +8,7 @@ import java.util.Map;
 public class DefaultMethodArgumentValueCache {
     Map<String, AgentCommandRequest> cacheMap = new HashMap<>();
 
-    
+
     private static String getKey(AgentCommandRequest agentCommandRequest) {
         return agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName()
                 + "#" + agentCommandRequest.getMethodSignature();

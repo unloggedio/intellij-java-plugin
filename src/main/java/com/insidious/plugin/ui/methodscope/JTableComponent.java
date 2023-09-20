@@ -1,7 +1,5 @@
 package com.insidious.plugin.ui.methodscope;
 
-import com.insidious.plugin.ui.Components.ResponseMapTable;
-
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 

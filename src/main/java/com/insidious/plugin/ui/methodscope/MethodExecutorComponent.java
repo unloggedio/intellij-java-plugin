@@ -20,7 +20,7 @@ import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
-import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
+import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.*;

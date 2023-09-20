@@ -41,6 +41,8 @@ public class UIUtils {
             new Color(1, 204, 245, 100),
             new Color(1, 204, 245, 50)
     );
+    public static final JBColor ASSERTION_PASSING_COLOR = new JBColor(new Color(37, 133, 90), new Color(37, 133, 90));
+    public static final JBColor ASSERTION_FAILING_COLOR = new JBColor(new Color(197, 48, 48), new Color(197, 48, 48));
     public static Color teal = new JBColor(new Color(1, 204, 245), new Color(1, 204, 245));
     public static Color pink = new JBColor(new Color(254, 100, 216), new Color(254, 100, 216));
     public static Color red = new JBColor(new Color(245, 101, 101), new Color(245, 101, 101));

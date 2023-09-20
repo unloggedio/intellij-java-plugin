@@ -8,7 +8,6 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.DateUtils;
 import com.insidious.plugin.util.ExceptionUtils;
 import com.insidious.plugin.util.JsonTreeUtils;
