@@ -3317,8 +3317,7 @@ public class SessionInstance implements Runnable {
                         topCall = threadState.popCall();
 
 
-                        if (topCall.getMethodName()
-                                .startsWith("<")) {
+                        if (topCall.getMethodName().startsWith("<")) {
                             topCall.setReturnValue_id(topCall.getSubject());
 
                         } else {

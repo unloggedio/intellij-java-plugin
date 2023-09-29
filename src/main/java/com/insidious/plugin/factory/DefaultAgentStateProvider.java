@@ -43,7 +43,7 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
         }
         logger.warn("connected to agent: " + serverMetadata);
         JSONObject properties = new JSONObject();
-        properties.put("version", serverMetadata.getAgentVersion());
+        properties.put("agentVersion", serverMetadata.getAgentVersion());
         properties.put("package", serverMetadata.getIncludePackageName());
         properties.put("project", insidiousService.getProject().getName());
         UsageInsightTracker.getInstance().RecordEvent("AGENT_CONNECTED", properties);
