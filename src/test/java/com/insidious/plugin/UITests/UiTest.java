@@ -100,7 +100,7 @@ public class UiTest {
         // possible cause for corruption : PaymentTerminalDao
         // OUT OF BOUNDS exception for click in EntityTagMap, AppointmentRes
         // Keep an eye out for ui freezes (of runIdeForTests Instance)
-        String startWith = "PatientLeadRes";
+        String startWith = "PatientCaseAuditService";
         boolean startFrom = true;
         ContainerFixture projectView;
         if (!startFrom) {
@@ -224,7 +224,10 @@ public class UiTest {
 
                     for (Integer key : iconTreeMap.keySet()) {
                         GutterIcon icon = iconTreeMap.get(key);
-                        if (icon.toString().contains("name=Unlogged")) {
+                        String iconAsString = icon.toString();
+                        if (iconAsString.contains("name=Unlogged")
+                                && (iconAsString.contains("process_running.svg")
+                                || iconAsString.contains("data_available_v2.svg"))) {
                             //unlogged icon found, click it.
                             scrollDownToIcon(editor, icon);
                             pause(ofSeconds(1).toMillis());
