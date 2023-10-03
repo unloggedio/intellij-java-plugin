@@ -6,10 +6,8 @@ import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.application.PermanentInstallationID;
 import org.json.JSONObject;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.TimeZone;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.insidious.plugin.Constants.HOSTNAME;
 
@@ -22,10 +20,12 @@ public class UsageInsightTracker {
     private final Amplitude amplitudeClient;
     private final VersionManager versionManager;
     private final List<String> UsersToSkip = Arrays.asList(
-            "artpar",
+//            "artpar",
             "Amogh",
             "testerfresher"
     );
+    private final long sessionId = new Date().getTime();
+    private final AtomicInteger eventId = new AtomicInteger();
 
     private UsageInsightTracker() {
         amplitudeClient = Amplitude.getInstance("PLUGIN");
@@ -51,13 +51,24 @@ public class UsageInsightTracker {
             return;
         }
         Event event = new Event(eventName, HOSTNAME);
-        event.platform = OS_TAG + "/" + ApplicationInfo.getInstance().getVersionName();
+        event.platform = OS_TAG + "/" + ApplicationInfo.getInstance().getFullVersion();
         event.country = TimeZone.getDefault().getID();
         event.osName = OS_TAG;
         event.language = LANGUAGE;
+        event.sessionId = sessionId;
         event.appVersion = versionManager.getVersion();
         event.deviceId = PermanentInstallationID.get();
+        event.eventId = eventId.getAndIncrement();
+        event.deviceModel = ApplicationInfo.getInstance().getFullVersion();
         event.eventProperties = eventProperties;
         amplitudeClient.logEvent(event);
+    }
+
+    public void close() {
+        try {
+            amplitudeClient.shutdown();
+        } catch (InterruptedException e) {
+            // throw new RuntimeException(e);
+        }
     }
 }

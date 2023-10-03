@@ -84,7 +84,7 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
                 insidiousService.setSession(mostRecentSession);
             }
         } catch (SQLException | IOException e) {
-            logger.warn("Failed to set new session: " + e.getMessage(), e);
+            logger.error("Failed to set new session: " + e.getMessage(), e);
             InsidiousNotification.notifyMessage("Failed to process new session: " + e.getMessage(),
                     NotificationType.ERROR);
 //            throw new RuntimeException(e);

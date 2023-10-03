@@ -398,6 +398,7 @@ final public class InsidiousService implements
                 throw new RuntimeException(e);
             }
         }
+        UsageInsightTracker.getInstance().close();
     }
 
     public void generateAndUploadReport() throws APICallException, IOException {
@@ -553,13 +554,16 @@ final public class InsidiousService implements
     }
 
     public void injectMocksInRunningProcess(List<DeclaredMock> allDeclaredMocks) {
-        isPermanentMocks = true;
         if (allDeclaredMocks == null || allDeclaredMocks.size() == 0) {
             allDeclaredMocks = getAllDeclaredMocks();
+            allDeclaredMocks.stream()
+                    .map(e -> e.getSourceClassName() + "." + e.getFieldName())
+                    .forEach(configurationState::addFieldMock);
         }
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.INJECT_MOCKS);
         agentCommandRequest.setDeclaredMocks(allDeclaredMocks);
+
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
@@ -580,11 +584,16 @@ final public class InsidiousService implements
     }
 
     public void removeMocksInRunningProcess(List<DeclaredMock> declaredMocks) {
-        isPermanentMocks = false;
-
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.REMOVE_MOCKS);
         agentCommandRequest.setDeclaredMocks(declaredMocks);
+
+        if (declaredMocks == null || declaredMocks.size() == 0) {
+            List<DeclaredMock> existingMocks = getAllDeclaredMocks();
+            existingMocks.stream()
+                    .map(e -> e.getSourceClassName() + "." + e.getFieldName())
+                    .forEach(configurationState::removeFieldMock);
+        }
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
@@ -611,20 +620,18 @@ final public class InsidiousService implements
 
         methodArgumentValueCache.addArgumentSet(agentCommandRequest);
 
-        if (!isPermanentMocks) {
-            List<DeclaredMock> availableMocks = getDeclaredMocksFor(new MethodUnderTest(
-                    agentCommandRequest.getMethodName(), agentCommandRequest.getMethodSignature(),
-                    0, agentCommandRequest.getClassName()
-            ));
+        List<DeclaredMock> availableMocks = getDeclaredMocksFor(new MethodUnderTest(
+                agentCommandRequest.getMethodName(), agentCommandRequest.getMethodSignature(),
+                0, agentCommandRequest.getClassName()
+        ));
 
-            List<DeclaredMock> activeMocks = availableMocks
-                    .stream()
-                    .filter(e -> isFieldMockActive(e.getSourceClassName(), e.getFieldName()))
-                    .filter(this::isMockEnabled)
-                    .collect(Collectors.toList());
+        List<DeclaredMock> activeMocks = availableMocks
+                .stream()
+//                    .filter(e -> isFieldMockActive(e.getSourceClassName(), e.getFieldName()))
+                .filter(this::isMockEnabled)
+                .collect(Collectors.toList());
 
-            agentCommandRequest.setDeclaredMocks(activeMocks);
-        }
+        agentCommandRequest.setDeclaredMocks(activeMocks);
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
@@ -814,7 +821,9 @@ final public class InsidiousService implements
         try {
             setSession(executionSession);
         } catch (SQLException | IOException e) {
-            throw new RuntimeException(e);
+            logger.error("Failed to set default session: " + e.getMessage(), e);
+            InsidiousNotification.notifyMessage("Failed to set default session: " + e.getMessage(),
+                    NotificationType.ERROR);
         }
     }
 
@@ -1200,7 +1209,6 @@ final public class InsidiousService implements
     @Override
     public void onDisconnectedFromAgentServer() {
         atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
-        isPermanentMocks = false;
         methodDirectInvokeComponent.uncheckPermanentMocks();
     }
 
@@ -1369,26 +1377,19 @@ final public class InsidiousService implements
         atomicRecordService.saveMockDefinition(methodUnderTest, declaredMock);
         if (!isMockEnabled(declaredMock)) {
             enableMock(declaredMock);
-        }
-        if (isPermanentMocks) {
+        } else if (isFieldMockActive(declaredMock.getSourceClassName(), declaredMock.getFieldName())) {
             injectMocksInRunningProcess(List.of(declaredMock));
         }
     }
 
     public void deleteMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {
         disableMock(declaredMock);
-        if (isPermanentMocks) {
-            atomicRecordService.deleteMockDefinition(methodUnderTest, declaredMock);
+        atomicRecordService.deleteMockDefinition(methodUnderTest, declaredMock);
+        if (isFieldMockActive(declaredMock.getSourceClassName(), declaredMock.getFieldName())) {
+            removeMocksInRunningProcess(List.of(declaredMock));
         }
     }
 
-    public void enableMock(DeclaredMock declaredMock) {
-        configurationState.addMock(declaredMock.getId());
-        enableFieldMock(declaredMock.getSourceClassName(), declaredMock.getFieldName());
-        if (isPermanentMocks) {
-            injectMocksInRunningProcess(List.of(declaredMock));
-        }
-    }
 
     public void disableFieldMock(String className, String fieldName) {
         configurationState.removeFieldMock(className + "." + fieldName);
@@ -1407,8 +1408,15 @@ final public class InsidiousService implements
         if (isPermanentMocks) {
             removeMocksInRunningProcess(List.of(declaredMock));
         }
-
     }
+
+    public void enableMock(DeclaredMock declaredMock) {
+        configurationState.addMock(declaredMock.getId());
+        if (isPermanentMocks) {
+            injectMocksInRunningProcess(List.of(declaredMock));
+        }
+    }
+
 
     public boolean isMockEnabled(DeclaredMock declaredMock) {
         return configurationState.isActiveMock(declaredMock.getId());

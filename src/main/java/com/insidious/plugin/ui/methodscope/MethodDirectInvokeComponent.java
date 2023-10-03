@@ -64,12 +64,14 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JEditorPane descriptionEditorPane;
     private JScrollPane descriptionScrollContainer;
     private JCheckBox permanentMocksCheckBox;
+    private JPanel permanentMockControlPanel;
     private MethodAdapter methodElement;
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
         this.objectMapper = this.insidiousService.getObjectMapper();
         scrollerContainer.setVisible(false);
+        permanentMocksCheckBox.setVisible(false);
 
 //        h1WhatIsDirectInvokeEditorPane.setContentType("text/html");
 

@@ -1,11 +1,15 @@
 package com.insidious.plugin.ui.mocking;
 
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.popup.*;
@@ -18,6 +22,8 @@ import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
@@ -47,7 +53,9 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     private JScrollPane savedItemScrollPanel;
     private JPanel northPanel;
     private JLabel mockCountLabel;
+    private JLabel permanentMockHelpLabel;
     private JBPopup componentPopUp;
+    private List<DeclaredMock> declaredMockList;
 
     public MockDefinitionListPanel(PsiMethodCallExpression methodCallExpression) {
         this.methodCallExpression = methodCallExpression;
@@ -65,8 +73,26 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
         methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethod));
 
         boolean fieldMockIsActive = insidiousService.isFieldMockActive(parentClassName, fieldName);
+//        boolean fieldMockIsActive = insidiousService.isPermanentMocks();
         fieldMockSwitch = new OnOffButton();
         fieldMockSwitch.setSelected(fieldMockIsActive);
+
+        permanentMockHelpLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+
+
+                insidiousService.getProject()
+                        .getMessageBus().syncPublisher(Notifications.TOPIC)
+                        .notify(new Notification(InsidiousNotification.DISPLAY_ID, "Permanent mocks",
+                                "Activate Persistent Mocking to simulate call responses when triggered by external " +
+                                        "methods.\n All the enabled mocks will work for all code executions",
+                                NotificationType.INFORMATION));
+
+
+            }
+        });
 
 
         mockFieldSwitchPanel.add(fieldMockSwitch, BorderLayout.EAST);
@@ -74,8 +100,10 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
             boolean isActive = fieldMockSwitch.isSelected();
             logger.warn("Field active changed: " + isActive);
             if (isActive) {
+                insidiousService.injectMocksInRunningProcess(insidiousService.getDeclaredMocksOf(methodUnderTest));
                 insidiousService.enableFieldMock(parentClassName, fieldName);
             } else {
+                insidiousService.removeMocksInRunningProcess(insidiousService.getDeclaredMocksOf(methodUnderTest));
                 insidiousService.disableFieldMock(parentClassName, fieldName);
             }
         });
@@ -95,7 +123,7 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     }
 
     private void loadDefinitions(boolean showAddNewIfEmpty) {
-        List<DeclaredMock> declaredMockList = insidiousService.getDeclaredMocksOf(methodUnderTest);
+        declaredMockList = insidiousService.getDeclaredMocksOf(methodUnderTest);
 
         int savedCandidateCount = declaredMockList.size();
 
@@ -219,9 +247,9 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     @Override
     public void onEnable(DeclaredMock declaredMock) {
         insidiousService.enableMock(declaredMock);
-        if (!fieldMockSwitch.isSelected()) {
-            fieldMockSwitch.setSelected(true);
-        }
+//        if (!fieldMockSwitch.isSelected()) {
+//            fieldMockSwitch.setSelected(true);
+//        }
     }
 
     @Override
@@ -237,7 +265,7 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     public void onSaveDeclaredMock(DeclaredMock declaredMock) {
         insidiousService.saveMockDefinition(declaredMock, methodUnderTest);
         insidiousService.enableMock(declaredMock);
-        insidiousService.enableFieldMock(parentClassName, fieldName);
+//        insidiousService.enableFieldMock(parentClassName, fieldName);
         fieldMockSwitch.setSelected(true);
     }
 }
