@@ -1,5 +1,7 @@
 package com.insidious.plugin.util;
 
+import java.util.Collection;
+
 public class StringUtils {
 
     /**
@@ -54,6 +56,64 @@ public class StringUtils {
         String a = out.substring(0, 1).toUpperCase() + out.substring(1);
         return a;
     }
+
+
+    public static String join(Collection<String> strings, String separator) {
+        if (strings.size() <= 1) {
+            return strings.isEmpty() ? "" : strings.iterator().next();
+        }
+        StringBuilder result = new StringBuilder();
+        join(strings, separator, result);
+        return result.toString();
+    }
+
+    public static void join(Collection<String> strings, String separator, StringBuilder result) {
+        boolean isFirst = true;
+        for (String string : strings) {
+            if (string != null) {
+                if (isFirst) {
+                    isFirst = false;
+                } else {
+                    result.append(separator);
+                }
+                result.append(string);
+            }
+        }
+    }
+
+
+    public static String join(final int[] strings, final String separator) {
+        final StringBuilder result = new StringBuilder();
+        for (int i = 0; i < strings.length; i++) {
+            if (i > 0) result.append(separator);
+            result.append(strings[i]);
+        }
+        return result.toString();
+    }
+
+
+    public static String join(final String... strings) {
+        if (strings.length == 0) return "";
+
+        final StringBuilder builder = new StringBuilder();
+        for (final String string : strings) {
+            builder.append(string);
+        }
+        return builder.toString();
+    }
+
+
+    public static String join(Iterable<?> items, String separator) {
+        StringBuilder result = new StringBuilder();
+        for (Object item : items) {
+            result.append(item).append(separator);
+        }
+        if (result.length() > 0) {
+            result.setLength(result.length() - separator.length());
+        }
+        return result.toString();
+    }
+
 
     public static boolean isEmpty(CharSequence cs) {
         return cs == null || cs.length() == 0;

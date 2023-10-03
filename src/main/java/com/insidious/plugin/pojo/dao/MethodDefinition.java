@@ -2,17 +2,18 @@ package com.insidious.plugin.pojo.dao;
 
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.MethodInfo;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 import org.apache.commons.lang.StringUtils;
+
 import org.objectweb.asm.Opcodes;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @DatabaseTable(tableName = "method_definition")
-public class MethodDefinition {
+public class MethodDefinition implements Comparable<MethodDefinition> {
 
     @DatabaseField(id = true)
     private int id;
@@ -206,5 +207,10 @@ public class MethodDefinition {
 
     public void setLineCount(int lineCount) {
         this.lineCount = lineCount;
+    }
+
+    @Override
+    public int compareTo( MethodDefinition o) {
+        return Integer.compare(this.id, o.id);
     }
 }

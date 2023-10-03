@@ -3,6 +3,7 @@ package com.insidious.plugin.assertions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class AtomicAssertion {
 
@@ -14,6 +15,19 @@ public class AtomicAssertion {
     private String key;
 
     public AtomicAssertion() {
+    }
+
+    public AtomicAssertion(AtomicAssertion original) {
+        if (original == null) {
+            return;
+        }
+        this.expression = original.expression;
+        this.assertionType = original.assertionType;
+        this.key = original.key;
+        this.id = original.id;
+        this.expectedValue = original.expectedValue;
+        this.subAssertions = original.subAssertions.stream()
+                .map(AtomicAssertion::new).collect(Collectors.toList());
     }
 
     public AtomicAssertion(Expression expression, AssertionType assertionType, String key, String expectedValue) {

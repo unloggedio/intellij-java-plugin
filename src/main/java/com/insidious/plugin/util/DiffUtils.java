@@ -2,8 +2,6 @@ package com.insidious.plugin.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.MapDifference;
-import com.google.common.collect.Maps;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.assertions.*;
@@ -27,12 +25,24 @@ public class DiffUtils {
     ) {
 
         AtomicAssertion testAssertions = testCandidateMetadata.getTestAssertions();
+
+
+        String returnValueAsString = String.valueOf(agentCommandResponse.getMethodReturnValue());
+        if (agentCommandResponse.getResponseClassName() != null
+                && agentCommandResponse.getResponseClassName().equals("java.lang.String")
+                && !returnValueAsString.startsWith("\"") && !returnValueAsString.endsWith("\"")
+                && !returnValueAsString.equals("null")
+        ) {
+            returnValueAsString = "\"" + returnValueAsString + "\"";
+        }
+
         if (testAssertions != null && AtomicAssertionUtils.countAssertions(testAssertions) > 0) {
             Map<String, Object> leftOnlyMap = new HashMap<>();
             Map<String, Object> rightOnlyMap = new HashMap<>();
             List<DifferenceInstance> differencesList = new ArrayList<>();
+            DiffResultType diffResultType;
             try {
-                JsonNode responseNode = objectMapper.readTree(agentCommandResponse.getMethodReturnValue());
+                JsonNode responseNode = objectMapper.readTree(returnValueAsString);
                 AssertionResult result = AssertionEngine.executeAssertions(
                         testAssertions, responseNode);
 
@@ -48,15 +58,29 @@ public class DiffUtils {
                                     atomicAssertion.getAssertionType() == AssertionType.NOTANYOF ||
                                     atomicAssertion.getAssertionType() == AssertionType.ANYOF
                     ) {
+                        Boolean subResult = results.get(atomicAssertion.getId());
+                        if (!subResult) {
+                            differencesList.add(
+                                    new DifferenceInstance(
+                                            atomicAssertion.getAssertionType().toString()
+                                                    + " " + atomicAssertion.getSubAssertions().size()
+                                                    + " assertions",
+                                            "true",
+                                            "false",
+                                            DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE));
+                        }
+
                         continue;
                     }
                     Boolean subResult = results.get(atomicAssertion.getId());
                     if (!subResult) {
+                        String key = atomicAssertion.getExpression() == Expression.SELF ?
+                                atomicAssertion.getKey() : atomicAssertion.getExpression()
+                                + "(" + atomicAssertion.getKey() + ")";
+                        key = "[" + key + "] " + atomicAssertion.getAssertionType().toString();
                         differencesList.add(
                                 new DifferenceInstance(
-                                        atomicAssertion.getExpression() == Expression.SELF ?
-                                                atomicAssertion.getKey() : atomicAssertion.getExpression()
-                                                + "(" + atomicAssertion.getKey() + ")",
+                                        key,
                                         atomicAssertion.getExpectedValue(),
                                         JsonTreeUtils.getValueFromJsonNode(responseNode, atomicAssertion.getKey()),
                                         DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE));
@@ -64,10 +88,7 @@ public class DiffUtils {
                 }
 
 
-                return new DifferenceResult(
-                        differencesList, result.isPassing() ? DiffResultType.SAME : DiffResultType.DIFF,
-                        leftOnlyMap, rightOnlyMap
-                );
+                diffResultType = result.isPassing() ? DiffResultType.SAME : DiffResultType.DIFF;
 
             } catch (Exception e) {
 
@@ -79,35 +100,43 @@ public class DiffUtils {
                                 DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY
                         )
                 );
-                return new DifferenceResult(
-                        differencesList, DiffResultType.DIFF, leftOnlyMap, rightOnlyMap);
+                diffResultType = DiffResultType.DIFF;
 
             }
+            return new DifferenceResult(differencesList, diffResultType, leftOnlyMap, rightOnlyMap);
         }
 
-        String originalString = testCandidateMetadata.getReturnValue();
+        String expectedStringFromCandidate = testCandidateMetadata.getReturnValue();
+        if ("java.lang.String".equals(testCandidateMetadata.getReturnValueClassname())
+                && !expectedStringFromCandidate.startsWith("\"")
+                && !expectedStringFromCandidate.endsWith("\"")
+                && !"null".equals(expectedStringFromCandidate)
+        ) {
+            expectedStringFromCandidate = "\"" + expectedStringFromCandidate + "\"";
+        }
 
         if (testCandidateMetadata.isReturnValueIsBoolean()) {
-            if (isNumeric(originalString)) {
-                originalString = "0".equals(originalString) ? "false" : "true";
+            if (isNumeric(expectedStringFromCandidate)) {
+                expectedStringFromCandidate = "0".equals(expectedStringFromCandidate) ? "false" : "true";
             }
         }
 
         // void return value
-        if ("void".equals(agentCommandResponse.getResponseClassName()) && "0".equals(originalString)) {
-            originalString = "null";
+        if ("void".equals(agentCommandResponse.getResponseClassName()) && "0".equals(expectedStringFromCandidate)) {
+            expectedStringFromCandidate = "null";
         }
 
-        String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
         if ("float".equals(agentCommandResponse.getResponseClassName())) {
-            originalString = String.valueOf(Float.intBitsToFloat(Integer.parseInt(originalString)));
-            actualString = String.valueOf(Float.intBitsToFloat(Integer.parseInt(actualString)));
+            expectedStringFromCandidate = String.valueOf(
+                    Float.intBitsToFloat(Integer.parseInt(expectedStringFromCandidate)));
+            returnValueAsString = String.valueOf(Float.intBitsToFloat(Integer.parseInt(returnValueAsString)));
         }
 
         if ("double".equals(agentCommandResponse.getResponseClassName())) {
-            originalString = String.valueOf(Double.longBitsToDouble(Long.parseLong(originalString)));
-            actualString = String.valueOf(Double.longBitsToDouble(Long.parseLong(actualString)));
+            expectedStringFromCandidate = String.valueOf(
+                    Double.longBitsToDouble(Long.parseLong(expectedStringFromCandidate)));
+            returnValueAsString = String.valueOf(Double.longBitsToDouble(Long.parseLong(returnValueAsString)));
         }
 
         if (testCandidateMetadata.isException() ||
@@ -115,7 +144,7 @@ public class DiffUtils {
             //exception flow wip
             if (testCandidateMetadata.isException()) {
                 //load before as exception
-                DifferenceResult res = calculateDifferences(originalString, actualString,
+                DifferenceResult res = calculateDifferences(expectedStringFromCandidate, returnValueAsString,
                         agentCommandResponse.getResponseType());
                 if (res.getDiffResultType().equals(DiffResultType.ACTUAL_EXCEPTION)) {
                     res.setDiffResultType(DiffResultType.BOTH_EXCEPTION);
@@ -125,10 +154,11 @@ public class DiffUtils {
                 return res;
             } else {
                 //load before as normal
-                return calculateDifferences(originalString, actualString, agentCommandResponse.getResponseType());
+                return calculateDifferences(expectedStringFromCandidate, returnValueAsString,
+                        agentCommandResponse.getResponseType());
             }
         }
-        boolean isDifferent = true;
+        boolean isDifferent;
         if (agentCommandResponse.getResponseType() == null || agentCommandResponse.getResponseType() == ResponseType.FAILED) {
             return new DifferenceResult(new LinkedList<>(), DiffResultType.DIFF, null, null);
         }
@@ -141,7 +171,6 @@ public class DiffUtils {
                 isDifferent = responseClassName.equals(expectedClassName);
                 if (!isDifferent) {
                     return new DifferenceResult(new LinkedList<>(), DiffResultType.SAME, null, null);
-//                    return differenceResult;
                 }
 
             } catch (Exception e) {
@@ -150,7 +179,8 @@ public class DiffUtils {
                                 agentCommandResponse + "\n" + testCandidateMetadata, e);
             }
         }
-        return calculateDifferences(originalString, actualString, agentCommandResponse.getResponseType());
+        return calculateDifferences(expectedStringFromCandidate, returnValueAsString,
+                agentCommandResponse.getResponseType());
     }
 
     static private DifferenceResult calculateDifferences(String originalString, String actualString, ResponseType responseType) {
@@ -160,30 +190,30 @@ public class DiffUtils {
             return new DifferenceResult(null, DiffResultType.ACTUAL_EXCEPTION, getFlatMapFor(originalString), null);
         }
         try {
-            Map<String, Object> m1;
+            JsonNode m1;
             if (originalString == null || originalString.isEmpty()) {
-                m1 = new TreeMap<>();
+                m1 = objectMapper.createObjectNode();
             } else {
-                m1 = (Map<String, Object>) (objectMapper.readValue(originalString, Map.class));
+                m1 = objectMapper.readTree(originalString);
             }
-            Map<String, Object> m2 = (Map<String, Object>) (objectMapper.readValue(actualString, Map.class));
+            JsonNode m2 = objectMapper.readTree(actualString);
             if (m2 == null) {
-                m2 = new HashMap<>();
+                m2 = objectMapper.createObjectNode();
             }
 
-            MapDifference<String, Object> res = Maps.difference(flatten(m1), flatten(m2));
+            Map<String, Map<String, ?>> objectMapDifference = compareObjectNodes(m1, m2);
 //            System.out.println(res);
 
 //            res.entriesOnlyOnLeft().forEach((key, value) -> System.out.println(key + ": " + value));
-            Map<String, Object> leftOnly = res.entriesOnlyOnLeft();
+            Map<String, Object> leftOnly = (Map<String, Object>) objectMapDifference.get("left");
 
 //            res.entriesOnlyOnRight().forEach((key, value) -> System.out.println(key + ": " + value));
-            Map<String, Object> rightOnly = res.entriesOnlyOnRight();
+            Map<String, Object> rightOnly = (Map<String, Object>) objectMapDifference.get("right");
 
 //            res.entriesDiffering().forEach((key, value) -> System.out.println(key + ": " + value));
-            Map<String, MapDifference.ValueDifference<Object>> differences = res.entriesDiffering();
-            List<DifferenceInstance> differenceInstances = getDifferenceModel(leftOnly,
-                    rightOnly, differences);
+            Map<String, ValueDifference> differences = (Map<String, ValueDifference>) objectMapDifference.get(
+                    "differences");
+            List<DifferenceInstance> differenceInstances = getDifferenceModel(leftOnly, rightOnly, differences);
             if (differenceInstances.size() == 0) {
                 //no differences
                 return new DifferenceResult(differenceInstances, DiffResultType.SAME, leftOnly, rightOnly);
@@ -209,14 +239,84 @@ public class DiffUtils {
         }
     }
 
+    public static Map<String, Map<String, ?>> compareObjectNodes(JsonNode node1, JsonNode node2) {
+        Map<String, Map<String, ?>> differencesMap = new LinkedHashMap<>();
+        compareObjectNodes(node1, node2, "", differencesMap);
+        return differencesMap;
+    }
+
+    private static void compareObjectNodes(JsonNode node1, JsonNode node2, String path,
+                                           Map<String, Map<String, ?>> differencesMap) {
+        Map<String, Object> leftOnly = new HashMap<>();
+        Map<String, Object> rightOnly = new HashMap<>();
+        Map<String, String> common = new HashMap<>();
+        Map<String, ValueDifference> differences = new HashMap<>();
+
+        Iterator<String> fieldNames = node1.fieldNames();
+
+        int leftFieldNameCount = 0;
+        while (fieldNames.hasNext()) {
+            leftFieldNameCount++;
+            String fieldName = fieldNames.next();
+            JsonNode value1 = node1.get(fieldName);
+            JsonNode value2 = node2.get(fieldName);
+
+            if (value2 == null) {
+                leftOnly.put(fieldName, value1.toString());
+            } else if (value1.equals(value2)) {
+                common.put(fieldName, value1.toString());
+            } else {
+                if (value1.isObject() && value2.isObject()) {
+                    compareObjectNodes(value1, value2, path + fieldName + ".", differencesMap);
+                } else {
+                    if (value1.isTextual()) {
+                        differences.put(fieldName, new ValueDifference(value1.textValue(), value2.textValue()));
+                    } else {
+                        differences.put(fieldName, new ValueDifference(value1.toString(), value2.toString()));
+                    }
+                }
+            }
+        }
+
+        fieldNames = node2.fieldNames();
+        int rightFieldNameCount = 0;
+        while (fieldNames.hasNext()) {
+            rightFieldNameCount++;
+            String fieldName = fieldNames.next();
+            JsonNode value1 = node1.get(fieldName);
+            if (value1 == null) {
+                rightOnly.put(fieldName, node2.get(fieldName).toString());
+            }
+        }
+        if (leftFieldNameCount == 0 && rightFieldNameCount > 0) {
+            leftOnly.put(Objects.equals(path, "") ? "/" : path, node1.toString());
+        } else if (leftFieldNameCount > 0 && rightFieldNameCount == 0) {
+            rightOnly.put(Objects.equals(path, "") ? "/" : path, node2.toString());
+        } else if (leftFieldNameCount == 0 && rightFieldNameCount == 0) {
+            if (node1.equals(node2)) {
+                common.put(Objects.equals(path, "") ? "/" : path, node1.toString());
+            } else {
+                differences.put(Objects.equals(path, "") ? "/" : path,
+                        new ValueDifference(node1.toString(), node2.toString()));
+            }
+        } else {
+            // both objects had fields
+        }
+
+        differencesMap.put("left", leftOnly);
+        differencesMap.put("right", rightOnly);
+        differencesMap.put("common", common);
+        differencesMap.put("differences", differences);
+    }
+
+
     public static Map<String, Object> getFlatMapFor(String s1) {
-        ObjectMapper om = new ObjectMapper();
         try {
             Map<String, Object> m1;
-            if (s1 == null || s1.isEmpty()) {
+            if (s1 == null || s1.isEmpty() || s1.equals("null")) {
                 m1 = new TreeMap<>();
             } else {
-                m1 = (Map<String, Object>) (om.readValue(s1, Map.class));
+                m1 = (Map<String, Object>) (objectMapper.readValue(s1, Map.class));
                 m1 = flatten(m1);
             }
             return m1;
@@ -230,7 +330,7 @@ public class DiffUtils {
 
     static private List<DifferenceInstance> getDifferenceModel(
             Map<String, Object> left, Map<String, Object> right,
-            Map<String, MapDifference.ValueDifference<Object>> differences
+            Map<String, ValueDifference> differences
     ) {
         ArrayList<DifferenceInstance> differenceInstances = new ArrayList<>();
         for (String key : differences.keySet()) {

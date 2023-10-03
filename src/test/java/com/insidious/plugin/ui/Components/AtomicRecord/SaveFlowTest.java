@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.ui.Components.AtomicAssertionConstants;
+import com.insidious.plugin.ui.assertions.AssertionBlock;
+import com.insidious.plugin.ui.assertions.AssertionRule;
+import com.insidious.plugin.ui.assertions.SaveForm;
+import com.insidious.plugin.util.UIUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,7 +71,6 @@ public class SaveFlowTest {
     @BeforeEach
     public void setup() throws Exception {
         candidateLifeListener = Mockito.mock(CandidateLifeListener.class);
-        Mockito.when(candidateLifeListener.getSaveLocation()).thenReturn("testLoc");
         candidate = objectMapper.readValue(storedCandidateSource, StoredCandidate.class);
         agentCommandResponse = objectMapper.readValue(responseSource, AgentCommandResponse.class);
     }
@@ -136,14 +138,14 @@ public class SaveFlowTest {
         AssertionRule rootRule = saveForm.getRuleEditor().getAssertionRules().get(0);
 
         //expected : The background color to be green for the default rule.
-        Assertions.assertEquals(AtomicAssertionConstants.PASSING_COLOR,
+        Assertions.assertEquals(UIUtils.ASSERTION_PASSING_COLOR,
                 fetchBackgroundColorForRule(rootRule));
         JComboBox<String> rootRuleOperations = fetchComboBoxFromRule(rootRule);
         //select not equals case
         rootRuleOperations.setSelectedItem("is not");
 
         //expected : The background color to be green for the default rule post operator change.
-        Assertions.assertEquals(AtomicAssertionConstants.FAILING_COLOR,
+        Assertions.assertEquals(UIUtils.ASSERTION_FAILING_COLOR,
                 fetchBackgroundColorForRule(rootRule));
     }
 

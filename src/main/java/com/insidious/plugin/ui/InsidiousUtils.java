@@ -14,8 +14,7 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
 
 import java.nio.file.Path;
 
@@ -36,12 +35,12 @@ public class InsidiousUtils {
         String fileLocation = "src/main/java/" + fileName;
 
 
-        @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
+        VirtualFile newFile = VirtualFileManager.getInstance()
                 .refreshAndFindFileByUrl(Path.of(service.getProject().getBasePath(), fileLocation).toUri().toString());
 
         if (newFile == null) {
             fileName = fileName.substring(fileName.lastIndexOf('/') + 1);
-            @NotNull PsiFile @NotNull [] searchResult = FilenameIndex.getFilesByName(
+            PsiFile[] searchResult = FilenameIndex.getFilesByName(
                     service.getProject(), fileName, GlobalSearchScope.projectScope(service.getProject()));
             if (searchResult.length == 0) {
                 return null;
@@ -60,7 +59,7 @@ public class InsidiousUtils {
                         .getData(CommonDataKeys.EDITOR);
 
 
-        @Nullable Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
+         Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
         if (lineNumber > 0) {
             int lineOffsetStart = newDocument.getLineStartOffset(lineNumber - 1);
             editor.getCaretModel().getCurrentCaret().moveToOffset(lineOffsetStart);

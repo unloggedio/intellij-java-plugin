@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.intellij.psi.PsiClass;
@@ -11,7 +12,7 @@ public interface MethodExecutionListener {
 
     void executeCandidate(
             List<StoredCandidate> metadata,
-            PsiClass psiClass,
+            ClassUnderTest classUnderTest,
             String source,
             AgentCommandResponseListener<String> stringAgentCommandResponseListener
     );

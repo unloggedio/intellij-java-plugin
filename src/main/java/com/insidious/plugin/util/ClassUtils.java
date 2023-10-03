@@ -1,19 +1,19 @@
 package com.insidious.plugin.util;
 
-//import com.fasterxml.jackson.databind.ObjectMapper;
-//import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.adapter.ClassAdapter;
+import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.ui.methodscope.ClassChosenListener;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
 import com.intellij.lang.jvm.JvmModifier;
+import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
-import org.jetbrains.annotations.NotNull;
+import com.intellij.psi.search.GlobalSearchScope;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -33,32 +33,15 @@ public class ClassUtils {
             List<String> creationStack,
             Project project
     ) {
-        String creationKey = parameterType.getCanonicalText();
-        if (creationStack.contains(creationKey)) {
+        String parameterTypeCanonicalText = parameterType.getCanonicalText();
+        if (creationStack.contains(parameterTypeCanonicalText)) {
             return "null";
         }
 
         try {
-            creationStack.add(creationKey);
+            creationStack.add(parameterTypeCanonicalText);
             StringBuilder dummyValue = new StringBuilder();
-            if (parameterType.getCanonicalText().equals("java.lang.String")) {
-                return "\"string\"";
-            }
-            if (parameterType.getCanonicalText().startsWith("java.lang.")) {
-                return "0";
-            }
 
-            if (parameterType.getCanonicalText().equals("java.util.Random")) {
-                return "{}";
-            }
-            if (parameterType.getCanonicalText().equals("java.util.Date")) {
-                return String.valueOf(new Date().getTime());
-            }
-            if (parameterType.getCanonicalText().equals("java.time.Instant")) {
-//                Date date = new Date();
-                return String.valueOf(new Date().getTime() / 1000);
-
-            }
             if (parameterType instanceof PsiArrayType || parameterType instanceof PsiEllipsisType) {
                 PsiArrayType arrayType = (PsiArrayType) parameterType;
                 dummyValue.append("[");
@@ -67,41 +50,92 @@ public class ClassUtils {
                 return dummyValue.toString();
             }
 
+            if (parameterTypeCanonicalText.equals("java.lang.String")) {
+                return "\"string\"";
+            }
+            if (parameterTypeCanonicalText.startsWith("java.lang.")) {
+                return "0";
+            }
+
+            if (parameterTypeCanonicalText.equals("java.util.Random")) {
+                return "{}";
+            }
+            if (parameterTypeCanonicalText.equals("java.util.Date")) {
+                return String.valueOf(new Date().getTime());
+            }
+            if (parameterTypeCanonicalText.equals("java.time.Instant")) {
+//                Date date = new Date();
+                return String.valueOf(new Date().getTime() / 1000);
+
+            }
+
             if (parameterType instanceof PsiClassReferenceType) {
                 PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
+                PsiClassType psiClassRawType = classReferenceType.rawType();
+                String rawTypeCanonicalText = psiClassRawType.getCanonicalText();
                 if (
-                        classReferenceType.rawType().getCanonicalText().equals("java.util.List") ||
-                        classReferenceType.rawType().getCanonicalText().equals("java.util.ArrayList") ||
-                        classReferenceType.rawType().getCanonicalText().equals("java.util.LinkedList") ||
-                        classReferenceType.rawType().getCanonicalText().equals("java.util.Set")
+                        rawTypeCanonicalText.equals("java.util.List") ||
+                                rawTypeCanonicalText.equals("java.util.ArrayList") ||
+                                rawTypeCanonicalText.equals("java.util.LinkedList") ||
+                                rawTypeCanonicalText.equals("java.util.Set")
                 ) {
                     dummyValue.append("[");
                     dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
                     dummyValue.append("]");
                     return dummyValue.toString();
                 }
-
-                if (classReferenceType.rawType().getCanonicalText().equals("java.util.Map") ||
-                        // either from apache-collections or from spring
-                        classReferenceType.rawType().getName().equals("MultiValueMap")) {
-                    dummyValue.append("{");
-                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
-                    dummyValue.append(": ");
-                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[1], creationStack, project));
-                    dummyValue.append("}");
-                    return dummyValue.toString();
+                if (
+                        rawTypeCanonicalText.equals("net.minidev.json.JSONObject") ||
+                                rawTypeCanonicalText.equals("com.google.gson.JsonObject") ||
+                                rawTypeCanonicalText.equals("com.fasterxml.jackson.databind.JsonNode")
+                ) {
+                    return "{}";
                 }
 
-                if (classReferenceType.rawType().getCanonicalText().equals("java.util.UUID")) {
+                if (rawTypeCanonicalText.equals("java.util.Map") ||
+                        // either from apache-collections or from spring
+                        psiClassRawType.getName().endsWith("MultiValueMap") ||
+                        rawTypeCanonicalText.equals("java.util.Map.Entry")
+                ) {
+                    if (classReferenceType.getParameters().length == 2) {
+                        dummyValue.append("{");
+                        dummyValue.append(
+                                createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
+                        dummyValue.append(": ");
+                        dummyValue.append(
+                                createDummyValue(classReferenceType.getParameters()[1], creationStack, project));
+                        dummyValue.append("}");
+                        return dummyValue.toString();
+                    }
+                }
+
+                if (rawTypeCanonicalText.equals("java.util.UUID")) {
                     dummyValue.append("\"");
                     dummyValue.append(UUID.randomUUID());
                     dummyValue.append("\"");
                     return dummyValue.toString();
                 }
 
+                if (rawTypeCanonicalText.equals("reactor.core.publisher.Flux")) {
+                    dummyValue.append("[");
+                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
+                    dummyValue.append("]");
+                    return dummyValue.toString();
+                }
+
+                if (rawTypeCanonicalText.equals("reactor.core.publisher.Mono")) {
+                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
+                    return dummyValue.toString();
+                }
+
+                if (rawTypeCanonicalText.equals("java.util.Optional")) {
+                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
+                    return dummyValue.toString();
+                }
+
                 PsiClass resolvedClass = JavaPsiFacade
                         .getInstance(project)
-                        .findClass(classReferenceType.getCanonicalText(), parameterType.getResolveScope());
+                        .findClass(classReferenceType.getCanonicalText(), GlobalSearchScope.allScope(project));
 
                 if (resolvedClass == null) {
                     // class not resolved
@@ -153,7 +187,7 @@ public class ClassUtils {
             return dummyValue.toString();
 
         } finally {
-            creationStack.remove(creationKey);
+            creationStack.remove(parameterTypeCanonicalText);
         }
 
     }
@@ -161,7 +195,7 @@ public class ClassUtils {
     public static void chooseClassImplementation(ClassAdapter psiClass, ClassChosenListener classChosenListener) {
 
 
-        JavaPsiFacade.getInstance(psiClass.getProject());
+//        JavaPsiFacade.getInstance(psiClass.getProject());
         ImplementationSearcher implementationSearcher = new ImplementationSearcher();
         PsiElement[] implementations = implementationSearcher.searchImplementations(
                 psiClass.getSource(), null, true, false
@@ -178,7 +212,7 @@ public class ClassUtils {
                         NotificationType.ERROR);
                 return;
             }
-            classChosenListener.classSelected(singleImplementation);
+            classChosenListener.classSelected(new ClassUnderTest(JvmClassUtil.getJvmClassName(singleImplementation)));
             return;
         }
 
@@ -194,10 +228,11 @@ public class ClassUtils {
             return;
         }
         if (implementationOptions.size() == 1) {
-            classChosenListener.classSelected(implementationOptions.get(0));
+            classChosenListener.classSelected(
+                    new ClassUnderTest(JvmClassUtil.getJvmClassName(implementationOptions.get(0))));
             return;
         }
-        @NotNull JBPopup implementationChooserPopup = JBPopupFactory
+        JBPopup implementationChooserPopup = JBPopupFactory
                 .getInstance()
                 .createPopupChooserBuilder(implementationOptions.stream()
                         .map(PsiClass::getQualifiedName)
@@ -208,7 +243,8 @@ public class ClassUtils {
                     Arrays.stream(implementations)
                             .filter(e -> Objects.equals(((PsiClass) e).getQualifiedName(), psiElementName))
                             .findFirst().ifPresent(e -> {
-                                classChosenListener.classSelected((PsiClass) e);
+                                classChosenListener.classSelected(
+                                        new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) e)));
                             });
                 })
                 .createPopup();
@@ -216,4 +252,10 @@ public class ClassUtils {
 
     }
 
+    public static String getSimpleName(String className) {
+        if (className.contains(".")) {
+            return className.substring(className.lastIndexOf(".") + 1);
+        }
+        return className;
+    }
 }

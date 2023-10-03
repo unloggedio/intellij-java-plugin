@@ -16,10 +16,9 @@ public interface CandidateLifeListener {
     void onUpdated(StoredCandidate storedCandidate);
 
     void onUpdateRequest(StoredCandidate storedCandidate);
-    
-    void onCancel();
+    void onGenerateJunitTestCaseRequest(StoredCandidate storedCandidate);
 
-    String getSaveLocation();
+    void onCancel();
 
     Project getProject();
 }

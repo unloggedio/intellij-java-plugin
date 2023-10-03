@@ -2,6 +2,8 @@ package com.insidious.plugin.factory;
 
 import com.amplitude.Amplitude;
 import com.amplitude.Event;
+import com.intellij.openapi.application.ApplicationInfo;
+import com.intellij.openapi.application.PermanentInstallationID;
 import org.json.JSONObject;
 
 import java.util.Arrays;
@@ -9,7 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
+import static com.insidious.plugin.Constants.HOSTNAME;
 
 public class UsageInsightTracker {
     private static final String OS_NAME = System.getProperty("os.name");
@@ -21,6 +23,7 @@ public class UsageInsightTracker {
     private final VersionManager versionManager;
     private final List<String> UsersToSkip = Arrays.asList(
             "artpar",
+            "Amogh",
             "testerfresher"
     );
 
@@ -48,11 +51,12 @@ public class UsageInsightTracker {
             return;
         }
         Event event = new Event(eventName, HOSTNAME);
-        event.platform = OS_TAG;
+        event.platform = OS_TAG + "/" + ApplicationInfo.getInstance().getVersionName();
         event.country = TimeZone.getDefault().getID();
         event.osName = OS_TAG;
         event.language = LANGUAGE;
         event.appVersion = versionManager.getVersion();
+        event.deviceId = PermanentInstallationID.get();
         event.eventProperties = eventProperties;
         amplitudeClient.logEvent(event);
     }

@@ -1,5 +1,6 @@
 package com.insidious.plugin.assertions;
 
+import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
@@ -11,7 +12,6 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -30,6 +30,13 @@ public class TestAssertion implements Expression {
         this.assertionType = assertionType;
         this.expectedValue = expectedValue;
         this.actualValue = actualValue;
+    }
+
+    public TestAssertion(TestAssertion original) {
+        id = original.id;
+        assertionType = original.assertionType;
+        expectedValue = new Parameter(original.expectedValue);
+        actualValue = new Parameter(original.actualValue);
     }
 
     public String getId() {
@@ -81,12 +88,11 @@ public class TestAssertion implements Expression {
         byte[] serializedBytes = expectedValueProbe.getSerializedValue();
 
 
-        String expectedParameterName = returnSubjectInstanceName + "Expected";
+        String expectedParameterName = returnSubjectInstanceName == null ? expectedValue.getName() : returnSubjectInstanceName + "Expected";
         testGenerationState.getParameterNameFactory().setNameForParameter(expectedValue, expectedParameterName);
 
 
-        if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE)
-                || expectedValue.isPrimitiveType()) {
+        if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE) || expectedValue.isPrimitiveType()) {
             if (expectedValue.isPrimitiveType()) {
                 PendingStatement.in(objectRoutineScript, testGenerationState)
                         .assignVariable(expectedValue)
@@ -97,7 +103,7 @@ public class TestAssertion implements Expression {
                 if (serializedBytes.length > 0) {
                     PendingStatement.in(objectRoutineScript, testGenerationState)
                             .assignVariable(expectedValue)
-                            .writeExpression(MethodCallExpressionFactory.StringExpression(new String(serializedBytes)))
+                            .fromRecordedValue(testConfiguration)
                             .endStatement();
                 } else {
                     PendingStatement.in(objectRoutineScript, testGenerationState)
@@ -108,16 +114,14 @@ public class TestAssertion implements Expression {
                 }
             }
 
-        } else if (testConfiguration.getResourceEmbedMode()
-                .equals(ResourceEmbedMode.IN_FILE)) {
+        } else if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_FILE)) {
 
             String nameForObject = testGenerationState.addObjectToResource(mainMethodReturnValue);
-            @NotNull Parameter jsonParameter = Parameter.cloneParameter(mainMethodReturnValue);
+            Parameter jsonParameter = new Parameter(mainMethodReturnValue);
             DataEventWithSessionId prob = new DataEventWithSessionId();
             prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
-            jsonParameter.setProb(prob);
-            MethodCallExpression jsonFromFileCall = null;
-            jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(jsonParameter);
+            jsonParameter.setProbeAndProbeInfo(prob, new DataInfo());
+            MethodCallExpression jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(jsonParameter);
 
             if (expectedValue.getIsEnum()) {
                 PendingStatement.in(objectRoutineScript, testGenerationState)
@@ -138,10 +142,8 @@ public class TestAssertion implements Expression {
         // If the type of the returnSubjectExpectedObject is a array (int[], long[], byte[])
         // then use assertArrayEquals
         if (expectedValue.getType().endsWith("[]")) {
-            PendingStatement
-                    .in(objectRoutineScript, testGenerationState)
-                    .writeExpression(
-                            MethodCallExpressionFactory.MockitoAssertArrayEquals
+            PendingStatement.in(objectRoutineScript, testGenerationState)
+                    .writeExpression(MethodCallExpressionFactory.MockitoAssertArrayEquals
                                     (expectedValue, mainMethodReturnValue, testConfiguration))
                     .endStatement();
         } else {

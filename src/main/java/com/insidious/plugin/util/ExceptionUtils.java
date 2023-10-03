@@ -53,6 +53,10 @@ public class ExceptionUtils {
         int stackSize = stackTrace.size();
         for (int i = 0; i < stackSize; i++) {
             JsonNode stackItem = stackTrace.get(i);
+            if (!stackItem.has("className")) {
+                stringBuilder.append(stackItem.asText()).append("\n");
+                continue;
+            }
             stringBuilder.append("    at ")
                     .append(stackItem.get("className").asText()).append(".")
                     .append(stackItem.get("methodName").asText())

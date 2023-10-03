@@ -1,12 +1,14 @@
 package com.insidious.plugin.factory.testcase.writer;
 
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ParameterUtils;
 import com.intellij.openapi.diagnostic.Logger;
-import org.jetbrains.annotations.NotNull;
+import com.intellij.psi.PsiType;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
 
 import java.util.List;
 
@@ -14,116 +16,84 @@ public class TestCaseWriter {
 
     private static final Logger logger = LoggerUtil.getInstance(TestCaseWriter.class);
 
-    @NotNull
-    public static String createMethodParametersString(List<Parameter> variableContainer, TestGenerationState testGenerationState) {
-        if (variableContainer == null) {
-            return "";
+    private static String psiTypeToJvmType(String canonicalText, boolean isReturnParameter) {
+        if (canonicalText.endsWith("[]")) {
+            canonicalText = psiTypeToJvmType(canonicalText.substring(0, canonicalText.length() - 2), isReturnParameter);
+            return "[" + canonicalText;
         }
-        StringBuilder parameterStringBuilder = new StringBuilder();
+        switch (canonicalText) {
+            case "void":
+                canonicalText = "V";
+                break;
+            case "boolean":
+                canonicalText = "Z";
+                break;
+            case "byte":
+                canonicalText = "B";
+                break;
+            case "char":
+                canonicalText = "C";
+                break;
+            case "short":
+                canonicalText = "S";
+                break;
+            case "int":
+                canonicalText = "I";
+                break;
+            case "long":
+                canonicalText = "J";
+                break;
+            case "float":
+                canonicalText = "F";
+                break;
+            case "double":
+                canonicalText = "D";
+                break;
+            case "java.util.Map":
+                if (!isReturnParameter) {
+                    canonicalText = "java.util.HashMap";
+                }
+                break;
+            case "java.util.List":
+                if (!isReturnParameter) {
+                    canonicalText = "java.util.ArrayList";
+                }
+                break;
+            case "java.util.Set":
+                if (!isReturnParameter) {
+                    canonicalText = "java.util.HashSet";
+                }
+                break;
+            case "java.util.Collection":
+                if (!isReturnParameter) {
+                    canonicalText = "java.util.ArrayList";
+                }
+                break;
+            default:
+        }
+        return canonicalText;
+    }
 
-        for (int i = 0; i < variableContainer.size(); i++) {
-            Parameter parameter = variableContainer.get(i);
-            if (i > 0) {
-                parameterStringBuilder.append(", ");
+    static public void setParameterTypeFromPsiType(Parameter parameter, PsiType psiType, boolean isReturnParameter) {
+        if (psiType instanceof PsiClassReferenceType) {
+            PsiClassReferenceType returnClassType = (PsiClassReferenceType) psiType;
+            if (returnClassType.getCanonicalText().equals(returnClassType.getName())) {
+                logger.warn("return class type canonical text[" + returnClassType.getCanonicalText()
+                        + "] is same as its name [" + returnClassType.getName() + "]");
+                // this is a generic template type <T>, and not a real class
+                parameter.setTypeForced("java.lang.Object");
+                return;
             }
-
-            makeParameterValueString(parameterStringBuilder, parameter, testGenerationState);
-        }
-
-
-        @NotNull String parameterString = parameterStringBuilder.toString();
-        return parameterString;
-    }
-
-    // handling order: [ array(name), null, boolean, primitive,]  name,    all ,
-    public static void makeParameterValueString(
-            StringBuilder parameterStringBuilder,
-            Parameter parameter,
-            TestGenerationState testGenerationState
-    ) {
-
-        if (handleValueBlockString(parameterStringBuilder, parameter, testGenerationState)) {
-            return;
-        }
-
-        String nameUsed = testGenerationState.getParameterNameFactory().getNameForUse(parameter, null);
-        if (nameUsed != null) {
-            parameterStringBuilder.append(nameUsed);
-            return;
-        }
-
-        makeValueForOtherClasses(parameterStringBuilder, parameter);
-    }
-
-    public static String handlePrimitiveParameter(Parameter parameter, String serializedValue) {
-        StringBuilder valueBuilder = new StringBuilder();
-        if (parameter.isBoxedPrimitiveType() && !serializedValue.isEmpty()) {
-            serializedValue = ParameterUtils.addParameterTypeSuffix(serializedValue, parameter.getType());
-            valueBuilder.append(serializedValue);
+            parameter.setTypeForced(psiTypeToJvmType(returnClassType.rawType().getCanonicalText(), isReturnParameter));
+            if (returnClassType.hasParameters()) {
+                SessionInstance.extractTemplateMap(returnClassType, parameter.getTemplateMap());
+                parameter.setContainer(true);
+            }
         } else {
-            if (serializedValue.isEmpty()) {
-                valueBuilder.append(ParameterUtils.makeParameterValueForPrimitiveType(parameter));
-            } else {
-                valueBuilder.append(serializedValue);
-            }
-        }
-
-        return valueBuilder.toString();
-    }
-
-    private static boolean handleValueBlockString(
-            StringBuilder parameterStringBuilder,
-            Parameter parameter,
-            TestGenerationState testGenerationState
-    ) {
-
-        String serializedValue = "";
-        if (parameter.getProb() != null &&
-                parameter.getProb().getSerializedValue().length > 0)
-            serializedValue = new String(parameter.getProb().getSerializedValue());
-
-        if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
-            // if the type of parameter is array like int[], long[] (i.e J[])
-            String nameUsed = testGenerationState.getParameterNameFactory().getNameForUse(parameter, null);
-            parameterStringBuilder.append(nameUsed == null ? "any()" : nameUsed);
-            return true;
-        }
-
-        if (serializedValue.equals("null")) {
-            // if the serialized value is null just append null
-            parameterStringBuilder.append("null");
-            return true;
-        }
-
-        if (parameter.isBooleanType()) {
-            long value = parameter.getValue();
-            parameterStringBuilder.append(value == 1L ? "true" : "false");
-            return true;
-        }
-
-        if (parameter.isPrimitiveType()) {
-            parameterStringBuilder.append(handlePrimitiveParameter(parameter, serializedValue));
-            return true;
-        }
-        return false;
-    }
-
-    private static void makeValueForOtherClasses(StringBuilder parameterStringBuilder, Parameter parameter) {
-        Object parameterValue;
-        parameterValue = parameter.getValue();
-        String stringValue = parameter.getStringValue();
-        if (stringValue == null) {
-            if (!parameter.isPrimitiveType() && parameter.getValue() == 0) {
-                parameterValue = "null";
-            }
-            parameterStringBuilder.append(parameterValue);
-        } else {
-            parameterStringBuilder.append(stringValue);
+            parameter.setTypeForced(psiTypeToJvmType(psiType.getCanonicalText(), isReturnParameter));
         }
     }
 
-
-    @NotNull
     public static String
     createMethodParametersStringMock(List<Parameter> variableContainer, TestGenerationState testGenerationState) {
 //        logger.warn("Create method parameters argument mock => " + variableContainer);
@@ -143,7 +113,7 @@ public class TestCaseWriter {
             String parameterType = parameter.getType();
             if (parameterType != null && parameterType.endsWith("[]")) {
                 compareAgainst = "";
-            } else if (parameterType.equals("java.lang.Class")) {
+            } else if (parameterType != null && parameterType.equals("java.lang.Class")) {
                 compareAgainst = new String(parameter.getProb().getSerializedValue());
             } else if (parameter.getProb() != null
                     && parameter.getProb().getSerializedValue().length > 0
@@ -217,49 +187,8 @@ public class TestCaseWriter {
         }
 
 
-        @NotNull String parameterString = parameterStringBuilder.toString();
-        return parameterString;
+        return parameterStringBuilder.toString();
     }
 
-    /**
-     * @param variableContainer list of parameters to be arranged
-     * @return a string which is comma separated values to be passed to a method
-     */
-    public static String createMethodParametersStringWithNames(
-            List<Parameter> variableContainer,
-            TestGenerationState testGenerationState) {
-        if (variableContainer == null) {
-            return "";
-        }
-        StringBuilder parameterStringBuilder = new StringBuilder();
 
-        for (int i = 0; i < variableContainer.size(); i++) {
-            Parameter parameter = variableContainer.get(i);
-            if (i > 0) {
-                parameterStringBuilder.append(", ");
-            }
-
-            makeParameterNameString(parameterStringBuilder, parameter, testGenerationState);
-        }
-        @NotNull String parameterString = parameterStringBuilder.toString();
-        return parameterString;
-
-    }
-
-    //Handling order: name , [array, null , bool, , Primitive,]  all
-    private static void makeParameterNameString(StringBuilder parameterStringBuilder, Parameter parameter,
-                                                TestGenerationState testGenerationState) {
-        String nameUsed = testGenerationState.getParameterNameFactory()
-                .getNameForUse(parameter, null);
-        if (nameUsed != null) {
-            parameterStringBuilder.append(nameUsed);
-            return;
-        }
-
-        if (handleValueBlockString(parameterStringBuilder, parameter, testGenerationState)) {
-            return;
-        }
-
-        makeValueForOtherClasses(parameterStringBuilder, parameter);
-    }
 }

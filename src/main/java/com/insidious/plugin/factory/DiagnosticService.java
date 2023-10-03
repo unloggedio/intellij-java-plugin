@@ -2,9 +2,11 @@ package com.insidious.plugin.factory;
 
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.client.MultipartUtility;
+import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.util.StreamUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.module.Module;
@@ -25,25 +27,23 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
+import static com.insidious.plugin.Constants.HOSTNAME;
 
 public class DiagnosticService {
     private final VersionManager versionManager;
     private final Project project;
     private final Module module;
 
-    public DiagnosticService(VersionManager versionManager,
-                             Project project, Module module) {
+    public DiagnosticService(VersionManager versionManager, Project project, Module module) {
         this.versionManager = versionManager;
         this.project = project;
         this.module = module;
     }
 
-    public void generateAndUploadReport() {
+    public void generateAndUploadReport() throws APICallException, IOException {
 
 
-        VideobugLocalClient localClient = new VideobugLocalClient(Objects.requireNonNull(project.getBasePath()),
-                project);
+        VideobugClientInterface localClient = project.getService(InsidiousService.class).getClient();
         StringBuilder reportBuilder = new StringBuilder();
         reportBuilder.append("hostname: ").append(HOSTNAME).append("\n");
         reportBuilder.append("version: ").append(versionManager.getVersion()).append("\n");

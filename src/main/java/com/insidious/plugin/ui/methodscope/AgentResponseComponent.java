@@ -1,27 +1,29 @@
 package com.insidious.plugin.ui.methodscope;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.ui.JBColor;
-import com.intellij.vcs.log.ui.frame.WrappedFlowLayout;
 
 import javax.swing.*;
+import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
-public class AgentResponseComponent implements Supplier<Component> {
+public class AgentResponseComponent implements ResponsePreviewComponent {
+    public static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
     private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = true;
     private final AgentCommandResponse<String> agentCommandResponse;
-    private final StoredCandidate testCandidate;
+    private final JButton createTestCaseButton;
+    private StoredCandidate testCandidate;
     private JPanel mainPanel;
     private JPanel centerPanel;
     private JButton viewFullButton;
@@ -31,30 +33,32 @@ public class AgentResponseComponent implements Supplier<Component> {
     private JButton acceptButton;
     private JPanel topAlign;
     private JButton deleteButton;
-    private JPanel buttonPanel;
+    private JPanel buttonRightPanel;
     private JScrollPane scrollParent;
     private JPanel statusPanel;
     private JPanel informationPanel;
     private JLabel informationLabel;
     private JPanel mainContentPanel;
+    private JPanel newBottomPanel;
+    private JPanel topRightbuttonPanel;
 
     public AgentResponseComponent(
             AgentCommandResponse<String> agentCommandResponse,
-            StoredCandidate storedCandidate,
+            StoredCandidate testCandidate,
             FullViewEventListener fullViewEventListener,
             CandidateLifeListener candidateLifeListener
     ) {
         this.agentCommandResponse = agentCommandResponse;
-        this.testCandidate = storedCandidate;
+        this.testCandidate = testCandidate;
 
-        DifferenceResult differences = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
+        DifferenceResult differences = DiffUtils.calculateDifferences(this.testCandidate, agentCommandResponse);
         computeDifferences(differences);
 
         String originalString;
-        if (testCandidate.isReturnValueIsBoolean() && DiffUtils.isNumeric(testCandidate.getReturnValue())) {
-            originalString = "0".equals(testCandidate.getReturnValue()) ? "false" : "true";
+        if (this.testCandidate.isReturnValueIsBoolean() && DiffUtils.isNumeric(this.testCandidate.getReturnValue())) {
+            originalString = "0".equals(this.testCandidate.getReturnValue()) ? "false" : "true";
         } else {
-            originalString = testCandidate.getReturnValue();
+            originalString = this.testCandidate.getReturnValue();
         }
         String actualString = String.valueOf(agentCommandResponse.getMethodReturnValue());
 
@@ -68,59 +72,35 @@ public class AgentResponseComponent implements Supplier<Component> {
         viewFullButton.addActionListener(
                 e -> fullViewEventListener.generateCompareWindows(originalString, actualString));
 
-//        if (SHOW_TEST_CASE_CREATE_BUTTON) {
-//            JButton createTestCaseButton = new JButton("Create test case");
-//            bottomControlPanel.add(createTestCaseButton, new GridConstraints());
-//            createTestCaseButton.addActionListener(new ActionListener() {
-//                @Override
-//                public void actionPerformed(ActionEvent e) {
-//                    logger.warn("Create test case: " + testCandidateMetadata);
-//
-//                    TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
-//                            .getTestCandidateById(testCandidateMetadata.getEntryProbeIndex(), true);
-//
-//
-//                    String testMethodName =
-//                            "testMethod" + ClassTypeUtils.upperInstanceName(
-//                                    loadedTestCandidate.getMainMethod().getMethodName());
-//                    TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
-//                            TestFramework.JUnit5,
-//                            MockFramework.Mockito,
-//                            JsonFramework.JACKSON,
-//                            ResourceEmbedMode.IN_FILE
-//                    );
-//
-//
-//                    // mock all calls by default
-//                    testCaseGenerationConfiguration.getCallExpressionList()
-//                            .addAll(loadedTestCandidate.getCallsList());
-//
-//
-//                    testCaseGenerationConfiguration.setTestMethodName(testMethodName);
-//
-//
-//                    testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
-//                    testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
-//
-//
-//                    try {
-//                        insidiousService.generateAndSaveTestCase(testCaseGenerationConfiguration);
-//                    } catch (Exception ex) {
-//                        InsidiousNotification.notifyMessage("Failed to generate test case: " + ex.getMessage(),
-//                                NotificationType.ERROR);
-//                    }
-//                }
-//            });
-//        }
+        if (SHOW_TEST_CASE_CREATE_BUTTON) {
+            createTestCaseButton = new JButton("Create JUnit test case");
+            createTestCaseButton.setOpaque(false);
+            createTestCaseButton.setContentAreaFilled(false);
+            createTestCaseButton.setIcon(UIUtils.TEST_CASES_ICON_PINK);
+            buttonRightPanel.add(createTestCaseButton);
+            if (testCandidate.getEntryProbeIndex() < 1) {
+                createTestCaseButton.setEnabled(false);
+                createTestCaseButton.setText("Test case generation waiting for scan");
+            }
+            createTestCaseButton.addActionListener(
+                    e -> candidateLifeListener.onGenerateJunitTestCaseRequest(testCandidate));
+        }
 
-        acceptButton.addActionListener(e -> candidateLifeListener.onSaveRequest(testCandidate, agentCommandResponse));
-        if (testCandidate.getCandidateId() == null) {
+        acceptButton.addActionListener(
+                e -> candidateLifeListener.onSaveRequest(this.testCandidate, agentCommandResponse));
+        if (this.testCandidate.getCandidateId() == null) {
             deleteButton.setVisible(false);
         }
-        deleteButton.addActionListener(e -> candidateLifeListener.onDeleteRequest(testCandidate));
+        deleteButton.addActionListener(e -> candidateLifeListener.onDeleteRequest(this.testCandidate));
 
         deleteButton.setIcon(UIUtils.DELETE_CANDIDATE_RED_SVG);
         acceptButton.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
+
+        deleteButton.setBorder(new LineBorder(UIUtils.buttonBorderColor));
+        acceptButton.setBorder(new LineBorder(UIUtils.buttonBorderColor));
+        createTestCaseButton.setBorder(new LineBorder(UIUtils.buttonBorderColor));
+        viewFullButton.setBorder(new LineBorder(UIUtils.buttonBorderColor));
+        mainContentPanel.setBackground(UIUtils.agentResponseBaseColor);
     }
 
     public void setInfoLabel(String info) {
@@ -134,9 +114,8 @@ public class AgentResponseComponent implements Supplier<Component> {
 
         switch (differenceResult.getDiffResultType()) {
             case DIFF:
-                this.statusLabel.setText("Failing.");
+                this.statusLabel.setText("Failing");
                 this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
-                this.statusLabel.setForeground(UIUtils.red);
                 renderTableWithDifferences(differenceResult.getDifferenceInstanceList());
                 break;
             case NO_ORIGINAL:
@@ -144,9 +123,8 @@ public class AgentResponseComponent implements Supplier<Component> {
                 renderTableForResponse(differenceResult.getRightOnly());
                 break;
             case SAME:
-                this.statusLabel.setText("Passing.");
+                this.statusLabel.setText("Passing");
                 this.statusLabel.setIcon(UIUtils.CHECK_GREEN_SMALL);
-                this.statusLabel.setForeground(UIUtils.green);
                 this.tableParent.setVisible(false);
                 break;
             default:
@@ -165,12 +143,21 @@ public class AgentResponseComponent implements Supplier<Component> {
     private void renderTableWithDifferences(List<DifferenceInstance> differenceInstances) {
         CompareTableModel newModel = new CompareTableModel(differenceInstances, this.mainTable);
         this.mainTable.setModel(newModel);
+        this.mainTable.setBackground(UIUtils.agentResponseBaseColor);
+        this.scrollParent.getViewport().setOpaque(true);
+        this.scrollParent.getViewport().setBackground(UIUtils.agentResponseBaseColor);
         this.mainTable.revalidate();
         this.mainTable.repaint();
     }
 
     private void renderTableForResponse(Map<String, Object> rightOnly) {
-        ResponseMapTable newModel = new ResponseMapTable(rightOnly);
+        ObjectNode objectNode;
+        try {
+            objectNode = JsonTreeUtils.flatten(objectMapper.readTree(objectMapper.writeValueAsString(rightOnly)));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        ResponseMapTable newModel = new ResponseMapTable(objectNode);
         this.mainTable.setModel(newModel);
         this.mainTable.revalidate();
         this.mainTable.repaint();
@@ -190,6 +177,20 @@ public class AgentResponseComponent implements Supplier<Component> {
     @Override
     public Component get() {
         return this.mainPanel;
+    }
+
+    @Override
+    public void setTestCandidate(StoredCandidate candidate) {
+        this.testCandidate = candidate;
+        if (testCandidate.getEntryProbeIndex() > 1 && !createTestCaseButton.isEnabled()) {
+            createTestCaseButton.setEnabled(true);
+            createTestCaseButton.setText("Create JUnit test case");
+        }
+    }
+
+    @Override
+    public StoredCandidate getTestCandidate() {
+        return testCandidate;
     }
 
 }

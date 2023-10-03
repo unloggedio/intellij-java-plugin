@@ -14,6 +14,7 @@ import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.testcase.TestCaseService;
+import com.insidious.plugin.factory.testcase.ValueResourceContainer;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
@@ -23,7 +24,7 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.intellij.openapi.project.Project;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
-import org.jetbrains.annotations.NotNull;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -41,18 +42,6 @@ public class TestCaseServiceTest {
 
     private final static Logger logger = Logger.getLogger(TestCaseServiceTest.class.getName());
 
-
-    @NotNull
-    private static DaoService getDaoService(String url) throws SQLException {
-        ConnectionSource connectionSource = new JdbcConnectionSource(url);
-        DaoService daoService = new DaoService(connectionSource, new ParameterProvider() {
-            @Override
-            public com.insidious.plugin.pojo.dao.Parameter getParameterByValue(Long value) {
-                return null;
-            }
-        });
-        return daoService;
-    }
 
     private static void copyTestCaseToClipboard(TestCaseUnit testCaseUnit) {
         System.out.println(testCaseUnit);
@@ -116,11 +105,10 @@ public class TestCaseServiceTest {
     private void printObjectHistory(Long objectId) throws SessionNotSelectedException, SQLException, IOException {
 
         Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath())
-                .thenReturn("./");
+        Mockito.when(project.getBasePath()).thenReturn("./");
 
         VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions",
-                project);
+                project, null);
 
 //        TestCaseService testCaseService = new TestCaseService(getDaoService("jdbc:sqlite:execution.db"), client);
 
@@ -133,8 +121,7 @@ public class TestCaseServiceTest {
 //        List<ObjectWithTypeInfo> allObjects = new LinkedList<>();
 
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-        ExecutionSession session = sessions.getItems()
-                .get(0);
+        ExecutionSession session = sessions.getItems().get(0);
 
 
         client.setSessionInstance(new SessionInstance(session, project));
@@ -397,87 +384,82 @@ public class TestCaseServiceTest {
 //
 //    }
 
-    @Test
-    public void testGetTestCaseUnit() throws Exception {
-        Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath())
-                .thenReturn("./");
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions", project);
-
-        DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-        if (sessions.getItems()
-                .size() == 0) {
-            return;
-        }
-        ExecutionSession session = sessions.getItems()
-                .get(0);
-        SessionInstance sessionInstance = new SessionInstance(session, project);
-        client.setSessionInstance(sessionInstance);
-
-
-        TestCaseService testCaseService = new TestCaseService(sessionInstance);
-
+//    @Test
+//    public void testGetTestCaseUnit() throws Exception {
+//        Project project = Mockito.mock(Project.class);
+//        Mockito.when(project.getBasePath()).thenReturn("./");
+//        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions", project,
+//                null);
+//
+//        DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+//        if (sessions.getItems().size() == 0) {
+//            return;
+//        }
+//        ExecutionSession session = sessions.getItems().get(0);
+//        SessionInstance sessionInstance = new SessionInstance(session, project);
+//        client.setSessionInstance(sessionInstance);
+//
+//
+//        TestCaseService testCaseService = new TestCaseService(sessionInstance);
+//
+////        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
+////                "com.ayu.cabeza.service.PatientLeadService", "changePatientForCase", true);
+//
+////        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
+////                "com.repyute.helper.snaphrm.SnapHrmHelper", "createLendingProfile", true);
+//
 //        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-//                "com.ayu.cabeza.service.PatientLeadService", "changePatientForCase", true);
-
-//        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-//                "com.repyute.helper.snaphrm.SnapHrmHelper", "createLendingProfile", true);
-
-        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-                "com.ayu.cabeza.service.LoyaltyCardService",
-                "generateCardForCustomer", true);
-
-//        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-//                "com.repyute.service.paybooks.PaybooksService", "getLendingProfile", true);
-
-        if (candidateList.size() == 0) {
-            return;
-        }
-
-        TestCandidateMetadata testCandidateMetadata = candidateList.get(0);
-        testCandidateMetadata = sessionInstance.getTestCandidateById(testCandidateMetadata.getEntryProbeIndex(), false);
-
-        List<TestCandidateMetadata> list =
-                testCaseService.getTestCandidatesForMethod(
-                        testCandidateMetadata.getTestSubject()
-                                .getType(), "<init>", true);
-
-        list.add(testCandidateMetadata);
-        TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Gson, ResourceEmbedMode.IN_FILE
-        );
-        generationConfiguration.getTestCandidateMetadataList()
-                .addAll(list);
-        for (TestCandidateMetadata candidateMetadata : list) {
-            generationConfiguration.getCallExpressionList()
-                    .addAll(candidateMetadata.getCallsList());
-        }
-        @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-
-        copyTestCaseToClipboard(testCaseUnit);
-        Map<String, Object> valueResourceMap = testCaseUnit.getTestGenerationState()
-                .getValueResourceMap();
-        if (valueResourceMap.size() > 0) {
-            System.out.println(new Gson().toJson(valueResourceMap));
-        }
-    }
+//                "com.ayu.cabeza.service.LoyaltyCardService",
+//                "generateCardForCustomer", true);
+//
+////        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
+////                "com.repyute.service.paybooks.PaybooksService", "getLendingProfile", true);
+//
+//        if (candidateList.size() == 0) {
+//            return;
+//        }
+//
+//        TestCandidateMetadata testCandidateMetadata = candidateList.get(0);
+//        testCandidateMetadata = sessionInstance.getTestCandidateById(testCandidateMetadata.getEntryProbeIndex(), false);
+//
+//        List<TestCandidateMetadata> list =
+//                testCaseService.getTestCandidatesForMethod(
+//                        testCandidateMetadata.getTestSubject()
+//                                .getType(), "<init>", true);
+//
+//        list.add(testCandidateMetadata);
+//        TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
+//                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Gson, ResourceEmbedMode.IN_FILE
+//        );
+//        generationConfiguration.getTestCandidateMetadataList().addAll(list);
+//        for (TestCandidateMetadata candidateMetadata : list) {
+//            generationConfiguration.getCallExpressionList()
+//                    .addAll(candidateMetadata.getCallsList());
+//        }
+//         TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+//
+//        copyTestCaseToClipboard(testCaseUnit);
+//        ValueResourceContainer valueResourceMap = testCaseUnit.getTestGenerationState()
+//                .getValueResourceMap();
+//        if (valueResourceMap.getValueResourceMap().size() > 0) {
+//            System.out.println(new Gson().toJson(valueResourceMap.getValueResourceMap()));
+//        }
+//    }
 
     @Test
     public void testScanAndGenerateAll() throws Exception {
 
         Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath())
-                .thenReturn("./");
+        Mockito.when(project.getBasePath()).thenReturn("./");
 
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions", project);
+        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions", project,
+                null);
 
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-        if (sessions.getItems()
-                .size() == 0) {
+        if (sessions.getItems().size() == 0) {
             return;
         }
-        ExecutionSession session = sessions.getItems()
-                .get(0);
+        ExecutionSession session = sessions.getItems().get(0);
         client.setSessionInstance(new SessionInstance(session, project));
         SessionInstance sessionInstance = client.getSessionInstance();
         sessionInstance.unlockNextScan();

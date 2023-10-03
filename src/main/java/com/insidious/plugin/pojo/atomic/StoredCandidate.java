@@ -6,16 +6,18 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.util.TestCandidateUtils;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
+import static com.insidious.plugin.Constants.HOSTNAME;
 
 public class StoredCandidate implements Comparable<StoredCandidate> {
 
+    @JsonIgnore
+    private long entryProbeIndex;
     private List<Integer> lineNumbers = new ArrayList<>();
     private AtomicAssertion testAssertions = null;
     private String candidateId;
@@ -26,19 +28,11 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     private boolean isException;
     private String returnValueClassname;
     private StoredCandidateMetadata metadata;
-    private long entryProbeIndex;
+    private long sessionIdentifier;
     private byte[] probSerializedValue;
     private MethodUnderTest methodUnderTest;
 
     private StoredCandidate() {
-    }
-
-    public void setLineNumbers(List<Integer> lineNumbers) {
-        this.lineNumbers = lineNumbers;
-    }
-
-    public List<Integer> getLineNumbers() {
-        return lineNumbers;
     }
 
     public StoredCandidate(TestCandidateMetadata candidateMetadata) {
@@ -49,14 +43,16 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.methodArguments = TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata);
         this.returnValueClassname = candidateMetadata.getMainMethod().getReturnValue().getType();
         this.methodUnderTest = MethodUnderTest.fromTestCandidateMetadata(candidateMetadata);
-        this.probSerializedValue = candidateMetadata.getMainMethod().getReturnValue().getProb().getSerializedValue();
-        this.entryProbeIndex = generateIdentifier(candidateMetadata);
+        if (candidateMetadata.getMainMethod().getReturnValue().getProb() != null) {
+            this.probSerializedValue = candidateMetadata.getMainMethod().getReturnValue().getProb()
+                    .getSerializedValue();
+        }
+        this.sessionIdentifier = generateIdentifier(candidateMetadata);
+        this.entryProbeIndex = candidateMetadata.getEntryProbeIndex();
         this.lineNumbers = candidateMetadata.getLineNumbers();
-        StoredCandidateMetadata metadata = new StoredCandidateMetadata();
-        metadata.setHostMachineName(HOSTNAME);
-        metadata.setRecordedBy(HOSTNAME);
-        metadata.setTimestamp(candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt());
-        this.metadata = metadata;
+        this.metadata = new StoredCandidateMetadata(
+                HOSTNAME, HOSTNAME, candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt()
+        );
     }
 
     public static StoredCandidate createCandidateFor(StoredCandidate metadata, AgentCommandResponse<String> response) {
@@ -70,6 +66,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         candidate.setProbSerializedValue(metadata.getProbSerializedValue());
         //to be updated
         candidate.setMethod(metadata.getMethod());
+        candidate.setSessionIdentifier(metadata.getSessionIdentifier());
         candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
         candidate.setReturnValueClassname(response.getResponseClassName());
 
@@ -78,20 +75,34 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
             candidate.getMetadata().setHostMachineName(HOSTNAME);
             candidate.getMetadata().setRecordedBy(HOSTNAME);
         } else {
-            StoredCandidateMetadata metadata1 = new StoredCandidateMetadata();
-            metadata1.setCandidateStatus(null);
-            metadata1.setTimestamp(response.getTimestamp());
-            metadata1.setRecordedBy(HOSTNAME);
-            metadata1.setHostMachineName(HOSTNAME);
+            StoredCandidateMetadata metadata1 = new StoredCandidateMetadata(
+                    HOSTNAME, HOSTNAME, response.getTimestamp()
+            );
             candidate.setMetadata(metadata1);
         }
         return candidate;
     }
 
+    public long getEntryProbeIndex() {
+        return entryProbeIndex;
+    }
+
+    public void setEntryProbeIndex(long entryProbeIndex) {
+        this.entryProbeIndex = entryProbeIndex;
+    }
+
+    public List<Integer> getLineNumbers() {
+        return lineNumbers;
+    }
+
+    public void setLineNumbers(List<Integer> lineNumbers) {
+        this.lineNumbers = lineNumbers;
+    }
+
     @Override
     public int hashCode() {
         return Objects.requireNonNullElseGet(this.candidateId,
-                () -> this.entryProbeIndex + "-" + this.metadata.getHostMachineName()).hashCode();
+                () -> this.sessionIdentifier + "-" + this.metadata.getHostMachineName()).hashCode();
     }
 
     @Override
@@ -111,11 +122,11 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
             return this.getCandidateId().equals(otherCandidate.getCandidateId());
         }
 
-        return this.entryProbeIndex == otherCandidate.getEntryProbeIndex();
+        return this.sessionIdentifier == otherCandidate.getSessionIdentifier();
     }
 
     @Override
-    public int compareTo(@NotNull StoredCandidate o) {
+    public int compareTo( StoredCandidate o) {
         return Long.compare(this.metadata.getTimestamp(), o.metadata.getTimestamp());
     }
 
@@ -191,12 +202,12 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.methodUnderTest = methodUnderTest1;
     }
 
-    public long getEntryProbeIndex() {
-        return entryProbeIndex;
+    public long getSessionIdentifier() {
+        return sessionIdentifier;
     }
 
-    public void setEntryProbeIndex(long entryProbeIndex) {
-        this.entryProbeIndex = entryProbeIndex;
+    public void setSessionIdentifier(long sessionIdentifier) {
+        this.sessionIdentifier = sessionIdentifier;
     }
 
     @JsonIgnore
@@ -225,7 +236,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
                 ", returnValueClassname='" + returnValueClassname + '\'' +
                 ", metadata=" + metadata +
                 ", method=" + methodUnderTest +
-                ", entryProbeIndex=" + entryProbeIndex +
+                ", entryProbeIndex=" + sessionIdentifier +
                 '}';
     }
 
@@ -240,10 +251,13 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.setName(candidate.getName());
         this.setDescription(candidate.getDescription());
         this.setReturnValue(candidate.getReturnValue());
+        this.setSessionIdentifier(candidate.getSessionIdentifier());
         this.setEntryProbeIndex(candidate.getEntryProbeIndex());
         this.setProbSerializedValue(candidate.getProbSerializedValue());
         this.setException(candidate.isException());
         this.setReturnValueClassname(candidate.getReturnValueClassname());
+        this.setLineNumbers(candidate.getLineNumbers());
+        this.setTestAssertions(candidate.getTestAssertions());
     }
 
     public AtomicAssertion getTestAssertions() {

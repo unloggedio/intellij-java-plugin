@@ -1,6 +1,6 @@
 package com.insidious.plugin.pojo.dao;
 
-import com.insidious.plugin.util.Strings;
+import com.insidious.plugin.util.StringUtils;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
@@ -37,12 +37,14 @@ public class TestCandidateMetadata {
         newCandidate.setEntryProbeIndex(testCandidateMetadata.getEntryProbeIndex());
         newCandidate.setExitProbeIndex(testCandidateMetadata.getExitProbeIndex());
         newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
-        newCandidate.setLines(Arrays.stream(testCandidateMetadata
-                        .getLines()
-                        .split(","))
-                .map(Integer::parseInt)
-                .collect(Collectors.toList())
-        );
+        if (testCandidateMetadata.getLines() != null) {
+            newCandidate.setLines(Arrays.stream(testCandidateMetadata
+                            .getLines()
+                            .split(","))
+                    .map(Integer::parseInt)
+                    .collect(Collectors.toList())
+            );
+        }
 
         return newCandidate;
     }
@@ -73,7 +75,7 @@ public class TestCandidateMetadata {
     }
 
     public void setFields(List<Long> fields) {
-        this.fields = Strings.join(fields, ",");
+        this.fields = StringUtils.join(fields, ",");
     }
 
     public long getTestSubject() {
@@ -113,13 +115,17 @@ public class TestCandidateMetadata {
     }
 
     public List<Long> getVariables() {
+        if (variables == null || variables.length() == 0) {
+            return new ArrayList<>();
+        }
         return Arrays.stream(variables.split(","))
+                .filter(e -> e.length() > 0)
                 .map(Long::valueOf)
                 .collect(Collectors.toList());
     }
 
     public void setVariables(List<Long> variables) {
-        this.variables = Strings.join(variables, ",");
+        this.variables = StringUtils.join(variables, ",");
     }
 
     public void addField(long parameterValue) {

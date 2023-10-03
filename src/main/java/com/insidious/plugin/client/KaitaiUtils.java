@@ -2,7 +2,7 @@ package com.insidious.plugin.client;
 
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.common.weaver.*;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.util.stream.Collectors;
 
@@ -10,7 +10,7 @@ public class KaitaiUtils {
 
     private final static Descriptor[] DescriptorValues = Descriptor.values();
 
-    @NotNull
+    
     public static DataInfo toDataInfo(KaitaiInsidiousClassWeaveParser.ProbeInfo e) {
 //        String descriptorValue = DescriptorValues[e.valueDescriptor().ordinal()].getString();
 
@@ -37,7 +37,7 @@ public class KaitaiUtils {
     }
 
 
-//    @NotNull
+//    
 //    public static ProbeInfoDocument toProbeInfoDocument(KaitaiInsidiousClassWeaveParser.ProbeInfo e) {
 ////        String descriptorValue = DescriptorValues[e.valueDescriptor().ordinal()].getString();
 //
@@ -67,7 +67,7 @@ public class KaitaiUtils {
 //    }
 
 
-    @NotNull
+    
     public static ClassInfo toClassInfo(KaitaiInsidiousClassWeaveParser.ClassInfo classInfo) {
         String[] interfaceList = classInfo.interfaceNames()
                 .stream()
@@ -87,7 +87,7 @@ public class KaitaiUtils {
         );
     }
 
-    @NotNull
+    
     public static MethodInfo toMethodInfo(
             KaitaiInsidiousClassWeaveParser.MethodInfo e, String className) {
         return new MethodInfo(

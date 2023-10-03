@@ -18,7 +18,7 @@ import java.util.concurrent.Executors;
 public class AgentClient {
     public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     public static final String NO_SERVER_CONNECT_ERROR_MESSAGE = "Failed to invoke call to agent server: \n" +
-            "Make sure the process is running with unlogged java agent\n\n";
+            "Make sure the process is running with java unlogged-sdk\n\n";
     private static final Logger logger = LoggerUtil.getInstance(AgentClient.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String agentUrl;
@@ -47,6 +47,7 @@ public class AgentClient {
     }
 
     public AgentCommandResponse<String> executeCommand(AgentCommandRequest agentCommandRequest) throws IOException {
+        agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
 
         RequestBody body = RequestBody.create(objectMapper.writeValueAsString(agentCommandRequest), JSON);
         Request request = new Request.Builder()
@@ -57,8 +58,7 @@ public class AgentClient {
         try (Response response = client.newCall(request).execute()) {
             String responseBody = response.body().string();
             AgentCommandResponse<String> agentCommandResponse = objectMapper.readValue(responseBody,
-                    new TypeReference<AgentCommandResponse<String>>() {
-                    });
+                    new TypeReference<AgentCommandResponse<String>>() {});
             JSONObject eventProperties = new JSONObject();
             if (
                     agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION) ||

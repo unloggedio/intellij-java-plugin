@@ -1,16 +1,12 @@
 package com.insidious.plugin.factory;
 
-import com.insidious.plugin.pojo.InsidiousOnboardingStatus;
-import com.insidious.plugin.pojo.SearchRecord;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.util.xmlb.XmlSerializerUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Supports storing the application settings in a persistent way.
@@ -23,91 +19,69 @@ import java.util.stream.Collectors;
 )
 public class InsidiousConfigurationState implements PersistentStateComponent<InsidiousConfigurationState> {
 
-    private final List<SearchRecord> searchRecords = new LinkedList<>();
-    public String username = "";
-    private final String CLOUD_SERVER_URL = "https://cloud.bug.video";
-    public String serverUrl = CLOUD_SERVER_URL;
-    public Map<String, Boolean> exceptionClassMap;
-    public String getDefaultCloudServerUrl() {
-        return CLOUD_SERVER_URL;
-    }
-    private InsidiousOnboardingStatus onboardingStatus;
+    private Map<String, Boolean> classFieldMockActiveStatus = new HashMap<>();
+    private Map<String, Boolean> mockActiveStatus = new HashMap<>();
 
     public InsidiousConfigurationState() {
-        exceptionClassMap = new HashMap<>();
-        exceptionClassMap.put("java.lang.NullPointerException", true);
-        exceptionClassMap.put("java.lang.ArrayIndexOutOfBoundsException", true);
-        exceptionClassMap.put("java.lang.StackOverflowError", true);
-        exceptionClassMap.put("java.lang.IllegalArgumentException", true);
-        exceptionClassMap.put("java.lang.IllegalThreadStateException", true);
-        exceptionClassMap.put("java.lang.IllegalStateException", true);
-        exceptionClassMap.put("java.lang.RuntimeException", true);
-        exceptionClassMap.put("java.io.IOException", true);
-        exceptionClassMap.put("java.io.FileNotFoundException", true);
-        exceptionClassMap.put("java.net.SocketException", true);
-        exceptionClassMap.put("java.net.UnknownHostException", true);
-        exceptionClassMap.put("java.lang.ArithmeticException", true);
     }
 
-//    public static InsidiousConfigurationState getInstance() {
-//        return ApplicationManager.getApplication().getService(InsidiousConfigurationState.class);
-//    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getServerUrl() {
-        return serverUrl;
-    }
-
-    public void setServerUrl(String serverUrl) {
-        this.serverUrl = serverUrl;
-    }
-
-    @Nullable
     @Override
     public InsidiousConfigurationState getState() {
         return this;
     }
 
     @Override
-    public void loadState(@NotNull InsidiousConfigurationState state) {
+    public void loadState(InsidiousConfigurationState state) {
         XmlSerializerUtil.copyBean(state, this);
     }
 
-    public List<SearchRecord> getSearchRecords() {
-        return searchRecords;
+
+    public void removeMock(String id) {
+        mockActiveStatus.remove(id);
     }
 
-    public void setSearchRecords(List<SearchRecord> newRecords) {
-        searchRecords.clear();
-        searchRecords.addAll(newRecords);
+    public void addMock(String id) {
+        mockActiveStatus.put(id, true);
     }
 
-    public void addSearchQuery(String traceValue, int resultCount) {
-        SearchRecord newSearchRecord = new SearchRecord(traceValue, resultCount);
-        List<SearchRecord> matched = searchRecords.stream().filter(sr -> sr.getQuery().equals(traceValue)).collect(Collectors.toList());
-        searchRecords.removeAll(matched);
-        searchRecords.add(newSearchRecord);
-        if (searchRecords.size() > 50) {
-            List<SearchRecord> recordsToRemove = searchRecords.stream().sorted(
-                    Comparator.comparing(SearchRecord::getLastQueryDate)).limit(
-                            searchRecords.size() - 10).collect(Collectors.toList());
-            searchRecords.removeAll(recordsToRemove);
-        }
+    public boolean isActiveMock(String declaredMockId) {
+        return mockActiveStatus.containsKey(declaredMockId);
     }
 
-    public InsidiousOnboardingStatus getOnboardingStatus()
-    {
-        return this.onboardingStatus;
+    public void removeFieldMock(String key) {
+        classFieldMockActiveStatus.remove(key);
     }
 
-    public void setOnboardingStatus(InsidiousOnboardingStatus onboardingStatus) {
-        this.onboardingStatus = onboardingStatus;
+    public void addFieldMock(String key) {
+        classFieldMockActiveStatus.put(key, true);
+    }
+
+    public Map<String, Boolean> getClassFieldMockActiveStatus() {
+        return classFieldMockActiveStatus;
+    }
+
+    public void setClassFieldMockActiveStatus(Map<String, Boolean> classFieldMockActiveStatus) {
+        this.classFieldMockActiveStatus = classFieldMockActiveStatus;
+    }
+
+    public Map<String, Boolean> getMockActiveStatus() {
+        return mockActiveStatus;
+    }
+
+    public void setMockActiveStatus(Map<String, Boolean> mockActiveStatus) {
+        this.mockActiveStatus = mockActiveStatus;
+    }
+
+    public boolean isFieldMockActive(String key) {
+        return classFieldMockActiveStatus.containsKey(key);
+    }
+
+
+    public boolean hasShownFeatures() {
+        return classFieldMockActiveStatus.containsKey("hasShownFeatures");
+    }
+
+    public void setShownFeatures() {
+        classFieldMockActiveStatus.put("hasShownFeatures", true);
     }
 }

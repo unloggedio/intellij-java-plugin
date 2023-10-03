@@ -1,6 +1,5 @@
 package com.insidious.plugin.ui.methodscope;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
@@ -11,26 +10,32 @@ import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.ResourceEmbedMode;
+import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
-import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
+import com.insidious.plugin.pojo.frameworks.JsonFramework;
+import com.insidious.plugin.pojo.frameworks.MockFramework;
+import com.insidious.plugin.pojo.frameworks.TestFramework;
+import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.MethodExecutionListener;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Computable;
-import com.intellij.psi.PsiClass;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBRadioButton;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
-import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -40,16 +45,16 @@ import java.awt.event.ActionEvent;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static com.insidious.plugin.Constants.HOSTNAME;
 
 public class MethodExecutorComponent implements MethodExecutionListener, CandidateSelectedListener, CandidateLifeListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
     private final InsidiousService insidiousService;
-    private final Map<Long, AgentCommandResponse<String>> candidateResponseMap = new HashMap<>();
+    private final Map<String, AgentCommandResponse<String>> candidateResponseMap = new HashMap<>();
     private final JPanel gridPanel;
-    private final Map<Long, TestCandidateListedItemComponent> candidateComponentMap = new HashMap<>();
+    private final Map<String, TestCandidateListedItemComponent> candidateComponentMap = new HashMap<>();
     private final JScrollPane candidateScrollPanelContainer;
     private final CoveragePanel coveragePanel;
     private final int panelHeightMax = 300;
@@ -57,23 +62,20 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     private JPanel rootContent;
     private JButton executeAndShowDifferencesButton;
     private JLabel candidateCountLabel;
-    private JPanel diffContentPanel;
     private JPanel topPanel;
-    //    private JPanel centerPanel;
     private JPanel centerParent;
     private JPanel topAligner;
-    private JScrollPane scrollParent;
     private JPanel controlsPanel;
-    //    private JPanel filterButtonGroupPanel;
+    private JPanel scrollContainer;
     private int callCount = 0;
     private SaveForm saveFormReference;
     private CandidateFilterType candidateFilterType = CandidateFilterType.METHOD;
     private MethodDefinition methodInfo;
     private MethodUnderTest methodUnderTest;
+    private ResponsePreviewComponent currentResponsePreviewComponent;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
-        scrollParent.setVisible(false);
         executeAndShowDifferencesButton.addActionListener(this::actionPerformed);
         gridPanel = createCandidateScrollPanel();
 
@@ -92,7 +94,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         executeAndShowDifferencesButton.setIcon(UIUtils.REPLAY_PINK);
 
         coveragePanel = new CoveragePanel(insidiousService);
-        rootContent.add(coveragePanel.getContent(), BorderLayout.SOUTH);
+        JPanel coveragePanelContent = coveragePanel.getContent();
+        coveragePanelContent.setMinimumSize(new Dimension(-1, 300));
+        rootContent.add(coveragePanelContent, BorderLayout.SOUTH);
     }
 
     public void setFilterButtonsListeners() {
@@ -199,10 +203,11 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     public void executeAll() {
         clearBottomPanel();
         List<StoredCandidate> methodTestCandidates = getCandidatesFromComponents();
+        String methodName = methodElement.getName();
         if (methodTestCandidates.size() == 0) {
             InsidiousNotification.notifyMessage(
                     "Please use the agent to record values for replay. " +
-                            "No candidates found for " + methodElement.getName(),
+                            "No candidates found for " + methodName,
                     NotificationType.WARNING
             );
             return;
@@ -212,8 +217,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
             JSONObject eventProperties = new JSONObject();
 
             ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass1 -> {
-                eventProperties.put("className", psiClass1.getQualifiedName());
-                eventProperties.put("methodName", methodElement.getName());
+                eventProperties.put("className", psiClass1.getQualifiedClassName());
+                eventProperties.put("methodName", methodName);
+                eventProperties.put("count", methodTestCandidates.size());
                 UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
 
                 callCount = methodTestCandidates.size();
@@ -267,6 +273,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     public void refreshAndReloadCandidates(final MethodAdapter method, List<StoredCandidate> candidates) {
+        logger.warn("load and refresh candidates in mec for");
+
 
         if (methodElement == null || method == null || method.getPsiMethod() != methodElement.getPsiMethod()) {
             clearBoard();
@@ -275,22 +283,42 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         if (methodElement == null) {
             return;
         }
+        if (DumbService.getInstance(getProject()).isDumb()) {
+            return;
+        }
         methodUnderTest = MethodUnderTest.fromMethodAdapter(methodElement);
-
         methodInfo = insidiousService.getMethodInformation(methodUnderTest);
+
+        if (candidates.size() == 0) {
+            return;
+        }
+
 
         List<ArgumentNameValuePair> methodArgumentNameList = generateParameterList(methodElement.getParameters());
 
         candidates.stream()
-                .filter(testCandidateMetadata -> !candidateComponentMap.containsKey(
-                        testCandidateMetadata.getEntryProbeIndex()))
+                .filter(testCandidateMetadata -> {
+                    TestCandidateListedItemComponent existingComponent = candidateComponentMap.get(
+                            getKeyForCandidate(testCandidateMetadata));
+                    if (existingComponent != null) {
+                        existingComponent.setCandidate(testCandidateMetadata);
+                    }
+                    if (currentResponsePreviewComponent != null) {
+                        StoredCandidate previewCandidate = currentResponsePreviewComponent.getTestCandidate();
+                        if (Objects.equals(previewCandidate.getCandidateId(), testCandidateMetadata.getCandidateId()) ||
+                                previewCandidate.getEntryProbeIndex() == testCandidateMetadata.getEntryProbeIndex()) {
+                            currentResponsePreviewComponent.setTestCandidate(testCandidateMetadata);
+                        }
+                    }
+                    return existingComponent == null;
+                })
                 .peek(testCandidateMetadata -> {
                     testCandidateMetadata.setMethod(methodUnderTest);
                 })
                 .map(e -> new TestCandidateListedItemComponent(e, methodArgumentNameList, this,
                         MethodExecutorComponent.this, insidiousService, method))
                 .forEach(e -> {
-                    candidateComponentMap.put(e.getCandidateMetadata().getEntryProbeIndex(), e);
+                    candidateComponentMap.put(getKeyForCandidate(e.getCandidateMetadata()), e);
                     gridPanel.add(e.getComponent());
                 });
 
@@ -298,16 +326,15 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
 
         executeAndShowDifferencesButton.setEnabled(true);
-        insidiousService.showNewTestCandidateGotIt();
 
         gridPanel.revalidate();
         gridPanel.repaint();
 
-        setListDimensions(calculatePanelHeight(candidateComponentMap));
+        setListDimensions(calculatePanelHeight());
 
         executeAndShowDifferencesButton.revalidate();
         executeAndShowDifferencesButton.repaint();
-        candidateCountLabel.setText(candidateComponentMap.size() + " recorded method executions");
+        candidateCountLabel.setText(gridPanel.getComponents().length + " recorded method executions");
         TitledBorder topPanelTitledBorder = (TitledBorder) topPanel.getBorder();
         topPanelTitledBorder.setTitle(
                 methodElement.getContainingClass().getName() + "." + methodElement.getName() + "()");
@@ -316,7 +343,13 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         rootContent.repaint();
     }
 
+    private String getKeyForCandidate(StoredCandidate testCandidateMetadata) {
+        return testCandidateMetadata.getCandidateId() == null ? String.valueOf(
+                testCandidateMetadata.getSessionIdentifier()) : testCandidateMetadata.getCandidateId();
+    }
+
     private void refreshCoverageData() {
+
         Map<Boolean, List<StoredCandidate>> coveredLinesMap = candidateComponentMap.values()
                 .stream()
                 .map(TestCandidateListedItemComponent::getCandidateMetadata)
@@ -345,7 +378,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         Set<Integer> linesToHighlight = new HashSet<>();
         linesToHighlight.addAll(savedLineCovered);
         linesToHighlight.addAll(unsavedLineCovered);
-        insidiousService.highlightLines(linesToHighlight);
+        HighlightedRequest highlightedRequest = new HighlightedRequest(methodUnderTest, linesToHighlight);
+        insidiousService.highlightLines(highlightedRequest);
     }
 
     public List<ArgumentNameValuePair> generateParameterList(ParameterAdapter[] parameters) {
@@ -361,11 +395,11 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
 
-    private int calculatePanelHeight(Map<Long, TestCandidateListedItemComponent> componentMap) {
-        return candidateComponentMap.values().stream()
+    private int calculatePanelHeight() {
+        return Math.min(candidateComponentMap.values().stream()
                 .map(e -> e.getComponent().getPreferredSize().getHeight())
                 .mapToInt(Double::intValue)
-                .sum() + 40;
+                .sum() + 50, 300);
     }
 
     private void setListDimensions(int panelHeight) {
@@ -383,48 +417,46 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     public void clearBoard() {
         candidateComponentMap.clear();
         gridPanel.removeAll();
-        diffContentPanel.removeAll();
-        diffContentPanel.revalidate();
+        scrollContainer.removeAll();
         centerParent.revalidate();
         centerParent.repaint();
     }
 
     public void clearBottomPanel() {
-        diffContentPanel.removeAll();
-        diffContentPanel.revalidate();
+        scrollContainer.removeAll();
     }
 
     @Override
     public void executeCandidate(
             List<StoredCandidate> testCandidateList,
-            PsiClass psiClass,
+            ClassUnderTest classUnderTest,
             String source,
             AgentCommandResponseListener<String> agentCommandResponseListener
     ) {
         for (StoredCandidate testCandidate : testCandidateList) {
-            executeSingleCandidate(testCandidate, psiClass, source, agentCommandResponseListener);
+            executeSingleCandidate(testCandidate, classUnderTest, source, agentCommandResponseListener);
         }
     }
 
     private void executeSingleCandidate(
             StoredCandidate testCandidate,
-            PsiClass psiClass,
+            ClassUnderTest classUnderTest,
             String source,
             AgentCommandResponseListener<String> agentCommandResponseListener
     ) {
         List<String> methodArgumentValues = testCandidate.getMethodArguments();
-        AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(
-                methodElement, psiClass, methodArgumentValues, true);
+        AgentCommandRequest agentCommandRequest = MethodUtils.createExecuteRequestWithParameters(
+                methodElement, classUnderTest, methodArgumentValues, true);
 
         TestCandidateListedItemComponent candidateComponent =
-                candidateComponentMap.get(testCandidate.getEntryProbeIndex());
+                candidateComponentMap.get(getKeyForCandidate(testCandidate));
 
         candidateComponent.setStatus("Executing");
 
 
         insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                 (request, agentCommandResponse) -> {
-                    candidateResponseMap.put(testCandidate.getEntryProbeIndex(), agentCommandResponse);
+                    candidateResponseMap.put(getKeyForCandidate(testCandidate), agentCommandResponse);
 
                     DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
 
@@ -437,7 +469,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                     } else {
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_INDIVIDUAL);
                         //check other statuses and add them for individual execution
-                        String status = getExecutionStatusFromCandidates(testCandidate.getEntryProbeIndex(),
+                        String status = getExecutionStatusFromCandidates(getKeyForCandidate(testCandidate),
                                 diffResult.getDiffResultType());
                         String methodKey = agentCommandRequest.getClassName()
                                 + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
@@ -453,7 +485,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
                     StoredCandidateMetadata meta = testCandidate.getMetadata();
                     if (meta == null) {
-                        meta = new StoredCandidateMetadata();
+                        meta = new StoredCandidateMetadata(HOSTNAME, HOSTNAME, agentCommandResponse.getTimestamp(),
+                                getStatusForState(diffResult.getDiffResultType()));
                     }
                     meta.setTimestamp(agentCommandResponse.getTimestamp());
                     meta.setCandidateStatus(getStatusForState(diffResult.getDiffResultType()));
@@ -461,7 +494,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                         insidiousService.getAtomicRecordService().setCandidateStateForCandidate(
                                 testCandidate.getCandidateId(),
                                 agentCommandRequest.getClassName(),
-                                agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature(),
+                                methodUnderTest.getMethodHashKey(),
                                 testCandidate.getMetadata().getCandidateStatus());
                     }
                     //possible bug vector, equal case check
@@ -495,14 +528,14 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     //refactor pending - if there are stored candidates show only from stored, else others.
-    public String getExecutionStatusFromCandidates(long excludeKey, DiffResultType type) {
+    public String getExecutionStatusFromCandidates(String excludeKey, DiffResultType type) {
         if (showDifferentStatus(type)) {
             return "Diff";
         }
         boolean hasDiff = false;
         boolean hasNoRun = false;
-        for (long key : candidateComponentMap.keySet()) {
-            if (key == excludeKey) {
+        for (String key : candidateComponentMap.keySet()) {
+            if (Objects.equals(key, excludeKey)) {
                 continue;
             }
             TestCandidateListedItemComponent component = candidateComponentMap.get(key);
@@ -528,17 +561,26 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
 
     public void displayResponse(Component component) {
-//        scrollParent.setMinimumSize(new Dimension(-1, 700));
-        diffContentPanel.removeAll();
-        diffContentPanel.setLayout(new GridLayout(1, 1));
-        diffContentPanel.setMinimumSize(new Dimension(-1, 700));
+
+        scrollContainer.removeAll();
+//        diffContentPanel = new JPanel()
+//        diffContentPanel.add(component, BorderLayout.CENTER);
+//        diffContentPanel.revalidate();
+//        diffContentPanel.repaint();
+
+        JBScrollPane scrollParent = new JBScrollPane(component);
+        scrollParent.setMinimumSize(new Dimension(-1, 300));
+        scrollParent.setMaximumSize(new Dimension(-1, 600));
+//        diffContentPanel.setMinimumSize(new Dimension(-1, 700));
 //        component.setMinimumSize(new Dimension(-1, 700));
-        diffContentPanel.add(component);
-        scrollParent.setVisible(true);
-        scrollParent.revalidate();
-        scrollParent.repaint();
-        diffContentPanel.revalidate();
-        diffContentPanel.repaint();
+//        scrollParent.setViewportView(diffContentPanel);
+//        scrollParent.setVisible(true);
+//        scrollParent.revalidate();
+//        scrollParent.repaint();
+        scrollContainer.add(scrollParent, BorderLayout.CENTER);
+        scrollContainer.revalidate();
+        scrollContainer.repaint();
+        logger.warn("diff component attached: " + component.getClass().getCanonicalName());
     }
 
 
@@ -550,16 +592,16 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     public void onCandidateSelected(StoredCandidate testCandidateMetadata) {
 
         AgentCommandResponse<String> agentCommandResponse = candidateResponseMap.get(
-                testCandidateMetadata.getEntryProbeIndex());
+                getKeyForCandidate(testCandidateMetadata));
         if (agentCommandResponse == null) {
             return;
         }
-        Supplier<Component> response = createTestCandidateChangeComponent(testCandidateMetadata, agentCommandResponse);
-        displayResponse(response.get());
+        currentResponsePreviewComponent = createTestCandidateChangeComponent(testCandidateMetadata,
+                agentCommandResponse);
+        displayResponse(currentResponsePreviewComponent.get());
     }
 
-    @NotNull
-    private Supplier<Component> createTestCandidateChangeComponent(
+    private ResponsePreviewComponent createTestCandidateChangeComponent(
             StoredCandidate testCandidateMetadata,
             AgentCommandResponse<String> agentCommandResponse
     ) {
@@ -586,13 +628,13 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     @Override
     public void onSaved(StoredCandidate candidate) {
+        TestCandidateListedItemComponent candidateItem = candidateComponentMap.get(getKeyForCandidate(candidate));
         if (candidate.getCandidateId() == null) {
             candidate.setCandidateId(UUID.randomUUID().toString());
+            candidateComponentMap.put(getKeyForCandidate(candidate), candidateItem);
         }
         insidiousService.getAtomicRecordService()
                 .saveCandidate(MethodUnderTest.fromMethodAdapter(methodElement), candidate);
-        TestCandidateListedItemComponent candidateItem = candidateComponentMap.get(candidate.getEntryProbeIndex());
-        candidateItem.setTitledBorder(candidate.getName());
         candidateItem.getComponent().setEnabled(true);
         candidateItem.setCandidate(candidate);
         triggerReExecute(candidate);
@@ -606,10 +648,10 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     private void triggerReExecute(StoredCandidate candidate) {
         TestCandidateListedItemComponent component = candidateComponentMap.get(
-                candidate.getEntryProbeIndex());
+                getKeyForCandidate(candidate));
         ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {
             JSONObject eventProperties = new JSONObject();
-            eventProperties.put("className", psiClass.getQualifiedName());
+            eventProperties.put("className", psiClass.getQualifiedClassName());
             eventProperties.put("methodName", methodElement.getName());
             UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE_UPDATE", eventProperties);
             executeCandidate(
@@ -655,23 +697,21 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     @Override
     public void onDeleted(StoredCandidate storedCandidate) {
         insidiousService.getAtomicRecordService().deleteStoredCandidate(
-                methodElement.getContainingClass().getQualifiedName(),
-                methodElement.getName() + "#" + methodElement.getJVMSignature(),
-                storedCandidate.getCandidateId());
+                methodUnderTest.getClassName(), methodUnderTest.getMethodHashKey(), storedCandidate.getCandidateId());
         TestCandidateListedItemComponent testCandidateListedItemComponent = candidateComponentMap.get(
-                storedCandidate.getEntryProbeIndex());
+                getKeyForCandidate(storedCandidate));
         JPanel candidateComponent = testCandidateListedItemComponent.getComponent();
 
-        candidateComponentMap.remove(storedCandidate.getEntryProbeIndex());
-        candidateCountLabel.setText(candidateComponentMap.size() + " recorded method executions");
+        candidateComponentMap.remove(getKeyForCandidate(storedCandidate));
         gridPanel.remove(candidateComponent);
         gridPanel.revalidate();
         gridPanel.repaint();
-        diffContentPanel.removeAll();
+        scrollContainer.removeAll();
+        candidateCountLabel.setText(gridPanel.getComponents().length + " recorded method executions");
         refreshCoverageData();
 
         if (candidateComponentMap.size() < 3) {
-            setListDimensions(calculatePanelHeight(candidateComponentMap));
+            setListDimensions(calculatePanelHeight());
             //calling this to ensure that we don't see an empty atomic window.
             if (candidateComponentMap.size() == 0) {
                 onLastCandidateDeleted();
@@ -685,7 +725,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         refreshSearchAndLoad();
     }
 
-    private void refreshSearchAndLoad() {
+    public void refreshSearchAndLoad() {
 
         CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(methodElement, candidateFilterType,
                 false);
@@ -693,6 +733,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         List<StoredCandidate> methodTestCandidates =
                 ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
                         insidiousService.getStoredCandidatesFor(query));
+        logger.warn("Candidates for [ " + query + "] in refreshSearchAndLoad => " + methodTestCandidates.size());
 
         refreshAndReloadCandidates(methodElement, methodTestCandidates);
     }
@@ -708,16 +749,51 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     @Override
+    public void onGenerateJunitTestCaseRequest(StoredCandidate testCandidate) {
+        logger.warn("Create test case: " + testCandidate);
+
+//        progressIndicator.setText("Generating JUnit Test case");
+
+        TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
+                .getTestCandidateById(testCandidate.getEntryProbeIndex(), true);
+
+
+        String testMethodName =
+                "testMethod" + ClassTypeUtils.upperInstanceName(
+                        loadedTestCandidate.getMainMethod().getMethodName());
+        TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
+                TestFramework.JUnit5,
+                MockFramework.Mockito,
+                JsonFramework.Jackson,
+                ResourceEmbedMode.IN_CODE
+        );
+
+
+        // mock all calls by default
+        testCaseGenerationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
+
+
+        testCaseGenerationConfiguration.setTestMethodName(testMethodName);
+
+
+        testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
+        testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
+
+
+        try {
+            insidiousService.previewTestCase(methodElement, testCaseGenerationConfiguration);
+        } catch (Exception ex) {
+            InsidiousNotification.notifyMessage("Failed to generate test case: " + ex.getMessage(),
+                    NotificationType.ERROR);
+        }
+    }
+
+    @Override
     public void onCancel() {
         if (saveFormReference != null) {
             insidiousService.hideCandidateSaveForm(saveFormReference);
             saveFormReference = null;
         }
-    }
-
-    @Override
-    public String getSaveLocation() {
-        return insidiousService.getAtomicRecordService().getSaveLocation();
     }
 
     @Override

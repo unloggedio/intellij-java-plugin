@@ -12,3 +12,4 @@ zip -r -Z deflate plugin-${PLUGIN_VERSION}.zip plugin/*
 rm -rf plugin
 
 cd ../..
+

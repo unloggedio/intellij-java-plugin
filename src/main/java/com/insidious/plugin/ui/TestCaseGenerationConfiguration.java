@@ -1,7 +1,8 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
@@ -11,6 +12,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The input configuration for generating a test case script
@@ -23,14 +25,15 @@ import java.util.Set;
 public class TestCaseGenerationConfiguration {
 
 
-    private final TestFramework testFramework;
-    private final MockFramework mockFramework;
-    private final JsonFramework jsonFramework;
-    private final ResourceEmbedMode resourceEmbedMode;
     private final Set<MethodCallExpression> callExpressionList = new HashSet<>();
+    private TestFramework testFramework;
+    private MockFramework mockFramework;
+    private JsonFramework jsonFramework;
+    private ResourceEmbedMode resourceEmbedMode;
     private String testMethodName;
     private boolean useMockitoAnnotations;
     private List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
+
     public TestCaseGenerationConfiguration(
             TestFramework testFramework,
             MockFramework mockFramework,
@@ -43,8 +46,33 @@ public class TestCaseGenerationConfiguration {
         this.resourceEmbedMode = resourceEmbedMode;
     }
 
+    public TestCaseGenerationConfiguration(TestCaseGenerationConfiguration original) {
+
+        testFramework = original.testFramework;
+        mockFramework = original.mockFramework;
+        jsonFramework = original.jsonFramework;
+        resourceEmbedMode = original.resourceEmbedMode;
+
+        testMethodName = original.testMethodName;
+        callExpressionList.addAll(original.callExpressionList
+                .stream()
+                .map(MethodCallExpression::new)
+                .collect(Collectors.toSet()));
+
+        useMockitoAnnotations = original.useMockitoAnnotations;
+
+        testCandidateMetadataList = original.testCandidateMetadataList
+                .stream()
+                .map(TestCandidateMetadata::new)
+                .collect(Collectors.toList());
+    }
+
     public MockFramework getMockFramework() {
         return mockFramework;
+    }
+
+    public void setMockFramework(MockFramework mockFramework) {
+        this.mockFramework = mockFramework;
     }
 
     public List<TestCandidateMetadata> getTestCandidateMetadataList() {
@@ -59,28 +87,40 @@ public class TestCaseGenerationConfiguration {
         return callExpressionList;
     }
 
+    public TestFramework getTestFramework() {
+        return testFramework;
+    }
+
+    public void setTestFramework(TestFramework testFramework) {
+        this.testFramework = testFramework;
+    }
+
+    public JsonFramework getJsonFramework() {
+        return jsonFramework;
+    }
+
 //    public void setTestFramework(TestFramework testFramework) {
 //        this.testFramework = testFramework;
 //    }
 
-    public TestFramework getTestFramework() {
-        return testFramework;
+    public void setJsonFramework(JsonFramework jsonFramework) {
+        this.jsonFramework = jsonFramework;
     }
 
 //    public void setJsonFramework(JsonFramework jsonFramework) {
 //        this.jsonFramework = jsonFramework;
 //    }
 
-    public JsonFramework getJsonFramework() {
-        return jsonFramework;
+    public ResourceEmbedMode getResourceEmbedMode() {
+        return resourceEmbedMode;
     }
 
 //    public void setResourceEmbedMode(ResourceEmbedMode resourceEmbedMode) {
 //        this.resourceEmbedMode = resourceEmbedMode;
 //    }
 
-    public ResourceEmbedMode getResourceEmbedMode() {
-        return resourceEmbedMode;
+    public void setResourceEmbedMode(ResourceEmbedMode resourceEmbedMode) {
+        this.resourceEmbedMode = resourceEmbedMode;
     }
 
     public ClassName getTestBeforeAnnotationType() {

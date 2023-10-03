@@ -53,7 +53,7 @@
 
 
 
-                <h3>Version 1.16.3 (5th Jul 2023) </h3>
+        <h3>Version 1.16.3 (5th Jul 2023) </h3>
             <h2 class="c9" id="h.6kd09fd21779"><span class="c6">Exciting New Features Unleashed in Unlogged!</span></h2>
             <p class="c4 c8"><span class="c1"></span></p>
             <p class="c4"><span class="c1">We are thrilled to unveil the latest enhancements in Unlogged that will elevate your development experience to new heights. Get ready to embark on a joyous coding journey with these amazing updates.</span></p>
@@ -163,27 +163,28 @@
                     anchor="right"
                     factoryClass="com.insidious.plugin.factory.DebuggerFactory"/>
 
+        <applicationService serviceImplementation="com.insidious.plugin.factory.ActiveSessionManager"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
-        <applicationService serviceImplementation="com.insidious.plugin.factory.AgentDownloadService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
-        <!--        <programRunner implementation="com.insidious.plugin.extension.InsidiousProgramRunner"/>-->
-        <!--        <configurationType implementation="com.insidious.plugin.extension.InsidiousRunConfigType"/>-->
-        <!--        <executor implementation="com.insidious.plugin.extension.InsidiousExecutor"/>-->
+        <applicationService serviceImplementation="com.insidious.plugin.factory.ApplicationConfigurationState"/>
 
         <codeInsight.lineMarkerProvider
                 language="JAVA"
                 implementationClass="com.insidious.plugin.ui.highlighter.LineHighlighter"/>
+        <codeInsight.lineMarkerProvider
+                language="JAVA"
+                implementationClass="com.insidious.plugin.ui.highlighter.MockMethodLineHighlighter"/>
         <codeInsight.lineMarkerProvider
                 language="kotlin"
                 implementationClass="com.insidious.plugin.ui.highlighter.KotlinLineHighlighter"/>
         <codeInsight.inlayProvider implementationClass="com.insidious.plugin.inlay.InsidiousInlayHintsProvider"
                                    language="JAVA"/>
 
-<!--        <coverageEngine implementation="com.insidious.plugin.coverage.InsidiousCoverageEngine"-->
-<!--                        id="insidiousCoverageEngine"/>-->
+        <!--        <coverageEngine implementation="com.insidious.plugin.coverage.InsidiousCoverageEngine"-->
+        <!--                        id="insidiousCoverageEngine"/>-->
     </extensions>
     <projectListeners>
-        <listener class="com.insidious.plugin.factory.InsidiousService"
-                  topic="com.intellij.openapi.vcs.BranchChangeListener"/>
+        <listener class="com.insidious.plugin.factory.InsidiousToolWindowManagerListener"
+                  topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
     </projectListeners>
 </idea-plugin>

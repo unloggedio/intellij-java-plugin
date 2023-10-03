@@ -5,7 +5,7 @@ import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
@@ -112,7 +112,7 @@ public class MethodCallExpressionFactory {
         Parameter whenExpression = new Parameter();
         whenExpression.setValue(param1);
         whenExpression.setType("java.lang.Class");
-        whenExpression.setProb(new DataEventWithSessionId());
+        whenExpression.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
 
 
         MethodCallExpression mock = new MethodCallExpression("mock",
@@ -131,7 +131,7 @@ public class MethodCallExpressionFactory {
         Parameter whenExpression = new Parameter();
         whenExpression.setValue(param1);
         whenExpression.setType("java.lang.Class");
-        whenExpression.setProb(new DataEventWithSessionId());
+        whenExpression.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
 
 
         MethodCallExpression mockStatic = new MethodCallExpression("mockStatic",

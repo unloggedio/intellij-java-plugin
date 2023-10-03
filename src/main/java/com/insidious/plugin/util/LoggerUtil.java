@@ -5,13 +5,13 @@ import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.MethodInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.intellij.openapi.diagnostic.Logger;
-import org.jetbrains.annotations.NotNull;
+
 
 public class LoggerUtil {
 
     private static final Logger logger = getInstance(LoggerUtil.class);
 
-    public static Logger getInstance(@NotNull Class<?> cl) {
+    public static Logger getInstance( Class<?> cl) {
         return Logger.getInstance(cl);
     }
 

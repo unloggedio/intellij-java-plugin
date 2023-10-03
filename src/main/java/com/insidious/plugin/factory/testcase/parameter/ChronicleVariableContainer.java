@@ -1,11 +1,15 @@
 package com.insidious.plugin.factory.testcase.parameter;
 
+import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 import net.openhft.chronicle.map.ChronicleMap;
 
 import java.util.Collection;
 
 public class ChronicleVariableContainer {
+    private static final Logger logger = LoggerUtil.getInstance(ChronicleVariableContainer.class);
     final ChronicleMap<Long, Parameter> parameterMap;
 
     public ChronicleVariableContainer(ChronicleMap<Long, Parameter> parameterMap) {
@@ -15,19 +19,20 @@ public class ChronicleVariableContainer {
 
     public void add(Parameter parameter) {
         long value = parameter.getValue();
-//        if (parameter.getProb()
-//                .getSerializedValue().length > 10000) {
-//            // todo: too much data for our taste
-//            return;
-//        }
+
         Parameter byValue = parameterMap.get(value);
+        DataEventWithSessionId parameterProb = parameter.getProb();
         if (byValue == null) {
-            if (parameter.getProb() != null && parameter.getProb()
-                    .getValue() != 0) {
-                parameterMap.put(parameter.getProb()
-                        .getValue(), parameter);
-            } else {
-                parameterMap.put(parameter.getValue(), parameter);
+            try {
+                if (parameterProb != null && parameterProb.getValue() != 0) {
+                    parameterMap.put(parameterProb.getValue(), parameter);
+                } else {
+                    parameterMap.put(parameter.getValue(), parameter);
+                }
+
+            } catch (IllegalArgumentException iae) {
+                // index is full
+                logger.warn("parameter index is full", iae);
             }
             return;
         }
@@ -35,35 +40,20 @@ public class ChronicleVariableContainer {
             // literally the same value
             return;
         }
-        if (parameter.getProb() != null) {
-
-//            if (byValue.getName() != null && byValue.getName().equals(parameter.getName())) {
-//                byte[] newSerializedValue = parameter.getProb().getSerializedValue();
-//                if (newSerializedValue == null || newSerializedValue.length == 0) {
-//                    return;
-//                }
-//                byte[] existingSerializedValue = byValue.getProb().getSerializedValue();
-//                if (existingSerializedValue == null || existingSerializedValue.length == 0) {
-//                    byValue.setProb(parameter.getProb());
-//                } else if (byValue.getProb().getNanoTime() < parameter.getProb().getNanoTime()) {
-//                    byValue.setProb(parameter.getProb());
-//                }
-//            } else {
-            if (parameter.getProb()
-                    .getValue() != 0) {
-                parameterMap.put(parameter.getProb()
-                        .getValue(), parameter);
-            } else {
-                parameterMap.put(parameter.getValue(), parameter);
+        if (parameterProb != null) {
+            try {
+                if (parameterProb.getValue() != 0) {
+                    parameterMap.put(parameterProb.getValue(), parameter);
+                } else {
+                    parameterMap.put(parameter.getValue(), parameter);
+                }
+            } catch (IllegalArgumentException iae) {
+                // index is full
+                logger.warn("index is full", iae);
             }
-//            }
 
         }
     }
-
-//    public Parameter getParametersById(long value) {
-//        return this.parameterMap.get(value);
-//    }
 
 
     public int count() {

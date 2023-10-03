@@ -45,7 +45,7 @@ public class VariableContainer {
     public VariableContainer clone() {
         VariableContainer newContainer = new VariableContainer();
         for (Parameter parameter : this.parameterList) {
-            newContainer.add(parameter);
+            newContainer.add(new Parameter(parameter));
         }
         return newContainer;
     }
@@ -67,12 +67,11 @@ public class VariableContainer {
                 if (newSerializedValue == null || newSerializedValue.length == 0) {
                     return;
                 }
-                byte[] existingSerializedValue = byValue.getProb()
-                        .getSerializedValue();
+                byte[] existingSerializedValue = byValue.getProb().getSerializedValue();
                 if (existingSerializedValue == null || existingSerializedValue.length == 0) {
-                    byValue.setProb(parameter.getProb());
+                    byValue.setProbeAndProbeInfo(parameter.getProb(), parameter.getProbeInfo());
                 } else if (byValue.getProb().getEventId() < parameter.getProb().getEventId()) {
-                    byValue.setProb(parameter.getProb());
+                    byValue.setProbeAndProbeInfo(parameter.getProb(), parameter.getProbeInfo());
                 }
             } else {
 

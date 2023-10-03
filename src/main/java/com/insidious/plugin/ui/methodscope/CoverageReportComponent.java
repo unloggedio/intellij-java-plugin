@@ -4,14 +4,12 @@ import com.insidious.plugin.coverage.CodeCoverageData;
 import com.insidious.plugin.coverage.CoverageTreeTableModel;
 import com.insidious.plugin.coverage.PackageCoverageData;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
 import org.jdesktop.swingx.JXTreeTable;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
-import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreeCellRenderer;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,6 +35,8 @@ public class CoverageReportComponent {
     private JProgressBar branchPercentProgressBar;
     private JLabel branchPercentLabel;
     private JLabel branchCoverageNumbers;
+    private JPanel titlePanel;
+    private JEditorPane codeCoverageReportCodeEditorPane;
 
     public CoverageReportComponent() {
 
@@ -45,26 +45,30 @@ public class CoverageReportComponent {
                 border, BorderFactory.createEmptyBorder(5, 5, 0, 5)
         );
         reportTableContainerPanel.setBorder(borderWithMargin);
+        branchPercentBoxPanel.setVisible(false);
 
     }
 
     public void setCoverageData(CodeCoverageData codeCoverageData) {
         String[] columnNames = new String[]{
-                "Element",
-                "Class, %",
-                "Method, %",
-                "Line, %",
-                "Branch, %"
+                "Element"
+                , "Class, %"
+                , "Method, %"
+                , "Line, %"
+//                , "Branch, %"
         };
 
         List<PackageCoverageData> packageCoverageDataList = codeCoverageData.getPackageCoverageDataList();
         CoverageTreeTableModel treeTableModel = new CoverageTreeTableModel(packageCoverageDataList, columnNames);
         AtomicInteger totalClassCount = new AtomicInteger();
         AtomicInteger coveredClassCount = new AtomicInteger();
+
         AtomicInteger totalMethodCount = new AtomicInteger();
         AtomicInteger coveredMethodCount = new AtomicInteger();
+
         AtomicInteger totalLineCount = new AtomicInteger();
         AtomicInteger coveredLineCount = new AtomicInteger();
+
         AtomicInteger totalBranchCount = new AtomicInteger();
         AtomicInteger coveredBranchCount = new AtomicInteger();
 
@@ -134,6 +138,10 @@ public class CoverageReportComponent {
             branchCoverageNumbers.setText("0/0");
         }
 
+        if (coveredClassCount.get() == 0 && coveredMethodCount.get() == 0 && coveredLineCount.get() == 0) {
+            return;
+        }
+
 
         JXTreeTable treeTable = new JXTreeTable(treeTableModel);
         treeTable.createDefaultColumnsFromModel();
@@ -145,7 +153,8 @@ public class CoverageReportComponent {
         treeTable.setAutoCreateRowSorter(true);
 //        DefaultTreeCellRenderer cellRenderer = new DefaultTreeCellRenderer();
 //        treeTable.setTreeCellRenderer(cellRenderer);
-        TreeCellRenderer renderer = treeTable.getTreeCellRenderer();
+//        TreeCellRenderer renderer = treeTable.getTreeCellRenderer();
+        codeCoverageReportCodeEditorPane.setVisible(false);
         reportTableContainerPanel.setViewportView(treeTable);
     }
 

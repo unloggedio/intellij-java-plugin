@@ -8,11 +8,12 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiPackage;
-import org.jetbrains.annotations.Nullable;
+
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -36,7 +37,8 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
     public SessionLoader(VideobugClientInterface videobugClientInterface, InsidiousService insidiousService) {
         this.client = videobugClientInterface;
         this.insidiousService = insidiousService;
-        client.getProjectSessions(this);
+        this.insidiousService.getProject().getService(DumbService.class)
+                .runWhenSmart(() -> client.getProjectSessions(SessionLoader.this));
     }
 
     @Override
@@ -61,7 +63,8 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
 
             }
             ExecutionSession mostRecentSession = executionSessionList.get(0);
-            logger.debug("New session: [" + mostRecentSession.getSessionId() + "] vs existing session: " + currentSession);
+            logger.debug(
+                    "New session: [" + mostRecentSession.getSessionId() + "] vs existing session: " + currentSession);
 
             if (currentSession == null) {
                 // no session currently loaded and we can load a new sessions
@@ -97,6 +100,7 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
             File logFile = new File(executionLogFile);
             BufferedReader logFileInputStream = new BufferedReader(
                     new InputStreamReader(Files.newInputStream(logFile.toPath())));
+            // do not remove
             String javaVersionLine = logFileInputStream.readLine();
             String agentVersionLine = logFileInputStream.readLine();
             String agentParamsLine = logFileInputStream.readLine();
@@ -124,7 +128,7 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
             }
 
             String finalIncludedPackagedName = includedPackagedName.replace('/', '.');
-            @Nullable PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
+             PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
                     (Computable<PsiPackage>) () -> JavaPsiFacade.getInstance(project)
                             .findPackage(finalIncludedPackagedName));
             if (locatedPackage == null) {

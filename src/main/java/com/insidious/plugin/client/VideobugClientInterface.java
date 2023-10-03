@@ -15,7 +15,7 @@ import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.pojo.*;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.io.IOException;
 import java.util.Collection;
@@ -45,15 +45,13 @@ public interface VideobugClientInterface {
 
     DataResponse<ExecutionSession> fetchProjectSessions() throws APICallException, IOException;
 
-    @NotNull
+    
     default List<TracePoint> getTracePoints(DataResponse<DataEventWithSessionId> traceResponse) {
         return traceResponse.getItems().stream()
                 .map(e -> TracePoint.fromDataEvent(e, traceResponse))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
-
-    ClassWeaveInfo getSessionClassWeave(String sessionId);
 
     void queryTracePointsByEventType(SearchQuery searchQuery, String sessionId,
                                      ClientCallBack<TracePoint> tracePointsCallback);

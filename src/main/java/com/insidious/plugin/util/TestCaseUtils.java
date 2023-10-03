@@ -9,7 +9,7 @@ import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.intellij.openapi.diagnostic.Logger;
-import org.jetbrains.annotations.NotNull;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +27,7 @@ public class TestCaseUtils {
         );
 
         sessionInstance.getAllTestCandidates(testCandidateMetadata -> {
-            @NotNull TestCaseUnit testCaseUnit;
+             TestCaseUnit testCaseUnit;
             try {
                 Parameter testSubject = testCandidateMetadata.getTestSubject();
                 if (testSubject.isException()) {
@@ -46,7 +46,7 @@ public class TestCaseUtils {
                 List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
                 testCaseUnit1.add(testCaseUnit);
                 TestSuite testSuite = new TestSuite(testCaseUnit1);
-                insidiousService.saveTestSuite(testSuite);
+                insidiousService.getJUnitTestCaseWriter().saveTestSuite(testSuite);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

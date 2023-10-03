@@ -4,7 +4,7 @@ import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.ui.Components.AtomicRecord.SaveForm;
+import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
@@ -12,6 +12,7 @@ import com.intellij.testFramework.LightVirtualFile;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
@@ -21,14 +22,16 @@ public class ExceptionPreviewComponent {
     private final String stackTrace;
     private final InsidiousService service;
     private JPanel mainPanel;
-    private JPanel buttonControlPanel;
+    private JPanel scrollGrid;
     private JButton showfulltrace;
     private JButton accept;
     private JTextArea exceptionArea;
     private JLabel iconLabel;
-    private JPanel topPanel;
-    private JPanel topAligner;
     private JButton deleteButton;
+    private JPanel topAligner;
+    private JPanel topPanel;
+    private JPanel buttonControlPanel;
+    private JPanel bottomPanel;
     private SaveForm saveForm;
     private StoredCandidate candidate;
     private AgentCommandResponse<String> agentCommandResponse;
@@ -64,6 +67,8 @@ public class ExceptionPreviewComponent {
             }
         });
 
+        accept.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
+        deleteButton.setIcon(UIUtils.DELETE_CANDIDATE_RED_SVG);
         if (!showDelete) {
             this.deleteButton.setVisible(false);
         }
@@ -90,6 +95,9 @@ public class ExceptionPreviewComponent {
 
     public void setBorderTitle(String title) {
         TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
+        Font currentFont = titledBorder.getTitleFont();
+        Font currentFontBold = currentFont.deriveFont(Font.BOLD);
+        titledBorder.setTitleFont(currentFontBold);
         titledBorder.setTitle(title);
     }
 }

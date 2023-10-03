@@ -1,12 +1,13 @@
 package com.insidious.plugin.factory.testcase.writer;
 
+import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.*;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
@@ -15,7 +16,7 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.ParameterUtils;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
-import org.jetbrains.annotations.Nullable;
+
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -23,7 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static com.insidious.plugin.factory.testcase.util.ClassTypeUtils.createTypeFromTypeDeclaration;
+import static com.insidious.plugin.util.ClassTypeUtils.createTypeFromTypeDeclaration;
 
 public class PendingStatement {
     private static final Pattern anyRegexPicker = Pattern.compile("[( ,]any\\(([^)]+.class)\\)");
@@ -41,12 +42,162 @@ public class PendingStatement {
         return new PendingStatement(objectRoutine, testGenerationState);
     }
 
+    /**
+     * @param variableContainer list of parameters to be arranged
+     * @return a string which is comma separated values to be passed to a method
+     */
+    public static String createMethodParametersStringWithNames(
+            List<Parameter> variableContainer,
+            TestGenerationState testGenerationState) {
+        if (variableContainer == null) {
+            return "";
+        }
+        StringBuilder parameterStringBuilder = new StringBuilder();
+
+        for (int i = 0; i < variableContainer.size(); i++) {
+            Parameter parameter = variableContainer.get(i);
+            if (i > 0) {
+                parameterStringBuilder.append(", ");
+            }
+
+            makeParameterNameString(parameterStringBuilder, parameter, testGenerationState);
+        }
+        return parameterStringBuilder.toString();
+
+    }
+
+    //Handling order: name , [array, null , bool, , Primitive,]  all
+    private static void makeParameterNameString(StringBuilder parameterStringBuilder, Parameter parameter,
+                                                TestGenerationState testGenerationState) {
+        String nameUsed = testGenerationState.getParameterNameFactory()
+                .getNameForUse(parameter, null);
+        if (nameUsed != null) {
+            parameterStringBuilder.append(nameUsed);
+            return;
+        }
+
+        if (handleValueBlockString(parameterStringBuilder, parameter, testGenerationState)) {
+            return;
+        }
+
+        makeValueForOtherClasses(parameterStringBuilder, parameter);
+    }
+
+    private static boolean handleValueBlockString(
+            StringBuilder parameterStringBuilder,
+            Parameter parameter,
+            TestGenerationState testGenerationState
+    ) {
+
+        String serializedValue = "";
+        if (parameter.getProb() != null &&
+                parameter.getProb().getSerializedValue().length > 0)
+            serializedValue = new String(parameter.getProb().getSerializedValue());
+
+        if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
+            // if the type of parameter is array like int[], long[] (i.e J[])
+            String nameUsed = testGenerationState.getParameterNameFactory().getNameForUse(parameter, null);
+            parameterStringBuilder.append(nameUsed == null ? "any()" : nameUsed);
+            return true;
+        }
+
+        if (serializedValue.equals("null")) {
+            // if the serialized value is null just append null
+            parameterStringBuilder.append("null");
+            return true;
+        }
+
+        if (parameter.isBooleanType()) {
+            long value = parameter.getValue();
+            parameterStringBuilder.append(value == 1L ? "true" : "false");
+            return true;
+        }
+
+        if (parameter.isPrimitiveType()) {
+            parameterStringBuilder.append(handlePrimitiveParameter(parameter, serializedValue));
+            return true;
+        }
+        return false;
+    }
+
+
+    private static String handlePrimitiveParameter(Parameter parameter, String serializedValue) {
+        StringBuilder valueBuilder = new StringBuilder();
+        if (parameter.isBoxedPrimitiveType() && !serializedValue.isEmpty()) {
+            serializedValue = ParameterUtils.addParameterTypeSuffix(serializedValue, parameter.getType());
+            valueBuilder.append(serializedValue);
+        } else {
+            if (serializedValue.isEmpty()) {
+                valueBuilder.append(ParameterUtils.makeParameterValueForPrimitiveType(parameter));
+            } else {
+                valueBuilder.append(serializedValue);
+            }
+        }
+
+        return valueBuilder.toString();
+    }
+
+
+    private static String createMethodParametersString(List<Parameter> variableContainer,
+                                                       TestGenerationState testGenerationState) {
+        if (variableContainer == null) {
+            return "";
+        }
+        StringBuilder parameterStringBuilder = new StringBuilder();
+
+        for (int i = 0; i < variableContainer.size(); i++) {
+            Parameter parameter = variableContainer.get(i);
+            if (i > 0) {
+                parameterStringBuilder.append(", ");
+            }
+
+            makeParameterValueString(parameterStringBuilder, parameter, testGenerationState);
+        }
+
+
+        return parameterStringBuilder.toString();
+    }
+
+    // handling order: [ array(name), null, boolean, primitive,]  name,    all ,
+    private static void makeParameterValueString(
+            StringBuilder parameterStringBuilder,
+            Parameter parameter,
+            TestGenerationState testGenerationState
+    ) {
+
+        if (handleValueBlockString(parameterStringBuilder, parameter, testGenerationState)) {
+            return;
+        }
+
+        String nameUsed = testGenerationState.getParameterNameFactory().getNameForUse(parameter, null);
+        if (nameUsed != null) {
+            parameterStringBuilder.append(nameUsed);
+            return;
+        }
+
+        makeValueForOtherClasses(parameterStringBuilder, parameter);
+    }
+
+    private static void makeValueForOtherClasses(StringBuilder parameterStringBuilder, Parameter parameter) {
+        Object parameterValue;
+        parameterValue = parameter.getValue();
+        String stringValue = parameter.getStringValue();
+        if (stringValue == null) {
+            if (!parameter.isPrimitiveType() && parameter.getValue() == 0) {
+                parameterValue = "null";
+            }
+            parameterStringBuilder.append(parameterValue);
+        } else {
+            parameterStringBuilder.append(stringValue);
+        }
+    }
+
 
     private void writeCallStatement(
             MethodCallExpression methodCallExpression, StringBuilder statementBuilder,
             List<Object> statementParameters, int chainedCallNumber
     ) {
-        String parameterString = TestCaseWriter.createMethodParametersString(methodCallExpression.getArguments(),
+        String parameterString = createMethodParametersString(methodCallExpression.getArguments(),
                 testGenerationState);
         ParameterNameFactory nameFactory = testGenerationState.getParameterNameFactory();
         final String methodName = methodCallExpression.getMethodName();
@@ -195,7 +346,7 @@ public class PendingStatement {
                 else
                     statementParameters.add(JsonFramework.Gson.getTokenTypeClass()); // 3
 
-                Parameter deepCopyParam = Parameter.cloneParameter(objectToDeserialize);
+                Parameter deepCopyParam = new Parameter(objectToDeserialize);
                 ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder, statementParameters);
 
                 // suspect that this was added for jackson mapper with optional value container,
@@ -212,7 +363,7 @@ public class PendingStatement {
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue()));
 
-                @Nullable TypeName typeOfParam =
+                 TypeName typeOfParam =
                         ClassTypeUtils.createTypeFromNameString(
                                 ClassTypeUtils.getJavaClassName(objectToDeserialize.getType()));
 //                statementParameters.add(ClassName.bestGuess(typeOfParam));
@@ -256,7 +407,7 @@ public class PendingStatement {
 
         } else if (methodName.equals("assertEquals")) {
             if (methodCallSubject != null) {
-                parameterString = TestCaseWriter.createMethodParametersStringWithNames(
+                parameterString = createMethodParametersStringWithNames(
                         methodCallExpression.getArguments(), testGenerationState);
                 if (methodCallExpression.isStaticCall()) {
                     statementBuilder.append("$T.$L(")
@@ -438,7 +589,7 @@ public class PendingStatement {
                 lhsExpression.setName(generateNameForParameter(lhsExpression));
             }
 
-            @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromNameString(
+             TypeName lhsTypeName = ClassTypeUtils.createTypeFromNameString(
                     ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
 
             if (!createdVariables.contains(nameFactory.getNameForUse(lhsExpression, null))) {
@@ -449,7 +600,7 @@ public class PendingStatement {
 
                     // creating a deep copy of the lhsExpression type and templateMap only
                     // for handling generic type
-                    Parameter deepCopyParam = Parameter.cloneParameter(lhsExpression);
+                    Parameter deepCopyParam = new Parameter(lhsExpression);
                     ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder,
                             statementParameters);
 
@@ -636,17 +787,16 @@ public class PendingStatement {
             return this;
         }
 
-        if ((targetClassname.startsWith("java.lang") && !targetClassname.equals(
-                "java.lang.Object")) || targetClassname.length() == 1) {
+        if ((targetClassname.startsWith("java.lang")
+                && !targetClassname.equals("java.lang.Object"))
+                || targetClassname.length() == 1) {
             // primitive variable types
             Parameter parameter = lhsExpression;
             long returnValue = parameter.getValue();
 
             String serializedValue = "";
-            if (parameter.getProb() != null && parameter.getProb()
-                    .getSerializedValue().length > 0)
-                serializedValue = new String(parameter.getProb()
-                        .getSerializedValue());
+            if (parameter.getProb() != null && parameter.getProb().getSerializedValue().length > 0)
+                serializedValue = new String(parameter.getProb().getSerializedValue());
 
             if (serializedValue.equals("null")) {
                 this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(serializedValue));
@@ -665,8 +815,7 @@ public class PendingStatement {
 
             } else if (targetClassname.equals("java.lang.StringBuilder")) {
                 Parameter parameterWithValue = new Parameter();
-                parameterWithValue.setValue(new String(parameter.getProb()
-                        .getSerializedValue()));
+                parameterWithValue.setValue(new String(parameter.getProb().getSerializedValue()));
                 parameterWithValue.setType("java.lang.String");
                 MethodCallExpression mce = new MethodCallExpression("<init>", parameter,
                         Collections.singletonList(parameterWithValue), parameter, 0);
@@ -694,10 +843,10 @@ public class PendingStatement {
                 } else {
                     String nameForObject = testGenerationState.addObjectToResource(lhsExpression);
 //                    lhsExpression.getProb().setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
-                    Parameter buildWithJson = Parameter.cloneParameter(lhsExpression);
+                    Parameter buildWithJson = new Parameter(lhsExpression);
                     DataEventWithSessionId prob = new DataEventWithSessionId();
                     prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
-                    buildWithJson.setProb(prob);
+                    buildWithJson.setProbeAndProbeInfo(prob, new DataInfo());
                     buildWithJson.clearNames();
                     buildWithJson.setName(nameForObject);
                     this.expressionList.add(MethodCallExpressionFactory.FromJsonFetchedFromFile(buildWithJson));

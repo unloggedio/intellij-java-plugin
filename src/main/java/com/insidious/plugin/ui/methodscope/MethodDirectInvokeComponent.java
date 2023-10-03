@@ -13,7 +13,9 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.*;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.util.*;
+import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -29,7 +31,6 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
-import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -45,6 +46,8 @@ import java.util.List;
 
 public class MethodDirectInvokeComponent implements ActionListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodDirectInvokeComponent.class);
+    private static final ActionListener NOP_KEY_ADAPTER = e -> {
+    };
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private final ObjectMapper objectMapper;
@@ -56,17 +59,19 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JPanel scrollerContainer;
     private JLabel methodNameLabel;
     private JButton executeButton;
+    private JPanel directInvokeDescriptionPanel;
+    private JPanel descriptionPanel;
+    private JEditorPane descriptionEditorPane;
+    private JScrollPane descriptionScrollContainer;
+    private JCheckBox permanentMocksCheckBox;
     private MethodAdapter methodElement;
-    private ActionListener NOP_KEY_ADAPTER = new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-
-        }
-    };
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
         this.objectMapper = this.insidiousService.getObjectMapper();
+        scrollerContainer.setVisible(false);
+
+//        h1WhatIsDirectInvokeEditorPane.setContentType("text/html");
 
         methodNameLabel.setText("This will be available after IDEA indexing is complete");
         executeButton.setEnabled(false);
@@ -79,16 +84,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
         methodParameterScrollContainer.addKeyListener(new KeyAdapter() {
 
             @Override
-            public void keyTyped(KeyEvent e) {
-                super.keyTyped(e);
-            }
-
-            @Override
-            public void keyReleased(KeyEvent e) {
-                super.keyReleased(e);
-            }
-
-            @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     executeMethodWithParameters();
@@ -96,6 +91,14 @@ public class MethodDirectInvokeComponent implements ActionListener {
             }
         });
         executeButton.setIcon(UIUtils.DIRECT_INVOKE_EXECUTE);
+
+        permanentMocksCheckBox.addActionListener(e -> {
+            if (permanentMocksCheckBox.isSelected()) {
+                insidiousService.injectMocksInRunningProcess(null);
+            } else {
+                insidiousService.removeMocksInRunningProcess(null);
+            }
+        });
     }
 
     private void executeMethodWithParameters() {
@@ -103,7 +106,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         AgentStateProvider agentStateProvider = insidiousService.getAgentStateProvider();
 
         if (!agentStateProvider.isAgentRunning()) {
-            String message = "Start your application with Unlogged JAVA agent to start using " +
+            String message = "Start your application with Java unlogged-sdk to start using " +
                     "method DirectInvoke";
             InsidiousNotification.notifyMessage(message, NotificationType.INFORMATION);
             returnValueTextArea.setText(message);
@@ -118,10 +121,13 @@ public class MethodDirectInvokeComponent implements ActionListener {
             return;
         }
 
+        descriptionScrollContainer.setVisible(false);
+        scrollerContainer.setVisible(true);
+
 
         ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {
             JSONObject eventProperties = new JSONObject();
-            eventProperties.put("className", psiClass.getQualifiedName());
+            eventProperties.put("className", psiClass.getQualifiedClassName());
             eventProperties.put("methodName", methodElement.getName());
 
             UsageInsightTracker.getInstance().RecordEvent("DIRECT_INVOKE", eventProperties);
@@ -143,7 +149,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
             }
 
             AgentCommandRequest agentCommandRequest =
-                    MethodUtils.createRequestWithParameters(methodElement, psiClass, methodArgumentValues, false);
+                    MethodUtils.createExecuteRequestWithParameters(methodElement, psiClass, methodArgumentValues,
+                            false);
             agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
             returnValueTextArea.setText("");
 
@@ -152,7 +159,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                     + agentCommandRequest.getClassName() + "].\nWaiting for response...");
             insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                     (agentCommandRequest1, agentCommandResponse) -> {
-                        logger.warn("Agent command execution response: " + agentCommandResponse);
+//                        logger.warn("Agent command execution response: " + agentCommandResponse);
                         if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
                             if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
                                 InsidiousNotification.notifyMessage(
@@ -176,9 +183,13 @@ public class MethodDirectInvokeComponent implements ActionListener {
                             targetClassName = agentCommandRequest.getClassName();
                         }
                         targetClassName = targetClassName.substring(targetClassName.lastIndexOf(".") + 1);
+                        String targetMethodName = agentCommandResponse.getTargetMethodName();
+                        if (targetMethodName == null) {
+                            targetMethodName = agentCommandRequest.getMethodName();
+                        }
                         returnValueTextArea.setToolTipText("Timestamp: " +
                                 new Timestamp(agentCommandResponse.getTimestamp()).toString() + " from "
-                                + targetClassName + "." + agentCommandResponse.getTargetMethodName() + "( " + " )");
+                                + targetClassName + "." + targetMethodName + "( " + " )");
                         if (responseType == null) {
                             panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);
                             returnValueTextArea.setText(responseMessage + methodReturnValue);
@@ -198,7 +209,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                             panelTitledBoarder.setTitle("Method response: " + returnTypePresentableText);
                             ObjectMapper objectMapper = insidiousService.getObjectMapper();
                             try {
-                                String returnValueString = methodReturnValue.toString();
+                                String returnValueString = String.valueOf(methodReturnValue);
 
                                 String responseClassName = agentCommandResponse.getResponseClassName();
                                 if (responseClassName.equals("float")
@@ -235,10 +246,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
                         scrollerContainer.repaint();
 
                         ResponseType responseType1 = agentCommandResponse.getResponseType();
+                        DiffResultType diffResultType = responseType1.equals(
+                                ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
                         DifferenceResult diffResult = new DifferenceResult(null,
-                                responseType1.equals(
-                                        ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION,
-                                null,
+                                diffResultType, null,
                                 DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
 //                        diffResult.setMethodAdapter(methodElement);
@@ -251,23 +262,22 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
     }
 
-    public void renderForMethod(MethodAdapter methodElement) {
-        if (methodElement == null) {
+    public void renderForMethod(MethodAdapter methodElement1) {
+        if (methodElement1 == null) {
             logger.info("DirectInvoke got null method");
             return;
         }
-        if (this.methodElement == methodElement) {
+        if (this.methodElement != null && this.methodElement.getPsiMethod() == methodElement1.getPsiMethod()) {
             return;
         }
 
         clearOutputSection();
 
+        this.methodElement = methodElement1;
         String methodName = methodElement.getName();
         ClassAdapter containingClass = methodElement.getContainingClass();
-        String classQualifiedName = containingClass.getQualifiedName();
 
         logger.warn("render method executor for: " + methodName);
-        this.methodElement = methodElement;
         String methodNameForLabel = methodName.length() > 25 ? methodName.substring(0, 25) : methodName;
         methodNameLabel.setText(methodNameForLabel);
         TitledBorder titledBorder = (TitledBorder) actionControlPanel.getBorder();
@@ -279,8 +289,9 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
 //        TestCandidateMetadata mostRecentTestCandidate = null;
         List<String> methodArgumentValues = null;
-        AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(methodElement,
-                (PsiClass) containingClass.getSource(), methodArgumentValues, false);
+        AgentCommandRequest agentCommandRequest = MethodUtils.createExecuteRequestWithParameters(methodElement,
+                new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) containingClass.getSource())),
+                methodArgumentValues, false);
 
         AgentCommandRequest existingRequests = insidiousService.getAgentCommandRequests(agentCommandRequest);
         if (existingRequests != null) {
@@ -288,7 +299,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         } else {
             SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
             if (sessionInstance != null) {
-                @NotNull CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
+                CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
                         methodElement, CandidateFilterType.METHOD, false);
 
                 List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(query);
@@ -304,7 +315,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         JPanel methodParameterContainer = new JPanel();
 
         parameterInputComponents.clear();
-        Project project = containingClass.getProject();
+        Project project = methodElement.getProject();
         ProjectAndLibrariesScope projectAndLibrariesScope = new ProjectAndLibrariesScope(project);
 
         if (methodParameters.length > 0) {
@@ -391,11 +402,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-//        if (e.getKeyCode() == 10) {
         executeMethodWithParameters();
-//        } else {
-//            super.actionPerformed(e);
-//        }
     }
 
     private void clearOutputSection() {
@@ -418,5 +425,9 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
     public JComponent getContent() {
         return mainContainer;
+    }
+
+    public void uncheckPermanentMocks() {
+        permanentMocksCheckBox.setSelected(false);
     }
 }

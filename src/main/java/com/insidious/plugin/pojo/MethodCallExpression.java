@@ -8,17 +8,18 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
-import com.squareup.javapoet.ClassName;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class MethodCallExpression implements Expression, Serializable {
 
@@ -38,11 +39,18 @@ public class MethodCallExpression implements Expression, Serializable {
     private List<DataEventWithSessionId> argumentProbes = new ArrayList<>();
     private DataEventWithSessionId returnDataEvent;
     private boolean usesFields;
-
-    private boolean isUIselected = false;
     private int methodDefinitionId;
 
     public MethodCallExpression() {
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof MethodCallExpression)) {
+            return false;
+        }
+        MethodCallExpression mceObject = (MethodCallExpression) obj;
+        return mceObject.id == this.id;
     }
 
     public MethodCallExpression(
@@ -56,6 +64,25 @@ public class MethodCallExpression implements Expression, Serializable {
         this.arguments = arguments;
         this.returnValue = returnValue;
         this.callStack = callStack;
+    }
+
+    public MethodCallExpression(MethodCallExpression original) {
+        methodName = original.methodName;
+        subject = new Parameter(original.subject);
+        arguments = original.arguments.stream().map(Parameter::new).collect(Collectors.toList());
+        methodAccess = original.methodAccess;
+        returnValue = new Parameter(original.returnValue);
+        callStack = original.callStack;
+        threadId = original.threadId;
+        parentId = original.parentId;
+        id = original.id;
+        isStaticCall = original.isStaticCall;
+        entryProbeInfo = original.entryProbeInfo;
+        entryProbe = original.entryProbe;
+        returnDataEvent = original.returnDataEvent;
+        methodDefinitionId = original.methodDefinitionId;
+        usesFields = original.usesFields;
+        argumentProbes = original.argumentProbes;
     }
 
     public int getThreadId() {
@@ -74,14 +101,6 @@ public class MethodCallExpression implements Expression, Serializable {
         this.parentId = parentId;
     }
 
-
-    public boolean isUIselected() {
-        return isUIselected;
-    }
-
-    public void setUIselected(boolean UIselected) {
-        isUIselected = UIselected;
-    }
 
     public boolean getUsesFields() {
         return usesFields;
@@ -188,7 +207,7 @@ public class MethodCallExpression implements Expression, Serializable {
             TestCaseGenerationConfiguration testConfiguration,
             TestGenerationState testGenerationState) {
 
-        Parameter mainMethodReturnValue = getReturnValue();
+        Parameter mainMethodReturnValue = returnValue;
 
         mainMethodReturnValue = generateParameterName(mainMethodReturnValue, objectRoutineScript);
 
@@ -211,7 +230,7 @@ public class MethodCallExpression implements Expression, Serializable {
             return;
         }
         if (entryProbe != null) {
-            DataEventWithSessionId returnProbe = getReturnValue().getProb();
+            DataEventWithSessionId returnProbe = returnValue.getProb();
             if (!getMethodName().equals("<init>")) {
                 objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
                         "[" + entryProbe.getEventId() + "," + entryProbe.getThreadId() + "] - took " +
@@ -314,7 +333,7 @@ public class MethodCallExpression implements Expression, Serializable {
 //                .equals(ResourceEmbedMode.IN_FILE)) {
 //
 //            String nameForObject = testGenerationState.addObjectToResource(mainMethodReturnValue);
-//            @NotNull Parameter jsonParameter = Parameter.cloneParameter(mainMethodReturnValue);
+//             Parameter jsonParameter = Parameter.cloneParameter(mainMethodReturnValue);
 //            DataEventWithSessionId prob = new DataEventWithSessionId();
 //            prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
 //            jsonParameter.setProb(prob);
@@ -368,7 +387,8 @@ public class MethodCallExpression implements Expression, Serializable {
         }
         if (returnValue != null) {
 
-            String returnValueType = returnValue.getType() == null ? "" : ClassTypeUtils.createTypeFromNameString(returnValue.getType()).toString();
+            String returnValueType = returnValue.getType() == null ? "" : ClassTypeUtils.createTypeFromNameString(
+                    returnValue.getType()).toString();
             objectRoutine.addComment(
                     returnValueType + " " + nameFactory.getNameForUse(returnValue, getMethodName())
                             + " = " + subjectName + "." + getMethodName() + "(" + callArgumentsString + ");");
@@ -386,7 +406,6 @@ public class MethodCallExpression implements Expression, Serializable {
             TestCaseGenerationConfiguration testCaseGenerationConfiguration,
             TestGenerationState testGenerationState
     ) {
-        Parameter returnValue = getReturnValue();
         if (returnValue.getType() == null || returnValue.getValue() == 0) {
             return;
         }
@@ -552,5 +571,10 @@ public class MethodCallExpression implements Expression, Serializable {
                 ", subject=" + subject.getType() +
                 ", id=" + id +
                 '}';
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, threadId);
     }
 }

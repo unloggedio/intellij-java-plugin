@@ -38,6 +38,7 @@ public class TestCandidateListedItemComponent {
     private JPanel mainContentPanel;
     private JLabel executeLabel;
     private JPanel controlPanel;
+    private JLabel assertionCountLabel;
 
     public TestCandidateListedItemComponent(
             StoredCandidate storedCandidate,
@@ -52,8 +53,12 @@ public class TestCandidateListedItemComponent {
         mainContentPanel.setLayout(new BorderLayout());
 
         //saved candidate check
-        if (candidateMetadata.getName() != null) {
+        if (candidateMetadata.getName() != null && candidateMetadata.getName().length() > 0) {
             setTitledBorder(candidateMetadata.getName());
+        } else {
+            if (candidateMetadata.getCandidateId() != null) {
+                setTitledBorder("#Saved candidate with no name");
+            }
         }
 
 
@@ -65,7 +70,7 @@ public class TestCandidateListedItemComponent {
             public void mouseClicked(MouseEvent e) {
                 ClassUtils.chooseClassImplementation(method.getContainingClass(), psiClass -> {
                     JSONObject eventProperties = new JSONObject();
-                    eventProperties.put("className", psiClass.getQualifiedName());
+                    eventProperties.put("className", psiClass.getQualifiedClassName());
                     eventProperties.put("methodName", storedCandidate.getMethod().getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
                     statusLabel.setText("Executing");
@@ -102,6 +107,8 @@ public class TestCandidateListedItemComponent {
         executeLabel.setIcon(UIUtils.EXECUTE_ICON_OUTLINED_SVG);
         mainContentPanel.setOpaque(false);
         controlPanel.setOpaque(false);
+
+
     }
 
     public JPanel getComponent() {
@@ -140,10 +147,10 @@ public class TestCandidateListedItemComponent {
         inputTree.setShowsRootHandles(true);
 
 //        GridLayout gridLayout = new GridLayout(1, 1);
-        int desiredHeightPerInput = 30;
+        int desiredHeightPerInput = 50;
         int desiredHeight = inputRoot.getLeafCount() * desiredHeightPerInput;
-        if (desiredHeight < 100) {
-            desiredHeight = 100;
+        if (desiredHeight < 70) {
+            desiredHeight = 70;
         }
         if (desiredHeight > 220) {
             desiredHeight = 220;
@@ -170,13 +177,13 @@ public class TestCandidateListedItemComponent {
         scrollPane.setOpaque(false);
         scrollPane.getViewport().setOpaque(false);
         inputTree.setOpaque(false);
-
+//        inputTree.path
         inputTree.setBackground(UIUtils.agentResponseBaseColor);
         mainContentPanel.add(scrollPane, BorderLayout.CENTER);
 
         if (candidateMetadata.getCandidateId() != null && candidateMetadata.getTestAssertions() != null) {
             int assertionCount = AtomicAssertionUtils.countAssertions(candidateMetadata.getTestAssertions());
-            JLabel assertionCountLabel = new JLabel(assertionCount + " assertions");
+            assertionCountLabel = new JLabel(assertionCount + " assertions");
             assertionCountLabel.setAlignmentY(1.0F);
             JPanel countPanel = new JPanel(new BorderLayout());
 
@@ -266,6 +273,11 @@ public class TestCandidateListedItemComponent {
 
     public void setCandidate(StoredCandidate storedCandidate) {
         this.candidateMetadata = storedCandidate;
+        setTitledBorder(storedCandidate.getName());
+        if (assertionCountLabel != null) {
+            int assertionCount = AtomicAssertionUtils.countAssertions(candidateMetadata.getTestAssertions());
+            assertionCountLabel.setText(assertionCount + " assertions");
+        }
     }
 
     public void setStatus(String statusText) {

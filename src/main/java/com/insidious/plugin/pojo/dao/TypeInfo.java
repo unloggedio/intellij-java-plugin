@@ -1,7 +1,7 @@
 package com.insidious.plugin.pojo.dao;
 
 
-import com.insidious.plugin.util.Strings;
+import com.insidious.plugin.util.StringUtils;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
@@ -38,7 +38,7 @@ public class TypeInfo {
         this.superClass = superClass;
         this.container = container;
         this.classLoaderIdentifier = classLoaderIdentifier;
-        this.interfaces = Strings.join(interfaces, ",");
+        this.interfaces = StringUtils.join(interfaces, ",");
     }
 
     public String getInterfaces() {

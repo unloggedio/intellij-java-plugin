@@ -8,7 +8,7 @@ import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.pojo.ClassWeaveInfo;
+import com.insidious.plugin.factory.ActiveSessionManager;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TracePoint;
 import com.intellij.openapi.diagnostic.Logger;
@@ -17,9 +17,6 @@ import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.Project;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -31,11 +28,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private final VideobugNetworkClient networkClient;
     private final ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
     private final Project project;
+    private final ActiveSessionManager sessionManager;
     private SessionInstance sessionInstance;
     private ProjectItem currentProject;
 
-    public VideobugLocalClient(String pathToSessions, Project project) {
+    public VideobugLocalClient(String pathToSessions, Project project, ActiveSessionManager sessionManager) {
         this.project = project;
+        this.sessionManager = sessionManager;
         if (!pathToSessions.endsWith("/")) {
             pathToSessions = pathToSessions + "/";
         }
@@ -130,10 +129,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     if (i == 0) {
                         continue;
                     }
-                    logger.debug("Deleting session: " + executionSession.getSessionId());
-                    deleteDirectory(FileSystems.getDefault()
-                                    .getPath(this.pathToSessions, executionSession.getSessionId())
-                                    .toFile());
+                    logger.warn("Deleting session: " + executionSession.getSessionId() + " => " + project.getName());
+                    sessionManager.cleanUpSessionDirectory(executionSession);
                 }
             }
         }
@@ -143,15 +140,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     }
 
-    boolean deleteDirectory(File directoryToBeDeleted) {
-        File[] allContents = directoryToBeDeleted.listFiles();
-        if (allContents != null) {
-            for (File file : allContents) {
-                deleteDirectory(file);
-            }
-        }
-        return directoryToBeDeleted.delete();
-    }
 
     @Override
     public DataResponse<ExecutionSession> fetchProjectSessions() {
@@ -175,9 +163,9 @@ public class VideobugLocalClient implements VideobugClientInterface {
             FilteredDataEventsRequest filteredDataEventsRequest
     ) throws SessionNotSelectedException {
 
-        if (filteredDataEventsRequest.getSessionId() != null) {
-            checkSession(filteredDataEventsRequest.getSessionId());
-        }
+//        if (filteredDataEventsRequest.getSessionId() != null) {
+//            checkSession(filteredDataEventsRequest.getSessionId());
+//        }
         if (this.sessionInstance == null) {
             throw new SessionNotSelectedException();
         }
@@ -200,7 +188,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @Override
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) {
-        checkSession(filteredDataEventsRequest.getSessionId());
+//        checkSession(filteredDataEventsRequest.getSessionId());
         ReplayData replayData = this.sessionInstance.fetchDataEvents(filteredDataEventsRequest);
         replayData.setClient(this);
         return replayData;
@@ -305,26 +293,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
 //        }, 5, 5, TimeUnit.SECONDS);
 //    }
 
-    @Override
-    public ClassWeaveInfo getSessionClassWeave(String sessionId) {
-        checkSession(sessionId);
-        return this.sessionInstance.getClassWeaveInfo();
-
-    }
-
-    private void checkSession(String sessionId) {
-        if (this.sessionInstance == null || !this.sessionInstance.getExecutionSession()
-                .getSessionId()
-                .equals(sessionId)) {
-            ExecutionSession executionSession = new ExecutionSession();
-            executionSession.setSessionId(sessionId);
-            try {
-                this.setSessionInstance(new SessionInstance(executionSession, project));
-            } catch (SQLException | IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
 
     @Override
     public void queryTracePointsByEventType(

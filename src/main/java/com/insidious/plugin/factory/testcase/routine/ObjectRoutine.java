@@ -91,7 +91,7 @@ public class ObjectRoutine {
                 generationConfiguration, testGenerationState
         );
 
-        scriptContainer.setCreatedVariables(testGenerationState.getVariableContainer().clone());
+        scriptContainer.setCreatedVariables((VariableContainer) testGenerationState.getVariableContainer().clone());
 
         List<ClassName> annotations = Collections.singletonList(generationConfiguration.getTestAnnotationType());
         if (getRoutineName().equals("<init>")) {
@@ -129,10 +129,13 @@ public class ObjectRoutine {
                 .collect(Collectors.toList());
 
         for (Parameter nonPojoParameter : nonPojoParameters) {
-            if (fieldsContainer.getParameterByValue(nonPojoParameter.getValue()) != null) {
+            if (fieldsContainer.getParameterByValue(nonPojoParameter.getValue()).getProb() != null) {
                 continue;
             }
             if (testCandidateSubjectValues.contains(nonPojoParameter.getValue())) {
+                continue;
+            }
+            if (nonPojoParameter.getProb() != null && nonPojoParameter.getProb().getSerializedValue().length > 0) {
                 continue;
             }
 
@@ -187,18 +190,14 @@ public class ObjectRoutine {
             ObjectRoutineScript script1 = CandidateMetadataFactory
                     .mainMethodToObjectScript(testCandidateMetadata, testGenerationState, generationConfiguration);
 
-            scriptContainer.getStatements()
-                    .addAll(script1.getStatements());
-            scriptContainer.getStaticMocks()
-                    .addAll(script1.getStaticMocks());
+            scriptContainer.getStatements().addAll(script1.getStatements());
+            scriptContainer.getStaticMocks().addAll(script1.getStaticMocks());
 
         }
         testGenerationState.setVariableContainer(variableContainer);
 
-        if (generationConfiguration.getResourceEmbedMode()
-                .equals(ResourceEmbedMode.IN_FILE)) {
-            if (testGenerationState.getValueResourceMap()
-                    .size() > 0) {
+        if (generationConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_FILE)) {
+            if (testGenerationState.getValueResourceMap().getValueResourceMap().size() > 0) {
                 String resourceFileName = this.testCandidateList
                         .get(this.testCandidateList.size() - 1)
                         .getMainMethod().getMethodName();
@@ -206,6 +205,7 @@ public class ObjectRoutine {
                     resourceFileName = "setup";
                     testGenerationState.setSetupNeedsJsonResources(true);
                 }
+                testGenerationState.getValueResourceMap().setResourceFileName(resourceFileName);
                 scriptContainer.getStatements()
                         .add(0, Pair.create(
                                 CodeLineFactory.StatementCodeLine("LoadResources(this.getClass(), $S)"), new Object[]{

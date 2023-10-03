@@ -4,10 +4,9 @@ package com.insidious.plugin.factory.testcase.routine;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
@@ -15,7 +14,7 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.squareup.javapoet.ClassName;
-import org.jetbrains.annotations.NotNull;
+
 
 import javax.lang.model.element.Modifier;
 import java.util.*;
@@ -33,8 +32,8 @@ public class ObjectRoutineContainer {
     private final String testMethodName;
     private String packageName;
     private ObjectRoutine currentRoutine;
-    private VariableContainer fieldsContainer = new VariableContainer();
-    private ObjectRoutine constructor = newRoutine("<init>");
+    private final VariableContainer fieldsContainer = new VariableContainer();
+    private final ObjectRoutine constructor = newRoutine("<init>");
     /**
      * Name for variable for this particular object
      */
@@ -157,21 +156,20 @@ public class ObjectRoutineContainer {
 
     private List<Parameter> extractVariableOfType(String className, MethodCallExpression mainMethod) {
         List<Parameter> dependentImports = new ArrayList<>();
-        MethodCallExpression mce = mainMethod;
-        if (mce.getSubject() != null && mce.getSubject()
-                .getType() != null && mce.getSubject()
+        if (mainMethod.getSubject() != null && mainMethod.getSubject()
+                .getType() != null && mainMethod.getSubject()
                 .getType()
                 .startsWith(className)) {
-            dependentImports.add(mce.getSubject());
+            dependentImports.add(mainMethod.getSubject());
         }
-        if (mce.getReturnValue() != null && mce.getReturnValue()
-                .getType() != null && mce.getReturnValue()
+        if (mainMethod.getReturnValue() != null && mainMethod.getReturnValue()
+                .getType() != null && mainMethod.getReturnValue()
                 .getType()
                 .startsWith(className)) {
-            dependentImports.add(mce.getSubject());
+            dependentImports.add(mainMethod.getSubject());
         }
-        if (mce.getArguments() != null && mce.getArguments() != null) {
-            for (Parameter parameter : mce.getArguments()) {
+        if (mainMethod.getArguments() != null && mainMethod.getArguments() != null) {
+            for (Parameter parameter : mainMethod.getArguments()) {
                 if (parameter.getType() != null && parameter.getType()
                         .startsWith(className)) {
                     dependentImports.add(parameter);
@@ -215,7 +213,7 @@ public class ObjectRoutineContainer {
         }
 
 
-        @NotNull List<Parameter> constructorNonPojoParams =
+         List<Parameter> constructorNonPojoParams =
                 ObjectRoutine.getNonPojoParameters(constructorRoutine.getTestCandidateList(), sessionInstance);
 
 
@@ -261,7 +259,6 @@ public class ObjectRoutineContainer {
                         .endStatement();
 
             }
-
         }
 
         Map<String, Parameter> staticMocks = new HashMap<>();
@@ -343,10 +340,27 @@ public class ObjectRoutineContainer {
         return container;
     }
 
-    @NotNull
+    
     public Set<? extends Parameter> collectFieldsFromRoutines() {
 
-        Set<Parameter> fieldParametersFromAllCandidates = getObjectRoutines().stream()
+        //            boolean isPresent = false;
+        //
+        //            Optional<MethodCallExpression> foundUsage = getObjectRoutines()
+        //                    .stream()
+        //                    .map(ObjectRoutine::getTestCandidateList)
+        //                    .flatMap(Collection::stream)
+        //                    .map(TestCandidateMetadata::getCallsList)
+        //                    .flatMap(Collection::stream)
+        //                    .filter(e -> e.getSubject().getValue() == fieldParameter.getValue())
+        //                    .findAny();
+        //            if (!foundUsage.isPresent()) {
+        //                // field is not actually used anywhere, so we don't want to create it
+        //                continue;
+        //            }
+        //            if (!isPresent) {
+        //            }
+
+        return getObjectRoutines().stream()
                 .map(ObjectRoutine::getTestCandidateList)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
@@ -354,31 +368,6 @@ public class ObjectRoutineContainer {
                 .map(e -> e.getFields().all())
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
-
-        Set<Parameter> fields = new HashSet<>();
-
-        for (Parameter fieldParameter : fieldParametersFromAllCandidates) {
-//            boolean isPresent = false;
-//
-//            Optional<MethodCallExpression> foundUsage = getObjectRoutines()
-//                    .stream()
-//                    .map(ObjectRoutine::getTestCandidateList)
-//                    .flatMap(Collection::stream)
-//                    .map(TestCandidateMetadata::getCallsList)
-//                    .flatMap(Collection::stream)
-//                    .filter(e -> e.getSubject().getValue() == fieldParameter.getValue())
-//                    .findAny();
-//            if (!foundUsage.isPresent()) {
-//                // field is not actually used anywhere, so we dont want to create it
-//                continue;
-//            }
-
-//            if (!isPresent) {
-            fields.add(fieldParameter);
-//            }
-        }
-
-        return fields;
     }
 
     public String getPackageName() {

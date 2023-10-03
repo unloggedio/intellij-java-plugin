@@ -1,6 +1,5 @@
 package com.insidious.plugin.ui.methodscope;
 
-import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 
@@ -14,7 +13,7 @@ public class DifferenceResult {
     private DiffResultType diffResultType;
     //    private MethodAdapter methodAdapter;
     private AgentCommandRequest command;
-    private AgentCommandResponse response;
+    private AgentCommandResponse<?> response;
     private boolean useIndividualContext = false;
     private String batchID = null;
     private EXECUTION_MODE executionMode;

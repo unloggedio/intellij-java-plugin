@@ -24,4 +24,5 @@ public class Constants {
     public static final String COMPLETED = "completed";
     public static final String PENDING = "pending";
     public static final String AGENT_VERSION = "1.14.3";
+    public static final String HOSTNAME = System.getProperty("user.name");
 }

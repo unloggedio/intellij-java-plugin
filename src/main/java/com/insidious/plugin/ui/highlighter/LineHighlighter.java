@@ -9,11 +9,8 @@ import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.codeInsight.daemon.LineMarkerProvider;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
-import com.intellij.psi.PsiAnonymousClass;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiIdentifier;
-import com.intellij.psi.PsiMethod;
-import com.sun.istack.NotNull;
+import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.*;
 
 import javax.swing.*;
 import java.util.HashMap;
@@ -25,10 +22,11 @@ import java.util.regex.Pattern;
 public class LineHighlighter implements LineMarkerProvider {
 
     private static final Logger logger = LoggerUtil.getInstance(LineHighlighter.class);
-    private final Pattern testFileNamePattern = Pattern.compile("^Test.*V.java$");
-    private final Pattern testMethodNamePattern = Pattern.compile("^test.*");
-    private final Supplier<String> accessibleNameProvider = () -> "Execute method";
+    private static final Pattern testFileNamePattern = Pattern.compile("^Test.*V.java$");
+    private static final Pattern testMethodNamePattern = Pattern.compile("^test.*");
+    private static final Supplier<String> accessibleNameProvider = () -> "Execute method";
     private final Map<GutterState, UnloggedGutterNavigationHandler> navHandlerMap = new HashMap<>();
+    private final Map<Integer, Boolean> mockCallIdentifierOnLineNumber = new HashMap<>();
 
     public LineHighlighter() {
         for (GutterState value : GutterState.values()) {
@@ -36,19 +34,21 @@ public class LineHighlighter implements LineMarkerProvider {
         }
     }
 
-    public LineMarkerInfo<PsiIdentifier> getLineMarkerInfo(@NotNull PsiElement element) {
+    public LineMarkerInfo<PsiIdentifier> getLineMarkerInfo(PsiElement element) {
 
         if (element instanceof PsiIdentifier && element.getParent() instanceof PsiMethod) {
 
-//            Matcher fileMatcher = testFileNamePattern.matcher(element.getContainingFile().getName());
-//            if (fileMatcher.matches()) {
-//                return null;
-//            }
+            if (element.getContainingFile() == null) {
+                return null;
+            }
+
+            Matcher fileMatcher = testFileNamePattern.matcher(element.getContainingFile().getName());
+            if (fileMatcher.matches()) {
+                return null;
+            }
+
+
             PsiMethod psiMethod = (PsiMethod) element.getParent();
-//            Matcher methodMatcher = testMethodNamePattern.matcher(element.getText());
-//            if (methodMatcher.matches()) {
-//                return null;
-//            }
             if (psiMethod.isConstructor()) {
                 return null;
             }

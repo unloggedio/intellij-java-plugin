@@ -3,11 +3,13 @@ package com.insidious.plugin.util;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
+import java.util.Iterator;
 import java.util.Set;
 
 public class JsonTreeUtils {
@@ -15,6 +17,9 @@ public class JsonTreeUtils {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public static DefaultMutableTreeNode buildJsonTree(String source, String name) {
+        if (source == null) {
+            return new DefaultMutableTreeNode("null");
+        }
         if (source.startsWith("{")) {
             return handleObject(new JSONObject(source), new DefaultMutableTreeNode(name));
         } else if (source.startsWith("[")) {
@@ -102,4 +107,20 @@ public class JsonTreeUtils {
         }
         return objectNode.at(selectedKey);
     }
+
+    public static ObjectNode flatten(JsonNode map) {
+        ObjectNode newObjectNode = objectMapper.createObjectNode();
+        if (map.isObject()) {
+            ObjectNode objectNode = (ObjectNode) map;
+            Iterator<JsonNode> iterator = objectNode.iterator();
+            objectNode.forEach(e -> {
+                ObjectNode flatObject = flatten(e);
+            });
+            return newObjectNode;
+
+        } else {
+            return newObjectNode;
+        }
+    }
+
 }

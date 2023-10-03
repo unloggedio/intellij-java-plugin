@@ -2,7 +2,7 @@ package com.insidious.plugin.pojo.dao;
 
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.pojo.Parameter;
-import com.insidious.plugin.util.Strings;
+import com.insidious.plugin.util.StringUtils;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
@@ -53,26 +53,8 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
     private int threadId;
     @DatabaseField
     private long returnNanoTime;
-
-    public long getCallTimeNano() {
-        return callTimeNano;
-    }
-
-    public void setCallTimeNano(long callTimeNano) {
-        this.callTimeNano = callTimeNano;
-    }
-
-    public long getEnterNanoTime() {
-        return enterNanoTime;
-    }
-
-    public void setEnterNanoTime(long enterNanoTime) {
-        this.enterNanoTime = enterNanoTime;
-    }
-
     @DatabaseField
     private long enterNanoTime;
-
 
     public MethodCallExpression() {
     }
@@ -86,7 +68,7 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
     ) {
         this.methodName = methodName;
         this.subject_id = subject;
-        this.arguments = Strings.join(arguments, ",");
+        this.arguments = StringUtils.join(arguments, ",");
         this.returnValue_id = returnValue_id;
         this.callStack = callStack;
     }
@@ -120,7 +102,7 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-        methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes()
+        methodCallExpression1.setArgumentProbes(StringUtils.join(methodCallExpression.getArgumentProbes()
                 .stream()
                 .map(DataEventWithSessionId::getEventId)
                 .collect(Collectors.toList()), ","));
@@ -178,50 +160,12 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo_id());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
+        methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbesString());
         methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent());
-        return methodCallExpression1;
-    }
-
-
-    public static IncompleteMethodCallExpression IncompleteFromMCE(com.insidious.plugin.pojo.MethodCallExpression methodCallExpression) {
-        if (methodCallExpression == null) {
-            return null;
-        }
-
-        Parameter returnValue1 = methodCallExpression.getReturnValue();
-        long returnParameterValue = returnValue1 != null ? returnValue1.getValue() : 0L;
-        Parameter subject1 = methodCallExpression.getSubject();
-        long subjectParameterValue = subject1 != null ? subject1.getValue() : 0L;
-        IncompleteMethodCallExpression methodCallExpression1 = new IncompleteMethodCallExpression(
-                methodCallExpression.getMethodName(),
-                subjectParameterValue,
-                Strings.join(methodCallExpression.getArguments()
-                        .stream()
-                        .map(Parameter::getValue)
-                        .collect(Collectors.toList()), ","),
-                returnParameterValue
-        );
-        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe().getEventId());
-        methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
-        methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
-        methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo().getDataId());
-        methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
-        methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
-        methodCallExpression1.setId(methodCallExpression.getId());
-        methodCallExpression1.setParentId(methodCallExpression.getParentId());
-        methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-        methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes()
-                .stream()
-                .map(DataEventWithSessionId::getEventId)
-                .collect(Collectors.toList()), ","));
-        if (methodCallExpression.getReturnDataEvent() != null) {
-            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
-                    .getEventId());
-        }
         return methodCallExpression1;
     }
 
@@ -238,6 +182,22 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
         return methodCallExpression1;
+    }
+
+    public long getCallTimeNano() {
+        return callTimeNano;
+    }
+
+    public void setCallTimeNano(long callTimeNano) {
+        this.callTimeNano = callTimeNano;
+    }
+
+    public long getEnterNanoTime() {
+        return enterNanoTime;
+    }
+
+    public void setEnterNanoTime(long enterNanoTime) {
+        this.enterNanoTime = enterNanoTime;
     }
 
     public long getId() {
@@ -423,12 +383,12 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
                 '}';
     }
 
+    public long getReturnNanoTime() {
+        return returnNanoTime;
+    }
+
     public void setReturnNanoTime(long returnNanoTime) {
         this.returnNanoTime = returnNanoTime;
         this.callTimeNano = returnNanoTime - enterNanoTime;
-    }
-
-    public long getReturnNanoTime() {
-        return returnNanoTime;
     }
 }

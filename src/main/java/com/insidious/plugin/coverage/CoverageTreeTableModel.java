@@ -49,29 +49,25 @@ public class CoverageTreeTableModel extends DefaultTreeModel implements TreeTabl
             if (index == 0) {
                 return packageCoverageData.getPackageName();
             }
+
             return "";
         }
         if (o instanceof ClassCoverageData) {
             ClassCoverageData ccd = (ClassCoverageData) o;
             if (index == 0) {
                 return ccd.getClassName();
-            }
-            if (index == 1) {
-                return "100% (1/1)";
-            }
-            if (index == 2) {
-                return formatAsPercent(ccd.getCoveredLineCount(), ccd.getTotalLineCount());
-            }
-            if (index == 3) {
+            } else if (index == 1) {
+                return ccd.getCoveredLineCount() > 0 ? "100% (1/1)" : "0% (0/1)";
+            } else if (index == 2) {
                 return formatAsPercent(ccd.getCoveredMethodCount(), ccd.getTotalMethodCount());
-            }
-            if (index == 4) {
+            } else if (index == 3) {
+                return formatAsPercent(ccd.getCoveredLineCount(), ccd.getTotalLineCount());
+            } else if (index == 4) {
                 return formatAsPercent(ccd.getCoveredBranchCount(), ccd.getTotalBranchCount());
             }
         }
         return "";
     }
-
 
 
     private String formatAsPercent(int numerator, int denominator) {
