@@ -6,6 +6,7 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.intellij.notification.NotificationType;
+import com.sun.management.OperatingSystemMXBean;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -14,6 +15,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryUsage;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -158,6 +161,18 @@ public class ReportingService {
         cell = row.createCell(8);
         cell.setCellValue(time);
 
+        OperatingSystemMXBean osBean = ManagementFactory.getPlatformMXBean(
+                OperatingSystemMXBean.class);
+
+        cell = row.createCell(9);
+        cell.setCellValue(osBean.getProcessCpuLoad());
+
+        MemoryUsage heapMemoryUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+        heapMemoryUsage.getUsed();
+
+        cell = row.createCell(10);
+        cell.setCellValue(heapMemoryUsage.getUsed()/1000000);
+
         try {
             FileOutputStream out = new FileOutputStream(new File(insidiousService.getProject().getBasePath()
                     + "/" + this.output_file_name));
@@ -220,6 +235,12 @@ public class ReportingService {
 
                 cell = row.createCell(8);
                 cell.setCellValue("Timestamp");
+
+                cell = row.createCell(9);
+                cell.setCellValue("Cpu usage");
+
+                cell = row.createCell(10);
+                cell.setCellValue("Memory used (MB)");
 
                 FileOutputStream out = new FileOutputStream(
                         new File(insidiousService.getProject().getBasePath() + "/" + filename));
