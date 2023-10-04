@@ -13,6 +13,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.psi.*;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.uiDesigner.core.GridConstraints;
 import org.jetbrains.annotations.NotNull;
@@ -84,14 +85,18 @@ public class MockDefinitionEditor {
         String expressionText = methodCallExpression.getMethodExpression().getText();
         callExpressionLabel.setText(expressionText);
 
-        PsiParameterList methodParameters = destinationMethod.getParameterList();
+        PsiType[] methodParameterTypes = methodCallExpression.getArgumentList().getExpressionTypes();
         JvmParameter[] jvmParameters = destinationMethod.getParameters();
         List<ParameterMatcher> parameterList = new ArrayList<>();
-        for (int i = 0; i < methodParameters.getParametersCount(); i++) {
+        for (int i = 0; i < methodParameterTypes.length; i++) {
             JavaParameterAdapter param = new JavaParameterAdapter(jvmParameters[i]);
-            PsiType parameterType = param.getType();
+            PsiType parameterType = methodParameterTypes[i];
 
             String parameterTypeName = parameterType.getCanonicalText();
+            if (parameterType instanceof PsiClassReferenceType) {
+                PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
+                parameterTypeName = classReferenceType.rawType().getCanonicalText();
+            }
             ParameterMatcher parameterMatcher = new ParameterMatcher(param.getName(),
                     ParameterMatcherType.ANY_OF_TYPE, parameterTypeName);
             parameterList.add(parameterMatcher);

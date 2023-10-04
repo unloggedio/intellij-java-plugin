@@ -29,6 +29,7 @@ public class ThenParameterInputPanel {
             "boolean",
             "float",
             "double",
+            "void",
             "long"
     ));
 

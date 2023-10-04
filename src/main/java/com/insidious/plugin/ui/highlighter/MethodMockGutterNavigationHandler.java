@@ -117,7 +117,7 @@ public class MethodMockGutterNavigationHandler implements GutterIconNavigationHa
                     .setCancelKeyEnabled(true)
                     .setBelongsToGlobalPopupStack(false)
                     .setTitle("Mock Method Calls")
-                    .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
+                    .setTitleIcon(new ActiveIcon(UIUtils.GHOST_MOCK))
                     .createPopup()
                     .show(new RelativePoint(mouseEvent));
 
@@ -147,7 +147,7 @@ public class MethodMockGutterNavigationHandler implements GutterIconNavigationHa
 //                .setCancelButton(gutterMethodPanel.getCloseButton())
                     .setBelongsToGlobalPopupStack(false)
                     .setTitle("Manage Mocks")
-                    .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
+                    .setTitleIcon(new ActiveIcon(UIUtils.GHOST_MOCK))
                     .createPopup();
             componentPopUp.show(new RelativePoint(mouseEvent));
             gutterMethodPanel.setPopupHandle(componentPopUp);

@@ -146,7 +146,6 @@ final public class InsidiousService implements
     private boolean codeCoverageHighlightEnabled = true;
     private HighlightedRequest currentHighlightedRequest = null;
     private boolean testCaseDesignerWindowAdded = false;
-    private boolean isPermanentMocks;
     private Content introPanelContent = null;
 
     public InsidiousService(Project project) {
@@ -1209,7 +1208,8 @@ final public class InsidiousService implements
     @Override
     public void onDisconnectedFromAgentServer() {
         atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
-        methodDirectInvokeComponent.uncheckPermanentMocks();
+        configurationState.clearPermanentFieldMockSetting();
+//        methodDirectInvokeComponent.uncheckPermanentMocks();
     }
 
     public void clearAtomicBoard() {
@@ -1405,14 +1405,12 @@ final public class InsidiousService implements
 
     public void disableMock(DeclaredMock declaredMock) {
         configurationState.removeMock(declaredMock.getId());
-        if (isPermanentMocks) {
-            removeMocksInRunningProcess(List.of(declaredMock));
-        }
+        removeMocksInRunningProcess(List.of(declaredMock));
     }
 
     public void enableMock(DeclaredMock declaredMock) {
         configurationState.addMock(declaredMock.getId());
-        if (isPermanentMocks) {
+        if (isFieldMockActive(declaredMock.getSourceClassName(), declaredMock.getFieldName())) {
             injectMocksInRunningProcess(List.of(declaredMock));
         }
     }

@@ -429,7 +429,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         return mainContainer;
     }
 
-    public void uncheckPermanentMocks() {
-        permanentMocksCheckBox.setSelected(false);
-    }
+//    public void uncheckPermanentMocks() {
+//        permanentMocksCheckBox.setSelected(false);
+//    }
 }

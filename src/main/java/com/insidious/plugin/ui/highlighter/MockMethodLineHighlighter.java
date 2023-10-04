@@ -82,7 +82,7 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
                     ContainerUtil.addIfNotNull(result,
                             new LineMarkerInfo<>(
                                     (PsiIdentifier) element.getFirstChild().getLastChild(),
-                                    methodCall.getTextRange(), UIUtils.COMPARE_TAB,
+                                    methodCall.getTextRange(), UIUtils.GHOST_MOCK,
                                     psiIdentifier -> "Add mock response",
                                     methodMockGutterNavigationHandler, GutterIconRenderer.Alignment.LEFT));
                 }

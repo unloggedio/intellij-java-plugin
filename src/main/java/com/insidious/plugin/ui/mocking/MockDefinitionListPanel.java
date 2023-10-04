@@ -25,6 +25,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
 
@@ -96,17 +97,31 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
 
 
         mockFieldSwitchPanel.add(fieldMockSwitch, BorderLayout.EAST);
-        fieldMockSwitch.addActionListener(e -> {
-            boolean isActive = fieldMockSwitch.isSelected();
-            logger.warn("Field active changed: " + isActive);
-            if (isActive) {
-                insidiousService.injectMocksInRunningProcess(insidiousService.getDeclaredMocksOf(methodUnderTest));
-                insidiousService.enableFieldMock(parentClassName, fieldName);
-            } else {
-                insidiousService.removeMocksInRunningProcess(insidiousService.getDeclaredMocksOf(methodUnderTest));
-                insidiousService.disableFieldMock(parentClassName, fieldName);
-            }
-        });
+        if (!insidiousService.getAgentStateProvider().isAgentRunning()) {
+            fieldMockSwitch.setEnabled(false);
+            fieldMockSwitch.setToolTipText("Start your application with unlogged-sdk to enable permanent mocking");
+        } else {
+            fieldMockSwitch.addActionListener(e -> {
+                boolean isActive = fieldMockSwitch.isSelected();
+                logger.warn("Field active changed: " + isActive);
+                if (isActive) {
+                    // inject only those mock definitions which are marked as enabled
+                    List<DeclaredMock> declaredMocksOf = insidiousService
+                            .getDeclaredMocksOf(methodUnderTest)
+                            .stream()
+                            .filter(insidiousService::isMockEnabled)
+                            .collect(Collectors.toList());
+
+                    insidiousService.injectMocksInRunningProcess(declaredMocksOf);
+                    insidiousService.enableFieldMock(parentClassName, fieldName);
+                } else {
+                    // try to remove all mocks irrespective of they are enabled or not
+                    List<DeclaredMock> declaredMocksOf = insidiousService.getDeclaredMocksOf(methodUnderTest);
+                    insidiousService.removeMocksInRunningProcess(declaredMocksOf);
+                    insidiousService.disableFieldMock(parentClassName, fieldName);
+                }
+            });
+        }
 
         int argumentCount = targetMethod.getParameterList().getParametersCount();
         mockedMethodText.setText(
@@ -266,6 +281,6 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
         insidiousService.saveMockDefinition(declaredMock, methodUnderTest);
         insidiousService.enableMock(declaredMock);
 //        insidiousService.enableFieldMock(parentClassName, fieldName);
-        fieldMockSwitch.setSelected(true);
+//        fieldMockSwitch.setSelected(true);
     }
 }
