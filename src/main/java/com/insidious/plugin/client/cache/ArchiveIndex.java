@@ -43,15 +43,6 @@ public class ArchiveIndex {
     }
 
     
-    public List<Long> getStringIdsFromStringValues(String value) {
-        Query<StringInfoDocument> query = equal(StringInfoDocument.STRING_VALUE, value);
-        ResultSet<StringInfoDocument> searchResult = stringInfoIndex.retrieve(query);
-        List<Long> collect = searchResult.stream()
-                .map(StringInfoDocument::getStringId)
-                .collect(Collectors.toList());
-        searchResult.close();
-        return collect;
-    }
 
     public IndexedCollection<StringInfoDocument> Strings() {
         return stringInfoIndex;
@@ -65,21 +56,6 @@ public class ArchiveIndex {
         return typeInfoIndex;
     }
 
-    public Map<Long, ObjectInfo> getObjectsByObjectId(Collection<Long> objectIds) {
-
-        Query<ObjectInfoDocument> query = in(ObjectInfoDocument.OBJECT_ID, objectIds);
-        ResultSet<ObjectInfoDocument> retrieve = objectInfoIndex.retrieve(query);
-        Stream<ObjectInfoDocument> stream = retrieve.stream();
-
-        Map<Long, ObjectInfo> collect = new HashMap<>();
-        stream.map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), 0))
-                .forEach(e -> {
-                    collect.put(e.getObjectId(), e);
-                });
-
-        retrieve.close();
-        return collect;
-    }
 
     public ObjectInfo getObjectByObjectId(Long objectIds) {
 
@@ -115,23 +91,6 @@ public class ArchiveIndex {
         return collect;
     }
 
-    public Map<String, ObjectInfo> getObjectsByTypeIds(Set<Integer> typeIds) {
-        return objectInfoIndex.stream()
-                .filter(e -> typeIds.contains(e.getTypeId()))
-                .map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), 0))
-                .collect(Collectors.toMap(e -> String.valueOf(e.getObjectId()), r -> r));
-    }
-
-    public Map<String, StringInfo> getStringsById(Set<Long> valueIds) {
-
-        Query<StringInfoDocument> query = in(StringInfoDocument.STRING_ID, valueIds);
-        ResultSet<StringInfoDocument> retrieve = stringInfoIndex.retrieve(query);
-        Stream<StringInfoDocument> stream = retrieve.stream();
-        Map<String, StringInfo> collect = stream.map(e -> new StringInfo(e.getStringId(), e.getString()))
-                .collect(Collectors.toMap(e -> String.valueOf(e.getStringId()), r -> r));
-        retrieve.close();
-        return collect;
-    }
 
     public Map<Long, StringInfo> getStringsByIdWithLongKeys(Set<Long> valueIds) {
 
@@ -301,32 +260,6 @@ public class ArchiveIndex {
         return objectInfoIndex;
     }
 
-    public void setObjectInfoIndex(ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexFile) {
-        this.objectInfoIndex = objectIndexFile;
-    }
-
-    public void setProbeInfoIndex(ConcurrentIndexedCollection<ProbeInfoDocument> probeInfoIndex) {
-        this.probeInfoIndex = probeInfoIndex;
-    }
-
-    public Set<Integer> queryTypeIdsByName(SearchQuery searchQuery) {
-        String query = (String) searchQuery.getQuery();
-
-        Query<TypeInfoDocument> typeQuery = startsWith(TypeInfoDocument.TYPE_NAME, query);
-        if (query.endsWith("*")) {
-            typeQuery = startsWith(TypeInfoDocument.TYPE_NAME, query.substring(0, query.length() - 1));
-        }
-
-        ResultSet<TypeInfoDocument> searchResult = Types().retrieve(typeQuery);
-        Set<Integer> typeIds = searchResult.stream().map(TypeInfoDocument::getTypeId).collect(Collectors.toSet());
-        searchResult.close();
-        logger.info("type query [" + searchQuery + "] matched [" + typeIds.size() + "] items");
-
-        if (typeIds.size() == 0) {
-            return new HashSet<>();
-        }
-        return typeIds;
-    }
 
     public void close() {
         DiskPersistence typeInfoIndexPersistence = (DiskPersistence) typeInfoIndex.getPersistence();

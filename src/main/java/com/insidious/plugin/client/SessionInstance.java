@@ -4,6 +4,7 @@ import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.index.hash.HashIndex;
 import com.googlecode.cqengine.index.radixinverted.InvertedRadixTreeIndex;
 import com.googlecode.cqengine.persistence.disk.DiskPersistence;
+import com.insidious.common.ChronicleUtils;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.UploadFile;
@@ -316,7 +317,7 @@ public class SessionInstance implements Runnable {
         try {
             classInfoIndex.values().forEach(classInfo1 ->
                     classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()),
-                            ClassDefinition.ClassInfoFromClassInfo(classInfo1)));
+                            ChronicleUtils.ClassInfoFromClassInfo(classInfo1)));
 
         } catch (Throwable e) {
 //            e.printStackTrace();
@@ -1202,7 +1203,7 @@ public class SessionInstance implements Runnable {
      * @param pathName    name of the file which needs to be extracted
      * @return absolute file path to cached file the disk which can be read
      */
-    private String createFileOnDiskFromSessionArchiveFileV2(File sessionFile, String pathName) throws FileNotFoundException {
+    private String createFileOnDiskFromSessionArchiveFileV2(File sessionFile, String pathName) {
         logger.debug(String.format("get file[%s] from archive[%s]", pathName, sessionFile.getName()));
         String cacheKey = sessionFile.getName() + pathName;
         String cacheFileLocation = this.sessionDirectory + "/cache/" + cacheKey + ".dat";

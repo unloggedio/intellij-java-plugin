@@ -85,6 +85,7 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
+//import io.unlogged.Unlogged;
 import org.json.JSONObject;
 
 import java.awt.*;
@@ -147,6 +148,7 @@ final public class InsidiousService implements
     private HighlightedRequest currentHighlightedRequest = null;
     private boolean testCaseDesignerWindowAdded = false;
     private Content introPanelContent = null;
+
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -233,6 +235,7 @@ final public class InsidiousService implements
 //        logger.info(selection);
     }
 
+//    @Unlogged
     public synchronized void init(Project project, ToolWindow toolWindow) {
         if (toolWindow == null) {
             return;
