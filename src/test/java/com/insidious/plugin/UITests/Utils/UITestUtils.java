@@ -4,6 +4,8 @@ import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.fixtures.ContainerFixture;
 
+import java.util.List;
+
 import static com.intellij.remoterobot.search.locators.Locators.byXpath;
 
 public class UITestUtils {
@@ -26,6 +28,11 @@ public class UITestUtils {
         HIDE_DEBUG_TOOLBAR("//div[contains(@myvisibleactions, '[Options')]//div[@myaction.key='tool.window.hide.action.name']"),
         OPEN_PROJECT_OK_BUTTON("//div[@text.key='button.ok']"),
         LOCATE_FILE("//div[@tooltiptext.key='action.SelectOpenedFileInProjectView.text']"),
+        REPLAY_TAB("//div[@text='Replay']"),
+        REPLAY_EXECUTE_BUTTON("//div[@defaulticon='execute-button-outlined.svg']"),
+        SAVE_REPLAY_BUTTON("//div[@text='Save Replay']"),
+        SAVE_AND_CLOSE_SAVE_FORM("//div[@text='Save and close']"),
+        TEST_NAME_TF("//div[@class='JTextField']"),
         EDITOR_SCROLL_BAR("//div[@class='MyScrollPane']");
 
         private String value;
@@ -46,5 +53,9 @@ public class UITestUtils {
 
     public static ContainerFixture getContainerFixture(RemoteRobot remoteRobot, UITags tag) {
         return remoteRobot.find(ContainerFixture.class, byXpath(tag.toString()));
+    }
+
+    public static List<ComponentFixture> getComponentFixtures(RemoteRobot remoteRobot, UITags tag) {
+        return remoteRobot.findAll(ComponentFixture.class, byXpath(tag.toString()));
     }
 }

@@ -6,6 +6,8 @@ import com.intellij.remoterobot.data.RemoteComponent;
 import com.intellij.remoterobot.fixtures.*;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+
 @FixtureName(name = "Idea frame")
 @DefaultXpath(by = "IdeFrameImpl type", xpath = "//div[@class='IdeFrameImpl']")
 public class IdeaFrame extends CommonContainerFixture {
@@ -77,5 +79,26 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public ComponentFixture getLocateButton() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.LOCATE_FILE);
+    }
+
+    public ComponentFixture getReplayTab() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.REPLAY_TAB);
+    }
+
+    public ComponentFixture getFirstReplayButton() {
+        List<ComponentFixture> fixtureList = UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.REPLAY_EXECUTE_BUTTON);
+        return fixtureList.get(0);
+    }
+    public ComponentFixture getFirstJtextFiled() {
+        List<ComponentFixture> fixtureList = UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.TEST_NAME_TF);
+        return fixtureList.get(0);
+    }
+
+    public ComponentFixture getSaveReplayButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.SAVE_REPLAY_BUTTON);
+    }
+
+    public ComponentFixture getSaveAndClose() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.SAVE_AND_CLOSE_SAVE_FORM);
     }
 }

@@ -3,7 +3,6 @@ package com.insidious.plugin.UITests;
 import com.insidious.plugin.UITests.pages.IdeaFrame;
 import com.insidious.plugin.UITests.pages.WelcomeFrame;
 import com.intellij.remoterobot.RemoteRobot;
-import com.intellij.remoterobot.client.IdeaSideException;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
@@ -329,5 +328,82 @@ public class UiTest {
             index++;
         }
         return newRefs.subList(index, newRefs.size());
+    }
+
+    @Test
+    public void replayFlow() {
+        final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
+
+        TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
+        EditorFixture editorFixture = editor.getEditor();
+
+        editor.getEditor().scrollToOffset(1);
+        pause(ofSeconds(1).toMillis());
+        RemoteText packageText = editor.getEditor().findText("package");
+        packageText.click();
+
+        expandJavaFile(editor.getEditor());
+        List<GutterIcon> icons = editor.getGutter().getIcons();
+        TreeMap<Integer, GutterIcon> iconTreeMap = new TreeMap<>();
+        for (GutterIcon icon : icons) {
+            iconTreeMap.put(icon.getLineNumber(), icon);
+        }
+
+        if (iconTreeMap.size() == 0) {
+            return;
+        }
+
+        editor = idea.textEditor(Duration.ofSeconds(2));
+        pause(ofSeconds(1).toMillis());
+
+        for (Integer key : iconTreeMap.keySet()) {
+            GutterIcon icon = iconTreeMap.get(key);
+            String iconAsString = icon.toString();
+            if (iconAsString.contains("name=Unlogged")
+                    && (iconAsString.contains("process_running.svg")
+                    || iconAsString.contains("data_available_v2.svg"))) {
+                //unlogged icon found, click it.
+                scrollDownToIcon(editor, icon);
+                pause(ofSeconds(1).toMillis());
+                try {
+                    icon.click();
+                } catch (Exception e) {
+                    scrollDownToIcon(editor, icon);
+                    icon.click();
+                }
+
+                if (icon.toString().contains("overriddenPath='/icons/svg/execute_v2.svg'")) {
+                    //skip if execute all, no need to hot reload as this test is for
+                    //Direct Invoke only
+                    continue;
+                }
+
+                step("Direct Invoke method", () -> {
+                    pause(ofSeconds(1).toMillis());
+                    idea.getDirectInvokeTabHeader().click();
+                    try {
+                        idea.getExecuteMethodButton().click();
+                    } catch (Exception exception) {
+                        //atomic window in focus right after button click
+                        System.out.println("Atomic window in view when trying to click direct Invoke");
+                        idea.getDirectInvokeTabHeader().click();
+                        idea.getExecuteMethodButton().click();
+                    }
+                    //wait for response
+                    pause(ofSeconds(5).toMillis());
+
+                    //now execute replay
+                    idea.getReplayTab().click();
+                    idea.getFirstReplayButton().click();
+                    pause(ofSeconds(1).toMillis());
+
+                    idea.getSaveReplayButton().click();
+                    idea.getFirstJtextFiled().click();
+                    keyboard.enterText("def1");
+                    idea.getSaveAndClose().click();
+                });
+                break;
+            }
+        }
     }
 }
