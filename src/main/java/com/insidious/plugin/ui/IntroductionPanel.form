@@ -79,9 +79,7 @@
                 <constraints>
                   <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
-                <properties>
-                  <background color="-1"/>
-                </properties>
+                <properties/>
                 <border type="etched"/>
                 <children>
                   <grid id="8f4ac" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
@@ -89,9 +87,7 @@
                     <constraints>
                       <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                     </constraints>
-                    <properties>
-                      <background color="-1"/>
-                    </properties>
+                    <properties/>
                     <border type="none"/>
                     <children>
                       <component id="3d651" class="javax.swing.JLabel">
@@ -99,7 +95,6 @@
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <foreground color="-16777215"/>
                           <icon value="icons/png/direct_invoke.png"/>
                           <text value=""/>
                         </properties>
@@ -114,9 +109,7 @@
                         <constraints>
                           <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                         </constraints>
-                        <properties>
-                          <background color="-1"/>
-                        </properties>
+                        <properties/>
                         <border type="none"/>
                         <children>
                           <component id="9f3c3" class="javax.swing.JLabel">
@@ -126,7 +119,6 @@
                             <properties>
                               <enabled value="true"/>
                               <font size="14" style="1"/>
-                              <foreground color="-16777215"/>
                               <text value="Direct Invoke"/>
                             </properties>
                           </component>
@@ -144,9 +136,7 @@
                     <constraints>
                       <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                     </constraints>
-                    <properties>
-                      <background color="-1"/>
-                    </properties>
+                    <properties/>
                     <border type="none"/>
                     <children>
                       <component id="c8962" class="javax.swing.JLabel">
@@ -154,7 +144,6 @@
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <foreground color="-16777215"/>
                           <text value="Execute any method in your live process"/>
                         </properties>
                       </component>
@@ -163,7 +152,6 @@
                           <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <foreground color="-16777215"/>
                           <text value="Short circuit your code-execution cycle, also works with hot-reload"/>
                         </properties>
                       </component>
@@ -180,9 +168,7 @@
                     <constraints>
                       <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                     </constraints>
-                    <properties>
-                      <background color="-1"/>
-                    </properties>
+                    <properties/>
                     <border type="none"/>
                     <children>
                       <grid id="ac28e" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
@@ -190,9 +176,7 @@
                         <constraints>
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                         </constraints>
-                        <properties>
-                          <background color="-1"/>
-                        </properties>
+                        <properties/>
                         <border type="none"/>
                         <children>
                           <component id="cb1e6" class="javax.swing.JLabel">
@@ -200,7 +184,6 @@
                               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                             </constraints>
                             <properties>
-                              <foreground color="-16777215"/>
                               <text value="• Easy to debug and diagnose issues in real-time"/>
                             </properties>
                           </component>
@@ -216,9 +199,7 @@
                         <constraints>
                           <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                         </constraints>
-                        <properties>
-                          <background color="-1"/>
-                        </properties>
+                        <properties/>
                         <border type="none"/>
                         <children>
                           <component id="3d75a" class="javax.swing.JLabel">
@@ -226,7 +207,6 @@
                               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                             </constraints>
                             <properties>
-                              <foreground color="-16777215"/>
                               <text value="• Explore the behavior of different methods and classes"/>
                             </properties>
                           </component>
@@ -235,7 +215,6 @@
                               <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="1" use-parent-layout="false"/>
                             </constraints>
                             <properties>
-                              <foreground color="-16777215"/>
                               <text value="in a running application"/>
                             </properties>
                           </component>
@@ -246,9 +225,7 @@
                         <constraints>
                           <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                         </constraints>
-                        <properties>
-                          <background color="-1"/>
-                        </properties>
+                        <properties/>
                         <border type="none"/>
                         <children>
                           <component id="b97e8" class="javax.swing.JLabel">
@@ -256,7 +233,6 @@
                               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                             </constraints>
                             <properties>
-                              <foreground color="-16777215"/>
                               <text value="• Experiment with methods and classes to gain insights"/>
                             </properties>
                           </component>
@@ -265,7 +241,6 @@
                               <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="1" use-parent-layout="false"/>
                             </constraints>
                             <properties>
-                              <foreground color="-16777215"/>
                               <text value="into how the application works"/>
                             </properties>
                           </component>
@@ -461,9 +436,7 @@
                 <constraints>
                   <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
-                <properties>
-                  <background color="-1"/>
-                </properties>
+                <properties/>
                 <border type="etched"/>
                 <children>
                   <grid id="a2191" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
@@ -471,9 +444,7 @@
                     <constraints>
                       <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                     </constraints>
-                    <properties>
-                      <background color="-1"/>
-                    </properties>
+                    <properties/>
                     <border type="none"/>
                     <children>
                       <component id="4d704" class="javax.swing.JLabel">
@@ -495,9 +466,7 @@
                         <constraints>
                           <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                         </constraints>
-                        <properties>
-                          <background color="-1"/>
-                        </properties>
+                        <properties/>
                         <border type="none"/>
                         <children>
                           <component id="a3d21" class="javax.swing.JLabel">
@@ -507,7 +476,6 @@
                             <properties>
                               <enabled value="true"/>
                               <font size="14" style="1"/>
-                              <foreground color="-16777215"/>
                               <text value="Assertions"/>
                             </properties>
                           </component>
@@ -525,9 +493,7 @@
                     <constraints>
                       <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                     </constraints>
-                    <properties>
-                      <background color="-1"/>
-                    </properties>
+                    <properties/>
                     <border type="none"/>
                     <children>
                       <component id="1150c" class="javax.swing.JLabel">
@@ -535,7 +501,6 @@
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <foreground color="-16777215"/>
                           <text value="Key-level assertions, ensuring that return values meet"/>
                         </properties>
                       </component>
@@ -544,7 +509,6 @@
                           <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <foreground color="-16777215"/>
                           <text value="powerful mechanism to ensure code reliability"/>
                         </properties>
                       </component>
@@ -553,7 +517,6 @@
                           <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="1" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <foreground color="-16777215"/>
                           <text value="specific requirements"/>
                         </properties>
                       </component>
@@ -562,7 +525,6 @@
                           <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="1" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <foreground color="-16777215"/>
                           <text value="document behavior"/>
                         </properties>
                       </component>
@@ -579,9 +541,7 @@
                     <constraints>
                       <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                     </constraints>
-                    <properties>
-                      <background color="-1"/>
-                    </properties>
+                    <properties/>
                     <border type="none"/>
                     <children>
                       <grid id="2658f" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
@@ -589,9 +549,7 @@
                         <constraints>
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                         </constraints>
-                        <properties>
-                          <background color="-1"/>
-                        </properties>
+                        <properties/>
                         <border type="none"/>
                         <children>
                           <component id="3e6f0" class="javax.swing.JLabel">
@@ -599,7 +557,6 @@
                               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                             </constraints>
                             <properties>
-                              <foreground color="-16777215"/>
                               <text value="• Improves code reliability by catching unexpected results"/>
                             </properties>
                           </component>
@@ -608,7 +565,6 @@
                               <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="1" use-parent-layout="false"/>
                             </constraints>
                             <properties>
-                              <foreground color="-16777215"/>
                               <text value="early on"/>
                             </properties>
                           </component>
@@ -624,9 +580,7 @@
                         <constraints>
                           <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                         </constraints>
-                        <properties>
-                          <background color="-1"/>
-                        </properties>
+                        <properties/>
                         <border type="none"/>
                         <children>
                           <component id="f2ee6" class="javax.swing.JLabel">
@@ -634,7 +588,6 @@
                               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                             </constraints>
                             <properties>
-                              <foreground color="-16777215"/>
                               <text value="• Make explicit the expected behavior of methods"/>
                             </properties>
                           </component>
@@ -643,7 +596,6 @@
                               <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="1" use-parent-layout="false"/>
                             </constraints>
                             <properties>
-                              <foreground color="-16777215"/>
                               <text value="and their return values"/>
                             </properties>
                           </component>
@@ -654,9 +606,7 @@
                         <constraints>
                           <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                         </constraints>
-                        <properties>
-                          <background color="-1"/>
-                        </properties>
+                        <properties/>
                         <border type="none"/>
                         <children>
                           <component id="e5f3b" class="javax.swing.JLabel">
@@ -664,7 +614,6 @@
                               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                             </constraints>
                             <properties>
-                              <foreground color="-16777215"/>
                               <text value="• Valuable tool for testing, validation, debugging and troubleshooting"/>
                             </properties>
                           </component>
