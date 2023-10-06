@@ -114,6 +114,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
                         return;
                     }
                     insidiousService.previewTestCase(methodElement, generationConfiguration);
+                    InsidiousNotification.notifyMessage(
+                            "Created JUnit test boilerplate. \nRecord with unlogged-sdk to create full JUnit " +
+                                    "test case.", NotificationType.INFORMATION
+                    );
                 });
     }
 
