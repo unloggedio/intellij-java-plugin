@@ -331,7 +331,7 @@ public class UiTest {
     }
 
     @Test
-    public void replayFlow() {
+    public void fullCoverageFlow() {
         final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
 
         TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
@@ -402,6 +402,7 @@ public class UiTest {
                     keyboard.enterText("def1");
                     idea.getSaveAndClose().click();
                 });
+                //stop after 1 run
                 break;
             }
         }
