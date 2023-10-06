@@ -254,7 +254,7 @@ public class AtomicRecordService {
         try {
             psiClass = JavaPsiFacade.getInstance(project).findClass(className, GlobalSearchScope.allScope(project));
             if (psiClass == null) {
-                logger.error("Class not found [" + className + "] for saving atomic records");
+                logger.warn("Class not found [" + className + "] for saving atomic records");
             } else {
                 return guessModuleForPsiClass(psiClass);
             }

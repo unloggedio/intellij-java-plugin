@@ -94,13 +94,13 @@ public class MethodDirectInvokeComponent implements ActionListener {
         });
         executeButton.setIcon(UIUtils.DIRECT_INVOKE_EXECUTE);
 
-        permanentMocksCheckBox.addActionListener(e -> {
-            if (permanentMocksCheckBox.isSelected()) {
-                insidiousService.injectMocksInRunningProcess(null);
-            } else {
-                insidiousService.removeMocksInRunningProcess(null);
-            }
-        });
+//        permanentMocksCheckBox.addActionListener(e -> {
+//            if (permanentMocksCheckBox.isSelected()) {
+//                insidiousService.injectMocksInRunningProcess(null);
+//            } else {
+//                insidiousService.removeMocksInRunningProcess(null);
+//            }
+//        });
     }
 
     private void executeMethodWithParameters() {

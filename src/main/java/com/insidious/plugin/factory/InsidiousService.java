@@ -234,7 +234,7 @@ final public class InsidiousService implements
 //        logger.info(selection);
     }
 
-//    @Unlogged
+    //    @Unlogged
     public synchronized void init(Project project, ToolWindow toolWindow) {
         if (toolWindow == null) {
             return;
@@ -555,12 +555,6 @@ final public class InsidiousService implements
     }
 
     public void injectMocksInRunningProcess(List<DeclaredMock> allDeclaredMocks) {
-        if (allDeclaredMocks == null || allDeclaredMocks.size() == 0) {
-            allDeclaredMocks = getAllDeclaredMocks();
-            allDeclaredMocks.stream()
-                    .map(e -> e.getSourceClassName() + "." + e.getFieldName())
-                    .forEach(configurationState::addFieldMock);
-        }
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.INJECT_MOCKS);
         agentCommandRequest.setDeclaredMocks(allDeclaredMocks);
@@ -1407,7 +1401,9 @@ final public class InsidiousService implements
 
     public void disableMock(DeclaredMock declaredMock) {
         configurationState.removeMock(declaredMock.getId());
-        removeMocksInRunningProcess(List.of(declaredMock));
+        if (isFieldMockActive(declaredMock.getSourceClassName(), declaredMock.getFieldName())) {
+            removeMocksInRunningProcess(List.of(declaredMock));
+        }
     }
 
     public void enableMock(DeclaredMock declaredMock) {

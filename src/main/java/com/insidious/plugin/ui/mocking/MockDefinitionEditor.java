@@ -125,7 +125,8 @@ public class MockDefinitionEditor {
         this.methodUnderTest = methodUnderTest;
         this.project = project;
         this.declaredMock = declaredMock;
-//        this.cancelOrOkListener = cancelOrOkListener;
+        callExpressionLabel.setText(declaredMock.getSourceClassName() + "." + declaredMock.getMethodName() + "()");
+
         updateUiValues();
         addListeners();
     }
