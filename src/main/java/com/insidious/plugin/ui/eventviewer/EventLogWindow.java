@@ -251,7 +251,7 @@ public class EventLogWindow {
 
         filterRequest.setPageInfo(pageInfo);
         ReplayData replayData = null;
-        replayData = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
+//        replayData = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
         updateTableData(replayData);
         infoLabel.setText("[Page " + (pageNumber + 1) + "] [" + replayData.getDataEvents().size() + " events]");
         return replayData;
@@ -264,7 +264,7 @@ public class EventLogWindow {
         pageInfo.setBufferSize(Integer.parseInt(String.valueOf(bufferSize.getValue())));
 
         filterRequest.setPageInfo(pageInfo);
-        ReplayData replayData1 = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
+        ReplayData replayData1 = null;
         updateTableData(replayData1);
         infoLabel.setText(" [Page " +
                 (filterRequest.getPageInfo().getNumber() + 1) +

@@ -1076,11 +1076,11 @@ public class SessionInstance implements Runnable {
 
     }
 
-    private ArchiveFilesIndex readEventIndex(byte[] bytes) throws IOException {
-        KaitaiInsidiousIndexParser archiveIndex = new KaitaiInsidiousIndexParser(new ByteBufferKaitaiStream(bytes));
-
-        return new ArchiveFilesIndex(archiveIndex);
-    }
+//    private ArchiveFilesIndex readEventIndex(byte[] bytes) throws IOException {
+//        KaitaiInsidiousIndexParser archiveIndex = new KaitaiInsidiousIndexParser(new ByteBufferKaitaiStream(bytes));
+//
+//        return new ArchiveFilesIndex(archiveIndex);
+//    }
 
     private ArchiveIndex readArchiveIndex(byte[] bytes, DatFileType indexFilterType) throws IOException {
 
@@ -1310,175 +1310,175 @@ public class SessionInstance implements Runnable {
 //
 //    }
 
-    private void getTracePointsByProbeIds(File sessionArchive, Set<Integer> probeIds, ClientCallBack<TracePoint> tracePointsCallback) {
-        logger.info("Query for probeIds [" + probeIds.toString() + "]");
-        List<TracePoint> tracePointList = new LinkedList<>();
-        NameWithBytes bytes;
-        Map<String, TypeInfo> typeInfoMap = new HashMap<>();
-        Map<String, ObjectInfo> objectInfoMap = new HashMap<>();
-
-
-        ArchiveFilesIndex eventsIndex = null;
-        ArchiveIndex objectIndex = null;
-        try {
-            checkProgressIndicator(null,
-                    "Loading events index " + sessionArchive.getName() + " to match against " + probeIds.size() + " values");
-
-
-            bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE.getFileName());
-            if (bytes == null) {
-                return;
-            }
-            eventsIndex = readEventIndex(bytes.getBytes());
-
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-
-
-        ArchiveFilesIndex finalEventsIndex = eventsIndex;
-        HashMap<String, UploadFile> matchedFiles = new HashMap<>();
-        AtomicInteger counter = new AtomicInteger();
-        probeIds.forEach(probeId -> {
-            int currentIndex = counter.addAndGet(1);
-            assert finalEventsIndex != null;
-
-            checkProgressIndicator(null, "Matching events for probe " + currentIndex + " of " + probeIds.size());
-
-            boolean archiveHasSeenValue = finalEventsIndex.hasProbeId(probeId);
-            List<UploadFile> matchedFilesForString = new LinkedList<>();
-            logger.info("probeId [" + probeId + "] found in archive: [" + archiveHasSeenValue + "]");
-
-            if (archiveHasSeenValue) {
-                checkProgressIndicator(null, "Events matched in " + sessionArchive.getName());
-                matchedFilesForString = finalEventsIndex.querySessionFilesByProbeId(probeId);
-                for (UploadFile uploadFile : matchedFilesForString) {
-                    String filePath = uploadFile.getPath();
-                    int threadId = getThreadIdFromFileName(FileSystems.getDefault()
-                            .getPath(filePath)
-                            .getFileName()
-                            .toString());
-                    UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
-                    uploadFileToAdd.setProbeIds(new Integer[]{probeId});
-
-                    if (matchedFiles.containsKey(filePath)) {
-                        Integer[] existingProbes = matchedFiles.get(filePath)
-                                .getProbeIds();
-                        ArrayList<Integer> arrayList = new ArrayList<>(Arrays.asList(existingProbes));
-                        if (!arrayList.contains(probeId)) {
-                            arrayList.add(probeId);
-                            Integer[] matchedProbeIds = new Integer[arrayList.size()];
-                            for (int i = 0; i < arrayList.size(); i++) {
-                                Integer integer = arrayList.get(i);
-                                matchedProbeIds[i] = integer;
-                            }
-
-                            matchedFiles.get(filePath)
-                                    .setProbeIds(matchedProbeIds);
-                        }
-
-                    } else {
-                        matchedFiles.put(filePath, uploadFile);
-                    }
-
-                }
-            }
-        });
-        logger.info("matched [" + matchedFiles.size() + "] files");
-
-        checkProgressIndicator("Found " + matchedFiles.size() + " archives with matching values", null);
-
-
-        for (UploadFile matchedFile : matchedFiles.values()) {
-            try {
-
-                checkProgressIndicator(null, "Loading events data from " + matchedFile.getPath());
-                String fileName = FileSystems.getDefault()
-                        .getPath(matchedFile.getPath())
-                        .getFileName()
-                        .toString();
-
-                NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, fileName);
-                if (fileBytes == null) {
-                    List<String> fileList = listArchiveFiles(sessionArchive);
-                    logger.error(
-                            String.format("matched file not found " + "inside the session archive [%s] -> [%s] -> [%s]",
-                                    fileName, sessionArchive, fileList));
-                    throw new RuntimeException("matched file not found inside the session archive -> " + fileList);
-                }
-                long timestamp = Long.parseLong(fileBytes.getName()
-                        .split("@")[0]);
-                int threadId = Integer.parseInt(fileBytes.getName()
-                        .split("-")[2].split("\\.")[0]);
-
-
-                List<DataEventWithSessionId> dataEvents = getDataEventsFromPathByProbeIds(fileBytes.getBytes(),
-                        matchedFile.getProbeIds());
-
-                checkProgressIndicator(null,
-                        "Filtering " + dataEvents.size() + " events from file " + matchedFile.getPath());
-                List<TracePoint> matchedTracePoints = dataEvents.stream()
-                        .map(e1 -> {
-
-                            try {
-                                List<DataInfo> dataInfoList = getProbeInfo(new HashSet<>(
-                                        Collections.singletonList(e1.getProbeId())));
-                                logger.debug(
-                                        "data info list by data id [" + e1.getProbeId() + "] => [" + dataInfoList + "]");
-
-                                if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                                    if (ProgressIndicatorProvider.getGlobalProgressIndicator()
-                                            .isCanceled()) {
-                                        return null;
-                                    }
-                                }
-
-
-                                DataInfo dataInfo = dataInfoList.get(0);
-                                int classId = dataInfo.getClassId();
-                                KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = getClassInfo(classId);
-
-                                ObjectInfo objectInfo = objectInfoMap.get(String.valueOf(e1.getValue()));
-                                String typeName = "<na>";
-                                if (objectInfo != null) {
-                                    TypeInfo typeInfo = getTypeInfo(objectInfo.getTypeId());
-                                    typeName = typeInfo.getTypeNameFromClass();
-                                }
-
-                                TracePoint tracePoint = new TracePoint(classId, dataInfo.getLine(),
-                                        dataInfo.getDataId(),
-                                        threadId, e1.getValue(), classInfo.fileName()
-                                        .value(), classInfo.className()
-                                        .value(),
-                                        typeName, timestamp, e1.getEventId());
-
-                                tracePoint.setExecutionSession(executionSession);
-                                return tracePoint;
-                            } catch (ClassInfoNotFoundException | Exception ex) {
-                                ex.printStackTrace();
-                                logger.error("failed to get data probe information", ex);
-                            }
-                            return null;
-
-
-                        })
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toList());
-                tracePointList.addAll(matchedTracePoints);
-
-                checkProgressIndicator(null, tracePointList.size() + " matched...");
-
-
-            } catch (IOException ex) {
-                logger.error("exception while creating trace points in file[" + matchedFile.path + "]", ex);
-            }
-
-        }
-        if (tracePointList.size() != 0) {
-            tracePointList.forEach(e -> e.setExecutionSession(executionSession));
-            tracePointsCallback.success(tracePointList);
-        }
-    }
+//    private void getTracePointsByProbeIds(File sessionArchive, Set<Integer> probeIds, ClientCallBack<TracePoint> tracePointsCallback) {
+//        logger.info("Query for probeIds [" + probeIds.toString() + "]");
+//        List<TracePoint> tracePointList = new LinkedList<>();
+//        NameWithBytes bytes;
+//        Map<String, TypeInfo> typeInfoMap = new HashMap<>();
+//        Map<String, ObjectInfo> objectInfoMap = new HashMap<>();
+//
+//
+//        ArchiveFilesIndex eventsIndex = null;
+//        ArchiveIndex objectIndex = null;
+//        try {
+//            checkProgressIndicator(null,
+//                    "Loading events index " + sessionArchive.getName() + " to match against " + probeIds.size() + " values");
+//
+//
+//            bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE.getFileName());
+//            if (bytes == null) {
+//                return;
+//            }
+//            eventsIndex = readEventIndex(bytes.getBytes());
+//
+//        } catch (IOException ex) {
+//            ex.printStackTrace();
+//        }
+//
+//
+//        ArchiveFilesIndex finalEventsIndex = eventsIndex;
+//        HashMap<String, UploadFile> matchedFiles = new HashMap<>();
+//        AtomicInteger counter = new AtomicInteger();
+//        probeIds.forEach(probeId -> {
+//            int currentIndex = counter.addAndGet(1);
+//            assert finalEventsIndex != null;
+//
+//            checkProgressIndicator(null, "Matching events for probe " + currentIndex + " of " + probeIds.size());
+//
+//            boolean archiveHasSeenValue = finalEventsIndex.hasProbeId(probeId);
+//            List<UploadFile> matchedFilesForString = new LinkedList<>();
+//            logger.info("probeId [" + probeId + "] found in archive: [" + archiveHasSeenValue + "]");
+//
+//            if (archiveHasSeenValue) {
+//                checkProgressIndicator(null, "Events matched in " + sessionArchive.getName());
+//                matchedFilesForString = finalEventsIndex.querySessionFilesByProbeId(probeId);
+//                for (UploadFile uploadFile : matchedFilesForString) {
+//                    String filePath = uploadFile.getPath();
+//                    int threadId = getThreadIdFromFileName(FileSystems.getDefault()
+//                            .getPath(filePath)
+//                            .getFileName()
+//                            .toString());
+//                    UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
+//                    uploadFileToAdd.setProbeIds(new Integer[]{probeId});
+//
+//                    if (matchedFiles.containsKey(filePath)) {
+//                        Integer[] existingProbes = matchedFiles.get(filePath)
+//                                .getProbeIds();
+//                        ArrayList<Integer> arrayList = new ArrayList<>(Arrays.asList(existingProbes));
+//                        if (!arrayList.contains(probeId)) {
+//                            arrayList.add(probeId);
+//                            Integer[] matchedProbeIds = new Integer[arrayList.size()];
+//                            for (int i = 0; i < arrayList.size(); i++) {
+//                                Integer integer = arrayList.get(i);
+//                                matchedProbeIds[i] = integer;
+//                            }
+//
+//                            matchedFiles.get(filePath)
+//                                    .setProbeIds(matchedProbeIds);
+//                        }
+//
+//                    } else {
+//                        matchedFiles.put(filePath, uploadFile);
+//                    }
+//
+//                }
+//            }
+//        });
+//        logger.info("matched [" + matchedFiles.size() + "] files");
+//
+//        checkProgressIndicator("Found " + matchedFiles.size() + " archives with matching values", null);
+//
+//
+//        for (UploadFile matchedFile : matchedFiles.values()) {
+//            try {
+//
+//                checkProgressIndicator(null, "Loading events data from " + matchedFile.getPath());
+//                String fileName = FileSystems.getDefault()
+//                        .getPath(matchedFile.getPath())
+//                        .getFileName()
+//                        .toString();
+//
+//                NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, fileName);
+//                if (fileBytes == null) {
+//                    List<String> fileList = listArchiveFiles(sessionArchive);
+//                    logger.error(
+//                            String.format("matched file not found " + "inside the session archive [%s] -> [%s] -> [%s]",
+//                                    fileName, sessionArchive, fileList));
+//                    throw new RuntimeException("matched file not found inside the session archive -> " + fileList);
+//                }
+//                long timestamp = Long.parseLong(fileBytes.getName()
+//                        .split("@")[0]);
+//                int threadId = Integer.parseInt(fileBytes.getName()
+//                        .split("-")[2].split("\\.")[0]);
+//
+//
+//                List<DataEventWithSessionId> dataEvents = getDataEventsFromPathByProbeIds(fileBytes.getBytes(),
+//                        matchedFile.getProbeIds());
+//
+//                checkProgressIndicator(null,
+//                        "Filtering " + dataEvents.size() + " events from file " + matchedFile.getPath());
+//                List<TracePoint> matchedTracePoints = dataEvents.stream()
+//                        .map(e1 -> {
+//
+//                            try {
+//                                List<DataInfo> dataInfoList = getProbeInfo(new HashSet<>(
+//                                        Collections.singletonList(e1.getProbeId())));
+//                                logger.debug(
+//                                        "data info list by data id [" + e1.getProbeId() + "] => [" + dataInfoList + "]");
+//
+//                                if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+//                                    if (ProgressIndicatorProvider.getGlobalProgressIndicator()
+//                                            .isCanceled()) {
+//                                        return null;
+//                                    }
+//                                }
+//
+//
+//                                DataInfo dataInfo = dataInfoList.get(0);
+//                                int classId = dataInfo.getClassId();
+//                                KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = getClassInfo(classId);
+//
+//                                ObjectInfo objectInfo = objectInfoMap.get(String.valueOf(e1.getValue()));
+//                                String typeName = "<na>";
+//                                if (objectInfo != null) {
+//                                    TypeInfo typeInfo = getTypeInfo(objectInfo.getTypeId());
+//                                    typeName = typeInfo.getTypeNameFromClass();
+//                                }
+//
+//                                TracePoint tracePoint = new TracePoint(classId, dataInfo.getLine(),
+//                                        dataInfo.getDataId(),
+//                                        threadId, e1.getValue(), classInfo.fileName()
+//                                        .value(), classInfo.className()
+//                                        .value(),
+//                                        typeName, timestamp, e1.getEventId());
+//
+//                                tracePoint.setExecutionSession(executionSession);
+//                                return tracePoint;
+//                            } catch (ClassInfoNotFoundException | Exception ex) {
+//                                ex.printStackTrace();
+//                                logger.error("failed to get data probe information", ex);
+//                            }
+//                            return null;
+//
+//
+//                        })
+//                        .filter(Objects::nonNull)
+//                        .collect(Collectors.toList());
+//                tracePointList.addAll(matchedTracePoints);
+//
+//                checkProgressIndicator(null, tracePointList.size() + " matched...");
+//
+//
+//            } catch (IOException ex) {
+//                logger.error("exception while creating trace points in file[" + matchedFile.path + "]", ex);
+//            }
+//
+//        }
+//        if (tracePointList.size() != 0) {
+//            tracePointList.forEach(e -> e.setExecutionSession(executionSession));
+//            tracePointsCallback.success(tracePointList);
+//        }
+//    }
 
     private List<DataEventWithSessionId> getDataEventsFromPathByProbeIds(byte[] bytes, Integer[] probeIds) {
 
@@ -1711,23 +1711,23 @@ public class SessionInstance implements Runnable {
     }
 
 
-    private ArchiveFilesIndex getEventIndex(File sessionArchive) {
-        NameWithBytes eventIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
-                INDEX_EVENTS_DAT_FILE.getFileName());
-        if (eventIndexBytes == null) {
-            logger.warn("failed to read events index from : " + sessionArchive.getName());
-            return null;
-        }
-        ArchiveFilesIndex eventsIndex;
-        try {
-            eventsIndex = readEventIndex(eventIndexBytes.getBytes());
-        } catch (IOException e) {
-//            e.printStackTrace();
-            logger.warn("failed to read events index from : " + sessionArchive.getName());
-            return null;
-        }
-        return eventsIndex;
-    }
+//    private ArchiveFilesIndex getEventIndex(File sessionArchive) {
+//        NameWithBytes eventIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
+//                INDEX_EVENTS_DAT_FILE.getFileName());
+//        if (eventIndexBytes == null) {
+//            logger.warn("failed to read events index from : " + sessionArchive.getName());
+//            return null;
+//        }
+//        ArchiveFilesIndex eventsIndex;
+//        try {
+//            eventsIndex = readEventIndex(eventIndexBytes.getBytes());
+//        } catch (IOException e) {
+////            e.printStackTrace();
+//            logger.warn("failed to read events index from : " + sessionArchive.getName());
+//            return null;
+//        }
+//        return eventsIndex;
+//    }
 
     private List<KaitaiInsidiousEventParser.Block> getEventsFromFile(File sessionArchive, String archiveFile) throws IOException {
         long start = new Date().getTime();
@@ -1743,19 +1743,19 @@ public class SessionInstance implements Runnable {
         return events;
     }
 
-    private List<KaitaiInsidiousEventParser.Block> getEventsFromFileOld(File sessionArchive, String archiveFile) throws IOException {
-        long start = new Date().getTime();
-        logger.warn("Read events from file [1813]: " + archiveFile);
-        NameWithBytes nameWithBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, archiveFile);
-        assert nameWithBytes != null;
-        KaitaiInsidiousEventParser eventsContainer =
-                new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(nameWithBytes.getBytes()));
-        ArrayList<KaitaiInsidiousEventParser.Block> events = eventsContainer.event()
-                .entries();
-        long end = new Date().getTime();
-        logger.warn("Read events took: " + (end - start) + " ms");
-        return events;
-    }
+//    private List<KaitaiInsidiousEventParser.Block> getEventsFromFileOld(File sessionArchive, String archiveFile) throws IOException {
+//        long start = new Date().getTime();
+//        logger.warn("Read events from file [1813]: " + archiveFile);
+//        NameWithBytes nameWithBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, archiveFile);
+//        assert nameWithBytes != null;
+//        KaitaiInsidiousEventParser eventsContainer =
+//                new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(nameWithBytes.getBytes()));
+//        ArrayList<KaitaiInsidiousEventParser.Block> events = eventsContainer.event()
+//                .entries();
+//        long end = new Date().getTime();
+//        logger.warn("Read events took: " + (end - start) + " ms");
+//        return events;
+//    }
 
     private String getFileStreamFromArchive(File sessionArchive, String archiveFile) throws IOException, FailedToReadClassWeaveException {
         long start = new Date().getTime();
@@ -1788,425 +1788,425 @@ public class SessionInstance implements Runnable {
         return events;
     }
 
-    public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
-
-        List<DataEventWithSessionId> dataEventList = new LinkedList<>();
-        Map<Long, StringInfo> stringInfoMap = new HashMap<>();
-        Map<Long, ObjectInfo> objectInfoMap = new HashMap<>();
-        Map<Integer, TypeInfo> typeInfoMap = new HashMap<>();
-
-
-        final long objectId = filteredDataEventsRequest.getObjectId();
-
-        LinkedList<File> sessionArchivesLocal = new LinkedList<>(this.sessionArchives);
-
-        Collections.sort(sessionArchivesLocal);
-
-        PageInfo pageInfo = filteredDataEventsRequest.getPageInfo();
-        if (pageInfo.isDesc()) {
-            Collections.reverse(sessionArchivesLocal);
-        }
-
-
-        final AtomicInteger skip = new AtomicInteger(pageInfo.getNumber() * pageInfo.getSize());
-        Integer remaining = pageInfo.getSize();
-
-
-        checkProgressIndicator(null, "Loading class mappings for object history");
-
-        final AtomicLong previousEventAt = new AtomicLong(-1);
-
-        Set<Long> remainingObjectIds = new HashSet<>();
-        Set<Long> remainingStringIds = new HashSet<>();
-
-        Map<String, SELogFileMetadata> fileEventIdPairs = new HashMap<>();
-
-        for (File sessionArchive : sessionArchivesLocal) {
-            logger.warn("open archive [" + sessionArchive.getName() + "]");
-
-
-            Map<String, UploadFile> matchedFiles = new HashMap<>();
-            if (objectId != -1) {
-                ArchiveFilesIndex eventsIndex = getEventIndex(sessionArchive);
-                if (eventsIndex == null) continue;
-                if (!eventsIndex.hasValueId(objectId)) {
-                    continue;
-                }
-
-                List<UploadFile> matchedFilesForString = eventsIndex.querySessionFilesByValueId(objectId);
-                for (UploadFile uploadFile : matchedFilesForString) {
-                    String filePath = uploadFile.getPath();
-                    logger.info("File matched for object id [" + objectId + "] -> " + uploadFile + " -> " + filePath);
-                    int threadId = getThreadIdFromFileName(FileSystems.getDefault()
-                            .getPath(filePath)
-                            .getFileName()
-                            .toString());
-                    UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
-                    uploadFileToAdd.setValueIds(new Long[]{objectId});
-                    matchedFiles.put(filePath, uploadFile);
-                }
-                if (matchedFiles.size() == 0) {
-                    continue;
-                }
-            }
-
-
-            try {
-                List<String> archiveFiles;
-
-                if (objectId != -1) {
-//                    logger.info("Files were matched: " + matchedFiles);
-
-                    archiveFiles = new LinkedList<>();
-                    for (String s : matchedFiles.keySet()) {
-                        String[] parts;
-                        if (s.contains("/")) {
-                            parts = s.split("/");
-                        } else {
-                            parts = s.split("\\\\");
-                        }
-                        archiveFiles.add(parts[parts.length - 1]);
-                    }
-
-                } else {
-                    archiveFiles = listArchiveFiles(sessionArchive);
-                    logger.info(
-                            "no files were matched, listing files from session archive [" + sessionArchive.getName() + "] -> " + archiveFiles);
-                }
-
-                if (archiveFiles.size() == 0) {
-                    continue;
-                }
-
-
-                Collections.sort(archiveFiles);
-                if (pageInfo.isDesc()) {
-                    Collections.reverse(archiveFiles);
-                }
-
-
-                for (String archiveFile : archiveFiles) {
-                    checkProgressIndicator(null, "Reading events from  " + archiveFile);
-
-                    if (remaining == 0) {
-                        break;
-                    }
-
-                    if (!archiveFile.endsWith(".selog")) {
-                        continue;
-                    }
-
-                    logger.warn("loading next file: " + archiveFile + " need [" + remaining + "] more events");
-
-                    SELogFileMetadata metadata = fileEventIdPairs.get(archiveFile);
-                    List<KaitaiInsidiousEventParser.Block> eventsSublist = null;
-
-                    logger.info("Checking file " + archiveFile + " for data");
-                    final int fileThreadId = getThreadIdFromFileName(archiveFile);
-
-                    if (metadata == null && filteredDataEventsRequest.getNanotime() != -1) {
-
-                        if (filteredDataEventsRequest.getThreadId() != -1 && fileThreadId != filteredDataEventsRequest.getThreadId()) {
-                            continue;
-                        }
-
-                        eventsSublist = getEventsFromFile(sessionArchive, archiveFile);
-
-                        KaitaiInsidiousEventParser.Block firstEvent = eventsSublist.get(0);
-                        KaitaiInsidiousEventParser.Block lastEvent = eventsSublist.get(eventsSublist.size() - 1);
-
-                        metadata = new SELogFileMetadata(eventId(firstEvent), eventId(lastEvent), fileThreadId);
-                        fileEventIdPairs.put(archiveFile, metadata);
-
-
-                    }
-
-                    if (metadata != null) {
-                        if (filteredDataEventsRequest.getNanotime() != -1) {
-                            if (pageInfo.isAsc()) {
-                                if (metadata.getLastEventId() < filteredDataEventsRequest.getNanotime()) {
-                                    continue;
-                                }
-                            } else {
-                                if (metadata.getFirstEventId() > filteredDataEventsRequest.getNanotime()) {
-                                    continue;
-                                }
-                            }
-                        }
-                    }
-
-                    if (eventsSublist == null) {
-                        eventsSublist = getEventsFromFile(sessionArchive, archiveFile);
-                        if (eventsSublist.size() == 0) {
-                            continue;
-                        }
-
-                        KaitaiInsidiousEventParser.Block firstEvent = eventsSublist.get(0);
-                        KaitaiInsidiousEventParser.Block lastEvent = eventsSublist.get(eventsSublist.size() - 1);
-
-                        metadata = new SELogFileMetadata(eventId(firstEvent), eventId(lastEvent), fileThreadId);
-                        fileEventIdPairs.put(archiveFile, metadata);
-
-                    }
-
-
-                    if (pageInfo.isDesc()) {
-                        Collections.reverse(eventsSublist);
-                    }
-
-
-                    SELogFileMetadata finalMetadata = metadata;
-                    List<DataEventWithSessionId> dataEventGroupedList = eventsSublist.stream()
-                            .filter(e -> {
-                                long currentFirstEventAt = previousEventAt.get();
-
-                                long currentEventId;
-                                long valueId;
-
-                                KaitaiInsidiousEventParser.DetailedEventBlock detailedEventBlock = e.block();
-                                currentEventId = detailedEventBlock.eventId();
-                                valueId = detailedEventBlock.valueId();
-
-
-                                if (filteredDataEventsRequest.getNanotime() != -1) {
-                                    if (pageInfo.isAsc()) {
-                                        if (currentEventId < filteredDataEventsRequest.getNanotime()) {
-                                            return false;
-                                        }
-                                    } else {
-                                        if (currentEventId > filteredDataEventsRequest.getNanotime()) {
-                                            return false;
-                                        }
-
-                                    }
-                                }
-
-                                boolean isRequestedObject = valueId == objectId || objectId == -1;
-
-                                if (isRequestedObject) {
-                                    previousEventAt.set(currentEventId);
-                                }
-
-                                if (currentFirstEventAt != -1 && currentEventId - currentFirstEventAt <= pageInfo.getBufferSize()) {
-                                    return true;
-                                }
-
-
-                                return isRequestedObject;
-                            })
-                            .filter(e -> {
-                                if (skip.get() > 0) {
-                                    int remainingNow = skip.decrementAndGet();
-                                    return remainingNow <= 0;
-                                }
-                                return true;
-                            })
-                            .map(e -> createDataEventFromBlock(finalMetadata.getThreadId(), e.block()))
-                            .collect(Collectors.toList());
-
-                    if (dataEventGroupedList.size() > 0) {
-                        logger.info("adding " + dataEventGroupedList.size() + " objects");
-                    }
-                    if (remaining < dataEventGroupedList.size()) {
-                        dataEventGroupedList = dataEventGroupedList.subList(0, remaining);
-                        remaining = 0;
-                    } else {
-                        remaining = remaining - dataEventGroupedList.size();
-                    }
-
-
-                    dataEventList.addAll(dataEventGroupedList);
-
-                    if (remaining == 0) {
-                        break;
-                    }
-
-
-                }
-
-
-            } catch (IOException e) {
-//                e.printStackTrace();
-                logger.warn("failed to read archive [" + sessionArchive.getName() + "]");
-                continue;
-            }
-            if (dataEventList.size() == 0) {
-                continue;
-            }
-
-
-            Set<Long> valueIds = dataEventList.stream()
-                    .map(DataEventWithSessionId::getValue)
-                    .collect(Collectors.toSet());
-
-
-            NameWithBytes stringsIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
-                    INDEX_STRING_DAT_FILE.getFileName());
-            assert stringsIndexBytes != null;
-
-
-            ArchiveIndex stringIndex;
-            try {
-                stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
-            } catch (IOException e) {
-//                e.printStackTrace();
-                logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
-                continue;
-            }
-            Set<Long> potentialStringIds = valueIds.stream()
-                    .filter(e -> e > 10)
-                    .collect(Collectors.toSet());
-            Map<Long, StringInfo> sessionStringInfo = stringIndex.getStringsByIdWithLongKeys(potentialStringIds);
-            if (potentialStringIds.size() != sessionStringInfo.size()) {
-
-                sessionStringInfo.values()
-                        .stream()
-                        .map(StringInfo::getStringId)
-                        .collect(Collectors.toList())
-                        .forEach(potentialStringIds::remove);
-
-
-                remainingStringIds.addAll(potentialStringIds);
-            }
-            stringInfoMap.putAll(sessionStringInfo);
-
-            Set<Long> objectIds = dataEventList.stream()
-                    .map(DataEventWithSessionId::getValue)
-                    .filter(e -> e > 1000)
-                    .collect(Collectors.toSet());
-
-            NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
-                    INDEX_OBJECT_DAT_FILE.getFileName());
-            assert objectIndexBytes != null;
-            ArchiveIndex objectsIndex;
-            try {
-                objectsIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
-            } catch (IOException e) {
-//                e.printStackTrace();
-                logger.error("failed to read object index from session archive", e);
-                continue;
-            }
-
-
-            if (objectId != -1) {
-                objectIds.add(objectId);
-            }
-
-            Map<Long, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectIdWithLongKeys(objectIds);
-            if (sessionObjectsInfo.size() != objectIds.size()) {
-//                logger.warn("expected [" + objectIds.size() + "] object infos results but got " +
-//                        "only " + sessionObjectsInfo.size());
-
-                sessionObjectsInfo.values()
-                        .stream()
-                        .map(ObjectInfo::getObjectId)
-                        .collect(Collectors.toList())
-                        .forEach(objectIds::remove);
-                remainingObjectIds.addAll(objectIds);
-            }
-            objectInfoMap.putAll(sessionObjectsInfo);
-
-
-            Set<Integer> typeIds = objectInfoMap.values()
-                    .stream()
-                    .map(ObjectInfo::getTypeId)
-                    .collect(Collectors.toSet());
-
-            Map<Integer, TypeInfo> sessionTypeInfo = archiveIndex.getTypesByIdWithLongKeys(typeIds);
-            if (sessionTypeInfo.size() < typeIds.size()) {
-                logger.warn("expected [" + typeIds.size() + "] type info but got only: " + sessionTypeInfo.size());
-            }
-
-            typeInfoMap.putAll(sessionTypeInfo);
-
-            if (remaining == 0) {
-                break;
-            }
-
-        }
-
-        // we need to go thru the archives again to load the set of object information which we
-        // did not find earlier since the object was probably created earlier
-        if (remainingObjectIds.size() > 0 || remainingStringIds.size() > 0) {
-
-            for (File sessionArchive : sessionArchivesLocal) {
-
-                NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
-                        INDEX_OBJECT_DAT_FILE.getFileName());
-                assert objectIndexBytes != null;
-                ArchiveIndex objectsIndex;
-                try {
-                    objectsIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
-                } catch (IOException e) {
-//                    e.printStackTrace();
-                    logger.error("failed to read object index from session archive", e);
-                    continue;
-                }
-
-
-                Map<Long, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectIdWithLongKeys(
-                        remainingObjectIds);
-                if (sessionObjectsInfo.size() > 0) {
-//                    logger.warn("expected [" + objectIds.size() + "] results but got only " + sessionObjectsInfo.size());
-
-                    sessionObjectsInfo.values()
-                            .stream()
-                            .map(ObjectInfo::getObjectId)
-                            .collect(Collectors.toList())
-                            .forEach(remainingObjectIds::remove);
-                }
-                objectInfoMap.putAll(sessionObjectsInfo);
-
-
-                NameWithBytes stringsIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
-                        INDEX_STRING_DAT_FILE.getFileName());
-                assert stringsIndexBytes != null;
-
-
-                ArchiveIndex stringIndex;
-                try {
-                    stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
-                } catch (IOException e) {
-//                    e.printStackTrace();
-                    logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
-                    continue;
-                }
-                Map<Long, StringInfo> sessionStringInfo = stringIndex.getStringsByIdWithLongKeys(remainingStringIds);
-                if (remainingStringIds.size() != sessionStringInfo.size()) {
-
-                    sessionStringInfo.values()
-                            .stream()
-                            .map(StringInfo::getStringId)
-                            .collect(Collectors.toList())
-                            .forEach(remainingStringIds::remove);
-                }
-
-                stringInfoMap.putAll(sessionStringInfo);
-
-
-                Set<Integer> typeIds = objectInfoMap.values()
-                        .stream()
-                        .map(ObjectInfo::getTypeId)
-                        .collect(Collectors.toSet());
-
-                Map<Integer, TypeInfo> sessionTypeInfo = archiveIndex.getTypesByIdWithLongKeys(typeIds);
-                if (sessionTypeInfo.size() < typeIds.size()) {
-                    logger.warn("expected [" + typeIds.size() + "] type info but got only: " + sessionTypeInfo.size());
-                }
-                typeInfoMap.putAll(sessionTypeInfo);
-
-
-            }
-
-
-        }
-
-
-        // todo: rework this to use the indexes
-        return new ReplayData(null, filteredDataEventsRequest, dataEventList, classInfoIndex, probeInfoIndex,
-                stringInfoMap, objectInfoMap, typeInfoMap, methodInfoIndex);
-
-    }
+//    public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
+//
+//        List<DataEventWithSessionId> dataEventList = new LinkedList<>();
+//        Map<Long, StringInfo> stringInfoMap = new HashMap<>();
+//        Map<Long, ObjectInfo> objectInfoMap = new HashMap<>();
+//        Map<Integer, TypeInfo> typeInfoMap = new HashMap<>();
+//
+//
+//        final long objectId = filteredDataEventsRequest.getObjectId();
+//
+//        LinkedList<File> sessionArchivesLocal = new LinkedList<>(this.sessionArchives);
+//
+//        Collections.sort(sessionArchivesLocal);
+//
+//        PageInfo pageInfo = filteredDataEventsRequest.getPageInfo();
+//        if (pageInfo.isDesc()) {
+//            Collections.reverse(sessionArchivesLocal);
+//        }
+//
+//
+//        final AtomicInteger skip = new AtomicInteger(pageInfo.getNumber() * pageInfo.getSize());
+//        Integer remaining = pageInfo.getSize();
+//
+//
+//        checkProgressIndicator(null, "Loading class mappings for object history");
+//
+//        final AtomicLong previousEventAt = new AtomicLong(-1);
+//
+//        Set<Long> remainingObjectIds = new HashSet<>();
+//        Set<Long> remainingStringIds = new HashSet<>();
+//
+//        Map<String, SELogFileMetadata> fileEventIdPairs = new HashMap<>();
+//
+//        for (File sessionArchive : sessionArchivesLocal) {
+//            logger.warn("open archive [" + sessionArchive.getName() + "]");
+//
+//
+//            Map<String, UploadFile> matchedFiles = new HashMap<>();
+//            if (objectId != -1) {
+//                ArchiveFilesIndex eventsIndex = getEventIndex(sessionArchive);
+//                if (eventsIndex == null) continue;
+//                if (!eventsIndex.hasValueId(objectId)) {
+//                    continue;
+//                }
+//
+//                List<UploadFile> matchedFilesForString = eventsIndex.querySessionFilesByValueId(objectId);
+//                for (UploadFile uploadFile : matchedFilesForString) {
+//                    String filePath = uploadFile.getPath();
+//                    logger.info("File matched for object id [" + objectId + "] -> " + uploadFile + " -> " + filePath);
+//                    int threadId = getThreadIdFromFileName(FileSystems.getDefault()
+//                            .getPath(filePath)
+//                            .getFileName()
+//                            .toString());
+//                    UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
+//                    uploadFileToAdd.setValueIds(new Long[]{objectId});
+//                    matchedFiles.put(filePath, uploadFile);
+//                }
+//                if (matchedFiles.size() == 0) {
+//                    continue;
+//                }
+//            }
+//
+//
+//            try {
+//                List<String> archiveFiles;
+//
+//                if (objectId != -1) {
+////                    logger.info("Files were matched: " + matchedFiles);
+//
+//                    archiveFiles = new LinkedList<>();
+//                    for (String s : matchedFiles.keySet()) {
+//                        String[] parts;
+//                        if (s.contains("/")) {
+//                            parts = s.split("/");
+//                        } else {
+//                            parts = s.split("\\\\");
+//                        }
+//                        archiveFiles.add(parts[parts.length - 1]);
+//                    }
+//
+//                } else {
+//                    archiveFiles = listArchiveFiles(sessionArchive);
+//                    logger.info(
+//                            "no files were matched, listing files from session archive [" + sessionArchive.getName() + "] -> " + archiveFiles);
+//                }
+//
+//                if (archiveFiles.size() == 0) {
+//                    continue;
+//                }
+//
+//
+//                Collections.sort(archiveFiles);
+//                if (pageInfo.isDesc()) {
+//                    Collections.reverse(archiveFiles);
+//                }
+//
+//
+//                for (String archiveFile : archiveFiles) {
+//                    checkProgressIndicator(null, "Reading events from  " + archiveFile);
+//
+//                    if (remaining == 0) {
+//                        break;
+//                    }
+//
+//                    if (!archiveFile.endsWith(".selog")) {
+//                        continue;
+//                    }
+//
+//                    logger.warn("loading next file: " + archiveFile + " need [" + remaining + "] more events");
+//
+//                    SELogFileMetadata metadata = fileEventIdPairs.get(archiveFile);
+//                    List<KaitaiInsidiousEventParser.Block> eventsSublist = null;
+//
+//                    logger.info("Checking file " + archiveFile + " for data");
+//                    final int fileThreadId = getThreadIdFromFileName(archiveFile);
+//
+//                    if (metadata == null && filteredDataEventsRequest.getNanotime() != -1) {
+//
+//                        if (filteredDataEventsRequest.getThreadId() != -1 && fileThreadId != filteredDataEventsRequest.getThreadId()) {
+//                            continue;
+//                        }
+//
+//                        eventsSublist = getEventsFromFile(sessionArchive, archiveFile);
+//
+//                        KaitaiInsidiousEventParser.Block firstEvent = eventsSublist.get(0);
+//                        KaitaiInsidiousEventParser.Block lastEvent = eventsSublist.get(eventsSublist.size() - 1);
+//
+//                        metadata = new SELogFileMetadata(eventId(firstEvent), eventId(lastEvent), fileThreadId);
+//                        fileEventIdPairs.put(archiveFile, metadata);
+//
+//
+//                    }
+//
+//                    if (metadata != null) {
+//                        if (filteredDataEventsRequest.getNanotime() != -1) {
+//                            if (pageInfo.isAsc()) {
+//                                if (metadata.getLastEventId() < filteredDataEventsRequest.getNanotime()) {
+//                                    continue;
+//                                }
+//                            } else {
+//                                if (metadata.getFirstEventId() > filteredDataEventsRequest.getNanotime()) {
+//                                    continue;
+//                                }
+//                            }
+//                        }
+//                    }
+//
+//                    if (eventsSublist == null) {
+//                        eventsSublist = getEventsFromFile(sessionArchive, archiveFile);
+//                        if (eventsSublist.size() == 0) {
+//                            continue;
+//                        }
+//
+//                        KaitaiInsidiousEventParser.Block firstEvent = eventsSublist.get(0);
+//                        KaitaiInsidiousEventParser.Block lastEvent = eventsSublist.get(eventsSublist.size() - 1);
+//
+//                        metadata = new SELogFileMetadata(eventId(firstEvent), eventId(lastEvent), fileThreadId);
+//                        fileEventIdPairs.put(archiveFile, metadata);
+//
+//                    }
+//
+//
+//                    if (pageInfo.isDesc()) {
+//                        Collections.reverse(eventsSublist);
+//                    }
+//
+//
+//                    SELogFileMetadata finalMetadata = metadata;
+//                    List<DataEventWithSessionId> dataEventGroupedList = eventsSublist.stream()
+//                            .filter(e -> {
+//                                long currentFirstEventAt = previousEventAt.get();
+//
+//                                long currentEventId;
+//                                long valueId;
+//
+//                                KaitaiInsidiousEventParser.DetailedEventBlock detailedEventBlock = e.block();
+//                                currentEventId = detailedEventBlock.eventId();
+//                                valueId = detailedEventBlock.valueId();
+//
+//
+//                                if (filteredDataEventsRequest.getNanotime() != -1) {
+//                                    if (pageInfo.isAsc()) {
+//                                        if (currentEventId < filteredDataEventsRequest.getNanotime()) {
+//                                            return false;
+//                                        }
+//                                    } else {
+//                                        if (currentEventId > filteredDataEventsRequest.getNanotime()) {
+//                                            return false;
+//                                        }
+//
+//                                    }
+//                                }
+//
+//                                boolean isRequestedObject = valueId == objectId || objectId == -1;
+//
+//                                if (isRequestedObject) {
+//                                    previousEventAt.set(currentEventId);
+//                                }
+//
+//                                if (currentFirstEventAt != -1 && currentEventId - currentFirstEventAt <= pageInfo.getBufferSize()) {
+//                                    return true;
+//                                }
+//
+//
+//                                return isRequestedObject;
+//                            })
+//                            .filter(e -> {
+//                                if (skip.get() > 0) {
+//                                    int remainingNow = skip.decrementAndGet();
+//                                    return remainingNow <= 0;
+//                                }
+//                                return true;
+//                            })
+//                            .map(e -> createDataEventFromBlock(finalMetadata.getThreadId(), e.block()))
+//                            .collect(Collectors.toList());
+//
+//                    if (dataEventGroupedList.size() > 0) {
+//                        logger.info("adding " + dataEventGroupedList.size() + " objects");
+//                    }
+//                    if (remaining < dataEventGroupedList.size()) {
+//                        dataEventGroupedList = dataEventGroupedList.subList(0, remaining);
+//                        remaining = 0;
+//                    } else {
+//                        remaining = remaining - dataEventGroupedList.size();
+//                    }
+//
+//
+//                    dataEventList.addAll(dataEventGroupedList);
+//
+//                    if (remaining == 0) {
+//                        break;
+//                    }
+//
+//
+//                }
+//
+//
+//            } catch (IOException e) {
+////                e.printStackTrace();
+//                logger.warn("failed to read archive [" + sessionArchive.getName() + "]");
+//                continue;
+//            }
+//            if (dataEventList.size() == 0) {
+//                continue;
+//            }
+//
+//
+//            Set<Long> valueIds = dataEventList.stream()
+//                    .map(DataEventWithSessionId::getValue)
+//                    .collect(Collectors.toSet());
+//
+//
+//            NameWithBytes stringsIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
+//                    INDEX_STRING_DAT_FILE.getFileName());
+//            assert stringsIndexBytes != null;
+//
+//
+//            ArchiveIndex stringIndex;
+//            try {
+//                stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
+//            } catch (IOException e) {
+////                e.printStackTrace();
+//                logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
+//                continue;
+//            }
+//            Set<Long> potentialStringIds = valueIds.stream()
+//                    .filter(e -> e > 10)
+//                    .collect(Collectors.toSet());
+//            Map<Long, StringInfo> sessionStringInfo = stringIndex.getStringsByIdWithLongKeys(potentialStringIds);
+//            if (potentialStringIds.size() != sessionStringInfo.size()) {
+//
+//                sessionStringInfo.values()
+//                        .stream()
+//                        .map(StringInfo::getStringId)
+//                        .collect(Collectors.toList())
+//                        .forEach(potentialStringIds::remove);
+//
+//
+//                remainingStringIds.addAll(potentialStringIds);
+//            }
+//            stringInfoMap.putAll(sessionStringInfo);
+//
+//            Set<Long> objectIds = dataEventList.stream()
+//                    .map(DataEventWithSessionId::getValue)
+//                    .filter(e -> e > 1000)
+//                    .collect(Collectors.toSet());
+//
+//            NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
+//                    INDEX_OBJECT_DAT_FILE.getFileName());
+//            assert objectIndexBytes != null;
+//            ArchiveIndex objectsIndex;
+//            try {
+//                objectsIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
+//            } catch (IOException e) {
+////                e.printStackTrace();
+//                logger.error("failed to read object index from session archive", e);
+//                continue;
+//            }
+//
+//
+//            if (objectId != -1) {
+//                objectIds.add(objectId);
+//            }
+//
+//            Map<Long, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectIdWithLongKeys(objectIds);
+//            if (sessionObjectsInfo.size() != objectIds.size()) {
+////                logger.warn("expected [" + objectIds.size() + "] object infos results but got " +
+////                        "only " + sessionObjectsInfo.size());
+//
+//                sessionObjectsInfo.values()
+//                        .stream()
+//                        .map(ObjectInfo::getObjectId)
+//                        .collect(Collectors.toList())
+//                        .forEach(objectIds::remove);
+//                remainingObjectIds.addAll(objectIds);
+//            }
+//            objectInfoMap.putAll(sessionObjectsInfo);
+//
+//
+//            Set<Integer> typeIds = objectInfoMap.values()
+//                    .stream()
+//                    .map(ObjectInfo::getTypeId)
+//                    .collect(Collectors.toSet());
+//
+//            Map<Integer, TypeInfo> sessionTypeInfo = archiveIndex.getTypesByIdWithLongKeys(typeIds);
+//            if (sessionTypeInfo.size() < typeIds.size()) {
+//                logger.warn("expected [" + typeIds.size() + "] type info but got only: " + sessionTypeInfo.size());
+//            }
+//
+//            typeInfoMap.putAll(sessionTypeInfo);
+//
+//            if (remaining == 0) {
+//                break;
+//            }
+//
+//        }
+//
+//        // we need to go thru the archives again to load the set of object information which we
+//        // did not find earlier since the object was probably created earlier
+//        if (remainingObjectIds.size() > 0 || remainingStringIds.size() > 0) {
+//
+//            for (File sessionArchive : sessionArchivesLocal) {
+//
+//                NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
+//                        INDEX_OBJECT_DAT_FILE.getFileName());
+//                assert objectIndexBytes != null;
+//                ArchiveIndex objectsIndex;
+//                try {
+//                    objectsIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
+//                } catch (IOException e) {
+////                    e.printStackTrace();
+//                    logger.error("failed to read object index from session archive", e);
+//                    continue;
+//                }
+//
+//
+//                Map<Long, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectIdWithLongKeys(
+//                        remainingObjectIds);
+//                if (sessionObjectsInfo.size() > 0) {
+////                    logger.warn("expected [" + objectIds.size() + "] results but got only " + sessionObjectsInfo.size());
+//
+//                    sessionObjectsInfo.values()
+//                            .stream()
+//                            .map(ObjectInfo::getObjectId)
+//                            .collect(Collectors.toList())
+//                            .forEach(remainingObjectIds::remove);
+//                }
+//                objectInfoMap.putAll(sessionObjectsInfo);
+//
+//
+//                NameWithBytes stringsIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
+//                        INDEX_STRING_DAT_FILE.getFileName());
+//                assert stringsIndexBytes != null;
+//
+//
+//                ArchiveIndex stringIndex;
+//                try {
+//                    stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
+//                } catch (IOException e) {
+////                    e.printStackTrace();
+//                    logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
+//                    continue;
+//                }
+//                Map<Long, StringInfo> sessionStringInfo = stringIndex.getStringsByIdWithLongKeys(remainingStringIds);
+//                if (remainingStringIds.size() != sessionStringInfo.size()) {
+//
+//                    sessionStringInfo.values()
+//                            .stream()
+//                            .map(StringInfo::getStringId)
+//                            .collect(Collectors.toList())
+//                            .forEach(remainingStringIds::remove);
+//                }
+//
+//                stringInfoMap.putAll(sessionStringInfo);
+//
+//
+//                Set<Integer> typeIds = objectInfoMap.values()
+//                        .stream()
+//                        .map(ObjectInfo::getTypeId)
+//                        .collect(Collectors.toSet());
+//
+//                Map<Integer, TypeInfo> sessionTypeInfo = archiveIndex.getTypesByIdWithLongKeys(typeIds);
+//                if (sessionTypeInfo.size() < typeIds.size()) {
+//                    logger.warn("expected [" + typeIds.size() + "] type info but got only: " + sessionTypeInfo.size());
+//                }
+//                typeInfoMap.putAll(sessionTypeInfo);
+//
+//
+//            }
+//
+//
+//        }
+//
+//
+//        // todo: rework this to use the indexes
+//        return new ReplayData(null, filteredDataEventsRequest, dataEventList, classInfoIndex, probeInfoIndex,
+//                stringInfoMap, objectInfoMap, typeInfoMap, methodInfoIndex);
+//
+//    }
 
     public void unlockNextScan() {
         scanLock.offer(1);
