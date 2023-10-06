@@ -7,16 +7,17 @@ import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.lang.jvm.JvmParameter;
-import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
+import com.intellij.psi.impl.source.tree.java.*;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.uiDesigner.core.GridConstraints;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -67,12 +68,18 @@ public class MockDefinitionEditor {
         this.methodUnderTest = methodUnderTest;
         this.project = project;
         mockTypeParentPanel.setVisible(false);
+
         PsiMethod destinationMethod = methodCallExpression.resolveMethod();
 
-        PsiType returnType = destinationMethod.getReturnType();
-
-        returnDummyValue = ClassUtils.createDummyValue(returnType, new ArrayList<>(), destinationMethod.getProject());
-        methodReturnTypeName = returnType.getCanonicalText();
+        PsiType returnType = identifyReturnType(methodCallExpression);
+        if (returnType != null) {
+            returnDummyValue = ClassUtils.createDummyValue(returnType, new ArrayList<>(),
+                    destinationMethod.getProject());
+            methodReturnTypeName = returnType.getCanonicalText();
+        } else {
+            methodReturnTypeName = "java.lang.Object";
+            returnDummyValue = "{}";
+        }
 
         PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCallExpression,
                 PsiClass.class);
@@ -129,6 +136,54 @@ public class MockDefinitionEditor {
 
         updateUiValues();
         addListeners();
+    }
+
+    @Nullable
+    private PsiType identifyReturnType(PsiExpression methodCallExpression) {
+        PsiType returnType = null;
+
+        if (methodCallExpression.getParent() instanceof PsiConditionalExpressionImpl) {
+            return identifyReturnType((PsiConditionalExpressionImpl) methodCallExpression.getParent());
+        } else if (methodCallExpression.getParent() instanceof PsiLocalVariableImpl
+                && methodCallExpression.getParent().getParent() instanceof PsiDeclarationStatementImpl) {
+            // this is an assignment and we can probably get a better return type from the variable type which
+            // this is being assigned to
+            returnType = ((PsiLocalVariableImpl) methodCallExpression.getParent()).getType();
+        }else if (methodCallExpression.getParent() instanceof PsiAssignmentExpressionImpl
+                && methodCallExpression.getParent().getParent() instanceof PsiExpressionStatement) {
+            // this is an assignment and we can probably get a better return type from the variable type which
+            // this is being assigned to
+            returnType = ((PsiAssignmentExpressionImpl) methodCallExpression.getParent()).getType();
+        } else if (methodCallExpression.getParent() instanceof PsiExpressionListImpl
+                && methodCallExpression.getParent().getParent() instanceof PsiMethodCallExpressionImpl) {
+            // the return value is being passed to another method as a parameter
+            PsiExpressionListImpl expressionList = (PsiExpressionListImpl) methodCallExpression.getParent();
+            PsiType[] expressionTypes = expressionList.getExpressionTypes();
+            PsiExpression[] allExpressions = expressionList.getExpressions();
+            // identify the return value is which index
+            int i = 0;
+            for (PsiExpression expression : allExpressions) {
+                if (expression == methodCallExpression) {
+                    break;
+                }
+                i++;
+            }
+
+            if (i < expressionTypes.length) {
+                returnType = expressionTypes[i];
+            }
+
+        } else if (methodCallExpression.getParent() instanceof PsiReturnStatementImpl) {
+            // value is being returned, so we can use the return type of the method which contains this call
+            PsiMethod parentMethod = PsiTreeUtil.getParentOfType(
+                    methodCallExpression, PsiMethod.class);
+            if (parentMethod != null && parentMethod.getReturnType() != null) {
+                returnType = parentMethod.getReturnType();
+            }
+        } else if (methodCallExpression instanceof PsiMethodCallExpression) {
+            returnType = ((PsiMethodCallExpression) methodCallExpression).resolveMethod().getReturnType();
+        }
+        return returnType;
     }
 
     private void addListeners() {

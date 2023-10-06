@@ -3,12 +3,10 @@ package com.insidious.plugin.pojo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.pojo.dao.ProbeInfo;
 import net.openhft.chronicle.bytes.BytesIn;
 import net.openhft.chronicle.bytes.BytesMarshallable;
 import net.openhft.chronicle.bytes.BytesOut;
 import net.openhft.chronicle.core.io.IORuntimeException;
-
 
 import java.io.Serializable;
 import java.nio.BufferOverflowException;
@@ -231,7 +229,7 @@ public class Parameter implements Serializable, BytesMarshallable {
         if (name == null) {
             return;
         }
-        if (name.startsWith("(") || name.startsWith("CGLIB")) {
+        if (name.startsWith("(", 0) || name.startsWith("CGLIB", 0)) {
             return;
         }
         if (!this.names.contains(name)) {
@@ -254,7 +252,7 @@ public class Parameter implements Serializable, BytesMarshallable {
 
     public void addNames(Collection<String> name) {
         name = name.stream()
-                .filter(e -> !e.startsWith("(") && e.length() > 0)
+                .filter(e -> !e.startsWith("(", 0) && e.length() > 0)
                 .collect(Collectors.toList());
         this.names.addAll(name);
     }
@@ -293,7 +291,7 @@ public class Parameter implements Serializable, BytesMarshallable {
 
     public void setProbeAndProbeInfo(DataEventWithSessionId prob, DataInfo probeInfo) {
         if (value == 0 && prob != null) {
-        this.prob = prob;
+            this.prob = prob;
             value = prob.getValue();
         } else {
             if (this.prob == null) {
@@ -308,7 +306,8 @@ public class Parameter implements Serializable, BytesMarshallable {
 
         if (this.dataInfo == null
                 || !this.dataInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT)
-                || (probeInfo.getEventType() != null &&  probeInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT))
+                || (probeInfo.getEventType() != null && probeInfo.getEventType()
+                .equals(EventType.METHOD_EXCEPTIONAL_EXIT))
         ) {
             this.dataInfo = probeInfo;
             this.prob = prob;
@@ -330,8 +329,10 @@ public class Parameter implements Serializable, BytesMarshallable {
 
 
     public void addName(String nameForParameter) {
-        if (nameForParameter == null || this.names.contains(nameForParameter) || nameForParameter.startsWith(
-                "(") || nameForParameter.length() < 1) {
+        if (nameForParameter == null
+                || this.names.contains(nameForParameter)
+                || nameForParameter.startsWith("(", 0)
+                || nameForParameter.length() < 1) {
             return;
         }
         nameForParameter = nameForParameter.replace('$', 'D');

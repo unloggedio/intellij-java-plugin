@@ -118,6 +118,9 @@ public class CandidateMetadataFactory {
 
                 objectRoutineScript.addComment("");
 
+                if (callsOnSubject.size() > 1) {
+                    objectRoutineScript.addComment(firstCallExpression.getMethodName()  + " is called " + callsOnSubject.size() + " times");
+                }
                 for (MethodCallExpression methodCallExpression : callsOnSubject) {
                     Parameter newReturnValue = methodCallExpression.getReturnValue();
                     if (previousReturnValue != null && newReturnValue.getValue() == previousReturnValue.getValue()) {

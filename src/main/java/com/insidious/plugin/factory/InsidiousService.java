@@ -268,6 +268,10 @@ final public class InsidiousService implements
 //        junitTestCaseWriter.saveTestSuite(testSuite);
 //    }
 
+    public TestCaseGenerationConfiguration generateMethodBoilerplate(MethodAdapter methodAdapter) {
+        return testCaseDesignerWindow.generateTestCaseBoilerPlace(methodAdapter);
+    }
+
     public synchronized void previewTestCase(MethodAdapter methodElement, TestCaseGenerationConfiguration generationConfiguration) {
 
         if (!testCaseDesignerWindowAdded) {

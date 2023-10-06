@@ -8,9 +8,6 @@
     <description>
         <![CDATA[
 
-        <h3>Version 1.16.28 (2nd Aug 2023) </h3>
-
-        <p>We are excited to announce the latest release of Unlogged, version 1.16.28! This release brings significant improvements and new features that empower developers to easily monitor and verify their code changes, ensuring a seamless development experience and preventing regressions. Let's take a look at the key highlights of this release:</p>
 
         <h4>Assertions for Custom Validation:</h4>
 
