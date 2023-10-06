@@ -78,6 +78,9 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
 
 
     public boolean hasShownFeatures() {
+        if (1 < 2 ){
+            return false;
+        }
         return classFieldMockActiveStatus.containsKey("hasShownFeatures");
     }
 

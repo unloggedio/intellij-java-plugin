@@ -81,8 +81,7 @@ public class MockDefinitionEditor {
             returnDummyValue = "{}";
         }
 
-        PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCallExpression,
-                PsiClass.class);
+        PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
         if (parentClass == null) {
             InsidiousNotification.notifyMessage("Failed to identify parent class for the call [" +
                     methodCallExpression.getText() + "]", NotificationType.ERROR);
