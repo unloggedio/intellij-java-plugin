@@ -52,7 +52,5 @@ test:
     untracked: false
     name: test-report.html
     paths:
-      - build/reports/tests/test/index.html
+      - build/reports/tests/test/*
     expire_in: 30 days
-    reports:
-      junit: build/reports/tests/test/index.html
