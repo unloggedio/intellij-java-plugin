@@ -54,3 +54,5 @@ test:
     paths:
       - build/reports/tests/test/index.html
     expire_in: 30 days
+    reports:
+      junit: build/reports/tests/test/index.html
