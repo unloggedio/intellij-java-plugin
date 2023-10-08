@@ -15,6 +15,7 @@ import com.intellij.openapi.util.Computable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,6 +86,8 @@ public class AtomicTestContainer {
     }
 
     public void triggerMethodExecutorRefresh(MethodAdapter method) {
+        long start = new Date().getTime();
+
         final MethodAdapter focussedMethod;
         if (method == null) {
             focussedMethod = methodExecutorComponent.getCurrentMethod();
@@ -119,7 +122,7 @@ public class AtomicTestContainer {
                 ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
                         insidiousService.getStoredCandidatesFor(candidateSearchQuery));
 
-        logger.warn("Candidates for [ " + candidateSearchQuery + "] => " + methodTestCandidates.size());
+//        logger.warn("Candidates for [ " + candidateSearchQuery + "] => " + methodTestCandidates.size());
 
         loadExecutionFlow();
         if (methodTestCandidates.size() > 0) {
@@ -146,6 +149,10 @@ public class AtomicTestContainer {
             insidiousService.focusDirectInvokeTab();
             loadComponentForState(currentState);
         }
+        long end = new Date().getTime();
+
+        logger.warn("load and refresh candidates in ATC for took " + (end - start) + " ms for [" + focussedMethod.getName() + "]");
+
 
     }
 

@@ -273,8 +273,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
     }
 
     public void refreshAndReloadCandidates(final MethodAdapter method, List<StoredCandidate> candidates) {
-        logger.warn("load and refresh candidates in mec for");
 
+        long start = new Date().getTime();
 
         if (methodElement == null || method == null || method.getPsiMethod() != methodElement.getPsiMethod()) {
             clearBoard();
@@ -341,6 +341,8 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
         rootContent.revalidate();
         rootContent.repaint();
+        long end = new Date().getTime();
+        logger.warn("load and refresh candidates in MEC for took " + (end - start) + " ms");
     }
 
     private String getKeyForCandidate(StoredCandidate testCandidateMetadata) {

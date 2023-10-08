@@ -264,7 +264,7 @@ public class EventLogWindow {
         pageInfo.setBufferSize(Integer.parseInt(String.valueOf(bufferSize.getValue())));
 
         filterRequest.setPageInfo(pageInfo);
-        ReplayData replayData1 = null;
+        ReplayData replayData1 = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
         updateTableData(replayData1);
         infoLabel.setText(" [Page " +
                 (filterRequest.getPageInfo().getNumber() + 1) +

@@ -709,6 +709,11 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
+    public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filterRequest) {
+        return null;
+    }
+
+    @Override
     public void setSessionInstance(SessionInstance sessionInstance) {
         this.session = sessionInstance.getExecutionSession();
         this.sessionInstance = sessionInstance;

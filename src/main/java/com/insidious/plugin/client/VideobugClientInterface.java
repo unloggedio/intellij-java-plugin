@@ -88,4 +88,6 @@ public interface VideobugClientInterface {
 
 
     SessionInstance getSessionInstance();
+
+    ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filterRequest);
 }

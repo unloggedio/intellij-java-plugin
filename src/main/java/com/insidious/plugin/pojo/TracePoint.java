@@ -86,7 +86,7 @@ public class TracePoint {
                     dataEvent.getRecordedAt(),
                     dataEvent.getEventId());
             ExecutionSession executionSession1 = new ExecutionSession();
-            executionSession1.setSessionId(dataEvent.getSessionId());
+//            executionSession1.setSessionId(dataEvent.getSessionId());
             tracePoint.setExecutionSession(executionSession1);
             return tracePoint;
 
