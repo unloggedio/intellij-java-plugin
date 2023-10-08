@@ -48,6 +48,7 @@ test:
       - .gradle
       - .cache
   artifacts:
+    when: always
     untracked: false
     name: test-report.html
     paths:
