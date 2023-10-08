@@ -14,6 +14,7 @@ import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.*;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.*;
 import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
@@ -57,28 +58,29 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JTextArea returnValueTextArea;
     private JPanel methodParameterScrollContainer;
     private JPanel scrollerContainer;
-    private JLabel methodNameLabel;
+    //    private JLabel methodNameLabel;
     private JButton executeButton;
     private JPanel directInvokeDescriptionPanel;
     private JPanel descriptionPanel;
     private JEditorPane descriptionEditorPane;
     private JScrollPane descriptionScrollContainer;
-    private JCheckBox permanentMocksCheckBox;
+    //    private JCheckBox permanentMocksCheckBox;
     private JPanel permanentMockControlPanel;
+    private JButton createJUnitBoilerplateButton;
     private MethodAdapter methodElement;
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
         this.objectMapper = this.insidiousService.getObjectMapper();
         scrollerContainer.setVisible(false);
-        permanentMocksCheckBox.setVisible(false);
+//        permanentMocksCheckBox.setVisible(false);
 
 //        h1WhatIsDirectInvokeEditorPane.setContentType("text/html");
 
-        methodNameLabel.setText("This will be available after IDEA indexing is complete");
+        setActionPanelTitle("This will be available after IDEA indexing is complete");
         executeButton.setEnabled(false);
         DumbService.getInstance(insidiousService.getProject()).runWhenSmart(() -> {
-            methodNameLabel.setText("Click on a method to proceed");
+            setActionPanelTitle("Click on a method to proceed");
             executeButton.setEnabled(true);
         });
 
@@ -94,13 +96,29 @@ public class MethodDirectInvokeComponent implements ActionListener {
         });
         executeButton.setIcon(UIUtils.DIRECT_INVOKE_EXECUTE);
 
-        permanentMocksCheckBox.addActionListener(e -> {
-            if (permanentMocksCheckBox.isSelected()) {
-                insidiousService.injectMocksInRunningProcess(null);
-            } else {
-                insidiousService.removeMocksInRunningProcess(null);
-            }
-        });
+//        permanentMocksCheckBox.addActionListener(e -> {
+//            if (permanentMocksCheckBox.isSelected()) {
+//                insidiousService.injectMocksInRunningProcess(null);
+//            } else {
+//                insidiousService.removeMocksInRunningProcess(null);
+//            }
+//        });
+
+        createJUnitBoilerplateButton.addActionListener(
+                e -> {
+                    TestCaseGenerationConfiguration generationConfiguration = insidiousService.generateMethodBoilerplate(
+                            methodElement);
+                    if (generationConfiguration == null) {
+                        InsidiousNotification.notifyMessage("Failed to create boilerplate test case",
+                                NotificationType.ERROR);
+                        return;
+                    }
+                    insidiousService.previewTestCase(methodElement, generationConfiguration);
+                    InsidiousNotification.notifyMessage(
+                            "Created JUnit test boilerplate. \nRecord with unlogged-sdk to create full JUnit " +
+                                    "test case.", NotificationType.INFORMATION
+                    );
+                });
     }
 
     private void executeMethodWithParameters() {
@@ -280,10 +298,9 @@ public class MethodDirectInvokeComponent implements ActionListener {
         ClassAdapter containingClass = methodElement.getContainingClass();
 
         logger.warn("render method executor for: " + methodName);
-        String methodNameForLabel = methodName.length() > 25 ? methodName.substring(0, 25) : methodName;
-        methodNameLabel.setText(methodNameForLabel);
-        TitledBorder titledBorder = (TitledBorder) actionControlPanel.getBorder();
-        titledBorder.setTitle(containingClass.getName());
+        String methodNameForLabel = methodName.length() > 20 ? methodName.substring(0, 20) + "..." : methodName;
+        String title = containingClass.getName() + "." + methodNameForLabel + "( " + " )";
+        setActionPanelTitle(title);
 
 
         ParameterAdapter[] methodParameters = methodElement.getParameters();
@@ -400,6 +417,11 @@ public class MethodDirectInvokeComponent implements ActionListener {
 //            parameterScrollPanel.repaint();
         });
 
+    }
+
+    private void setActionPanelTitle(String title) {
+        TitledBorder titledBorder = (TitledBorder) actionControlPanel.getBorder();
+        titledBorder.setTitle(title);
     }
 
     @Override

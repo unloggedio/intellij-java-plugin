@@ -85,6 +85,7 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
+//import io.unlogged.Unlogged;
 import org.json.JSONObject;
 
 import java.awt.*;
@@ -147,6 +148,8 @@ final public class InsidiousService implements
     private HighlightedRequest currentHighlightedRequest = null;
     private boolean testCaseDesignerWindowAdded = false;
     private Content introPanelContent = null;
+    private Map<String, GutterState> cachedGutterState = new HashMap<>();
+
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -190,7 +193,7 @@ final public class InsidiousService implements
         });
     }
 
-    //    @Unlogged
+//    @Unlogged
     public static void main(String[] args) {
 
     }
@@ -265,6 +268,10 @@ final public class InsidiousService implements
 //        TestSuite testSuite = new TestSuite(testCaseScripts);
 //        junitTestCaseWriter.saveTestSuite(testSuite);
 //    }
+
+    public TestCaseGenerationConfiguration generateMethodBoilerplate(MethodAdapter methodAdapter) {
+        return testCaseDesignerWindow.generateTestCaseBoilerPlace(methodAdapter);
+    }
 
     public synchronized void previewTestCase(MethodAdapter methodElement, TestCaseGenerationConfiguration generationConfiguration) {
 
@@ -553,12 +560,6 @@ final public class InsidiousService implements
     }
 
     public void injectMocksInRunningProcess(List<DeclaredMock> allDeclaredMocks) {
-        if (allDeclaredMocks == null || allDeclaredMocks.size() == 0) {
-            allDeclaredMocks = getAllDeclaredMocks();
-            allDeclaredMocks.stream()
-                    .map(e -> e.getSourceClassName() + "." + e.getFieldName())
-                    .forEach(configurationState::addFieldMock);
-        }
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.INJECT_MOCKS);
         agentCommandRequest.setDeclaredMocks(allDeclaredMocks);
@@ -685,6 +686,7 @@ final public class InsidiousService implements
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
         logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "] => " + project.getName());
+        cachedGutterState.clear();
         DumbService dumbService = DumbService.getInstance(project);
         if (dumbService.isDumb()) {
             dumbService.runWhenSmart(() -> {
@@ -842,8 +844,13 @@ final public class InsidiousService implements
             return GutterState.PROCESS_NOT_RUNNING;
         }
 
-        CandidateSearchQuery query = createSearchQueryForMethod(method);
         MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(method);
+        final String methodHashKey = methodUnderTest.getMethodHashKey();
+        if (cachedGutterState.containsKey(methodHashKey)) {
+            return cachedGutterState.get(methodHashKey);
+        }
+
+        CandidateSearchQuery query = createSearchQueryForMethod(method);
 
         List<TestCandidateMetadata> candidates = getTestCandidateMetadata(query);
 
@@ -855,6 +862,7 @@ final public class InsidiousService implements
 
         // process is running, but no test candidates for this method
         if (candidates.size() == 0 && !hasStoredCandidates) {
+            cachedGutterState.put(methodHashKey, GutterState.PROCESS_RUNNING);
             return GutterState.PROCESS_RUNNING;
         }
 
@@ -862,9 +870,8 @@ final public class InsidiousService implements
         // so check if we have executed this before
 
         //check for change
-        final String methodHashKey = methodUnderTest.getMethodHashKey();
 
-        // we havent checked anything for this method earlier
+        // we haven't checked anything for this method earlier
         // store method hash for diffs
         String methodText = method.getText();
         if (!this.methodHash.containsKey(methodHashKey)) {
@@ -881,6 +888,7 @@ final public class InsidiousService implements
             //to prevent state change before exec complete.
             classModifiedFlagMap.put(methodUnderTest.getClassName(), true);
             ApplicationManager.getApplication().invokeLater(() -> highlightLines(currentHighlightedRequest));
+            cachedGutterState.put(methodHashKey, GutterState.EXECUTE);
             return GutterState.EXECUTE;
         }
 
@@ -888,6 +896,7 @@ final public class InsidiousService implements
             return gutterState;
         } else {
             if (!executionRecord.containsKey(methodHashKey)) {
+                cachedGutterState.put(methodHashKey, GutterState.DATA_AVAILABLE);
                 return GutterState.DATA_AVAILABLE;
             }
         }
@@ -896,26 +905,32 @@ final public class InsidiousService implements
 
         if (this.candidateIndividualContextMap.get(methodHashKey) != null &&
                 differenceResult.isUseIndividualContext()) {
-            logger.info("Using flow ind : " + this.candidateIndividualContextMap.get(methodHashKey));
+//            logger.info("Using flow ind : " + this.candidateIndividualContextMap.get(methodHashKey));
             switch (this.candidateIndividualContextMap.get(methodHashKey)) {
                 case "Diff":
+                    cachedGutterState.put(methodHashKey, GutterState.DIFF);
                     return GutterState.DIFF;
                 case "NoRun":
+                    cachedGutterState.put(methodHashKey, GutterState.EXECUTE);
                     return GutterState.EXECUTE;
                 default:
+                    cachedGutterState.put(methodHashKey, GutterState.NO_DIFF);
                     return GutterState.NO_DIFF;
             }
         }
-        logger.info("Using flow normal : "
-                + differenceResult.getDiffResultType());
+//        logger.info("Using flow normal : " + differenceResult.getDiffResultType());
         switch (differenceResult.getDiffResultType()) {
             case DIFF:
+                cachedGutterState.put(methodHashKey, GutterState.DIFF);
                 return GutterState.DIFF;
             case NO_ORIGINAL:
+                cachedGutterState.put(methodHashKey, GutterState.NO_DIFF);
                 return GutterState.NO_DIFF;
             case SAME:
+                cachedGutterState.put(methodHashKey, GutterState.NO_DIFF);
                 return GutterState.NO_DIFF;
             default:
+                cachedGutterState.put(methodHashKey, GutterState.DIFF);
                 return GutterState.DIFF;
         }
     }
@@ -1250,10 +1265,6 @@ final public class InsidiousService implements
         return sessionInstance.getMethodDefinition(methodUnderTest);
     }
 
-    public void clearClassModifiedMap() {
-        classModifiedFlagMap.clear();
-    }
-
     public void highlightLines(HighlightedRequest highlightRequest) {
         if (highlightRequest == null) {
             return;
@@ -1405,7 +1416,9 @@ final public class InsidiousService implements
 
     public void disableMock(DeclaredMock declaredMock) {
         configurationState.removeMock(declaredMock.getId());
-        removeMocksInRunningProcess(List.of(declaredMock));
+        if (isFieldMockActive(declaredMock.getSourceClassName(), declaredMock.getFieldName())) {
+            removeMocksInRunningProcess(List.of(declaredMock));
+        }
     }
 
     public void enableMock(DeclaredMock declaredMock) {

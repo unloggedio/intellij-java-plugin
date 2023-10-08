@@ -12,7 +12,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.psi.*;
-import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.search.GlobalSearchScope;
 
 import java.util.*;
@@ -33,6 +32,9 @@ public class ClassUtils {
             List<String> creationStack,
             Project project
     ) {
+        if (parameterType == null) {
+            return "null";
+        }
         String parameterTypeCanonicalText = parameterType.getCanonicalText();
         if (creationStack.contains(parameterTypeCanonicalText)) {
             return "null";
@@ -69,8 +71,8 @@ public class ClassUtils {
 
             }
 
-            if (parameterType instanceof PsiClassReferenceType) {
-                PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
+            if (parameterType instanceof PsiClassType) {
+                PsiClassType classReferenceType = (PsiClassType) parameterType;
                 PsiClassType psiClassRawType = classReferenceType.rawType();
                 String rawTypeCanonicalText = psiClassRawType.getCanonicalText();
                 if (

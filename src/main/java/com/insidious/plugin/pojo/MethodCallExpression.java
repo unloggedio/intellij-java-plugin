@@ -1,6 +1,5 @@
 package com.insidious.plugin.pojo;
 
-import com.esotericsoftware.asm.Opcodes;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.ParameterNameFactory;
@@ -14,6 +13,7 @@ import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
+import org.objectweb.asm.Opcodes;
 
 import java.io.Serializable;
 import java.util.ArrayList;

@@ -70,17 +70,6 @@ public class ClassDefinition {
         return classDefinition;
     }
 
-    public static ClassInfo ClassInfoFromClassInfo(ClassInfo e) {
-
-        BytesOut<ByteBuffer> bytesOut = Bytes.elasticByteBuffer();
-        e.writeMarshallable(bytesOut);
-
-        ClassInfo classDefinition = new ClassInfo();
-        classDefinition.readMarshallable(bytesOut.bytesForRead());
-
-
-        return classDefinition;
-    }
 
 
     public boolean isPojo() {

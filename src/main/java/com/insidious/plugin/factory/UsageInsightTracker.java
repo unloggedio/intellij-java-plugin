@@ -20,7 +20,7 @@ public class UsageInsightTracker {
     private final Amplitude amplitudeClient;
     private final VersionManager versionManager;
     private final List<String> UsersToSkip = Arrays.asList(
-//            "artpar",
+            "artpar",
             "Amogh",
             "testerfresher"
     );

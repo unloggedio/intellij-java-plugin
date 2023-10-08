@@ -1119,8 +1119,9 @@ public class DaoService {
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
     getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
-        logger.warn("query test candidates: " + candidateSearchQuery);
+//        logger.warn("query test candidates: " + candidateSearchQuery);
         try {
+            long start = new Date().getTime();
 
             GenericRawResults<TestCandidateMetadata> parameterIds;
             switch (candidateSearchQuery.getCandidateFilterType()) {
@@ -1166,7 +1167,8 @@ public class DaoService {
             }
 
             parameterIds.close();
-            logger.warn("found [" + resultList.size() + "] candidates");
+            long end = new Date().getTime();
+            logger.warn("found [" + resultList.size() + "] candidates in " +  (end - start) + " ms");
             return resultList;
         } catch (Exception e) {
             e.printStackTrace();

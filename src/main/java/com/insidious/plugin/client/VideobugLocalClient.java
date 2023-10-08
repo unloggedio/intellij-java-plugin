@@ -161,14 +161,14 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public ReplayData fetchObjectHistoryByObjectId(
             FilteredDataEventsRequest filteredDataEventsRequest
-    ) throws SessionNotSelectedException {
+    ) {
 
 //        if (filteredDataEventsRequest.getSessionId() != null) {
 //            checkSession(filteredDataEventsRequest.getSessionId());
 //        }
-        if (this.sessionInstance == null) {
-            throw new SessionNotSelectedException();
-        }
+//        if (this.sessionInstance == null) {
+//            throw new SessionNotSelectedException();
+//        }
         ReplayData replayData = this.sessionInstance.fetchObjectHistoryByObjectId(filteredDataEventsRequest);
         replayData.setClient(this);
         return replayData;

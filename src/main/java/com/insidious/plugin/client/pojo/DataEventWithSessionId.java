@@ -32,7 +32,6 @@ public class DataEventWithSessionId implements Serializable, BytesMarshallable {
 
     @DatabaseField
     private long value;
-    private String sessionId;
     @DatabaseField(dataType = DataType.BYTE_ARRAY)
     private byte[] serializedValue = new byte[0];
 
@@ -46,7 +45,6 @@ public class DataEventWithSessionId implements Serializable, BytesMarshallable {
         int length = bytes.readInt();
         serializedValue = new byte[length];
         bytes.read(serializedValue);
-//        BytesMarshallable.super.readMarshallable(bytes);
     }
 
     @Override
@@ -58,7 +56,6 @@ public class DataEventWithSessionId implements Serializable, BytesMarshallable {
         bytes.writeLong(value);
         bytes.writeInt(serializedValue.length);
         bytes.write(serializedValue);
-//        BytesMarshallable.super.writeMarshallable(bytes);
     }
 
     public long getThreadId() {
@@ -101,13 +98,6 @@ public class DataEventWithSessionId implements Serializable, BytesMarshallable {
         this.value = value;
     }
 
-    public String getSessionId() {
-        return sessionId;
-    }
-
-    public void setSessionId(String sessionId) {
-        this.sessionId = sessionId;
-    }
 
     public DataEventWithSessionId(long threadId) {
         this.threadId = threadId;
@@ -124,7 +114,6 @@ public class DataEventWithSessionId implements Serializable, BytesMarshallable {
                 ", recordedAt=" + recordedAt +
                 ", dataId=" + probeId +
                 ", value=" + value +
-                ", sessionId='" + sessionId + '\'' +
                 '}';
     }
 

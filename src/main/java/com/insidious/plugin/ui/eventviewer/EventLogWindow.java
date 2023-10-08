@@ -251,7 +251,7 @@ public class EventLogWindow {
 
         filterRequest.setPageInfo(pageInfo);
         ReplayData replayData = null;
-        replayData = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
+//        replayData = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
         updateTableData(replayData);
         infoLabel.setText("[Page " + (pageNumber + 1) + "] [" + replayData.getDataEvents().size() + " events]");
         return replayData;
