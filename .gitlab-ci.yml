@@ -40,7 +40,7 @@ build:
 
 test:
   stage: build
-  script: ./gradlew check
+  script: ./gradlew check -X
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: pull
