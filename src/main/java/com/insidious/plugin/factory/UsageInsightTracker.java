@@ -26,6 +26,7 @@ public class UsageInsightTracker {
     );
     private final long sessionId = new Date().getTime();
     private final AtomicInteger eventId = new AtomicInteger();
+    private boolean shutdown = false;
 
     private UsageInsightTracker() {
         amplitudeClient = Amplitude.getInstance("PLUGIN");
@@ -47,7 +48,7 @@ public class UsageInsightTracker {
     }
 
     public void RecordEvent(String eventName, JSONObject eventProperties) {
-        if (UsersToSkip.contains(HOSTNAME)) {
+        if (shutdown || UsersToSkip.contains(HOSTNAME)) {
             return;
         }
         Event event = new Event(eventName, HOSTNAME);
@@ -65,6 +66,7 @@ public class UsageInsightTracker {
     }
 
     public void close() {
+        shutdown = true;
         try {
             amplitudeClient.shutdown();
         } catch (InterruptedException e) {
