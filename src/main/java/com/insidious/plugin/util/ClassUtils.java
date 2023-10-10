@@ -79,6 +79,8 @@ public class ClassUtils {
                         rawTypeCanonicalText.equals("java.util.List") ||
                                 rawTypeCanonicalText.equals("java.util.ArrayList") ||
                                 rawTypeCanonicalText.equals("java.util.LinkedList") ||
+                                rawTypeCanonicalText.equals("java.util.TreeSet") ||
+                                rawTypeCanonicalText.equals("java.util.SortedSet") ||
                                 rawTypeCanonicalText.equals("java.util.Set")
                 ) {
                     dummyValue.append("[");

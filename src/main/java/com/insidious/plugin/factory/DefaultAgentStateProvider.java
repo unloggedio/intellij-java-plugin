@@ -3,7 +3,6 @@ package com.insidious.plugin.factory;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.agent.ConnectionStateListener;
 import com.insidious.plugin.agent.ServerMetadata;
-import com.insidious.plugin.ui.methodscope.HighlightedRequest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -12,7 +11,6 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiPackage;
-
 import org.json.JSONObject;
 
 import java.util.Arrays;
@@ -48,35 +46,35 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
         properties.put("project", insidiousService.getProject().getName());
         UsageInsightTracker.getInstance().RecordEvent("AGENT_CONNECTED", properties);
         String finalIncludedPackageName = "*";
-//        if (!"null".equals(includedPackageName)) {
-//
-//            if ("?".equals(includedPackageName)) {
-//                InsidiousNotification.notifyMessage("A process running with unlogged agent was discovered, but the " +
-//                        "package to be captured is set to [?]. This means that no class is being captured. Please fix the" +
-//                        " i= parameter in the JVM parameters and specify the correct package to be captured and restart " +
-//                        "the process", NotificationType.WARNING);
-//                return;
-//            }
-//
-//            finalIncludedPackageName = includedPackageName;
-//            String finalIncludedPackageName1 = finalIncludedPackageName;
-//             PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
-//                    (Computable<PsiPackage>) () -> JavaPsiFacade.getInstance(insidiousService.getProject())
-//                            .findPackage(finalIncludedPackageName1));
-//            if (locatedPackage == null) {
-//                logger.warn("Package for agent [" + includedPackageName + "] not found in current project");
-//                return;
-//            } else {
-//
-//                ApplicationManager.getApplication().runReadAction(() -> {
-//                    List<String> classNameList = Arrays.stream(locatedPackage.getDirectories())
-//                            .map(PsiDirectory::getName)
-//                            .collect(Collectors.toList());
-//                    logger.info("Package [" + finalIncludedPackageName1 + "] found in [" + locatedPackage.getProject()
-//                            .getName() + "] -> " + classNameList);
-//                });
-//            }
-//        }
+        if (!"null".equals(includedPackageName)) {
+
+            if ("?".equals(includedPackageName)) {
+                InsidiousNotification.notifyMessage("A process running with unlogged agent was discovered, but the " +
+                        "package to be captured is set to [?]. This means that no class is being captured. Please fix the" +
+                        " i= parameter in the JVM parameters and specify the correct package to be captured and restart " +
+                        "the process", NotificationType.WARNING);
+                return;
+            }
+
+            finalIncludedPackageName = includedPackageName;
+            String finalIncludedPackageName1 = finalIncludedPackageName;
+            PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
+                    (Computable<PsiPackage>) () -> JavaPsiFacade.getInstance(insidiousService.getProject())
+                            .findPackage(finalIncludedPackageName1));
+            if (locatedPackage == null) {
+                logger.warn("Package for agent [" + includedPackageName + "] not found in current project");
+                return;
+            } else {
+
+                ApplicationManager.getApplication().runReadAction(() -> {
+                    List<String> classNameList = Arrays.stream(locatedPackage.getDirectories())
+                            .map(PsiDirectory::getName)
+                            .collect(Collectors.toList());
+                    logger.info("Package [" + finalIncludedPackageName1 + "] found in [" + locatedPackage.getProject()
+                            .getName() + "] -> " + classNameList);
+                });
+            }
+        }
         this.isAgentServerRunning = true;
 
         InsidiousNotification.notifyMessage("New session identified tracking package [" + finalIncludedPackageName

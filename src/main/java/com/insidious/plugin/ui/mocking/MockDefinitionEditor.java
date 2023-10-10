@@ -111,10 +111,16 @@ public class MockDefinitionEditor {
 
         ArrayList<ThenParameter> thenParameterList = new ArrayList<>();
         thenParameterList.add(createDummyThenParameter());
+        PsiElement callerQualifier = methodCallExpression.getMethodExpression().getQualifier();
+        String fieldName = callerQualifier.getText();
+        PsiElement[] callerQualifierChildren = callerQualifier.getChildren();
+        if (callerQualifierChildren.length > 1) {
+            fieldName = callerQualifierChildren[callerQualifierChildren.length - 1].getText();
+        }
         this.declaredMock = new DeclaredMock(
                 "mock response " + expressionText,
                 methodUnderTest.getClassName(), parentClass.getQualifiedName(),
-                methodCallExpression.getMethodExpression().getQualifier().getText(),
+                fieldName,
                 methodUnderTest.getName(), parameterList, thenParameterList
         );
         updateUiValues();

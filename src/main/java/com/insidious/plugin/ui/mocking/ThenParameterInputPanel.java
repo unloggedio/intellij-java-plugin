@@ -108,6 +108,9 @@ public class ThenParameterInputPanel {
         if (className.contains("<")) {
             className = className.substring(0, className.indexOf("<"));
         }
+        if (className.contains("[")) {
+            className = className.substring(0, className.indexOf("["));
+        }
 
         PsiClass locatedClass = JavaPsiFacade.getInstance(project)
                 .findClass(className, GlobalSearchScope.allScope(project));
