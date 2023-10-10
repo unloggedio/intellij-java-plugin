@@ -85,7 +85,6 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
-//import io.unlogged.Unlogged;
 import org.json.JSONObject;
 
 import java.awt.*;
@@ -193,7 +192,7 @@ final public class InsidiousService implements
         });
     }
 
-//    @Unlogged
+    //    @Unlogged
     public static void main(String[] args) {
 
     }
@@ -1222,7 +1221,9 @@ final public class InsidiousService implements
 
     @Override
     public void onDisconnectedFromAgentServer() {
-        atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+        if (atomicTestContainerWindow != null) {
+            atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+        }
         configurationState.clearPermanentFieldMockSetting();
 //        methodDirectInvokeComponent.uncheckPermanentMocks();
     }
