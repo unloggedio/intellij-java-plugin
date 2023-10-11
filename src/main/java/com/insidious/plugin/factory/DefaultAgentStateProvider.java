@@ -77,8 +77,8 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
         }
         this.isAgentServerRunning = true;
 
-        InsidiousNotification.notifyMessage("New session identified tracking package [" + finalIncludedPackageName
-                        + "] connected, agent version: " + serverMetadata.getAgentVersion(),
+        InsidiousNotification.notifyMessage("New session identified tracking package " +
+                        "[" + finalIncludedPackageName + "]",
                 NotificationType.INFORMATION);
 
 
