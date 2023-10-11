@@ -341,7 +341,9 @@ public class AtomicRecordService {
 
     private void addNewRecord(String methodHashKey, String className, StoredCandidate candidate) {
         AtomicRecord record = new AtomicRecord(className);
-        record.getStoredCandidateMap().put(methodHashKey, Collections.singletonList(candidate));
+        ArrayList<StoredCandidate> value = new ArrayList<>();
+        value.add(candidate);
+        record.getStoredCandidateMap().put(methodHashKey, value);
         classAtomicRecordMap.put(className, record);
         writeToFile(new File(getFilenameForClass(className)), record, FileUpdateType.ADD_CANDIDATE, useNotifications);
     }

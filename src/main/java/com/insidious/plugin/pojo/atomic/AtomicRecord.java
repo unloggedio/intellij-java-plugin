@@ -12,9 +12,6 @@ public class AtomicRecord {
     private Map<String, List<StoredCandidate>> storedCandidateMap = new HashMap<>();
     private Map<String, List<DeclaredMock>> declaredMockMap = new HashMap<>();
 
-    public AtomicRecord() {
-    }
-
     public AtomicRecord(String classname) {
         this.classname = classname;
     }
