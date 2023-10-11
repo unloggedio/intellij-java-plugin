@@ -619,10 +619,11 @@ final public class InsidiousService implements
 
         methodArgumentValueCache.addArgumentSet(agentCommandRequest);
 
-        List<DeclaredMock> availableMocks = getDeclaredMocksFor(new MethodUnderTest(
+        MethodUnderTest methodUnderTest = new MethodUnderTest(
                 agentCommandRequest.getMethodName(), agentCommandRequest.getMethodSignature(),
                 0, agentCommandRequest.getClassName()
-        ));
+        );
+        List<DeclaredMock> availableMocks = getDeclaredMocksFor(methodUnderTest);
 
         List<DeclaredMock> activeMocks = availableMocks
                 .stream()
@@ -638,6 +639,7 @@ final public class InsidiousService implements
                 AgentCommandResponse<String> agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
                 logger.warn("agent command response - " + agentCommandResponse);
                 if (executionResponseListener != null) {
+                    cachedGutterState.remove(methodUnderTest.getMethodHashKey());
                     executionResponseListener.onExecutionComplete(agentCommandRequest, agentCommandResponse);
                 } else {
                     logger.warn("no body listening for the response");
@@ -892,6 +894,7 @@ final public class InsidiousService implements
         }
 
         if (!executionRecord.containsKey(methodHashKey) && hasStoredCandidates && gutterState != null) {
+            cachedGutterState.put(methodHashKey, gutterState);
             return gutterState;
         } else {
             if (!executionRecord.containsKey(methodHashKey)) {
@@ -1064,6 +1067,7 @@ final public class InsidiousService implements
             String methodBody = method.getText();
             int methodBodyHashCode = methodBody.hashCode();
             this.methodHash.put(classMethodHashKey, methodBodyHashCode);
+            this.cachedGutterState.remove(classMethodHashKey);
             DaemonCodeAnalyzer.getInstance(project).restart(method.getContainingFile());
         }
     }
@@ -1225,6 +1229,7 @@ final public class InsidiousService implements
             atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
         }
         configurationState.clearPermanentFieldMockSetting();
+        cachedGutterState.clear();
 //        methodDirectInvokeComponent.uncheckPermanentMocks();
     }
 
