@@ -505,7 +505,9 @@ public class AtomicRecordService {
     public void setCandidateStateForCandidate(String candidateID, String classname,
                                               String methodKey, StoredCandidateMetadata.CandidateStatus state) {
         AtomicRecord record = classAtomicRecordMap.get(classname);
-        if (record == null || record.getStoredCandidateMap().get(methodKey).size() == 0) {
+        if (record == null
+                || !record.getStoredCandidateMap().containsKey(methodKey)
+                || record.getStoredCandidateMap().get(methodKey).size() == 0) {
             return;
         }
         List<StoredCandidate> list = record.getStoredCandidateMap().get(methodKey);
