@@ -20,9 +20,8 @@ import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
-import com.insidious.plugin.ui.assertions.SaveForm;
-import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
@@ -49,7 +48,7 @@ import java.util.stream.Collectors;
 
 import static com.insidious.plugin.Constants.HOSTNAME;
 
-public class MethodExecutorComponent implements MethodExecutionListener, CandidateSelectedListener, CandidateLifeListener {
+public class MethodExecutorComponent implements CandidateLifeListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
     private final InsidiousService insidiousService;
     private final Map<String, AgentCommandResponse<String>> candidateResponseMap = new HashMap<>();
@@ -80,8 +79,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         gridPanel = createCandidateScrollPanel();
 
         candidateScrollPanelContainer = new JBScrollPane(gridPanel);
-        candidateScrollPanelContainer.setBorder(JBUI.Borders.empty());
+        candidateScrollPanelContainer.setBorder(JBUI.Borders.empty(5));
         candidateScrollPanelContainer.setMaximumSize(new Dimension(-1, 40));
+        candidateScrollPanelContainer.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
 
         setFilterButtonsListeners();
         centerParent.setMaximumSize(new Dimension(-1, Math.min(300, 40)));
@@ -272,14 +272,15 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 
     }
 
-    public void refreshAndReloadCandidates(final MethodAdapter method, List<StoredCandidate> candidates) {
+    public void refreshAndReloadCandidates(final MethodAdapter methodAdapter, List<StoredCandidate> candidates) {
 
         long start = new Date().getTime();
 
-        if (methodElement == null || method == null || method.getPsiMethod() != methodElement.getPsiMethod()) {
+        if (methodElement == null || methodAdapter == null
+                || methodAdapter.getPsiMethod() != methodElement.getPsiMethod()) {
             clearBoard();
         }
-        methodElement = method;
+        methodElement = methodAdapter;
         if (methodElement == null) {
             return;
         }
@@ -290,6 +291,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         methodInfo = insidiousService.getMethodInformation(methodUnderTest);
 
         if (candidates.size() == 0) {
+            insidiousService.getDirectInvokeTab().setCoveragePercent(0);
             return;
         }
 
@@ -315,8 +317,9 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
                 .peek(testCandidateMetadata -> {
                     testCandidateMetadata.setMethod(methodUnderTest);
                 })
-                .map(e -> new TestCandidateListedItemComponent(e, methodArgumentNameList, this,
-                        MethodExecutorComponent.this, insidiousService, method))
+                .map(e -> new TestCandidateListedItemComponent(e, methodArgumentNameList,
+                        this, insidiousService, methodAdapter)
+                )
                 .forEach(e -> {
                     candidateComponentMap.put(getKeyForCandidate(e.getCandidateMetadata()), e);
                     gridPanel.add(e.getComponent());
@@ -375,6 +378,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         int coveredUnsavedLineCount = unsavedLineCovered.size();
         int totalLineCount = methodInfo.getLineCount();
 
+        insidiousService.getDirectInvokeTab().setCoveragePercent(coveredUnsavedLineCount);
         coveragePanel.setCoverageData(totalLineCount, coveredSavedLineCount, coveredUnsavedLineCount);
 
         Set<Integer> linesToHighlight = new HashSet<>();
@@ -579,7 +583,7 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
 //        scrollParent.setVisible(true);
 //        scrollParent.revalidate();
 //        scrollParent.repaint();
-        scrollContainer.add(scrollParent, BorderLayout.CENTER);
+        scrollContainer.add(scrollParent, BorderLayout.SOUTH);
         scrollContainer.revalidate();
         scrollContainer.repaint();
         logger.warn("diff component attached: " + component.getClass().getCanonicalName());
@@ -673,6 +677,11 @@ public class MethodExecutorComponent implements MethodExecutionListener, Candida
         if (saveFormReference != null) {
             insidiousService.hideCandidateSaveForm(saveFormReference);
             saveFormReference = null;
+        }
+        if (storedCandidate.getCandidateId() == null) {
+            // new test case
+            storedCandidate.setName("test " + storedCandidate.getName() + " works correctly");
+            storedCandidate.setDescription("assert that the response value matches expected value");
         }
         saveFormReference = new SaveForm(storedCandidate, agentCommandResponse, this);
         insidiousService.showCandidateSaveForm(saveFormReference);

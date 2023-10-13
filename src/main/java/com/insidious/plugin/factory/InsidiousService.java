@@ -288,7 +288,7 @@ final public class InsidiousService implements
         focusTestCaseDesignerTab();
     }
 
-    private synchronized void initiateUI() {
+    private synchronized void initiateUI() throws IOException, FontFormatException {
         logger.info("initiate ui");
         if (testCaseDesignerWindow != null) {
             return;
@@ -324,7 +324,7 @@ final public class InsidiousService implements
 
     }
 
-    public void addAllTabs() {
+    public void addAllTabs() throws IOException, FontFormatException {
 
         if (testCaseDesignerWindow != null) {
             return;
@@ -1099,6 +1099,10 @@ final public class InsidiousService implements
         }
     }
 
+    public MethodDirectInvokeComponent getDirectInvokeTab() {
+        return methodDirectInvokeComponent;
+    }
+
     public void focusDirectInvokeTab() {
         if (toolWindow == null || directMethodInvokeContent == null) {
             return;
@@ -1211,6 +1215,8 @@ final public class InsidiousService implements
     public void focusAtomicTestsWindow() {
         if (this.atomicTestContent != null) {
             this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent);
+            this.toolWindow.show(null);
+
         }
     }
 

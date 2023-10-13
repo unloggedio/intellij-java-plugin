@@ -177,7 +177,6 @@ public class SaveForm {
         treeViewer.setSize(new Dimension(400, topPanelHeight));
         treeViewer.setMaximumSize(new Dimension(400, topPanelHeight));
         treeViewer.setPreferredSize(new Dimension(400, topPanelHeight));
-        topPanel.add(treeViewer);
 
 
         metadataForm = new SaveFormMetadataPanel(new MetadataViewPayload(storedCandidate.getName(),
@@ -189,6 +188,7 @@ public class SaveForm {
         metadataFormPanel.setMaximumSize(new Dimension(380, topPanelHeight));
 
         topPanel.add(metadataFormPanel);
+        topPanel.add(treeViewer);
 
         mainPanel.add(topPanel, BorderLayout.NORTH);
         mainPanel.add(assertionScrollPanel, BorderLayout.CENTER);

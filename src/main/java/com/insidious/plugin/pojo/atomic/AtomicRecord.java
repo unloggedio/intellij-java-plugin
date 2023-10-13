@@ -16,6 +16,9 @@ public class AtomicRecord {
         this.classname = classname;
     }
 
+    public AtomicRecord() {
+    }
+
     public Map<String, List<DeclaredMock>> getDeclaredMockMap() {
         return declaredMockMap;
     }

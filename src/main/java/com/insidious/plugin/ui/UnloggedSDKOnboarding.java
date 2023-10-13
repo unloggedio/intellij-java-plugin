@@ -34,6 +34,7 @@ public class UnloggedSDKOnboarding {
     private JTextArea importIoUnloggedUnloggedTextArea;
     private JTextArea mavenDependencyAreaAnnotation;
     private JButton showFeaturesButton;
+    private JPanel howItWorks;
     private InsidiousService insidiousService;
     private String currentJDK = "JDK 1.8";
     private final String maven_default =

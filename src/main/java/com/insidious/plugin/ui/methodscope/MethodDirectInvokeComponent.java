@@ -37,10 +37,8 @@ import org.json.JSONObject;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -67,11 +65,29 @@ public class MethodDirectInvokeComponent implements ActionListener {
     //    private JCheckBox permanentMocksCheckBox;
     private JPanel permanentMockControlPanel;
     private JButton createJUnitBoilerplateButton;
+    private JLabel candidateCountLinkLabel;
+    private JPanel candidateCountPanel;
+    private JPanel candidateCountPanelParent;
+    private JPanel candidateCountLinkLabelParent;
+    private JLabel coveragePercentLabel;
     private MethodAdapter methodElement;
+    private Font SOURCE_CODE = Font.createFont(Font.TRUETYPE_FONT, getClass().getResourceAsStream("/fonts" +
+            "/SourceCodePro-Regular.ttf"));
 
-    public MethodDirectInvokeComponent(InsidiousService insidiousService) {
+    Font OPEN_SANS = Font.createFont(Font.TRUETYPE_FONT, this.getClass().getResourceAsStream("/fonts/OpenSans" +
+            "-Regular.ttf"));
+
+
+    public MethodDirectInvokeComponent(InsidiousService insidiousService) throws IOException, FontFormatException {
         this.insidiousService = insidiousService;
         this.objectMapper = this.insidiousService.getObjectMapper();
+
+//        returnValueTextArea.setFont(OPEN_SANS);
+//        Font font = descriptionEditorPane.getFont();
+
+
+//        descriptionEditorPane.setFont(OPEN_SANS);
+
         scrollerContainer.setVisible(false);
 //        permanentMocksCheckBox.setVisible(false);
 
@@ -96,6 +112,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         });
         executeButton.setIcon(UIUtils.DIRECT_INVOKE_EXECUTE);
 
+
 //        permanentMocksCheckBox.addActionListener(e -> {
 //            if (permanentMocksCheckBox.isSelected()) {
 //                insidiousService.injectMocksInRunningProcess(null);
@@ -104,6 +121,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 //            }
 //        });
 
+        createJUnitBoilerplateButton.setIcon(UIUtils.TEST_TUBE_FILL);
         createJUnitBoilerplateButton.addActionListener(
                 e -> {
                     TestCaseGenerationConfiguration generationConfiguration = insidiousService.generateMethodBoilerplate(
@@ -119,11 +137,51 @@ public class MethodDirectInvokeComponent implements ActionListener {
                                     "test case.", NotificationType.INFORMATION
                     );
                 });
+
+
+        candidateCountLinkLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                insidiousService.focusAtomicTestsWindow();
+            }
+        });
+        coveragePercentLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                insidiousService.focusAtomicTestsWindow();
+            }
+        });
+    }
+
+
+    public void updateCandidateCount(int candidateCount) {
+        if (candidateCount == 0) {
+            candidateCountLinkLabel.setVisible(false);
+        } else if (candidateCount > 0) {
+            candidateCountLinkLabel.setVisible(true);
+            candidateCountLinkLabel.setText("<HTML><U>" + candidateCount + " recorded execution" + "</U></HTML>");
+            candidateCountLinkLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            candidateCountLinkLabel.setForeground(UIUtils.teal);
+;
+        }
+    }
+
+    public void setCoveragePercent(int coveragePercent) {
+        if (coveragePercent == 0) {
+            coveragePercentLabel.setVisible(false);
+        } else if (coveragePercent > 0) {
+            coveragePercentLabel.setVisible(true);
+            coveragePercentLabel.setText("<HTML><U>+" + coveragePercent + " line coverage" + "</U></HTML>");
+            coveragePercentLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            coveragePercentLabel.setForeground(UIUtils.green);
+
+        }
     }
 
     private void executeMethodWithParameters() {
 
         AgentStateProvider agentStateProvider = insidiousService.getAgentStateProvider();
+//        returnValueTextArea.setFont(SOURCE_CODE);
 
         if (!agentStateProvider.isAgentRunning()) {
             String message = "Start your application with Java unlogged-sdk to start using " +
@@ -298,8 +356,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
         ClassAdapter containingClass = methodElement.getContainingClass();
 
         logger.warn("render method executor for: " + methodName);
-        String methodNameForLabel = methodName.length() > 20 ? methodName.substring(0, 20) + "..." : methodName;
-        String title = containingClass.getName() + "." + methodNameForLabel + "( " + " )";
+        String methodNameForLabel = methodName.length() > 40 ? methodName.substring(0, 40) + "..." : methodName;
+        String title = methodNameForLabel + "( " + ")";
         setActionPanelTitle(title);
 
 
