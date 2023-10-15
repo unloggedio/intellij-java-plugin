@@ -15,26 +15,26 @@ import java.awt.event.ItemEvent;
 public class UnloggedSDKOnboarding {
     private final String UNLOGGED_SDK_VERSION = "0.1.14";
     private JPanel mainPanel;
-    private JPanel topAligner;
-    private JPanel infoPanel;
-    private JLabel headingLabel;
-    private JPanel mainContent;
     private JTextArea mavenDependencyArea;
     private JButton copyCodeButtonMaven;
     private JButton discordButton;
     private JTabbedPane primaryTabbedPane;
-    private JPanel mavenPanel;
-    private JPanel gradlePanel;
-    private JPanel dependencyContents;
-    private JPanel gradleDependencyContents;
     private JTextArea gradleTextArea;
     private JButton gradleCopyButton;
-    private JPanel bottomControls;
     private JComboBox jdkSelector;
-    private JTextArea importIoUnloggedUnloggedTextArea;
     private JTextArea mavenDependencyAreaAnnotation;
     private JButton showFeaturesButton;
     private JPanel howItWorks;
+    private JPanel topAligner;
+    private JPanel infoPanel;
+    private JLabel headingLabel;
+    private JPanel mainContent;
+    private JPanel mavenPanel;
+    private JPanel dependencyContents;
+    private JPanel bottomControls;
+    private JPanel gradlePanel;
+    private JPanel gradleDependencyContents;
+    private JTextArea importIoUnloggedUnloggedTextArea;
     private InsidiousService insidiousService;
     private String currentJDK = "JDK 1.8";
     private final String maven_default =
@@ -65,7 +65,7 @@ public class UnloggedSDKOnboarding {
 
     public UnloggedSDKOnboarding(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
-
+        howItWorks.setVisible(false);
         copyCodeButtonMaven.addActionListener(e -> copyCode(PROJECT_TYPE.MAVEN));
         discordButton.addActionListener(e -> routeToDiscord());
         gradleCopyButton.addActionListener(e -> copyCode(PROJECT_TYPE.GRADLE));

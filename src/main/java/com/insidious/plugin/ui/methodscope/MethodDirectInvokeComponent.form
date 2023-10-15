@@ -124,9 +124,14 @@
                       </grid>
                     </constraints>
                     <properties>
+			                          <contentType value="text/html"/>
+
                       <editable value="false"/>
+		                            <font name="JetBrains Mono" size="16"/>
+
                       <margin top="0" left="5" bottom="5" right="5"/>
-                      <text value="DirectInvoke&#10;====================&#10;&#10;Execute any Java method from your editor in your running application&#10;&#10;*   Record execution&#10;*   Can be replayed from Replay window&#10;*   Add assertions on response objects and be notified when they break&#10;*   Generate JUnit test case&#10;&#10;How to use&#10;=======================&#10;&#10;1.  Make sure your application is running with **unlogged-sdk**&#10;2.  Focus on a method in your editor by clicking on it&#10;3.  Update the method argument values&#10;4.  Click execute&#10;&#10;How does it work&#10;================&#10;&#10;When you execute a method using DirectInvoke, a request is made &#10;to the running process over a TCP port. The **unlogged-sdk** &#10;receives this request and executes the method using reflection."/>
+		                            <text value="&lt;html&gt;&#10;  &lt;head&gt;&#10;    &#10;  &lt;/head&gt;&#10;  &lt;body&gt;&#10;    &lt;h1&gt;&#10;      What is DirectInvoke&#10;    &lt;/h1&gt;&#10;    DirectInvoke allows you to execute any Java method in your running &#10;    application easily from this interface.&#10;&#10;    &lt;ul&gt;&#10;      &lt;li&gt;&#10;        Executions are recorded&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Can be replayed from Replay window&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Identify differences in return values on replays&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Generate test cases&#10;      &lt;/li&gt;&#10;    &lt;/ul&gt;&#10;    &lt;h1&gt;&#10;      How to use DirectInvoke&#10;    &lt;/h1&gt;&#10;    To use DirectInvoke you need to&#10;&#10;    &lt;ol&gt;&#10;      &lt;li&gt;&#10;        Make sure your application is running with &lt;b&gt;unlogged-sdk&lt;/b&gt;&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Focus on a method in your editor by clicking on it&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Update the method argument values&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Click execute&#10;      &lt;/li&gt;&#10;    &lt;/ol&gt;&#10;    &lt;h1&gt;&#10;      How does it work&#10;    &lt;/h1&gt;&#10;    When you execute a method using DirectInvoke, a request is made to the &#10;    running process over a TCP port. The &lt;b&gt;unlogged-sdk&lt;/b&gt; receives this &#10;    request and executes the method using reflection.&#10;  &lt;/body&gt;&#10;&lt;/html&gt;&#10;"/>
+
                     </properties>
                   </component>
                 </children>

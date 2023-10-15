@@ -179,8 +179,8 @@ public class TestCandidateListedItemComponent {
 //        GridLayout gridLayout = new GridLayout(1, 1);
         int desiredHeightPerInput = 50;
         int desiredHeight = inputRoot.getLeafCount() * desiredHeightPerInput;
-        if (desiredHeight < 110) {
-            desiredHeight = 110;
+        if (desiredHeight < 130) {
+            desiredHeight = 130;
         }
         if (desiredHeight > 250) {
             desiredHeight = 250;
