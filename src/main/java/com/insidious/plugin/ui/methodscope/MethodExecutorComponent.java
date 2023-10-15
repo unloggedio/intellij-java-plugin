@@ -767,11 +767,15 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
         TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
                 .getTestCandidateById(testCandidate.getEntryProbeIndex(), true);
+        if (loadedTestCandidate == null) {
+            InsidiousNotification.notifyMessage("Saved cases need to be replayed once to generate test case",
+                    NotificationType.ERROR);
+            return;
+        }
 
 
         String testMethodName =
-                "testMethod" + ClassTypeUtils.upperInstanceName(
-                        loadedTestCandidate.getMainMethod().getMethodName());
+                "testMethod" + ClassTypeUtils.upperInstanceName(testCandidate.getMethod().getName());
         TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
                 TestFramework.JUnit5,
                 MockFramework.Mockito,
@@ -781,14 +785,18 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
 
         // mock all calls by default
-        testCaseGenerationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
+        if (loadedTestCandidate != null) {
+            testCaseGenerationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
+        }
 
 
         testCaseGenerationConfiguration.setTestMethodName(testMethodName);
 
 
         testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
-        testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
+        if (loadedTestCandidate != null) {
+            testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
+        }
 
 
         try {

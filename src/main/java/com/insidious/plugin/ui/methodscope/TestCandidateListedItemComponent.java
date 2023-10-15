@@ -158,7 +158,7 @@ public class TestCandidateListedItemComponent {
                 .collect(Collectors.toSet());
         int methodArgumentCount = methodArgumentNames.size();
         if (methodArgumentCount == 0) {
-            DefaultMutableTreeNode node = new DefaultMutableTreeNode("No inputs for this method.");
+            DefaultMutableTreeNode node = new DefaultMutableTreeNode("No arguments");
             inputRoot.add(node);
         } else {
             for (String key : methodArgumentNames) {

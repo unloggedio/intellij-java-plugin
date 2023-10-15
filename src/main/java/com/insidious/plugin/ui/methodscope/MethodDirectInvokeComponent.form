@@ -124,14 +124,11 @@
                       </grid>
                     </constraints>
                     <properties>
-			                          <contentType value="text/html"/>
-
+                      <contentType value="text/html"/>
                       <editable value="false"/>
-		                            <font name="JetBrains Mono" size="16"/>
-
+                      <font name="JetBrains Mono" size="16"/>
                       <margin top="0" left="5" bottom="5" right="5"/>
-		                            <text value="&lt;html&gt;&#10;  &lt;head&gt;&#10;    &#10;  &lt;/head&gt;&#10;  &lt;body&gt;&#10;    &lt;h1&gt;&#10;      What is DirectInvoke&#10;    &lt;/h1&gt;&#10;    DirectInvoke allows you to execute any Java method in your running &#10;    application easily from this interface.&#10;&#10;    &lt;ul&gt;&#10;      &lt;li&gt;&#10;        Executions are recorded&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Can be replayed from Replay window&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Identify differences in return values on replays&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Generate test cases&#10;      &lt;/li&gt;&#10;    &lt;/ul&gt;&#10;    &lt;h1&gt;&#10;      How to use DirectInvoke&#10;    &lt;/h1&gt;&#10;    To use DirectInvoke you need to&#10;&#10;    &lt;ol&gt;&#10;      &lt;li&gt;&#10;        Make sure your application is running with &lt;b&gt;unlogged-sdk&lt;/b&gt;&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Focus on a method in your editor by clicking on it&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Update the method argument values&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Click execute&#10;      &lt;/li&gt;&#10;    &lt;/ol&gt;&#10;    &lt;h1&gt;&#10;      How does it work&#10;    &lt;/h1&gt;&#10;    When you execute a method using DirectInvoke, a request is made to the &#10;    running process over a TCP port. The &lt;b&gt;unlogged-sdk&lt;/b&gt; receives this &#10;    request and executes the method using reflection.&#10;  &lt;/body&gt;&#10;&lt;/html&gt;&#10;"/>
-
+                      <text value="&lt;html&gt;&#10;  &lt;head&gt;&#10;    &#10;  &lt;/head&gt;&#10;  &lt;body&gt;&#10;    &lt;h1&gt;&#10;      What is DirectInvoke&#10;    &lt;/h1&gt;&#10;    DirectInvoke allows you to execute any Java method in your running &#10;    application easily from this interface.&#10;&#10;    &lt;ul&gt;&#10;      &lt;li&gt;&#10;        Executions are recorded&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Can be replayed from Replay window&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Identify differences in return values on replays&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Generate test cases&#10;      &lt;/li&gt;&#10;    &lt;/ul&gt;&#10;    &lt;h1&gt;&#10;      How to use DirectInvoke&#10;    &lt;/h1&gt;&#10;    To use DirectInvoke you need to&#10;&#10;    &lt;ol&gt;&#10;      &lt;li&gt;&#10;        Make sure your application is running with &lt;b&gt;unlogged-sdk&lt;/b&gt;&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Focus on a method in your editor by clicking on it&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Update the method argument values&#10;      &lt;/li&gt;&#10;      &lt;li&gt;&#10;        Click execute&#10;      &lt;/li&gt;&#10;    &lt;/ol&gt;&#10;    &lt;h1&gt;&#10;      How does it work&#10;    &lt;/h1&gt;&#10;    When you execute a method using DirectInvoke, a request is made to the &#10;    running process over a TCP port. The &lt;b&gt;unlogged-sdk&lt;/b&gt; receives this &#10;    request and executes the method using reflection.&#10;  &lt;/body&gt;&#10;&lt;/html&gt;&#10;"/>
                     </properties>
                   </component>
                 </children>
@@ -175,6 +172,7 @@
                       <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                     </constraints>
                     <properties>
+                      <icon value="icons/png/history-line-teal-12.png"/>
                       <text value=""/>
                     </properties>
                   </component>
@@ -188,6 +186,7 @@
                       <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                     </constraints>
                     <properties>
+                      <icon value="icons/png/line-height-green-12.png"/>
                       <text value=""/>
                     </properties>
                   </component>

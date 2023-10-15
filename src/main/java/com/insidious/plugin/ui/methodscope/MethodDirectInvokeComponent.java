@@ -82,6 +82,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
         this.insidiousService = insidiousService;
         this.objectMapper = this.insidiousService.getObjectMapper();
 
+        candidateCountLinkLabel.setVisible(false);
+        coveragePercentLabel.setVisible(false);
 //        returnValueTextArea.setFont(OPEN_SANS);
 //        Font font = descriptionEditorPane.getFont();
 
