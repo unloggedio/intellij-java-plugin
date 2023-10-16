@@ -4,6 +4,7 @@ import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.util.UIUtils;
 
 import javax.swing.*;
+import javax.swing.text.JTextComponent;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -24,11 +25,14 @@ public class SaveFormMetadataPanel {
     private JLabel statusLabel;
     private JLabel hostLabel;
     private JLabel timestampLabel;
-    private JPanel actionPanel;
-    private JPanel eastPanel;
     private JButton saveAndCloseButton;
     private JButton cancelButton;
-    private JPanel westPanel;
+    private JLabel createdByKeyLabel;
+    private JLabel statusKeyLabel;
+    private JLabel hostKeyPanel;
+    private JLabel timestampKeyPanel;
+    private JComboBox comboBox1;
+    private JLabel testType;
 
     public SaveFormMetadataPanel(MetadataViewPayload payload) {
         loadView(payload);
@@ -37,11 +41,19 @@ public class SaveFormMetadataPanel {
     public void loadView(MetadataViewPayload payload) {
         this.nameText.setText(payload.getName() != null ? payload.getName() : "");
         this.descriptionText.setText(payload.getDescription() != null ? payload.getDescription() : "");
+
+        this.createdByKeyLabel.setIcon(UIUtils.CREATED_BY);
         this.createdByLabel.setText(payload.getStoredCandidateMetadata().getRecordedBy());
+
+        this.hostKeyPanel.setIcon(UIUtils.MACHINE);
         this.hostLabel.setText(payload.getStoredCandidateMetadata().getHostMachineName());
+
+        this.timestampKeyPanel.setIcon(UIUtils.CLOCK);
         this.timestampLabel.setText(convertTimestamp(payload.getStoredCandidateMetadata().getTimestamp()));
         this.timestampLabel.setToolTipText(payload.getStoredCandidateMetadata().getTimestamp() + "");
         StoredCandidateMetadata.CandidateStatus status = payload.getStoredCandidateMetadata().getCandidateStatus();
+
+        this.statusKeyLabel.setIcon(UIUtils.STATUS);
         if (status.equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
             this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
             this.statusLabel.setForeground(UIUtils.red);
@@ -50,6 +62,25 @@ public class SaveFormMetadataPanel {
             this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
             this.statusLabel.setForeground(UIUtils.green);
             this.statusLabel.setText("Passing");
+        }
+
+        comboItem unitTest = new comboItem ("Unit Test", "unit_test");
+        comboItem integrationTest = new comboItem ("Integration Test", "integration_test");
+        this.comboBox1.addItem(unitTest);
+        this.comboBox1.addItem(integrationTest);
+    }
+
+    public class comboItem {
+        public String item_string;
+        public String item_value;
+
+        public comboItem (String item_string, String item_value) {
+            this.item_string = item_string;
+            this.item_value = item_value;
+        }
+
+        public String toString() {
+            return this.item_string;
         }
     }
 
