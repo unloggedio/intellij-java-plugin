@@ -10,6 +10,7 @@ import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.components.JBScrollPane;
@@ -130,56 +131,77 @@ public class SaveForm {
 
             }
         }, true);
-        int topPanelHeight = 200;
+
+        int headingPaneHeight = 60;
+        int topTextHeight = 20;
+        int topPanelHeight = 260;
 
         JPanel ruleEditor = this.ruleEditor.getMainPanel();
 
-        JScrollPane assertionScrollPanel = new JBScrollPane(ruleEditor);
-//        scrollPane.setLocation(25, 320);
-//        scrollPane.setSize(950, 310);
-        assertionScrollPanel.setMaximumSize(new Dimension(1080, 300));
-        assertionScrollPanel.setPreferredSize(new Dimension(1080, 300));
-
-
+        // define the top panel
         JPanel topPanel = new JPanel();
-
-        GridLayout topPanelLayout = new GridLayout(1, 2);
+        GridLayout topPanelLayout = new GridLayout(2,2);
         topPanel.setLayout(topPanelLayout);
 
+        // define the heading panel
+        JLabel treeTitleLabel = new JLabel();
+        treeTitleLabel.setIcon(UIUtils.TESTTUBE);
+        treeTitleLabel.setText("<html><b>Save Test Case</b></html>");
+
+        Border treeTitleLabelBorder = treeTitleLabel.getBorder();
+        Border treeTitleLabelMargin = JBUI.Borders.empty(10);
+        CompoundBorder treeTitleLabelBorderWithMargin = new CompoundBorder(treeTitleLabelBorder, treeTitleLabelMargin);
+        treeTitleLabel.setBorder(treeTitleLabelBorderWithMargin);
+
+        JPanel treeTitlePanel = new JPanel();
+        treeTitlePanel.add(treeTitleLabel);
+        treeTitlePanel.setSize(new Dimension(400, headingPaneHeight));
+        treeTitlePanel.setMaximumSize(new Dimension(400, headingPaneHeight));
+        treeTitlePanel.setPreferredSize(new Dimension(400, headingPaneHeight));
+        topPanel.add(treeTitlePanel);
+
+        // define the button panel
+        JPanel buttonPanel = new JPanel();
+
+        // cancel button in panel
+        JButton cancelButton = new JButton();
+        cancelButton.setText("Cancel");
+        cancelButton.addActionListener(e -> listener.onCancel());
+        buttonPanel.add(cancelButton);
+
+        // save button in panel
+        JButton saveButton = new JButton();
+        saveButton.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
+        saveButton.setText("Save & Close");
+        saveButton.addActionListener(e -> triggerSave());
+        buttonPanel.add(saveButton);
+
+        buttonPanel.setSize(new Dimension(400, headingPaneHeight));
+        buttonPanel.setMaximumSize(new Dimension(400, headingPaneHeight));
+        buttonPanel.setPreferredSize(new Dimension(400, headingPaneHeight));
+        topPanel.add(buttonPanel);
+
+        JLabel treeText = new JLabel();
+        treeText.setText("<html><b>Available recorded objects:</b></html>");
+        // define the tree panel
+        JPanel treeViewer = new JPanel();
+        treeViewer.setLayout(new BorderLayout());
+        treeViewer.add(treeText, BorderLayout.NORTH);
+
         mainPanel.setMaximumSize(new Dimension(1080, 600));
-
         candidateExplorerTree.setSize(new Dimension(400, 300));
-
         JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
         treeParent.setSize(new Dimension(400, topPanelHeight));
         treeParent.setMaximumSize(new Dimension(400, topPanelHeight));
         treeParent.setPreferredSize(new Dimension(400, topPanelHeight));
-
-
-        JPanel treeViewer = new JPanel();
-        treeViewer.setLayout(new BorderLayout());
-
-        JLabel treeTitleLabel = new JLabel();
-        treeTitleLabel.setText("<html><b>Available recorded objects</b></html>");
-        JPanel titleLabelContainer = new JPanel();
-
-        Border border = treeTitleLabel.getBorder();
-        Border margin = JBUI.Borders.empty(10);
-        CompoundBorder borderWithMargin = new CompoundBorder(border, margin);
-        treeTitleLabel.setBorder(borderWithMargin);
-
-        titleLabelContainer.add(treeTitleLabel);
-        treeViewer.add(treeTitleLabel, BorderLayout.NORTH);
-//        treeViewer.add(Box.createRigidArea(new Dimension(0, 5)));
-        treeViewer.add(treeParent, BorderLayout.CENTER);
-
-        //        objectScroller.setMaximumSize(new Dimension(300, 400));
-        treeViewer.setSize(new Dimension(400, topPanelHeight));
-        treeViewer.setMaximumSize(new Dimension(400, topPanelHeight));
-        treeViewer.setPreferredSize(new Dimension(400, topPanelHeight));
+        treeViewer.add(treeParent, BorderLayout.SOUTH);
+//        objectScroller.setMaximumSize(new Dimension(300, 400));
+        treeViewer.setSize(new Dimension(400, topPanelHeight + topTextHeight));
+        treeViewer.setMaximumSize(new Dimension(400, topPanelHeight + topTextHeight));
+        treeViewer.setPreferredSize(new Dimension(400, topPanelHeight + topTextHeight));
         topPanel.add(treeViewer);
 
-
+        // define the metadata panel
         metadataForm = new SaveFormMetadataPanel(new MetadataViewPayload(storedCandidate.getName(),
                 storedCandidate.getDescription(),
                 storedCandidate.getMetadata()));
@@ -187,11 +209,18 @@ public class SaveForm {
         JPanel metadataFormPanel = metadataForm.getMainPanel();
         metadataFormPanel.setSize(new Dimension(380, topPanelHeight));
         metadataFormPanel.setMaximumSize(new Dimension(380, topPanelHeight));
-
         topPanel.add(metadataFormPanel);
 
         mainPanel.add(topPanel, BorderLayout.NORTH);
-        mainPanel.add(assertionScrollPanel, BorderLayout.CENTER);
+
+        JScrollPane assertionScrollPanel = new JBScrollPane(ruleEditor);
+//        scrollPane.setLocation(25, 320);
+//        scrollPane.setSize(950, 310);
+        assertionScrollPanel.setMaximumSize(new Dimension(1080, 1000));
+        assertionScrollPanel.setPreferredSize(new Dimension(1080, 1000));
+        mainPanel.add(assertionScrollPanel, BorderLayout.SOUTH);
+        // metadataForm.getCancelButton().addActionListener(e -> listener.onCancel());
+        // metadataForm.getSaveButton().addActionListener(e -> triggerSave());
 
 //        JPanel bottomPanel = new JPanel();
 //        bottomPanel.setLayout(new BorderLayout());
@@ -213,9 +242,6 @@ public class SaveForm {
 //        saveButton = new JButton("Save and Close");
 //        saveButton.setSize(150, 30);
 //        saveButton.setIcon(UIUtils.SAVE_CANDIDATE_PINK);
-//
-        metadataForm.getCancelButton().addActionListener(e -> listener.onCancel());
-        metadataForm.getSaveButton().addActionListener(e -> triggerSave());
 
 //        bottomPanelRight.add(cancelButton);
 //        bottomPanelRight.add(saveButton);
