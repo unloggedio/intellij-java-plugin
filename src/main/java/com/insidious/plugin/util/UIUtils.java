@@ -7,6 +7,7 @@ import com.intellij.ui.Gray;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.IconUtil;
+import com.sun.jna.platform.win32.COM.util.IComEventCallbackListener;
 
 import javax.swing.*;
 import java.awt.*;
@@ -76,6 +77,11 @@ public class UIUtils {
     public static Icon TEST_TUBE_ICON_SVG = IconLoader.getIcon("/icons/svg/test_tube_icon_green.svg", UIUtils.class);
     public static Icon TEST_TUBE_FILL = IconLoader.getIcon("/icons/svg/test_tube_unlogged.svg", UIUtils.class);
     public static Icon RE_EXECUTE = IconLoader.getIcon("/icons/svg/execute_v2.svg", UIUtils.class);
+    public static Icon CREATED_BY = IconLoader.getIcon("/icons/svg/created_by.svg", UIUtils.class);
+    public static Icon STATUS = IconLoader.getIcon("/icons/svg/status.svg", UIUtils.class);
+    public static Icon MACHINE = IconLoader.getIcon("/icons/svg/machine.svg", UIUtils.class);
+    public static Icon CLOCK = IconLoader.getIcon("/icons/svg/clock.svg", UIUtils.class);
+    public static Icon TESTTUBE = IconLoader.getIcon("/icons/svg/testtube.svg", UIUtils.class);
     public static Icon DIFF_GUTTER = IconLoader.getIcon("/icons/svg/diff_gutter.svg", UIUtils.class);
     public static Icon NO_DIFF_GUTTER = IconLoader.getIcon("/icons/svg/no_diff_gutter.svg", UIUtils.class);
     public static Icon NO_AGENT_GUTTER = IconLoader.getIcon("/icons/svg/no_agent_gutter.svg", UIUtils.class);
