@@ -158,6 +158,7 @@ public class SaveForm {
         treeTitlePanel.setSize(new Dimension(400, headingPaneHeight));
         treeTitlePanel.setMaximumSize(new Dimension(400, headingPaneHeight));
         treeTitlePanel.setPreferredSize(new Dimension(400, headingPaneHeight));
+        treeTitlePanel.setLayout(new FlowLayout(FlowLayout.LEFT));
         topPanel.add(treeTitlePanel);
 
         // define the button panel
@@ -179,6 +180,7 @@ public class SaveForm {
         buttonPanel.setSize(new Dimension(400, headingPaneHeight));
         buttonPanel.setMaximumSize(new Dimension(400, headingPaneHeight));
         buttonPanel.setPreferredSize(new Dimension(400, headingPaneHeight));
+        buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
         topPanel.add(buttonPanel);
 
         JLabel treeText = new JLabel();
@@ -213,12 +215,31 @@ public class SaveForm {
 
         mainPanel.add(topPanel, BorderLayout.NORTH);
 
+        // lower panel
+        // assertion panel
+        JPanel assertionPanel = new JPanel();
         JScrollPane assertionScrollPanel = new JBScrollPane(ruleEditor);
-//        scrollPane.setLocation(25, 320);
-//        scrollPane.setSize(950, 310);
         assertionScrollPanel.setMaximumSize(new Dimension(1080, 1000));
         assertionScrollPanel.setPreferredSize(new Dimension(1080, 1000));
-        mainPanel.add(assertionScrollPanel, BorderLayout.SOUTH);
+        assertionPanel.add(assertionScrollPanel);
+
+        // mock panel
+        JPanel mockPanel = new JPanel();
+        JTextArea local = new JTextArea(10,10); // todo form
+        JScrollPane mockScrollPanel = new JScrollPane(local); // todo form
+        mockScrollPanel.setMaximumSize(new Dimension(1080, 1000));
+        mockScrollPanel.setPreferredSize(new Dimension(1080, 1000));
+        mockPanel.add(mockScrollPanel);
+
+        // add tabs in lower panel
+        JTabbedPane lowerPanel = new JTabbedPane();
+        lowerPanel.addTab("Assertion", assertionPanel);
+        lowerPanel.addTab("Mock Data", mockPanel);
+        mainPanel.add(lowerPanel, BorderLayout.SOUTH);
+
+
+//        scrollPane.setLocation(25, 320);
+//        scrollPane.setSize(950, 310);
         // metadataForm.getCancelButton().addActionListener(e -> listener.onCancel());
         // metadataForm.getSaveButton().addActionListener(e -> triggerSave());
 
