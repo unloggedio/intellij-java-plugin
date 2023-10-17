@@ -2,6 +2,7 @@ package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -103,6 +104,7 @@ public class TestCandidateListedItemComponent {
                 AgentCommandResponse<String> agentCommandResponse = new AgentCommandResponse<>();
                 agentCommandResponse.setResponseClassName(candidateMetadata.getReturnValueClassname());
                 agentCommandResponse.setMethodReturnValue(candidateMetadata.getReturnValue());
+                agentCommandResponse.setResponseType(ResponseType.NORMAL);
 
                 candidateLifeListener.onSaveRequest(candidateMetadata, agentCommandResponse);
             }
