@@ -467,7 +467,7 @@ public class SessionInstance implements Runnable {
                             || methodName.equals("hashCode")
                             || methodName.startsWith("<")) {
                     } else {
-                        List<String> descriptorItemsList = ClassTypeUtils.splitMethodDesc(
+                        List<String> descriptorItemsList = ClassTypeUtils.splitMethodDescriptor(
                                 methodInfo.getMethodDesc());
                         if (descriptorItemsList.size() > 1) {
                             isPojo = false;
