@@ -39,8 +39,8 @@ public class SaveForm {
     private final SaveFormMetadataPanel metadataForm;
     private final JPanel mainPanel;
     private JsonNode responseNode;
-    //    private JButton saveButton;
-//    private JButton cancelButton;
+    private JButton saveButton;
+    // private JButton cancelButton;
     private JLabel assertionLabel;
     private JRadioButton b1;
     private JRadioButton b2;
@@ -169,11 +169,11 @@ public class SaveForm {
         buttonPanel.add(cancelButton);
 
         // save button in panel
-        JButton saveButton = new JButton();
-        saveButton.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
-        saveButton.setText("Save & Close");
-        saveButton.addActionListener(e -> triggerSave());
-        buttonPanel.add(saveButton);
+        this.saveButton = new JButton();
+        this.saveButton.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
+        this.saveButton.setText("Save & Close");
+        this.saveButton.addActionListener(e -> triggerSave());
+        buttonPanel.add(this.saveButton);
 
         buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
         topPanel.setSize(new Dimension(lowerPanelWidth, saveTestCaseHeadingHeight));
@@ -306,7 +306,7 @@ public class SaveForm {
 
 //        bottomPanel.add(bottomPanelRight, BorderLayout.EAST);
 //        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
-        setInfo();
+       // setInfo();
     }
 
     public JPanel getComponent() {
@@ -342,21 +342,21 @@ public class SaveForm {
         }
     }
 
-    private void setInfo() {
-        boolean updated = false;
-        String name = storedCandidate.getName();
-        String description = storedCandidate.getDescription();
+    // private void setInfo() {
+    //     boolean updated = false;
+    //     String name = storedCandidate.getName();
+    //     String description = storedCandidate.getDescription();
 
-        if (name != null) {
-            updated = true;
-        }
-        if (description != null) {
-            updated = true;
-        }
-        if (updated) {
-            metadataForm.getSaveButton().setText("Update");
-        }
-    }
+    //     if (name != null) {
+    //         updated = true;
+    //     }
+    //     if (description != null) {
+    //         updated = true;
+    //     }
+    //     if (updated) {
+    //         this.saveButton.setText("Save & Close");
+    //     }
+    // }
 
     private String formatLocation(String location) {
         if (location.length() <= 59) {
