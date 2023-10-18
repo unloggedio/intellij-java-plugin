@@ -83,6 +83,8 @@ public class UIUtils {
     public static Icon MACHINE = IconLoader.getIcon("/icons/svg/machine.svg", UIUtils.class);
     public static Icon CLOCK = IconLoader.getIcon("/icons/svg/clock.svg", UIUtils.class);
     public static Icon TESTTUBE = IconLoader.getIcon("/icons/svg/testtube.svg", UIUtils.class);
+    public static Icon MOCK_DATA = IconLoader.getIcon("/icons/svg/mock_data.svg", UIUtils.class);
+    public static Icon CLASS_FILE = IconLoader.getIcon("/icons/svg/class_file.svg", UIUtils.class);
     public static Icon DIFF_GUTTER = IconLoader.getIcon("/icons/svg/diff_gutter.svg", UIUtils.class);
     public static Icon NO_DIFF_GUTTER = IconLoader.getIcon("/icons/svg/no_diff_gutter.svg", UIUtils.class);
 

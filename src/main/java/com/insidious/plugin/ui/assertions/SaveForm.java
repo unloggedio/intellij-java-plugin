@@ -210,10 +210,6 @@ public class SaveForm {
         JPanel metadataFormPanel = metadataForm.getMainPanel();
         midPanel.add(metadataFormPanel);
 
-        // define the mockDataPanel
-
-
-        // lower panel
         // assertion panel
         JPanel assertionPanel = new JPanel();
         GridLayout assertionPanelLayout = new GridLayout(1,1);
@@ -237,7 +233,7 @@ public class SaveForm {
 
         // define applyMockLabel
         JLabel applyMockLabel = new JLabel();
-        applyMockLabel.setText("<html><b>Apply Mocks</b></html>");
+        applyMockLabel.setText("<html><b>Apply Mock</b></html>");
         JPanel applyMockPanel = new JPanel();
         applyMockPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
         applyMockPanel.add(applyMockLabel, BorderLayout.NORTH);
@@ -246,28 +242,78 @@ public class SaveForm {
         applyMockPanel.setMaximumSize(new Dimension(lowerPanelWidth, 30));
         mockDataPanelContent.add(applyMockPanel);
 
-        // define callExpression
+        // define mockMethodNamePanel
+        JLabel mockMethodNameLabel = new JLabel();
+        mockMethodNameLabel.setText("Call Expression");
+        mockMethodNameLabel.setIcon(UIUtils.MOCK_DATA);
+        JPanel mockMethodNamePanel = new JPanel();
+        mockMethodNamePanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        mockMethodNamePanel.add(mockMethodNameLabel, BorderLayout.NORTH);
+        mockMethodNamePanel.setSize(new Dimension(lowerPanelWidth, 30));
+        mockMethodNamePanel.setPreferredSize(new Dimension(lowerPanelWidth, 30));
+        mockMethodNamePanel.setMaximumSize(new Dimension(lowerPanelWidth, 30));
+
+        // define mockMethodDependencyPanel
+        JPanel mockMethodDependencyPanel = new JPanel();
+        GridLayout twoColumnLayout = new GridLayout(1,2);
+        mockMethodDependencyPanel.setLayout(twoColumnLayout);
+
+        // define mockMethodDependencyPanelLeft
+        JPanel mockMethodDependencyPanelLeft = new JPanel();
+        JPanel leftText = new JPanel();
+        GridLayout twoRowLayout = new GridLayout(2,1);
+        leftText.setLayout(twoRowLayout);
+        
+        JLabel leftTextFirst = new JLabel();
+        leftTextFirst.setText("method name");
+        leftText.add(leftTextFirst);
+
+        JLabel leftTextSecond = new JLabel();
+        leftTextSecond.setIcon(UIUtils.CLASS_FILE);
+        leftTextSecond.setText("class name");
+        leftText.add(leftTextSecond);
+
+        mockMethodDependencyPanelLeft.setLayout(new FlowLayout(FlowLayout.LEFT));
+        mockMethodDependencyPanelLeft.add(leftText);
+        mockMethodDependencyPanel.add(mockMethodDependencyPanelLeft);
+
+        // define mockMethodDependencyPanelRight
+        JPanel mockMethodDependencyPanelRight = new JPanel();
+        JRadioButton mockButton = new JRadioButton();
+        mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
+        mockMethodDependencyPanelRight.add(mockButton);
+        mockMethodDependencyPanel.add(mockMethodDependencyPanelRight);
+
+        mockMethodDependencyPanel.setSize(new Dimension(lowerPanelWidth, 50));
+        mockMethodDependencyPanel.setPreferredSize(new Dimension(lowerPanelWidth, 50));
+        mockMethodDependencyPanel.setMaximumSize(new Dimension(lowerPanelWidth, 50));
 
         JPanel mockMethodPanel = new JPanel();
-        JPanel mockValuePanel = new JPanel();
-        mockMethodPanel.add(mockValuePanel);
+        mockMethodPanel.setLayout(new BoxLayout(mockMethodPanel, BoxLayout.PAGE_AXIS));
+        mockMethodPanel.add(mockMethodNamePanel);
+        mockMethodPanel.add(mockMethodDependencyPanel);
         mockDataPanelContent.add(mockMethodPanel);
 
         // debugging border
-        applyMockPanel.setBorder(BorderFactory.createLineBorder(JBColor.RED));
-        mockValuePanel.setBorder(BorderFactory.createLineBorder(JBColor.RED));
-        mockMethodPanel.setBorder(BorderFactory.createLineBorder(JBColor.GREEN));
-        mockDataPanelContent.setBorder(BorderFactory.createLineBorder(JBColor.CYAN));
+        // applyMockPanel.setBorder(BorderFactory.createLineBorder(JBColor.RED));
+        // mockMethodNamePanel.setBorder(BorderFactory.createLineBorder(JBColor.BLUE));
+        mockMethodDependencyPanelLeft.setBorder(BorderFactory.createLineBorder(JBColor.GREEN));
+        mockMethodDependencyPanelRight.setBorder(BorderFactory.createLineBorder(JBColor.GREEN));
+        mockMethodDependencyPanel.setBorder(BorderFactory.createLineBorder(JBColor.RED));
+        // mockMethodPanel.setBorder(BorderFactory.createLineBorder(JBColor.GREEN));
+        // mockDataPanelContent.setBorder(BorderFactory.createLineBorder(JBColor.ORANGE));
 
         JScrollPane mockScrollPanel = new JBScrollPane(mockDataPanelContent);
         mockScrollPanel.setMaximumSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
         mockScrollPanel.setPreferredSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
         mockPanel.add(mockScrollPanel);
 
-        // add tabs in lower panel
+        // define lowerPanel
         JTabbedPane lowerPanel = new JBTabbedPane();
         lowerPanel.addTab("Assertion", assertionPanel);
         lowerPanel.addTab("Mock Data", mockPanel);
+        System.out.println("Value: " + this.metadataForm.comboBox1.getSelectedItem().toString());
+        lowerPanel.setEnabledAt(1, "Unit Test" == this.metadataForm.comboBox1.getSelectedItem().toString());
 
         // add panel in mainPanel
         mainPanel.add(topPanel, BorderLayout.NORTH);

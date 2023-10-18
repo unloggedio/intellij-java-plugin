@@ -31,7 +31,7 @@ public class SaveFormMetadataPanel {
     private JLabel statusKeyLabel;
     private JLabel hostKeyPanel;
     private JLabel timestampKeyPanel;
-    private JComboBox comboBox1;
+    public JComboBox comboBox1;
     private JLabel testType;
 
     public SaveFormMetadataPanel(MetadataViewPayload payload) {
