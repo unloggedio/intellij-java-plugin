@@ -4171,4 +4171,12 @@ public class SessionInstance implements Runnable {
                 methodUnderTest1.getName(), methodUnderTest1.getSignature());
     }
 
+    public int getProcessedFileCount() {
+        return daoService.getProcessedFileCount();
+    }
+
+    public int getTotalFileCount() {
+        return daoService.getTotalFileCount();
+    }
+
 }

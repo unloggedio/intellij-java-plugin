@@ -9,8 +9,11 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.ui.RoundedLineBorder;
+import com.intellij.ui.colorpicker.ColorButton;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
 import org.json.JSONObject;
 
@@ -44,6 +47,7 @@ public class TestCandidateListedItemComponent {
     private JButton generateJunitLabel;
     private JButton saveReplayButton;
     private JPanel parameterPanel;
+    private JPanel saveButtonHolder;
     private JLabel assertionCountLabel;
 
     public TestCandidateListedItemComponent(
@@ -66,7 +70,23 @@ public class TestCandidateListedItemComponent {
                 setTitledBorder("#Saved candidate with no name");
             }
         }
+        ColorButton jb = new ColorButton();
+        JLabel label = new JLabel("Save Replay");
+        label.setForeground(Color.white);
+        label.setIcon(UIUtils.SAVE_CANDIDATE_GREY);
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+        jb.setLayout(new GridLayout(1, 1));
+        GridConstraints buttonConsts = new GridConstraints();
+        buttonConsts.setRow(0);
+        jb.add(label, buttonConsts);
+        jb.setColor(UIUtils.pink);
+        jb.setBorder(new RoundedLineBorder(new Color(151, 38, 109), 6));
 
+        saveButtonHolder.setLayout(new GridLayout(1, 1));
+        GridConstraints constraints = new GridConstraints();
+        constraints.setRow(0);
+
+        saveButtonHolder.add(jb, constraints);
 
         mainPanel.revalidate();
 
@@ -74,7 +94,7 @@ public class TestCandidateListedItemComponent {
         executeLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                ClassUtils.chooseClassImplementation(method.getContainingClass(), psiClass -> {
+                ClassUtils.chooseClassImplementation(method.getContainingClass(), true, psiClass -> {
                     JSONObject eventProperties = new JSONObject();
                     eventProperties.put("className", psiClass.getQualifiedClassName());
                     eventProperties.put("methodName", storedCandidate.getMethod().getName());
@@ -97,7 +117,7 @@ public class TestCandidateListedItemComponent {
                 candidateLifeListener.onGenerateJunitTestCaseRequest(candidateMetadata);
             }
         });
-        saveReplayButton.addMouseListener(new MouseAdapter() {
+        jb.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 AgentCommandResponse<String> agentCommandResponse = new AgentCommandResponse<>();
@@ -119,11 +139,11 @@ public class TestCandidateListedItemComponent {
         statusLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         executeLabel.setIcon(UIUtils.EXECUTE_ICON_OUTLINED_SVG);
-        saveReplayButton.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
+        jb.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
         generateJunitLabel.setIcon(UIUtils.TEST_CASES_ICON_PINK);
 
         executeLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        saveReplayButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        jb.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         generateJunitLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         mainPanel.addMouseListener(new MouseAdapter() {
@@ -137,8 +157,6 @@ public class TestCandidateListedItemComponent {
         mainPanel.setBackground(UIUtils.agentResponseBaseColor);
         parameterPanel.setOpaque(false);
         controlPanel.setOpaque(false);
-
-
     }
 
     public JPanel getComponent() {

@@ -10,6 +10,8 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.*;
 import com.insidious.plugin.atomicrecord.AtomicRecordService;
+import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
+import com.insidious.plugin.autoexecutor.AutomaticExecutorService;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
@@ -30,9 +32,7 @@ import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
-import com.insidious.plugin.util.ClassUtils;
-import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.UIUtils;
+import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.debugger.DebuggerManagerEx;
@@ -73,10 +73,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiDocumentManager;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiPrimitiveType;
+import com.intellij.psi.*;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.testFramework.LightVirtualFile;
@@ -148,6 +145,7 @@ final public class InsidiousService implements
     private boolean testCaseDesignerWindowAdded = false;
     private Content introPanelContent = null;
     private Map<String, GutterState> cachedGutterState = new HashMap<>();
+    private AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
 
 
     public InsidiousService(Project project) {
@@ -199,6 +197,10 @@ final public class InsidiousService implements
 
     private static String getClassMethodHashKey(AgentCommandRequest agentCommandRequest) {
         return agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
+    }
+
+    public ReportingService getReportingService() {
+        return reportingService;
     }
 
     private synchronized void start() {
@@ -1193,10 +1195,12 @@ final public class InsidiousService implements
         } else {
             executionRecord.put(keyName, newDiffRecord);
         }
-        addExecutionRecord(newDiffRecord);
+        addExecutionRecord(new AutoExecutorReportRecord(newDiffRecord,
+                sessionInstance.getProcessedFileCount(),
+                sessionInstance.getTotalFileCount()));
     }
 
-    public void addExecutionRecord(DifferenceResult result) {
+    public void addExecutionRecord(AutoExecutorReportRecord result) {
         reportingService.addRecord(result);
     }
 
@@ -1457,5 +1461,9 @@ final public class InsidiousService implements
             contentManager.addContent(introPanelContent);
         }
         contentManager.setSelectedContent(introPanelContent);
+    }
+
+    public void executeAllMethodsInCurrentClass() {
+        automaticExecutorService.executeAllJavaMethodsInProject();
     }
 }

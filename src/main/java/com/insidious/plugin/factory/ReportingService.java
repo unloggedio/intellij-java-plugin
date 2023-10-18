@@ -3,9 +3,11 @@ package com.insidious.plugin.factory;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.ResponseType;
+import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.intellij.notification.NotificationType;
+import com.sun.management.OperatingSystemMXBean;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -14,6 +16,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryUsage;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -28,6 +32,7 @@ public class ReportingService {
     public boolean notify = true;
     private boolean reportingEnabled = false;
     private String output_file_name;
+    private int count = 1;
 
     public ReportingService(InsidiousService service) {
         this.insidiousService = service;
@@ -40,20 +45,30 @@ public class ReportingService {
                     "ACTIVE" : "INACTIVE"), NotificationType.INFORMATION);
         }
         return this.reportingEnabled;
-
     }
 
-    public void addRecord(DifferenceResult result) {
+    public boolean isReportingEnabled() {
+        return reportingEnabled;
+    }
+
+    public void setReportingEnabled(boolean reportingEnabled) {
+        this.reportingEnabled = reportingEnabled;
+    }
+
+    public void addRecord(AutoExecutorReportRecord autoExecutorReportRecord) {
         if (!this.reportingEnabled) {
             return;
         }
+//        System.out.println("Execution record added count : " + count++);
+        DifferenceResult result = autoExecutorReportRecord.getDifferenceResult();
+//        System.out.println("Adding record [***] " + result.toString());
         boolean isException = false;
         boolean isAgentException = false;
         boolean pluginException = false;
 
         XSSFWorkbook workbook = getWorkbook();
         if (workbook == null) {
-//            System.out.println("Workbook is null");
+            System.out.println("Workbook is null : " + result.toString());
             return;
         }
         XSSFSheet sheet = workbook.getSheetAt(0);
@@ -158,12 +173,30 @@ public class ReportingService {
         cell = row.createCell(8);
         cell.setCellValue(time);
 
+        OperatingSystemMXBean osBean = ManagementFactory.getPlatformMXBean(
+                OperatingSystemMXBean.class);
+
+        cell = row.createCell(9);
+        cell.setCellValue(osBean.getProcessCpuLoad());
+
+        MemoryUsage heapMemoryUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+        heapMemoryUsage.getUsed();
+
+        cell = row.createCell(10);
+        cell.setCellValue(heapMemoryUsage.getUsed() / 1000000);
+
+        cell = row.createCell(11);
+        cell.setCellValue(autoExecutorReportRecord.getScannedFileCount());
+
+        cell = row.createCell(12);
+        cell.setCellValue(autoExecutorReportRecord.getTotalFileCount());
+
         try {
             FileOutputStream out = new FileOutputStream(new File(insidiousService.getProject().getBasePath()
                     + "/" + this.output_file_name));
             workbook.write(out);
             out.close();
-//            System.out.println("Execution record added [+]");
+//            System.out.println("Execution record added [+] : " + result.toString());
         } catch (Exception e) {
             System.out.println("Exception writing record to file " + e);
             e.printStackTrace();
@@ -222,6 +255,18 @@ public class ReportingService {
 
                 cell = row.createCell(8);
                 cell.setCellValue("Timestamp");
+
+                cell = row.createCell(9);
+                cell.setCellValue("Cpu usage");
+
+                cell = row.createCell(10);
+                cell.setCellValue("Memory used (MB)");
+
+                cell = row.createCell(11);
+                cell.setCellValue("Number of files scanned");
+
+                cell = row.createCell(12);
+                cell.setCellValue("Total number of files");
 
                 FileOutputStream out = new FileOutputStream(
                         new File(insidiousService.getProject().getBasePath() + "/" + filename));

@@ -216,7 +216,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         ApplicationManager.getApplication().invokeLater(() -> {
             JSONObject eventProperties = new JSONObject();
 
-            ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass1 -> {
+            ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), true, psiClass1 -> {
                 eventProperties.put("className", psiClass1.getQualifiedClassName());
                 eventProperties.put("methodName", methodName);
                 eventProperties.put("count", methodTestCandidates.size());
@@ -655,7 +655,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
     private void triggerReExecute(StoredCandidate candidate) {
         TestCandidateListedItemComponent component = candidateComponentMap.get(
                 getKeyForCandidate(candidate));
-        ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {
+        ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), true, psiClass -> {
             JSONObject eventProperties = new JSONObject();
             eventProperties.put("className", psiClass.getQualifiedClassName());
             eventProperties.put("methodName", methodElement.getName());

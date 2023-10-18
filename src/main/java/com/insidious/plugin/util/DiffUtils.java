@@ -389,6 +389,4 @@ public class DiffUtils {
         }
         return true;
     }
-
-
 }
