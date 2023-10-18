@@ -14,6 +14,7 @@ import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 
@@ -133,7 +134,7 @@ public class SaveForm {
         }, true);
 
         int panelWidth = 492;
-        int lowerPanelWidth = panelWidth * 2;
+        int lowerPanelWidth = panelWidth * 2; // lowerPanelWidth -> doublePanelWidth
         int lowerPanelHeight = 296;
         int saveTestCaseHeadingHeight = 30;
 
@@ -141,8 +142,8 @@ public class SaveForm {
 
         // define topPanel
         JPanel topPanel = new JPanel();
-        // GridLayout topPanelLayout = new GridLayout(2,2);
-        // topPanel.setLayout(topPanelLayout);
+        GridLayout topPanelLayout = new GridLayout(1,2);
+        topPanel.setLayout(topPanelLayout);
 
         // define saveTestCaseHeading
         JLabel saveTestCaseHeading = new JLabel();
@@ -154,11 +155,8 @@ public class SaveForm {
         // define saveTestCasePanel
         JPanel saveTestCasePanel = new JPanel();
         saveTestCasePanel.add(saveTestCaseHeading);
-        saveTestCasePanel.setSize(new Dimension(panelWidth, saveTestCaseHeadingHeight));
-        saveTestCasePanel.setMaximumSize(new Dimension(panelWidth, saveTestCaseHeadingHeight));
-        saveTestCasePanel.setPreferredSize(new Dimension(panelWidth, saveTestCaseHeadingHeight));
         saveTestCasePanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-        topPanel.add(saveTestCasePanel, BorderLayout.WEST);
+        topPanel.add(saveTestCasePanel);
 
         // define the buttonPanel
         JPanel buttonPanel = new JPanel();
@@ -176,59 +174,50 @@ public class SaveForm {
         saveButton.addActionListener(e -> triggerSave());
         buttonPanel.add(saveButton);
 
-        buttonPanel.setSize(new Dimension(panelWidth, saveTestCaseHeadingHeight));
-        buttonPanel.setMaximumSize(new Dimension(panelWidth, saveTestCaseHeadingHeight));
-        buttonPanel.setPreferredSize(new Dimension(panelWidth, saveTestCaseHeadingHeight));
         buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-        topPanel.add(buttonPanel, BorderLayout.EAST);
-        topPanel.setLayout(new FlowLayout(FlowLayout.LEADING));
+        topPanel.setSize(new Dimension(lowerPanelWidth, saveTestCaseHeadingHeight));
+        topPanel.setPreferredSize(new Dimension(lowerPanelWidth, saveTestCaseHeadingHeight));
+        topPanel.setMaximumSize(new Dimension(lowerPanelWidth, saveTestCaseHeadingHeight));
+        topPanel.add(buttonPanel);
 
         JPanel midPanel = new JPanel();
+        GridLayout midPanelLayout = new GridLayout(1, 2);
+        midPanel.setLayout(midPanelLayout);
+
         // define treePanelHeading
         JLabel treePanelHeading = new JLabel();
         treePanelHeading.setText("<html><b>Available recorded objects:</b></html>");
+        treePanelHeading.setVerticalAlignment(SwingConstants.TOP);
         // define treePanel
         JPanel treePanel = new JPanel();
         treePanel.setLayout(new BorderLayout());
         treePanel.add(treePanelHeading, BorderLayout.NORTH);
 
-        int treePaneHeadingHeight = 10;
         int CandidateExplorerTreeHeight = 300;
-        int CandidateExplorerTreeBufferHeight = 10;
-        int treeParentWidthPadding = 20;
 
         mainPanel.setMaximumSize(new Dimension(lowerPanelWidth, 600));
         candidateExplorerTree.setSize(new Dimension(400, CandidateExplorerTreeHeight));
         JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
-        treeParent.setSize(new Dimension(panelWidth - treeParentWidthPadding, CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
-        treeParent.setMaximumSize(new Dimension(panelWidth - treeParentWidthPadding, CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
-        treeParent.setPreferredSize(new Dimension(panelWidth - treeParentWidthPadding, CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
-        treePanel.add(treeParent, BorderLayout.SOUTH);
-//        objectScroller.setMaximumSize(new Dimension(300, 400));
-        treePanel.setSize(new Dimension(panelWidth, treePaneHeadingHeight + CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
-        treePanel.setMaximumSize(new Dimension(panelWidth, treePaneHeadingHeight + CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
-        treePanel.setPreferredSize(new Dimension(panelWidth, treePaneHeadingHeight + CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
-        treePanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-        midPanel.add(treePanel, BorderLayout.WEST);
+        treePanel.add(treeParent, BorderLayout.CENTER);
+        midPanel.add(treePanel);
 
-        // define the metadata panel
+        // define the metadataPanel
         metadataForm = new SaveFormMetadataPanel(new MetadataViewPayload(storedCandidate.getName(),
                 storedCandidate.getDescription(),
                 storedCandidate.getMetadata()));
 
         JPanel metadataFormPanel = metadataForm.getMainPanel();
-        metadataFormPanel.setSize(new Dimension(panelWidth, treePaneHeadingHeight + CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
-        metadataFormPanel.setMaximumSize(new Dimension(panelWidth, treePaneHeadingHeight + CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
-        metadataFormPanel.setPreferredSize(new Dimension(panelWidth, treePaneHeadingHeight + CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
-        midPanel.add(metadataFormPanel, BorderLayout.EAST);
-        midPanel.setLayout(new FlowLayout(FlowLayout.LEADING));
+        midPanel.add(metadataFormPanel);
 
-        mainPanel.add(topPanel, BorderLayout.NORTH);
-        mainPanel.add(midPanel, BorderLayout.CENTER);
+        // define the mockDataPanel
+
 
         // lower panel
         // assertion panel
         JPanel assertionPanel = new JPanel();
+        GridLayout assertionPanelLayout = new GridLayout(1,1);
+        assertionPanel.setLayout(assertionPanelLayout);
+
         JScrollPane assertionScrollPanel = new JBScrollPane(ruleEditor);
         assertionScrollPanel.setMaximumSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
         assertionScrollPanel.setPreferredSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
@@ -236,16 +225,23 @@ public class SaveForm {
 
         // mock panel
         JPanel mockPanel = new JPanel();
+        GridLayout mockPanelLayout = new GridLayout(1,1);
+        mockPanel.setLayout(mockPanelLayout);
+
         JTextArea local = new JTextArea(10,10); // todo form
-        JScrollPane mockScrollPanel = new JScrollPane(local); // todo form
+        JScrollPane mockScrollPanel = new JBScrollPane(local); // todo form
         mockScrollPanel.setMaximumSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
         mockScrollPanel.setPreferredSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
         mockPanel.add(mockScrollPanel);
 
         // add tabs in lower panel
-        JTabbedPane lowerPanel = new JTabbedPane();
+        JTabbedPane lowerPanel = new JBTabbedPane();
         lowerPanel.addTab("Assertion", assertionPanel);
         lowerPanel.addTab("Mock Data", mockPanel);
+
+        // add panel in mainPanel
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+        mainPanel.add(midPanel, BorderLayout.CENTER);
         mainPanel.add(lowerPanel, BorderLayout.SOUTH);
 
 
