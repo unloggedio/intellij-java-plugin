@@ -95,6 +95,7 @@ public class AtomicTestContainer {
             focussedMethod = method;
         }
         if (focussedMethod == null) {
+            insidiousService.getDirectInvokeTab().updateCandidateCount(0);
             return;
         }
         lastSelection = focussedMethod;
@@ -103,12 +104,14 @@ public class AtomicTestContainer {
         }
 
         if (currentState.equals(GutterState.PROCESS_NOT_RUNNING) || insidiousService.getSessionInstance() == null) {
+            insidiousService.getDirectInvokeTab().updateCandidateCount(0);
             loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
             return;
         }
 
 
         if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
+            insidiousService.getDirectInvokeTab().updateCandidateCount(0);
             methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, List.of());
 //            insidiousService.focusAtomicTestsWindow();
             return;
@@ -125,6 +128,7 @@ public class AtomicTestContainer {
 //        logger.warn("Candidates for [ " + candidateSearchQuery + "] => " + methodTestCandidates.size());
 
         loadExecutionFlow();
+        insidiousService.getDirectInvokeTab().updateCandidateCount(methodTestCandidates.size());
         if (methodTestCandidates.size() > 0) {
 
             String className = candidateSearchQuery.getClassName();

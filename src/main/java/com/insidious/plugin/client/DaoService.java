@@ -1279,8 +1279,8 @@ public class DaoService {
             TestCandidateMetadata dbCandidate = testCandidateDao.queryForId(testCandidateId);
             return convertTestCandidateMetadata(dbCandidate, loadCalls);
         } catch (Exception e) {
-            logger.error("failed to load test candidate by id [" + testCandidateId + "]", e);
-            throw new RuntimeException(e);
+            logger.warn("failed to load test candidate by id [" + testCandidateId + "]", e);
+            return null;
         }
     }
 

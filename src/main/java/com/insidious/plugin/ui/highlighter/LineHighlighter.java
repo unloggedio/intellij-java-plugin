@@ -9,7 +9,6 @@ import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.codeInsight.daemon.LineMarkerProvider;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
 
 import javax.swing.*;
@@ -52,16 +51,22 @@ public class LineHighlighter implements LineMarkerProvider {
             if (psiMethod.isConstructor()) {
                 return null;
             }
+            if (psiMethod.getName().equals("main")
+                    && psiMethod.getModifierList().hasModifierProperty(PsiModifier.STATIC)
+            ) {
+                return null;
+            }
             if (psiMethod.getContainingClass() instanceof PsiAnonymousClass) {
                 return null;
             }
             GutterState gutterStateForMethod = getGutterStateForMethod(psiMethod);
             final Icon gutterIcon = UIUtils.getGutterIconForState(gutterStateForMethod);
 
-            return new LineMarkerInfo<>(
+            LineMarkerInfo<PsiIdentifier> psiIdentifierLineMarkerInfo = new LineMarkerInfo<>(
                     (PsiIdentifier) element,
                     element.getTextRange(), gutterIcon, psiIdentifier -> gutterStateForMethod.getToolTipText(),
                     navHandlerMap.get(gutterStateForMethod), GutterIconRenderer.Alignment.LEFT);
+            return psiIdentifierLineMarkerInfo;
         }
         return null;
     }

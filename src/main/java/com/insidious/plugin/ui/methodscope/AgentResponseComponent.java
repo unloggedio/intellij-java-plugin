@@ -20,9 +20,9 @@ import java.util.Map;
 public class AgentResponseComponent implements ResponsePreviewComponent {
     public static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
-    private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = true;
+    private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = false;
     private final AgentCommandResponse<String> agentCommandResponse;
-    private final JButton createTestCaseButton;
+//    private JButton createTestCaseButton;
     private StoredCandidate testCandidate;
     private JPanel mainPanel;
     private JPanel centerPanel;
@@ -50,6 +50,7 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
     ) {
         this.agentCommandResponse = agentCommandResponse;
         this.testCandidate = testCandidate;
+        topRightbuttonPanel.setVisible(false);
 
         DifferenceResult differences = DiffUtils.calculateDifferences(this.testCandidate, agentCommandResponse);
         computeDifferences(differences);
@@ -72,19 +73,20 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
         viewFullButton.addActionListener(
                 e -> fullViewEventListener.generateCompareWindows(originalString, actualString));
 
-        if (SHOW_TEST_CASE_CREATE_BUTTON) {
-            createTestCaseButton = new JButton("Create JUnit test case");
-            createTestCaseButton.setOpaque(false);
-            createTestCaseButton.setContentAreaFilled(false);
-            createTestCaseButton.setIcon(UIUtils.TEST_CASES_ICON_PINK);
-            buttonRightPanel.add(createTestCaseButton);
-            if (testCandidate.getEntryProbeIndex() < 1) {
-                createTestCaseButton.setEnabled(false);
-                createTestCaseButton.setText("Test case generation waiting for scan");
-            }
-            createTestCaseButton.addActionListener(
-                    e -> candidateLifeListener.onGenerateJunitTestCaseRequest(testCandidate));
-        }
+//        if (SHOW_TEST_CASE_CREATE_BUTTON) {
+//            createTestCaseButton = new JButton("Create JUnit test case");
+//            createTestCaseButton.setOpaque(false);
+//            createTestCaseButton.setContentAreaFilled(false);
+//            createTestCaseButton.setIcon(UIUtils.TEST_CASES_ICON_PINK);
+//            buttonRightPanel.add(createTestCaseButton);
+//            if (testCandidate.getEntryProbeIndex() < 1) {
+//                createTestCaseButton.setEnabled(false);
+//                createTestCaseButton.setText("Test case generation waiting for scan");
+//            }
+//            createTestCaseButton.addActionListener(
+//                    e -> candidateLifeListener.onGenerateJunitTestCaseRequest(testCandidate));
+//        createTestCaseButton.setBorder(new LineBorder(UIUtils.buttonBorderColor));
+//        }
 
         acceptButton.addActionListener(
                 e -> candidateLifeListener.onSaveRequest(this.testCandidate, agentCommandResponse));
@@ -98,7 +100,6 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
 
         deleteButton.setBorder(new LineBorder(UIUtils.buttonBorderColor));
         acceptButton.setBorder(new LineBorder(UIUtils.buttonBorderColor));
-        createTestCaseButton.setBorder(new LineBorder(UIUtils.buttonBorderColor));
         viewFullButton.setBorder(new LineBorder(UIUtils.buttonBorderColor));
         mainContentPanel.setBackground(UIUtils.agentResponseBaseColor);
     }
@@ -182,10 +183,10 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
     @Override
     public void setTestCandidate(StoredCandidate candidate) {
         this.testCandidate = candidate;
-        if (testCandidate.getEntryProbeIndex() > 1 && !createTestCaseButton.isEnabled()) {
-            createTestCaseButton.setEnabled(true);
-            createTestCaseButton.setText("Create JUnit test case");
-        }
+//        if (testCandidate.getEntryProbeIndex() > 1 && !createTestCaseButton.isEnabled()) {
+//            createTestCaseButton.setEnabled(true);
+//            createTestCaseButton.setText("Create JUnit test case");
+//        }
     }
 
     @Override

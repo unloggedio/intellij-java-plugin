@@ -65,6 +65,8 @@ import org.objectweb.asm.Opcodes;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -99,6 +101,7 @@ public class TestCaseDesigner implements Disposable {
     private JPanel jsonFrameworkChoicePanel;
     private JComboBox<ResourceEmbedMode> resourceEmberModeComboBox;
     private JPanel resourceEmbedModeChoicePanel;
+    private JButton backToReplayListButton;
     private MethodAdapter currentMethod;
     private ClassAdapter currentClass;
     private Editor editor;
@@ -111,6 +114,7 @@ public class TestCaseDesigner implements Disposable {
     public TestCaseDesigner() {
         saveTestCaseButton.setEnabled(false);
         saveTestCaseButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        backToReplayListButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         testFrameworkComboBox.setModel(new DefaultComboBoxModel<>(TestFramework.values()));
         mockFrameworkComboBox.setModel(new DefaultComboBoxModel<>(MockFramework.values()));
@@ -153,6 +157,10 @@ public class TestCaseDesigner implements Disposable {
             updatePreviewTestCase();
         });
 
+        backToReplayListButton.addActionListener(e -> {
+            InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
+            insidiousService.focusAtomicTestsWindow();
+        });
 
         saveTestCaseButton.addActionListener(e -> {
 

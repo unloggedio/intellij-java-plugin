@@ -3826,6 +3826,9 @@ public class SessionInstance implements Runnable {
 
     public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
         TestCandidateMetadata testCandidateMetadata = daoService.getTestCandidateById(testCandidateId, loadCalls);
+        if (testCandidateMetadata == null) {
+            return null;
+        }
         resolveTemplatesInCall(testCandidateMetadata.getMainMethod());
         // check if the param are ENUM
         createParamEnumPropertyTrueIfTheyAre(testCandidateMetadata.getMainMethod());

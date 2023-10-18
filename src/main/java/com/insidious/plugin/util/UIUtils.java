@@ -11,6 +11,7 @@ import com.sun.jna.platform.win32.COM.util.IComEventCallbackListener;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
 
 public class UIUtils {
 
@@ -44,8 +45,8 @@ public class UIUtils {
     );
     public static final JBColor ASSERTION_PASSING_COLOR = new JBColor(new Color(37, 133, 90), new Color(37, 133, 90));
     public static final JBColor ASSERTION_FAILING_COLOR = new JBColor(new Color(197, 48, 48), new Color(197, 48, 48));
-    public static Color teal = new JBColor(new Color(1, 204, 245), new Color(1, 204, 245));
-    public static Color pink = new JBColor(new Color(254, 100, 216), new Color(254, 100, 216));
+    public static Color teal = new JBColor(new Color(1, 204, 245), new Color(1, 204, 245));  // 01CCF5
+    public static Color pink = new JBColor(new Color(254, 100, 216), new Color(254, 100, 216));  // FE64D8
     public static Color red = new JBColor(new Color(245, 101, 101), new Color(245, 101, 101));
     public static Color green = new JBColor(new Color(56, 161, 105), new Color(56, 161, 105));
     public static Color yellow_alert = new JBColor(new Color(225, 163, 54), new Color(225, 163, 54));
@@ -84,6 +85,7 @@ public class UIUtils {
     public static Icon TESTTUBE = IconLoader.getIcon("/icons/svg/testtube.svg", UIUtils.class);
     public static Icon DIFF_GUTTER = IconLoader.getIcon("/icons/svg/diff_gutter.svg", UIUtils.class);
     public static Icon NO_DIFF_GUTTER = IconLoader.getIcon("/icons/svg/no_diff_gutter.svg", UIUtils.class);
+
     public static Icon NO_AGENT_GUTTER = IconLoader.getIcon("/icons/svg/no_agent_gutter.svg", UIUtils.class);
     public static Icon EXECUTE_COMPONENT = IconLoader.getIcon("/icons/svg/execute_component.svg", UIUtils.class);
     public static Icon EXCEPTION_CASE = IconLoader.getIcon("/icons/svg/exception_diff_case.svg", UIUtils.class);
@@ -97,6 +99,9 @@ public class UIUtils {
     public static Icon COVERAGE_TOOL_WINDOW_ICON = IconLoader.getIcon("/icons/svg/coverage-tool-window-icon.png",
             UIUtils.class);
     public static Icon ORANGE_EXCEPTION = IconLoader.getIcon("/icons/svg/exception_orange.svg", UIUtils.class);
+    public static Icon FLASH_LIGHT_LINE = IconLoader.getIcon("/icons/svg/flashlight-line.svg", UIUtils.class);
+    public static Icon TEST_TUBE_LINE = IconLoader.getIcon("/icons/svg/test-tube-line.svg", UIUtils.class);
+    public static Icon SAVE_LINE = IconLoader.getIcon("/icons/png/save_candidate.png", UIUtils.class);
     public static Icon EXECUTE_ICON_OUTLINED_SVG = IconLoader.getIcon("/icons/svg/execute-button-outlined.svg",
             UIUtils.class);
     public static Icon ONBOARDING_ICON_DARK = IconLoader.getIcon("/icons/png/onboarding_icon_dark.png", UIUtils.class);
@@ -139,6 +144,9 @@ public class UIUtils {
             UIUtils.class);
     public static Icon DATA_AVAILABLE_HEADER = IconLoader.getIcon("/icons/png/data_available_header.png",
             UIUtils.class);
+
+    public UIUtils() throws IOException, FontFormatException {
+    }
 
     public static void setGifIconForButton(JButton button, String gif, Icon fallback) {
         try {

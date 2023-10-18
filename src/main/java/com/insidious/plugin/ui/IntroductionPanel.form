@@ -29,8 +29,10 @@
                   <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
-                  <font size="14" style="1"/>
-                  <text value="Learn more about Unlogged features"/>
+                  <font size="18" style="1"/>
+                  <foreground color="-16659211"/>
+                  <icon value="icons/png/logo_unlogged.png"/>
+                  <text value="Unlogged IntelliJ Plugin"/>
                 </properties>
               </component>
             </children>
@@ -48,8 +50,10 @@
                   <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
-                  <icon value="icons/png/skip-forward-line.png"/>
-                  <text value="Skip"/>
+                  <font size="18"/>
+                  <foreground color="-16659211"/>
+                  <icon value="icons/png/play-fill.png"/>
+                  <text value="Start"/>
                 </properties>
               </component>
               <hspacer id="cf899">

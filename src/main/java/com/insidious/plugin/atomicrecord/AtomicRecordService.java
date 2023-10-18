@@ -341,7 +341,9 @@ public class AtomicRecordService {
 
     private void addNewRecord(String methodHashKey, String className, StoredCandidate candidate) {
         AtomicRecord record = new AtomicRecord(className);
-        record.getStoredCandidateMap().put(methodHashKey, Collections.singletonList(candidate));
+        ArrayList<StoredCandidate> value = new ArrayList<>();
+        value.add(candidate);
+        record.getStoredCandidateMap().put(methodHashKey, value);
         classAtomicRecordMap.put(className, record);
         writeToFile(new File(getFilenameForClass(className)), record, FileUpdateType.ADD_CANDIDATE, useNotifications);
     }
@@ -505,7 +507,9 @@ public class AtomicRecordService {
     public void setCandidateStateForCandidate(String candidateID, String classname,
                                               String methodKey, StoredCandidateMetadata.CandidateStatus state) {
         AtomicRecord record = classAtomicRecordMap.get(classname);
-        if (record == null || record.getStoredCandidateMap().get(methodKey).size() == 0) {
+        if (record == null
+                || !record.getStoredCandidateMap().containsKey(methodKey)
+                || record.getStoredCandidateMap().get(methodKey).size() == 0) {
             return;
         }
         List<StoredCandidate> list = record.getStoredCandidateMap().get(methodKey);
