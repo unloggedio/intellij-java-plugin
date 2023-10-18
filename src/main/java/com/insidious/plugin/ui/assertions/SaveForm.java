@@ -13,6 +13,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.treeStructure.Tree;
@@ -228,8 +229,37 @@ public class SaveForm {
         GridLayout mockPanelLayout = new GridLayout(1,1);
         mockPanel.setLayout(mockPanelLayout);
 
+        // define mockDataPanelContent
         JTextArea local = new JTextArea(10,10); // todo form
-        JScrollPane mockScrollPanel = new JBScrollPane(local); // todo form
+        JPanel mockDataPanelContent = new JPanel();
+        mockDataPanelContent.setLayout(new BoxLayout(mockDataPanelContent, BoxLayout.PAGE_AXIS));
+
+
+        // define applyMockLabel
+        JLabel applyMockLabel = new JLabel();
+        applyMockLabel.setText("<html><b>Apply Mocks</b></html>");
+        JPanel applyMockPanel = new JPanel();
+        applyMockPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        applyMockPanel.add(applyMockLabel, BorderLayout.NORTH);
+        applyMockPanel.setSize(new Dimension(lowerPanelWidth, 30));
+        applyMockPanel.setPreferredSize(new Dimension(lowerPanelWidth, 30));
+        applyMockPanel.setMaximumSize(new Dimension(lowerPanelWidth, 30));
+        mockDataPanelContent.add(applyMockPanel);
+
+        // define callExpression
+
+        JPanel mockMethodPanel = new JPanel();
+        JPanel mockValuePanel = new JPanel();
+        mockMethodPanel.add(mockValuePanel);
+        mockDataPanelContent.add(mockMethodPanel);
+
+        // debugging border
+        applyMockPanel.setBorder(BorderFactory.createLineBorder(JBColor.RED));
+        mockValuePanel.setBorder(BorderFactory.createLineBorder(JBColor.RED));
+        mockMethodPanel.setBorder(BorderFactory.createLineBorder(JBColor.GREEN));
+        mockDataPanelContent.setBorder(BorderFactory.createLineBorder(JBColor.CYAN));
+
+        JScrollPane mockScrollPanel = new JBScrollPane(mockDataPanelContent);
         mockScrollPanel.setMaximumSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
         mockScrollPanel.setPreferredSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
         mockPanel.add(mockScrollPanel);
