@@ -132,36 +132,35 @@ public class SaveForm {
             }
         }, true);
 
-        int headingPaneHeight = 60;
-        int topTextHeight = 20;
-        int topPanelHeight = 260;
+        int panelWidth = 492;
+        int lowerPanelWidth = panelWidth * 2;
+        int lowerPanelHeight = 296;
+        int saveTestCaseHeadingHeight = 30;
 
         JPanel ruleEditor = this.ruleEditor.getMainPanel();
 
-        // define the top panel
+        // define topPanel
         JPanel topPanel = new JPanel();
-        GridLayout topPanelLayout = new GridLayout(2,2);
-        topPanel.setLayout(topPanelLayout);
+        // GridLayout topPanelLayout = new GridLayout(2,2);
+        // topPanel.setLayout(topPanelLayout);
 
-        // define the heading panel
-        JLabel treeTitleLabel = new JLabel();
-        treeTitleLabel.setIcon(UIUtils.TESTTUBE);
-        treeTitleLabel.setText("<html><b>Save Test Case</b></html>");
+        // define saveTestCaseHeading
+        JLabel saveTestCaseHeading = new JLabel();
+        saveTestCaseHeading.setIcon(UIUtils.TESTTUBE);
+        saveTestCaseHeading.setText("<html><b>Save Test Case</b></html>");
+        Border treeTitleLabelBorder = JBUI.Borders.empty(10);
+        saveTestCaseHeading.setBorder(treeTitleLabelBorder);
 
-        Border treeTitleLabelBorder = treeTitleLabel.getBorder();
-        Border treeTitleLabelMargin = JBUI.Borders.empty(10);
-        CompoundBorder treeTitleLabelBorderWithMargin = new CompoundBorder(treeTitleLabelBorder, treeTitleLabelMargin);
-        treeTitleLabel.setBorder(treeTitleLabelBorderWithMargin);
+        // define saveTestCasePanel
+        JPanel saveTestCasePanel = new JPanel();
+        saveTestCasePanel.add(saveTestCaseHeading);
+        saveTestCasePanel.setSize(new Dimension(panelWidth, saveTestCaseHeadingHeight));
+        saveTestCasePanel.setMaximumSize(new Dimension(panelWidth, saveTestCaseHeadingHeight));
+        saveTestCasePanel.setPreferredSize(new Dimension(panelWidth, saveTestCaseHeadingHeight));
+        saveTestCasePanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        topPanel.add(saveTestCasePanel, BorderLayout.WEST);
 
-        JPanel treeTitlePanel = new JPanel();
-        treeTitlePanel.add(treeTitleLabel);
-        treeTitlePanel.setSize(new Dimension(400, headingPaneHeight));
-        treeTitlePanel.setMaximumSize(new Dimension(400, headingPaneHeight));
-        treeTitlePanel.setPreferredSize(new Dimension(400, headingPaneHeight));
-        treeTitlePanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-        topPanel.add(treeTitlePanel);
-
-        // define the button panel
+        // define the buttonPanel
         JPanel buttonPanel = new JPanel();
 
         // cancel button in panel
@@ -177,31 +176,40 @@ public class SaveForm {
         saveButton.addActionListener(e -> triggerSave());
         buttonPanel.add(saveButton);
 
-        buttonPanel.setSize(new Dimension(400, headingPaneHeight));
-        buttonPanel.setMaximumSize(new Dimension(400, headingPaneHeight));
-        buttonPanel.setPreferredSize(new Dimension(400, headingPaneHeight));
+        buttonPanel.setSize(new Dimension(panelWidth, saveTestCaseHeadingHeight));
+        buttonPanel.setMaximumSize(new Dimension(panelWidth, saveTestCaseHeadingHeight));
+        buttonPanel.setPreferredSize(new Dimension(panelWidth, saveTestCaseHeadingHeight));
         buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-        topPanel.add(buttonPanel);
+        topPanel.add(buttonPanel, BorderLayout.EAST);
+        topPanel.setLayout(new FlowLayout(FlowLayout.LEADING));
 
-        JLabel treeText = new JLabel();
-        treeText.setText("<html><b>Available recorded objects:</b></html>");
-        // define the tree panel
-        JPanel treeViewer = new JPanel();
-        treeViewer.setLayout(new BorderLayout());
-        treeViewer.add(treeText, BorderLayout.NORTH);
+        JPanel midPanel = new JPanel();
+        // define treePanelHeading
+        JLabel treePanelHeading = new JLabel();
+        treePanelHeading.setText("<html><b>Available recorded objects:</b></html>");
+        // define treePanel
+        JPanel treePanel = new JPanel();
+        treePanel.setLayout(new BorderLayout());
+        treePanel.add(treePanelHeading, BorderLayout.NORTH);
 
-        mainPanel.setMaximumSize(new Dimension(1080, 600));
-        candidateExplorerTree.setSize(new Dimension(400, 300));
+        int treePaneHeadingHeight = 10;
+        int CandidateExplorerTreeHeight = 300;
+        int CandidateExplorerTreeBufferHeight = 10;
+        int treeParentWidthPadding = 20;
+
+        mainPanel.setMaximumSize(new Dimension(lowerPanelWidth, 600));
+        candidateExplorerTree.setSize(new Dimension(400, CandidateExplorerTreeHeight));
         JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
-        treeParent.setSize(new Dimension(400, topPanelHeight));
-        treeParent.setMaximumSize(new Dimension(400, topPanelHeight));
-        treeParent.setPreferredSize(new Dimension(400, topPanelHeight));
-        treeViewer.add(treeParent, BorderLayout.SOUTH);
+        treeParent.setSize(new Dimension(panelWidth - treeParentWidthPadding, CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
+        treeParent.setMaximumSize(new Dimension(panelWidth - treeParentWidthPadding, CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
+        treeParent.setPreferredSize(new Dimension(panelWidth - treeParentWidthPadding, CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
+        treePanel.add(treeParent, BorderLayout.SOUTH);
 //        objectScroller.setMaximumSize(new Dimension(300, 400));
-        treeViewer.setSize(new Dimension(400, topPanelHeight + topTextHeight));
-        treeViewer.setMaximumSize(new Dimension(400, topPanelHeight + topTextHeight));
-        treeViewer.setPreferredSize(new Dimension(400, topPanelHeight + topTextHeight));
-        topPanel.add(treeViewer);
+        treePanel.setSize(new Dimension(panelWidth, treePaneHeadingHeight + CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
+        treePanel.setMaximumSize(new Dimension(panelWidth, treePaneHeadingHeight + CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
+        treePanel.setPreferredSize(new Dimension(panelWidth, treePaneHeadingHeight + CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
+        treePanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        midPanel.add(treePanel, BorderLayout.WEST);
 
         // define the metadata panel
         metadataForm = new SaveFormMetadataPanel(new MetadataViewPayload(storedCandidate.getName(),
@@ -209,26 +217,29 @@ public class SaveForm {
                 storedCandidate.getMetadata()));
 
         JPanel metadataFormPanel = metadataForm.getMainPanel();
-        metadataFormPanel.setSize(new Dimension(380, topPanelHeight));
-        metadataFormPanel.setMaximumSize(new Dimension(380, topPanelHeight));
-        topPanel.add(metadataFormPanel);
+        metadataFormPanel.setSize(new Dimension(panelWidth, treePaneHeadingHeight + CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
+        metadataFormPanel.setMaximumSize(new Dimension(panelWidth, treePaneHeadingHeight + CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
+        metadataFormPanel.setPreferredSize(new Dimension(panelWidth, treePaneHeadingHeight + CandidateExplorerTreeHeight + CandidateExplorerTreeBufferHeight));
+        midPanel.add(metadataFormPanel, BorderLayout.EAST);
+        midPanel.setLayout(new FlowLayout(FlowLayout.LEADING));
 
         mainPanel.add(topPanel, BorderLayout.NORTH);
+        mainPanel.add(midPanel, BorderLayout.CENTER);
 
         // lower panel
         // assertion panel
         JPanel assertionPanel = new JPanel();
         JScrollPane assertionScrollPanel = new JBScrollPane(ruleEditor);
-        assertionScrollPanel.setMaximumSize(new Dimension(1080, 1000));
-        assertionScrollPanel.setPreferredSize(new Dimension(1080, 1000));
+        assertionScrollPanel.setMaximumSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
+        assertionScrollPanel.setPreferredSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
         assertionPanel.add(assertionScrollPanel);
 
         // mock panel
         JPanel mockPanel = new JPanel();
         JTextArea local = new JTextArea(10,10); // todo form
         JScrollPane mockScrollPanel = new JScrollPane(local); // todo form
-        mockScrollPanel.setMaximumSize(new Dimension(1080, 1000));
-        mockScrollPanel.setPreferredSize(new Dimension(1080, 1000));
+        mockScrollPanel.setMaximumSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
+        mockScrollPanel.setPreferredSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
         mockPanel.add(mockScrollPanel);
 
         // add tabs in lower panel
