@@ -25,8 +25,11 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import java.awt.*;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class SaveForm {
 
@@ -45,6 +48,7 @@ public class SaveForm {
     private JRadioButton b1;
     private JRadioButton b2;
     private JTree candidateExplorerTree;
+    private String testTypeValue;
 
     //AgentCommandResponse is necessary for update flow and Assertions as well
     public SaveForm(
@@ -62,7 +66,7 @@ public class SaveForm {
         candidateExplorerTree = new Tree(getTree());
 
         String methodReturnValue = agentCommandResponse.getMethodReturnValue();
-
+        this.testTypeValue = "";
 
         try {
             responseNode = objectMapper.readTree(methodReturnValue);
@@ -312,8 +316,29 @@ public class SaveForm {
         JTabbedPane lowerPanel = new JBTabbedPane();
         lowerPanel.addTab("Assertion", assertionPanel);
         lowerPanel.addTab("Mock Data", mockPanel);
-        System.out.println("Value: " + this.metadataForm.comboBox1.getSelectedItem().toString());
-        lowerPanel.setEnabledAt(1, "Unit Test" == this.metadataForm.comboBox1.getSelectedItem().toString());
+
+
+        this.metadataForm.comboBox1.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                System.out.println(e.getSource());
+                if (e.getStateChange() == ItemEvent.SELECTED) {
+                    System.out.println("state change");
+                    System.out.println(e.getItem().toString());
+                    lowerPanel.setEnabledAt(1, Objects.equals(e.getItem().toString(), "Unit Test"));
+//                    if (Objects.equals(e.getItem().toString(), "Unit Test")){
+//                        lowerPanel.setEnabledAt(1, true);
+//                    }
+//                    else {
+//                        lowerPanel.setEnabledAt(1, false);
+//                    }
+                }
+            }
+        });
+
+
+        // listener -> getProject -> insidiousService
+        
 
         // add panel in mainPanel
         mainPanel.add(topPanel, BorderLayout.NORTH);
