@@ -35,6 +35,7 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import com.insidious.plugin.atomicrecord.AtomicRecordService;
 
 public class SaveForm {
@@ -368,19 +369,19 @@ public class SaveForm {
 //        }
 
 
-         this.insidiousService = this.listener.getProject().getService(InsidiousService.class);
-         AtomicRecordService atomicRecordService = this.insidiousService.getAtomicRecordService();
+        this.insidiousService = this.listener.getProject().getService(InsidiousService.class);
+        AtomicRecordService atomicRecordService = this.insidiousService.getAtomicRecordService();
 
-         MethodAdapter temp_method_adapter = this.insidiousService.getCurrentMethod();
-         MethodUnderTest temp_method_under_test = MethodUnderTest.fromMethodAdapter(temp_method_adapter);
-         System.out.println("temp_method_under_test= " + temp_method_under_test);
+        MethodAdapter temp_method_adapter = this.insidiousService.getCurrentMethod();
+        MethodUnderTest temp_method_under_test = MethodUnderTest.fromMethodAdapter(temp_method_adapter);
+        System.out.println("temp_method_under_test= " + temp_method_under_test);
 
-         List<DeclaredMock> temp_available_mocks =  atomicRecordService.getDeclaredMocksFor(temp_method_under_test);
-         for (int i=0;i<=temp_available_mocks.size()-1;i++) {
-             DeclaredMock local_mock = temp_available_mocks.get(i);
-             System.out.println("local_mock_name= " + local_mock.getName());
-             System.out.println("local_mock_method_name= " + local_mock.getMethodName());
-         }
+        List<DeclaredMock> temp_available_mocks =  atomicRecordService.getDeclaredMocksFor(temp_method_under_test);
+        for (int i=0;i<=temp_available_mocks.size()-1;i++) {
+            DeclaredMock local_mock = temp_available_mocks.get(i);
+            System.out.println("local_mock_name= " + local_mock.getName());
+            System.out.println("local_mock_method_name= " + local_mock.getMethodName());
+        }
 
         // add panel in mainPanel
         mainPanel.add(topPanel, BorderLayout.NORTH);
