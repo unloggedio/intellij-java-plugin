@@ -4,15 +4,21 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.assertions.*;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
+import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
 import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.psi.*;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
@@ -21,7 +27,7 @@ import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import javax.swing.border.Border;
-import javax.swing.border.CompoundBorder;
+
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import java.awt.*;
@@ -29,7 +35,7 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import com.insidious.plugin.atomicrecord.AtomicRecordService;
 
 public class SaveForm {
 
@@ -49,6 +55,7 @@ public class SaveForm {
     private JRadioButton b2;
     private JTree candidateExplorerTree;
     private String testTypeValue;
+    private InsidiousService insidiousService;
 
     //AgentCommandResponse is necessary for update flow and Assertions as well
     public SaveForm(
@@ -323,61 +330,62 @@ public class SaveForm {
             public void itemStateChanged(ItemEvent e) {
                 System.out.println(e.getSource());
                 if (e.getStateChange() == ItemEvent.SELECTED) {
-                    System.out.println("state change");
-                    System.out.println(e.getItem().toString());
                     lowerPanel.setEnabledAt(1, Objects.equals(e.getItem().toString(), "Unit Test"));
-//                    if (Objects.equals(e.getItem().toString(), "Unit Test")){
-//                        lowerPanel.setEnabledAt(1, true);
-//                    }
-//                    else {
-//                        lowerPanel.setEnabledAt(1, false);
-//                    }
                 }
             }
         });
 
+//          get list of dependencyCall from MockMethodLineHighlighter.java
+//          get list of mocks for all methods from AtomicRecordService.java
 
-        // listener -> getProject -> insidiousService
-        
+//        // todo: display mockDataPanel
+//        HashMap<MethodUnderTest, ArrayList<String>> mockMethodMap = this.storedCandidate.getMockMethodMap();
+//        for (String localKey:mockMethodMap.keySet()) {
+//            String key = localKey;
+//            String value = mockMethodMap.get(key).toString();
+//
+//            System.out.println(key);
+//            System.out.println(value);
+//
+//            // todo: store all mockable dependency with candidate
+//            // todo: store there id with candidate
+//
+//
+//            // get all stored mocks from mockMethod
+//            this.insidiousService = (InsidiousService)this.listener.getProject().getService(InsidiousService.class);
+//            List<DeclaredMock> declaredMocks = this.insidiousService.getDeclaredMocksOf(key);
+//
+//            // get enabled mocks from value
+//            // get mock from mock_id
+//
+//
+//
+//
+//            // todo: save data on clicking the button
+//            // todo: change button in mock panel (radio -> check box)
+//            // todo: panel border
+//            // todo: refactor code
+//        }
+
+
+         this.insidiousService = this.listener.getProject().getService(InsidiousService.class);
+         AtomicRecordService atomicRecordService = this.insidiousService.getAtomicRecordService();
+
+         MethodAdapter temp_method_adapter = this.insidiousService.getCurrentMethod();
+         MethodUnderTest temp_method_under_test = MethodUnderTest.fromMethodAdapter(temp_method_adapter);
+         System.out.println("temp_method_under_test= " + temp_method_under_test);
+
+         List<DeclaredMock> temp_available_mocks =  atomicRecordService.getDeclaredMocksFor(temp_method_under_test);
+         for (int i=0;i<=temp_available_mocks.size()-1;i++) {
+             DeclaredMock local_mock = temp_available_mocks.get(i);
+             System.out.println("local_mock_name= " + local_mock.getName());
+             System.out.println("local_mock_method_name= " + local_mock.getMethodName());
+         }
 
         // add panel in mainPanel
         mainPanel.add(topPanel, BorderLayout.NORTH);
         mainPanel.add(midPanel, BorderLayout.CENTER);
         mainPanel.add(lowerPanel, BorderLayout.SOUTH);
-
-
-//        scrollPane.setLocation(25, 320);
-//        scrollPane.setSize(950, 310);
-        // metadataForm.getCancelButton().addActionListener(e -> listener.onCancel());
-        // metadataForm.getSaveButton().addActionListener(e -> triggerSave());
-
-//        JPanel bottomPanel = new JPanel();
-//        bottomPanel.setLayout(new BorderLayout());
-
-//        String saveLocation = listener.getSaveLocation();
-//        JLabel infoLabel = new JLabel("Case will be saved at " + formatLocation(saveLocation));
-//        infoLabel.setToolTipText(saveLocation);
-//        infoLabel.setFont(new Font("Verdana", Font.PLAIN, 12));
-//        infoLabel.setSize(400, 12);
-//        bottomPanel.add(infoLabel, BorderLayout.WEST);
-
-//        JPanel bottomPanelRight = new JPanel();
-//        bottomPanelRight.setAlignmentX(1);
-
-//        cancelButton = new JButton("Cancel");
-//        cancelButton.setSize(100, 30);
-//
-//
-//        saveButton = new JButton("Save and Close");
-//        saveButton.setSize(150, 30);
-//        saveButton.setIcon(UIUtils.SAVE_CANDIDATE_PINK);
-
-//        bottomPanelRight.add(cancelButton);
-//        bottomPanelRight.add(saveButton);
-
-//        bottomPanel.add(bottomPanelRight, BorderLayout.EAST);
-//        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
-       // setInfo();
     }
 
     public JPanel getComponent() {
