@@ -192,6 +192,10 @@ final public class InsidiousService implements
         });
     }
 
+    public MethodAdapter getCurrentMethod() {
+        return this.currentMethod;
+    }
+
     //    @Unlogged
     public static void main(String[] args) {
 
