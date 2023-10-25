@@ -12,13 +12,11 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
 import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.psi.*;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
@@ -34,6 +32,7 @@ import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import com.insidious.plugin.atomicrecord.AtomicRecordService;
@@ -238,7 +237,6 @@ public class SaveForm {
         mockPanel.setLayout(mockPanelLayout);
 
         // define mockDataPanelContent
-        JTextArea local = new JTextArea(10,10); // todo form
         JPanel mockDataPanelContent = new JPanel();
         mockDataPanelContent.setLayout(new BoxLayout(mockDataPanelContent, BoxLayout.PAGE_AXIS));
 
@@ -249,71 +247,112 @@ public class SaveForm {
         JPanel applyMockPanel = new JPanel();
         applyMockPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
         applyMockPanel.add(applyMockLabel, BorderLayout.NORTH);
-        applyMockPanel.setSize(new Dimension(lowerPanelWidth, 30));
-        applyMockPanel.setPreferredSize(new Dimension(lowerPanelWidth, 30));
-        applyMockPanel.setMaximumSize(new Dimension(lowerPanelWidth, 30));
+        int applyMockPanelHeight = 30;
+        int mockMethodPanelContentHeight = 70;
+        applyMockPanel.setSize(new Dimension(lowerPanelWidth, applyMockPanelHeight));
+        applyMockPanel.setPreferredSize(new Dimension(lowerPanelWidth, applyMockPanelHeight));
+        applyMockPanel.setMaximumSize(new Dimension(lowerPanelWidth, applyMockPanelHeight));
         mockDataPanelContent.add(applyMockPanel);
 
-        // define mockMethodNamePanel
-        JLabel mockMethodNameLabel = new JLabel();
-        mockMethodNameLabel.setText("Call Expression");
-        mockMethodNameLabel.setIcon(UIUtils.MOCK_DATA);
-        JPanel mockMethodNamePanel = new JPanel();
-        mockMethodNamePanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-        mockMethodNamePanel.add(mockMethodNameLabel, BorderLayout.NORTH);
-        mockMethodNamePanel.setSize(new Dimension(lowerPanelWidth, 30));
-        mockMethodNamePanel.setPreferredSize(new Dimension(lowerPanelWidth, 30));
-        mockMethodNamePanel.setMaximumSize(new Dimension(lowerPanelWidth, 30));
+        this.insidiousService = this.listener.getProject().getService(InsidiousService.class);
+        AtomicRecordService atomicRecordService = this.insidiousService.getAtomicRecordService();
 
-        // define mockMethodDependencyPanel
-        JPanel mockMethodDependencyPanel = new JPanel();
-        GridLayout twoColumnLayout = new GridLayout(1,2);
-        mockMethodDependencyPanel.setLayout(twoColumnLayout);
+        MethodAdapter temp_method_adapter = this.insidiousService.getCurrentMethod();
+        MethodUnderTest temp_method_under_test = MethodUnderTest.fromMethodAdapter(temp_method_adapter);
+        System.out.println("temp_method_under_test= " + temp_method_under_test);
 
-        // define mockMethodDependencyPanelLeft
-        JPanel mockMethodDependencyPanelLeft = new JPanel();
-        JPanel leftText = new JPanel();
-        GridLayout twoRowLayout = new GridLayout(2,1);
-        leftText.setLayout(twoRowLayout);
+        List<DeclaredMock> temp_available_mocks =  atomicRecordService.getDeclaredMocksFor(temp_method_under_test);
+        HashMap<String, ArrayList<DeclaredMock>> dependency_mock_map = new HashMap<String, ArrayList<DeclaredMock>>();
         
-        JLabel leftTextFirst = new JLabel();
-        leftTextFirst.setText("method name");
-        leftText.add(leftTextFirst);
+        for (int i=0;i<=temp_available_mocks.size()-1;i++) {
+            DeclaredMock local_mock = temp_available_mocks.get(i);
+            String local_mock_name = local_mock.getName();
+            String local_mock_method_name = local_mock.getMethodName();
+            System.out.println("local_mock_name = " + local_mock_name);
+            System.out.println("local_mock_method_name = " + local_mock_method_name);
+            if (dependency_mock_map.containsKey(local_mock_method_name)) {
+                dependency_mock_map.get(local_mock_method_name).add(local_mock);
+            }
+            else
+            {
+                dependency_mock_map.put(local_mock_method_name, new ArrayList<DeclaredMock> ());
+                dependency_mock_map.get(local_mock_method_name).add(local_mock);
+            }
+        }
 
-        JLabel leftTextSecond = new JLabel();
-        leftTextSecond.setIcon(UIUtils.CLASS_FILE);
-        leftTextSecond.setText("class name");
-        leftText.add(leftTextSecond);
-
-        mockMethodDependencyPanelLeft.setLayout(new FlowLayout(FlowLayout.LEFT));
-        mockMethodDependencyPanelLeft.add(leftText);
-        mockMethodDependencyPanel.add(mockMethodDependencyPanelLeft);
-
-        // define mockMethodDependencyPanelRight
-        JPanel mockMethodDependencyPanelRight = new JPanel();
-        JRadioButton mockButton = new JRadioButton();
-        mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
-        mockMethodDependencyPanelRight.add(mockButton);
-        mockMethodDependencyPanel.add(mockMethodDependencyPanelRight);
-
-        mockMethodDependencyPanel.setSize(new Dimension(lowerPanelWidth, 50));
-        mockMethodDependencyPanel.setPreferredSize(new Dimension(lowerPanelWidth, 50));
-        mockMethodDependencyPanel.setMaximumSize(new Dimension(lowerPanelWidth, 50));
+        System.out.println("dependency_mock_map = " + dependency_mock_map.toString());
 
         JPanel mockMethodPanel = new JPanel();
         mockMethodPanel.setLayout(new BoxLayout(mockMethodPanel, BoxLayout.PAGE_AXIS));
-        mockMethodPanel.add(mockMethodNamePanel);
-        mockMethodPanel.add(mockMethodDependencyPanel);
-        mockDataPanelContent.add(mockMethodPanel);
+        for (String local_key: dependency_mock_map.keySet()) {
 
-        // debugging border
-        // applyMockPanel.setBorder(BorderFactory.createLineBorder(JBColor.RED));
-        // mockMethodNamePanel.setBorder(BorderFactory.createLineBorder(JBColor.BLUE));
-        mockMethodDependencyPanelLeft.setBorder(BorderFactory.createLineBorder(JBColor.GREEN));
-        mockMethodDependencyPanelRight.setBorder(BorderFactory.createLineBorder(JBColor.GREEN));
-        mockMethodDependencyPanel.setBorder(BorderFactory.createLineBorder(JBColor.RED));
-        // mockMethodPanel.setBorder(BorderFactory.createLineBorder(JBColor.GREEN));
-        // mockDataPanelContent.setBorder(BorderFactory.createLineBorder(JBColor.ORANGE));
+            // define mockMethodPanel
+            JLabel mockMethodNameLabel = new JLabel();
+            mockMethodNameLabel.setText(local_key);
+            mockMethodNameLabel.setIcon(UIUtils.MOCK_DATA);
+            JPanel mockMethodNamePanel = new JPanel();
+            mockMethodNamePanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+            mockMethodNamePanel.add(mockMethodNameLabel, BorderLayout.NORTH);
+            mockMethodNamePanel.setSize(new Dimension(lowerPanelWidth, 30));
+            mockMethodNamePanel.setPreferredSize(new Dimension(lowerPanelWidth, 30));
+            mockMethodNamePanel.setMaximumSize(new Dimension(lowerPanelWidth, 30));
+            mockMethodPanelContentHeight += 30;
+            mockMethodPanel.add(mockMethodNamePanel);
+
+            ArrayList<DeclaredMock> local_key_data = dependency_mock_map.get(local_key);
+            for (int i=0;i<=local_key_data.size()-1;i++) { 
+                DeclaredMock mockData = local_key_data.get(i);
+
+                // define mockMethodDependencyPanel
+                JPanel mockMethodDependencyPanel = new JPanel();
+                GridLayout twoColumnLayout = new GridLayout(1,2);
+                mockMethodDependencyPanel.setLayout(twoColumnLayout);
+
+                // define mockMethodDependencyPanelLeft
+                JPanel mockMethodDependencyPanelLeft = new JPanel();
+                JPanel leftText = new JPanel();
+                GridLayout twoRowLayout = new GridLayout(2,1);
+                leftText.setLayout(twoRowLayout);
+                
+                JLabel leftTextFirst = new JLabel();
+                leftTextFirst.setText(mockData.getName());
+                leftText.add(leftTextFirst);
+
+                JLabel leftTextSecond = new JLabel();
+                leftTextSecond.setIcon(UIUtils.CLASS_FILE);
+                leftTextSecond.setText(mockData.getMethodName());
+                leftText.add(leftTextSecond);
+
+                mockMethodDependencyPanelLeft.setLayout(new FlowLayout(FlowLayout.LEFT));
+                mockMethodDependencyPanelLeft.add(leftText);
+                mockMethodDependencyPanel.add(mockMethodDependencyPanelLeft);
+
+                // define mockMethodDependencyPanelRight
+                JPanel mockMethodDependencyPanelRight = new JPanel();
+                JCheckBox mockButton = new JCheckBox();
+                mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
+                mockMethodDependencyPanelRight.add(mockButton);
+                mockMethodDependencyPanel.add(mockMethodDependencyPanelRight);
+
+                mockMethodDependencyPanel.setSize(new Dimension(lowerPanelWidth, 50));
+                mockMethodDependencyPanel.setPreferredSize(new Dimension(lowerPanelWidth, 50));
+                mockMethodDependencyPanel.setMaximumSize(new Dimension(lowerPanelWidth, 50));
+                mockMethodPanelContentHeight+= 50;
+                mockMethodPanel.add(mockMethodDependencyPanel);
+
+                // debugging border
+                // applyMockPanel.setBorder(BorderFactory.createLineBorder(JBColor.RED));
+                // mockMethodNamePanel.setBorder(BorderFactory.createLineBorder(JBColor.BLUE));
+                mockMethodDependencyPanelLeft.setBorder(BorderFactory.createLineBorder(JBColor.GREEN));
+                mockMethodDependencyPanelRight.setBorder(BorderFactory.createLineBorder(JBColor.GREEN));
+                mockMethodDependencyPanel.setBorder(BorderFactory.createLineBorder(JBColor.RED));
+                // mockMethodPanel.setBorder(BorderFactory.createLineBorder(JBColor.GREEN));
+                // mockDataPanelContent.setBorder(BorderFactory.createLineBorder(JBColor.ORANGE));
+            }
+        }
+        
+        mockDataPanelContent.add(mockMethodPanel);
+        mockDataPanelContent.setPreferredSize(new Dimension(lowerPanelWidth, mockMethodPanelContentHeight));
 
         JScrollPane mockScrollPanel = new JBScrollPane(mockDataPanelContent);
         mockScrollPanel.setMaximumSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
@@ -335,53 +374,6 @@ public class SaveForm {
                 }
             }
         });
-
-//          get list of dependencyCall from MockMethodLineHighlighter.java
-//          get list of mocks for all methods from AtomicRecordService.java
-
-//        // todo: display mockDataPanel
-//        HashMap<MethodUnderTest, ArrayList<String>> mockMethodMap = this.storedCandidate.getMockMethodMap();
-//        for (String localKey:mockMethodMap.keySet()) {
-//            String key = localKey;
-//            String value = mockMethodMap.get(key).toString();
-//
-//            System.out.println(key);
-//            System.out.println(value);
-//
-//            // todo: store all mockable dependency with candidate
-//            // todo: store there id with candidate
-//
-//
-//            // get all stored mocks from mockMethod
-//            this.insidiousService = (InsidiousService)this.listener.getProject().getService(InsidiousService.class);
-//            List<DeclaredMock> declaredMocks = this.insidiousService.getDeclaredMocksOf(key);
-//
-//            // get enabled mocks from value
-//            // get mock from mock_id
-//
-//
-//
-//
-//            // todo: save data on clicking the button
-//            // todo: change button in mock panel (radio -> check box)
-//            // todo: panel border
-//            // todo: refactor code
-//        }
-
-
-        this.insidiousService = this.listener.getProject().getService(InsidiousService.class);
-        AtomicRecordService atomicRecordService = this.insidiousService.getAtomicRecordService();
-
-        MethodAdapter temp_method_adapter = this.insidiousService.getCurrentMethod();
-        MethodUnderTest temp_method_under_test = MethodUnderTest.fromMethodAdapter(temp_method_adapter);
-        System.out.println("temp_method_under_test= " + temp_method_under_test);
-
-        List<DeclaredMock> temp_available_mocks =  atomicRecordService.getDeclaredMocksFor(temp_method_under_test);
-        for (int i=0;i<=temp_available_mocks.size()-1;i++) {
-            DeclaredMock local_mock = temp_available_mocks.get(i);
-            System.out.println("local_mock_name= " + local_mock.getName());
-            System.out.println("local_mock_method_name= " + local_mock.getMethodName());
-        }
 
         // add panel in mainPanel
         mainPanel.add(topPanel, BorderLayout.NORTH);
