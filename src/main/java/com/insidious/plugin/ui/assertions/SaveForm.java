@@ -248,7 +248,7 @@ public class SaveForm {
         applyMockPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
         applyMockPanel.add(applyMockLabel, BorderLayout.NORTH);
         int applyMockPanelHeight = 30;
-        int mockMethodPanelContentHeight = 70;
+        int mockMethodPanelContentHeight = 30;
         applyMockPanel.setSize(new Dimension(lowerPanelWidth, applyMockPanelHeight));
         applyMockPanel.setPreferredSize(new Dimension(lowerPanelWidth, applyMockPanelHeight));
         applyMockPanel.setMaximumSize(new Dimension(lowerPanelWidth, applyMockPanelHeight));
@@ -282,17 +282,31 @@ public class SaveForm {
 
         System.out.println("dependency_mock_map = " + dependency_mock_map.toString());
 
+        // define mockMethodPanel
         JPanel mockMethodPanel = new JPanel();
         mockMethodPanel.setLayout(new BoxLayout(mockMethodPanel, BoxLayout.PAGE_AXIS));
-        for (String local_key: dependency_mock_map.keySet()) {
 
-            // define mockMethodPanel
-            JLabel mockMethodNameLabel = new JLabel();
-            mockMethodNameLabel.setText(local_key);
-            mockMethodNameLabel.setIcon(UIUtils.MOCK_DATA);
+        for (String local_key: dependency_mock_map.keySet()) {
+            // define mockMethodNamePanel
             JPanel mockMethodNamePanel = new JPanel();
-            mockMethodNamePanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-            mockMethodNamePanel.add(mockMethodNameLabel, BorderLayout.NORTH);
+            mockMethodNamePanel.setLayout(new GridLayout(1,2));
+
+            // define mockMethodNamePanelLeft
+            JLabel mockMethodNamePanelLeft = new JLabel();
+            mockMethodNamePanelLeft.setText(local_key);
+            mockMethodNamePanelLeft.setIcon(UIUtils.MOCK_DATA);
+            mockMethodNamePanel.add(mockMethodNamePanelLeft);
+
+            // define mockMethodNamePanelRight
+            JPanel mockMethodNamePanelRight = new JPanel();
+            mockMethodNamePanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
+            JCheckBox mockButtonMain = new JCheckBox();
+            mockMethodNamePanelRight.add(mockButtonMain);
+            JLabel selectAllText = new JLabel();
+            selectAllText.setText("<html><b>Select all</b></html>");
+            mockMethodNamePanelRight.add(selectAllText);
+            mockMethodNamePanel.add(mockMethodNamePanelRight);
+
             mockMethodNamePanel.setSize(new Dimension(lowerPanelWidth, 30));
             mockMethodNamePanel.setPreferredSize(new Dimension(lowerPanelWidth, 30));
             mockMethodNamePanel.setMaximumSize(new Dimension(lowerPanelWidth, 30));
@@ -305,8 +319,7 @@ public class SaveForm {
 
                 // define mockMethodDependencyPanel
                 JPanel mockMethodDependencyPanel = new JPanel();
-                GridLayout twoColumnLayout = new GridLayout(1,2);
-                mockMethodDependencyPanel.setLayout(twoColumnLayout);
+                mockMethodDependencyPanel.setLayout(new GridLayout(1,2));
 
                 // define mockMethodDependencyPanelLeft
                 JPanel mockMethodDependencyPanelLeft = new JPanel();
@@ -329,8 +342,8 @@ public class SaveForm {
 
                 // define mockMethodDependencyPanelRight
                 JPanel mockMethodDependencyPanelRight = new JPanel();
-                JCheckBox mockButton = new JCheckBox();
                 mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
+                JCheckBox mockButton = new JCheckBox();
                 mockMethodDependencyPanelRight.add(mockButton);
                 mockMethodDependencyPanel.add(mockMethodDependencyPanelRight);
 
