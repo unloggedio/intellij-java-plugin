@@ -14,10 +14,9 @@ public class AgentCommandRequest {
     private List<String> methodParameters;
     private AgentCommandRequestType requestType;
     private List<String> parameterTypes;
-    private List<DeclaredMock> declaredMocks = new ArrayList<>();
-
+    private List<DeclaredMock> declaredMocks;
     public List<DeclaredMock> getDeclaredMocks() {
-        return declaredMocks;
+        return this.declaredMocks;
     }
 
     public void setDeclaredMocks(List<DeclaredMock> declaredMocks) {

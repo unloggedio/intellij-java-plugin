@@ -1,5 +1,9 @@
 package com.insidious.plugin.agent;
 
+import com.insidious.plugin.mocking.DeclaredMock;
+
+import java.util.ArrayList;
+
 public class AgentCommandResponse<T> {
     private T methodReturnValue;
     private ResponseType responseType;
@@ -9,6 +13,16 @@ public class AgentCommandResponse<T> {
     private String targetClassName;
     private String targetMethodSignature;
     private long timestamp;
+    private ArrayList<DeclaredMock> enabledMock;
+
+    public ArrayList<DeclaredMock> getEnabledMock() {
+        return this.enabledMock;
+    }
+
+    public void setEnabledMock(ArrayList<DeclaredMock> enabledMock) {
+        this.enabledMock = enabledMock;
+    }
+
 
     public AgentCommandResponse(ResponseType responseType) {
         this.responseType = responseType;

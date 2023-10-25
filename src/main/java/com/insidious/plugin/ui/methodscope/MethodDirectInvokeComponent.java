@@ -230,7 +230,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
             AgentCommandRequest agentCommandRequest =
                     MethodUtils.createExecuteRequestWithParameters(methodElement, psiClass, methodArgumentValues,
-                            false);
+                            false, null);
             agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
             returnValueTextArea.setText("");
 
@@ -370,7 +370,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         List<String> methodArgumentValues = null;
         AgentCommandRequest agentCommandRequest = MethodUtils.createExecuteRequestWithParameters(methodElement,
                 new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) containingClass.getSource())),
-                methodArgumentValues, false);
+                methodArgumentValues, false, null);
 
         AgentCommandRequest existingRequests = insidiousService.getAgentCommandRequests(agentCommandRequest);
         if (existingRequests != null) {

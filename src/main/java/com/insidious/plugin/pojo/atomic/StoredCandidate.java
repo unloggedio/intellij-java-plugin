@@ -5,6 +5,7 @@ import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.util.TestCandidateUtils;
 
 
@@ -31,6 +32,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     private long sessionIdentifier;
     private byte[] probSerializedValue;
     private MethodUnderTest methodUnderTest;
+    private ArrayList<DeclaredMock> enabledMock;
 
     private StoredCandidate() {
     }
@@ -62,6 +64,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         candidate.setLineNumbers(metadata.getLineNumbers());
         candidate.setException(!response.getResponseType().equals(ResponseType.NORMAL));
         candidate.setReturnValue(response.getMethodReturnValue());
+        candidate.setEnabledMock(metadata.getEnabledMock());
         //to be updated
         candidate.setProbSerializedValue(metadata.getProbSerializedValue());
         //to be updated
@@ -69,6 +72,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         candidate.setSessionIdentifier(metadata.getSessionIdentifier());
         candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
         candidate.setReturnValueClassname(response.getResponseClassName());
+        // candidate.setEnabledMock(response.getEnabledMock());
 
         if (metadata.getMetadata() != null) {
             candidate.setMetadata(metadata.getMetadata());
@@ -83,6 +87,13 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         return candidate;
     }
 
+    public ArrayList<DeclaredMock> getEnabledMock() {
+        return this.enabledMock;
+    }
+
+    public void setEnabledMock(ArrayList<DeclaredMock> enabledMock) {
+        this.enabledMock = enabledMock;
+    }
     public long getEntryProbeIndex() {
         return entryProbeIndex;
     }
@@ -258,6 +269,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.setReturnValueClassname(candidate.getReturnValueClassname());
         this.setLineNumbers(candidate.getLineNumbers());
         this.setTestAssertions(candidate.getTestAssertions());
+        this.setEnabledMock(candidate.getEnabledMock());
     }
 
     public AtomicAssertion getTestAssertions() {

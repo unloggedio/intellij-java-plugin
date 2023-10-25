@@ -29,13 +29,15 @@ import javax.swing.border.Border;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.lang.reflect.Array;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
+
 import com.insidious.plugin.atomicrecord.AtomicRecordService;
+import groovyjarjarantlr4.v4.codegen.model.decl.Decl;
 
 public class SaveForm {
 
@@ -56,7 +58,7 @@ public class SaveForm {
     private JTree candidateExplorerTree;
     private String testTypeValue;
     private InsidiousService insidiousService;
-
+    private ArrayList<DeclaredMock> enabledMock = new ArrayList<DeclaredMock>();
     //AgentCommandResponse is necessary for update flow and Assertions as well
     public SaveForm(
             StoredCandidate storedCandidate,
@@ -193,8 +195,7 @@ public class SaveForm {
         topPanel.add(buttonPanel);
 
         JPanel midPanel = new JPanel();
-        GridLayout midPanelLayout = new GridLayout(1, 2);
-        midPanel.setLayout(midPanelLayout);
+        midPanel.setLayout(new GridLayout(1, 2));
 
         // define treePanelHeading
         JLabel treePanelHeading = new JLabel();
@@ -210,6 +211,7 @@ public class SaveForm {
         mainPanel.setMaximumSize(new Dimension(lowerPanelWidth, 600));
         candidateExplorerTree.setSize(new Dimension(400, CandidateExplorerTreeHeight));
         JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
+        treeParent.setBorder(BorderFactory.createEmptyBorder());
         treePanel.add(treeParent, BorderLayout.CENTER);
         midPanel.add(treePanel);
 
@@ -263,7 +265,7 @@ public class SaveForm {
 
         List<DeclaredMock> temp_available_mocks =  atomicRecordService.getDeclaredMocksFor(temp_method_under_test);
         HashMap<String, ArrayList<DeclaredMock>> dependency_mock_map = new HashMap<String, ArrayList<DeclaredMock>>();
-        
+
         for (int i=0;i<=temp_available_mocks.size()-1;i++) {
             DeclaredMock local_mock = temp_available_mocks.get(i);
             String local_mock_name = local_mock.getName();
@@ -301,6 +303,14 @@ public class SaveForm {
             JPanel mockMethodNamePanelRight = new JPanel();
             mockMethodNamePanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
             JCheckBox mockButtonMain = new JCheckBox();
+            mockButtonMain.addActionListener(e -> {
+                if (mockButtonMain.isSelected()){
+                    this.changeAllMocks(dependency_mock_map.get(local_key), true);
+                }
+                else {
+                    this.changeAllMocks(dependency_mock_map.get(local_key), false);
+                }
+            });
             mockMethodNamePanelRight.add(mockButtonMain);
             JLabel selectAllText = new JLabel();
             selectAllText.setText("<html><b>Select all</b></html>");
@@ -344,6 +354,14 @@ public class SaveForm {
                 JPanel mockMethodDependencyPanelRight = new JPanel();
                 mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
                 JCheckBox mockButton = new JCheckBox();
+                mockButton.addActionListener(e -> {
+                    if (mockButtonMain.isSelected()){
+                        this.changeSingleMock(mockData, true);
+                    }
+                    else {
+                        this.changeSingleMock(mockData, false);
+                    }
+                });
                 mockMethodDependencyPanelRight.add(mockButton);
                 mockMethodDependencyPanel.add(mockMethodDependencyPanelRight);
 
@@ -394,12 +412,34 @@ public class SaveForm {
         mainPanel.add(lowerPanel, BorderLayout.SOUTH);
     }
 
+
+    private void changeAllMocks(List<DeclaredMock> allDeclaredMocks, boolean state) {
+        for (int i=0;i<=allDeclaredMocks.size()-1;i++)
+        {
+            if (state) {
+                this.enabledMock.add(allDeclaredMocks.get(i));
+            }
+            else {
+                this.enabledMock.remove(allDeclaredMocks.get(i));
+            }
+        }
+    }
+
+    private void changeSingleMock(DeclaredMock localMock, boolean state) {
+        String mockId =localMock.getId();
+        if (state) {
+            this.enabledMock.add(localMock);
+        }
+        else {
+            this.enabledMock.remove(localMock);
+        }
+    }
     public JPanel getComponent() {
         return mainPanel;
     }
 
     private void triggerSave() {
-
+        System.out.println("Trigger Save Happened");
         AtomicAssertion atomicAssertion = ruleEditor.getAssertion();
 
         MetadataViewPayload payload = metadataForm.getPayload();
@@ -410,11 +450,13 @@ public class SaveForm {
         //this call is necessary
         //Required if we cancel update/save
         //Required for upcoming assertion flows as well
+        storedCandidate.setEnabledMock(this.enabledMock);
         StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate, agentCommandResponse);
         candidate.setMetadata(payload.getStoredCandidateMetadata());
         candidate.setName(assertionName);
         candidate.setDescription(assertionDescription);
         candidate.setTestAssertions(atomicAssertion);
+        System.out.println("Enabled Mock in save Form" + this.enabledMock.toString());
 
         listener.onSaved(candidate);
     }

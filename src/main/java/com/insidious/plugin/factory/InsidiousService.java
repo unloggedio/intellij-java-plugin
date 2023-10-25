@@ -99,6 +99,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import static com.insidious.plugin.agent.AgentCommandRequestType.DIRECT_INVOKE;
 import static com.insidious.plugin.util.AtomicRecordUtils.filterStoredCandidates;
 
 @Storage("insidious.xml")
@@ -627,15 +628,22 @@ final public class InsidiousService implements
                 agentCommandRequest.getMethodName(), agentCommandRequest.getMethodSignature(),
                 0, agentCommandRequest.getClassName()
         );
-        List<DeclaredMock> availableMocks = getDeclaredMocksFor(methodUnderTest);
 
-        List<DeclaredMock> activeMocks = availableMocks
-                .stream()
-//                    .filter(e -> isFieldMockActive(e.getSourceClassName(), e.getFieldName()))
-                .filter(this::isMockEnabled)
-                .collect(Collectors.toList());
 
-        agentCommandRequest.setDeclaredMocks(activeMocks);
+        // change: block start here
+        if (agentCommandRequest.getRequestType().equals(DIRECT_INVOKE)) {
+            List<DeclaredMock> availableMocks = getDeclaredMocksFor(methodUnderTest);
+
+            List<DeclaredMock> activeMocks = availableMocks
+                    .stream()
+//              .filter(e -> isFieldMockActive(e.getSourceClassName(), e.getFieldName()))
+                    .filter(this::isMockEnabled)
+                    .collect(Collectors.toList());
+
+            agentCommandRequest.setDeclaredMocks(activeMocks);
+        }
+        // change: block end here
+
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
