@@ -24,20 +24,15 @@ import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
-import javax.swing.border.Border;
-
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.lang.reflect.Array;
 import java.util.*;
 import java.util.List;
 
 import com.insidious.plugin.atomicrecord.AtomicRecordService;
-import groovyjarjarantlr4.v4.codegen.model.decl.Decl;
 
 public class SaveForm {
 
@@ -52,11 +47,7 @@ public class SaveForm {
     private JsonNode responseNode;
     private JButton saveButton;
     // private JButton cancelButton;
-    private JLabel assertionLabel;
-    private JRadioButton b1;
-    private JRadioButton b2;
     private JTree candidateExplorerTree;
-    private String testTypeValue;
     private InsidiousService insidiousService;
     private ArrayList<DeclaredMock> enabledMock = new ArrayList<DeclaredMock>();
     //AgentCommandResponse is necessary for update flow and Assertions as well
@@ -78,7 +69,6 @@ public class SaveForm {
         candidateExplorerTree = new Tree(getTree());
 
         String methodReturnValue = agentCommandResponse.getMethodReturnValue();
-        this.testTypeValue = "";
 
         responseNode = getResponseNode(methodReturnValue, agentCommandResponse.getResponseClassName());
 
@@ -424,7 +414,6 @@ public class SaveForm {
     }
 
     private void changeSingleMock(DeclaredMock localMock, boolean state) {
-        String mockId = localMock.getId();
         if (state) {
             this.enabledMock.add(localMock);
         } else {
@@ -456,7 +445,6 @@ public class SaveForm {
     }
 
     private void triggerSave() {
-        System.out.println("Trigger Save Happened");
         AtomicAssertion atomicAssertion = ruleEditor.getAssertion();
 
         MetadataViewPayload payload = metadataForm.getPayload();
@@ -483,33 +471,6 @@ public class SaveForm {
             return "";
         } else {
             return source.trim();
-        }
-    }
-
-    // private void setInfo() {
-    //     boolean updated = false;
-    //     String name = storedCandidate.getName();
-    //     String description = storedCandidate.getDescription();
-
-    //     if (name != null) {
-    //         updated = true;
-    //     }
-    //     if (description != null) {
-    //         updated = true;
-    //     }
-    //     if (updated) {
-    //         this.saveButton.setText("Save & Close");
-    //     }
-    // }
-
-    private String formatLocation(String location) {
-        if (location.length() <= 59) {
-            return location;
-        } else {
-            String left = location.substring(0, 47);
-            left = left.substring(0, left.lastIndexOf("/") + 1);
-            left += ".../unlogged/";
-            return left;
         }
     }
 

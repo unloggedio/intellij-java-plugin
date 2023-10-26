@@ -72,7 +72,6 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         candidate.setSessionIdentifier(metadata.getSessionIdentifier());
         candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
         candidate.setReturnValueClassname(response.getResponseClassName());
-        // candidate.setEnabledMock(response.getEnabledMock());
 
         if (metadata.getMetadata() != null) {
             candidate.setMetadata(metadata.getMetadata());

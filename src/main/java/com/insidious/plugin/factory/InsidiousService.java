@@ -629,8 +629,6 @@ final public class InsidiousService implements
                 0, agentCommandRequest.getClassName()
         );
 
-
-        // change: block start here
         if (agentCommandRequest.getRequestType().equals(DIRECT_INVOKE)) {
             List<DeclaredMock> availableMocks = getDeclaredMocksFor(methodUnderTest);
 
@@ -642,8 +640,6 @@ final public class InsidiousService implements
 
             agentCommandRequest.setDeclaredMocks(activeMocks);
         }
-        // change: block end here
-
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 

@@ -7,7 +7,6 @@ import com.intellij.ui.Gray;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.IconUtil;
-import com.sun.jna.platform.win32.COM.util.IComEventCallbackListener;
 
 import javax.swing.*;
 import java.awt.*;

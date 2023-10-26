@@ -4,7 +4,6 @@ import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.util.UIUtils;
 
 import javax.swing.*;
-import javax.swing.text.JTextComponent;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -32,7 +31,6 @@ public class SaveFormMetadataPanel {
     private JLabel hostKeyPanel;
     private JLabel timestampKeyPanel;
     public JComboBox comboBox1;
-    private JLabel testType;
 
     public SaveFormMetadataPanel(MetadataViewPayload payload) {
         loadView(payload);
