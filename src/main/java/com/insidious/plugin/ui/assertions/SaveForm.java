@@ -213,6 +213,7 @@ public class SaveForm {
         JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
         treeParent.setBorder(BorderFactory.createEmptyBorder());
         treePanel.add(treeParent, BorderLayout.CENTER);
+        treePanel.setBorder(BorderFactory.createLineBorder(JBColor.GRAY));
         midPanel.add(treePanel);
 
         // define the metadataPanel
