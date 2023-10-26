@@ -32,7 +32,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     private long sessionIdentifier;
     private byte[] probSerializedValue;
     private MethodUnderTest methodUnderTest;
-    private ArrayList<DeclaredMock> enabledMock;
+    private ArrayList<DeclaredMock> enabledMock = new ArrayList<DeclaredMock>();
 
     private StoredCandidate() {
     }
