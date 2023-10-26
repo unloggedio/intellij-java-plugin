@@ -199,8 +199,7 @@ public class SaveForm {
         candidateExplorerTree.setSize(new Dimension(400, CandidateExplorerTreeHeight));
         JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
         treePanel.add(treeParent, BorderLayout.CENTER);
-        treePanel.setBorder(BorderFactory.createLineBorder(JBColor.GRAY));
-        midPanel.add(treePanel);
+        treePanel.setBorder(BorderFactory.createMatteBorder(1,1,1,1,JBColor.BLACK));
 
         // define the metadataPanel
         metadataForm = new SaveFormMetadataPanel(new MetadataViewPayload(storedCandidate.getName(),
@@ -208,7 +207,9 @@ public class SaveForm {
                 storedCandidate.getMetadata()));
 
         JPanel metadataFormPanel = metadataForm.getMainPanel();
-        metadataFormPanel.setBorder(BorderFactory.createLineBorder(JBColor.GRAY));
+        metadataFormPanel.setBorder(BorderFactory.createMatteBorder(1,0,1,1,JBColor.BLACK));
+
+        midPanel.add(treePanel);
         midPanel.add(metadataFormPanel);
 
         // assertion panel
@@ -320,7 +321,7 @@ public class SaveForm {
             mockMethodNamePanel.setSize(new Dimension(lowerPanelWidth-15, 30));
             mockMethodNamePanel.setPreferredSize(new Dimension(lowerPanelWidth-15, 30));
             mockMethodNamePanel.setMaximumSize(new Dimension(lowerPanelWidth-15, 30));
-            mockMethodNamePanel.setBorder(BorderFactory.createMatteBorder(0,0,1,0,JBColor.GREEN));
+            mockMethodNamePanel.setBorder(BorderFactory.createMatteBorder(0,0,1,0,JBColor.BLACK));
             mockMethodPanelSingleHeight += 30;
             mockMethodPanelSingle.add(mockMethodNamePanel);
 
@@ -367,7 +368,7 @@ public class SaveForm {
                 this.buttonMap.get(mockButtonMain).add(mockButton);
                 mockMethodDependencyPanel.add(mockMethodDependencyPanelRight);
 
-                mockMethodDependencyPanel.setBorder(BorderFactory.createLineBorder(JBColor.GRAY));
+                mockMethodDependencyPanel.setBorder(BorderFactory.createLineBorder(JBColor.BLACK));
                 mockMethodDependencyPanel.setSize(new Dimension(lowerPanelWidth-20, 50));
                 mockMethodDependencyPanel.setPreferredSize(new Dimension(lowerPanelWidth-20, 50));
                 mockMethodDependencyPanel.setMaximumSize(new Dimension(lowerPanelWidth-20, 50));
@@ -375,12 +376,13 @@ public class SaveForm {
                 mockMethodPanelSingle.add(mockMethodDependencyPanel);
             }
 
-            mockMethodPanelSingle.setBorder(BorderFactory.createLineBorder(JBColor.GRAY));
+            mockMethodPanelSingle.setBorder(BorderFactory.createLineBorder(JBColor.BLACK));
             mockMethodPanelSingleHeight += 20;
             mockMethodPanelSingle.setSize(new Dimension(lowerPanelWidth, mockMethodPanelSingleHeight));
             mockMethodPanelSingle.setPreferredSize(new Dimension(lowerPanelWidth, mockMethodPanelSingleHeight));
             mockMethodPanelSingle.setMaximumSize(new Dimension(lowerPanelWidth, mockMethodPanelSingleHeight));
             mockDataPanelContentHeight += mockMethodPanelSingleHeight;
+            mockMethodPanel.add(Box.createRigidArea(null));
             mockMethodPanel.add(mockMethodPanelSingle);
         }
 
