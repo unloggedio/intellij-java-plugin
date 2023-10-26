@@ -64,8 +64,8 @@ public class SaveFormMetadataPanel {
             this.statusLabel.setText("Passing");
         }
 
-        comboItem unitTest = new comboItem ("Unit Test", "unit_test");
-        comboItem integrationTest = new comboItem ("Integration Test", "integration_test");
+        comboItem unitTest = new comboItem("Unit Test", "unit_test");
+        comboItem integrationTest = new comboItem("Integration Test", "integration_test");
         this.comboBox1.addItem(unitTest);
         this.comboBox1.addItem(integrationTest);
     }
@@ -74,7 +74,7 @@ public class SaveFormMetadataPanel {
         public String item_string;
         public String item_value;
 
-        public comboItem (String item_string, String item_value) {
+        public comboItem(String item_string, String item_value) {
             this.item_string = item_string;
             this.item_value = item_value;
         }
@@ -115,6 +115,7 @@ public class SaveFormMetadataPanel {
     public AbstractButton getCancelButton() {
         return cancelButton;
     }
+
     public AbstractButton getSaveButton() {
         return saveAndCloseButton;
     }

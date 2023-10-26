@@ -84,16 +84,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
         candidateCountLinkLabel.setVisible(false);
         coveragePercentLabel.setVisible(false);
-//        returnValueTextArea.setFont(OPEN_SANS);
-//        Font font = descriptionEditorPane.getFont();
-
-
-//        descriptionEditorPane.setFont(OPEN_SANS);
-
         scrollerContainer.setVisible(false);
-//        permanentMocksCheckBox.setVisible(false);
-
-//        h1WhatIsDirectInvokeEditorPane.setContentType("text/html");
 
         setActionPanelTitle("This will be available after IDEA indexing is complete");
         executeButton.setEnabled(false);
@@ -164,7 +155,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
             candidateCountLinkLabel.setText("<HTML><U>" + candidateCount + " recorded execution" + "</U></HTML>");
             candidateCountLinkLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             candidateCountLinkLabel.setForeground(UIUtils.teal);
-;
+            ;
         }
     }
 

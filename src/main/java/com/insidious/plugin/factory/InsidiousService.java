@@ -1355,8 +1355,6 @@ final public class InsidiousService implements
                 logger.warn("Failed to highlight: " + e.getMessage());
             }
         }
-
-
     }
 
     public void removeCurrentActiveHighlights() {

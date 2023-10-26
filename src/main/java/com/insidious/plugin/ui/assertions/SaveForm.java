@@ -61,7 +61,8 @@ public class SaveForm {
     private ArrayList<DeclaredMock> enabledMock = new ArrayList<DeclaredMock>();
     //AgentCommandResponse is necessary for update flow and Assertions as well
 
-    private HashMap<JCheckBox, ArrayList<JCheckBox>> buttonMap = new HashMap<JCheckBox, ArrayList<JCheckBox>> ();
+    private HashMap<JCheckBox, ArrayList<JCheckBox>> buttonMap = new HashMap<JCheckBox, ArrayList<JCheckBox>>();
+
     public SaveForm(
             StoredCandidate storedCandidate,
             AgentCommandResponse<String> agentCommandResponse,
@@ -143,7 +144,7 @@ public class SaveForm {
 
         // define topPanel
         JPanel topPanel = new JPanel();
-        GridLayout topPanelLayout = new GridLayout(1,2);
+        GridLayout topPanelLayout = new GridLayout(1, 2);
         topPanel.setLayout(topPanelLayout);
 
         // define saveTestCaseHeading
@@ -187,7 +188,7 @@ public class SaveForm {
         JLabel treePanelHeading = new JLabel();
         treePanelHeading.setText("<html><b>Available recorded objects:</b></html>");
         treePanelHeading.setVerticalAlignment(SwingConstants.TOP);
-        treePanelHeading.setBorder(BorderFactory.createEmptyBorder(2,2,2,2));
+        treePanelHeading.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
         // define treePanel
         JPanel treePanel = new JPanel();
         treePanel.setLayout(new BorderLayout());
@@ -199,7 +200,7 @@ public class SaveForm {
         candidateExplorerTree.setSize(new Dimension(400, CandidateExplorerTreeHeight));
         JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
         treePanel.add(treeParent, BorderLayout.CENTER);
-        treePanel.setBorder(BorderFactory.createMatteBorder(1,1,1,1,JBColor.BLACK));
+        treePanel.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, JBColor.BLACK));
 
         // define the metadataPanel
         metadataForm = new SaveFormMetadataPanel(new MetadataViewPayload(storedCandidate.getName(),
@@ -207,14 +208,14 @@ public class SaveForm {
                 storedCandidate.getMetadata()));
 
         JPanel metadataFormPanel = metadataForm.getMainPanel();
-        metadataFormPanel.setBorder(BorderFactory.createMatteBorder(1,0,1,1,JBColor.BLACK));
+        metadataFormPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 1, 1, JBColor.BLACK));
 
         midPanel.add(treePanel);
         midPanel.add(metadataFormPanel);
 
         // assertion panel
         JPanel assertionPanel = new JPanel();
-        GridLayout assertionPanelLayout = new GridLayout(1,1);
+        GridLayout assertionPanelLayout = new GridLayout(1, 1);
         assertionPanel.setLayout(assertionPanelLayout);
 
         JScrollPane assertionScrollPanel = new JBScrollPane(ruleEditor);
@@ -224,7 +225,7 @@ public class SaveForm {
 
         // mock panel
         JPanel mockPanel = new JPanel();
-        GridLayout mockPanelLayout = new GridLayout(1,1);
+        GridLayout mockPanelLayout = new GridLayout(1, 1);
         mockPanel.setLayout(mockPanelLayout);
 
         // define mockDataPanelContent
@@ -251,10 +252,10 @@ public class SaveForm {
         MethodUnderTest temp_method_under_test = MethodUnderTest.fromMethodAdapter(temp_method_adapter);
         System.out.println("temp_method_under_test= " + temp_method_under_test);
 
-        List<DeclaredMock> temp_available_mocks =  atomicRecordService.getDeclaredMocksFor(temp_method_under_test);
+        List<DeclaredMock> temp_available_mocks = atomicRecordService.getDeclaredMocksFor(temp_method_under_test);
         HashMap<String, ArrayList<DeclaredMock>> dependency_mock_map = new HashMap<String, ArrayList<DeclaredMock>>();
 
-        for (int i=0;i<=temp_available_mocks.size()-1;i++) {
+        for (int i = 0; i <= temp_available_mocks.size() - 1; i++) {
             DeclaredMock local_mock = temp_available_mocks.get(i);
             String local_mock_name = local_mock.getName();
             String local_mock_method_name = local_mock.getMethodName();
@@ -262,10 +263,8 @@ public class SaveForm {
             System.out.println("local_mock_method_name = " + local_mock_method_name);
             if (dependency_mock_map.containsKey(local_mock_method_name)) {
                 dependency_mock_map.get(local_mock_method_name).add(local_mock);
-            }
-            else
-            {
-                dependency_mock_map.put(local_mock_method_name, new ArrayList<DeclaredMock> ());
+            } else {
+                dependency_mock_map.put(local_mock_method_name, new ArrayList<DeclaredMock>());
                 dependency_mock_map.get(local_mock_method_name).add(local_mock);
             }
         }
@@ -276,14 +275,14 @@ public class SaveForm {
         JPanel mockMethodPanel = new JPanel();
         mockMethodPanel.setLayout(new BoxLayout(mockMethodPanel, BoxLayout.PAGE_AXIS));
 
-        for (String local_key: dependency_mock_map.keySet()) {
+        for (String local_key : dependency_mock_map.keySet()) {
             ArrayList<DeclaredMock> local_key_data = dependency_mock_map.get(local_key);
             JPanel mockMethodPanelSingle = new JPanel();
             int mockMethodPanelSingleHeight = 0;
 
             // define mockMethodNamePanel
             JPanel mockMethodNamePanel = new JPanel();
-            mockMethodNamePanel.setLayout(new GridLayout(1,2));
+            mockMethodNamePanel.setLayout(new GridLayout(1, 2));
 
             // define mockMethodNamePanelLeft
             JLabel mockMethodNamePanelLeft = new JLabel();
@@ -299,15 +298,14 @@ public class SaveForm {
             mockButtonMain.setSelected(this.enabledMock != null && this.enabledMock.containsAll(local_key_data));
             ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
             mockButtonMain.addActionListener(e -> {
-                if (mockButtonMain.isSelected()){
+                if (mockButtonMain.isSelected()) {
                     this.changeAllMocks(dependency_mock_map.get(local_key), true);
-                    for (int i=0;i<=mockButtonMainPart.size()-1;i++) {
+                    for (int i = 0; i <= mockButtonMainPart.size() - 1; i++) {
                         mockButtonMainPart.get(i).setSelected(true);
                     }
-                }
-                else {
+                } else {
                     this.changeAllMocks(dependency_mock_map.get(local_key), false);
-                    for (int i=0;i<=mockButtonMainPart.size()-1;i++) {
+                    for (int i = 0; i <= mockButtonMainPart.size() - 1; i++) {
                         mockButtonMainPart.get(i).setSelected(false);
                     }
                 }
@@ -318,26 +316,26 @@ public class SaveForm {
             mockMethodNamePanelRight.add(selectAllText);
             mockMethodNamePanel.add(mockMethodNamePanelRight);
 
-            mockMethodNamePanel.setSize(new Dimension(lowerPanelWidth-15, 30));
-            mockMethodNamePanel.setPreferredSize(new Dimension(lowerPanelWidth-15, 30));
-            mockMethodNamePanel.setMaximumSize(new Dimension(lowerPanelWidth-15, 30));
-            mockMethodNamePanel.setBorder(BorderFactory.createMatteBorder(0,0,1,0,JBColor.BLACK));
+            mockMethodNamePanel.setSize(new Dimension(lowerPanelWidth - 15, 30));
+            mockMethodNamePanel.setPreferredSize(new Dimension(lowerPanelWidth - 15, 30));
+            mockMethodNamePanel.setMaximumSize(new Dimension(lowerPanelWidth - 15, 30));
+            mockMethodNamePanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, JBColor.BLACK));
             mockMethodPanelSingleHeight += 30;
             mockMethodPanelSingle.add(mockMethodNamePanel);
 
-            for (int i=0;i<=local_key_data.size()-1;i++) {
+            for (int i = 0; i <= local_key_data.size() - 1; i++) {
                 DeclaredMock mockData = local_key_data.get(i);
 
                 // define mockMethodDependencyPanel
                 JPanel mockMethodDependencyPanel = new JPanel();
-                mockMethodDependencyPanel.setLayout(new GridLayout(1,2));
+                mockMethodDependencyPanel.setLayout(new GridLayout(1, 2));
 
                 // define mockMethodDependencyPanelLeft
                 JPanel mockMethodDependencyPanelLeft = new JPanel();
                 JPanel leftText = new JPanel();
-                GridLayout twoRowLayout = new GridLayout(2,1);
+                GridLayout twoRowLayout = new GridLayout(2, 1);
                 leftText.setLayout(twoRowLayout);
-                
+
                 JLabel leftTextFirst = new JLabel();
                 leftTextFirst.setText(mockData.getName());
                 leftText.add(leftTextFirst);
@@ -357,10 +355,9 @@ public class SaveForm {
                 JCheckBox mockButton = new JCheckBox();
                 mockButton.setSelected(this.enabledMock != null && this.enabledMock.contains(mockData));
                 mockButton.addActionListener(e -> {
-                    if (mockButton.isSelected()){
+                    if (mockButton.isSelected()) {
                         this.changeSingleMock(mockData, true);
-                    }
-                    else {
+                    } else {
                         this.changeSingleMock(mockData, false);
                     }
                 });
@@ -369,9 +366,9 @@ public class SaveForm {
                 mockMethodDependencyPanel.add(mockMethodDependencyPanelRight);
 
                 mockMethodDependencyPanel.setBorder(BorderFactory.createLineBorder(JBColor.BLACK));
-                mockMethodDependencyPanel.setSize(new Dimension(lowerPanelWidth-20, 50));
-                mockMethodDependencyPanel.setPreferredSize(new Dimension(lowerPanelWidth-20, 50));
-                mockMethodDependencyPanel.setMaximumSize(new Dimension(lowerPanelWidth-20, 50));
+                mockMethodDependencyPanel.setSize(new Dimension(lowerPanelWidth - 20, 50));
+                mockMethodDependencyPanel.setPreferredSize(new Dimension(lowerPanelWidth - 20, 50));
+                mockMethodDependencyPanel.setMaximumSize(new Dimension(lowerPanelWidth - 20, 50));
                 mockMethodPanelSingleHeight += 60;
                 mockMethodPanelSingle.add(mockMethodDependencyPanel);
             }
@@ -403,9 +400,9 @@ public class SaveForm {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 System.out.println(e.getSource());
-                if ((e.getStateChange() == ItemEvent.SELECTED) && (Objects.equals(e.getItem().toString(), "Unit Test"))){
-                        lowerPanel.setEnabledAt(1, true);
-                        enabledMock.clear();
+                if ((e.getStateChange() == ItemEvent.SELECTED) && (Objects.equals(e.getItem().toString(), "Unit Test"))) {
+                    lowerPanel.setEnabledAt(1, true);
+                    enabledMock.clear();
                 }
             }
         });
@@ -417,26 +414,24 @@ public class SaveForm {
     }
 
     private void changeAllMocks(List<DeclaredMock> allDeclaredMocks, boolean state) {
-        for (int i=0;i<=allDeclaredMocks.size()-1;i++)
-        {
+        for (int i = 0; i <= allDeclaredMocks.size() - 1; i++) {
             if (state) {
                 this.enabledMock.add(allDeclaredMocks.get(i));
-            }
-            else {
+            } else {
                 this.enabledMock.remove(allDeclaredMocks.get(i));
             }
         }
     }
 
     private void changeSingleMock(DeclaredMock localMock, boolean state) {
-        String mockId =localMock.getId();
+        String mockId = localMock.getId();
         if (state) {
             this.enabledMock.add(localMock);
-        }
-        else {
+        } else {
             this.enabledMock.remove(localMock);
         }
     }
+
     private JsonNode getResponseNode(String methodReturnValue, String responseClassName) {
         try {
             return objectMapper.readTree(methodReturnValue);

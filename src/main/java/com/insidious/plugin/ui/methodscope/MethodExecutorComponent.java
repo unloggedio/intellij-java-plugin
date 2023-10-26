@@ -750,12 +750,10 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
     @Override
     public void onUpdated(StoredCandidate storedCandidate) {
-
     }
 
     @Override
     public void onUpdateRequest(StoredCandidate storedCandidate) {
-
     }
 
     @Override
@@ -772,7 +770,6 @@ public class MethodExecutorComponent implements CandidateLifeListener {
             return;
         }
 
-
         String testMethodName =
                 "testMethod" + ClassTypeUtils.upperInstanceName(testCandidate.getMethod().getName());
         TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
@@ -782,21 +779,17 @@ public class MethodExecutorComponent implements CandidateLifeListener {
                 ResourceEmbedMode.IN_CODE
         );
 
-
         // mock all calls by default
         if (loadedTestCandidate != null) {
             testCaseGenerationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
         }
 
-
         testCaseGenerationConfiguration.setTestMethodName(testMethodName);
-
 
         testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
         if (loadedTestCandidate != null) {
             testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
         }
-
 
         try {
             insidiousService.previewTestCase(methodElement, testCaseGenerationConfiguration);

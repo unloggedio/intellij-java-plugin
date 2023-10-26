@@ -94,6 +94,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     public void setEnabledMock(ArrayList<DeclaredMock> enabledMock) {
         this.enabledMock = enabledMock;
     }
+
     public long getEntryProbeIndex() {
         return entryProbeIndex;
     }
@@ -137,7 +138,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     }
 
     @Override
-    public int compareTo( StoredCandidate o) {
+    public int compareTo(StoredCandidate o) {
         return Long.compare(this.metadata.getTimestamp(), o.metadata.getTimestamp());
     }
 
