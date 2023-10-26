@@ -48,6 +48,7 @@ public class SaveForm {
     private JButton saveButton;
     // private JButton cancelButton;
     private JTree candidateExplorerTree;
+    private String testTypeValue;
     private InsidiousService insidiousService;
     private ArrayList<DeclaredMock> enabledMock = new ArrayList<DeclaredMock>();
     //AgentCommandResponse is necessary for update flow and Assertions as well
@@ -69,6 +70,7 @@ public class SaveForm {
         candidateExplorerTree = new Tree(getTree());
 
         String methodReturnValue = agentCommandResponse.getMethodReturnValue();
+        this.testTypeValue = "";
 
         responseNode = getResponseNode(methodReturnValue, agentCommandResponse.getResponseClassName());
 
@@ -471,6 +473,33 @@ public class SaveForm {
             return "";
         } else {
             return source.trim();
+        }
+    }
+
+    // private void setInfo() {
+    //     boolean updated = false;
+    //     String name = storedCandidate.getName();
+    //     String description = storedCandidate.getDescription();
+
+    //     if (name != null) {
+    //         updated = true;
+    //     }
+    //     if (description != null) {
+    //         updated = true;
+    //     }
+    //     if (updated) {
+    //         this.saveButton.setText("Save & Close");
+    //     }
+    // }
+
+    private String formatLocation(String location) {
+        if (location.length() <= 59) {
+            return location;
+        } else {
+            String left = location.substring(0, 47);
+            left = left.substring(0, left.lastIndexOf("/") + 1);
+            left += ".../unlogged/";
+            return left;
         }
     }
 
