@@ -575,7 +575,7 @@ public class DaoService {
                 String callDescFromEntryProbe = methodCallExpression.getEntryProbeInfo()
                         .getAttribute("Desc", null);
                 if (callDescFromEntryProbe != null) {
-                    List<String> descriptorData = ClassTypeUtils.splitMethodDesc(callDescFromEntryProbe);
+                    List<String> descriptorData = ClassTypeUtils.splitMethodDescriptor(callDescFromEntryProbe);
                     String returnType = descriptorData.remove(descriptorData.size() - 1);
                     argumentTypesFromMethodDefinition =
                             descriptorData.stream()

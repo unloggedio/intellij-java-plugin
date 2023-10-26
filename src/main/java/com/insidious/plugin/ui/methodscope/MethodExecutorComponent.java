@@ -679,7 +679,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         }
         if (storedCandidate.getCandidateId() == null) {
             // new test case
-            storedCandidate.setName("test " + storedCandidate.getName() + " works correctly");
+            storedCandidate.setName("test " + storedCandidate.getMethod().getName() + " returns expected value when");
             storedCandidate.setDescription("assert that the response value matches expected value");
         }
         saveFormReference = new SaveForm(storedCandidate, agentCommandResponse, this);

@@ -78,7 +78,7 @@ public class MethodDefinition implements Comparable<MethodDefinition> {
         methodDefinition.setSourceFileName(methodInfo.getSourceFileName());
         methodDefinition.setOwnerType(ClassTypeUtils.getJavaClassName(methodInfo.getClassName()));
 
-        List<String> descriptorParsed = ClassTypeUtils.splitMethodDesc(methodInfo.getMethodDesc());
+        List<String> descriptorParsed = ClassTypeUtils.splitMethodDescriptor(methodInfo.getMethodDesc());
 
         methodDefinition.setReturnType(
                 ClassTypeUtils.getJavaClassName(descriptorParsed.get(descriptorParsed.size() - 1)));

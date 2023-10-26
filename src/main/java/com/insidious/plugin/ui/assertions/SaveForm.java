@@ -77,22 +77,7 @@ public class SaveForm {
         String methodReturnValue = agentCommandResponse.getMethodReturnValue();
         this.testTypeValue = "";
 
-        try {
-            responseNode = objectMapper.readTree(methodReturnValue);
-        } catch (JsonProcessingException e) {
-            // this shouldn't happen
-            if ("java.lang.String".equals(agentCommandResponse.getResponseClassName())
-                    && !methodReturnValue.startsWith("\"")
-                    && !methodReturnValue.endsWith("\"")) {
-                try {
-                    responseNode = objectMapper.readTree("\"" + methodReturnValue + "\"");
-                } catch (JsonProcessingException e1) {
-                    // failed to read as a json node
-                    throw new RuntimeException(e1);
-                }
-            }
-
-        }
+        responseNode = getResponseNode(methodReturnValue, agentCommandResponse.getResponseClassName());
 
 
         // clone the assertions
@@ -413,7 +398,6 @@ public class SaveForm {
         mainPanel.add(lowerPanel, BorderLayout.SOUTH);
     }
 
-
     private void changeAllMocks(List<DeclaredMock> allDeclaredMocks, boolean state) {
         for (int i=0;i<=allDeclaredMocks.size()-1;i++)
         {
@@ -435,6 +419,25 @@ public class SaveForm {
             this.enabledMock.remove(localMock);
         }
     }
+    private JsonNode getResponseNode(String methodReturnValue, String responseClassName) {
+        try {
+            return objectMapper.readTree(methodReturnValue);
+        } catch (JsonProcessingException e) {
+            // this shouldn't happen
+            if ("java.lang.String".equals(responseClassName)
+                    && !methodReturnValue.startsWith("\"")
+                    && !methodReturnValue.endsWith("\"")) {
+                try {
+                    return objectMapper.readTree("\"" + methodReturnValue + "\"");
+                } catch (JsonProcessingException e1) {
+                    // failed to read as a json node
+                    throw new RuntimeException(e1);
+                }
+            }
+        }
+        return null;
+    }
+
     public JPanel getComponent() {
         return mainPanel;
     }

@@ -2,6 +2,7 @@ package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -103,6 +104,7 @@ public class TestCandidateListedItemComponent {
                 AgentCommandResponse<String> agentCommandResponse = new AgentCommandResponse<>();
                 agentCommandResponse.setResponseClassName(candidateMetadata.getReturnValueClassname());
                 agentCommandResponse.setMethodReturnValue(candidateMetadata.getReturnValue());
+                agentCommandResponse.setResponseType(ResponseType.NORMAL);
 
                 candidateLifeListener.onSaveRequest(candidateMetadata, agentCommandResponse);
             }
@@ -179,8 +181,8 @@ public class TestCandidateListedItemComponent {
 //        GridLayout gridLayout = new GridLayout(1, 1);
         int desiredHeightPerInput = 50;
         int desiredHeight = inputRoot.getLeafCount() * desiredHeightPerInput;
-        if (desiredHeight < 130) {
-            desiredHeight = 130;
+        if (desiredHeight < 150) {
+            desiredHeight = 150;
         }
         if (desiredHeight > 250) {
             desiredHeight = 250;

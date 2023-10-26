@@ -357,6 +357,7 @@ public class AtomicRecordService {
         try (FileOutputStream resourceFile = new FileOutputStream(file)) {
             String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(atomicRecord);
             resourceFile.write(json.getBytes(StandardCharsets.UTF_8));
+            resourceFile.flush();
             logger.info("[ATRS] file write successful => " + file.getAbsolutePath());
             if (notify) {
                 InsidiousNotification.notifyMessage(getMessageForOperationType(type, file.getPath(), true),
