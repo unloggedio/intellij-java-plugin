@@ -51,7 +51,7 @@ public class SaveForm {
     private InsidiousService insidiousService;
     private ArrayList<DeclaredMock> enabledMock = new ArrayList<DeclaredMock>();
     //AgentCommandResponse is necessary for update flow and Assertions as well
-
+    private JTabbedPane bottomControlPanel;
     private HashMap<JCheckBox, ArrayList<JCheckBox>> buttonMap = new HashMap<JCheckBox, ArrayList<JCheckBox>>();
 
     public SaveForm(
@@ -378,19 +378,20 @@ public class SaveForm {
         mockPanel.add(mockScrollPanel);
 
         // define lowerPanel
-        JTabbedPane lowerPanel = new JBTabbedPane();
-        lowerPanel.addTab("Assertion", assertionPanel);
-        lowerPanel.addTab("Mock Data", mockPanel);
+        bottomControlPanel = new JBTabbedPane();
+        bottomControlPanel.addTab("Assertion", assertionPanel);
+        bottomControlPanel.addTab("Mock Data", mockPanel);
 
         this.metadataForm.comboBox1.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 System.out.println(e.getSource());
                 if ((e.getStateChange() == ItemEvent.SELECTED) && (Objects.equals(e.getItem().toString(), "Unit Test"))) {
-                    lowerPanel.setEnabledAt(1, true);
+                    bottomControlPanel.setEnabledAt(1, true);
                     enabledMock.clear();
                 } else {
-                    lowerPanel.setEnabledAt(1, false);
+                    bottomControlPanel.setEnabledAt(1, false);
+                    bottomControlPanel.setSelectedIndex(0);
                 }
             }
         });
@@ -399,10 +400,10 @@ public class SaveForm {
         primaryContentPanel.setLayout(boxLayout);
 
         midPanel.setPreferredSize(new Dimension(-1, 320));
-        lowerPanel.setPreferredSize(new Dimension(-1, 360));
+        bottomControlPanel.setPreferredSize(new Dimension(-1, 360));
 
         primaryContentPanel.add(midPanel);
-        primaryContentPanel.add(lowerPanel);
+        primaryContentPanel.add(bottomControlPanel);
 
         mainPanel.add(topPanel, BorderLayout.NORTH);
         mainPanel.add(primaryContentPanel, BorderLayout.CENTER);
