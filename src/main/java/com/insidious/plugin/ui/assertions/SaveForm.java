@@ -129,8 +129,6 @@ public class SaveForm {
         int panelWidth = 492;
         int lowerPanelWidth = panelWidth * 2; // lowerPanelWidth -> doublePanelWidth
         int lowerPanelHeight = 296;
-        int saveTestCaseHeadingHeight = 40;
-
         JPanel ruleEditor = this.ruleEditor.getMainPanel();
 
         // define topPanel
@@ -167,9 +165,6 @@ public class SaveForm {
         buttonPanel.add(this.saveButton);
 
         buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-        topPanel.setSize(new Dimension(lowerPanelWidth, saveTestCaseHeadingHeight));
-        topPanel.setPreferredSize(new Dimension(lowerPanelWidth, saveTestCaseHeadingHeight));
-        topPanel.setMaximumSize(new Dimension(lowerPanelWidth, saveTestCaseHeadingHeight));
         topPanel.add(buttonPanel);
 
         JPanel midPanel = new JPanel();
@@ -187,7 +182,9 @@ public class SaveForm {
 
         int CandidateExplorerTreeHeight = 300;
 
-        mainPanel.setMaximumSize(new Dimension(lowerPanelWidth, 600));
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        mainPanel.setPreferredSize(new Dimension(-1,
+                (int) (screenSize.getHeight() - (0.16 * screenSize.getHeight()))));
         candidateExplorerTree.setSize(new Dimension(400, CandidateExplorerTreeHeight));
         JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
         treePanel.add(treeParent, BorderLayout.CENTER);
@@ -210,8 +207,6 @@ public class SaveForm {
         assertionPanel.setLayout(assertionPanelLayout);
 
         JScrollPane assertionScrollPanel = new JBScrollPane(ruleEditor);
-        assertionScrollPanel.setMaximumSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
-        assertionScrollPanel.setPreferredSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
         assertionPanel.add(assertionScrollPanel);
 
         // mock panel
@@ -399,11 +394,18 @@ public class SaveForm {
                 }
             }
         });
+        JPanel primaryContentPanel = new JPanel();
+        BoxLayout boxLayout = new BoxLayout(primaryContentPanel, BoxLayout.Y_AXIS);
+        primaryContentPanel.setLayout(boxLayout);
 
-        // add panel in mainPanel
+        midPanel.setPreferredSize(new Dimension(-1, 320));
+        lowerPanel.setPreferredSize(new Dimension(-1, 360));
+
+        primaryContentPanel.add(midPanel);
+        primaryContentPanel.add(lowerPanel);
+
         mainPanel.add(topPanel, BorderLayout.NORTH);
-        mainPanel.add(midPanel, BorderLayout.CENTER);
-        mainPanel.add(lowerPanel, BorderLayout.SOUTH);
+        mainPanel.add(primaryContentPanel, BorderLayout.CENTER);
     }
 
     private void changeAllMocks(List<DeclaredMock> allDeclaredMocks, boolean state) {
