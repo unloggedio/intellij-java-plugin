@@ -395,6 +395,8 @@ public class SaveForm {
                 if ((e.getStateChange() == ItemEvent.SELECTED) && (Objects.equals(e.getItem().toString(), "Unit Test"))) {
                     lowerPanel.setEnabledAt(1, true);
                     enabledMock.clear();
+                } else {
+                    lowerPanel.setEnabledAt(1, false);
                 }
             }
         });
