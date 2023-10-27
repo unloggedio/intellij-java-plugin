@@ -17,7 +17,6 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.treeStructure.Tree;
@@ -265,7 +264,7 @@ public class SaveForm {
 
         // define mockMethodPanel
         JPanel mockMethodPanel = new JPanel();
-        mockMethodPanel.setLayout(new BoxLayout(mockMethodPanel, BoxLayout.PAGE_AXIS));
+        mockMethodPanel.setLayout(new BoxLayout(mockMethodPanel, BoxLayout.Y_AXIS));
 
         for (String local_key : dependency_mock_map.keySet()) {
             ArrayList<DeclaredMock> local_key_data = dependency_mock_map.get(local_key);
@@ -371,8 +370,8 @@ public class SaveForm {
             mockMethodPanelSingle.setPreferredSize(new Dimension(lowerPanelWidth, mockMethodPanelSingleHeight));
             mockMethodPanelSingle.setMaximumSize(new Dimension(lowerPanelWidth, mockMethodPanelSingleHeight));
             mockDataPanelContentHeight += mockMethodPanelSingleHeight;
-            mockMethodPanel.add(Box.createRigidArea(null));
             mockMethodPanel.add(mockMethodPanelSingle);
+            mockMethodPanel.add(Box.createRigidArea(null));
         }
 
         mockDataPanelContent.add(mockMethodPanel);
