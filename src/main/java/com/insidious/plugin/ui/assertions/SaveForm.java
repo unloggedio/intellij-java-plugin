@@ -184,7 +184,7 @@ public class SaveForm {
 
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         mainPanel.setPreferredSize(new Dimension(-1,
-                (int) (screenSize.getHeight() - (0.16 * screenSize.getHeight()))));
+                (int) (screenSize.getHeight() - (0.3 * screenSize.getHeight()))));
         candidateExplorerTree.setSize(new Dimension(400, CandidateExplorerTreeHeight));
         JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
         treePanel.add(treeParent, BorderLayout.CENTER);
