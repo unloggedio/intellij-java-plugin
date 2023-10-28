@@ -216,18 +216,15 @@ public class SaveForm {
 
         // define mockDataPanelContent
         JPanel mockDataPanelContent = new JPanel();
-        mockDataPanelContent.setLayout(new BoxLayout(mockDataPanelContent, BoxLayout.PAGE_AXIS));
-
+        mockDataPanelContent.setLayout(new BoxLayout(mockDataPanelContent, BoxLayout.Y_AXIS));
 
         // define applyMockLabel
         JLabel applyMockLabel = new JLabel();
         applyMockLabel.setText("<html><b>Apply Mock</b></html>");
         JPanel applyMockPanel = new JPanel();
         applyMockPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-        applyMockPanel.add(applyMockLabel, BorderLayout.NORTH);
-        applyMockPanel.setSize(new Dimension(lowerPanelWidth, 30));
-        applyMockPanel.setPreferredSize(new Dimension(lowerPanelWidth, 30));
-        applyMockPanel.setMaximumSize(new Dimension(lowerPanelWidth, 30));
+        applyMockPanel.add(applyMockLabel);
+        applyMockPanel.setMaximumSize(new Dimension(3999, 30));
         mockDataPanelContent.add(applyMockPanel);
         int mockDataPanelContentHeight = 0;
 
@@ -254,7 +251,6 @@ public class SaveForm {
                 dependency_mock_map.get(local_mock_method_name).add(local_mock);
             }
         }
-
         System.out.println("dependency_mock_map = " + dependency_mock_map.toString());
 
         // define mockMethodPanel
@@ -264,16 +260,19 @@ public class SaveForm {
         for (String local_key : dependency_mock_map.keySet()) {
             ArrayList<DeclaredMock> local_key_data = dependency_mock_map.get(local_key);
             JPanel mockMethodPanelSingle = new JPanel();
+            mockMethodPanelSingle.setLayout(new BoxLayout(mockMethodPanelSingle, BoxLayout.Y_AXIS));
             int mockMethodPanelSingleHeight = 0;
 
             // define mockMethodNamePanel
             JPanel mockMethodNamePanel = new JPanel();
-            mockMethodNamePanel.setLayout(new GridLayout(1, 2));
+            GridLayout namePanelLayout = new GridLayout(1, 2);
+            mockMethodNamePanel.setLayout(namePanelLayout);
 
             // define mockMethodNamePanelLeft
             JLabel mockMethodNamePanelLeft = new JLabel();
             mockMethodNamePanelLeft.setText(local_key);
             mockMethodNamePanelLeft.setIcon(UIUtils.MOCK_DATA);
+            mockMethodNamePanelLeft.setBorder(JBUI.Borders.empty(4, 8, 4, 0));
             mockMethodNamePanel.add(mockMethodNamePanelLeft);
 
             // define mockMethodNamePanelRight
@@ -302,24 +301,25 @@ public class SaveForm {
             mockMethodNamePanelRight.add(selectAllText);
             mockMethodNamePanel.add(mockMethodNamePanelRight);
 
-            mockMethodNamePanel.setSize(new Dimension(lowerPanelWidth - 15, 30));
-            mockMethodNamePanel.setPreferredSize(new Dimension(lowerPanelWidth - 15, 30));
-            mockMethodNamePanel.setMaximumSize(new Dimension(lowerPanelWidth - 15, 30));
-            mockMethodNamePanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(50, 50, 50)));
+            mockMethodNamePanel.setMaximumSize(new Dimension(3999, 30));
             mockMethodPanelSingleHeight += 30;
             mockMethodPanelSingle.add(mockMethodNamePanel);
 
             for (int i = 0; i <= local_key_data.size() - 1; i++) {
                 DeclaredMock mockData = local_key_data.get(i);
-
                 // define mockMethodDependencyPanel
                 JPanel mockMethodDependencyPanel = new JPanel();
-                mockMethodDependencyPanel.setLayout(new GridLayout(1, 2));
+                GridLayout dependencyGrid = new GridLayout(1, 2);
+                dependencyGrid.setHgap(8);
+                dependencyGrid.setVgap(4);
+                mockMethodDependencyPanel.setLayout(dependencyGrid);
 
                 // define mockMethodDependencyPanelLeft
                 JPanel mockMethodDependencyPanelLeft = new JPanel();
                 JPanel leftText = new JPanel();
                 GridLayout twoRowLayout = new GridLayout(2, 1);
+                twoRowLayout.setVgap(4);
+                twoRowLayout.setHgap(8);
                 leftText.setLayout(twoRowLayout);
 
                 JLabel leftTextFirst = new JLabel();
@@ -352,29 +352,20 @@ public class SaveForm {
                 mockMethodDependencyPanel.add(mockMethodDependencyPanelRight);
 
                 mockMethodDependencyPanel.setBorder(BorderFactory.createLineBorder(new Color(95, 96, 96)));
-                mockMethodDependencyPanel.setSize(new Dimension(lowerPanelWidth - 20, 50));
-                mockMethodDependencyPanel.setPreferredSize(new Dimension(lowerPanelWidth - 20, 50));
-                mockMethodDependencyPanel.setMaximumSize(new Dimension(lowerPanelWidth - 20, 50));
+                mockMethodDependencyPanel.setMaximumSize(new Dimension(3999, 50));
                 mockMethodPanelSingleHeight += 60;
                 mockMethodPanelSingle.add(mockMethodDependencyPanel);
             }
-
             mockMethodPanelSingle.setBorder(BorderFactory.createLineBorder(new Color(50, 50, 50)));
             mockMethodPanelSingleHeight += 20;
-            mockMethodPanelSingle.setSize(new Dimension(lowerPanelWidth, mockMethodPanelSingleHeight));
-            mockMethodPanelSingle.setPreferredSize(new Dimension(lowerPanelWidth, mockMethodPanelSingleHeight));
-            mockMethodPanelSingle.setMaximumSize(new Dimension(lowerPanelWidth, mockMethodPanelSingleHeight));
+            mockMethodPanelSingle.setMaximumSize(new Dimension(3999, mockMethodPanelSingleHeight));
             mockDataPanelContentHeight += mockMethodPanelSingleHeight;
             mockMethodPanel.add(mockMethodPanelSingle);
             mockMethodPanel.add(Box.createRigidArea(null));
         }
 
         mockDataPanelContent.add(mockMethodPanel);
-        mockDataPanelContent.setPreferredSize(new Dimension(lowerPanelWidth, mockDataPanelContentHeight));
-
         JScrollPane mockScrollPanel = new JBScrollPane(mockDataPanelContent);
-        mockScrollPanel.setMaximumSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
-        mockScrollPanel.setPreferredSize(new Dimension(lowerPanelWidth, lowerPanelHeight));
         mockPanel.add(mockScrollPanel);
 
         // define lowerPanel
