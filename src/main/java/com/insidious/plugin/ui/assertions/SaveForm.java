@@ -49,15 +49,13 @@ public class SaveForm {
     private final AssertionBlock ruleEditor;
     private final SaveFormMetadataPanel metadataForm;
     private final JPanel mainPanel;
+    private ArrayList<DeclaredMock> enabledMockList;
     private JsonNode responseNode;
     private JButton saveButton;
     // private JButton cancelButton;
     private JTree candidateExplorerTree;
-    private String testTypeValue;
     private InsidiousService insidiousService;
-    private ArrayList<DeclaredMock> enabledMock = new ArrayList<DeclaredMock>();
     //AgentCommandResponse is necessary for update flow and Assertions as well
-    private JTabbedPane bottomControlPanel;
     private HashMap<JCheckBox, ArrayList<JCheckBox>> buttonMap = new HashMap<JCheckBox, ArrayList<JCheckBox>>();
 
     public SaveForm(
@@ -68,14 +66,13 @@ public class SaveForm {
         this.storedCandidate = storedCandidate;
         this.listener = listener;
         this.agentCommandResponse = agentCommandResponse;
-        this.enabledMock = this.storedCandidate.getEnabledMock();
+        this.enabledMockList = new ArrayList<DeclaredMock>();
 
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
         candidateExplorerTree = new Tree(getTree());
 
         String methodReturnValue = agentCommandResponse.getMethodReturnValue();
-        this.testTypeValue = "";
 
         responseNode = getResponseNode(methodReturnValue, agentCommandResponse.getResponseClassName());
 
@@ -286,7 +283,7 @@ public class SaveForm {
             mockMethodNamePanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
             JCheckBox mockButtonMain = new JCheckBox();
             this.buttonMap.put(mockButtonMain, new ArrayList<JCheckBox>());
-            mockButtonMain.setSelected(this.enabledMock != null && this.enabledMock.containsAll(local_key_data));
+            mockButtonMain.setSelected(this.enabledMockList != null && this.storedCandidate.getEnabledMock().containsAll(local_key_data));
             ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
             mockButtonMain.addActionListener(e -> {
                 if (mockButtonMain.isSelected()) {
@@ -345,7 +342,7 @@ public class SaveForm {
                 JPanel mockMethodDependencyPanelRight = new JPanel();
                 mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
                 JCheckBox mockButton = new JCheckBox();
-                mockButton.setSelected(this.enabledMock != null && this.enabledMock.contains(mockData));
+                mockButton.setSelected(this.enabledMockList != null && this.storedCandidate.getEnabledMock().contains(mockData));
                 mockButton.addActionListener(e -> {
                     if (mockButton.isSelected()) {
                         this.changeSingleMock(mockData, true);
@@ -398,7 +395,7 @@ public class SaveForm {
 
                 if ((e.getStateChange() == ItemEvent.SELECTED) && (Objects.equals(e.getItem().toString(), "Unit Test"))) {
                     bottomControlPanel.setEnabledAt(1, true);
-                    enabledMock.clear();
+                    enabledMockList.clear();
                 } else {
                     bottomControlPanel.setEnabledAt(1, false);
                     bottomControlPanel.setSelectedIndex(0);
@@ -422,18 +419,18 @@ public class SaveForm {
     private void changeAllMocks(List<DeclaredMock> allDeclaredMocks, boolean state) {
         for (int i = 0; i <= allDeclaredMocks.size() - 1; i++) {
             if (state) {
-                this.enabledMock.add(allDeclaredMocks.get(i));
+                this.enabledMockList.add(allDeclaredMocks.get(i));
             } else {
-                this.enabledMock.remove(allDeclaredMocks.get(i));
+                this.enabledMockList.remove(allDeclaredMocks.get(i));
             }
         }
     }
 
     private void changeSingleMock(DeclaredMock localMock, boolean state) {
         if (state) {
-            this.enabledMock.add(localMock);
+            this.enabledMockList.add(localMock);
         } else {
-            this.enabledMock.remove(localMock);
+            this.enabledMockList.remove(localMock);
         }
     }
 
@@ -471,7 +468,7 @@ public class SaveForm {
         //this call is necessary
         //Required if we cancel update/save
         //Required for upcoming assertion flows as well
-        this.storedCandidate.setEnabledMock(this.enabledMock);
+        this.storedCandidate.setEnabledMock(this.enabledMockList);
 
         StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate, agentCommandResponse);
         candidate.setMetadata(payload.getStoredCandidateMetadata());
