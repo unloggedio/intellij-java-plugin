@@ -466,14 +466,21 @@ public class SaveForm {
         AssertionType type = AssertionType.EQUAL;
 
         // set mocks
-        ArrayList<DeclaredMock> enabledMockUnDeleted = new ArrayList<>();
-        for (DeclaredMock localMock:this.insidiousService.getDeclaredMocksFor(this.storedCandidate.getMethod())) {
-            if (this.enabledMockList.contains(localMock)) {
-                enabledMockUnDeleted.add(localMock);
+        if (this.metadataForm.comboBox1.getSelectedIndex() == 0) {
+            // unit test
+            ArrayList<DeclaredMock> enabledMockUnDeleted = new ArrayList<>();
+            for (DeclaredMock localMock:this.insidiousService.getDeclaredMocksFor(this.storedCandidate.getMethod())) {
+                if (this.enabledMockList.contains(localMock)) {
+                    enabledMockUnDeleted.add(localMock);
+                }
             }
+            this.storedCandidate.setEnabledMock(enabledMockUnDeleted);
         }
-        this.storedCandidate.setEnabledMock(enabledMockUnDeleted);
-
+        else {
+            // integration test
+            this.storedCandidate.setEnabledMock(new ArrayList<>());
+        }
+    
         StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate, agentCommandResponse);
         candidate.setMetadata(payload.getStoredCandidateMetadata());
         candidate.setName(assertionName);
