@@ -87,7 +87,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     }
 
     public ArrayList<DeclaredMock> getEnabledMock() {
-        return this.enabledMock;
+        return enabledMock;
     }
 
     public void setEnabledMock(ArrayList<DeclaredMock> enabledMock) {

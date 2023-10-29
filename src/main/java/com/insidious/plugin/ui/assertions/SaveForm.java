@@ -49,7 +49,7 @@ public class SaveForm {
     private final AssertionBlock ruleEditor;
     private final SaveFormMetadataPanel metadataForm;
     private final JPanel mainPanel;
-    private ArrayList<DeclaredMock> enabledMockList;
+    private HashSet<DeclaredMock> enabledMockList;
     private JsonNode responseNode;
     private JButton saveButton;
     // private JButton cancelButton;
@@ -66,7 +66,7 @@ public class SaveForm {
         this.storedCandidate = storedCandidate;
         this.listener = listener;
         this.agentCommandResponse = agentCommandResponse;
-        this.enabledMockList = new ArrayList<DeclaredMock>();
+        this.enabledMockList = new HashSet<>(this.storedCandidate.getEnabledMock());
 
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
@@ -468,7 +468,7 @@ public class SaveForm {
         //this call is necessary
         //Required if we cancel update/save
         //Required for upcoming assertion flows as well
-        this.storedCandidate.setEnabledMock(this.enabledMockList);
+        this.storedCandidate.setEnabledMock(new ArrayList<DeclaredMock> (this.enabledMockList));
 
         StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate, agentCommandResponse);
         candidate.setMetadata(payload.getStoredCandidateMetadata());
