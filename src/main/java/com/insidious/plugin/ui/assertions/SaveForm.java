@@ -9,6 +9,7 @@ import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.assertions.*;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -23,8 +24,13 @@ import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
+
+import org.json.JSONObject;
+
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -381,11 +387,25 @@ public class SaveForm {
         JTabbedPane lowerPanel = new JBTabbedPane();
         lowerPanel.addTab("Assertion", assertionPanel);
         lowerPanel.addTab("Mock Data", mockPanel);
+        lowerPanel.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e)
+            {
+                JSONObject panelChanged = new JSONObject();
+                panelChanged.put("tabIndex", lowerPanel.getSelectedIndex());
+                UsageInsightTracker.getInstance().RecordEvent("REPEAT_RECORD_TAB_TYPE", panelChanged);
+            }
+        });
 
         this.metadataForm.comboBox1.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 System.out.println(e.getSource());
+
+                JSONObject testChange = new JSONObject();
+                testChange.put("testType", e.getItem().toString());
+                UsageInsightTracker.getInstance().RecordEvent("REPEAT_RECORD_TEST_TYPE", testChange);
+
                 if ((e.getStateChange() == ItemEvent.SELECTED) && (Objects.equals(e.getItem().toString(), "Unit Test"))) {
                     lowerPanel.setEnabledAt(1, true);
                     enabledMock.clear();
