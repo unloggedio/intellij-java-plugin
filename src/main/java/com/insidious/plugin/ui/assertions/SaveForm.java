@@ -465,10 +465,14 @@ public class SaveForm {
         String assertionDescription = prepareString(payload.getDescription());
         AssertionType type = AssertionType.EQUAL;
 
-        //this call is necessary
-        //Required if we cancel update/save
-        //Required for upcoming assertion flows as well
-        this.storedCandidate.setEnabledMock(new ArrayList<DeclaredMock> (this.enabledMockList));
+        // set mocks
+        ArrayList<DeclaredMock> enabledMockUnDeleted = new ArrayList<>();
+        for (DeclaredMock localMock:this.insidiousService.getDeclaredMocksFor(this.storedCandidate.getMethod())) {
+            if (this.enabledMockList.contains(localMock)) {
+                enabledMockUnDeleted.add(localMock);
+            }
+        }
+        this.storedCandidate.setEnabledMock(enabledMockUnDeleted);
 
         StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate, agentCommandResponse);
         candidate.setMetadata(payload.getStoredCandidateMetadata());
