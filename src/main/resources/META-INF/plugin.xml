@@ -8,7 +8,6 @@
     <description>
         <![CDATA[
 
-
         <h4>Assertions for Custom Validation:</h4>
 
         <p>Unlogged now introduces the power of assertions with a brand-new intuitive user interface (UI). With this feature, developers can define custom assertions to validate method return values, all the way down to the key level, without writing any code manually. Say goodbye to spending hours crafting assertion rules; now, you can create complex and nested validation rules with ease through our UI.</p>
@@ -53,7 +52,7 @@
         <h3>Version 1.16.3 (5th Jul 2023) </h3>
             <h2 class="c9" id="h.6kd09fd21779"><span class="c6">Mock Panel</span></h2>
             <p class="c4 c8"><span class="c1"></span></p>
-            <p class="c4"><span class="c1">We are happy to launch the all new feature of mock linking. Now you can bind mocks with candidates and replay them to test the regression.</span></p>
+            <p class="c4"><span class="c1">We are happy to launch the all new feature of mock linking. Now you can bind mocks with candidates and replay them for testing.</span></p>
             <p class="c4 c8"><span class="c1"></span></p>
             <h3 class="c5" id="h.7do80d5h1u6m"><span class="c0">Assertion Panel</span></h3>
             <p class="c4"><span class="c1">The all new assertion panel makes checking the candidates output a piece of cake. Just add assertion rules and check if the code change is adding regression.</span></p>
