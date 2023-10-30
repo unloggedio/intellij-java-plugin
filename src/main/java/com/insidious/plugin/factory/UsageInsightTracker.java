@@ -22,7 +22,8 @@ public class UsageInsightTracker {
     private final List<String> UsersToSkip = Arrays.asList(
             "artpar",
             "Amogh",
-            "testerfresher"
+            "testerfresher",
+            "aaaakt"
     );
     private final long sessionId = new Date().getTime();
     private final AtomicInteger eventId = new AtomicInteger();
