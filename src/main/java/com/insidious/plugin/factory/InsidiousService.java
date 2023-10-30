@@ -629,9 +629,8 @@ final public class InsidiousService implements
                 0, agentCommandRequest.getClassName()
         );
 
+        List<DeclaredMock> availableMocks = getDeclaredMocksFor(methodUnderTest);
         if (agentCommandRequest.getRequestType().equals(DIRECT_INVOKE)) {
-            List<DeclaredMock> availableMocks = getDeclaredMocksFor(methodUnderTest);
-
             List<DeclaredMock> activeMocks = availableMocks
                     .stream()
 //              .filter(e -> isFieldMockActive(e.getSourceClassName(), e.getFieldName()))
@@ -639,6 +638,19 @@ final public class InsidiousService implements
                     .collect(Collectors.toList());
 
             agentCommandRequest.setDeclaredMocks(activeMocks);
+        }
+        else {
+            List<DeclaredMock> enabledMock = agentCommandRequest.getDeclaredMocks();
+            ArrayList<DeclaredMock> setMock = new ArrayList<>();
+
+            for (DeclaredMock localMock: enabledMock) {
+                if (availableMocks.contains(localMock))
+                {
+                    setMock.add(localMock);
+                }
+            }
+
+            agentCommandRequest.setDeclaredMocks(setMock);
         }
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
