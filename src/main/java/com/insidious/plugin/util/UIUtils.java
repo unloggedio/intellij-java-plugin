@@ -50,7 +50,7 @@ public class UIUtils {
     public static Color green = new JBColor(new Color(56, 161, 105), new Color(56, 161, 105));
     public static Color yellow_alert = new JBColor(new Color(225, 163, 54), new Color(225, 163, 54));
     public static Color orange = new JBColor(new Color(221, 107, 32), new Color(221, 107, 32));
-    public static Color defaultForeground = Gray._187;
+    public static JBColor defaultForeground = new JBColor(Color.black, Gray._187);
     public static Color NeutralGrey = new JBColor(new Color(81, 85, 87), new Color(81, 85, 87));
     public static Color WARNING_RED = new JBColor(new Color(239, 144, 160), new Color(239, 144, 160));
     public static Color black_custom = new JBColor(Gray._32, Gray._32);
