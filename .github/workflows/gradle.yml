@@ -21,14 +21,14 @@ jobs:
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
     - name: Build with Gradle
-      run: ./gradlew buildPlugin
+      run: ./gradlew buildPlugin --scan
     - name: Archive production artifacts
       uses: actions/upload-artifact@v3
       with:
         name: plugin-build
         path: build/distributions/plugin-*.zip
     - name: Generate report from runPluginVerifier
-      run: ./gradlew runPluginVerifier
+      run: ./gradlew runPluginVerifier  --scan
     - name: Archive production artifacts
       uses: actions/upload-artifact@v3
       with:
