@@ -22,3 +22,11 @@ jobs:
       uses: gradle/gradle-build-action@v2
     - name: Build with Gradle
       run: ./gradlew buildPlugin
+      with:
+        name: plugin-build
+        path: build/distributions/plugin-*.zip
+    - name: Generate report from runPluginVerifier
+      run: ./gradlew runPluginVerifier
+      with:
+        name: verification-report
+        path: verificationReport/**
