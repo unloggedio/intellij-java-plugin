@@ -21,7 +21,7 @@ public class UsageInsightTracker {
     private final Amplitude amplitudeClient;
     private final VersionManager versionManager;
     private final List<String> UsersToSkip = Arrays.asList(
-            "artpar",
+//            "artpar",
             "Amogh",
             "testerfresher"
     );
@@ -53,10 +53,10 @@ public class UsageInsightTracker {
             return;
         }
         Event event = new Event(eventName, HOSTNAME);
-        event.platform = OS_TAG + "/" + ApplicationInfo.getInstance().getFullVersion();
-        event.country = TimeZone.getDefault().getID();
+        event.platform = TimeZone.getDefault().getID();
+//        event.country = TimeZone.getDefault().getID();
         event.osName = OS_TAG;
-        event.language = LANGUAGE;
+//        event.language = LANGUAGE;
         event.ip = REMOTE_IP_AMPLITUDE_CONST;
         event.sessionId = sessionId;
         event.appVersion = versionManager.getVersion();
