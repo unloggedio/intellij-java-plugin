@@ -16,6 +16,7 @@ public class UsageInsightTracker {
     private static final String OS_VERSION = System.getProperty("os.version");
     private static final String LANGUAGE = Locale.getDefault().getLanguage();
     private static final String OS_TAG = OS_NAME + ":" + OS_VERSION;
+    public static final String REMOTE_IP_AMPLITUDE_CONST = "$remote";
     private static UsageInsightTracker instance;
     private final Amplitude amplitudeClient;
     private final VersionManager versionManager;
@@ -56,6 +57,7 @@ public class UsageInsightTracker {
         event.country = TimeZone.getDefault().getID();
         event.osName = OS_TAG;
         event.language = LANGUAGE;
+        event.ip = REMOTE_IP_AMPLITUDE_CONST;
         event.sessionId = sessionId;
         event.appVersion = versionManager.getVersion();
         event.deviceId = PermanentInstallationID.get();
