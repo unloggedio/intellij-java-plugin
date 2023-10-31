@@ -34,3 +34,5 @@ jobs:
       with:
         name: verification-report
         path: verificationReport/**
+    - name: Publish to jetbrains alpha channel
+      run: ./gradlew publishPlugin
