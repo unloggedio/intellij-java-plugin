@@ -1,0 +1,213 @@
+import org.gradle.initialization.definition.DefaultInjectedPluginDependencies
+
+plugins {
+    id 'java'
+    id 'org.jetbrains.intellij' version '1.16.0'
+    id 'com.palantir.git-version' version '0.14.0'
+}
+
+group 'org.videobug'
+version '1.18.11'
+
+compileJava {
+    sourceCompatibility = '11'
+    targetCompatibility = '11'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://gitlab.com/api/v4/projects/35360521/packages/maven'
+        name "GitLab"
+        credentials(HttpHeaderCredentials) {
+            name = 'Private-Token'
+            value = gitLabPrivateToken
+        }
+        authentication {
+            header(HttpHeaderAuthentication)
+        }
+    }
+
+}
+
+task createProperties() {
+    doLast {
+        def details = versionDetails()
+        new File("$rootDir/src/main/resources/version.properties").withWriter { w ->
+            Properties p = new Properties()
+            p['version'] = project.version.toString()
+            p['gitLastTag'] = details.lastTag
+            p['gitCommitDistance'] = details.commitDistance.toString()
+            p['gitHash'] = details.gitHash.toString()
+            p['gitHashFull'] = details.gitHashFull.toString() // full 40-character Git commit hash
+//            p['gitBranchName'] = details.branchName // is null if the repository in detached HEAD mode
+            p['gitIsCleanTag'] = details.isCleanTag.toString()
+            p.store w, null
+        }
+        // copy needed, otherwise the bean VersionController can't load the file at startup when running complete-app tests.
+//        copy {
+//            from "$rootDir/src/main/resources/version.properties"
+//            into "bin/main/"
+//        }
+    }
+}
+classes {
+    dependsOn createProperties
+}
+
+
+runIde {
+    autoReloadPlugins = true
+    jvmArgs = [
+            "--add-opens=java.base/java.util=ALL-UNNAMED",
+            "-Xmx1G",
+            "--add-exports",
+            "java.base/jdk.internal.vm=ALL-UNNAMED",
+//            "-XX:FlightRecorderOptions=stackdepth=100"
+    ]
+}
+
+task postBuildPlugin(type: Exec) {
+    // auto picks version of plugin
+    environment('PLUGIN_VERSION', version)
+    commandLine './post-build-plugin.sh'
+}
+
+// runs postbuild automatically after build plugin
+postBuildPlugin.dependsOn buildPlugin
+buildPlugin.finalizedBy postBuildPlugin
+
+dependencies {
+    implementation 'video.bug:common:1.4.4'
+//    implementation files("/Users/artpar/.m2/repository/video/bug/common/1.4.4/common-1.4.4.jar")
+    implementation 'org.slf4j:slf4j-api:2.0.3'
+    implementation 'net.openhft:chronicle-map:3.22.9'
+    implementation 'net.openhft:chronicle-queue:5.22.28'
+    implementation 'org.json:json:20201115'
+    implementation 'com.amplitude:java-sdk:1.12.0'
+    implementation 'com.squareup:javapoet:1.13.0'
+    implementation 'org.junit.jupiter:junit-jupiter-api:5.9.3'
+    implementation 'org.apache.logging.log4j:log4j-api:2.17.2'
+    implementation 'org.apache.logging.log4j:log4j-core:2.17.2'
+    implementation 'com.github.javaparser:javaparser-core:3.24.8'
+    implementation 'io.minio:minio:8.4.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testImplementation 'org.mockito:mockito-core:4.0.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'com.squareup.okhttp3:okhttp:4.9.0'
+//    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2'
+
+    implementation group: 'com.j256.ormlite', name: 'ormlite-jdbc', version: '6.1'
+    implementation group: 'com.j256.ormlite', name: 'ormlite-core', version: '6.1'
+    implementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.39.3.0'
+    implementation group: 'org.apache.poi', name: 'poi', version: '5.2.2'
+    implementation group: 'org.apache.poi', name: 'poi-ooxml', version: '5.2.2'
+    implementation 'com.googlecode.cqengine:cqengine:3.6.0'
+    implementation 'io.kaitai:kaitai-struct-runtime:0.9'
+
+//    implementation files("/Users/artpar/.m2/repository/video/bug/unlogged-sdk/0.1.12/unlogged-sdk-0.1.12.jar")
+//    annotationProcessor files("/Users/artpar/.m2/repository/video/bug/unlogged-sdk/0.1.12/unlogged-sdk-0.1.12.jar")
+
+//    implementation 'video.bug:unlogged-sdk:0.1.12'
+//    annotationProcessor 'video.bug:unlogged-sdk:0.1.12'
+
+}
+
+runPluginVerifier {
+    ideVersions = [
+            "IU-2019.3.5",
+            "IU-2020.3.4",
+            "IU-2021.3.3",
+            "IU-2022.3.3"
+    ]
+    verificationReportsDir = "verificationReport"
+}
+
+// See https://github.com/JetBrains/gradle-intellij-plugin/
+intellij {
+    version = '2022.3'
+    plugins = ['com.intellij.java', 'maven', 'gradle', 'org.jetbrains.kotlin']
+    updateSinceUntilBuild = false
+    sameSinceUntilBuild = true
+//    pluginDependencies = [
+//            { pluginId = "net.ashald.envfile" }
+//    ]
+
+}
+patchPluginXml {
+    changeNotes = """
+
+
+
+    <h4>Introducing Mocking</h4>
+
+    <p>We're introducing the powerful capability of "mocking while replaying."</p>
+    
+    <h5> Why Mocking While Replaying Matters</h5>
+    
+    <p>In today's dynamic software landscape, it's not always feasible to rely on external APIs, downstream services, or 
+    databases to be constantly available. That's where mocking comes in. With Unlogged.io's latest release, you can now 
+    seamlessly define mocking behavior using recorded data.</p>
+    
+    <h5> Mocking As you develop</h5>
+    
+    <p>What sets this release apart is the ability to define mocks as you write code, eliminating the precursor of 
+    recording. This empowers developers to create realistic mock scenarios effortlessly.</p>
+    
+    <h5>Bug Fix: Session Corrupt Issue Resolved</h5>
+    
+    <p>We understand the frustration that Session Corrupt issues has caused for developers. We have been trying to fix 
+    this for over 3 months. We got some success and were able to resolve this issue in release 1.18.2. If, by any chance, you encounter this problem, please reach out to us on our Discord channel for prompt assistance.</p>
+    
+    <h5>Try It Out and Share Your Feedback</h5>
+    
+    <p>We invite you to give Unlogged.io version 1.18.2 a spin and experience the benefits of mocking while replaying for
+     yourself. </p>
+    
+    <p>You can now record and replay with assertions, mocking, and coverage statistics. </p>
+    <p>Your feedback is invaluable to us as we continue to improve our platform.</p>
+    <br />
+    <p>Happy coding with Unlogged.io!</p>
+
+
+
+    <h4>1.17.2</h4>
+    <p>We're thrilled to unveil Unlogged's latest release, packed with three incredible features designed to elevate your development experience:</p>
+
+    <ol>
+        <li>
+            <strong>Custom Assertions</strong>: Say goodbye to sifting through irrelevant data in your Java method replays! With our new custom assertions feature, you have the power to add personalized assertions around replays. No more wrestling with ever-changing fields like timestamps. Now, you can focus on comparing the essential key-values in your return objects.
+        </li>
+        <li>
+            <strong>Code Coverage</strong>: We understand the importance of code quality and technical debt management. That's why our new release introduces real-time code coverage. Witness which lines of your code are being traversed and identify those that aren't, all in real time. A dedicated "Code Coverage" tab lets you visualize this crucial information, helping you make informed decisions about your codebase.
+        </li>
+        <li>
+            <strong>Unit Test Generation</strong>: Your demands are our commands! Responding to popular requests, we've enabled the ability to generate unit tests. Now, you can leverage recorded data to automatically generate unit tests, saving you valuable time and effort in test creation.
+        </li>
+    </ol>
+
+    <p>But that's not all! We've also squashed a few bugs and spruced up our user interface to enhance your overall Unlogged experience. Your feedback is invaluable to us, so give these new features a spin and let us know how they're transforming your development journey.</p>
+
+    <p>Here at Unlogged, we're committed to empowering Java developers like you with tools that make a real difference. Dive into the latest release and take your development game to the next level. Your feedback fuels our innovation!</p>
+
+    <p><strong>#Unlogged #JavaDevelopers #CodingExcellence #DeveloperTools #Innovation #CodeCoverage #UnitTesting</strong></p>    
+    
+      """
+}
+
+publishPlugin {
+    token = System.getenv('JETBRAINS_PUBLISH_TOKEN')
+    channels = [System.getenv('JEBTRAINS_PUBLISH_CHANNEL')]
+}
+
+
+test {
+    useJUnitPlatform()
+    jvmArgs = [
+            "-Xmx512G"
+    ]
+}
+//sourceCompatibility = JavaVersion.VERSION_17
+//targetCompatibility = JavaVersion.VERSION_17
+
