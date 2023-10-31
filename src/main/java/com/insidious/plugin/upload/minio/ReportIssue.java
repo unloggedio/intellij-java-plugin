@@ -103,7 +103,7 @@ public class ReportIssue {
         prepareForMail(userEmail, issueName, customMessage);
         Task.Backgroundable sendingMailTask = new Task.Backgroundable(project, "Unlogged", false) {
             @Override
-            public void run(@NotNull ProgressIndicator indicator) {
+            public void run(ProgressIndicator indicator) {
                 checkProgressIndicator("Sending mail", null);
                 createMailAndRedirectUser();
             }
