@@ -45,9 +45,9 @@ public class MethodUtils {
                 String parameterValue = parameterValues.get(i);
                 String parameterType = parameterTypes.get(i);
                 if (parameterType.equals("float")) {
-                    parameterValue = String.valueOf(Float.intBitsToFloat(Integer.parseInt(parameterValue)));
+                    parameterValue = ParameterUtils.getFloatValue(parameterValue);
                 } else if (parameterType.equals("double")) {
-                    parameterValue = String.valueOf(Double.longBitsToDouble(Long.parseLong(parameterValue)));
+                    parameterValue = ParameterUtils.getDoubleValue(parameterValue);
                 }
                 convertedParameterValues.add(parameterValue);
             }
