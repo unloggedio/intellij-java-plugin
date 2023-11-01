@@ -1,5 +1,3 @@
-import org.gradle.initialization.definition.DefaultInjectedPluginDependencies
-
 plugins {
     id 'java'
     id 'org.jetbrains.intellij' version '1.16.0'
