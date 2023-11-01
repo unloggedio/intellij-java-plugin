@@ -22,7 +22,8 @@ jobs:
 
       - name: Generate report from runPluginVerifier
         run: ./gradlew runPluginVerifier  --scan
-      - name: Archive production artifacts
+
+      - name: Archive verification report
         uses: actions/upload-artifact@v3
         with:
           name: verification-report
