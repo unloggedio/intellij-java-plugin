@@ -6,9 +6,6 @@ plugins {
     id 'com.palantir.git-version' version '0.14.0'
 }
 
-group 'org.videobug'
-version '1.18.11' + getGitHash()
-
 def getGitHash = { ->
     def stdout = new ByteArrayOutputStream()
     exec {
@@ -17,6 +14,11 @@ def getGitHash = { ->
     }
     return stdout.toString().trim()
 }
+
+
+group 'org.videobug'
+version '1.18.11' + getGitHash()
+
 
 compileJava {
     sourceCompatibility = '11'
