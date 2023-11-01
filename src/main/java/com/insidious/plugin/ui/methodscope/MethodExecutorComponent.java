@@ -56,7 +56,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
     private final Map<String, TestCandidateListedItemComponent> candidateComponentMap = new HashMap<>();
     private final JScrollPane candidateScrollPanelContainer;
     private final CoveragePanel coveragePanel;
-    private final int panelHeightMax = 300;
+    private int panelHeightMax = 300;
     private MethodAdapter methodElement;
     private JPanel rootContent;
     private JButton executeAndShowDifferencesButton;
@@ -72,6 +72,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
     private MethodDefinition methodInfo;
     private MethodUnderTest methodUnderTest;
     private ResponsePreviewComponent currentResponsePreviewComponent;
+    private Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -80,10 +81,12 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
         candidateScrollPanelContainer = new JBScrollPane(gridPanel);
         candidateScrollPanelContainer.setBorder(JBUI.Borders.empty(5));
-        candidateScrollPanelContainer.setMaximumSize(new Dimension(-1, 40));
         candidateScrollPanelContainer.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
 
         setFilterButtonsListeners();
+        if (screenSize.getHeight() <= 1000) {
+            panelHeightMax = 240;
+        }
         centerParent.setMaximumSize(new Dimension(-1, Math.min(300, 40)));
         centerParent.setMinimumSize(new Dimension(-1, 300));
 
@@ -326,8 +329,6 @@ public class MethodExecutorComponent implements CandidateLifeListener {
                 });
 
         refreshCoverageData();
-
-
         executeAndShowDifferencesButton.setEnabled(true);
 
         gridPanel.revalidate();
@@ -405,7 +406,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         return Math.min(candidateComponentMap.values().stream()
                 .map(e -> e.getComponent().getPreferredSize().getHeight())
                 .mapToInt(Double::intValue)
-                .sum() + 50, 300);
+                .sum() + 25, 300);
     }
 
     private void setListDimensions(int panelHeight) {
@@ -503,12 +504,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
                                 methodUnderTest.getMethodHashKey(),
                                 testCandidate.getMetadata().getCandidateStatus());
                     }
-                    //possible bug vector, equal case check
-//                    TestCandidateListedItemComponent candidateComponent =
-//                            candidateComponentMap.get(testCandidate.getEntryProbeIndex());
-
                     candidateComponent.setAndDisplayResponse(diffResult);
-
                     agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
                 });
     }
@@ -565,25 +561,23 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         return rootContent;
     }
 
-
-    public void displayResponse(Component component) {
-
+    public void displayResponse(Component component, boolean isExceptionFlow) {
         scrollContainer.removeAll();
-//        diffContentPanel = new JPanel()
-//        diffContentPanel.add(component, BorderLayout.CENTER);
-//        diffContentPanel.revalidate();
-//        diffContentPanel.repaint();
-
         JBScrollPane scrollParent = new JBScrollPane(component);
-        scrollParent.setMinimumSize(new Dimension(-1, 300));
-        scrollParent.setMaximumSize(new Dimension(-1, 600));
-//        diffContentPanel.setMinimumSize(new Dimension(-1, 700));
-//        component.setMinimumSize(new Dimension(-1, 700));
-//        scrollParent.setViewportView(diffContentPanel);
-//        scrollParent.setVisible(true);
-//        scrollParent.revalidate();
-//        scrollParent.repaint();
-        scrollContainer.add(scrollParent, BorderLayout.SOUTH);
+        scrollParent.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        if (screenSize.getHeight() < 1000) {
+            if (!isExceptionFlow) {
+                component.setPreferredSize(new Dimension(-1, 180));
+            }
+            scrollContainer.setPreferredSize(new Dimension(-1, 60));
+            scrollParent.setMinimumSize(new Dimension(-1, 200));
+            scrollParent.setMaximumSize(new Dimension(-1, 200));
+        } else {
+            scrollParent.setMaximumSize(new Dimension(-1, 300));
+            scrollParent.setMaximumSize(new Dimension(-1, 600));
+        }
+
+        scrollContainer.add(scrollParent);
         scrollContainer.revalidate();
         scrollContainer.repaint();
         logger.warn("diff component attached: " + component.getClass().getCanonicalName());
@@ -604,7 +598,10 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         }
         currentResponsePreviewComponent = createTestCandidateChangeComponent(testCandidateMetadata,
                 agentCommandResponse);
-        displayResponse(currentResponsePreviewComponent.get());
+        boolean isExceptionFlow = testCandidateMetadata.isException()
+                || (agentCommandResponse.getResponseType().equals(ResponseType.FAILED)
+                || agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION));
+        displayResponse(currentResponsePreviewComponent.get(), isExceptionFlow);
     }
 
     private ResponsePreviewComponent createTestCandidateChangeComponent(

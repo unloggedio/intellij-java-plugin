@@ -17,7 +17,7 @@ public interface CandidateLifeListener {
             AgentCommandResponseListener<String> stringAgentCommandResponseListener
     );
 
-    void displayResponse(Component responseComponent);
+    void displayResponse(Component responseComponent, boolean isExceptionFlow);
 
     void onSaved(StoredCandidate storedCandidate);
 
