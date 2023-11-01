@@ -17,6 +17,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import static com.insidious.plugin.util.ParameterUtils.processResponseForFloatAndDoubleTypes;
+
 public class AgentResponseComponent implements ResponsePreviewComponent {
     public static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
@@ -70,8 +72,10 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
 
         setInfoLabel("Replayed at " + DateUtils.formatDate(new Date(agentCommandResponse.getTimestamp())) +
                 " for " + methodLabel);
+        String processedOriginal = processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(), originalString);
+        String processedActual = processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(), actualString);
         viewFullButton.addActionListener(
-                e -> fullViewEventListener.generateCompareWindows(originalString, actualString));
+                e -> fullViewEventListener.generateCompareWindows(processedOriginal, processedActual));
 
 //        if (SHOW_TEST_CASE_CREATE_BUTTON) {
 //            createTestCaseButton = new JButton("Create JUnit test case");

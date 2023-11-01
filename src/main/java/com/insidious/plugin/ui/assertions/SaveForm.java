@@ -25,6 +25,8 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.insidious.plugin.util.ParameterUtils.processResponseForFloatAndDoubleTypes;
+
 public class SaveForm {
 
     private static final Logger logger = LoggerUtil.getInstance(SaveForm.class);
@@ -51,6 +53,8 @@ public class SaveForm {
     ) {
         this.storedCandidate = storedCandidate;
         this.listener = listener;
+        agentCommandResponse.setMethodReturnValue(processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(),
+                agentCommandResponse.getMethodReturnValue()));
         this.agentCommandResponse = agentCommandResponse;
 
         mainPanel = new JPanel();
