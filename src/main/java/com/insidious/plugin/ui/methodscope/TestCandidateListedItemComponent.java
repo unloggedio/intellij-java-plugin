@@ -247,10 +247,10 @@ public class TestCandidateListedItemComponent {
 
                 if (argumentTypeCanonicalName.equals("float") ||
                         argumentTypeCanonicalName.equals("java.lang.Float")) {
-                    parameterValue = String.valueOf(Float.intBitsToFloat(Integer.parseInt(parameterValue)));
+                    parameterValue = ParameterUtils.getFloatValue(parameterValue);
                 } else if (argumentTypeCanonicalName.equals("double") ||
                         argumentTypeCanonicalName.equals("java.lang.Double")) {
-                    parameterValue = String.valueOf(Double.longBitsToDouble(Long.parseLong(parameterValue)));
+                    parameterValue = ParameterUtils.getDoubleValue(parameterValue);
                 }
             } catch (Exception e) {
                 logger.warn("Failed to parse double/float [" + parameterValue + "]", e);

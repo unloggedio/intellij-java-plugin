@@ -285,14 +285,12 @@ public class MethodDirectInvokeComponent implements ActionListener {
                                 String responseClassName = agentCommandResponse.getResponseClassName();
                                 if (responseClassName.equals("float")
                                         || responseClassName.equals("java.lang.Float")) {
-                                    returnValueString = String.valueOf(
-                                            Float.intBitsToFloat(Integer.parseInt(returnValueString)));
+                                    returnValueString = ParameterUtils.getFloatValue(returnValueString);
                                 }
 
                                 if (responseClassName.equals("double")
                                         || responseClassName.equals("java.lang.Double")) {
-                                    returnValueString = String.valueOf(
-                                            Double.longBitsToDouble(Long.parseLong(returnValueString)));
+                                    returnValueString = ParameterUtils.getDoubleValue(returnValueString);
                                 }
 
                                 JsonNode jsonNode = objectMapper.readValue(returnValueString, JsonNode.class);
@@ -353,9 +351,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         String title = methodNameForLabel + "( " + ")";
         setActionPanelTitle(title);
 
-
         ParameterAdapter[] methodParameters = methodElement.getParameters();
-
 
 //        TestCandidateMetadata mostRecentTestCandidate = null;
         List<String> methodArgumentValues = null;

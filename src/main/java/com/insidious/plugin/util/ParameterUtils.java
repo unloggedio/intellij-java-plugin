@@ -81,4 +81,32 @@ public class ParameterUtils {
         }
         statementBuilder.append(">");
     }
+
+    public static String getFloatValue(String input) {
+        try {
+            return String.valueOf(Float.intBitsToFloat(Integer.parseInt(input)));
+        } catch (Exception e) {
+            return input;
+        }
+    }
+
+    public static String getDoubleValue(String input) {
+        try {
+            return String.valueOf(Double.longBitsToDouble(Long.parseLong(input)));
+        } catch (Exception e) {
+            return input;
+        }
+    }
+
+    public static String processResponseForFloatAndDoubleTypes(String responseClassname, String json) {
+        if (responseClassname.equalsIgnoreCase("float")
+                || responseClassname.equalsIgnoreCase("java.lang.float")) {
+            return getFloatValue(json);
+        }
+        if (responseClassname.equalsIgnoreCase("double")
+                || responseClassname.equalsIgnoreCase("java.lang.double")) {
+            return getDoubleValue(json);
+        }
+        return json;
+    }
 }

@@ -117,7 +117,7 @@ final public class InsidiousService implements
     private final Map<String, Integer> methodHash = new TreeMap<>();
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
     final private AgentStateProvider agentStateProvider;
-    private final ReportingService reportingService = new ReportingService(this);
+//    private final ReportingService reportingService = new ReportingService(this);
     private final Map<String, String> candidateIndividualContextMap = new TreeMap<>();
     private final ActiveSessionManager sessionManager;
     private final JUnitTestCaseWriter junitTestCaseWriter;
@@ -1217,7 +1217,7 @@ final public class InsidiousService implements
     }
 
     public void addExecutionRecord(DifferenceResult result) {
-        reportingService.addRecord(result);
+//        reportingService.addRecord(result);
     }
 
     public void setAgentProcessState(GutterState newState) {
@@ -1290,7 +1290,7 @@ final public class InsidiousService implements
     }
 
     public void toggleReportGeneration() {
-        this.reportingService.toggleReportMode();
+//        this.reportingService.toggleReportMode();
     }
 
     public MethodDefinition getMethodInformation(MethodUnderTest methodUnderTest) {

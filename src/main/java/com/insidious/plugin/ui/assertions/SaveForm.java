@@ -38,6 +38,7 @@ import java.util.*;
 import java.util.List;
 
 import com.insidious.plugin.atomicrecord.AtomicRecordService;
+import static com.insidious.plugin.util.ParameterUtils.processResponseForFloatAndDoubleTypes;
 
 public class SaveForm {
 
@@ -65,6 +66,8 @@ public class SaveForm {
     ) {
         this.storedCandidate = storedCandidate;
         this.listener = listener;
+        agentCommandResponse.setMethodReturnValue(processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(),
+                agentCommandResponse.getMethodReturnValue()));
         this.agentCommandResponse = agentCommandResponse;
         this.enabledMockList = new HashSet<>(this.storedCandidate.getEnabledMock());
 
