@@ -197,7 +197,7 @@ patchPluginXml {
 }
 
 publishPlugin {
-    token = System.getenv('JETBRAINS_PUBLISH_TOKEN')
+    token = "$System.env.JETBRAINS_PUBLISH_TOKEN"
     channels = ["$System.env.JEBTRAINS_PUBLISH_CHANNEL"]
 }
 
