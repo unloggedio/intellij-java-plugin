@@ -42,17 +42,13 @@ public class SaveFormMetadataPanel {
         this.descriptionText.setText(payload.getDescription() != null ? payload.getDescription() : "");
 
         this.createdByKeyLabel.setIcon(UIUtils.CREATED_BY);
+        this.createdByKeyLabel.setEnabled(false);
         this.createdByLabel.setText(payload.getStoredCandidateMetadata().getRecordedBy());
-
-        this.hostKeyPanel.setIcon(UIUtils.MACHINE);
-        this.hostLabel.setText(payload.getStoredCandidateMetadata().getHostMachineName());
-
-        this.timestampKeyPanel.setIcon(UIUtils.CLOCK);
-        this.timestampLabel.setText(convertTimestamp(payload.getStoredCandidateMetadata().getTimestamp()));
-        this.timestampLabel.setToolTipText(payload.getStoredCandidateMetadata().getTimestamp() + "");
-        StoredCandidateMetadata.CandidateStatus status = payload.getStoredCandidateMetadata().getCandidateStatus();
+        this.createdByLabel.setEnabled(false);
 
         this.statusKeyLabel.setIcon(UIUtils.STATUS);
+        this.statusKeyLabel.setEnabled(false);
+        StoredCandidateMetadata.CandidateStatus status = payload.getStoredCandidateMetadata().getCandidateStatus();
         if (status.equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
             this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
             this.statusLabel.setForeground(UIUtils.red);
@@ -62,6 +58,17 @@ public class SaveFormMetadataPanel {
             this.statusLabel.setForeground(UIUtils.green);
             this.statusLabel.setText("Passing");
         }
+
+        this.hostKeyPanel.setIcon(UIUtils.MACHINE);
+        this.hostKeyPanel.setEnabled(false);
+        this.hostLabel.setText(payload.getStoredCandidateMetadata().getHostMachineName());
+        this.hostLabel.setEnabled(false);
+
+        this.timestampKeyPanel.setIcon(UIUtils.CLOCK);
+        this.timestampKeyPanel.setEnabled(false);
+        this.timestampLabel.setText(convertTimestamp(payload.getStoredCandidateMetadata().getTimestamp()));
+        this.timestampLabel.setToolTipText(payload.getStoredCandidateMetadata().getTimestamp() + "");
+        this.timestampLabel.setEnabled(false);
 
         comboItem unitTest = new comboItem("Unit Test", "unit_test");
         comboItem integrationTest = new comboItem("Integration Test", "integration_test");
