@@ -11,7 +11,7 @@ public class Constants {
         String defaultHostname = System.getProperty("user.name");
 
         if (defaultHostname.length() <= 4){
-                defaultHostname = "aaaa" + defaultHostname;
+                defaultHostname = "short-" + defaultHostname;
         }
 
         return defaultHostname;
