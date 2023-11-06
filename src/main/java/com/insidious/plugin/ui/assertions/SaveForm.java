@@ -355,9 +355,8 @@ public class SaveForm {
             mockMethodPanelSingle.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, JBColor.BLACK));
 
             mockMethodPanelSingleHeight += 20;
-            mockMethodPanelSingle.setMaximumSize(new Dimension(3999, mockMethodPanelSingleHeight));
             mockMethodPanel.add(mockMethodPanelSingle);
-            mockMethodPanel.add(Box.createRigidArea(null));
+            mockMethodPanel.add(Box.createRigidArea(new Dimension(1,10)));
         }
 
         mockDataPanelContent.add(mockMethodPanel);
