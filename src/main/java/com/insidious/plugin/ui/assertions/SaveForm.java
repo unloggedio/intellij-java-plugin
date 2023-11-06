@@ -232,7 +232,6 @@ public class SaveForm {
         applyMockPanel.add(applyMockLabel);
         applyMockPanel.setMaximumSize(new Dimension(3999, 30));
         mockDataPanelContent.add(applyMockPanel);
-        int mockDataPanelContentHeight = 0;
 
         this.insidiousService = this.listener.getProject().getService(InsidiousService.class);
         AtomicRecordService atomicRecordService = this.insidiousService.getAtomicRecordService();
@@ -322,20 +321,9 @@ public class SaveForm {
 
                 // define mockMethodDependencyPanelLeft
                 JPanel mockMethodDependencyPanelLeft = new JPanel();
-                JPanel leftText = new JPanel();
-                GridLayout twoRowLayout = new GridLayout(2, 1);
-                twoRowLayout.setVgap(4);
-                twoRowLayout.setHgap(8);
-                leftText.setLayout(twoRowLayout);
 
-                JLabel leftTextFirst = new JLabel();
-                leftTextFirst.setText(mockData.getName());
-                leftText.add(leftTextFirst);
-
-                JLabel leftTextSecond = new JLabel();
-                leftTextSecond.setIcon(UIUtils.CLASS_FILE);
-                leftTextSecond.setText(mockData.getMethodName());
-                leftText.add(leftTextSecond);
+                JLabel leftText = new JLabel();
+                leftText.setText(mockData.getName());
 
                 mockMethodDependencyPanelLeft.setLayout(new FlowLayout(FlowLayout.LEFT));
                 mockMethodDependencyPanelLeft.add(leftText);
@@ -365,7 +353,6 @@ public class SaveForm {
             mockMethodPanelSingle.setBorder(BorderFactory.createLineBorder(new Color(50, 50, 50)));
             mockMethodPanelSingleHeight += 20;
             mockMethodPanelSingle.setMaximumSize(new Dimension(3999, mockMethodPanelSingleHeight));
-            mockDataPanelContentHeight += mockMethodPanelSingleHeight;
             mockMethodPanel.add(mockMethodPanelSingle);
             mockMethodPanel.add(Box.createRigidArea(null));
         }
@@ -500,22 +487,6 @@ public class SaveForm {
             return source.trim();
         }
     }
-
-    // private void setInfo() {
-    //     boolean updated = false;
-    //     String name = storedCandidate.getName();
-    //     String description = storedCandidate.getDescription();
-
-    //     if (name != null) {
-    //         updated = true;
-    //     }
-    //     if (description != null) {
-    //         updated = true;
-    //     }
-    //     if (updated) {
-    //         this.saveButton.setText("Save & Close");
-    //     }
-    // }
 
     private String formatLocation(String location) {
         if (location.length() <= 59) {
