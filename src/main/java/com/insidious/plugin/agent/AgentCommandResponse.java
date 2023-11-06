@@ -11,16 +11,6 @@ public class AgentCommandResponse<T> {
     private String targetClassName;
     private String targetMethodSignature;
     private long timestamp;
-    private HashSet<String> enabledMockId;
-
-    public HashSet<String> getEnabledMockId() {
-        return this.enabledMockId;
-    }
-
-    public void setEnabledMockId(HashSet<String> enabledMockId) {
-        this.enabledMockId = enabledMockId;
-    }
-
 
     public AgentCommandResponse(ResponseType responseType) {
         this.responseType = responseType;
