@@ -375,7 +375,7 @@ public class SaveForm {
             {
                 JSONObject panelChanged = new JSONObject();
                 panelChanged.put("tabIndex", bottomControlPanel.getSelectedIndex());
-                UsageInsightTracker.getInstance().RecordEvent("REPEAT_RECORD_TAB_TYPE", panelChanged);
+                UsageInsightTracker.getInstance().RecordEvent("MOCK_LINKING_TAB_TYPE", panelChanged);
             }
         });
         this.metadataForm.comboBox1.addItemListener(new ItemListener() {
@@ -383,7 +383,7 @@ public class SaveForm {
             public void itemStateChanged(ItemEvent e) {
                 JSONObject testChange = new JSONObject();
                 testChange.put("testType", e.getItem().toString());
-                UsageInsightTracker.getInstance().RecordEvent("REPEAT_RECORD_TEST_TYPE", testChange);
+                UsageInsightTracker.getInstance().RecordEvent("MOCK_LINKING_TEST_TYPE", testChange);
 
                 if ((e.getStateChange() == ItemEvent.SELECTED) && (Objects.equals(e.getItem().toString(), "Unit Test"))) {
                     bottomControlPanel.setEnabledAt(1, true);
