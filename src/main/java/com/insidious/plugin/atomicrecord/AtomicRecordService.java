@@ -138,7 +138,7 @@ public class AtomicRecordService {
                                         NotificationType.INFORMATION);
                             }
                             logger.info("[ATRS] Replacing existing record");
-                            storedCandidate.copyFrom(candidate);
+                            storedCandidate.copyFrom(insidiousService, candidate);
                             break;
                         }
                     }

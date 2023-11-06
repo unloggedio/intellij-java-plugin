@@ -453,7 +453,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
     ) {
         List<String> methodArgumentValues = testCandidate.getMethodArguments();
         AgentCommandRequest agentCommandRequest = MethodUtils.createExecuteRequestWithParameters(
-                methodElement, classUnderTest, methodArgumentValues, true, testCandidate.getEnabledMock());
+                methodElement, classUnderTest, methodArgumentValues, true, testCandidate.getEnabledMock(insidiousService));
 
         TestCandidateListedItemComponent candidateComponent =
                 candidateComponentMap.get(getKeyForCandidate(testCandidate));

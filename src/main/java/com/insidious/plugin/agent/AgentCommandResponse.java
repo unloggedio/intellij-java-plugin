@@ -1,8 +1,6 @@
 package com.insidious.plugin.agent;
 
-import com.insidious.plugin.mocking.DeclaredMock;
-
-import java.util.ArrayList;
+import java.util.HashSet;
 
 public class AgentCommandResponse<T> {
     private T methodReturnValue;
@@ -13,14 +11,14 @@ public class AgentCommandResponse<T> {
     private String targetClassName;
     private String targetMethodSignature;
     private long timestamp;
-    private ArrayList<DeclaredMock> enabledMock;
+    private HashSet<String> enabledMockId;
 
-    public ArrayList<DeclaredMock> getEnabledMock() {
-        return this.enabledMock;
+    public HashSet<String> getEnabledMockId() {
+        return this.enabledMockId;
     }
 
-    public void setEnabledMock(ArrayList<DeclaredMock> enabledMock) {
-        this.enabledMock = enabledMock;
+    public void setEnabledMockId(HashSet<String> enabledMockId) {
+        this.enabledMockId = enabledMockId;
     }
 
 
