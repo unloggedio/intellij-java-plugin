@@ -18,6 +18,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.treeStructure.Tree;
@@ -345,12 +346,14 @@ public class SaveForm {
                 this.buttonMap.get(mockButtonMain).add(mockButton);
                 mockMethodDependencyPanel.add(mockMethodDependencyPanelRight);
 
-                mockMethodDependencyPanel.setBorder(BorderFactory.createLineBorder(new Color(95, 96, 96)));
+                mockMethodDependencyPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.BLACK));
                 mockMethodDependencyPanel.setMaximumSize(new Dimension(3999, 50));
                 mockMethodPanelSingleHeight += 60;
                 mockMethodPanelSingle.add(mockMethodDependencyPanel);
             }
             mockMethodPanelSingle.setBorder(BorderFactory.createLineBorder(new Color(50, 50, 50)));
+            mockMethodPanelSingle.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, JBColor.BLACK));
+
             mockMethodPanelSingleHeight += 20;
             mockMethodPanelSingle.setMaximumSize(new Dimension(3999, mockMethodPanelSingleHeight));
             mockMethodPanel.add(mockMethodPanelSingle);
@@ -359,6 +362,7 @@ public class SaveForm {
 
         mockDataPanelContent.add(mockMethodPanel);
         JScrollPane mockScrollPanel = new JBScrollPane(mockDataPanelContent);
+        mockScrollPanel.setBorder(BorderFactory.createEmptyBorder());
         mockPanel.add(mockScrollPanel);
 
         // define lowerPanel
