@@ -100,11 +100,13 @@ public class ParameterUtils {
 
     public static String processResponseForFloatAndDoubleTypes(String responseClassname, String json) {
         if (responseClassname.equalsIgnoreCase("float")
-                || responseClassname.equalsIgnoreCase("java.lang.float")) {
+                || responseClassname.equalsIgnoreCase("java.lang.float")
+                || responseClassname.equals("F")) {
             return getFloatValue(json);
         }
         if (responseClassname.equalsIgnoreCase("double")
-                || responseClassname.equalsIgnoreCase("java.lang.double")) {
+                || responseClassname.equalsIgnoreCase("java.lang.double")
+                || responseClassname.equals("D")) {
             return getDoubleValue(json);
         }
         return json;
