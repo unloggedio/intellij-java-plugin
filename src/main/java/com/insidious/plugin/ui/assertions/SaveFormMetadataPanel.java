@@ -4,6 +4,10 @@ import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.util.UIUtils;
 
 import javax.swing.*;
+
+import static com.insidious.plugin.Constants.INTEGRATION_TEST;
+import static com.insidious.plugin.Constants.UNIT_TEST;
+
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -70,8 +74,8 @@ public class SaveFormMetadataPanel {
         this.timestampLabel.setToolTipText(payload.getStoredCandidateMetadata().getTimestamp() + "");
         this.timestampLabel.setEnabled(false);
 
-        comboItem unitTest = new comboItem("Unit Test", "unit_test");
-        comboItem integrationTest = new comboItem("Integration Test", "integration_test");
+        comboItem unitTest = new comboItem(UNIT_TEST, "unit_test");
+        comboItem integrationTest = new comboItem(INTEGRATION_TEST, "integration_test");
         this.comboBox1.addItem(unitTest);
         this.comboBox1.addItem(integrationTest);
     }
