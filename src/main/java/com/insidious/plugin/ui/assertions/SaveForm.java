@@ -69,7 +69,7 @@ public class SaveForm implements OnTestTypeChangeListener {
                 processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(),
                         agentCommandResponse.getMethodReturnValue()));
         this.agentCommandResponse = agentCommandResponse;
-        this.enabledMockList = this.storedCandidate.getEnabledMockId();
+        this.enabledMockList = this.storedCandidate.getMockId();
 
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
@@ -285,7 +285,7 @@ public class SaveForm implements OnTestTypeChangeListener {
             JCheckBox mockButtonMain = new JCheckBox();
             this.buttonMap.put(mockButtonMain, new ArrayList<JCheckBox>());
             mockButtonMain.setSelected(
-                    this.enabledMockList != null && this.storedCandidate.getEnabledMockId().containsAll(localKeyData));
+                    this.enabledMockList != null && this.storedCandidate.getMockId().containsAll(localKeyData));
             ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
             mockButtonMain.addActionListener(e -> {
                 if (mockButtonMain.isSelected()) {
@@ -334,7 +334,7 @@ public class SaveForm implements OnTestTypeChangeListener {
                 mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
                 JCheckBox mockButton = new JCheckBox();
                 mockButton.setSelected(
-                        this.enabledMockList != null && this.storedCandidate.getEnabledMockId().contains(mockDataId));
+                        this.enabledMockList != null && this.storedCandidate.getMockId().contains(mockDataId));
                 mockButton.addActionListener(e -> {
                     if (mockButton.isSelected()) {
                         this.stateInvertSingleMock(mockDataId, true);
@@ -449,10 +449,10 @@ public class SaveForm implements OnTestTypeChangeListener {
                     enabledMockUnDeleted.add(localMock.getId());
                 }
             }
-            this.storedCandidate.setEnabledMockId(insidiousService, enabledMockUnDeleted);
+            this.storedCandidate.setMockId(insidiousService, enabledMockUnDeleted);
         } else {
             // integration test
-            this.storedCandidate.setEnabledMockId(insidiousService, new HashSet<String>());
+            this.storedCandidate.setMockId(insidiousService, new HashSet<String>());
         }
 
         StoredCandidate candidate = StoredCandidate.createCandidateFor(insidiousService, storedCandidate,

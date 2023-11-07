@@ -34,7 +34,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     private long sessionIdentifier;
     private byte[] probSerializedValue;
     private MethodUnderTest methodUnderTest;
-    private HashSet<String> enabledMockId = new HashSet<String>();
+    private HashSet<String> mockId = new HashSet<String>();
 
     private StoredCandidate() {
     }
@@ -67,7 +67,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         candidate.setLineNumbers(metadata.getLineNumbers());
         candidate.setException(!response.getResponseType().equals(ResponseType.NORMAL));
         candidate.setReturnValue(response.getMethodReturnValue());
-        candidate.setEnabledMockId(insidiousService, metadata.getEnabledMockId());
+        candidate.setMockId(insidiousService, metadata.getMockId());
         //to be updated
         candidate.setProbSerializedValue(metadata.getProbSerializedValue());
         //to be updated
@@ -88,17 +88,17 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         return candidate;
     }
 
-    public HashSet<String> getEnabledMockId() {
-        return enabledMockId;
+    public HashSet<String> getMockId() {
+        return mockId;
     }
 
 
-    public void setEnabledMockId (InsidiousService insidiousService, HashSet<String> enabledMockDefination) {
+    public void setMockId (InsidiousService insidiousService, HashSet<String> enabledMockDefination) {
         List<DeclaredMock> allMock = insidiousService.getDeclaredMocksFor(methodUnderTest);
 
         for (DeclaredMock localMock: allMock) {
             if (enabledMockDefination.contains(localMock.getId())) {
-                this.enabledMockId.add(localMock.getId());
+                this.mockId.add(localMock.getId());
             }
         }
     }
@@ -108,7 +108,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         List<DeclaredMock> allMock = insidiousService.getDeclaredMocksFor(methodUnderTest);
 
         for (DeclaredMock localMock: allMock) {
-            if (enabledMockId.contains(localMock.getId())) {
+            if (mockId.contains(localMock.getId())) {
                 enabledMock.add(localMock);
             }
         }
@@ -291,7 +291,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.setReturnValueClassname(candidate.getReturnValueClassname());
         this.setLineNumbers(candidate.getLineNumbers());
         this.setTestAssertions(candidate.getTestAssertions());
-        this.setEnabledMockId(insidiousService, candidate.getEnabledMockId());
+        this.setMockId(insidiousService, candidate.getMockId());
     }
 
     public AtomicAssertion getTestAssertions() {
