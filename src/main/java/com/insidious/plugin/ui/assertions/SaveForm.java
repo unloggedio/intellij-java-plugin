@@ -289,12 +289,12 @@ public class SaveForm implements OnTestTypeChangeListener {
             ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
             mockButtonMain.addActionListener(e -> {
                 if (mockButtonMain.isSelected()) {
-                    this.changeAllMocks(dependencyMockMap.get(localKey), true);
+                    this.stateInvertAllMocks(dependencyMockMap.get(localKey), true);
                     for (int i = 0; i <= mockButtonMainPart.size() - 1; i++) {
                         mockButtonMainPart.get(i).setSelected(true);
                     }
                 } else {
-                    this.changeAllMocks(dependencyMockMap.get(localKey), false);
+                    this.stateInvertAllMocks(dependencyMockMap.get(localKey), false);
                     for (int i = 0; i <= mockButtonMainPart.size() - 1; i++) {
                         mockButtonMainPart.get(i).setSelected(false);
                     }
@@ -337,9 +337,9 @@ public class SaveForm implements OnTestTypeChangeListener {
                         this.enabledMockList != null && this.storedCandidate.getEnabledMockId().contains(mockDataId));
                 mockButton.addActionListener(e -> {
                     if (mockButton.isSelected()) {
-                        this.changeSingleMock(mockDataId, true);
+                        this.stateInvertSingleMock(mockDataId, true);
                     } else {
-                        this.changeSingleMock(mockDataId, false);
+                        this.stateInvertSingleMock(mockDataId, false);
                     }
                 });
                 mockMethodDependencyPanelRight.add(mockButton);
@@ -392,7 +392,7 @@ public class SaveForm implements OnTestTypeChangeListener {
         mainPanel.add(primaryContentPanel, BorderLayout.CENTER);
     }
 
-    private void changeAllMocks(List<String> allDeclaredMocks, boolean state) {
+    private void stateInvertAllMocks(List<String> allDeclaredMocks, boolean state) {
         for (int i = 0; i <= allDeclaredMocks.size() - 1; i++) {
             if (state) {
                 this.enabledMockList.add(allDeclaredMocks.get(i));
@@ -402,7 +402,7 @@ public class SaveForm implements OnTestTypeChangeListener {
         }
     }
 
-    private void changeSingleMock(String localMock, boolean state) {
+    private void stateInvertSingleMock(String localMock, boolean state) {
         if (state) {
             this.enabledMockList.add(localMock);
         } else {

@@ -35,4 +35,6 @@ public class Constants {
     public static final String PENDING = "pending";
     public static final String AGENT_VERSION = "1.14.3";
     public static final String HOSTNAME = getHostname();
+    public static final String UNIT_TEST = "Unit Test";
+    public static final String INTEGRATION_TEST = "Integration Test";
 }
