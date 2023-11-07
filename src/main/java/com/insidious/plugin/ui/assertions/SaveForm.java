@@ -240,22 +240,22 @@ public class SaveForm {
         MethodAdapter tempMethodAdapter = this.insidiousService.getCurrentMethod();
         MethodUnderTest tempMethodUnderTest = MethodUnderTest.fromMethodAdapter(tempMethodAdapter);
 
-        List<DeclaredMock> temp_available_mocks = atomicRecordService.getDeclaredMocksFor(tempMethodUnderTest);
-        HashMap<String, ArrayList<String>> dependency_mock_map = new HashMap<String, ArrayList<String>>();
+        List<DeclaredMock> methodAllDeclaredMock = atomicRecordService.getDeclaredMocksFor(tempMethodUnderTest);
+        HashMap<String, ArrayList<String>> dependencyMockMap = new HashMap<String, ArrayList<String>>();
         HashMap<String, String> mockNameIdMap = new HashMap<String, String>();
 
-        for (int i = 0; i <= temp_available_mocks.size() - 1; i++) {
-            DeclaredMock localMock = temp_available_mocks.get(i);
+        for (int i = 0; i <= methodAllDeclaredMock.size() - 1; i++) {
+            DeclaredMock localMock = methodAllDeclaredMock.get(i);
             String localMockId = localMock.getId();
             String localMockName = localMock.getName();
             String localMockMethodName = localMock.getMethodName();
             mockNameIdMap.put(localMockId, localMockName);
 
-            if (dependency_mock_map.containsKey(localMockMethodName)) {
-                dependency_mock_map.get(localMockMethodName).add(localMockId);
+            if (dependencyMockMap.containsKey(localMockMethodName)) {
+                dependencyMockMap.get(localMockMethodName).add(localMockId);
             } else {
-                dependency_mock_map.put(localMockMethodName, new ArrayList<String>());
-                dependency_mock_map.get(localMockMethodName).add(localMockId);
+                dependencyMockMap.put(localMockMethodName, new ArrayList<String>());
+                dependencyMockMap.get(localMockMethodName).add(localMockId);
             }
         }
 
@@ -263,8 +263,8 @@ public class SaveForm {
         JPanel mockMethodPanel = new JPanel();
         mockMethodPanel.setLayout(new BoxLayout(mockMethodPanel, BoxLayout.Y_AXIS));
 
-        for (String localKey : dependency_mock_map.keySet()) {
-            ArrayList<String> localKeyData = dependency_mock_map.get(localKey);
+        for (String localKey : dependencyMockMap.keySet()) {
+            ArrayList<String> localKeyData = dependencyMockMap.get(localKey);
             JPanel mockMethodPanelSingle = new JPanel();
             mockMethodPanelSingle.setLayout(new BoxLayout(mockMethodPanelSingle, BoxLayout.Y_AXIS));
             int mockMethodPanelSingleHeight = 0;
@@ -290,12 +290,12 @@ public class SaveForm {
             ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
             mockButtonMain.addActionListener(e -> {
                 if (mockButtonMain.isSelected()) {
-                    this.changeAllMocks(dependency_mock_map.get(localKey), true);
+                    this.changeAllMocks(dependencyMockMap.get(localKey), true);
                     for (int i = 0; i <= mockButtonMainPart.size() - 1; i++) {
                         mockButtonMainPart.get(i).setSelected(true);
                     }
                 } else {
-                    this.changeAllMocks(dependency_mock_map.get(localKey), false);
+                    this.changeAllMocks(dependencyMockMap.get(localKey), false);
                     for (int i = 0; i <= mockButtonMainPart.size() - 1; i++) {
                         mockButtonMainPart.get(i).setSelected(false);
                     }
