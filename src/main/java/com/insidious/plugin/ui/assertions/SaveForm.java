@@ -231,84 +231,14 @@ public class SaveForm implements OnTestTypeChangeListener {
         mockDataPanelContent.add(applyMockPanel);
 
         this.insidiousService = this.listener.getProject().getService(InsidiousService.class);
-
         this.mockValueMap = new MockValueMap(insidiousService);
-        HashMap<String, ArrayList<String>> dependencyMockMap = this.mockValueMap.getDependencyMockMap();
 
         // define mockMethodPanel
         JPanel mockMethodPanel = new JPanel();
         mockMethodPanel.setLayout(new BoxLayout(mockMethodPanel, BoxLayout.Y_AXIS));
 
-        // TODO: refactor this
-        for (String localKey : dependencyMockMap.keySet()) {
-            ArrayList<String> localKeyData = dependencyMockMap.get(localKey);
-            JPanel mockMethodPanelSingle = new JPanel();
-            mockMethodPanelSingle.setLayout(new BoxLayout(mockMethodPanelSingle, BoxLayout.Y_AXIS));
-
-            // define mockMethodNamePanel
-            JPanel mockMethodNamePanel = new JPanel();
-            GridLayout namePanelLayout = new GridLayout(1, 2);
-            mockMethodNamePanel.setLayout(namePanelLayout);
-
-            // define mockMethodNamePanelLeft
-            JLabel mockMethodNamePanelLeft = new JLabel();
-            mockMethodNamePanelLeft.setText(localKey);
-            mockMethodNamePanelLeft.setIcon(UIUtils.MOCK_DATA);
-            mockMethodNamePanelLeft.setBorder(JBUI.Borders.empty(4, 8, 4, 0));
-            mockMethodNamePanel.add(mockMethodNamePanelLeft);
-
-            // define mockMethodNamePanelRight
-            JPanel mockMethodNamePanelRight = new JPanel();
-            mockMethodNamePanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
-            JCheckBox mockButtonMain = new JCheckBox();
-            this.buttonMap.put(mockButtonMain, new ArrayList<JCheckBox>());
-            mockButtonMain.setSelected(
-                    this.enabledMockList != null && this.storedCandidate.getMockIds().containsAll(localKeyData));
-            ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
-            mockButtonMain.addActionListener(e -> {
-                if (mockButtonMain.isSelected()) {
-                    this.stateInvertAllMocks(dependencyMockMap.get(localKey), true);
-                    for (int i = 0; i <= mockButtonMainPart.size() - 1; i++) {
-                        mockButtonMainPart.get(i).setSelected(true);
-                    }
-                } else {
-                    this.stateInvertAllMocks(dependencyMockMap.get(localKey), false);
-                    for (int i = 0; i <= mockButtonMainPart.size() - 1; i++) {
-                        mockButtonMainPart.get(i).setSelected(false);
-                    }
-                }
-            });
-            mockMethodNamePanelRight.add(mockButtonMain);
-            JLabel selectAllText = new JLabel();
-            selectAllText.setText("<html><b>Select all</b></html>");
-            mockMethodNamePanelRight.add(selectAllText);
-            mockMethodNamePanel.add(mockMethodNamePanelRight);
-
-            mockMethodNamePanel.setMaximumSize(new Dimension(3999, 30));
-            mockMethodPanelSingle.add(mockMethodNamePanel);
-            
-            for (int i = 0; i <= localKeyData.size() - 1; i++) {
-                JPanel mockMethodDependencyPanel = this.getMockMethodDependencyPanel(mockButtonMain, localKeyData.get(i));
-                mockMethodPanelSingle.add(mockMethodDependencyPanel);
-            }
-
-            // configure new mock panel
-            JPanel addMockPanel = new JPanel();
-            addMockPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-
-            JButton addMockButton = new JButton();
-            addMockButton.setText("Add Mock");
-            addMockButton.setIcon(UIUtils.MOCK_ADD);
-            addMockButton.setPreferredSize(new Dimension(100, 25));
-            addMockPanel.add(addMockButton);
-
-            addMockPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.BLACK));
-            addMockPanel.setMaximumSize(new Dimension(3999, 50));
-            mockMethodPanelSingle.add(addMockPanel);
-
-            mockMethodPanelSingle.setBorder(BorderFactory.createLineBorder(JBColor.BLACK));
-            mockMethodPanelSingle.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, JBColor.BLACK));
-            mockMethodPanel.add(mockMethodPanelSingle);
+        for (String localKey : this.mockValueMap.getDependencyMockMap().keySet()) {
+            mockMethodPanel.add(this.genMockMethodPanelSingle(localKey));
             mockMethodPanel.add(Box.createRigidArea(new Dimension(1, 10)));
         }
 
@@ -342,6 +272,79 @@ public class SaveForm implements OnTestTypeChangeListener {
 
         mainPanel.add(topPanel, BorderLayout.NORTH);
         mainPanel.add(primaryContentPanel, BorderLayout.CENTER);
+    }
+
+    public JPanel genMockMethodPanelSingle(String localKey) {
+        ArrayList<String> localKeyData = this.mockValueMap.getDependencyMockMap().get(localKey);
+        JPanel mockMethodPanelSingle = new JPanel();
+        mockMethodPanelSingle.setLayout(new BoxLayout(mockMethodPanelSingle, BoxLayout.Y_AXIS));
+
+        // define mockMethodNamePanel
+        JPanel mockMethodNamePanel = new JPanel();
+        GridLayout namePanelLayout = new GridLayout(1, 2);
+        mockMethodNamePanel.setLayout(namePanelLayout);
+
+        // define mockMethodNamePanelLeft
+        JLabel mockMethodNamePanelLeft = new JLabel();
+        mockMethodNamePanelLeft.setText(localKey);
+        mockMethodNamePanelLeft.setIcon(UIUtils.MOCK_DATA);
+        mockMethodNamePanelLeft.setBorder(JBUI.Borders.empty(4, 8, 4, 0));
+        mockMethodNamePanel.add(mockMethodNamePanelLeft);
+
+        // define mockMethodNamePanelRight
+        JPanel mockMethodNamePanelRight = new JPanel();
+        mockMethodNamePanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
+        
+        JCheckBox mockButtonMain = new JCheckBox();
+        this.buttonMap.put(mockButtonMain, new ArrayList<JCheckBox>());
+        mockButtonMain.setSelected(
+                this.enabledMockList != null && this.storedCandidate.getMockIds().containsAll(localKeyData));
+        ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
+
+        mockButtonMain.addActionListener(e -> {
+            if (mockButtonMain.isSelected()) {
+                this.stateInvertAllMocks(this.mockValueMap.getDependencyMockMap().get(localKey), true);
+                for (int i = 0; i <= mockButtonMainPart.size() - 1; i++) {
+                    mockButtonMainPart.get(i).setSelected(true);
+                }
+            } else {
+                this.stateInvertAllMocks(this.mockValueMap.getDependencyMockMap().get(localKey), false);
+                for (int i = 0; i <= mockButtonMainPart.size() - 1; i++) {
+                    mockButtonMainPart.get(i).setSelected(false);
+                }
+            }
+        });
+
+        mockMethodNamePanelRight.add(mockButtonMain);
+        JLabel selectAllText = new JLabel();
+        selectAllText.setText("<html><b>Select all</b></html>");
+        mockMethodNamePanelRight.add(selectAllText);
+        mockMethodNamePanel.add(mockMethodNamePanelRight);
+
+        mockMethodNamePanel.setMaximumSize(new Dimension(3999, 30));
+        mockMethodPanelSingle.add(mockMethodNamePanel);
+        
+        for (int i = 0; i <= localKeyData.size() - 1; i++) {
+            mockMethodPanelSingle.add(this.getMockMethodDependencyPanel(mockButtonMain, localKeyData.get(i)));
+        }
+
+        // configure new mock panel
+        JPanel addMockPanel = new JPanel();
+        addMockPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+
+        JButton addMockButton = new JButton();
+        addMockButton.setText("Add Mock");
+        addMockButton.setIcon(UIUtils.MOCK_ADD);
+        addMockButton.setPreferredSize(new Dimension(100, 25));
+        addMockPanel.add(addMockButton);
+        addMockPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.BLACK));
+        addMockPanel.setMaximumSize(new Dimension(3999, 50));
+        mockMethodPanelSingle.add(addMockPanel);
+
+        mockMethodPanelSingle.setBorder(BorderFactory.createLineBorder(JBColor.BLACK));
+        mockMethodPanelSingle.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, JBColor.BLACK));
+
+        return mockMethodPanelSingle;
     }
 
     public JPanel getMockMethodDependencyPanel(JCheckBox mockButtonMain, String mockDataId) {
