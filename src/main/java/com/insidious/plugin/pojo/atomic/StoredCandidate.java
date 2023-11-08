@@ -9,7 +9,6 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.util.TestCandidateUtils;
 
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -93,21 +92,21 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     }
 
 
-    public void setEnabledMockId (InsidiousService insidiousService, HashSet<String> enabledMockDefination) {
+    public void setEnabledMockId(InsidiousService insidiousService, HashSet<String> enabledMockDefination) {
         List<DeclaredMock> allMock = insidiousService.getDeclaredMocksFor(methodUnderTest);
 
-        for (DeclaredMock localMock: allMock) {
+        for (DeclaredMock localMock : allMock) {
             if (enabledMockDefination.contains(localMock.getId())) {
                 this.enabledMockId.add(localMock.getId());
             }
         }
     }
 
-    public ArrayList<DeclaredMock> getEnabledMock (InsidiousService insidiousService) {
+    public ArrayList<DeclaredMock> getEnabledMock(InsidiousService insidiousService) {
         ArrayList<DeclaredMock> enabledMock = new ArrayList<DeclaredMock>();
         List<DeclaredMock> allMock = insidiousService.getDeclaredMocksFor(methodUnderTest);
 
-        for (DeclaredMock localMock: allMock) {
+        for (DeclaredMock localMock : allMock) {
             if (enabledMockId.contains(localMock.getId())) {
                 enabledMock.add(localMock);
             }
