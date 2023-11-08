@@ -88,7 +88,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         return candidate;
     }
 
-    public HashSet<String> getMockId() {
+    public HashSet<String> getMockIds() {
         return mockIds;
     }
 
