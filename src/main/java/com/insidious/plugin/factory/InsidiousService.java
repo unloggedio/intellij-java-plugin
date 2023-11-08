@@ -1034,6 +1034,7 @@ final public class InsidiousService implements
 
         candidateMetadataList.stream()
                 .map(StoredCandidate::new)
+                .peek(e -> e.setMethod(methodUnderTest))
                 .forEach(storedCandidates::add);
 
 //        logger.info("StoredCandidates pre filter for " + method.getName() + " -> " + storedCandidates);
