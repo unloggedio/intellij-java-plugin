@@ -17,6 +17,7 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.TestType;
 import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.MockIntersection;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
@@ -244,16 +245,16 @@ public class SaveForm implements OnTestTypeChangeListener {
 
         for (int i = 0; i <= methodAllDeclaredMock.size() - 1; i++) {
             DeclaredMock localMock = methodAllDeclaredMock.get(i);
-            String localMockId = localMock.getId();
+            String localMockIds = localMock.getId();
             String localMockName = localMock.getName();
             String localMockMethodName = localMock.getMethodName();
-            mockNameIdMap.put(localMockId, localMockName);
+            mockNameIdMap.put(localMockIds, localMockName);
 
             if (dependencyMockMap.containsKey(localMockMethodName)) {
-                dependencyMockMap.get(localMockMethodName).add(localMockId);
+                dependencyMockMap.get(localMockMethodName).add(localMockIds);
             } else {
                 dependencyMockMap.put(localMockMethodName, new ArrayList<String>());
-                dependencyMockMap.get(localMockMethodName).add(localMockId);
+                dependencyMockMap.get(localMockMethodName).add(localMockIds);
             }
         }
 
@@ -457,14 +458,16 @@ public class SaveForm implements OnTestTypeChangeListener {
                     enabledMockUnDeleted.add(localMock.getId());
                 }
             }
-            this.storedCandidate.setMockId(insidiousService, enabledMockUnDeleted);
+
+            enabledMockUnDeleted = MockIntersection.enabledStoredMock(insidiousService, enabledMockUnDeleted);
+            this.storedCandidate.setMockIds(enabledMockUnDeleted);
         } else {
             // integration test
-            this.storedCandidate.setMockId(insidiousService, new HashSet<String>());
+            this.storedCandidate.setMockIds(new HashSet<String>());
         }
 
-        StoredCandidate candidate = StoredCandidate.createCandidateFor(insidiousService, storedCandidate,
-                agentCommandResponse);
+        storedCandidate.setMockIds(MockIntersection.enabledStoredMock(insidiousService, storedCandidate.getMockIds()));
+        StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate, agentCommandResponse);
         candidate.setMetadata(payload.getStoredCandidateMetadata());
         candidate.setName(assertionName);
         candidate.setDescription(assertionDescription);
