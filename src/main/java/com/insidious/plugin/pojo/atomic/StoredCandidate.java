@@ -97,19 +97,6 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         return;
     }
 
-    public ArrayList<DeclaredMock> getEnabledMock (InsidiousService insidiousService) {
-        ArrayList<DeclaredMock> enabledMock = new ArrayList<DeclaredMock>();
-        List<DeclaredMock> allMock = insidiousService.getDeclaredMocksFor(methodUnderTest);
-
-        for (DeclaredMock localMock: allMock) {
-            if (mockIds.contains(localMock.getId())) {
-                enabledMock.add(localMock);
-            }
-        }
-
-        return enabledMock;
-    }
-
     public long getEntryProbeIndex() {
         return entryProbeIndex;
     }
