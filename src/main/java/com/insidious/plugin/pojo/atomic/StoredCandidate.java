@@ -67,7 +67,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         candidate.setLineNumbers(metadata.getLineNumbers());
         candidate.setException(!response.getResponseType().equals(ResponseType.NORMAL));
         candidate.setReturnValue(response.getMethodReturnValue());
-        candidate.setMockId(metadata.getMockId());
+        candidate.setMockIds(metadata.getMockIds());
         //to be updated
         candidate.setProbSerializedValue(metadata.getProbSerializedValue());
         //to be updated
@@ -88,12 +88,12 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         return candidate;
     }
 
-    public HashSet<String> getMockIds() {
+    public HashSet<String> getMockId() {
         return mockIds;
     }
 
-    public void setMockId (HashSet<String> enabledMockDefination) {
-        this.mockId = enabledMockDefination;
+    public void setMockIds (HashSet<String> enabledMockDefination) {
+        this.mockIds = enabledMockDefination;
         return;
     }
 
@@ -285,7 +285,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.setReturnValueClassname(candidate.getReturnValueClassname());
         this.setLineNumbers(candidate.getLineNumbers());
         this.setTestAssertions(candidate.getTestAssertions());
-        this.setMockId(candidate.getMockId());
+        this.setMockIds(candidate.getMockIds());
     }
 
     public AtomicAssertion getTestAssertions() {

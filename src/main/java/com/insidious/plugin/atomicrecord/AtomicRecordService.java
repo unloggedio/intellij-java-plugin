@@ -139,7 +139,7 @@ public class AtomicRecordService {
                                         NotificationType.INFORMATION);
                             }
                             logger.info("[ATRS] Replacing existing record");
-                            candidate.setMockId(MockIntersection.enabledStoredMock(insidiousService, candidate.getMockId()));
+                            candidate.setMockIds(MockIntersection.enabledStoredMock(insidiousService, candidate.getMockIds()));
                             storedCandidate.copyFrom(candidate);
                             break;
                         }

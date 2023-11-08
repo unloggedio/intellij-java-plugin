@@ -245,16 +245,16 @@ public class SaveForm implements OnTestTypeChangeListener {
 
         for (int i = 0; i <= methodAllDeclaredMock.size() - 1; i++) {
             DeclaredMock localMock = methodAllDeclaredMock.get(i);
-            String localMockId = localMock.getId();
+            String localMockIds = localMock.getId();
             String localMockName = localMock.getName();
             String localMockMethodName = localMock.getMethodName();
-            mockNameIdMap.put(localMockId, localMockName);
+            mockNameIdMap.put(localMockIds, localMockName);
 
             if (dependencyMockMap.containsKey(localMockMethodName)) {
-                dependencyMockMap.get(localMockMethodName).add(localMockId);
+                dependencyMockMap.get(localMockMethodName).add(localMockIds);
             } else {
                 dependencyMockMap.put(localMockMethodName, new ArrayList<String>());
-                dependencyMockMap.get(localMockMethodName).add(localMockId);
+                dependencyMockMap.get(localMockMethodName).add(localMockIds);
             }
         }
 
@@ -460,13 +460,13 @@ public class SaveForm implements OnTestTypeChangeListener {
             }
 
             enabledMockUnDeleted = MockIntersection.enabledStoredMock(insidiousService, enabledMockUnDeleted);
-            this.storedCandidate.setMockId(enabledMockUnDeleted);
+            this.storedCandidate.setMockIds(enabledMockUnDeleted);
         } else {
             // integration test
-            this.storedCandidate.setMockId(new HashSet<String>());
+            this.storedCandidate.setMockIds(new HashSet<String>());
         }
 
-        storedCandidate.setMockId(MockIntersection.enabledStoredMock(insidiousService, storedCandidate.getMockId()));
+        storedCandidate.setMockIds(MockIntersection.enabledStoredMock(insidiousService, storedCandidate.getMockIds()));
         StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate, agentCommandResponse);
         candidate.setMetadata(payload.getStoredCandidateMetadata());
         candidate.setName(assertionName);
