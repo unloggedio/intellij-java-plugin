@@ -24,7 +24,7 @@ public class UsageInsightTracker {
             "artpar",
             "Amogh",
             "testerfresher",
-            "aaaakt"
+            "short-kt"
     );
     private final long sessionId = new Date().getTime();
     private final AtomicInteger eventId = new AtomicInteger();
