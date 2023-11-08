@@ -69,7 +69,7 @@ public class SaveForm implements OnTestTypeChangeListener {
                 processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(),
                         agentCommandResponse.getMethodReturnValue()));
         this.agentCommandResponse = agentCommandResponse;
-        this.enabledMockList = this.storedCandidate.getMockId();
+        this.enabledMockList = this.storedCandidate.getMockIds();
 
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
@@ -284,7 +284,7 @@ public class SaveForm implements OnTestTypeChangeListener {
             JCheckBox mockButtonMain = new JCheckBox();
             this.buttonMap.put(mockButtonMain, new ArrayList<JCheckBox>());
             mockButtonMain.setSelected(
-                    this.enabledMockList != null && this.storedCandidate.getMockId().containsAll(localKeyData));
+                    this.enabledMockList != null && this.storedCandidate.getMockIds().containsAll(localKeyData));
             ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
             mockButtonMain.addActionListener(e -> {
                 if (mockButtonMain.isSelected()) {
@@ -332,7 +332,7 @@ public class SaveForm implements OnTestTypeChangeListener {
                 mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
                 JCheckBox mockButton = new JCheckBox();
                 mockButton.setSelected(
-                        this.enabledMockList != null && this.storedCandidate.getMockId().contains(mockDataId));
+                        this.enabledMockList != null && this.storedCandidate.getMockIds().contains(mockDataId));
                 mockButton.addActionListener(e -> {
                     if (mockButton.isSelected()) {
                         this.stateInvertSingleMock(mockDataId, true);

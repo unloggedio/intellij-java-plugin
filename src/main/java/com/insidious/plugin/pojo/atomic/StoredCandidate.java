@@ -34,7 +34,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     private long sessionIdentifier;
     private byte[] probSerializedValue;
     private MethodUnderTest methodUnderTest;
-    private HashSet<String> mockId = new HashSet<String>();
+    private HashSet<String> mockIds = new HashSet<String>();
 
     private StoredCandidate() {
     }
@@ -67,7 +67,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         candidate.setLineNumbers(metadata.getLineNumbers());
         candidate.setException(!response.getResponseType().equals(ResponseType.NORMAL));
         candidate.setReturnValue(response.getMethodReturnValue());
-        candidate.setMockId(insidiousService, metadata.getMockId());
+        candidate.setMockId(insidiousService, metadata.getMockIds());
         //to be updated
         candidate.setProbSerializedValue(metadata.getProbSerializedValue());
         //to be updated
@@ -88,8 +88,8 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         return candidate;
     }
 
-    public HashSet<String> getMockId() {
-        return mockId;
+    public HashSet<String> getMockIds() {
+        return mockIds;
     }
 
 
@@ -98,7 +98,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
 
         for (DeclaredMock localMock: allMock) {
             if (enabledMockDefination.contains(localMock.getId())) {
-                this.mockId.add(localMock.getId());
+                this.mockIds.add(localMock.getId());
             }
         }
     }
@@ -108,7 +108,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         List<DeclaredMock> allMock = insidiousService.getDeclaredMocksFor(methodUnderTest);
 
         for (DeclaredMock localMock: allMock) {
-            if (mockId.contains(localMock.getId())) {
+            if (mockIds.contains(localMock.getId())) {
                 enabledMock.add(localMock);
             }
         }
@@ -291,7 +291,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.setReturnValueClassname(candidate.getReturnValueClassname());
         this.setLineNumbers(candidate.getLineNumbers());
         this.setTestAssertions(candidate.getTestAssertions());
-        this.setMockId(insidiousService, candidate.getMockId());
+        this.setMockId(insidiousService, candidate.getMockIds());
     }
 
     public AtomicAssertion getTestAssertions() {
