@@ -17,6 +17,7 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.TestType;
 import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.MockIntersection;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
@@ -457,14 +458,16 @@ public class SaveForm implements OnTestTypeChangeListener {
                     enabledMockUnDeleted.add(localMock.getId());
                 }
             }
-            this.storedCandidate.setMockId(insidiousService, enabledMockUnDeleted);
+
+            enabledMockUnDeleted = MockIntersection.enabledStoredMock(insidiousService, enabledMockUnDeleted);
+            this.storedCandidate.setMockId(enabledMockUnDeleted);
         } else {
             // integration test
-            this.storedCandidate.setMockId(insidiousService, new HashSet<String>());
+            this.storedCandidate.setMockId(new HashSet<String>());
         }
 
-        StoredCandidate candidate = StoredCandidate.createCandidateFor(insidiousService, storedCandidate,
-                agentCommandResponse);
+        storedCandidate.setMockId(MockIntersection.enabledStoredMock(insidiousService, storedCandidate.getMockId()));
+        StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate, agentCommandResponse);
         candidate.setMetadata(payload.getStoredCandidateMetadata());
         candidate.setName(assertionName);
         candidate.setDescription(assertionDescription);

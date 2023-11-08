@@ -11,6 +11,7 @@ import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.MockIntersection;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
@@ -138,7 +139,8 @@ public class AtomicRecordService {
                                         NotificationType.INFORMATION);
                             }
                             logger.info("[ATRS] Replacing existing record");
-                            storedCandidate.copyFrom(insidiousService, candidate);
+                            candidate.setMockId(MockIntersection.enabledStoredMock(insidiousService, candidate.getMockId()));
+                            storedCandidate.copyFrom(candidate);
                             break;
                         }
                     }
