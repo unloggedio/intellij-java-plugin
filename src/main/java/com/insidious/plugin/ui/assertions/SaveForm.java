@@ -49,7 +49,7 @@ public class SaveForm implements OnTestTypeChangeListener {
     private final SaveFormMetadataPanel metadataForm;
     private final JPanel mainPanel;
     private final JTabbedPane bottomTabPanel;
-    private Set<String> enabledMockList;
+    private HashSet<String> enabledMockList;
     private JsonNode responseNode;
     private JButton saveButton;
     // private JButton cancelButton;
@@ -69,7 +69,7 @@ public class SaveForm implements OnTestTypeChangeListener {
                 processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(),
                         agentCommandResponse.getMethodReturnValue()));
         this.agentCommandResponse = agentCommandResponse;
-        this.enabledMockList = this.storedCandidate.getMockIds();
+        this.enabledMockList = this.storedCandidate.getMockId();
 
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
@@ -265,7 +265,6 @@ public class SaveForm implements OnTestTypeChangeListener {
             ArrayList<String> localKeyData = dependencyMockMap.get(localKey);
             JPanel mockMethodPanelSingle = new JPanel();
             mockMethodPanelSingle.setLayout(new BoxLayout(mockMethodPanelSingle, BoxLayout.Y_AXIS));
-            int mockMethodPanelSingleHeight = 0;
 
             // define mockMethodNamePanel
             JPanel mockMethodNamePanel = new JPanel();
@@ -285,7 +284,7 @@ public class SaveForm implements OnTestTypeChangeListener {
             JCheckBox mockButtonMain = new JCheckBox();
             this.buttonMap.put(mockButtonMain, new ArrayList<JCheckBox>());
             mockButtonMain.setSelected(
-                    this.enabledMockList != null && this.storedCandidate.getMockIds().containsAll(localKeyData));
+                    this.enabledMockList != null && this.storedCandidate.getMockId().containsAll(localKeyData));
             ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
             mockButtonMain.addActionListener(e -> {
                 if (mockButtonMain.isSelected()) {
@@ -307,7 +306,6 @@ public class SaveForm implements OnTestTypeChangeListener {
             mockMethodNamePanel.add(mockMethodNamePanelRight);
 
             mockMethodNamePanel.setMaximumSize(new Dimension(3999, 30));
-            mockMethodPanelSingleHeight += 30;
             mockMethodPanelSingle.add(mockMethodNamePanel);
 
             for (int i = 0; i <= localKeyData.size() - 1; i++) {
@@ -334,7 +332,7 @@ public class SaveForm implements OnTestTypeChangeListener {
                 mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
                 JCheckBox mockButton = new JCheckBox();
                 mockButton.setSelected(
-                        this.enabledMockList != null && this.storedCandidate.getMockIds().contains(mockDataId));
+                        this.enabledMockList != null && this.storedCandidate.getMockId().contains(mockDataId));
                 mockButton.addActionListener(e -> {
                     if (mockButton.isSelected()) {
                         this.stateInvertSingleMock(mockDataId, true);
@@ -348,14 +346,24 @@ public class SaveForm implements OnTestTypeChangeListener {
 
                 mockMethodDependencyPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.BLACK));
                 mockMethodDependencyPanel.setMaximumSize(new Dimension(3999, 50));
-                mockMethodPanelSingleHeight += 60;
                 mockMethodPanelSingle.add(mockMethodDependencyPanel);
             }
 
+            // configure new mock panel
+            JPanel addMockPanel = new JPanel();
+            addMockPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+
+            JButton addMockButton = new JButton();
+            addMockButton.setText("Add Mock");
+            addMockButton.setIcon(UIUtils.MOCK_ADD);
+            addMockButton.setPreferredSize(new Dimension(100, 25));
+            addMockPanel.add(addMockButton);
+
+            addMockPanel.setMaximumSize(new Dimension(3999, 50));
+            mockMethodPanelSingle.add(addMockPanel);
+
             mockMethodPanelSingle.setBorder(BorderFactory.createLineBorder(JBColor.BLACK));
             mockMethodPanelSingle.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, JBColor.BLACK));
-
-            mockMethodPanelSingleHeight += 20;
             mockMethodPanel.add(mockMethodPanelSingle);
             mockMethodPanel.add(Box.createRigidArea(new Dimension(1, 10)));
         }
@@ -449,10 +457,10 @@ public class SaveForm implements OnTestTypeChangeListener {
                     enabledMockUnDeleted.add(localMock.getId());
                 }
             }
-            this.storedCandidate.setEnabledMockId(insidiousService, enabledMockUnDeleted);
+            this.storedCandidate.setMockId(insidiousService, enabledMockUnDeleted);
         } else {
             // integration test
-            this.storedCandidate.setEnabledMockId(insidiousService, new HashSet<String>());
+            this.storedCandidate.setMockId(insidiousService, new HashSet<String>());
         }
 
         StoredCandidate candidate = StoredCandidate.createCandidateFor(insidiousService, storedCandidate,

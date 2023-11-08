@@ -85,6 +85,7 @@ public class UIUtils {
     public static Icon MOCK_DATA = IconLoader.getIcon("/icons/svg/mock_data.svg", UIUtils.class);
     public static Icon DIFF_GUTTER = IconLoader.getIcon("/icons/svg/diff_gutter.svg", UIUtils.class);
     public static Icon NO_DIFF_GUTTER = IconLoader.getIcon("/icons/svg/no_diff_gutter.svg", UIUtils.class);
+    public static Icon MOCK_ADD = IconLoader.getIcon("/icons/svg/mock_add.svg", UIUtils.class);
 
     public static Icon NO_AGENT_GUTTER = IconLoader.getIcon("/icons/svg/no_agent_gutter.svg", UIUtils.class);
     public static Icon EXECUTE_COMPONENT = IconLoader.getIcon("/icons/svg/execute_component.svg", UIUtils.class);
