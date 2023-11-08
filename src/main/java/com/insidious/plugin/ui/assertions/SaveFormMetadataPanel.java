@@ -106,7 +106,7 @@ public class SaveFormMetadataPanel {
 
         return new MetadataViewPayload(
                 nameText.getText(),
-                descriptionText.getText(), TestType.INTEGRATION, metadata
+                descriptionText.getText(), (TestType)this.testTypeComboBox.getSelectedItem(), metadata
         );
     }
 

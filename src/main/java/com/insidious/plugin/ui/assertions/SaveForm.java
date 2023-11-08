@@ -133,7 +133,7 @@ public class SaveForm implements OnTestTypeChangeListener {
 
             }
         }, true);
-        
+
         JPanel ruleEditor = this.ruleEditor.getMainPanel();
         // define topPanel
         JPanel topPanel = new JPanel();
