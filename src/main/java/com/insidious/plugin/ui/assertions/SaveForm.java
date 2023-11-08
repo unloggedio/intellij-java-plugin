@@ -234,34 +234,16 @@ public class SaveForm implements OnTestTypeChangeListener {
         mockDataPanelContent.add(applyMockPanel);
 
         this.insidiousService = this.listener.getProject().getService(InsidiousService.class);
-        AtomicRecordService atomicRecordService = this.insidiousService.getAtomicRecordService();
 
-        MethodAdapter tempMethodAdapter = this.insidiousService.getCurrentMethod();
-        MethodUnderTest tempMethodUnderTest = MethodUnderTest.fromMethodAdapter(tempMethodAdapter);
-
-        List<DeclaredMock> methodAllDeclaredMock = atomicRecordService.getDeclaredMocksFor(tempMethodUnderTest);
-        HashMap<String, ArrayList<String>> dependencyMockMap = new HashMap<String, ArrayList<String>>();
-        HashMap<String, String> mockNameIdMap = new HashMap<String, String>();
-
-        for (int i = 0; i <= methodAllDeclaredMock.size() - 1; i++) {
-            DeclaredMock localMock = methodAllDeclaredMock.get(i);
-            String localMockIds = localMock.getId();
-            String localMockName = localMock.getName();
-            String localMockMethodName = localMock.getMethodName();
-            mockNameIdMap.put(localMockIds, localMockName);
-
-            if (dependencyMockMap.containsKey(localMockMethodName)) {
-                dependencyMockMap.get(localMockMethodName).add(localMockIds);
-            } else {
-                dependencyMockMap.put(localMockMethodName, new ArrayList<String>());
-                dependencyMockMap.get(localMockMethodName).add(localMockIds);
-            }
-        }
+        MockValueMap mockValueMap = new MockValueMap(insidiousService);
+        HashMap<String, ArrayList<String>> dependencyMockMap = mockValueMap.getDependencyMockMap();
+        HashMap<String, String> mockNameIdMap = mockValueMap.getMockNameIdMap();
 
         // define mockMethodPanel
         JPanel mockMethodPanel = new JPanel();
         mockMethodPanel.setLayout(new BoxLayout(mockMethodPanel, BoxLayout.Y_AXIS));
 
+        // TODO: refactor this
         for (String localKey : dependencyMockMap.keySet()) {
             ArrayList<String> localKeyData = dependencyMockMap.get(localKey);
             JPanel mockMethodPanelSingle = new JPanel();
@@ -308,7 +290,8 @@ public class SaveForm implements OnTestTypeChangeListener {
 
             mockMethodNamePanel.setMaximumSize(new Dimension(3999, 30));
             mockMethodPanelSingle.add(mockMethodNamePanel);
-
+            
+            // TODO: refactor this
             for (int i = 0; i <= localKeyData.size() - 1; i++) {
                 String mockDataId = localKeyData.get(i);
                 // define mockMethodDependencyPanel
@@ -360,6 +343,7 @@ public class SaveForm implements OnTestTypeChangeListener {
             addMockButton.setPreferredSize(new Dimension(100, 25));
             addMockPanel.add(addMockButton);
 
+            addMockPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.BLACK));
             addMockPanel.setMaximumSize(new Dimension(3999, 50));
             mockMethodPanelSingle.add(addMockPanel);
 
