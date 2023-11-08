@@ -265,7 +265,6 @@ public class SaveForm implements OnTestTypeChangeListener {
             ArrayList<String> localKeyData = dependencyMockMap.get(localKey);
             JPanel mockMethodPanelSingle = new JPanel();
             mockMethodPanelSingle.setLayout(new BoxLayout(mockMethodPanelSingle, BoxLayout.Y_AXIS));
-            int mockMethodPanelSingleHeight = 0;
 
             // define mockMethodNamePanel
             JPanel mockMethodNamePanel = new JPanel();
@@ -307,7 +306,6 @@ public class SaveForm implements OnTestTypeChangeListener {
             mockMethodNamePanel.add(mockMethodNamePanelRight);
 
             mockMethodNamePanel.setMaximumSize(new Dimension(3999, 30));
-            mockMethodPanelSingleHeight += 30;
             mockMethodPanelSingle.add(mockMethodNamePanel);
 
             for (int i = 0; i <= localKeyData.size() - 1; i++) {
@@ -348,14 +346,24 @@ public class SaveForm implements OnTestTypeChangeListener {
 
                 mockMethodDependencyPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.BLACK));
                 mockMethodDependencyPanel.setMaximumSize(new Dimension(3999, 50));
-                mockMethodPanelSingleHeight += 60;
                 mockMethodPanelSingle.add(mockMethodDependencyPanel);
             }
 
+            // configure new mock panel
+            JPanel addMockPanel = new JPanel();
+            addMockPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+
+            JButton addMockButton = new JButton();
+            addMockButton.setText("Add Mock");
+            addMockButton.setIcon(UIUtils.MOCK_ADD);
+            addMockButton.setPreferredSize(new Dimension(100, 25));
+            addMockPanel.add(addMockButton);
+
+            addMockPanel.setMaximumSize(new Dimension(3999, 50));
+            mockMethodPanelSingle.add(addMockPanel);
+
             mockMethodPanelSingle.setBorder(BorderFactory.createLineBorder(JBColor.BLACK));
             mockMethodPanelSingle.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, JBColor.BLACK));
-
-            mockMethodPanelSingleHeight += 20;
             mockMethodPanel.add(mockMethodPanelSingle);
             mockMethodPanel.add(Box.createRigidArea(new Dimension(1, 10)));
         }
