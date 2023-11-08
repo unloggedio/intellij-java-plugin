@@ -117,7 +117,7 @@ final public class InsidiousService implements
     private final Map<String, Integer> methodHash = new TreeMap<>();
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
     final private AgentStateProvider agentStateProvider;
-//    private final ReportingService reportingService = new ReportingService(this);
+    //    private final ReportingService reportingService = new ReportingService(this);
     private final Map<String, String> candidateIndividualContextMap = new TreeMap<>();
     private final ActiveSessionManager sessionManager;
     private final JUnitTestCaseWriter junitTestCaseWriter;
@@ -193,10 +193,6 @@ final public class InsidiousService implements
         });
     }
 
-    public MethodAdapter getCurrentMethod() {
-        return this.currentMethod;
-    }
-
     //    @Unlogged
     public static void main(String[] args) {
 
@@ -204,6 +200,10 @@ final public class InsidiousService implements
 
     private static String getClassMethodHashKey(AgentCommandRequest agentCommandRequest) {
         return agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
+    }
+
+    public MethodAdapter getCurrentMethod() {
+        return this.currentMethod;
     }
 
     private synchronized void start() {
@@ -638,14 +638,12 @@ final public class InsidiousService implements
                     .collect(Collectors.toList());
 
             agentCommandRequest.setDeclaredMocks(activeMocks);
-        }
-        else {
+        } else {
             List<DeclaredMock> enabledMock = agentCommandRequest.getDeclaredMocks();
             ArrayList<DeclaredMock> setMock = new ArrayList<>();
 
-            for (DeclaredMock localMock: enabledMock) {
-                if (availableMocks.contains(localMock))
-                {
+            for (DeclaredMock localMock : enabledMock) {
+                if (availableMocks.contains(localMock)) {
                     setMock.add(localMock);
                 }
             }
@@ -1036,6 +1034,7 @@ final public class InsidiousService implements
 
         candidateMetadataList.stream()
                 .map(StoredCandidate::new)
+                .peek(e -> e.setMethod(methodUnderTest))
                 .forEach(storedCandidates::add);
 
 //        logger.info("StoredCandidates pre filter for " + method.getName() + " -> " + storedCandidates);
@@ -1260,7 +1259,9 @@ final public class InsidiousService implements
     }
 
     public void clearAtomicBoard() {
-        atomicTestContainerWindow.clearBoardOnMethodExecutor();
+        if (atomicTestContainerWindow != null) {
+            atomicTestContainerWindow.clearBoardOnMethodExecutor();
+        }
     }
 
 //    public void triggerAtomicTestsWindowRefresh() {

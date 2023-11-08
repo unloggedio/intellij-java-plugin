@@ -34,7 +34,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     private long sessionIdentifier;
     private byte[] probSerializedValue;
     private MethodUnderTest methodUnderTest;
-    private HashSet<String> mockId = new HashSet<String>();
+    private HashSet<String> mockIds = new HashSet<String>();
 
     private StoredCandidate() {
     }
@@ -88,8 +88,8 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         return candidate;
     }
 
-    public HashSet<String> getMockId() {
-        return mockId;
+    public HashSet<String> getMockIds() {
+        return mockIds;
     }
 
     public void setMockId (HashSet<String> enabledMockDefination) {
@@ -102,7 +102,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         List<DeclaredMock> allMock = insidiousService.getDeclaredMocksFor(methodUnderTest);
 
         for (DeclaredMock localMock: allMock) {
-            if (mockId.contains(localMock.getId())) {
+            if (mockIds.contains(localMock.getId())) {
                 enabledMock.add(localMock);
             }
         }
