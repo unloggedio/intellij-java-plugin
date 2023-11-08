@@ -58,6 +58,7 @@ public class SaveForm implements OnTestTypeChangeListener {
     private InsidiousService insidiousService;
     //AgentCommandResponse is necessary for update flow and Assertions as well
     private HashMap<JCheckBox, ArrayList<JCheckBox>> buttonMap = new HashMap<JCheckBox, ArrayList<JCheckBox>>();
+    private MockValueMap mockValueMap;
 
     public SaveForm(
             StoredCandidate storedCandidate,
@@ -132,12 +133,8 @@ public class SaveForm implements OnTestTypeChangeListener {
 
             }
         }, true);
-
-        int panelWidth = 492;
-        int lowerPanelWidth = panelWidth * 2; // lowerPanelWidth -> doublePanelWidth
-        int lowerPanelHeight = 296;
+        
         JPanel ruleEditor = this.ruleEditor.getMainPanel();
-
         // define topPanel
         JPanel topPanel = new JPanel();
         GridLayout topPanelLayout = new GridLayout(1, 2);
@@ -235,9 +232,8 @@ public class SaveForm implements OnTestTypeChangeListener {
 
         this.insidiousService = this.listener.getProject().getService(InsidiousService.class);
 
-        MockValueMap mockValueMap = new MockValueMap(insidiousService);
-        HashMap<String, ArrayList<String>> dependencyMockMap = mockValueMap.getDependencyMockMap();
-        HashMap<String, String> mockNameIdMap = mockValueMap.getMockNameIdMap();
+        this.mockValueMap = new MockValueMap(insidiousService);
+        HashMap<String, ArrayList<String>> dependencyMockMap = this.mockValueMap.getDependencyMockMap();
 
         // define mockMethodPanel
         JPanel mockMethodPanel = new JPanel();
@@ -291,45 +287,8 @@ public class SaveForm implements OnTestTypeChangeListener {
             mockMethodNamePanel.setMaximumSize(new Dimension(3999, 30));
             mockMethodPanelSingle.add(mockMethodNamePanel);
             
-            // TODO: refactor this
             for (int i = 0; i <= localKeyData.size() - 1; i++) {
-                String mockDataId = localKeyData.get(i);
-                // define mockMethodDependencyPanel
-                JPanel mockMethodDependencyPanel = new JPanel();
-                GridLayout dependencyGrid = new GridLayout(1, 2);
-                dependencyGrid.setHgap(8);
-                dependencyGrid.setVgap(4);
-                mockMethodDependencyPanel.setLayout(dependencyGrid);
-
-                // define mockMethodDependencyPanelLeft
-                JPanel mockMethodDependencyPanelLeft = new JPanel();
-
-                JLabel leftText = new JLabel();
-                leftText.setText(mockNameIdMap.get(mockDataId));
-
-                mockMethodDependencyPanelLeft.setLayout(new FlowLayout(FlowLayout.LEFT));
-                mockMethodDependencyPanelLeft.add(leftText);
-                mockMethodDependencyPanel.add(mockMethodDependencyPanelLeft);
-
-                // define mockMethodDependencyPanelRight
-                JPanel mockMethodDependencyPanelRight = new JPanel();
-                mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
-                JCheckBox mockButton = new JCheckBox();
-                mockButton.setSelected(
-                        this.enabledMockList != null && this.storedCandidate.getMockIds().contains(mockDataId));
-                mockButton.addActionListener(e -> {
-                    if (mockButton.isSelected()) {
-                        this.stateInvertSingleMock(mockDataId, true);
-                    } else {
-                        this.stateInvertSingleMock(mockDataId, false);
-                    }
-                });
-                mockMethodDependencyPanelRight.add(mockButton);
-                this.buttonMap.get(mockButtonMain).add(mockButton);
-                mockMethodDependencyPanel.add(mockMethodDependencyPanelRight);
-
-                mockMethodDependencyPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.BLACK));
-                mockMethodDependencyPanel.setMaximumSize(new Dimension(3999, 50));
+                JPanel mockMethodDependencyPanel = this.getMockMethodDependencyPanel(mockButtonMain, localKeyData.get(i));
                 mockMethodPanelSingle.add(mockMethodDependencyPanel);
             }
 
@@ -383,6 +342,48 @@ public class SaveForm implements OnTestTypeChangeListener {
 
         mainPanel.add(topPanel, BorderLayout.NORTH);
         mainPanel.add(primaryContentPanel, BorderLayout.CENTER);
+    }
+
+    public JPanel getMockMethodDependencyPanel(JCheckBox mockButtonMain, String mockDataId) {
+
+        // define mockMethodDependencyPanel
+        JPanel mockMethodDependencyPanel = new JPanel();
+        GridLayout dependencyGrid = new GridLayout(1, 2);
+        dependencyGrid.setHgap(8);
+        dependencyGrid.setVgap(4);
+        mockMethodDependencyPanel.setLayout(dependencyGrid);
+        
+        // define mockMethodDependencyPanelLeft
+        JPanel mockMethodDependencyPanelLeft = new JPanel();
+        
+        JLabel leftText = new JLabel();
+        leftText.setText(this.mockValueMap.getMockNameIdMap().get(mockDataId));
+        
+        mockMethodDependencyPanelLeft.setLayout(new FlowLayout(FlowLayout.LEFT));
+        mockMethodDependencyPanelLeft.add(leftText);
+        mockMethodDependencyPanel.add(mockMethodDependencyPanelLeft);
+        
+        // define mockMethodDependencyPanelRight
+        JPanel mockMethodDependencyPanelRight = new JPanel();
+        mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
+        JCheckBox mockButton = new JCheckBox();
+        mockButton.setSelected(
+                this.enabledMockList != null && this.storedCandidate.getMockIds().contains(mockDataId));
+        mockButton.addActionListener(e -> {
+            if (mockButton.isSelected()) {
+                this.stateInvertSingleMock(mockDataId, true);
+            } else {
+                this.stateInvertSingleMock(mockDataId, false);
+            }
+        });
+        mockMethodDependencyPanelRight.add(mockButton);
+        this.buttonMap.get(mockButtonMain).add(mockButton);
+        mockMethodDependencyPanel.add(mockMethodDependencyPanelRight);
+        
+        mockMethodDependencyPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.BLACK));
+        mockMethodDependencyPanel.setMaximumSize(new Dimension(3999, 50));
+
+        return mockMethodDependencyPanel;
     }
 
     private void stateInvertAllMocks(List<String> allDeclaredMocks, boolean state) {
