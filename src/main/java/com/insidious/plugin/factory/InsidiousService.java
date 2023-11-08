@@ -1260,7 +1260,9 @@ final public class InsidiousService implements
     }
 
     public void clearAtomicBoard() {
-        atomicTestContainerWindow.clearBoardOnMethodExecutor();
+        if (atomicTestContainerWindow != null) {
+            atomicTestContainerWindow.clearBoardOnMethodExecutor();
+        }
     }
 
 //    public void triggerAtomicTestsWindowRefresh() {
