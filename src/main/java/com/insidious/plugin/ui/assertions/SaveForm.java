@@ -49,7 +49,7 @@ public class SaveForm implements OnTestTypeChangeListener {
     private final SaveFormMetadataPanel metadataForm;
     private final JPanel mainPanel;
     private final JTabbedPane bottomTabPanel;
-    private HashSet<String> enabledMockList;
+    private Set<String> enabledMockList;
     private JsonNode responseNode;
     private JButton saveButton;
     // private JButton cancelButton;
@@ -69,7 +69,7 @@ public class SaveForm implements OnTestTypeChangeListener {
                 processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(),
                         agentCommandResponse.getMethodReturnValue()));
         this.agentCommandResponse = agentCommandResponse;
-        this.enabledMockList = this.storedCandidate.getEnabledMockId();
+        this.enabledMockList = this.storedCandidate.getMockIds();
 
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
@@ -285,7 +285,7 @@ public class SaveForm implements OnTestTypeChangeListener {
             JCheckBox mockButtonMain = new JCheckBox();
             this.buttonMap.put(mockButtonMain, new ArrayList<JCheckBox>());
             mockButtonMain.setSelected(
-                    this.enabledMockList != null && this.storedCandidate.getEnabledMockId().containsAll(localKeyData));
+                    this.enabledMockList != null && this.storedCandidate.getMockIds().containsAll(localKeyData));
             ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
             mockButtonMain.addActionListener(e -> {
                 if (mockButtonMain.isSelected()) {
@@ -334,7 +334,7 @@ public class SaveForm implements OnTestTypeChangeListener {
                 mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
                 JCheckBox mockButton = new JCheckBox();
                 mockButton.setSelected(
-                        this.enabledMockList != null && this.storedCandidate.getEnabledMockId().contains(mockDataId));
+                        this.enabledMockList != null && this.storedCandidate.getMockIds().contains(mockDataId));
                 mockButton.addActionListener(e -> {
                     if (mockButton.isSelected()) {
                         this.stateInvertSingleMock(mockDataId, true);
