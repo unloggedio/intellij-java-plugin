@@ -4,15 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.assertions.*;
-import com.insidious.plugin.atomicrecord.AtomicRecordService;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.mocking.DeclaredMock;
-import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.TestType;
 import com.insidious.plugin.util.JsonTreeUtils;
@@ -21,6 +18,8 @@ import com.insidious.plugin.util.MockIntersection;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiStatement;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
@@ -192,14 +191,12 @@ public class SaveForm implements OnTestTypeChangeListener {
         candidateExplorerTree.setSize(new Dimension(400, CandidateExplorerTreeHeight));
         JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
         treePanel.add(treeParent, BorderLayout.CENTER);
-//        treePanel.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 0, JBColor.BLACK));
 
         // define the metadataPanel
         metadataForm = new SaveFormMetadataPanel(new MetadataViewPayload(storedCandidate.getName(),
                 storedCandidate.getDescription(), TestType.UNIT, storedCandidate.getMetadata()), this);
 
         JPanel metadataFormPanel = metadataForm.getMainPanel();
-//        metadataFormPanel.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, JBColor.BLACK));
 
         midPanel.add(metadataFormPanel);
         midPanel.add(treePanel);
@@ -346,7 +343,7 @@ public class SaveForm implements OnTestTypeChangeListener {
 
         return mockMethodPanelSingle;
     }
-
+    
     public JPanel getMockMethodDependencyPanel(JCheckBox mockButtonMain, String mockDataId) {
 
         // define mockMethodDependencyPanel
@@ -469,17 +466,6 @@ public class SaveForm implements OnTestTypeChangeListener {
             return "";
         } else {
             return source.trim();
-        }
-    }
-
-    private String formatLocation(String location) {
-        if (location.length() <= 59) {
-            return location;
-        } else {
-            String left = location.substring(0, 47);
-            left = left.substring(0, left.lastIndexOf("/") + 1);
-            left += ".../unlogged/";
-            return left;
         }
     }
 
