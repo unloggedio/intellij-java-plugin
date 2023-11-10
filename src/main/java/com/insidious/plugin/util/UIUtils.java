@@ -140,7 +140,7 @@ public class UIUtils {
     public static Icon GENERATE_ICON = IconLoader.getIcon("/icons/png/generate_icon.png", UIUtils.class);
     public static Icon DOWNLOAD_WHITE = IconLoader.getIcon("/icons/png/download_white.png", UIUtils.class);
     public static Icon NO_AGENT_HEADER = IconLoader.getIcon("/icons/png/no_agent_header.png", UIUtils.class);
-    public static Icon GHOST_MOCK = IconLoader.getIcon("/icons/png/ghost-mock.png", UIUtils.class);
+    public static Icon GHOST_MOCK = IconLoader.getIcon("/icons/svg/mock_ghost_icon_v2.svg", UIUtils.class);
     public static Icon PROCESS_RUNNING_HEADER = IconLoader.getIcon("/icons/png/process_running_header.png",
             UIUtils.class);
     public static Icon DATA_AVAILABLE_HEADER = IconLoader.getIcon("/icons/png/data_available_header.png",
