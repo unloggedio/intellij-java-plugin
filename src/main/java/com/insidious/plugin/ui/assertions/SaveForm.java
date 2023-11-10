@@ -18,8 +18,6 @@ import com.insidious.plugin.util.MockIntersection;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiStatement;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
@@ -291,11 +289,11 @@ public class SaveForm implements OnTestTypeChangeListener {
         // define mockMethodNamePanelRight
         JPanel mockMethodNamePanelRight = new JPanel();
         mockMethodNamePanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
-        
+
         JCheckBox mockButtonMain = new JCheckBox();
         this.buttonMap.put(mockButtonMain, new ArrayList<JCheckBox>());
         mockButtonMain.setSelected(
-                this.enabledMockList != null && this.storedCandidate.getMockIds().containsAll(localKeyData));
+                this.enabledMockList != null && localKeyData.size() != 0 && this.storedCandidate.getMockIds().containsAll(localKeyData));
         ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
 
         mockButtonMain.addActionListener(e -> {
@@ -320,7 +318,7 @@ public class SaveForm implements OnTestTypeChangeListener {
 
         mockMethodNamePanel.setMaximumSize(new Dimension(3999, 30));
         mockMethodPanelSingle.add(mockMethodNamePanel);
-        
+
         for (int i = 0; i <= localKeyData.size() - 1; i++) {
             mockMethodPanelSingle.add(this.getMockMethodDependencyPanel(mockButtonMain, localKeyData.get(i)));
         }
@@ -352,17 +350,17 @@ public class SaveForm implements OnTestTypeChangeListener {
         dependencyGrid.setHgap(8);
         dependencyGrid.setVgap(4);
         mockMethodDependencyPanel.setLayout(dependencyGrid);
-        
+
         // define mockMethodDependencyPanelLeft
         JPanel mockMethodDependencyPanelLeft = new JPanel();
-        
+
         JLabel leftText = new JLabel();
         leftText.setText(this.mockValueMap.getMockNameIdMap().get(mockDataId));
-        
+
         mockMethodDependencyPanelLeft.setLayout(new FlowLayout(FlowLayout.LEFT));
         mockMethodDependencyPanelLeft.add(leftText);
         mockMethodDependencyPanel.add(mockMethodDependencyPanelLeft);
-        
+
         // define mockMethodDependencyPanelRight
         JPanel mockMethodDependencyPanelRight = new JPanel();
         mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
@@ -379,7 +377,7 @@ public class SaveForm implements OnTestTypeChangeListener {
         mockMethodDependencyPanelRight.add(mockButton);
         this.buttonMap.get(mockButtonMain).add(mockButton);
         mockMethodDependencyPanel.add(mockMethodDependencyPanelRight);
-        
+
         mockMethodDependencyPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.BLACK));
         mockMethodDependencyPanel.setMaximumSize(new Dimension(3999, 50));
 
