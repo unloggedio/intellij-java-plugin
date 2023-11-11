@@ -23,6 +23,7 @@ public class MockValueMap {
 
     private HashMap<String, ArrayList<String>> dependencyMockMap = new HashMap<String, ArrayList<String>> ();
     private HashMap<String, String> mockNameIdMap = new HashMap<String, String>();
+    private HashMap<String, PsiMethodCallExpression> referenceToPsiMethodCallExpression = new HashMap<String, PsiMethodCallExpression>();
 
     public HashMap<String, ArrayList<String>> getDependencyMockMap(){
         return this.dependencyMockMap;
@@ -30,6 +31,10 @@ public class MockValueMap {
 
     public HashMap<String, String> getMockNameIdMap(){
         return this.mockNameIdMap;
+    }
+
+    public HashMap<String, PsiMethodCallExpression> getReferenceToPsiMethodCallExpression() {
+        return this.referenceToPsiMethodCallExpression;
     }
 
     public MockValueMap(InsidiousService insidiousService) {
@@ -49,6 +54,9 @@ public class MockValueMap {
 
         for (PsiMethodCallExpression local: mockableCallExpressions) {
             String localMockMethodName = local.getMethodExpression().getReferenceName();
+            if (!referenceToPsiMethodCallExpression.containsKey(localMockMethodName)) {
+                referenceToPsiMethodCallExpression.put(localMockMethodName, local);
+            }
             if (!dependencyMockMap.containsKey(localMockMethodName)) {
                 dependencyMockMap.put(localMockMethodName, new ArrayList<String>());
             }

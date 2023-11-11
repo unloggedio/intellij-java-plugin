@@ -195,7 +195,7 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
         }
     }
 
-    private void showMockEditor(DeclaredMock declaredMock) {
+    public void showMockEditor(DeclaredMock declaredMock) {
         JBPopup editorPopup = null;
 
         MockDefinitionEditor mockDefinitionEditor;

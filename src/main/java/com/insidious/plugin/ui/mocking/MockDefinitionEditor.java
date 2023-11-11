@@ -154,7 +154,7 @@ public class MockDefinitionEditor {
             // this is an assignment and we can probably get a better return type from the variable type which
             // this is being assigned to
             returnType = ((PsiLocalVariableImpl) methodCallExpression.getParent()).getType();
-        }else if (methodCallExpression.getParent() instanceof PsiAssignmentExpressionImpl
+        } else if (methodCallExpression.getParent() instanceof PsiAssignmentExpressionImpl
                 && methodCallExpression.getParent().getParent() instanceof PsiExpressionStatement) {
             // this is an assignment and we can probably get a better return type from the variable type which
             // this is being assigned to
