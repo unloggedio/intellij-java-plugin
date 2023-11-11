@@ -79,7 +79,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
                 processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(),
                         agentCommandResponse.getMethodReturnValue()));
         this.agentCommandResponse = agentCommandResponse;
-        this.enabledMockList = this.storedCandidate.getMockIds();
+        this.enabledMockList = new HashSet<>(this.storedCandidate.getMockIds());
 
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
@@ -309,8 +309,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
 
         JCheckBox mockButtonMain = new JCheckBox();
         this.buttonMap.put(mockButtonMain, new ArrayList<JCheckBox>());
-        mockButtonMain.setSelected(
-                this.enabledMockList != null && localKeyData.size() != 0 && this.storedCandidate.getMockIds().containsAll(localKeyData));
+        mockButtonMain.setSelected(!localKeyData.isEmpty() && this.storedCandidate.getMockIds().containsAll(localKeyData));
         ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
 
         mockButtonMain.addActionListener(e -> {
@@ -424,8 +423,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         JPanel mockMethodDependencyPanelRight = new JPanel();
         mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
         JCheckBox mockButton = new JCheckBox();
-        mockButton.setSelected(
-                this.enabledMockList != null && this.storedCandidate.getMockIds().contains(mockDataId));
+        mockButton.setSelected(this.storedCandidate.getMockIds().contains(mockDataId));
         mockButton.addActionListener(e -> {
             if (mockButton.isSelected()) {
                 this.stateInvertSingleMock(mockDataId, true);
@@ -508,7 +506,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
             this.storedCandidate.setMockIds(new HashSet<String>());
         }
 
-        storedCandidate.setMockIds(MockIntersection.enabledStoredMock(insidiousService, storedCandidate.getMockIds()));
+        this.enabledMockList.clear();
         StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate, agentCommandResponse);
         candidate.setMetadata(payload.getStoredCandidateMetadata());
         candidate.setName(assertionName);
@@ -555,12 +553,12 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
     public void onTestTypeChange(TestType updatedTestType) {
         if (Objects.equals(updatedTestType, TestType.UNIT)) {
             bottomTabPanel.setEnabledAt(1, true);
-            enabledMockList.clear();
         } else if (updatedTestType == TestType.INTEGRATION) {
             bottomTabPanel.setEnabledAt(1, false);
             bottomTabPanel.setSelectedIndex(0);
         }
 
+        enabledMockList.clear();
     }
 
     @Override

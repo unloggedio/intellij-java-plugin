@@ -92,9 +92,8 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         return mockIds;
     }
 
-    public void setMockIds (HashSet<String> enabledMockDefination) {
-        this.mockIds = enabledMockDefination;
-        return;
+    public void setMockIds (HashSet<String> enabledMockDefinition) {
+        this.mockIds = enabledMockDefinition;
     }
 
     public long getEntryProbeIndex() {
