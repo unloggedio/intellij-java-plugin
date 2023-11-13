@@ -562,8 +562,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
     }
 
     @Override
-    public void onSaveDeclaredMock(DeclaredMock declaredMock) {
-        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(this.insidiousService.getCurrentMethod());
+    public void onSaveDeclaredMock(DeclaredMock declaredMock, MethodUnderTest methodUnderTest) {
         insidiousService.saveMockDefinition(declaredMock, methodUnderTest);
 
         this.mockPanel.removeAll();

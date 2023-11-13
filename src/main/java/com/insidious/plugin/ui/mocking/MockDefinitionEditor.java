@@ -124,7 +124,7 @@ public class MockDefinitionEditor {
                 methodUnderTest.getName(), parameterList, thenParameterList
         );
         updateUiValues();
-        addListeners();
+        addListeners(methodUnderTest);
     }
 
     public MockDefinitionEditor(
@@ -140,7 +140,7 @@ public class MockDefinitionEditor {
         callExpressionLabel.setText(declaredMock.getSourceClassName() + "." + declaredMock.getMethodName() + "()");
 
         updateUiValues();
-        addListeners();
+        addListeners(methodUnderTest);
     }
 
     @Nullable
@@ -191,7 +191,7 @@ public class MockDefinitionEditor {
         return returnType;
     }
 
-    private void addListeners() {
+    private void addListeners(MethodUnderTest methodUnderTest) {
         chainAnotherReturnButton.setVisible(false);
         chainAnotherReturnButton.addActionListener(e -> {
             ThenParameter newThenParameter = createDummyThenParameter();
@@ -213,7 +213,7 @@ public class MockDefinitionEditor {
         });
 
         saveButton.addActionListener(e -> {
-            onSaveListener.onSaveDeclaredMock(declaredMock);
+            onSaveListener.onSaveDeclaredMock(declaredMock, methodUnderTest);
             editorPopup.cancel();
         });
     }
