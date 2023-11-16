@@ -13,12 +13,14 @@ import com.intellij.util.containers.ContainerUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MockMethodLineHighlighter implements LineMarkerProvider {
 
     private static final Logger logger = LoggerUtil.getInstance(MockMethodLineHighlighter.class);
     private static final Pattern testFileNamePattern = Pattern.compile("^Test.*V.java$");
+    private static final Pattern testPreviewFilePattern = Pattern.compile("^.*_Unlogged_Preview.java$");
     private final MethodMockGutterNavigationHandler methodMockGutterNavigationHandler;
 
     public MockMethodLineHighlighter() {
@@ -69,10 +71,12 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
 
         final Set<PsiStatement> statements = new HashSet<>();
 
-
         for (PsiElement element : elements) {
             ProgressManager.checkCanceled();
-
+            Matcher previewFileMatcher = testPreviewFilePattern.matcher(element.getContainingFile().getName());
+            if (previewFileMatcher.matches()) {
+                continue;
+            }
             if (element instanceof PsiMethodCallExpression) {
                 final PsiMethodCallExpression methodCall = (PsiMethodCallExpression) element;
                 final PsiStatement statement = PsiTreeUtil.getParentOfType(methodCall, PsiStatement.class, true,
