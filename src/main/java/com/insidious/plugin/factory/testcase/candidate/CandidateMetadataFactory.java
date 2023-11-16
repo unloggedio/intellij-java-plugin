@@ -1,7 +1,9 @@
 package com.insidious.plugin.factory.testcase.candidate;
 
+import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.assertions.TestAssertion;
 import com.insidious.plugin.client.ParameterNameFactory;
+import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
@@ -10,6 +12,7 @@ import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 
@@ -119,7 +122,8 @@ public class CandidateMetadataFactory {
                 objectRoutineScript.addComment("");
 
                 if (callsOnSubject.size() > 1) {
-                    objectRoutineScript.addComment(firstCallExpression.getMethodName()  + " is called " + callsOnSubject.size() + " times");
+                    objectRoutineScript.addComment(
+                            firstCallExpression.getMethodName() + " is called " + callsOnSubject.size() + " times");
                 }
                 for (MethodCallExpression methodCallExpression : callsOnSubject) {
                     Parameter newReturnValue = methodCallExpression.getReturnValue();
@@ -272,6 +276,104 @@ public class CandidateMetadataFactory {
 
             if (mainMethod.isMethodPublic() && mainMethod.getReturnValue() != null) {
                 mainMethod.writeTo(objectRoutineScript, testConfiguration, testGenerationState);
+            } else {
+                objectRoutineScript.addComment("Testing private methods in not a recommended practice");
+                objectRoutineScript.addComment("Cannot invoke private method directly, but we can use reflection");
+                MethodCallExpression reflectedMethod = new MethodCallExpression();
+
+                List<Object> argsList = new ArrayList<>();
+                StringBuilder statement = new StringBuilder("$T $L = $T.forName($T.class).getMethod($S");
+                argsList.add(ClassTypeUtils.createTypeFromNameString("java.lang.reflect.Method"));
+                argsList.add("methodInstance");
+                argsList.add(ClassTypeUtils.createTypeFromNameString("java.lang.Class"));
+                argsList.add(ClassTypeUtils.createTypeFromNameString(mainMethod.getSubject().getType()));
+                argsList.add(mainMethod.getMethodName());
+//                Class.forName("").getMethod()
+                List<Parameter> arguments = new ArrayList<>();
+                reflectedMethod.setArguments(arguments);
+                List<DataEventWithSessionId> probesList = new ArrayList<>();
+                reflectedMethod.setArgumentProbes(probesList);
+                for (Parameter argument : mainMethod.getArguments()) {
+                    if (argument.isPrimitiveType()) {
+                        statement.append(", ").append(argument.getType()).append(".class");
+                    } else {
+                        statement.append(", ").append("$T.class");
+                        argsList.add(ClassTypeUtils.createTypeFromNameString(argument.getType()));
+                        Parameter typeParameter = new Parameter();
+                        DataEventWithSessionId eventWithSessionId = new DataEventWithSessionId(0);
+                        DataInfo probeInfo = new DataInfo();
+                        typeParameter.setProbeAndProbeInfo(eventWithSessionId, probeInfo);
+                        typeParameter.setValue(argument.getType());
+                        arguments.add(typeParameter);
+                        probesList.add(eventWithSessionId);
+                    }
+                }
+                statement.append(")");
+
+
+                objectRoutineScript.addStatement(statement.toString(), argsList);
+
+
+                Parameter returnParameter = mainMethod.getReturnValue();
+                testGenerationState.generateParameterName(returnParameter, mainMethod.getMethodName());
+                mainMethod.generateParameterName(returnParameter, objectRoutineScript);
+
+                if (mainMethod.getArguments() != null) {
+                    for (Parameter parameter : mainMethod.getArguments()) {
+                        if (parameter.isPrimitiveType() || parameter.getValue() == 0) {
+                            // we don't need boolean values in a variable, always use boolean values directly
+                            continue;
+                        }
+
+                        if (mainMethod.getMethodName().equals("<init>")
+                                && objectRoutineScript.getCreatedVariables()
+                                .getParameterByValue(parameter.getValue()) != null
+                                && parameter.getProb().getSerializedValue().length == 0
+                        ) {
+                            // this is already been initialized
+                            continue;
+                        }
+
+                        parameter = mainMethod.generateParameterName(parameter, objectRoutineScript);
+
+                        PendingStatement.in(objectRoutineScript, testGenerationState)
+                                .assignVariable(parameter)
+                                .fromRecordedValue(testConfiguration)
+                                .endStatement();
+                    }
+                }
+
+
+                List<Object> argsList2 = new ArrayList<>();
+                StringBuilder methodExecuteBuilder = new StringBuilder("$T $L = $L.invoke($L");
+
+                argsList2.add(ClassTypeUtils.createTypeFromNameString(returnParameter.getType()));
+                argsList2.add(returnParameter.getName());
+
+
+                argsList2.add("methodInstance");
+                Parameter subject = mainMethod.getSubject();
+                Parameter subjectName = mainMethod.generateParameterName(subject, objectRoutineScript);
+
+                argsList2.add(subject.getName());
+//                Class.forName("").getMethod()
+                for (Parameter argument : mainMethod.getArguments()) {
+                    if (argument.isPrimitiveType()) {
+                        methodExecuteBuilder.append(", ").append(argument.getValue());
+                    } else if (argument.getName() != null) {
+                        methodExecuteBuilder.append(", ").append(argument.getName());
+                    } else if (argument.getStringValue() != null) {
+                        methodExecuteBuilder.append(", ").append("$S");
+                        Parameter stringValue = new Parameter();
+                        argsList2.add(argument.getValue());
+                        stringValue.setValue(argument.getValue());
+                        arguments.add(stringValue);
+                    }
+                }
+                methodExecuteBuilder.append(")");
+                objectRoutineScript.addStatement(methodExecuteBuilder.toString(), argsList2);
+
+
             }
 
             for (TestAssertion testAssertion : testCandidateMetadata.getAssertionList()) {

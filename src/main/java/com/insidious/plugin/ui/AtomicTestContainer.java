@@ -150,7 +150,6 @@ public class AtomicTestContainer {
 //            insidiousService.focusAtomicTestsWindow();
         } else {
             //runs for process_running
-            insidiousService.focusDirectInvokeTab();
             loadComponentForState(currentState);
         }
         long end = new Date().getTime();
