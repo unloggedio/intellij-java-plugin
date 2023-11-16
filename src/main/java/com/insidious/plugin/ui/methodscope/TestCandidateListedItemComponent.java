@@ -6,6 +6,7 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.pojo.ReplayAllExecutionContext;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.util.*;
@@ -68,7 +69,6 @@ public class TestCandidateListedItemComponent {
             }
         }
 
-
         mainPanel.revalidate();
 
         loadInputTree();
@@ -81,8 +81,10 @@ public class TestCandidateListedItemComponent {
                     eventProperties.put("methodName", storedCandidate.getMethod().getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
                     statusLabel.setText("Executing");
+                    ReplayAllExecutionContext context = new ReplayAllExecutionContext("individual",
+                            false);
                     candidateLifeListener.executeCandidate(
-                            Collections.singletonList(candidateMetadata), psiClass, "individual",
+                            Collections.singletonList(candidateMetadata), psiClass, context,
                             (candidateMetadata, agentCommandResponse, diffResult) -> {
                                 insidiousService.updateMethodHashForExecutedMethod(method);
                                 candidateLifeListener.onCandidateSelected(candidateMetadata);
@@ -92,6 +94,7 @@ public class TestCandidateListedItemComponent {
                 });
             }
         });
+        generateJunitLabel.setEnabled(getCanGenerateUnitCase());
         generateJunitLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -314,5 +317,16 @@ public class TestCandidateListedItemComponent {
 
     public void setStatus(String statusText) {
         statusLabel.setText(statusText);
+    }
+
+    public void refreshJunitButtonStatus() {
+        //only needed if not available
+        if (!this.generateJunitLabel.isEnabled()) {
+            generateJunitLabel.setEnabled(getCanGenerateUnitCase());
+        }
+    }
+
+    private boolean getCanGenerateUnitCase() {
+        return candidateLifeListener.canGenerateUnitCase(candidateMetadata);
     }
 }

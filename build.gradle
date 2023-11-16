@@ -15,7 +15,7 @@ def getGitHash = { ->
 
 
 group 'org.videobug'
-version '1.18.12-' + getGitHash()
+version '1.18.14-' + getGitHash()
 
 
 compileJava {

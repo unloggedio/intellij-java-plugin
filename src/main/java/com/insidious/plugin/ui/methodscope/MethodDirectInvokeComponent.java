@@ -117,20 +117,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
         createJUnitBoilerplateButton.setIcon(UIUtils.TEST_TUBE_FILL);
         createJUnitBoilerplateButton.addActionListener(
                 e -> {
-                    TestCaseGenerationConfiguration generationConfiguration = insidiousService.generateMethodBoilerplate(
-                            methodElement);
-                    if (generationConfiguration == null) {
-                        InsidiousNotification.notifyMessage("Failed to create boilerplate test case",
-                                NotificationType.ERROR);
-                        return;
-                    }
-                    insidiousService.previewTestCase(methodElement, generationConfiguration);
-                    InsidiousNotification.notifyMessage(
-                            "Created JUnit test boilerplate. \nRecord with unlogged-sdk to create full JUnit " +
-                                    "test case.", NotificationType.INFORMATION
-                    );
+                    insidiousService.showDesignerLiteForm(methodElement, null, true);
                 });
-
 
         candidateCountLinkLabel.addMouseListener(new MouseAdapter() {
             @Override

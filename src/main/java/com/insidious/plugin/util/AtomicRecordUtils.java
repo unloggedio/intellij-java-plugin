@@ -10,9 +10,6 @@ public class AtomicRecordUtils {
 
 
     public static FilteredCandidateResponseList filterStoredCandidates(List<StoredCandidate> candidates) {
-//        Map<Long, StoredCandidate> selectedCandidates = new TreeMap<>();
-//        Map<String, StoredCandidate> candidatesByArguments = new HashMap<>();
-
         List<StoredCandidate> savedCandidates = candidates.stream()
                 .filter(e -> e.getCandidateId() != null)
                 .collect(Collectors.toList());
@@ -25,17 +22,15 @@ public class AtomicRecordUtils {
                 .collect(Collectors.toList());
 
         Map<String, List<StoredCandidate>> savedCandidatesByArgumentsMap = savedCandidates.stream()
-                .collect(Collectors.groupingBy(e -> StringUtils.join(e.getMethodArguments(), ",")));
-
+                .collect(Collectors.groupingBy(StoredCandidate::calculateCandidateHash));
 
         Map<String, List<StoredCandidate>> unsavedCandidatesByArguments = unsavedCandidates.stream()
-                .collect(Collectors.groupingBy(e -> StringUtils.join(e.getMethodArguments(), ",")));
-
-//        Map<String, Boolean> lineNumbersUpdates = new HashMap<>();
+                .collect(Collectors.groupingBy(StoredCandidate::calculateCandidateHash));
 
         for (String commaSeparatedArguments : unsavedCandidatesByArguments.keySet()) {
             if (!savedCandidatesByArgumentsMap.containsKey(commaSeparatedArguments)) {
-                finalCandidateList.addAll(unsavedCandidatesByArguments.get(commaSeparatedArguments));
+                //use only the saved ones
+                finalCandidateList.add(unsavedCandidatesByArguments.get(commaSeparatedArguments).get(0));
             } else {
                 StoredCandidate oneUnsavedCandidate = unsavedCandidatesByArguments.get(commaSeparatedArguments).get(0);
                 Set<Integer> newLineNumberSet = unsavedCandidatesByArguments
