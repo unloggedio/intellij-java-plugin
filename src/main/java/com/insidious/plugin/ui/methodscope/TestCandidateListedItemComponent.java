@@ -326,6 +326,10 @@ public class TestCandidateListedItemComponent {
         }
     }
 
+    public void setJunitButtonEnableState(boolean state) {
+        generateJunitLabel.setEnabled(state);
+    }
+
     private boolean getCanGenerateUnitCase() {
         return candidateLifeListener.canGenerateUnitCase(candidateMetadata);
     }

@@ -281,8 +281,12 @@ public class MethodExecutorComponent implements CandidateLifeListener {
     }
 
     private void updateJunitButtonStatuses() {
-        candidateComponentMap.values().forEach(
-                TestCandidateListedItemComponent::refreshJunitButtonStatus);
+        try {
+            candidateComponentMap.values().forEach(
+                    TestCandidateListedItemComponent::refreshJunitButtonStatus);
+        } catch (Exception e) {
+            logger.info("Exception updating enable status of Junit buttons for candidates " + e);
+        }
     }
 
     public void refreshAndReloadCandidates(final MethodAdapter methodAdapter, List<StoredCandidate> candidates) {
