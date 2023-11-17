@@ -108,7 +108,6 @@ public class TestCandidateListedItemComponent {
                 agentCommandResponse.setResponseClassName(candidateMetadata.getReturnValueClassname());
                 agentCommandResponse.setMethodReturnValue(candidateMetadata.getReturnValue());
                 agentCommandResponse.setResponseType(ResponseType.NORMAL);
-
                 candidateLifeListener.onSaveRequest(candidateMetadata, agentCommandResponse);
             }
         });

@@ -26,10 +26,9 @@ public class DiffUtils {
             AgentCommandResponse<String> agentCommandResponse
     ) {
         AtomicAssertion testAssertions = testCandidateMetadata.getTestAssertions();
-        String returnValueAsString = String.valueOf(agentCommandResponse.getMethodReturnValue());
+        String returnValueAsString = processResponseForFloatAndDoubleTypes(
+                agentCommandResponse.getResponseClassName(), String.valueOf(agentCommandResponse.getMethodReturnValue()));
         String responseClassname = agentCommandResponse.getResponseClassName();
-
-        returnValueAsString = processResponseForFloatAndDoubleTypes(responseClassname, returnValueAsString);
         if (responseClassname != null
                 && responseClassname.equals("java.lang.String")
                 && !returnValueAsString.startsWith("\"") && !returnValueAsString.endsWith("\"")

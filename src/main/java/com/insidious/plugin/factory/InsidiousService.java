@@ -379,6 +379,9 @@ final public class InsidiousService implements
 
     private synchronized void initiateUI() throws IOException, FontFormatException {
         logger.info("initiate ui");
+        if (atomicTestContainerWindow != null) {
+            return;
+        }
         ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
         if (this.toolWindow == null) {
             UsageInsightTracker.getInstance().RecordEvent("ToolWindowNull", new JSONObject());
@@ -408,6 +411,9 @@ final public class InsidiousService implements
     }
 
     public void addAllTabs() throws IOException, FontFormatException {
+        if (atomicTestContainerWindow != null) {
+            return;
+        }
         ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
         ContentManager contentManager = this.toolWindow.getContentManager();
 
@@ -674,8 +680,6 @@ final public class InsidiousService implements
     ) {
 
         methodArgumentValueCache.addArgumentSet(agentCommandRequest);
-
-
         agentCommandRequest.setRequestAuthentication(getRequestAuthentication());
 
         MethodUnderTest methodUnderTest = new MethodUnderTest(
@@ -701,12 +705,10 @@ final public class InsidiousService implements
                     setMock.add(localMock);
                 }
             }
-
             agentCommandRequest.setDeclaredMocks(setMock);
         }
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-
             try {
                 AgentCommandResponse<String> agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
                 logger.warn("agent command response - " + agentCommandResponse);
@@ -737,7 +739,6 @@ final public class InsidiousService implements
         if (springUserDetailsClass == null) {
             return requestAuthentication;
         }
-
 
 
         ImplementationSearcher implementationSearcher = new ImplementationSearcher();
