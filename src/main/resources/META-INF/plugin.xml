@@ -148,6 +148,7 @@
                     factoryClass="com.insidious.plugin.factory.DebuggerFactory"/>
 
         <applicationService serviceImplementation="com.insidious.plugin.factory.ActiveSessionManager"/>
+        <applicationService serviceImplementation="com.insidious.plugin.factory.SessionLoader"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
         <applicationService serviceImplementation="com.insidious.plugin.factory.ApplicationConfigurationState"/>
