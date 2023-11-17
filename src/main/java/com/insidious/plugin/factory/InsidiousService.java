@@ -779,15 +779,16 @@ final public class InsidiousService implements
         PsiClass springUserDetailsClass = JavaPsiFacade.getInstance(project)
                 .findClass("org.springframework.security.core.userdetails.UserDetails",
                         GlobalSearchScope.projectScope(project));
-        if (springUserDetailsClass == null) {
-            return requestAuthentication;
-        }
-
         requestAuthentication.setAuthenticated(true);
         requestAuthentication.setAuthorities(List.of(new SimpleAuthority("ROLE_ADMIN")));
         requestAuthentication.setCredential("password");
         requestAuthentication.setDetails("details");
         requestAuthentication.setName("user name");
+
+        if (springUserDetailsClass == null) {
+            return requestAuthentication;
+        }
+
 
 
         ImplementationSearcher implementationSearcher = new ImplementationSearcher();
