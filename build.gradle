@@ -15,7 +15,7 @@ def getGitHash = { ->
 
 
 group 'org.videobug'
-version '1.18.8-' + getGitHash()
+version '1.18.12-' + getGitHash()
 
 
 compileJava {
@@ -149,60 +149,52 @@ patchPluginXml {
 
 
 
-    <h4>Introducing Mocking</h4>
+    <h4>Unlogged.io Empowering Developer Efficiency and Testing Precision</h4>
 
-    <p>We're introducing the powerful capability of "mocking while replaying."</p>
+    <p>Greetings Java Developers! We're thrilled to announce the latest Unlogged.io release, 
+    packed with powerful features designed to supercharge your development workflow and testing capabilities.
+    Let's dive into the exciting updates:</p>
     
-    <h5> Why Mocking While Replaying Matters</h5>
+    <h5>Dynamic Mocks for Comprehensive Testing</h5>
     
-    <p>In today's dynamic software landscape, it's not always feasible to rely on external APIs, downstream services, or 
-    databases to be constantly available. That's where mocking comes in. With Unlogged.io's latest release, you can now 
-    seamlessly define mocking behavior using recorded data.</p>
+    <p>Unleash the potential of your testing scenarios with dynamic mocks! Now, developers can effortlessly 
+    create mocks for APIs, database calls, file operations, and downstream services. Tailor your mocks to 
+    simulate real-world situations and enhance the precision of your testing.</p>
     
-    <h5> Mocking As you develop</h5>
+    <h5>Swift Workflow with Saved Mocks</h5>
     
-    <p>What sets this release apart is the ability to define mocks as you write code, eliminating the precursor of 
-    recording. This empowers developers to create realistic mock scenarios effortlessly.</p>
+    <p>Time is of the essence, and we understand that. With Unlogged.io's latest release, 
+    save your meticulously crafted mocks for future use. Experience an accelerated workflow 
+    as you reuse saved mocks, ensuring consistency and efficiency in your development process.</p>
     
-    <h5>Bug Fix: Session Corrupt Issue Resolved</h5>
+    <h5>Permanent Mocking for External Testing</h5>
     
-    <p>We understand the frustration that Session Corrupt issues has caused for developers. We have been trying to fix 
-    this for over 3 months. We got some success and were able to resolve this issue in release 1.18.2. If, by any chance, you encounter this problem, please reach out to us on our Discord channel for prompt assistance.</p>
+    <p>Extend your testing capabilities beyond Unlogged.io. Our new release enables permanent mocking, 
+    allowing developers to seamlessly test their code with external tools like Postman or Swagger. Enjoy 
+    the flexibility of choice without compromising on the precision of your tests.</p>
     
-    <h5>Try It Out and Share Your Feedback</h5>
+    <h5>CI Integration for Automated Replays</h5>
     
-    <p>We invite you to give Unlogged.io version 1.18.2 a spin and experience the benefits of mocking while replaying for
-     yourself. </p>
+    <p>Effortlessly integrate Unlogged.io into your CI/CD pipeline with our CI runner, a seamless part of 
+    the Unlogged SDK. Associate your replays with mock definitions by utilizing the unlogged plugin. Your CI 
+    process becomes a breeze as the runner picks up files, ensuring thorough testing with every build.</p>
     
-    <p>You can now record and replay with assertions, mocking, and coverage statistics. </p>
-    <p>Your feedback is invaluable to us as we continue to improve our platform.</p>
+    <h5>Enhanced Association with Unlogged Plugin</h5>
+    
+    <p>Take control of your replays and mock definitions with the Unlogged plugin. Easily create associations 
+    between your replays and mock definitions, providing a unified and organized testing environment for your 
+    projects.</p>
+    
+    <p>Upgrade to Unlogged.io's latest release today and revolutionize your development and testing experience. 
+    Stay ahead of the curve, boost efficiency, and ensure the robustness of your code.</p>
     <br />
-    <p>Happy coding with Unlogged.io!</p>
+    <p>Happy coding!</p>
 
 
 
-    <h4>1.17.2</h4>
-    <p>We're thrilled to unveil Unlogged's latest release, packed with three incredible features designed to elevate your development experience:</p>
-
-    <ol>
-        <li>
-            <strong>Custom Assertions</strong>: Say goodbye to sifting through irrelevant data in your Java method replays! With our new custom assertions feature, you have the power to add personalized assertions around replays. No more wrestling with ever-changing fields like timestamps. Now, you can focus on comparing the essential key-values in your return objects.
-        </li>
-        <li>
-            <strong>Code Coverage</strong>: We understand the importance of code quality and technical debt management. That's why our new release introduces real-time code coverage. Witness which lines of your code are being traversed and identify those that aren't, all in real time. A dedicated "Code Coverage" tab lets you visualize this crucial information, helping you make informed decisions about your codebase.
-        </li>
-        <li>
-            <strong>Unit Test Generation</strong>: Your demands are our commands! Responding to popular requests, we've enabled the ability to generate unit tests. Now, you can leverage recorded data to automatically generate unit tests, saving you valuable time and effort in test creation.
-        </li>
-    </ol>
-
-    <p>But that's not all! We've also squashed a few bugs and spruced up our user interface to enhance your overall Unlogged experience. Your feedback is invaluable to us, so give these new features a spin and let us know how they're transforming your development journey.</p>
-
-    <p>Here at Unlogged, we're committed to empowering Java developers like you with tools that make a real difference. Dive into the latest release and take your development game to the next level. Your feedback fuels our innovation!</p>
-
+    <h4>Version: 1.18.12</h4>
     <p><strong>#Unlogged #JavaDevelopers #CodingExcellence #DeveloperTools #Innovation #CodeCoverage #UnitTesting</strong></p>    
-    
-      """
+    """
 }
 
 publishPlugin {

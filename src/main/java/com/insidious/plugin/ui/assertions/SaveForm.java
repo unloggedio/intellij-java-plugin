@@ -4,10 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.assertions.*;
-import com.insidious.plugin.atomicrecord.AtomicRecordService;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -15,12 +14,18 @@ import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.TestType;
+import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
+import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.MockIntersection;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.popup.*;
+import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
@@ -34,12 +39,13 @@ import javax.swing.event.ChangeListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import java.awt.*;
+import java.awt.event.*;
 import java.util.List;
 import java.util.*;
 
 import static com.insidious.plugin.util.ParameterUtils.processResponseForFloatAndDoubleTypes;
 
-public class SaveForm implements OnTestTypeChangeListener {
+public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
 
     private static final Logger logger = LoggerUtil.getInstance(SaveForm.class);
     private final static ObjectMapper objectMapper = new ObjectMapper();
@@ -50,6 +56,7 @@ public class SaveForm implements OnTestTypeChangeListener {
     private final SaveFormMetadataPanel metadataForm;
     private final JPanel mainPanel;
     private final JTabbedPane bottomTabPanel;
+    private JPanel mockPanel;
     private HashSet<String> enabledMockList;
     private JsonNode responseNode;
     private JButton saveButton;
@@ -59,6 +66,7 @@ public class SaveForm implements OnTestTypeChangeListener {
     //AgentCommandResponse is necessary for update flow and Assertions as well
     private HashMap<JCheckBox, ArrayList<JCheckBox>> buttonMap = new HashMap<JCheckBox, ArrayList<JCheckBox>>();
     private MockValueMap mockValueMap;
+    private SaveForm self = this;
 
     public SaveForm(
             StoredCandidate storedCandidate,
@@ -71,7 +79,7 @@ public class SaveForm implements OnTestTypeChangeListener {
                 processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(),
                         agentCommandResponse.getMethodReturnValue()));
         this.agentCommandResponse = agentCommandResponse;
-        this.enabledMockList = this.storedCandidate.getMockIds();
+        this.enabledMockList = new HashSet<>(this.storedCandidate.getMockIds());
 
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
@@ -192,14 +200,12 @@ public class SaveForm implements OnTestTypeChangeListener {
         candidateExplorerTree.setSize(new Dimension(400, CandidateExplorerTreeHeight));
         JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
         treePanel.add(treeParent, BorderLayout.CENTER);
-//        treePanel.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 0, JBColor.BLACK));
 
         // define the metadataPanel
         metadataForm = new SaveFormMetadataPanel(new MetadataViewPayload(storedCandidate.getName(),
                 storedCandidate.getDescription(), TestType.UNIT, storedCandidate.getMetadata()), this);
 
         JPanel metadataFormPanel = metadataForm.getMainPanel();
-//        metadataFormPanel.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, JBColor.BLACK));
 
         midPanel.add(metadataFormPanel);
         midPanel.add(treePanel);
@@ -213,7 +219,38 @@ public class SaveForm implements OnTestTypeChangeListener {
         assertionPanel.add(assertionScrollPanel);
 
         // mock panel
-        JPanel mockPanel = new JPanel();
+        this.mockPanel = new JPanel();
+        addDataMockPanel();
+
+        // define lowerPanel
+        bottomTabPanel = new JBTabbedPane();
+        bottomTabPanel.addTab("Assertion", assertionPanel);
+        bottomTabPanel.addTab("Mock Data", this.mockPanel);
+
+        bottomTabPanel.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                JSONObject panelChanged = new JSONObject();
+                panelChanged.put("tabIndex", bottomTabPanel.getSelectedIndex());
+                UsageInsightTracker.getInstance().RecordEvent("MOCK_LINKING_TAB_TYPE", panelChanged);
+            }
+        });
+        JPanel primaryContentPanel = new JPanel();
+        BoxLayout boxLayout = new BoxLayout(primaryContentPanel, BoxLayout.Y_AXIS);
+        primaryContentPanel.setLayout(boxLayout);
+
+        midPanel.setPreferredSize(new Dimension(-1, 320));
+        bottomTabPanel.setPreferredSize(new Dimension(-1, 360));
+
+        primaryContentPanel.add(midPanel);
+        primaryContentPanel.add(bottomTabPanel);
+
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+        mainPanel.add(primaryContentPanel, BorderLayout.CENTER);
+    }
+
+    private void addDataMockPanel() {
+
         GridLayout mockPanelLayout = new GridLayout(1, 1);
         mockPanel.setLayout(mockPanelLayout);
 
@@ -246,36 +283,11 @@ public class SaveForm implements OnTestTypeChangeListener {
         JScrollPane mockScrollPanel = new JBScrollPane(mockDataPanelContent);
         mockScrollPanel.setBorder(BorderFactory.createEmptyBorder());
         mockPanel.add(mockScrollPanel);
-
-        // define lowerPanel
-        bottomTabPanel = new JBTabbedPane();
-        bottomTabPanel.addTab("Assertion", assertionPanel);
-        bottomTabPanel.addTab("Mock Data", mockPanel);
-
-        bottomTabPanel.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                JSONObject panelChanged = new JSONObject();
-                panelChanged.put("tabIndex", bottomTabPanel.getSelectedIndex());
-                UsageInsightTracker.getInstance().RecordEvent("MOCK_LINKING_TAB_TYPE", panelChanged);
-            }
-        });
-        JPanel primaryContentPanel = new JPanel();
-        BoxLayout boxLayout = new BoxLayout(primaryContentPanel, BoxLayout.Y_AXIS);
-        primaryContentPanel.setLayout(boxLayout);
-
-        midPanel.setPreferredSize(new Dimension(-1, 320));
-        bottomTabPanel.setPreferredSize(new Dimension(-1, 360));
-
-        primaryContentPanel.add(midPanel);
-        primaryContentPanel.add(bottomTabPanel);
-
-        mainPanel.add(topPanel, BorderLayout.NORTH);
-        mainPanel.add(primaryContentPanel, BorderLayout.CENTER);
     }
 
     public JPanel genMockMethodPanelSingle(String localKey) {
         ArrayList<String> localKeyData = this.mockValueMap.getDependencyMockMap().get(localKey);
+        PsiMethodCallExpression psiMethodCallExpression = this.mockValueMap.getReferenceToPsiMethodCallExpression().get(localKey);
         JPanel mockMethodPanelSingle = new JPanel();
         mockMethodPanelSingle.setLayout(new BoxLayout(mockMethodPanelSingle, BoxLayout.Y_AXIS));
 
@@ -294,11 +306,10 @@ public class SaveForm implements OnTestTypeChangeListener {
         // define mockMethodNamePanelRight
         JPanel mockMethodNamePanelRight = new JPanel();
         mockMethodNamePanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
-        
+
         JCheckBox mockButtonMain = new JCheckBox();
         this.buttonMap.put(mockButtonMain, new ArrayList<JCheckBox>());
-        mockButtonMain.setSelected(
-                this.enabledMockList != null && this.storedCandidate.getMockIds().containsAll(localKeyData));
+        mockButtonMain.setSelected(!localKeyData.isEmpty() && this.storedCandidate.getMockIds().containsAll(localKeyData));
         ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
 
         mockButtonMain.addActionListener(e -> {
@@ -323,7 +334,7 @@ public class SaveForm implements OnTestTypeChangeListener {
 
         mockMethodNamePanel.setMaximumSize(new Dimension(3999, 30));
         mockMethodPanelSingle.add(mockMethodNamePanel);
-        
+
         for (int i = 0; i <= localKeyData.size() - 1; i++) {
             mockMethodPanelSingle.add(this.getMockMethodDependencyPanel(mockButtonMain, localKeyData.get(i)));
         }
@@ -331,12 +342,9 @@ public class SaveForm implements OnTestTypeChangeListener {
         // configure new mock panel
         JPanel addMockPanel = new JPanel();
         addMockPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-
-        JButton addMockButton = new JButton();
-        addMockButton.setText("Add Mock");
-        addMockButton.setIcon(UIUtils.MOCK_ADD);
-        addMockButton.setPreferredSize(new Dimension(100, 25));
+        JButton addMockButton = getAddMockButton(psiMethodCallExpression);
         addMockPanel.add(addMockButton);
+
         addMockPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.BLACK));
         addMockPanel.setMaximumSize(new Dimension(3999, 50));
         mockMethodPanelSingle.add(addMockPanel);
@@ -347,6 +355,51 @@ public class SaveForm implements OnTestTypeChangeListener {
         return mockMethodPanelSingle;
     }
 
+    private JButton getAddMockButton(PsiMethodCallExpression psiMethodCallExpression) {
+        JButton addMockButton = new JButton();
+        addMockButton.setText("Add Mock");
+        addMockButton.setIcon(UIUtils.MOCK_ADD);
+        addMockButton.setPreferredSize(new Dimension(100, 25));
+        addMockButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Project project = insidiousService.getProject();
+                JBPopup editorPopup = null;
+
+                PsiMethod targetMethod = psiMethodCallExpression.resolveMethod();
+                MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethod));
+                MockDefinitionEditor mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest, psiMethodCallExpression, project, self);
+                JComponent gutterMethodComponent = mockDefinitionEditor.getComponent();
+                ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+                        .createComponentPopupBuilder(gutterMethodComponent, null);
+                editorPopup = gutterMethodComponentPopup
+                        .setProject(psiMethodCallExpression.getProject())
+                        .setShowBorder(true)
+                        .setShowShadow(true)
+                        .setFocusable(true)
+                        .setRequestFocus(true)
+                        .setResizable(true)
+                        .setCancelOnClickOutside(true)
+                        .setCancelOnOtherWindowOpen(true)
+                        .setCancelKeyEnabled(true)
+                        .setBelongsToGlobalPopupStack(false)
+                        .setTitle("Mock Editor")
+                        .addListener(new JBPopupListener() {
+                            @Override
+                            public void onClosed(LightweightWindowEvent event) {
+                                JBPopupListener.super.onClosed(event);
+                            }
+                        })
+                        .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
+                        .createPopup();
+                editorPopup.showUnderneathOf(addMockButton);
+
+                mockDefinitionEditor.setPopupHandle(editorPopup);
+            }
+        });
+        return addMockButton;
+    }
+
     public JPanel getMockMethodDependencyPanel(JCheckBox mockButtonMain, String mockDataId) {
 
         // define mockMethodDependencyPanel
@@ -355,23 +408,22 @@ public class SaveForm implements OnTestTypeChangeListener {
         dependencyGrid.setHgap(8);
         dependencyGrid.setVgap(4);
         mockMethodDependencyPanel.setLayout(dependencyGrid);
-        
+
         // define mockMethodDependencyPanelLeft
         JPanel mockMethodDependencyPanelLeft = new JPanel();
-        
+
         JLabel leftText = new JLabel();
         leftText.setText(this.mockValueMap.getMockNameIdMap().get(mockDataId));
-        
+
         mockMethodDependencyPanelLeft.setLayout(new FlowLayout(FlowLayout.LEFT));
         mockMethodDependencyPanelLeft.add(leftText);
         mockMethodDependencyPanel.add(mockMethodDependencyPanelLeft);
-        
+
         // define mockMethodDependencyPanelRight
         JPanel mockMethodDependencyPanelRight = new JPanel();
         mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
         JCheckBox mockButton = new JCheckBox();
-        mockButton.setSelected(
-                this.enabledMockList != null && this.storedCandidate.getMockIds().contains(mockDataId));
+        mockButton.setSelected(this.storedCandidate.getMockIds().contains(mockDataId));
         mockButton.addActionListener(e -> {
             if (mockButton.isSelected()) {
                 this.stateInvertSingleMock(mockDataId, true);
@@ -382,7 +434,7 @@ public class SaveForm implements OnTestTypeChangeListener {
         mockMethodDependencyPanelRight.add(mockButton);
         this.buttonMap.get(mockButtonMain).add(mockButton);
         mockMethodDependencyPanel.add(mockMethodDependencyPanelRight);
-        
+
         mockMethodDependencyPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.BLACK));
         mockMethodDependencyPanel.setMaximumSize(new Dimension(3999, 50));
 
@@ -454,7 +506,7 @@ public class SaveForm implements OnTestTypeChangeListener {
             this.storedCandidate.setMockIds(new HashSet<String>());
         }
 
-        storedCandidate.setMockIds(MockIntersection.enabledStoredMock(insidiousService, storedCandidate.getMockIds()));
+        this.enabledMockList.clear();
         StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate, agentCommandResponse);
         candidate.setMetadata(payload.getStoredCandidateMetadata());
         candidate.setName(assertionName);
@@ -469,17 +521,6 @@ public class SaveForm implements OnTestTypeChangeListener {
             return "";
         } else {
             return source.trim();
-        }
-    }
-
-    private String formatLocation(String location) {
-        if (location.length() <= 59) {
-            return location;
-        } else {
-            String left = location.substring(0, 47);
-            left = left.substring(0, left.lastIndexOf("/") + 1);
-            left += ".../unlogged/";
-            return left;
         }
     }
 
@@ -512,11 +553,19 @@ public class SaveForm implements OnTestTypeChangeListener {
     public void onTestTypeChange(TestType updatedTestType) {
         if (Objects.equals(updatedTestType, TestType.UNIT)) {
             bottomTabPanel.setEnabledAt(1, true);
-            enabledMockList.clear();
         } else if (updatedTestType == TestType.INTEGRATION) {
             bottomTabPanel.setEnabledAt(1, false);
             bottomTabPanel.setSelectedIndex(0);
         }
 
+        enabledMockList.clear();
+    }
+
+    @Override
+    public void onSaveDeclaredMock(DeclaredMock declaredMock, MethodUnderTest methodUnderTest) {
+        insidiousService.saveMockDefinition(declaredMock, methodUnderTest);
+
+        this.mockPanel.removeAll();
+        addDataMockPanel();
     }
 }
