@@ -10,12 +10,14 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.*;
 import com.insidious.plugin.atomicrecord.AtomicRecordService;
+import com.insidious.plugin.auth.RequestAuthentication;
+import com.insidious.plugin.auth.SimpleAuthority;
+import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
-import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.coverage.*;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -33,6 +35,7 @@ import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
+import com.intellij.codeInsight.navigation.ImplementationSearcher;
 import com.intellij.debugger.DebuggerManagerEx;
 import com.intellij.debugger.impl.DebuggerSession;
 import com.intellij.debugger.ui.HotSwapStatusListener;
@@ -63,16 +66,13 @@ import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiDocumentManager;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiPrimitiveType;
-import com.intellij.psi.search.FilenameIndex;
+import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.content.Content;
@@ -86,9 +86,12 @@ import org.json.JSONObject;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.FileSystems;
-import java.sql.SQLException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -112,7 +115,6 @@ final public class InsidiousService implements
     private final Map<String, Integer> methodHash = new TreeMap<>();
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
     final private AgentStateProvider agentStateProvider;
-    //    private final ReportingService reportingService = new ReportingService(this);
     private final Map<String, String> candidateIndividualContextMap = new TreeMap<>();
     private final ActiveSessionManager sessionManager;
     private final JUnitTestCaseWriter junitTestCaseWriter;
@@ -141,6 +143,7 @@ final public class InsidiousService implements
     private HighlightedRequest currentHighlightedRequest = null;
     private Content introPanelContent = null;
     private Map<String, GutterState> cachedGutterState = new HashMap<>();
+    private GetProjectSessionsCallback sessionListener;
 
 
     public InsidiousService(Project project) {
@@ -155,8 +158,120 @@ final public class InsidiousService implements
         String pathToSessions = Constants.HOME_PATH + "/sessions";
         FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
         this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
-        this.sessionLoader = new SessionLoader(client, this);
-        threadPoolExecutor.submit(sessionLoader);
+        this.sessionLoader = ApplicationManager.getApplication().getService(SessionLoader.class);
+        this.sessionLoader.setClient(this.client);
+        sessionListener = new GetProjectSessionsCallback() {
+            private final Map<String, Boolean> checkCache = new HashMap<>();
+            private ExecutionSession currentSession;
+
+            @Override
+            public void error(String message) {
+                // never called
+            }
+
+            @Override
+            public void success(List<ExecutionSession> executionSessionList) {
+                if (executionSessionList.size() == 0) {
+                    logger.debug("no sessions found");
+                    // the currently loaded session has been deleted
+                    if (currentSession != null && currentSession.getSessionId().equals("na")) {
+                        // already na is set
+                        return;
+                    }
+
+                    loadDefaultSession();
+                    currentSession = getCurrentExecutionSession();
+                    return;
+
+                }
+                ExecutionSession mostRecentSession = executionSessionList.get(0);
+                logger.debug(
+                        "New session: [" + mostRecentSession.getSessionId() + "] vs existing session: " + currentSession);
+
+                if (currentSession == null) {
+                    // no session currently loaded, and we can load a new sessions
+                    if (!checkSessionBelongsToProject(mostRecentSession, project)) {
+                        return;
+                    }
+                    currentSession = mostRecentSession;
+                    setSession(mostRecentSession);
+
+                } else if (!currentSession.getSessionId().equals(mostRecentSession.getSessionId())) {
+                    if (!checkSessionBelongsToProject(mostRecentSession, project)) {
+                        return;
+                    }
+                    logger.warn(
+                            "Current loaded session [" + currentSession.getSessionId() + "] is different from most " +
+                                    "recent session found [" + mostRecentSession.getSessionId() + "]");
+                    currentSession = mostRecentSession;
+                    setSession(mostRecentSession);
+                }
+            }
+
+            private boolean checkSessionBelongsToProject(ExecutionSession mostRecentSession, Project project) {
+                if (checkCache.containsKey(mostRecentSession.getSessionId())) {
+                    return checkCache.get(mostRecentSession.getSessionId());
+                }
+                try {
+                    String executionLogFile = mostRecentSession.getLogFilePath();
+                    File logFile = new File(executionLogFile);
+                    BufferedReader logFileInputStream = new BufferedReader(
+                            new InputStreamReader(Files.newInputStream(logFile.toPath())));
+                    // do not remove
+                    String javaVersionLine = logFileInputStream.readLine();
+                    String agentVersionLine = logFileInputStream.readLine();
+                    String agentParamsLine = logFileInputStream.readLine();
+                    if (!agentParamsLine.startsWith("Params: ")) {
+                        logger.warn(
+                                "The third line is not Params line, marked as session not matching: " + mostRecentSession.getLogFilePath());
+                        checkCache.put(mostRecentSession.getSessionId(), false);
+                        return false;
+                    }
+                    String[] paramParts = agentParamsLine.substring("Params: ".length()).split(",");
+                    boolean foundIncludePackage = false;
+                    String includedPackagedName = null;
+                    for (String paramPart : paramParts) {
+                        if (paramPart.startsWith("i=")) {
+                            foundIncludePackage = true;
+                            includedPackagedName = paramPart.substring("i=".length());
+                            break;
+                        }
+                    }
+                    if (!foundIncludePackage) {
+                        checkCache.put(mostRecentSession.getSessionId(), false);
+                        logger.warn(
+                                "Package not found in the params, marked as session not matching" + mostRecentSession.getLogFilePath());
+                        return false;
+                    }
+
+                    String finalIncludedPackagedName = includedPackagedName.replace('/', '.');
+                    PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
+                            (Computable<PsiPackage>) () -> JavaPsiFacade.getInstance(project)
+                                    .findPackage(finalIncludedPackagedName));
+                    if (locatedPackage == null) {
+                        logger.warn("Package for agent [" + finalIncludedPackagedName + "] NOTFOUND in current " +
+                                "project [" + project.getName() + "]" +
+                                " -> " + mostRecentSession.getLogFilePath());
+                        checkCache.put(mostRecentSession.getSessionId(), false);
+                        return false;
+                    }
+                    logger.warn("Package for agent [" + finalIncludedPackagedName + "] FOUND in current " +
+                            "project [" + project.getName() + "]" +
+                            " -> " + mostRecentSession.getLogFilePath());
+
+
+                    checkCache.put(mostRecentSession.getSessionId(), true);
+                    return true;
+
+
+                } catch (Exception e) {
+                    return false;
+                }
+
+            }
+
+        };
+        this.sessionLoader.addSessionCallbackListener(sessionListener);
 
 
         EditorEventMulticaster multicaster = EditorFactory.getInstance().getEventMulticaster();
@@ -344,6 +459,7 @@ final public class InsidiousService implements
         UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_DISPOSED", eventProperties);
         logger.warn("Disposing InsidiousService for project: " + project.getName());
         threadPoolExecutor.shutdownNow();
+        sessionLoader.removeListener(sessionListener);
         if (this.client != null) {
             this.client.close();
             this.client = null;
@@ -360,13 +476,13 @@ final public class InsidiousService implements
         UsageInsightTracker.getInstance().close();
     }
 
-    public void generateAndUploadReport() throws APICallException, IOException {
-        UsageInsightTracker.getInstance()
-                .RecordEvent("DiagnosticReport", null);
-        DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project,
-                this.currentModule);
-        diagnosticService.generateAndUploadReport();
-    }
+//    public void generateAndUploadReport() throws APICallException, IOException {
+//        UsageInsightTracker.getInstance()
+//                .RecordEvent("DiagnosticReport", null);
+//        DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project,
+//                this.currentModule);
+//        diagnosticService.generateAndUploadReport();
+//    }
 
     public Project getProject() {
         return project;
@@ -399,17 +515,6 @@ final public class InsidiousService implements
         rawViewAdded = true;
     }
 
-    public boolean moduleHasFileOfType(String module, String key) {
-        Collection<VirtualFile> searchResult = FilenameIndex.getVirtualFilesByName(project, key,
-                GlobalSearchScope.projectScope(project));
-        for (VirtualFile virtualFile : searchResult) {
-            if (virtualFile.getPath()
-                    .contains(module)) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     public void methodFocussedHandler(final MethodAdapter method) {
 
@@ -422,7 +527,6 @@ final public class InsidiousService implements
         }
 
         currentMethod = method;
-        MethodUnderTest currentMethodUnderTest = MethodUnderTest.fromMethodAdapter(method);
         final ClassAdapter psiClass;
         try {
             psiClass = method.getContainingClass();
@@ -455,7 +559,7 @@ final public class InsidiousService implements
                 .stream(xDebugManager.getDebugSessions())
                 .filter(e -> e.getProject().equals(project))
                 .findFirst();
-        if (!currentSessionOption.isPresent()) {
+        if (currentSessionOption.isEmpty()) {
             InsidiousNotification.notifyMessage("No debugger session found, cannot trigger hot-reload",
                     NotificationType.WARNING);
             return;
@@ -465,9 +569,9 @@ final public class InsidiousService implements
         XDebugSession currentXDebugSession = currentSessionOption.get();
 
         Optional<DebuggerSession> currentDebugSession = debuggerManager.getSessions().stream()
-                .filter(e -> e.getXDebugSession().equals(currentXDebugSession)).findFirst();
+                .filter(e -> Objects.equals(e.getXDebugSession(), currentXDebugSession)).findFirst();
 
-        if (!currentDebugSession.isPresent()) {
+        if (currentDebugSession.isEmpty()) {
             InsidiousNotification.notifyMessage("No debugger session found, cannot trigger hot-reload",
                     NotificationType.WARNING);
             return;
@@ -475,35 +579,33 @@ final public class InsidiousService implements
 
         CompilerManager compilerManager = CompilerManager.getInstance(project);
 
-        ApplicationManager.getApplication().invokeLater(() -> {
-            compilerManager.compile(
-                    new VirtualFile[]{psiClass.getContainingFile().getVirtualFile()},
-                    (aborted, errors, warnings, compileContext) -> {
-                        logger.warn("compiled class: " + compileContext);
-                        if (aborted || errors > 0) {
-                            compileStatusNotification.finished(aborted, errors, warnings, compileContext);
-                            return;
-                        }
-                        HotSwapUIImpl.getInstance(project).reloadChangedClasses(currentDebugSession.get(), false,
-                                new HotSwapStatusListener() {
-                                    @Override
-                                    public void onCancel(List<DebuggerSession> sessions) {
-                                        compileStatusNotification.finished(true, errors, warnings, compileContext);
-                                    }
-
-                                    @Override
-                                    public void onSuccess(List<DebuggerSession> sessions) {
-                                        compileStatusNotification.finished(false, 0, warnings, compileContext);
-                                    }
-
-                                    @Override
-                                    public void onFailure(List<DebuggerSession> sessions) {
-                                        compileStatusNotification.finished(false, 1, warnings, compileContext);
-                                    }
-                                });
+        ApplicationManager.getApplication().invokeLater(() -> compilerManager.compile(
+                new VirtualFile[]{psiClass.getContainingFile().getVirtualFile()},
+                (aborted, errors, warnings, compileContext) -> {
+                    logger.warn("compiled class: " + compileContext);
+                    if (aborted || errors > 0) {
+                        compileStatusNotification.finished(aborted, errors, warnings, compileContext);
+                        return;
                     }
-            );
-        });
+                    HotSwapUIImpl.getInstance(project).reloadChangedClasses(currentDebugSession.get(), false,
+                            new HotSwapStatusListener() {
+                                @Override
+                                public void onCancel(List<DebuggerSession> sessions) {
+                                    compileStatusNotification.finished(true, errors, warnings, compileContext);
+                                }
+
+                                @Override
+                                public void onSuccess(List<DebuggerSession> sessions) {
+                                    compileStatusNotification.finished(false, 0, warnings, compileContext);
+                                }
+
+                                @Override
+                                public void onFailure(List<DebuggerSession> sessions) {
+                                    compileStatusNotification.finished(false, 1, warnings, compileContext);
+                                }
+                            });
+                }
+        ));
 
 
     }
@@ -573,6 +675,9 @@ final public class InsidiousService implements
 
         methodArgumentValueCache.addArgumentSet(agentCommandRequest);
 
+
+        agentCommandRequest.setRequestAuthentication(getRequestAuthentication());
+
         MethodUnderTest methodUnderTest = new MethodUnderTest(
                 agentCommandRequest.getMethodName(), agentCommandRequest.getMethodSignature(),
                 0, agentCommandRequest.getClassName()
@@ -617,14 +722,71 @@ final public class InsidiousService implements
         });
     }
 
+    private RequestAuthentication getRequestAuthentication() {
+        RequestAuthentication requestAuthentication = new RequestAuthentication();
+
+        PsiClass springUserDetailsClass = JavaPsiFacade.getInstance(project)
+                .findClass("org.springframework.security.core.userdetails.UserDetails",
+                        GlobalSearchScope.projectScope(project));
+        requestAuthentication.setAuthenticated(true);
+        requestAuthentication.setAuthorities(List.of(new SimpleAuthority("ROLE_ADMIN")));
+        requestAuthentication.setCredential("password");
+        requestAuthentication.setDetails("details");
+        requestAuthentication.setName("user name");
+
+        if (springUserDetailsClass == null) {
+            return requestAuthentication;
+        }
+
+
+
+        ImplementationSearcher implementationSearcher = new ImplementationSearcher();
+        PsiElement[] implementations = implementationSearcher.searchImplementations(
+                springUserDetailsClass, null, true, false
+        );
+        if (implementations == null || implementations.length == 0) {
+            return requestAuthentication;
+        }
+
+        for (PsiElement implementation : implementations) {
+            boolean match = false;
+            PsiClass implementsPsi = (PsiClass) implementation;
+            for (PsiClassType implementsListType : implementsPsi.getImplementsListTypes()) {
+                if (implementsListType.getName().endsWith("UserDetails")) {
+                    // yes match
+                    match = true;
+                    break;
+                }
+            }
+            if (match) {
+                String userAuthClassName = implementsPsi.getQualifiedName();
+                if (userAuthClassName == null) {
+                    continue;
+                }
+                requestAuthentication.setPrincipalClassName(userAuthClassName);
+                PsiClassType typeInstance = PsiClassType.getTypeByName(userAuthClassName, project,
+                        GlobalSearchScope.projectScope(project));
+                String dummyValue = ClassUtils.createDummyValue(typeInstance, new ArrayList<>(), project);
+
+                requestAuthentication.setPrincipal(dummyValue);
+
+                break;
+            }
+
+        }
+
+
+        return requestAuthentication;
+    }
+
     public TestCaseService getTestCaseService() {
         if (testCaseService == null) {
-            loadDefaultSession();
+            setSession(sessionManager.loadDefaultSession());
         }
         return testCaseService;
     }
 
-    public synchronized void setSession(ExecutionSession executionSession) throws SQLException, IOException {
+    public synchronized void setSession(ExecutionSession executionSession) {
 
         if (sessionInstance != null) {
             try {
@@ -774,27 +936,11 @@ final public class InsidiousService implements
 
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
         if (sessionInstance == null) {
-            loadDefaultSession();
+            setSession(sessionManager.loadDefaultSession());
         }
         return sessionInstance.getClassMethodAggregates(qualifiedName);
     }
 
-    public void loadDefaultSession() {
-        String pathToSessions = Constants.HOME_PATH + "/sessions/na";
-        ExecutionSession executionSession = new ExecutionSession();
-        executionSession.setPath(pathToSessions);
-        executionSession.setSessionId("na");
-        executionSession.setCreatedAt(new Date());
-        executionSession.setLastUpdateAt(new Date().getTime());
-
-        try {
-            setSession(executionSession);
-        } catch (SQLException | IOException e) {
-            logger.error("Failed to set default session: " + e.getMessage(), e);
-            InsidiousNotification.notifyMessage("Failed to set default session: " + e.getMessage(),
-                    NotificationType.ERROR);
-        }
-    }
 
     public ExecutionSession getCurrentExecutionSession() {
         return sessionInstance.getExecutionSession();
@@ -1484,5 +1630,9 @@ final public class InsidiousService implements
             contentManager.addContent(introPanelContent);
         }
         contentManager.setSelectedContent(introPanelContent);
+    }
+
+    public void loadDefaultSession() {
+        setSession(sessionManager.loadDefaultSession());
     }
 }
