@@ -8,7 +8,6 @@
     <description>
         <![CDATA[
 
-
         <h4>Assertions for Custom Validation:</h4>
 
         <p>Unlogged now introduces the power of assertions with a brand-new intuitive user interface (UI). With this feature, developers can define custom assertions to validate method return values, all the way down to the key level, without writing any code manually. Say goodbye to spending hours crafting assertion rules; now, you can create complex and nested validation rules with ease through our UI.</p>
@@ -51,24 +50,12 @@
 
 
         <h3>Version 1.16.3 (5th Jul 2023) </h3>
-            <h2 class="c9" id="h.6kd09fd21779"><span class="c6">Exciting New Features Unleashed in Unlogged!</span></h2>
+            <h2 class="c9" id="h.6kd09fd21779"><span class="c6">Mock Panel</span></h2>
             <p class="c4 c8"><span class="c1"></span></p>
-            <p class="c4"><span class="c1">We are thrilled to unveil the latest enhancements in Unlogged that will elevate your development experience to new heights. Get ready to embark on a joyous coding journey with these amazing updates.</span></p>
+            <p class="c4"><span class="c1">We are happy to launch the all new feature of mock linking. Now you can bind mocks with candidates and replay them for testing.</span></p>
             <p class="c4 c8"><span class="c1"></span></p>
-            <h3 class="c5" id="h.7do80d5h1u6m"><span class="c0">Simplified Project Setup</span></h3>
-            <p class="c4"><span class="c1">Setting up your project has never been smoother! Integrate Unlogged effortlessly by adding the pom.xml dependency. With just a few clicks, you&#39;ll be up and running in no time.</span></p>
-            <p class="c4 c8"><span class="c1"></span></p>
-            <h3 class="c5" id="h.j4h98jmi0o6o"><span class="c0">Test Creation Made Easy</span></h3>
-            <p class="c4"><span class="c1">Creating tests for your methods is now a breeze. Once your project is running, head to the method you wish to test. No need to stress - simply click on the lively Guttor Icon and select &quot;Direct Invoke.&quot; It&#39;s as simple as that!</span></p>
-            <p class="c4 c8"><span class="c1"></span></p>
-            <h3 class="c5" id="h.82opoqi3p0f"><span class="c0">Direct Invocation Magic</span></h3>
-            <p class="c4"><span class="c1">Say goodbye to the hassle of exposing HTTP endpoints. Thanks to Unlogged&#39;s Direct Invoke feature, you can now call any Java method directly. Experience the freedom of invoking methods without unnecessary complexities.</span></p>
-            <p class="c4 c8"><span class="c1"></span></p>
-            <h3 class="c5" id="h.un50bl52ai0k"><span class="c0">Execute with Relevance</span></h3>
-            <p class="c4"><span class="c1">Supercharge your testing process by providing relevant inputs to your methods. Execute the method effortlessly with the desired inputs, and witness the magic of Unlogged at work. Get instant results and revel in the joy of efficient testing.</span></p>
-            <p class="c4 c8"><span class="c1"></span></p>
-            <h3 class="c5" id="h.ert6t5nuwft7"><span class="c0">Relive the Magic with Atomic Tests</span></h3>
-            <p class="c4"><span class="c1">Record and replay your methods with ease using Atomic Tests. Say goodbye to repetitive input scenarios - save your input/return value combinations as convenient JSON files. Replaying recorded inputs has never been more delightful!</span></p>
+            <h3 class="c5" id="h.7do80d5h1u6m"><span class="c0">Assertion Panel</span></h3>
+            <p class="c4"><span class="c1">The all new assertion panel makes checking the candidates output a piece of cake. Just add assertion rules and check if the code change is adding regression.</span></p>
             <p class="c4 c8"><span class="c1"></span></p>
             <h2 class="c9" id="h.7w4yn3c6zibu"><span class="c6">Unveiling Key Terms:</span></h2>
             <p class="c4 c8"><span class="c1"></span></p>
@@ -164,6 +151,9 @@
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
         <applicationService serviceImplementation="com.insidious.plugin.factory.ApplicationConfigurationState"/>
+        <testFinder implementation="com.insidious.plugin.tester.testfinder.UnloggedTestFinder"/>
+        <testCreator language="JAVA"
+                     implementationClass="com.insidious.plugin.tester.creator.UnloggedClassTestCreator"/>
 
         <codeInsight.lineMarkerProvider
                 language="JAVA"

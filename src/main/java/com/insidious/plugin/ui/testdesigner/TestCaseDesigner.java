@@ -36,6 +36,7 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
@@ -115,6 +116,9 @@ public class TestCaseDesigner implements Disposable {
         saveTestCaseButton.setEnabled(false);
         saveTestCaseButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         backToReplayListButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        backToReplayListButton.setForeground(UIUtils.defaultForeground);
+        saveTestCaseButton.setForeground(UIUtils.defaultForeground);
 
         testFrameworkComboBox.setModel(new DefaultComboBoxModel<>(TestFramework.values()));
         mockFrameworkComboBox.setModel(new DefaultComboBoxModel<>(MockFramework.values()));

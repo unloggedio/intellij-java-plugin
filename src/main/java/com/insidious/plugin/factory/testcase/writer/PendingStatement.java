@@ -7,16 +7,15 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.*;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.ParameterUtils;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
-
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -268,8 +267,8 @@ public class PendingStatement {
 
             }
 
-        } else if (methodName.equals(JsonFramework.Jackson.getFromJsonMethodName())
-                && methodCallSubject.equals(JsonFramework.Jackson.getInstance())) {
+        }
+        else if (methodName.equals(JsonFramework.Jackson.getFromJsonMethodName()) && methodCallSubject.equals(JsonFramework.Jackson.getInstance())) {
 
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();
@@ -328,7 +327,8 @@ public class PendingStatement {
 
             }
 
-        } else if (methodName.equals("ValueOf") && methodCallSubject == null) {
+        }
+        else if (methodName.equals("ValueOf") && methodCallSubject == null) {
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();
             Parameter objectToDeserialize = variables.get(0);
@@ -363,17 +363,14 @@ public class PendingStatement {
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue()));
 
-                 TypeName typeOfParam =
+                TypeName typeOfParam =
                         ClassTypeUtils.createTypeFromNameString(
                                 ClassTypeUtils.getJavaClassName(objectToDeserialize.getType()));
 //                statementParameters.add(ClassName.bestGuess(typeOfParam));
                 statementParameters.add(typeOfParam);
             }
-        } else if (methodName.equals("injectField")
-                && methodCallExpression.isStaticCall()
-                && methodCallSubject != null
-                && methodCallSubject.getType().equals("io.unlogged.UnloggedTestUtils")
-        ) {
+        }
+        else if (methodName.equals("injectField") && methodCallExpression.isStaticCall() && methodCallSubject != null && methodCallSubject.getType().equals("io.unlogged.UnloggedTestUtils")) {
 
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();
@@ -395,7 +392,8 @@ public class PendingStatement {
             statementParameters.add(secondArgumentNameForUse);
             statementParameters.add(secondArgumentNameForUse);
 
-        } else if (methodName.equals("thenThrow") && methodCallSubject == null) {
+        }
+        else if (methodName.equals("thenThrow") && methodCallSubject == null) {
 
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();
@@ -405,7 +403,8 @@ public class PendingStatement {
             statementParameters.add(ClassName.bestGuess(ClassTypeUtils.getJavaClassName(variables.get(0)
                     .getType())));
 
-        } else if (methodName.equals("assertEquals")) {
+        }
+        else if (methodName.equals("assertEquals")) {
             if (methodCallSubject != null) {
                 parameterString = createMethodParametersStringWithNames(
                         methodCallExpression.getArguments(), testGenerationState);
@@ -432,7 +431,8 @@ public class PendingStatement {
                         .append(")");
                 statementParameters.add(methodName);
             }
-        } else if (methodName.equals("when")) {
+        }
+        else if (methodName.equals("when")) {
             // we need to disect the parameters inside the any() parameters and add them as proper class references
             // subject.methodName(any(com.package.AClass.class), any(ano.ther.package.BClass.class))
 
@@ -478,7 +478,8 @@ public class PendingStatement {
                 statementParameters.add(methodName);
             }
             statementParameters.addAll(trailingParameters);
-        } else if (methodName.equals("mockStatic")) {
+        }
+        else if (methodName.equals("mockStatic")) {
             parameterString = parameterString + ", $T.CALLS_REAL_METHODS";
             if (methodCallSubject != null) {
 
@@ -519,7 +520,8 @@ public class PendingStatement {
                         .append(")");
                 statementParameters.add(methodName);
             }
-        } else if (methodName.equals("mock")) {
+        }
+        else if (methodName.equals("mock")) {
             statementBuilder.append("$T.$L(")
                     .append("$T.class")
                     .append(")");
@@ -589,7 +591,7 @@ public class PendingStatement {
                 lhsExpression.setName(generateNameForParameter(lhsExpression));
             }
 
-             TypeName lhsTypeName = ClassTypeUtils.createTypeFromNameString(
+            TypeName lhsTypeName = ClassTypeUtils.createTypeFromNameString(
                     ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
 
             if (!createdVariables.contains(nameFactory.getNameForUse(lhsExpression, null))) {
@@ -640,8 +642,8 @@ public class PendingStatement {
                 MethodCallExpression methodCallExpression = (MethodCallExpression) expression;
 
                 if (!methodCallExpression.isStaticCall()
-                        && methodCallExpression.getSubject() != null && methodCallExpression.getSubject()
-                        .getValue() != 0) {
+                        && methodCallExpression.getSubject() != null
+                        && methodCallExpression.getSubject().getValue() != 0) {
                     Parameter existingVariable = createdVariables
                             .getParametersById(methodCallExpression.getSubject()
                                     .getValue());

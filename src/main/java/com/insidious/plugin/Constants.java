@@ -6,6 +6,16 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 
 public class Constants {
+        
+    private static String getHostname() {
+        String defaultHostname = System.getProperty("user.name");
+
+        if (defaultHostname.length() <= 4){
+                defaultHostname = "short-" + defaultHostname;
+        }
+
+        return defaultHostname;
+    }
 
     public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     public static final String TOKEN = "token";
@@ -24,5 +34,5 @@ public class Constants {
     public static final String COMPLETED = "completed";
     public static final String PENDING = "pending";
     public static final String AGENT_VERSION = "1.14.3";
-    public static final String HOSTNAME = System.getProperty("user.name");
+    public static final String HOSTNAME = getHostname();
 }

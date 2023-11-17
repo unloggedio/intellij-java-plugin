@@ -11,6 +11,7 @@ import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
@@ -452,14 +453,14 @@ public class MethodExecutorComponent implements CandidateLifeListener {
             AgentCommandResponseListener<String> agentCommandResponseListener
     ) {
         List<String> methodArgumentValues = testCandidate.getMethodArguments();
+        ArrayList<DeclaredMock> testCandidateStoredEnabledMockDefination = MockIntersection.enabledStoredMockDefination(insidiousService, testCandidate.getMockIds());
         AgentCommandRequest agentCommandRequest = MethodUtils.createExecuteRequestWithParameters(
-                methodElement, classUnderTest, methodArgumentValues, true);
+                methodElement, classUnderTest, methodArgumentValues, true, testCandidateStoredEnabledMockDefination);
 
         TestCandidateListedItemComponent candidateComponent =
                 candidateComponentMap.get(getKeyForCandidate(testCandidate));
 
         candidateComponent.setStatus("Executing");
-
 
         insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                 (request, agentCommandResponse) -> {
@@ -748,12 +749,10 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
     @Override
     public void onUpdated(StoredCandidate storedCandidate) {
-
     }
 
     @Override
     public void onUpdateRequest(StoredCandidate storedCandidate) {
-
     }
 
     @Override
@@ -770,7 +769,6 @@ public class MethodExecutorComponent implements CandidateLifeListener {
             return;
         }
 
-
         String testMethodName =
                 "testMethod" + ClassTypeUtils.upperInstanceName(testCandidate.getMethod().getName());
         TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
@@ -780,21 +778,17 @@ public class MethodExecutorComponent implements CandidateLifeListener {
                 ResourceEmbedMode.IN_CODE
         );
 
-
         // mock all calls by default
         if (loadedTestCandidate != null) {
             testCaseGenerationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
         }
 
-
         testCaseGenerationConfiguration.setTestMethodName(testMethodName);
-
 
         testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
         if (loadedTestCandidate != null) {
             testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
         }
-
 
         try {
             insidiousService.previewTestCase(methodElement, testCaseGenerationConfiguration);

@@ -1,15 +1,22 @@
 package com.insidious.plugin.ui.assertions;
 
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
+import com.insidious.plugin.pojo.atomic.TestType;
 import com.insidious.plugin.util.UIUtils;
+import org.json.JSONObject;
 
 import javax.swing.*;
+import java.awt.event.ItemEvent;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Vector;
 
 public class SaveFormMetadataPanel {
+    private final OnTestTypeChangeListener onTestTypeChangeListener;
     private JPanel mainPanel;
     private JPanel topAlignPanel;
     private JTextField nameText;
@@ -24,23 +31,43 @@ public class SaveFormMetadataPanel {
     private JLabel statusLabel;
     private JLabel hostLabel;
     private JLabel timestampLabel;
-    private JPanel actionPanel;
-    private JPanel eastPanel;
     private JButton saveAndCloseButton;
     private JButton cancelButton;
-    private JPanel westPanel;
+    private JLabel createdByKeyLabel;
+    private JLabel statusKeyLabel;
+    private JLabel hostKeyPanel;
+    private JLabel timestampKeyPanel;
+    private JComboBox<TestType> testTypeComboBox;
+    private JLabel testType;
 
-    public SaveFormMetadataPanel(MetadataViewPayload payload) {
-        loadView(payload);
+    public SaveFormMetadataPanel(MetadataViewPayload metadataViewPayload, OnTestTypeChangeListener onTestTypeChangeListener) {
+        loadView(metadataViewPayload);
+        this.onTestTypeChangeListener = onTestTypeChangeListener;
+
+        this.testTypeComboBox.addItemListener(e -> {
+            if (e.getStateChange() != ItemEvent.SELECTED) {
+                return;
+            }
+            JSONObject testChange = new JSONObject();
+            UsageInsightTracker.getInstance().RecordEvent("MOCK_LINKING_TEST_TYPE", testChange);
+            TestType selectedTestType = (TestType) e.getItem();
+            metadataViewPayload.setType(selectedTestType);
+            onTestTypeChangeListener.onTestTypeChange(selectedTestType);
+        });
+
     }
 
     public void loadView(MetadataViewPayload payload) {
         this.nameText.setText(payload.getName() != null ? payload.getName() : "");
         this.descriptionText.setText(payload.getDescription() != null ? payload.getDescription() : "");
+
+        this.createdByKeyLabel.setIcon(UIUtils.CREATED_BY);
+        this.createdByKeyLabel.setEnabled(false);
         this.createdByLabel.setText(payload.getStoredCandidateMetadata().getRecordedBy());
-        this.hostLabel.setText(payload.getStoredCandidateMetadata().getHostMachineName());
-        this.timestampLabel.setText(convertTimestamp(payload.getStoredCandidateMetadata().getTimestamp()));
-        this.timestampLabel.setToolTipText(payload.getStoredCandidateMetadata().getTimestamp() + "");
+        this.createdByLabel.setEnabled(false);
+
+        this.statusKeyLabel.setIcon(UIUtils.STATUS);
+        this.statusKeyLabel.setEnabled(false);
         StoredCandidateMetadata.CandidateStatus status = payload.getStoredCandidateMetadata().getCandidateStatus();
         if (status.equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
             this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
@@ -51,6 +78,20 @@ public class SaveFormMetadataPanel {
             this.statusLabel.setForeground(UIUtils.green);
             this.statusLabel.setText("Passing");
         }
+
+        this.hostKeyPanel.setIcon(UIUtils.MACHINE);
+        this.hostKeyPanel.setEnabled(false);
+        this.hostLabel.setText(payload.getStoredCandidateMetadata().getHostMachineName());
+        this.hostLabel.setEnabled(false);
+
+        this.timestampKeyPanel.setIcon(UIUtils.CLOCK);
+        this.timestampKeyPanel.setEnabled(false);
+        this.timestampLabel.setText(convertTimestamp(payload.getStoredCandidateMetadata().getTimestamp()));
+        this.timestampLabel.setToolTipText(payload.getStoredCandidateMetadata().getTimestamp() + "");
+        this.timestampLabel.setEnabled(false);
+
+        this.testTypeComboBox.setModel(
+                new DefaultComboBoxModel<>(new Vector<>(List.of(TestType.UNIT, TestType.INTEGRATION))));
     }
 
     public MetadataViewPayload getPayload() {
@@ -65,8 +106,7 @@ public class SaveFormMetadataPanel {
 
         return new MetadataViewPayload(
                 nameText.getText(),
-                descriptionText.getText(),
-                metadata
+                descriptionText.getText(), (TestType)this.testTypeComboBox.getSelectedItem(), metadata
         );
     }
 
@@ -84,6 +124,7 @@ public class SaveFormMetadataPanel {
     public AbstractButton getCancelButton() {
         return cancelButton;
     }
+
     public AbstractButton getSaveButton() {
         return saveAndCloseButton;
     }

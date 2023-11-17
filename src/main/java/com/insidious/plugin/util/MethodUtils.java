@@ -5,6 +5,7 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.agent.AgentCommand;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
+import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.util.Computable;
@@ -17,10 +18,13 @@ public class MethodUtils {
             MethodAdapter methodAdapter,
             ClassUnderTest classUnderTest,
             List<String> parameterValues,
-            boolean processArgumentTypes) {
+            boolean processArgumentTypes,
+            ArrayList<DeclaredMock> enabledMock) {
 
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.EXECUTE);
+
+        agentCommandRequest.setDeclaredMocks(enabledMock);
 
         String qualifiedName = ApplicationManager.getApplication().runReadAction(
                 (Computable<String>) () -> {

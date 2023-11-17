@@ -98,17 +98,17 @@ public class ParameterUtils {
         }
     }
 
-    public static String processResponseForFloatAndDoubleTypes(String responseClassname, String json) {
+    public static String processResponseForFloatAndDoubleTypes(String responseClassname, String stringValue) {
         if (responseClassname.equalsIgnoreCase("float")
                 || responseClassname.equalsIgnoreCase("java.lang.float")
                 || responseClassname.equals("F")) {
-            return getFloatValue(json);
+            return getFloatValue(stringValue);
         }
         if (responseClassname.equalsIgnoreCase("double")
                 || responseClassname.equalsIgnoreCase("java.lang.double")
                 || responseClassname.equals("D")) {
-            return getDoubleValue(json);
+            return getDoubleValue(stringValue);
         }
-        return json;
+        return stringValue;
     }
 }

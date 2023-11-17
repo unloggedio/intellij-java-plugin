@@ -14,10 +14,20 @@ public class ParameterNameFactory {
     public String getNameForUse(Parameter parameter, String methodName) {
         if (parameterNameMapByObject.containsKey(parameter)) {
             return parameterNameMapByObject.get(parameter);
+        } else if (parameter.getValue() != 0) {
+            for (Map.Entry<Parameter, String> parameterStringEntry : parameterNameMapByObject.entrySet()) {
+                if (parameterStringEntry.getKey().getValue() == parameter.getValue()) {
+                    return parameterStringEntry.getValue();
+                }
+            }
+
         }
         String key = String.valueOf(parameter.getValue());
         if (parameter.getType() != null && parameter.getType().length() == 1) {
             key = parameter.getType() + "-" + parameter.getValue();
+        }
+        if ("0".equals(key)){
+            return null;
         }
 
         String nameUsed = nameByIdMap.get(key);
