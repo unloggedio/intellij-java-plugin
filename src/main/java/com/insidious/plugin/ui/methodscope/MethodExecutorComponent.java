@@ -294,7 +294,13 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         methodUnderTest = MethodUnderTest.fromMethodAdapter(methodElement);
         methodInfo = insidiousService.getMethodInformation(methodUnderTest);
 
+        TitledBorder topPanelTitledBorder = (TitledBorder) topPanel.getBorder();
+        topPanelTitledBorder.setTitle(
+                methodElement.getContainingClass().getName() + "." + methodElement.getName() + "()");
+
+
         if (candidates.size() == 0) {
+            candidateCountLabel.setText(gridPanel.getComponents().length + " recorded method executions");
             insidiousService.getDirectInvokeTab().setCoveragePercent(0);
             return;
         }
@@ -340,9 +346,6 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         executeAndShowDifferencesButton.revalidate();
         executeAndShowDifferencesButton.repaint();
         candidateCountLabel.setText(gridPanel.getComponents().length + " recorded method executions");
-        TitledBorder topPanelTitledBorder = (TitledBorder) topPanel.getBorder();
-        topPanelTitledBorder.setTitle(
-                methodElement.getContainingClass().getName() + "." + methodElement.getName() + "()");
 
         rootContent.revalidate();
         rootContent.repaint();
