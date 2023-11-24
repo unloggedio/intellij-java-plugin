@@ -14,7 +14,7 @@ import java.util.Set;
 
 public class JsonTreeUtils {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
 
     public static DefaultMutableTreeNode buildJsonTree(String source, String name) {
         if (source == null) {

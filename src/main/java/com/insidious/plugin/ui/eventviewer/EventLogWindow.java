@@ -6,11 +6,11 @@ import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.ObjectInfo;
 import com.insidious.common.weaver.StringInfo;
 import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
@@ -18,14 +18,17 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
-
+import com.intellij.openapi.project.Project;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
-import java.awt.event.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -33,8 +36,9 @@ import java.util.List;
 import java.util.Vector;
 
 public class EventLogWindow {
-    private final InsidiousService service;
     private final int paginationSize = 500;
+    private final Project project;
+    private final VideobugClientInterface clientInterface;
     private ReplayData replayData;
     private DefaultTableModel tableModel = null;
     private JPanel filterPanel;
@@ -55,9 +59,9 @@ public class EventLogWindow {
     private ReplayData replayData1;
     private Logger logger = LoggerUtil.getInstance(EventLogWindow.class);
 
-    public EventLogWindow(InsidiousService insidiousService) {
-
-        this.service = insidiousService;
+    public EventLogWindow(Project project, VideobugClientInterface clientInterface) {
+        this.project = project;
+        this.clientInterface = clientInterface;
 
 
         queryTextField.addKeyListener(new KeyAdapter() {
@@ -147,16 +151,16 @@ public class EventLogWindow {
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
                 int selectedColumn = eventsTable.getSelectedColumn();
-                String selectedColumnName = tableModel.getColumnName(selectedColumn);
+//                String selectedColumnName = tableModel.getColumnName(selectedColumn);
 
                 int selectedRowIndex = eventsTable.getSelectedRow();
-                Object clickedValue = tableModel.getValueAt(selectedRowIndex, selectedColumn);
+//                Object clickedValue = tableModel.getValueAt(selectedRowIndex, selectedColumn);
 
                 DataEventWithSessionId selectedEvent = replayData.getDataEvents().get(selectedRowIndex);
                 DataInfo probeInfo = replayData.getProbeInfo(selectedEvent.getProbeId());
 
                 InsidiousUtils.focusProbeLocationInEditor(probeInfo.getLine(),
-                        replayData.getClassInfo(probeInfo.getClassId()).getClassName(), insidiousService);
+                        replayData.getClassInfo(probeInfo.getClassId()).getClassName(), project);
 
             }
 
@@ -220,10 +224,10 @@ public class EventLogWindow {
         queryTextField.setText(String.valueOf(objectId));
         try {
             ProgressManager.getInstance().run(new Task.WithResult<ReplayData, Exception>(
-                    service.getProject(), "Unlogged", true
+                    project, "Unlogged", true
             ) {
                 @Override
-                protected ReplayData compute( ProgressIndicator indicator) throws Exception {
+                protected ReplayData compute(ProgressIndicator indicator) throws Exception {
                     try {
                         return loadHistory(objectId, currentPage);
                     } catch (SessionNotSelectedException e) {
@@ -264,7 +268,7 @@ public class EventLogWindow {
         pageInfo.setBufferSize(Integer.parseInt(String.valueOf(bufferSize.getValue())));
 
         filterRequest.setPageInfo(pageInfo);
-        ReplayData replayData1 = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
+        ReplayData replayData1 = clientInterface.fetchObjectHistoryByObjectId(filterRequest);
         updateTableData(replayData1);
         infoLabel.setText(" [Page " +
                 (filterRequest.getPageInfo().getNumber() + 1) +
@@ -340,7 +344,7 @@ public class EventLogWindow {
                 eventsTable.getColumn("Value").setPreferredWidth(40);
                 eventsTable.getColumn("Attributes").setPreferredWidth(200);
                 eventsTable.getColumn("Value type").setPreferredWidth(100);
-            }catch (Exception e) {
+            } catch (Exception e) {
                 logger.info("failed to set column width: " + e.getMessage());
             }
 

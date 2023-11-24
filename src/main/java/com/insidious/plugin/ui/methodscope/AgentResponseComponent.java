@@ -20,7 +20,7 @@ import java.util.Map;
 import static com.insidious.plugin.util.ParameterUtils.processResponseForFloatAndDoubleTypes;
 
 public class AgentResponseComponent implements ResponsePreviewComponent {
-    public static final ObjectMapper objectMapper = new ObjectMapper();
+    public static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
     private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = false;
     private final AgentCommandResponse<String> agentCommandResponse;

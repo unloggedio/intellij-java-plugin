@@ -7,6 +7,7 @@ import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -27,7 +28,7 @@ import java.util.regex.Pattern;
  * - mocked calls
  */
 public class TestGenerationState {
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private static final Pattern ENDS_WITH_DIGITS = Pattern.compile("(.+)([0-9]+)$");
     private static final Logger logger = LoggerUtil.getInstance(TestGenerationState.class);
     private final ValueResourceContainer valueResourceContainer = new ValueResourceContainer();

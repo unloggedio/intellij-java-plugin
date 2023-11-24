@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.insidious.plugin.atomicrecord.AtomicRecordService;
+import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;

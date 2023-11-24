@@ -8,10 +8,7 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.util.DateUtils;
-import com.insidious.plugin.util.ExceptionUtils;
-import com.insidious.plugin.util.JsonTreeUtils;
-import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
 
 import javax.swing.*;
@@ -21,7 +18,7 @@ import java.io.IOException;
 import java.util.Date;
 
 public class AgentExceptionResponseComponent implements ResponsePreviewComponent {
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private static final Logger logger = LoggerUtil.getInstance(AgentExceptionResponseComponent.class);
     final private InsidiousService insidiousService;
     final private AgentCommandResponse<String> response;

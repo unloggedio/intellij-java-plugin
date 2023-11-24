@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.adapter.ParameterAdapter;
+import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
 
@@ -15,7 +16,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyListener;
 
 public class ParameterInputComponent {
-    private final static ObjectMapper objectMapper = new ObjectMapper();
+    private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private JPanel rootContent;
     private JTextComponent parameterValue;
 

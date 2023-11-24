@@ -18,6 +18,7 @@ import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.StringUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
@@ -129,7 +130,7 @@ public class DaoService {
             "group by mc.methodName\n" +
             "order by mc.methodName;";
     private final static Logger logger = LoggerUtil.getInstance(DaoService.class);
-    private final static ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
     private static final String QUERY_METHOD_DEFINITIONS_BY_ID_IN = "select * from method_definition where id in (IDS)";
     private final JdbcConnectionSource connectionSource;
     private final Dao<DataEventWithSessionId, Long> dataEventDao;
@@ -147,7 +148,8 @@ public class DaoService {
     private final Lock dbBulkUpdate = new ReentrantLock();
     private boolean shutDown = false;
 
-    public DaoService(JdbcConnectionSource connectionSource, ParameterProvider parameterProvider) throws SQLException {
+    public DaoService(JdbcConnectionSource connectionSource, ParameterProvider parameterProvider, ObjectMapper objectMapper) throws SQLException {
+        this.objectMapper = objectMapper;
         this.connectionSource = connectionSource;
         this.parameterProvider = parameterProvider;
 

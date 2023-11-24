@@ -1,4 +1,4 @@
-package com.insidious.plugin.atomicrecord;
+package com.insidious.plugin.record;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
@@ -12,6 +12,7 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.MockIntersection;
+import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
@@ -39,15 +40,16 @@ public class AtomicRecordService {
     public static final String TEST_RESOURCES_PATH = TEST_CONTENT_PATH + "resources" + separator;
     private static final Logger logger = LoggerUtil.getInstance(AtomicRecordService.class);
     private final String UNLOGGED_RESOURCE_FOLDER_NAME = "unlogged";
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final String projectBasePath;
     InsidiousService insidiousService;
     private Map<String, AtomicRecord> classAtomicRecordMap = null;
-    private boolean useNotifications = true;
+    private boolean useNotifications = false;
 
-    public AtomicRecordService(InsidiousService service) {
-        insidiousService = service;
+    public AtomicRecordService(Project project) {
+        insidiousService = project.getService(InsidiousService.class);
         projectBasePath = insidiousService.getProject().getBasePath();
+        init();
     }
 
     public void init() {
@@ -139,7 +141,8 @@ public class AtomicRecordService {
                                         NotificationType.INFORMATION);
                             }
                             logger.info("[ATRS] Replacing existing record");
-                            candidate.setMockIds(MockIntersection.enabledStoredMock(insidiousService, candidate.getMockIds()));
+                            candidate.setMockIds(
+                                    MockIntersection.enabledStoredMock(insidiousService, candidate.getMockIds()));
                             storedCandidate.copyFrom(candidate);
                             break;
                         }
@@ -532,9 +535,10 @@ public class AtomicRecordService {
             for (String classname : classAtomicRecordMap.keySet()) {
                 AtomicRecord recordForClass = classAtomicRecordMap.get(classname);
                 try {
-                    writeToFile(new File(getFilenameForClass(classname)), recordForClass, FileUpdateType.UPDATE_CANDIDATE,
+                    writeToFile(new File(getFilenameForClass(classname)), recordForClass,
+                            FileUpdateType.UPDATE_CANDIDATE,
                             false);
-                }catch (Exception e) {
+                } catch (Exception e) {
                     // class not found... class was renamed
                     // this record is now orphan
                 }
@@ -594,7 +598,8 @@ public class AtomicRecordService {
                 .stream().map(e -> e.getDeclaredMockMap().values())
                 .flatMap(Collection::stream)
                 .flatMap(Collection::stream)
-                .filter(e -> e.getSourceClassName() != null && e.getSourceClassName().equals(methodUnderTest.getClassName()))
+                .filter(e -> e.getSourceClassName() != null && e.getSourceClassName()
+                        .equals(methodUnderTest.getClassName()))
                 .collect(Collectors.toList());
 
     }

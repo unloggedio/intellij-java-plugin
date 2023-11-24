@@ -3,13 +3,14 @@ package com.insidious.plugin.assertions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.plugin.util.ObjectMapperInstance;
 
 import java.util.List;
 import java.util.Objects;
 
 public class AssertionEngine {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
 
     public static AssertionResult executeAssertions(
             AtomicAssertion assertion, JsonNode responseNode

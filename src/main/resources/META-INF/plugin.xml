@@ -144,17 +144,16 @@
         <!--        <notificationGroup id="com.insidious" displayType="BALLOON"/>-->
         <!--        <postStartupActivity implementation="com.insidious.plugin.factory.InsidiousService"/>-->
         <toolWindow id="Unlogged" canCloseContents="false" secondary="false" icon="/icons/png/logo_unlogged.png"
-                    anchor="right"
-                    factoryClass="com.insidious.plugin.factory.DebuggerFactory"/>
+                    anchor="right" factoryClass="com.insidious.plugin.factory.InsidiousToolWindowFactory"/>
 
         <applicationService serviceImplementation="com.insidious.plugin.factory.ActiveSessionManager"/>
         <applicationService serviceImplementation="com.insidious.plugin.factory.SessionLoader"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
+        <projectService serviceImplementation="com.insidious.plugin.record.AtomicRecordService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
         <applicationService serviceImplementation="com.insidious.plugin.factory.ApplicationConfigurationState"/>
         <testFinder implementation="com.insidious.plugin.tester.testfinder.UnloggedTestFinder"/>
-<!--        <testCreator language="JAVA"-->
-<!--                     implementationClass="com.insidious.plugin.tester.creator.UnloggedClassTestCreator"/>-->
+
 
         <codeInsight.lineMarkerProvider
                 language="JAVA"
@@ -174,5 +173,7 @@
     <projectListeners>
         <listener class="com.insidious.plugin.factory.InsidiousToolWindowManagerListener"
                   topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
+        <listener class="com.insidious.plugin.factory.AgentConnectionStateTracker"
+                  topic="com.insidious.plugin.agent.AgentConnectionStateNotifier"/>
     </projectListeners>
 </idea-plugin>

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.mocking.MethodExitType;
 import com.insidious.plugin.mocking.ThenParameter;
+import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
@@ -33,7 +34,7 @@ public class ThenParameterInputPanel {
             "long"
     ));
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final ThenParameter thenParameter;
     private final Project project;
     private final Color originalBackgroundColor;

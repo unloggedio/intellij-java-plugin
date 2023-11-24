@@ -5,6 +5,7 @@ import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.MethodCallAggregate;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.codeInsight.hints.FactoryInlayHintsCollector;
 import com.intellij.codeInsight.hints.InlayHintsSink;
 import com.intellij.codeInsight.hints.presentation.InlayPresentation;
@@ -34,7 +35,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     public static final Integer UNLOGGED_RESPONSE_GROUP = 102;
     private static final Logger logger = LoggerUtil.getInstance(InsidiousInlayHintsCollector.class);
     private final InsidiousService insidiousService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private PsiClass currentClass;
     private ClassMethodAggregates classMethodAggregates;
 

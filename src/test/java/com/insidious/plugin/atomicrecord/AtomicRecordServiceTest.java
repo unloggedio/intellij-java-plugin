@@ -12,6 +12,7 @@ import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
+import com.insidious.plugin.record.AtomicRecordService;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
@@ -39,6 +40,7 @@ public class AtomicRecordServiceTest {
 
         Mockito.when(mockedModuleManager.getModules()).thenReturn(new Module[0]);
         Mockito.when(project.getService(ModuleManager.class)).thenReturn(mockedModuleManager);
+        Mockito.when(project.getService(InsidiousService.class)).thenReturn(insidiousService);
 
         Mockito.when(insidiousService.getProject()).thenReturn(project);
         Mockito.when(insidiousService.getProject().getBasePath()).thenReturn(currentDir);
@@ -49,7 +51,7 @@ public class AtomicRecordServiceTest {
             deleteDirectoryAndFiles(directory);
         }
 
-        atomicRecordService = new AtomicRecordService(insidiousService);
+        atomicRecordService = new AtomicRecordService(project);
         atomicRecordService.checkPreRequisites();
 
         atomicRecordService.setUseNotifications(false);

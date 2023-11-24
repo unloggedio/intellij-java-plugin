@@ -8,7 +8,7 @@ import java.io.IOException;
 
 public class ExceptionUtils {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
 
     public static String prettyPrintException(String exceptionJson) {
         try {

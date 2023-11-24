@@ -98,7 +98,7 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
 
 
         mockFieldSwitchPanel.add(fieldMockSwitch, BorderLayout.EAST);
-        if (!insidiousService.getAgentStateProvider().isAgentRunning()) {
+        if (!insidiousService.isAgentConnected()) {
             fieldMockSwitch.setEnabled(false);
             fieldMockSwitch.setToolTipText("Start your application with unlogged-sdk to enable permanent mocking");
         } else {

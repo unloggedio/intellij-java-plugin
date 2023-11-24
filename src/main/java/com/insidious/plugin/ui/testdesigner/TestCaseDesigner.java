@@ -33,10 +33,7 @@ import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import com.insidious.plugin.util.ClassTypeUtils;
-import com.insidious.plugin.util.ClassUtils;
-import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.UIUtils;
+import com.insidious.plugin.util.*;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
@@ -77,7 +74,7 @@ import java.util.stream.Collectors;
 
 public class TestCaseDesigner implements Disposable {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseDesigner.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     Random random = new Random(new Date().getTime());
     private JPanel mainContainer;
     private JPanel selectedClassDetailsPanel;

@@ -19,7 +19,7 @@ import static com.insidious.plugin.util.ParameterUtils.processResponseForFloatAn
 
 public class DiffUtils {
     static final private Logger logger = LoggerUtil.getInstance(DiffUtils.class);
-    static final private ObjectMapper objectMapper = new ObjectMapper();
+    static final private ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
 
     static public DifferenceResult calculateDifferences(
             StoredCandidate testCandidateMetadata,

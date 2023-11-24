@@ -1,11 +1,7 @@
 package com.insidious.plugin.tester.creator;
 
-import com.insidious.plugin.adapter.MethodAdapter;
-import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.util.UIUtils;
-import com.intellij.navigation.ItemPresentation;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiClass;
@@ -18,10 +14,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
-import java.util.ArrayList;
 import java.util.Collection;
 
-public class UnloggedClassTestCreator extends JavaTestCreator implements ItemPresentation {
+public class UnloggedClassTestCreator extends JavaTestCreator {
 
     private static final Logger logger = LoggerFactory.getLogger(UnloggedClassTestCreator.class);
 
@@ -54,12 +49,12 @@ public class UnloggedClassTestCreator extends JavaTestCreator implements ItemPre
     }
 
 
-    @Override
+    //    @Override
     public @Nullable String getPresentableText() {
         return "Create test using Unlogged";
     }
 
-    @Override
+    //    @Override
     public @Nullable Icon getIcon(boolean unused) {
         return UIUtils.UNLOGGED_ICON_DARK;
     }

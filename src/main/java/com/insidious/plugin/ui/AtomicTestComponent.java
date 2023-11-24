@@ -20,8 +20,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class AtomicTestContainer {
-    private static final Logger logger = LoggerUtil.getInstance(AtomicTestContainer.class);
+public class AtomicTestComponent {
+    private static final Logger logger = LoggerUtil.getInstance(AtomicTestComponent.class);
     private final InsidiousService insidiousService;
     private final MethodExecutorComponent methodExecutorComponent;
     private JPanel mainPanel;
@@ -30,7 +30,7 @@ public class AtomicTestContainer {
     private MethodAdapter lastSelection;
     private Map<String, Boolean> hasShownNewCandidateNotification = new HashMap<>();
 
-    public AtomicTestContainer(InsidiousService insidiousService) {
+    public AtomicTestComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
         methodExecutorComponent = new MethodExecutorComponent(insidiousService);
     }

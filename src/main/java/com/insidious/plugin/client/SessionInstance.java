@@ -38,10 +38,7 @@ import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
-import com.insidious.plugin.util.ClassTypeUtils;
-import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.StreamUtil;
-import com.insidious.plugin.util.StringUtils;
+import com.insidious.plugin.util.*;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmType;
@@ -165,7 +162,7 @@ public class SessionInstance implements Runnable {
         parameterContainer = new ChronicleVariableContainer(parameterIndex);
 
         ParameterProvider parameterProvider = value -> parameterContainer.getParameterByValue(value);
-        daoService = new DaoService(connectionSource, parameterProvider);
+        daoService = new DaoService(connectionSource, parameterProvider, ObjectMapperInstance.getInstance());
 
         if (!dbFileExists && scanEnable) {
             try {

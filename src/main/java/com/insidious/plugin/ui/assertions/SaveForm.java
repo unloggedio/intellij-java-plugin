@@ -16,10 +16,7 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.TestType;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
-import com.insidious.plugin.util.JsonTreeUtils;
-import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.MockIntersection;
-import com.insidious.plugin.util.UIUtils;
+import com.insidious.plugin.util.*;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -48,7 +45,7 @@ import static com.insidious.plugin.util.ParameterUtils.processResponseForFloatAn
 public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
 
     private static final Logger logger = LoggerUtil.getInstance(SaveForm.class);
-    private final static ObjectMapper objectMapper = new ObjectMapper();
+    private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final CandidateLifeListener listener;
     private final StoredCandidate storedCandidate;
     private final AgentCommandResponse<String> agentCommandResponse;

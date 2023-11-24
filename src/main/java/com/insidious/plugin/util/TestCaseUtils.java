@@ -1,6 +1,7 @@
 package com.insidious.plugin.util;
 
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.pojo.*;
@@ -10,7 +11,6 @@ import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.intellij.openapi.diagnostic.Logger;
 
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,8 +18,8 @@ public class TestCaseUtils {
 
     private static final Logger logger = LoggerUtil.getInstance(TestCaseUtils.class);
 
-    public static void generateAllTestCandidateCases(InsidiousService insidiousService) throws Exception {
-        SessionInstance sessionInstance = insidiousService.getClient().getSessionInstance();
+    public static void generateAllTestCandidateCases(InsidiousService insidiousService, VideobugClientInterface videobugClientInterface) throws Exception {
+        SessionInstance sessionInstance = videobugClientInterface.getSessionInstance();
         TestCaseService testCaseService = new TestCaseService(sessionInstance);
 
         TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
@@ -27,8 +27,8 @@ public class TestCaseUtils {
         );
 
         sessionInstance.getAllTestCandidates(testCandidateMetadata -> {
-             TestCaseUnit testCaseUnit;
             try {
+                TestCaseUnit testCaseUnit;
                 Parameter testSubject = testCandidateMetadata.getTestSubject();
                 if (testSubject.isException()) {
                     return;

@@ -21,12 +21,6 @@ import static com.intellij.psi.PsiModifier.ABSTRACT;
 
 public class ClassUtils {
 
-//    private static final ObjectMapper objectMapper = new ObjectMapper();
-
-//    static {
-//        objectMapper.registerModule(new JavaTimeModule());
-//    }
-
     public static String createDummyValue(
             PsiType parameterType,
             List<String> creationStack,
