@@ -3541,7 +3541,7 @@ public class SessionInstance implements Runnable {
         daoService.createOrUpdateProbeInfo(probesToSave);
 
 
-        if (threadState.getCallStack().size() > 100) {
+        if (threadState.getCallStack().size() > 1000) {
             StringBuilder infiniteRecursionDetectedMessage = new StringBuilder(
                     "<html>There was an infinite recursion " +
                             "detected. Events cannot be processed further for thread [" + threadId + "]. " +

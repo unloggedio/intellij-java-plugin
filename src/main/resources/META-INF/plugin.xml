@@ -186,8 +186,8 @@
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
         <applicationService serviceImplementation="com.insidious.plugin.factory.ApplicationConfigurationState"/>
         <testFinder implementation="com.insidious.plugin.tester.testfinder.UnloggedTestFinder"/>
-        <testCreator language="JAVA"
-                     implementationClass="com.insidious.plugin.tester.creator.UnloggedClassTestCreator"/>
+<!--        <testCreator language="JAVA"-->
+<!--                     implementationClass="com.insidious.plugin.tester.creator.UnloggedClassTestCreator"/>-->
 
         <codeInsight.lineMarkerProvider
                 language="JAVA"

@@ -150,6 +150,7 @@ public class AtomicTestContainer {
 //            insidiousService.focusAtomicTestsWindow();
         } else {
             //runs for process_running
+            methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, methodTestCandidates);
             loadComponentForState(currentState);
         }
         long end = new Date().getTime();

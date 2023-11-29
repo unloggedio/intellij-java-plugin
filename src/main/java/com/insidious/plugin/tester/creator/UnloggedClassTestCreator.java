@@ -30,16 +30,16 @@ public class UnloggedClassTestCreator extends JavaTestCreator implements ItemPre
         @NotNull Collection<PsiClass> definedClasses = PsiTreeUtil.findChildrenOfType(
                 file, PsiClass.class);
 
-        InsidiousService insidisousService = project.getService(InsidiousService.class);
-        for (PsiClass definedClass : definedClasses) {
-
-            MethodAdapter methodUnderTest = null;
-            CandidateSearchQuery csquery = CandidateSearchQuery.fromMethod(
-                    methodUnderTest, new ArrayList<>(), ""
-            );
-            insidisousService.getStoredCandidatesFor(csquery);
-
-        }
+//        InsidiousService insidisousService = project.getService(InsidiousService.class);
+//        for (PsiClass definedClass : definedClasses) {
+//
+//            MethodAdapter methodUnderTest = null;
+//            CandidateSearchQuery csquery = CandidateSearchQuery.fromMethod(
+//                    methodUnderTest, new ArrayList<>(), ""
+//            );
+//            insidisousService.getStoredCandidatesFor(csquery);
+//
+//        }
 
         return file.getName().endsWith(".java") &&
                 !project.getService(InsidiousService.class)
