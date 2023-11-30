@@ -2,12 +2,13 @@ package com.insidious.plugin.factory;
 
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import org.json.JSONObject;
 
-public class InsidiousToolWindowFactory implements ToolWindowFactory {
+public class InsidiousToolWindowFactory implements ToolWindowFactory, DumbAware {
     private static final Logger logger = LoggerUtil.getInstance(InsidiousToolWindowFactory.class);
     Project currentProject;
 

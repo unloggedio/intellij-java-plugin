@@ -7,7 +7,7 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.assertions.*;
-import com.insidious.plugin.callbacks.CandidateLifeListener;
+import com.insidious.plugin.callbacks.StoredCandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.mocking.DeclaredMock;
@@ -46,7 +46,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
 
     private static final Logger logger = LoggerUtil.getInstance(SaveForm.class);
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
-    private final CandidateLifeListener listener;
+    private final StoredCandidateLifeListener listener;
     private final StoredCandidate storedCandidate;
     private final AgentCommandResponse<String> agentCommandResponse;
     private final AssertionBlock ruleEditor;
@@ -68,7 +68,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
     public SaveForm(
             StoredCandidate storedCandidate,
             AgentCommandResponse<String> agentCommandResponse,
-            CandidateLifeListener listener
+            StoredCandidateLifeListener listener
     ) {
         this.storedCandidate = storedCandidate;
         this.listener = listener;

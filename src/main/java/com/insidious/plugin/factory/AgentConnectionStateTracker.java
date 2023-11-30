@@ -83,7 +83,6 @@ public class AgentConnectionStateTracker implements AgentConnectionStateNotifier
 
 
     public void onDisconnectedFromAgentServer() {
-
         InsidiousService insidiousService = project.getService(InsidiousService.class);
         insidiousService.onAgentDisconnected();
     }

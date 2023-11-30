@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
-import com.insidious.plugin.callbacks.CandidateLifeListener;
+import com.insidious.plugin.callbacks.StoredCandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.*;
@@ -22,7 +22,7 @@ public class AgentExceptionResponseComponent implements ResponsePreviewComponent
     private static final Logger logger = LoggerUtil.getInstance(AgentExceptionResponseComponent.class);
     final private InsidiousService insidiousService;
     final private AgentCommandResponse<String> response;
-    private final CandidateLifeListener candidateLifeListener;
+    private final StoredCandidateLifeListener storedCandidateLifeListener;
     private StoredCandidate testCandidate;
     private JPanel mainPanel;
     private JPanel contentPanel;
@@ -33,11 +33,11 @@ public class AgentExceptionResponseComponent implements ResponsePreviewComponent
             StoredCandidate testCandidate,
             AgentCommandResponse<String> agentCommandResponse,
             InsidiousService insidiousService,
-            CandidateLifeListener candidateLifeListener
+            StoredCandidateLifeListener storedCandidateLifeListener
     ) {
 
         this.insidiousService = insidiousService;
-        this.candidateLifeListener = candidateLifeListener;
+        this.storedCandidateLifeListener = storedCandidateLifeListener;
         this.testCandidate = testCandidate;
         this.response = agentCommandResponse;
         setupDefLayout();
@@ -72,7 +72,7 @@ public class AgentExceptionResponseComponent implements ResponsePreviewComponent
                 stacktrace = String.valueOf(actualString);
             }
             options = new ExceptionPreviewComponent(responseMessage, stacktrace, insidiousService,
-                    candidateLifeListener, true, false, testCandidate, response);
+                    storedCandidateLifeListener, true, false, testCandidate, response);
             options.setBorderTitle("After");
             JPanel component = options.getComponent();
             afterSection.add(component, BorderLayout.CENTER);
@@ -95,7 +95,7 @@ public class AgentExceptionResponseComponent implements ResponsePreviewComponent
             }
             boolean showDelete = testCandidate.getCandidateId() != null;
             ExceptionPreviewComponent options = new ExceptionPreviewComponent(exceptionMessage,
-                    prettyException, insidiousService, candidateLifeListener, false, showDelete, testCandidate,
+                    prettyException, insidiousService, storedCandidateLifeListener, false, showDelete, testCandidate,
                     response);
             options.setBorderTitle("Before");
             beforeSection.add(options.getComponent(), BorderLayout.CENTER);

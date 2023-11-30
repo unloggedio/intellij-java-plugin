@@ -1,23 +1,11 @@
 package com.insidious.plugin.util;
 
-import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.adapter.ClassAdapter;
-import com.insidious.plugin.pojo.atomic.ClassUnderTest;
-import com.insidious.plugin.ui.methodscope.ClassChosenListener;
-import com.intellij.codeInsight.navigation.ImplementationSearcher;
 import com.intellij.lang.jvm.JvmModifier;
-import com.intellij.lang.jvm.util.JvmClassUtil;
-import com.intellij.notification.NotificationType;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.popup.JBPopup;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
 
 import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.intellij.psi.PsiModifier.ABSTRACT;
 
 public class ClassUtils {
 
@@ -187,66 +175,6 @@ public class ClassUtils {
         } finally {
             creationStack.remove(parameterTypeCanonicalText);
         }
-
-    }
-
-    public static void chooseClassImplementation(ClassAdapter psiClass, ClassChosenListener classChosenListener) {
-
-
-//        JavaPsiFacade.getInstance(psiClass.getProject());
-        ImplementationSearcher implementationSearcher = new ImplementationSearcher();
-        PsiElement[] implementations = implementationSearcher.searchImplementations(
-                psiClass.getSource(), null, true, false
-        );
-        if (implementations == null || implementations.length == 0) {
-            InsidiousNotification.notifyMessage("No implementations found for " + psiClass.getName(),
-                    NotificationType.ERROR);
-            return;
-        }
-        if (implementations.length == 1) {
-            PsiClass singleImplementation = (PsiClass) implementations[0];
-            if (singleImplementation.isInterface() || singleImplementation.hasModifierProperty(ABSTRACT)) {
-                InsidiousNotification.notifyMessage("No implementations found for " + psiClass.getName(),
-                        NotificationType.ERROR);
-                return;
-            }
-            classChosenListener.classSelected(new ClassUnderTest(JvmClassUtil.getJvmClassName(singleImplementation)));
-            return;
-        }
-
-        List<PsiClass> implementationOptions = Arrays.stream(implementations)
-                .map(e -> (PsiClass) e)
-                .filter(e -> !e.isInterface())
-                .filter(e -> !e.hasModifierProperty(ABSTRACT))
-                .collect(Collectors.toList());
-
-        if (implementationOptions.size() == 0) {
-            InsidiousNotification.notifyMessage("No implementations found for " + psiClass.getName(),
-                    NotificationType.ERROR);
-            return;
-        }
-        if (implementationOptions.size() == 1) {
-            classChosenListener.classSelected(
-                    new ClassUnderTest(JvmClassUtil.getJvmClassName(implementationOptions.get(0))));
-            return;
-        }
-        JBPopup implementationChooserPopup = JBPopupFactory
-                .getInstance()
-                .createPopupChooserBuilder(implementationOptions.stream()
-                        .map(PsiClass::getQualifiedName)
-                        .sorted()
-                        .collect(Collectors.toList()))
-                .setTitle("Run using implementation for " + psiClass.getName())
-                .setItemChosenCallback(psiElementName -> {
-                    Arrays.stream(implementations)
-                            .filter(e -> Objects.equals(((PsiClass) e).getQualifiedName(), psiElementName))
-                            .findFirst().ifPresent(e -> {
-                                classChosenListener.classSelected(
-                                        new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) e)));
-                            });
-                })
-                .createPopup();
-        implementationChooserPopup.showInFocusCenter();
 
     }
 

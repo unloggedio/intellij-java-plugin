@@ -9,12 +9,12 @@ import com.intellij.openapi.project.Project;
 import java.awt.*;
 import java.util.List;
 
-public interface CandidateLifeListener {
+public interface StoredCandidateLifeListener {
     void executeCandidate(
             List<StoredCandidate> metadata,
             ClassUnderTest classUnderTest,
             String source,
-            AgentCommandResponseListener<String> stringAgentCommandResponseListener
+            AgentCommandResponseListener<StoredCandidate, String> stringAgentCommandResponseListener
     );
 
     void displayResponse(Component responseComponent, boolean isExceptionFlow);

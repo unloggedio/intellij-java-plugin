@@ -156,8 +156,6 @@ public class AtomicRecordServiceTest {
         Assertions.assertEquals(2,
                 atomicRecordService.getCandidatesByClass(classname).size());
 
-        CandidateSearchQuery query = new CandidateSearchQuery(methodUnderTest, "", List.of());
-
         //test hasStoredCandidates
         boolean hasCandidates = atomicRecordService.hasStoredCandidateForMethod(methodUnderTest);
         //true case

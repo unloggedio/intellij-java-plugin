@@ -8,10 +8,8 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.codeInsight.hints.FactoryInlayHintsCollector;
 import com.intellij.codeInsight.hints.InlayHintsSink;
-import com.intellij.codeInsight.hints.presentation.InlayPresentation;
-import com.intellij.codeInsight.hints.presentation.PresentationFactory;
-import com.intellij.codeInsight.hints.presentation.SequencePresentation;
-import com.intellij.codeInsight.hints.presentation.SpacePresentation;
+import com.intellij.codeInsight.hints.InlayPresentationFactory;
+import com.intellij.codeInsight.hints.presentation.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -21,9 +19,12 @@ import com.intellij.psi.*;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.ui.JBColor;
 import com.intellij.util.containers.JBIterable;
-
+import kotlin.Unit;
+import kotlin.jvm.functions.Function2;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
+import java.awt.event.MouseEvent;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -36,11 +37,13 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     private static final Logger logger = LoggerUtil.getInstance(InsidiousInlayHintsCollector.class);
     private final InsidiousService insidiousService;
     private final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
+    private final Editor editor;
     private PsiClass currentClass;
     private ClassMethodAggregates classMethodAggregates;
 
     public InsidiousInlayHintsCollector(Editor editor) {
         super(editor);
+        this.editor = editor;
         this.insidiousService = editor.getProject().getService(InsidiousService.class);
     }
 
@@ -64,7 +67,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     }
 
     @Override
-    public boolean collect( PsiElement element,  Editor editor,  InlayHintsSink inlayHintsSink) {
+    public boolean collect(PsiElement element, Editor editor, InlayHintsSink inlayHintsSink) {
         if (element instanceof PsiClass) {
             currentClass = (PsiClass) element;
             classMethodAggregates = insidiousService.getClassMethodAggregates(currentClass.getQualifiedName());
@@ -170,8 +173,8 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         return TextRange.create(start.getTextRange().getStartOffset(), element.getTextRange().getEndOffset());
     }
 
-    
-    private InlayPresentation createInlayPresentation(String inlayText) {
+
+    private InlayPresentation createInlayPresentation(final String inlayText) {
 
         PresentationFactory factory = getFactory();
         InlayPresentation text;
@@ -179,9 +182,27 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
             Map valueInMap = objectMapper.readValue(inlayText, Map.class);
             String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(valueInMap);
             text = factory.smallText(prettyJson);
+
         } catch (Exception e) {
             // not a json value
             text = factory.smallText(inlayText);
+//            text = factory.onClick(text, MouseButton.Left, (mouseEvent, point) -> {
+//                logger.warn("inlay clicked: " + inlayText);
+//                return null;
+//            });
+//            new OnHoverPresentation(text, new InlayPresentationFactory.HoverListener() {
+//                @Override
+//                public void onHover(@NotNull MouseEvent mouseEvent, @NotNull Point point) {
+//                    text.
+//                }
+//
+//                @Override
+//                public void onHoverFinished() {
+//
+//                }
+//            })
+//            new WithCursorOnHoverPresentation(text, Cursor.HAND_CURSOR, editor);
+//            factory.withCursorOnHover(text, Cursor.HAND_CURSOR)
         }
 
         InlayPresentation withIcon = text;
@@ -194,7 +215,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 //        });
     }
 
-    
+
     private InlayPresentation createInlayPresentation(Map valueInMap) {
 
         PresentationFactory factory = getFactory();

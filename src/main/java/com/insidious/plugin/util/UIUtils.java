@@ -27,6 +27,8 @@ public class UIUtils {
     public static final Icon EXPLAIN_GREY = IconLoader.getIcon("/icons/png/explain_grey.png", UIUtils.class);
     public static final Icon FIND_BUGS_TEAL = IconLoader.getIcon("/icons/png/findBugsTeal.png", UIUtils.class);
     public static final Icon OPTIMIZE_TEAL = IconLoader.getIcon("/icons/png/optimizeTeal.png", UIUtils.class);
+    public static final Icon DISCONNECTED_ICON = IconLoader.getIcon("/icons/png/record-circle-fill-black.png", UIUtils.class);
+    public static final Icon CONNECTED_ICON = IconLoader.getIcon("/icons/png/record-circle-fill.png", UIUtils.class);
     public static final Icon REFACTOR_TEAL = IconLoader.getIcon("/icons/png/refactorTeal.png", UIUtils.class);
     public static final Icon EXPLAIN_TEAL = IconLoader.getIcon("/icons/png/explainTeal.png", UIUtils.class);
     public static final Icon SAVE_CANDIDATE_GREY = IconLoader.getIcon("/icons/png/save_candidate.png", UIUtils.class);
@@ -111,6 +113,10 @@ public class UIUtils {
     public static Icon ONBOARDING_ICON_TEAL = IconLoader.getIcon("/icons/png/onboarding_icon_teal.png", UIUtils.class);
     public static Icon TEST_CASES_ICON_DARK = IconLoader.getIcon("/icons/png/test_case_icon_dark.png", UIUtils.class);
     public static Icon TEST_CASES_ICON_PINK = IconLoader.getIcon("/icons/png/test_cases_icon_pink.png", UIUtils.class);
+    public static Icon COMPASS_DISCOVER_LINE = IconLoader.getIcon("/icons/png/compass-discover-line.png",
+            UIUtils.class);
+    public static Icon FILTER_LINE = IconLoader.getIcon("/icons/png/filter-line.png",
+            UIUtils.class);
     public static Icon TEST_CASES_ICON_TEAL = IconLoader.getIcon("/icons/png/test_cases_icon_teal.png", UIUtils.class);
     public static Icon WAITING_COMPONENT_WAITING = IconLoader.getIcon("/icons/png/waiting_icon_yellow_64.png",
             UIUtils.class);

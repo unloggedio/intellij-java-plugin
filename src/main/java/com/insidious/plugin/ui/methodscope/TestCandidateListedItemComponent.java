@@ -3,29 +3,24 @@ package com.insidious.plugin.ui.methodscope;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
-import com.insidious.plugin.callbacks.CandidateLifeListener;
+import com.insidious.plugin.callbacks.StoredCandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.ui.components.JBScrollPane;
-import com.intellij.ui.treeStructure.Tree;
-import com.intellij.util.ui.JBUI;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.border.Border;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.TitledBorder;
-import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 public class TestCandidateListedItemComponent {
     public static final String TEST_FAIL_LABEL = "Fail";
@@ -34,27 +29,27 @@ public class TestCandidateListedItemComponent {
     private static final Logger logger = LoggerUtil.getInstance(TestCandidateListedItemComponent.class);
     private final List<String> methodArgumentValues;
     private final Map<String, ArgumentNameValuePair> parameterMap;
-    private final CandidateLifeListener candidateLifeListener;
+    private final StoredCandidateLifeListener storedCandidateLifeListener;
     private StoredCandidate candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
     private JPanel mainContentPanel;
     private JButton executeLabel;
     private JPanel controlPanel;
-    private JPanel controlContainer;
     private JButton generateJunitLabel;
     private JButton saveReplayButton;
     private JPanel parameterPanel;
+    private JPanel controlContainer;
     private JLabel assertionCountLabel;
 
     public TestCandidateListedItemComponent(
             StoredCandidate storedCandidate,
             List<ArgumentNameValuePair> argumentNameValuePairs,
-            CandidateLifeListener candidateLifeListener,
+            StoredCandidateLifeListener storedCandidateLifeListener,
             InsidiousService insidiousService,
             MethodAdapter method) {
         this.candidateMetadata = storedCandidate;
-        this.candidateLifeListener = candidateLifeListener;
+        this.storedCandidateLifeListener = storedCandidateLifeListener;
         this.methodArgumentValues = candidateMetadata.getMethodArguments();
         this.parameterMap = generateParameterMap(argumentNameValuePairs);
         parameterPanel.setLayout(new BorderLayout());
@@ -71,21 +66,20 @@ public class TestCandidateListedItemComponent {
 
         mainPanel.revalidate();
 
-        loadInputTree();
         executeLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                ClassUtils.chooseClassImplementation(method.getContainingClass(), psiClass -> {
+                insidiousService.chooseClassImplementation(method.getContainingClass().getQualifiedName(), psiClass -> {
                     JSONObject eventProperties = new JSONObject();
                     eventProperties.put("className", psiClass.getQualifiedClassName());
                     eventProperties.put("methodName", storedCandidate.getMethod().getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
                     statusLabel.setText("Executing");
-                    candidateLifeListener.executeCandidate(
+                    storedCandidateLifeListener.executeCandidate(
                             Collections.singletonList(candidateMetadata), psiClass, "individual",
                             (candidateMetadata, agentCommandResponse, diffResult) -> {
                                 insidiousService.updateMethodHashForExecutedMethod(method);
-                                candidateLifeListener.onCandidateSelected(candidateMetadata);
+                                storedCandidateLifeListener.onCandidateSelected(candidateMetadata);
                                 insidiousService.triggerGutterIconReload();
                             }
                     );
@@ -95,7 +89,7 @@ public class TestCandidateListedItemComponent {
         generateJunitLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                candidateLifeListener.onGenerateJunitTestCaseRequest(candidateMetadata);
+                storedCandidateLifeListener.onGenerateJunitTestCaseRequest(candidateMetadata);
             }
         });
         saveReplayButton.addMouseListener(new MouseAdapter() {
@@ -106,7 +100,7 @@ public class TestCandidateListedItemComponent {
                 agentCommandResponse.setMethodReturnValue(candidateMetadata.getReturnValue());
                 agentCommandResponse.setResponseType(ResponseType.NORMAL);
 
-                candidateLifeListener.onSaveRequest(candidateMetadata, agentCommandResponse);
+                storedCandidateLifeListener.onSaveRequest(candidateMetadata, agentCommandResponse);
             }
         });
 
@@ -114,7 +108,7 @@ public class TestCandidateListedItemComponent {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (!statusLabel.getText().trim().isEmpty()) {
-                    candidateLifeListener.onCandidateSelected(candidateMetadata);
+                    storedCandidateLifeListener.onCandidateSelected(candidateMetadata);
                 }
             }
         });
@@ -132,13 +126,22 @@ public class TestCandidateListedItemComponent {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                candidateLifeListener.onCandidateSelected(candidateMetadata);
+                storedCandidateLifeListener.onCandidateSelected(candidateMetadata);
             }
         });
 
         mainPanel.setBackground(UIUtils.agentResponseBaseColor);
         parameterPanel.setOpaque(false);
         controlPanel.setOpaque(false);
+
+
+        MethodUnderTest methodUnderTest = candidateMetadata.getMethod();
+
+        String itemLabel = String.format("<html>%s.<bold>%s</bold>() <small>d ms</small></html>",
+                methodUnderTest.getClassName(), methodUnderTest.getName());
+        Component methodNameLabel = new JLabel(
+                itemLabel);
+        parameterPanel.add(methodNameLabel);
 
 
     }
@@ -149,90 +152,6 @@ public class TestCandidateListedItemComponent {
 
     public StoredCandidate getCandidateMetadata() {
         return candidateMetadata;
-    }
-
-    private void loadInputTree() {
-
-        parameterPanel.removeAll();
-        DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
-        Set<String> methodArgumentNames = this.parameterMap.values()
-                .stream().map(ArgumentNameValuePair::getName)
-                .collect(Collectors.toSet());
-        int methodArgumentCount = methodArgumentNames.size();
-        if (methodArgumentCount == 0) {
-            DefaultMutableTreeNode node = new DefaultMutableTreeNode("No arguments");
-            inputRoot.add(node);
-        } else {
-            for (String key : methodArgumentNames) {
-                DefaultMutableTreeNode node = JsonTreeUtils.buildJsonTree(this.parameterMap.get(key).getValue(), key);
-                inputRoot.add(node);
-            }
-        }
-
-        JTree inputTree = new Tree(inputRoot);
-        inputTree.setBorder(JBUI.Borders.empty());
-        inputTree.addTreeSelectionListener(e -> inputTree.clearSelection());
-
-
-        inputTree.setCellRenderer(new IOTreeCellRenderer());
-        inputTree.setRootVisible(false);
-        inputTree.setShowsRootHandles(true);
-
-//        GridLayout gridLayout = new GridLayout(1, 1);
-        int desiredHeightPerInput = 50;
-        int desiredHeight = inputRoot.getLeafCount() * desiredHeightPerInput;
-        if (desiredHeight < 150) {
-            desiredHeight = 150;
-        }
-        if (desiredHeight > 250) {
-            desiredHeight = 250;
-        }
-
-        inputTree.setSize(new Dimension(-1, desiredHeight));
-        inputTree.setMaximumSize(new Dimension(-1, desiredHeight));
-
-        JScrollPane scrollPane = new JBScrollPane(inputTree);
-
-        scrollPane.setPreferredSize(new Dimension(-1, desiredHeight));
-        scrollPane.setMaximumSize(new Dimension(-1, desiredHeight));
-        scrollPane.setSize(new Dimension(-1, desiredHeight));
-
-        mainPanel.setPreferredSize(new Dimension(-1, desiredHeight));
-        mainPanel.setMinimumSize(new Dimension(-1, 100));
-        mainPanel.setMaximumSize(new Dimension(-1, desiredHeight));
-
-        parameterPanel.setSize(new Dimension(-1, desiredHeight));
-
-        parameterPanel.setMaximumSize(new Dimension(-1, desiredHeight));
-        parameterPanel.setPreferredSize(new Dimension(-1, desiredHeight));
-        scrollPane.setBorder(JBUI.Borders.empty());
-        scrollPane.setOpaque(false);
-        scrollPane.getViewport().setOpaque(false);
-        inputTree.setOpaque(false);
-//        inputTree.path
-        inputTree.setBackground(UIUtils.agentResponseBaseColor);
-        parameterPanel.add(scrollPane, BorderLayout.CENTER);
-
-        if (candidateMetadata.getCandidateId() != null && candidateMetadata.getTestAssertions() != null) {
-            int assertionCount = AtomicAssertionUtils.countAssertions(candidateMetadata.getTestAssertions());
-            assertionCountLabel = new JLabel(assertionCount + " assertions");
-            assertionCountLabel.setAlignmentY(1.0F);
-            JPanel countPanel = new JPanel(new BorderLayout());
-
-            Border border1 = countPanel.getBorder();
-            Border margin1 = JBUI.Borders.emptyTop(5);
-            CompoundBorder borderWithMargin1 = new CompoundBorder(border1, margin1);
-            countPanel.setBorder(borderWithMargin1);
-
-            countPanel.add(assertionCountLabel, BorderLayout.WEST);
-            countPanel.setAlignmentY(1.0F);
-            countPanel.setOpaque(false);
-            parameterPanel.add(countPanel, BorderLayout.SOUTH);
-        }
-//        parameterPanel.add(argumentsLabelPanel, BorderLayout.NORTH);
-
-        parameterPanel.revalidate();
-        parameterPanel.repaint();
     }
 
     public Map<String, ArgumentNameValuePair> generateParameterMap(List<ArgumentNameValuePair> argumentNameTypeList) {

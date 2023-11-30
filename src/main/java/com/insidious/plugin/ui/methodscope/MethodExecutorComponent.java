@@ -6,8 +6,7 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
-import com.insidious.plugin.callbacks.CandidateLifeListener;
-import com.insidious.plugin.factory.CandidateSearchQuery;
+import com.insidious.plugin.callbacks.StoredCandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -21,6 +20,7 @@ import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
+import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.util.*;
@@ -31,7 +31,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.util.Computable;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBRadioButton;
 import com.intellij.ui.components.JBScrollPane;
@@ -49,7 +48,7 @@ import java.util.stream.Collectors;
 
 import static com.insidious.plugin.Constants.HOSTNAME;
 
-public class MethodExecutorComponent implements CandidateLifeListener {
+public class MethodExecutorComponent implements StoredCandidateLifeListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
     private final InsidiousService insidiousService;
     private final Map<String, AgentCommandResponse<String>> candidateResponseMap = new HashMap<>();
@@ -116,27 +115,6 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         buttonGroup.add(classOnlyButton);
         buttonGroup.add(methodOnlyButton);
 
-        allButton.addActionListener((e) -> {
-            MethodExecutorComponent.this.candidateFilterType = CandidateFilterType.ALL;
-            refreshSearchAndLoad();
-        });
-
-
-        classOnlyButton.addActionListener((e) -> {
-            MethodExecutorComponent.this.candidateFilterType = CandidateFilterType.ALL;
-            refreshSearchAndLoad();
-        });
-
-
-        methodOnlyButton.addActionListener((e) -> {
-            MethodExecutorComponent.this.candidateFilterType = CandidateFilterType.ALL;
-            refreshSearchAndLoad();
-        });
-
-
-//        filterButtonGroupPanel.add(allButton);
-//        filterButtonGroupPanel.add(classOnlyButton);
-//        filterButtonGroupPanel.add(methodOnlyButton);
     }
 
     public MethodAdapter getCurrentMethod() {
@@ -220,7 +198,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         ApplicationManager.getApplication().invokeLater(() -> {
             JSONObject eventProperties = new JSONObject();
 
-            ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass1 -> {
+            insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(), psiClass1 -> {
                 eventProperties.put("className", psiClass1.getQualifiedClassName());
                 eventProperties.put("methodName", methodName);
                 eventProperties.put("count", methodTestCandidates.size());
@@ -442,7 +420,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
             List<StoredCandidate> testCandidateList,
             ClassUnderTest classUnderTest,
             String source,
-            AgentCommandResponseListener<String> agentCommandResponseListener
+            AgentCommandResponseListener<StoredCandidate, String> agentCommandResponseListener
     ) {
         for (StoredCandidate testCandidate : testCandidateList) {
             executeSingleCandidate(testCandidate, classUnderTest, source, agentCommandResponseListener);
@@ -453,12 +431,12 @@ public class MethodExecutorComponent implements CandidateLifeListener {
             StoredCandidate testCandidate,
             ClassUnderTest classUnderTest,
             String source,
-            AgentCommandResponseListener<String> agentCommandResponseListener
+            AgentCommandResponseListener<StoredCandidate, String> agentCommandResponseListener
     ) {
         List<String> methodArgumentValues = testCandidate.getMethodArguments();
-        ArrayList<DeclaredMock> testCandidateStoredEnabledMockDefination = MockIntersection.enabledStoredMockDefination(insidiousService, testCandidate.getMockIds());
+        ArrayList<DeclaredMock> testCandidateStoredEnabledMockDefinition = MockIntersection.enabledStoredMockDefination(insidiousService, testCandidate.getMockIds());
         AgentCommandRequest agentCommandRequest = MethodUtils.createExecuteRequestWithParameters(
-                methodElement, classUnderTest, methodArgumentValues, true, testCandidateStoredEnabledMockDefination);
+                methodElement, classUnderTest, methodArgumentValues, true, testCandidateStoredEnabledMockDefinition);
 
         TestCandidateListedItemComponent candidateComponent =
                 candidateComponentMap.get(getKeyForCandidate(testCandidate));
@@ -502,25 +480,23 @@ public class MethodExecutorComponent implements CandidateLifeListener {
                     meta.setTimestamp(agentCommandResponse.getTimestamp());
                     meta.setCandidateStatus(getStatusForState(diffResult.getDiffResultType()));
                     if (testCandidate.getCandidateId() != null) {
-                        insidiousService.getAtomicRecordService().setCandidateStateForCandidate(
+                        getProject().getService(AtomicRecordService.class)
+                                .setCandidateStateForCandidate(
                                 testCandidate.getCandidateId(),
                                 agentCommandRequest.getClassName(),
                                 methodUnderTest.getMethodHashKey(),
                                 testCandidate.getMetadata().getCandidateStatus());
                     }
                     candidateComponent.setAndDisplayResponse(diffResult);
+
+
                     agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
                 });
     }
 
 
     private boolean showDifferentStatus(DiffResultType type) {
-        switch (type) {
-            case SAME:
-                return false;
-            default:
-                return true;
-        }
+        return type != DiffResultType.SAME;
     }
 
     private StoredCandidateMetadata.CandidateStatus getStatusForState(DiffResultType type) {
@@ -640,7 +616,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
             candidate.setCandidateId(UUID.randomUUID().toString());
             candidateComponentMap.put(getKeyForCandidate(candidate), candidateItem);
         }
-        insidiousService.getAtomicRecordService()
+        getProject().getService(AtomicRecordService.class)
                 .saveCandidate(MethodUnderTest.fromMethodAdapter(methodElement), candidate);
         candidateItem.getComponent().setEnabled(true);
         candidateItem.setCandidate(candidate);
@@ -656,7 +632,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
     private void triggerReExecute(StoredCandidate candidate) {
         TestCandidateListedItemComponent component = candidateComponentMap.get(
                 getKeyForCandidate(candidate));
-        ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {
+        insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(), psiClass -> {
             JSONObject eventProperties = new JSONObject();
             eventProperties.put("className", psiClass.getQualifiedClassName());
             eventProperties.put("methodName", methodElement.getName());
@@ -708,7 +684,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
     @Override
     public void onDeleted(StoredCandidate storedCandidate) {
-        insidiousService.getAtomicRecordService().deleteStoredCandidate(
+        getProject().getService(AtomicRecordService.class).deleteStoredCandidate(
                 methodUnderTest.getClassName(), methodUnderTest.getMethodHashKey(), storedCandidate.getCandidateId());
         TestCandidateListedItemComponent testCandidateListedItemComponent = candidateComponentMap.get(
                 getKeyForCandidate(storedCandidate));
@@ -724,31 +700,9 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
         if (candidateComponentMap.size() < 3) {
             setListDimensions(calculatePanelHeight());
-            //calling this to ensure that we don't see an empty atomic window.
-            if (candidateComponentMap.size() == 0) {
-                onLastCandidateDeleted();
-            }
         }
     }
 
-    public void onLastCandidateDeleted() {
-//        GutterState currentState = insidiousService.getGutterStateFor(methodElement);
-        //reload this view, to add
-        refreshSearchAndLoad();
-    }
-
-    public void refreshSearchAndLoad() {
-
-        CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(methodElement, candidateFilterType,
-                false);
-
-        List<StoredCandidate> methodTestCandidates =
-                ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
-                        insidiousService.getStoredCandidatesFor(query));
-        logger.warn("Candidates for [ " + query + "] in refreshSearchAndLoad => " + methodTestCandidates.size());
-
-        refreshAndReloadCandidates(methodElement, methodTestCandidates);
-    }
 
     @Override
     public void onUpdated(StoredCandidate storedCandidate) {
@@ -782,16 +736,12 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         );
 
         // mock all calls by default
-        if (loadedTestCandidate != null) {
-            testCaseGenerationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
-        }
+        testCaseGenerationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
 
         testCaseGenerationConfiguration.setTestMethodName(testMethodName);
 
         testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
-        if (loadedTestCandidate != null) {
-            testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
-        }
+        testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
 
         try {
             insidiousService.previewTestCase(methodElement, testCaseGenerationConfiguration);

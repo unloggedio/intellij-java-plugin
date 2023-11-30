@@ -2,7 +2,7 @@ package com.insidious.plugin.ui.Components.AtomicRecord;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.agent.AgentCommandResponse;
-import com.insidious.plugin.callbacks.CandidateLifeListener;
+import com.insidious.plugin.callbacks.StoredCandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.assertions.AssertionBlock;
 import com.insidious.plugin.ui.assertions.AssertionRule;
@@ -10,7 +10,6 @@ import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.util.UIUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.swing.*;
@@ -64,20 +63,20 @@ public class SaveFlowTest {
                 }
             """;
     private String responseSource = "{\"methodReturnValue\":\"{\\\"user_id\\\":1,\\\"username\\\":\\\"Something else\\\",\\\"password\\\":\\\"admin\\\",\\\"email\\\":\\\"admin@jsp_wfm\\\"}\",\"responseType\":\"NORMAL\",\"responseClassName\":\"com.jsp.jspwfm.Models.Entities.User\",\"message\":null,\"targetMethodName\":\"testFetchUser\",\"targetClassName\":\"com.jsp.jspwfm.Controllers.UserController\",\"targetMethodSignature\":\"(Ljava/lang/String;)Lcom/jsp/jspwfm/Models/Entities/User;\",\"timestamp\":1690874956616}";
-    private CandidateLifeListener candidateLifeListener;
+    private StoredCandidateLifeListener storedCandidateLifeListener;
     private StoredCandidate candidate;
     private AgentCommandResponse<String> agentCommandResponse;
 
     @BeforeEach
     public void setup() throws Exception {
-        candidateLifeListener = Mockito.mock(CandidateLifeListener.class);
+        storedCandidateLifeListener = Mockito.mock(StoredCandidateLifeListener.class);
         candidate = objectMapper.readValue(storedCandidateSource, StoredCandidate.class);
         agentCommandResponse = objectMapper.readValue(responseSource, AgentCommandResponse.class);
     }
 
 //    @Test
     public void testComponentManagement() {
-        SaveForm saveForm = new SaveForm(candidate, agentCommandResponse, candidateLifeListener);
+        SaveForm saveForm = new SaveForm(candidate, agentCommandResponse, storedCandidateLifeListener);
 
         AssertionBlock ruleEditor = saveForm.getRuleEditor();
         JTree candidateExplorerTree = saveForm.getCandidateExplorerTree();
@@ -134,7 +133,7 @@ public class SaveFlowTest {
 
 //    @Test
     public void testColorCodes() {
-        SaveForm saveForm = new SaveForm(candidate, agentCommandResponse, candidateLifeListener);
+        SaveForm saveForm = new SaveForm(candidate, agentCommandResponse, storedCandidateLifeListener);
         AssertionRule rootRule = saveForm.getRuleEditor().getAssertionRules().get(0);
 
         //expected : The background color to be green for the default rule.

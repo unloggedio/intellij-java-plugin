@@ -8,10 +8,10 @@ import java.util.List;
 
 public class CandidateSearchQuery {
     private final boolean loadCalls;
+    private final List<String> interfaceNames;
+    private final String argumentsDescriptor;
+    private final CandidateFilterType candidateFilterType;
     MethodUnderTest methodUnderTest;
-    private List<String> interfaceNames;
-    private String argumentsDescriptor;
-    private CandidateFilterType candidateFilterType;
 
     public CandidateSearchQuery(
             MethodUnderTest methodUnderTest,
@@ -27,7 +27,7 @@ public class CandidateSearchQuery {
         this.loadCalls = loadCalls;
     }
 
-    public CandidateSearchQuery(
+    private CandidateSearchQuery(
             MethodUnderTest methodUnderTest,
             String argumentsDescriptor,
             List<String> interfaceNames
@@ -41,12 +41,14 @@ public class CandidateSearchQuery {
 
     public static CandidateSearchQuery fromMethod(MethodAdapter focussedMethod,
                                                   List<String> interfaceQualifiedNamesWithSameMethod,
-                                                  String argumentsDescriptor) {
+                                                  String argumentsDescriptor, CandidateFilterType filterType) {
 
         return new CandidateSearchQuery(
                 MethodUnderTest.fromMethodAdapter(focussedMethod),
                 argumentsDescriptor,
-                interfaceQualifiedNamesWithSameMethod
+                interfaceQualifiedNamesWithSameMethod,
+                filterType,
+                false
         );
     }
 

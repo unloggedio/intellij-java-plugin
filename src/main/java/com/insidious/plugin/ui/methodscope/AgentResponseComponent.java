@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.insidious.plugin.agent.AgentCommandResponse;
-import com.insidious.plugin.callbacks.CandidateLifeListener;
+import com.insidious.plugin.callbacks.StoredCandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
@@ -48,7 +48,7 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
             AgentCommandResponse<String> agentCommandResponse,
             StoredCandidate testCandidate,
             FullViewEventListener fullViewEventListener,
-            CandidateLifeListener candidateLifeListener
+            StoredCandidateLifeListener storedCandidateLifeListener
     ) {
         this.agentCommandResponse = agentCommandResponse;
         this.testCandidate = testCandidate;
@@ -93,11 +93,11 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
 //        }
 
         acceptButton.addActionListener(
-                e -> candidateLifeListener.onSaveRequest(this.testCandidate, agentCommandResponse));
+                e -> storedCandidateLifeListener.onSaveRequest(this.testCandidate, agentCommandResponse));
         if (this.testCandidate.getCandidateId() == null) {
             deleteButton.setVisible(false);
         }
-        deleteButton.addActionListener(e -> candidateLifeListener.onDeleteRequest(this.testCandidate));
+        deleteButton.addActionListener(e -> storedCandidateLifeListener.onDeleteRequest(this.testCandidate));
 
         deleteButton.setIcon(UIUtils.DELETE_CANDIDATE_RED_SVG);
         acceptButton.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);

@@ -1,7 +1,7 @@
 package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.agent.AgentCommandResponse;
-import com.insidious.plugin.callbacks.CandidateLifeListener;
+import com.insidious.plugin.callbacks.StoredCandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.assertions.SaveForm;
@@ -37,7 +37,7 @@ public class ExceptionPreviewComponent {
     private AgentCommandResponse<String> agentCommandResponse;
 
     public ExceptionPreviewComponent(String message, String stacktrace, InsidiousService insidiousService,
-                                     CandidateLifeListener listener, boolean showSave, boolean showDelete,
+                                     StoredCandidateLifeListener listener, boolean showSave, boolean showDelete,
                                      StoredCandidate candidate, AgentCommandResponse<String> agentCommandResponse) {
         this.message = message;
         this.stackTrace = stacktrace;

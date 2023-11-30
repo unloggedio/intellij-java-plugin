@@ -27,10 +27,14 @@ public class ConnectionCheckerService implements Runnable {
             if (newState && !currentState) {
                 currentState = true;
                 ServerMetadata serverMetadata = response.getMethodReturnValue();
-                applicationLevelPublisher.onConnectedToAgentServer(serverMetadata);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    applicationLevelPublisher.onConnectedToAgentServer(serverMetadata);
+                });
             } else if (!newState && currentState) {
                 currentState = false;
-                applicationLevelPublisher.onDisconnectedFromAgentServer();
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    applicationLevelPublisher.onDisconnectedFromAgentServer();
+                });
             }
             try {
                 Thread.sleep(1000);

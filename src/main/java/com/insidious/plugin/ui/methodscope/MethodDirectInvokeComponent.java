@@ -154,7 +154,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
             candidateCountLinkLabel.setVisible(true);
             candidateCountLinkLabel.setText("<HTML><U>" + candidateCount + " recorded execution" + "</U></HTML>");
             candidateCountLinkLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            candidateCountLinkLabel.setForeground(UIUtils.teal);
+            candidateCountLinkLabel.setForeground(UIUtils.tealdark);
             ;
         }
     }
@@ -173,10 +173,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
     private void executeMethodWithParameters() {
 
-        AgentStateProvider agentStateProvider = insidiousService.getAgentStateProvider();
+        boolean isConnected = insidiousService.isAgentConnected();
 //        returnValueTextArea.setFont(SOURCE_CODE);
 
-        if (!agentStateProvider.isAgentRunning()) {
+        if (!isConnected) {
             String message = "Start your application with Java unlogged-sdk to start using " +
                     "method DirectInvoke";
             InsidiousNotification.notifyMessage(message, NotificationType.INFORMATION);
@@ -196,7 +196,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         scrollerContainer.setVisible(true);
 
 
-        ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {
+        insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(), psiClass -> {
             JSONObject eventProperties = new JSONObject();
             eventProperties.put("className", psiClass.getQualifiedClassName());
             eventProperties.put("methodName", methodElement.getName());
@@ -259,7 +259,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                             targetMethodName = agentCommandRequest.getMethodName();
                         }
                         returnValueTextArea.setToolTipText("Timestamp: " +
-                                new Timestamp(agentCommandResponse.getTimestamp()).toString() + " from "
+                                new Timestamp(agentCommandResponse.getTimestamp()) + " from "
                                 + targetClassName + "." + targetMethodName + "( " + " )");
                         if (responseType == null) {
                             panelTitledBoarder.setTitle("Method response: " + responseObjectClassName);

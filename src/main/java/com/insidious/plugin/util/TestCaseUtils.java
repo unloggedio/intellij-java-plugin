@@ -51,7 +51,7 @@ public class TestCaseUtils {
                 throw new RuntimeException(e);
             }
 
-        });
+        }, 0);
     }
 
 }

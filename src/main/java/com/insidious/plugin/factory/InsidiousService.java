@@ -9,7 +9,6 @@ import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.*;
-import com.insidious.plugin.atomicrecord.AtomicRecordService;
 import com.insidious.plugin.auth.RequestAuthentication;
 import com.insidious.plugin.auth.SimpleAuthority;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
@@ -23,20 +22,23 @@ import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.TestCaseUnit;
+import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
+import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.*;
 import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.methodscope.*;
+import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
-import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
 import com.intellij.debugger.DebuggerManagerEx;
 import com.intellij.debugger.impl.DebuggerSession;
@@ -46,9 +48,11 @@ import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffManager;
 import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.SimpleDiffRequest;
-import com.intellij.ide.startup.ServiceNotReadyException;
+import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.compiler.CompileStatusNotification;
 import com.intellij.openapi.compiler.CompilerManager;
@@ -62,29 +66,26 @@ import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.module.Module;
-import com.intellij.openapi.module.ModuleManager;
-import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.popup.JBPopup;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Disposer;
-import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
-import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import java.awt.*;
@@ -104,54 +105,45 @@ import java.util.stream.Collectors;
 
 import static com.insidious.plugin.agent.AgentCommandRequestType.DIRECT_INVOKE;
 import static com.insidious.plugin.util.AtomicRecordUtils.filterStoredCandidates;
+import static com.intellij.psi.PsiModifier.ABSTRACT;
 
 @Storage("insidious.xml")
 final public class InsidiousService implements
         Disposable, NewTestCandidateIdentifiedListener,
-        GutterStateProvider, ConnectionStateListener {
+        GutterStateProvider {
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
-    private final static ObjectMapper objectMapper = new ObjectMapper();
-    final static private int TOOL_WINDOW_HEIGHT = 430;
+    private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     final static private int TOOL_WINDOW_WIDTH = 500;
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
-    private final AgentClient agentClient;
+    private final UnloggedSdkApiAgent unloggedSdkApiAgent;
     private final SessionLoader sessionLoader;
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
-    final private AgentStateProvider agentStateProvider;
     private final Map<String, String> candidateIndividualContextMap = new TreeMap<>();
-    private final ActiveSessionManager sessionManager;
     private final JUnitTestCaseWriter junitTestCaseWriter;
     private final Map<String, Boolean> classModifiedFlagMap = new HashMap<>();
     private final Map<SaveForm, FileEditor> saveFormEditorMap = new HashMap<>();
     private final InsidiousConfigurationState configurationState;
-    private final ApplicationConfigurationState applicationConfigurationState;
-    private ActiveHighlight currentActiveHighlight = null;
-    private Project project;
+    private final Project project;
+    private final Map<String, GutterState> cachedGutterState = new HashMap<>();
+    private final GetProjectSessionsCallback sessionListener;
+    private final ActiveSessionManager sessionManager;
+    private final CurrentState currentState = new CurrentState();
     private VideobugClientInterface client;
-    private Module currentModule;
-    private ToolWindow toolWindow;
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
-    private TestCaseDesigner testCaseDesignerWindow;
     private TestCaseService testCaseService;
-    private SessionInstance sessionInstance;
-    private boolean initiated = false;
-    private Content testDesignerContent;
+    private TestCaseDesigner testCaseDesignerWindow;
     private MethodDirectInvokeComponent methodDirectInvokeComponent;
+    private CoverageReportComponent coverageReportComponent;
+    private StompComponent stompWindow;
+    private AtomicTestComponent atomicTestComponentWindow;
+    private Content testDesignerContent;
     private Content directMethodInvokeContent;
     private Content atomicTestContent;
-    private AtomicTestContainer atomicTestContainerWindow;
-    private MethodAdapter currentMethod;
-    private AtomicRecordService atomicRecordService;
-    private CoverageReportComponent coverageReportComponent;
-    private boolean codeCoverageHighlightEnabled = true;
-    private HighlightedRequest currentHighlightedRequest = null;
-    private boolean testCaseDesignerWindowAdded = false;
+    private Content stompWindowContent;
     private Content introPanelContent = null;
-    private Map<String, GutterState> cachedGutterState = new HashMap<>();
-    private GetProjectSessionsCallback sessionListener;
 
 
     public InsidiousService(Project project) {
@@ -285,27 +277,12 @@ final public class InsidiousService implements
         EditorEventMulticaster multicaster = EditorFactory.getInstance().getEventMulticaster();
         InsidiousCaretListener listener = new InsidiousCaretListener();
         multicaster.addEditorMouseListener(listener, this);
-        agentStateProvider = new DefaultAgentStateProvider(this);
-        agentClient = new AgentClient("http://localhost:12100", (ConnectionStateListener) agentStateProvider);
+        unloggedSdkApiAgent = new UnloggedSdkApiAgent("http://localhost:12100");
+        ConnectionCheckerService connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgent);
+        threadPoolExecutor.submit(connectionCheckerService);
         junitTestCaseWriter = new JUnitTestCaseWriter(project, objectMapper);
         configurationState = project.getService(InsidiousConfigurationState.class);
-        applicationConfigurationState =
-                ApplicationManager.getApplication().getService(ApplicationConfigurationState.class);
 
-        ApplicationManager.getApplication().invokeLater(() -> {
-            if (project.isDisposed()) {
-                return;
-            }
-            ToolWindow unlogged = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
-            if (unlogged != null) {
-                this.init(this.project, unlogged);
-            } else {
-                project.getService(DumbService.class)
-                        .runWhenSmart(() -> {
-                            this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
-                        });
-            }
-        });
     }
 
     //    @Unlogged
@@ -317,33 +294,88 @@ final public class InsidiousService implements
         return agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
     }
 
-    public MethodAdapter getCurrentMethod() {
-        return this.currentMethod;
+    public void chooseClassImplementation(String className, ClassChosenListener classChosenListener) {
+
+
+        PsiClass psiClass1 = JavaPsiFacade.getInstance(project)
+                .findClass(className, GlobalSearchScope.projectScope(project));
+
+        ImplementationSearcher implementationSearcher = new ImplementationSearcher();
+        PsiElement[] implementations = implementationSearcher.searchImplementations(
+                psiClass1, null, true, false
+        );
+        if (implementations == null || implementations.length == 0) {
+            InsidiousNotification.notifyMessage("No implementations found for " + className,
+                    NotificationType.ERROR);
+            return;
+        }
+        if (implementations.length == 1) {
+            PsiClass singleImplementation = (PsiClass) implementations[0];
+            if (singleImplementation.isInterface() || singleImplementation.hasModifierProperty(ABSTRACT)) {
+                InsidiousNotification.notifyMessage("No implementations found for " + className,
+                        NotificationType.ERROR);
+                return;
+            }
+            classChosenListener.classSelected(new ClassUnderTest(JvmClassUtil.getJvmClassName(singleImplementation)));
+            return;
+        }
+
+        List<PsiClass> implementationOptions = Arrays.stream(implementations)
+                .map(e -> (PsiClass) e)
+                .filter(e -> !e.isInterface())
+                .filter(e -> !e.hasModifierProperty(ABSTRACT))
+                .collect(Collectors.toList());
+
+        if (implementationOptions.size() == 0) {
+            InsidiousNotification.notifyMessage("No implementations found for " + className,
+                    NotificationType.ERROR);
+            return;
+        }
+        if (implementationOptions.size() == 1) {
+            classChosenListener.classSelected(
+                    new ClassUnderTest(JvmClassUtil.getJvmClassName(implementationOptions.get(0))));
+            return;
+        }
+        JBPopup implementationChooserPopup = JBPopupFactory
+                .getInstance()
+                .createPopupChooserBuilder(implementationOptions.stream()
+                        .map(PsiClass::getQualifiedName)
+                        .sorted()
+                        .collect(Collectors.toList()))
+                .setTitle("Run using implementation for " + className)
+                .setItemChosenCallback(psiElementName -> {
+                    Arrays.stream(implementations)
+                            .filter(e -> Objects.equals(((PsiClass) e).getQualifiedName(), psiElementName))
+                            .findFirst().ifPresent(e -> {
+                                classChosenListener.classSelected(
+                                        new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) e)));
+                            });
+                })
+                .createPopup();
+        implementationChooserPopup.showInFocusCenter();
+
     }
 
-    private synchronized void start() {
+    public MethodAdapter getCurrentMethod() {
+        return this.currentState.getCurrentMethod();
+    }
+
+    public void init() {
+
         try {
-
             logger.info("started insidious service - project name - " + project.getName());
-            if (ModuleManager.getInstance(project).getModules().length == 0) {
-                logger.warn("no module found in the project");
-            } else {
-                currentModule = ModuleManager.getInstance(project).getModules()[0];
-                logger.info("current module - " + currentModule.getName());
-            }
-            this.atomicRecordService = new AtomicRecordService(this);
-            this.atomicRecordService.init();
-            this.initiateUI();
+            AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
+            initiateUI();
 
-        } catch (ServiceNotReadyException snre) {
-            snre.printStackTrace();
-            logger.info("service not ready exception -> " + snre.getMessage());
-        } catch (ProcessCanceledException ignored) {
-            ignored.printStackTrace();
         } catch (Throwable e) {
-            e.printStackTrace();
             logger.error("exception in unlogged service init", e);
+            JSONObject properties = new JSONObject();
+            properties.put("message", e.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent(
+                    "PLUGIN_START_FAILED", properties
+            );
         }
+
 
     }
 
@@ -355,18 +387,6 @@ final public class InsidiousService implements
 //        logger.info(selection);
     }
 
-    public synchronized void init(Project project, ToolWindow toolWindow) {
-        if (toolWindow == null) {
-            return;
-        }
-        if (this.initiated) {
-            return;
-        }
-        this.initiated = true;
-        this.project = project;
-        this.toolWindow = toolWindow;
-        start();
-    }
 
     public TestCaseUnit getTestCandidateCode(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
         TestCaseService testCaseService = getTestCaseService();
@@ -394,10 +414,11 @@ final public class InsidiousService implements
 
     public synchronized void previewTestCase(MethodAdapter methodElement, TestCaseGenerationConfiguration generationConfiguration) {
 
-        if (!testCaseDesignerWindowAdded) {
+        if (!currentState.isTestCaseDesignerWindowAdded()) {
+            ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
             ContentManager contentManager = toolWindow.getContentManager();
             contentManager.addContent(testDesignerContent);
-            testCaseDesignerWindowAdded = true;
+            currentState.setTestCaseDesignerWindowAdded(true);
         }
 
         UsageInsightTracker.getInstance().RecordEvent(
@@ -414,8 +435,9 @@ final public class InsidiousService implements
             return;
         }
 
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
         ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
-        if (this.toolWindow == null) {
+        if (toolWindow == null) {
             UsageInsightTracker.getInstance().RecordEvent("ToolWindowNull", new JSONObject());
             logger.warn("tool window is null");
             return;
@@ -427,7 +449,7 @@ final public class InsidiousService implements
         } catch (NullPointerException npe) {
             // ignored
         }
-        ContentManager contentManager = this.toolWindow.getContentManager();
+        ContentManager contentManager = toolWindow.getContentManager();
 
         if (!configurationState.hasShownFeatures()) {
             configurationState.setShownFeatures();
@@ -449,8 +471,9 @@ final public class InsidiousService implements
         if (testCaseDesignerWindow != null) {
             return;
         }
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
         ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
-        ContentManager contentManager = this.toolWindow.getContentManager();
+        ContentManager contentManager = toolWindow.getContentManager();
 
         // test case designer form
         testCaseDesignerWindow = new TestCaseDesigner();
@@ -461,18 +484,26 @@ final public class InsidiousService implements
         testDesignerContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
 //        contentManager.addContent(testDesignerContent);
 
+        // stomp window
+        stompWindow = new StompComponent(this);
+        stompWindowContent =
+                contentFactory.createContent(stompWindow.getComponent(), "Stomp", false);
+        stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
+        contentManager.addContent(stompWindowContent);
+
         // method executor window
-        atomicTestContainerWindow = new AtomicTestContainer(this);
+        atomicTestComponentWindow = new AtomicTestComponent(this);
         atomicTestContent =
-                contentFactory.createContent(atomicTestContainerWindow.getComponent(), "Get Started", false);
+                contentFactory.createContent(atomicTestComponentWindow.getComponent(), "Get Started", false);
         atomicTestContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
         contentManager.addContent(atomicTestContent);
 
-        if (agentStateProvider.isAgentRunning()) {
-            atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
+        if (currentState.isAgentServerRunning()) {
+            atomicTestComponentWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
         } else {
-            atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+            atomicTestComponentWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
         }
 
 
@@ -484,7 +515,7 @@ final public class InsidiousService implements
         contentManager.addContent(this.directMethodInvokeContent);
 
 
-        SingleWindowView singleWindowView = new SingleWindowView(project, this);
+        SingleWindowView singleWindowView = new SingleWindowView(project);
         singleWindowContent = contentFactory.createContent(singleWindowView.getContent(),
                 "Raw Cases", false);
 
@@ -511,15 +542,14 @@ final public class InsidiousService implements
         logger.warn("Disposing InsidiousService for project: " + project.getName());
         threadPoolExecutor.shutdownNow();
         sessionLoader.removeListener(sessionListener);
-        if (this.client != null) {
-            this.client.close();
-            this.client = null;
-            currentModule = null;
+        if (client != null) {
+            client.close();
+            client = null;
         }
-        agentClient.close();
-        if (this.sessionInstance != null) {
+        unloggedSdkApiAgent.close();
+        if (currentState.getSessionInstance() != null) {
             try {
-                this.sessionInstance.close();
+                currentState.getSessionInstance().close();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -561,7 +591,8 @@ final public class InsidiousService implements
         if (rawViewAdded) {
             return;
         }
-        ContentManager contentManager = this.toolWindow.getContentManager();
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
+        ContentManager contentManager = toolWindow.getContentManager();
         contentManager.addContent(singleWindowContent);
         rawViewAdded = true;
     }
@@ -577,7 +608,7 @@ final public class InsidiousService implements
             return;
         }
 
-        currentMethod = method;
+        currentState.setCurrentMethod(method);
         final ClassAdapter psiClass;
         try {
             psiClass = method.getContainingClass();
@@ -591,7 +622,8 @@ final public class InsidiousService implements
         }
 
 
-        if (!this.toolWindow.isVisible()) {
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
+        if (!toolWindow.isVisible()) {
             logger.warn("test case designer window is not ready to create test case");
             return;
         }
@@ -600,7 +632,8 @@ final public class InsidiousService implements
         }
 
         methodDirectInvokeComponent.renderForMethod(method);
-        atomicTestContainerWindow.triggerMethodExecutorRefresh(method);
+        atomicTestComponentWindow.triggerMethodExecutorRefresh(method);
+//        stompWindow.refresh(method);
 //        testCaseDesignerWindow.renderTestDesignerInterface(method);
     }
 
@@ -674,7 +707,8 @@ final public class InsidiousService implements
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
             try {
-                AgentCommandResponse<String> agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
+                AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(
+                        agentCommandRequest);
                 logger.warn("agent command response - " + agentCommandResponse);
                 InsidiousNotification.notifyMessage(
                         agentCommandResponse.getMessage(), NotificationType.INFORMATION
@@ -704,7 +738,8 @@ final public class InsidiousService implements
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
             try {
-                AgentCommandResponse<String> agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
+                AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(
+                        agentCommandRequest);
                 logger.warn("agent command response - " + agentCommandResponse);
                 InsidiousNotification.notifyMessage(
                         agentCommandResponse.getMessage(), NotificationType.INFORMATION
@@ -757,19 +792,34 @@ final public class InsidiousService implements
         }
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            ApplicationManager.getApplication().runReadAction(() -> {
+                try {
+                    AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(
+                            agentCommandRequest);
+                    logger.warn("agent command response - " + agentCommandResponse);
+                    if (executionResponseListener != null) {
+                        cachedGutterState.remove(methodUnderTest.getMethodHashKey());
 
-            try {
-                AgentCommandResponse<String> agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
-                logger.warn("agent command response - " + agentCommandResponse);
-                if (executionResponseListener != null) {
-                    cachedGutterState.remove(methodUnderTest.getMethodHashKey());
-                    executionResponseListener.onExecutionComplete(agentCommandRequest, agentCommandResponse);
-                } else {
-                    logger.warn("no body listening for the response");
+                        // TODO: search by signature and remove loop
+                        PsiMethod[] methodPsiList = JavaPsiFacade.getInstance(project)
+                                .findClass(agentCommandRequest.getClassName(), GlobalSearchScope.projectScope(project))
+                                .findMethodsByName(agentCommandRequest.getMethodName(), true);
+                        for (PsiMethod psiMethod : methodPsiList) {
+                            if (psiMethod.getName().equals(agentCommandRequest.getMethodName())) {
+                                updateMethodHashForExecutedMethod(new JavaMethodAdapter(psiMethod));
+                            }
+                        }
+                        triggerGutterIconReload();
+
+                        executionResponseListener.onExecutionComplete(agentCommandRequest, agentCommandResponse);
+                    } else {
+                        logger.warn("no body listening for the response");
+                    }
+                } catch (IOException e) {
+                    logger.warn("failed to execute command - " + e.getMessage(), e);
                 }
-            } catch (IOException e) {
-                logger.warn("failed to execute command - " + e.getMessage(), e);
-            }
+
+            });
         });
     }
 
@@ -778,7 +828,7 @@ final public class InsidiousService implements
 
         PsiClass springUserDetailsClass = JavaPsiFacade.getInstance(project)
                 .findClass("org.springframework.security.core.userdetails.UserDetails",
-                        GlobalSearchScope.projectScope(project));
+                        GlobalSearchScope.allScope(project));
         requestAuthentication.setAuthenticated(true);
         requestAuthentication.setAuthorities(List.of(new SimpleAuthority("ROLE_ADMIN")));
         requestAuthentication.setCredential("password");
@@ -790,15 +840,15 @@ final public class InsidiousService implements
         }
 
 
-
         ImplementationSearcher implementationSearcher = new ImplementationSearcher();
         PsiElement[] implementations = implementationSearcher.searchImplementations(
-                springUserDetailsClass, null, true, false
+                springUserDetailsClass, null, false, false
         );
         if (implementations == null || implementations.length == 0) {
             return requestAuthentication;
         }
 
+        List<String> classNameOptions = new ArrayList<>();
         for (PsiElement implementation : implementations) {
             boolean match = false;
             PsiClass implementsPsi = (PsiClass) implementation;
@@ -806,24 +856,27 @@ final public class InsidiousService implements
                 if (implementsListType.getName().endsWith("UserDetails")) {
                     // yes match
                     match = true;
+                    String qualifiedName = implementsPsi.getQualifiedName();
+                    if (qualifiedName == null) {
+                        continue;
+                    }
+                    classNameOptions.add(qualifiedName);
                     break;
                 }
             }
-            if (match) {
-                String userAuthClassName = implementsPsi.getQualifiedName();
-                if (userAuthClassName == null) {
-                    continue;
-                }
-                requestAuthentication.setPrincipalClassName(userAuthClassName);
-                PsiClassType typeInstance = PsiClassType.getTypeByName(userAuthClassName, project,
-                        GlobalSearchScope.projectScope(project));
-                String dummyValue = ClassUtils.createDummyValue(typeInstance, new ArrayList<>(), project);
+        }
 
-                requestAuthentication.setPrincipal(dummyValue);
+        if (classNameOptions.size() > 0) {
+            Optional<String> classNameNotFromSprint = classNameOptions.stream()
+                    .filter(e -> !e.contains("springframework"))
+                    .findFirst();
+            String userAuthClassName = classNameNotFromSprint.orElseGet(() -> classNameOptions.get(0));
+            requestAuthentication.setPrincipalClassName(userAuthClassName);
+            PsiClassType typeInstance = PsiClassType.getTypeByName(userAuthClassName, project,
+                    GlobalSearchScope.projectScope(project));
+            String dummyValue = ClassUtils.createDummyValue(typeInstance, new ArrayList<>(), project);
 
-                break;
-            }
-
+            requestAuthentication.setPrincipal(dummyValue);
         }
 
 
@@ -839,6 +892,7 @@ final public class InsidiousService implements
 
     public synchronized void setSession(ExecutionSession executionSession) {
 
+        SessionInstance sessionInstance = currentState.getSessionInstance();
         if (sessionInstance != null) {
             try {
                 logger.info("Closing existing session: " + sessionInstance.getExecutionSession().getSessionId());
@@ -853,68 +907,31 @@ final public class InsidiousService implements
         this.classModifiedFlagMap.clear();
         logger.info("Loading new session: " + executionSession.getSessionId() + " => " + project.getName());
         sessionInstance = sessionManager.createSessionInstance(executionSession, project);
+        currentState.setSessionInstance(sessionInstance);
         sessionInstance.addTestCandidateListener(this);
+
         client.setSessionInstance(sessionInstance);
         testCaseService = new TestCaseService(sessionInstance);
-
+        if (stompWindow != null) {
+            sessionInstance.addSessionScanEventListener(stompWindow.getScanEventListener());
+            stompWindow.loadNewCandidates();
+        }
     }
 
     public void openToolWindow() {
-        toolWindow.show(null);
+        ToolWindowManager.getInstance(project).getToolWindow("Unlogged")
+                .show(null);
     }
 
 
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
-        logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "] => " + project.getName());
-        cachedGutterState.clear();
-        DumbService dumbService = DumbService.getInstance(project);
-        if (dumbService.isDumb()) {
-            dumbService.runWhenSmart(() -> {
-                onNewTestCandidateIdentified(completedCount, totalCount);
-            });
-            return;
-        }
-
-        ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
-
-
-        Editor[] currentOpenEditorsList = EditorFactory.getInstance().getAllEditors();
-        for (Editor editor : currentOpenEditorsList) {
-            VirtualFile virtualFile = FileDocumentManager.getInstance().getFile(editor.getDocument());
-            if (virtualFile instanceof LightVirtualFile) {
-                continue;
-            }
-
-            PsiFile psiFile = ApplicationManager.getApplication().runReadAction(
-                    (ThrowableComputable<PsiFile, RuntimeException>) () -> PsiDocumentManager.getInstance(project)
-                            .getPsiFile(editor.getDocument()));
-            if (psiFile == null) {
-                continue;
-            }
-            ApplicationManager.getApplication().runReadAction(
-                    () -> DaemonCodeAnalyzer.getInstance(project).restart(psiFile));
-        }
-        if (this.toolWindow == null) {
-            return;
-        }
-
-        if (atomicTestContainerWindow == null) {
-            return;
-        }
-
-        if (currentMethod == null) {
-            return;
-        }
-
-        ApplicationManager.getApplication().invokeLater(() -> {
-            atomicTestContainerWindow.triggerMethodExecutorRefresh(currentMethod);
-            methodDirectInvokeComponent.renderForMethod(currentMethod);
-        });
-
+        stompWindow.loadNewCandidates();
     }
 
     public void updateCoverageReport() {
+
+        SessionInstance sessionInstance = currentState.getSessionInstance();
         if (coverageReportComponent == null || sessionInstance == null) {
             return;
         }
@@ -924,6 +941,7 @@ final public class InsidiousService implements
         CodeCoverageData coverageData = sessionInstance.createCoverageData();
 
         List<PackageCoverageData> updatedPackageList = new ArrayList<>();
+        AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
 
         for (PackageCoverageData packageCoverageData : coverageData.getPackageCoverageDataList()) {
             List<ClassCoverageData> updatedClassList = new ArrayList<>();
@@ -979,33 +997,35 @@ final public class InsidiousService implements
     }
 
 
-    public CandidateSearchQuery createSearchQueryForMethod(MethodAdapter currentMethod) {
+    public CandidateSearchQuery createSearchQueryForMethod(MethodAdapter currentMethod, CandidateFilterType candidateFilterType) {
         return CandidateSearchQuery.fromMethod(currentMethod,
                 getInterfacesWithSameSignature(currentMethod),
-                getMethodArgsDescriptor(currentMethod));
+                getMethodArgsDescriptor(currentMethod), candidateFilterType);
     }
 
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
-        if (sessionInstance == null) {
+        if (currentState.getSessionInstance() == null) {
             setSession(sessionManager.loadDefaultSession());
+            return new ClassMethodAggregates();
         }
-        return sessionInstance.getClassMethodAggregates(qualifiedName);
+        return currentState.getSessionInstance().getClassMethodAggregates(qualifiedName);
     }
 
 
     public ExecutionSession getCurrentExecutionSession() {
-        return sessionInstance.getExecutionSession();
+        return currentState.getSessionInstance().getExecutionSession();
     }
 
     public SessionInstance getSessionInstance() {
-        return sessionInstance;
+        return currentState.getSessionInstance();
     }
 
     @Override
     public GutterState getGutterStateFor(MethodAdapter method) {
         // agent exists but cannot connect with agent server
         // so no process is running with the agent
-        if (!agentStateProvider.isAgentRunning() || sessionInstance == null) {
+        SessionInstance sessionInstance = currentState.getSessionInstance();
+        if (!currentState.isAgentServerRunning() || sessionInstance == null) {
             return GutterState.PROCESS_NOT_RUNNING;
         }
 
@@ -1015,9 +1035,10 @@ final public class InsidiousService implements
             return cachedGutterState.get(methodHashKey);
         }
 
-        CandidateSearchQuery query = createSearchQueryForMethod(method);
+        CandidateSearchQuery query = createSearchQueryForMethod(method, CandidateFilterType.METHOD);
 
-        List<TestCandidateMetadata> candidates = getTestCandidateMetadata(query);
+        List<TestCandidateMetadata> candidates = getTestCandidatesFromSession(query);
+        AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
 
         //check for stored candidates here
         boolean hasStoredCandidates = atomicRecordService.hasStoredCandidateForMethod(methodUnderTest);
@@ -1052,7 +1073,8 @@ final public class InsidiousService implements
             //update hash after execution is complete for this method,
             //to prevent state change before exec complete.
             classModifiedFlagMap.put(methodUnderTest.getClassName(), true);
-            ApplicationManager.getApplication().invokeLater(() -> highlightLines(currentHighlightedRequest));
+            ApplicationManager.getApplication()
+                    .invokeLater(() -> highlightLines(currentState.getCurrentHighlightedRequest()));
             cachedGutterState.put(methodHashKey, GutterState.EXECUTE);
             return GutterState.EXECUTE;
         }
@@ -1106,20 +1128,21 @@ final public class InsidiousService implements
 //        {
 //            return GutterState.NO_AGENT;
 //        }
-        if (agentStateProvider.isAgentRunning()) {
+        if (currentState.isAgentServerRunning()) {
             return GutterState.PROCESS_RUNNING;
         } else {
             return GutterState.PROCESS_NOT_RUNNING;
         }
     }
 
-    public List<TestCandidateMetadata> getTestCandidateMetadata(CandidateSearchQuery candidateSearchQuery) {
+    public List<TestCandidateMetadata> getTestCandidatesFromSession(CandidateSearchQuery candidateSearchQuery) {
         if (candidateSearchQuery == null) {
             return List.of();
         }
         if (DumbService.getInstance(project).isDumb()) {
             return List.of();
         }
+        SessionInstance sessionInstance = currentState.getSessionInstance();
         List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesForAllMethod(candidateSearchQuery);
 
 
@@ -1171,8 +1194,9 @@ final public class InsidiousService implements
         }
 
 
-        List<TestCandidateMetadata> candidateMetadataList = getTestCandidateMetadata(candidateSearchQuery);
+        List<TestCandidateMetadata> candidateMetadataList = getTestCandidatesFromSession(candidateSearchQuery);
         MethodUnderTest methodUnderTest = MethodUnderTest.fromCandidateSearchQuery(candidateSearchQuery);
+        AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
 
         List<StoredCandidate> candidates = atomicRecordService.getStoredCandidatesForMethod(methodUnderTest);
 
@@ -1256,10 +1280,11 @@ final public class InsidiousService implements
     }
 
     public void updateScaffoldForState(GutterState state) {
-        if (this.atomicTestContainerWindow != null) {
-            atomicTestContainerWindow.loadComponentForState(state);
+        if (this.atomicTestComponentWindow != null) {
+            atomicTestComponentWindow.loadComponentForState(state);
             if (this.atomicTestContent != null) {
-                this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent);
+                ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
+                toolWindow.getContentManager().setSelectedContent(this.atomicTestContent);
             }
         }
     }
@@ -1269,6 +1294,7 @@ final public class InsidiousService implements
     }
 
     public void focusDirectInvokeTab() {
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
         if (toolWindow == null || directMethodInvokeContent == null) {
             return;
         }
@@ -1277,6 +1303,7 @@ final public class InsidiousService implements
     }
 
     public void focusTestCaseDesignerTab() {
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
         if (toolWindow == null || testDesignerContent == null) {
             return;
         }
@@ -1313,7 +1340,7 @@ final public class InsidiousService implements
         if (selectedEditor == null) {
             StoredCandidate candidate = saveForm.getStoredCandidate();
             selectedEditor = InsidiousUtils.focusProbeLocationInEditor(0,
-                    candidate.getMethod().getClassName(), this);
+                    candidate.getMethod().getClassName(), this.getProject());
             if (selectedEditor == null) {
                 InsidiousNotification.notifyMessage(
                         "No editor tab is open, please open an editor tab",
@@ -1366,58 +1393,29 @@ final public class InsidiousService implements
     }
 
     public void setAgentProcessState(GutterState newState) {
-        if (this.atomicTestContainerWindow != null) {
-            atomicTestContainerWindow.loadComponentForState(newState);
+        if (this.atomicTestComponentWindow != null) {
+            atomicTestComponentWindow.loadComponentForState(newState);
         }
     }
 
     public void compileAndExecuteWithAgentForMethod(JavaMethodAdapter methodAdapter) {
-        atomicTestContainerWindow.triggerMethodExecutorRefresh(methodAdapter);
-        atomicTestContainerWindow.triggerCompileAndExecute();
+        atomicTestComponentWindow.triggerMethodExecutorRefresh(methodAdapter);
+        atomicTestComponentWindow.triggerCompileAndExecute();
     }
 
 
     public void focusAtomicTestsWindow() {
         if (this.atomicTestContent != null) {
-            this.toolWindow.getContentManager().setSelectedContent(this.atomicTestContent);
-            this.toolWindow.show(null);
-
+            ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
+            toolWindow.getContentManager().setSelectedContent(this.atomicTestContent);
+            toolWindow.show(null);
         }
     }
 
-    public AgentStateProvider getAgentStateProvider() {
-        return agentStateProvider;
+    public boolean isAgentConnected() {
+        return currentState.isAgentServerRunning();
     }
 
-    @Override
-    public void onConnectedToAgentServer(ServerMetadata serverMetadata) {
-        atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
-    }
-
-    @Override
-    public void onDisconnectedFromAgentServer() {
-        if (atomicTestContainerWindow != null) {
-            atomicTestContainerWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
-        }
-        configurationState.clearPermanentFieldMockSetting();
-        cachedGutterState.clear();
-//        methodDirectInvokeComponent.uncheckPermanentMocks();
-    }
-
-    public void clearAtomicBoard() {
-        if (atomicTestContainerWindow != null) {
-            atomicTestContainerWindow.clearBoardOnMethodExecutor();
-        }
-    }
-
-//    public void triggerAtomicTestsWindowRefresh() {
-//        GutterState state = getGutterStateFor(currentMethod);
-//        if (state.equals(GutterState.PROCESS_NOT_RUNNING) || state.equals(GutterState.PROCESS_RUNNING)) {
-//            loadSingleWindowForState(state);
-//        } else {
-//            atomicTestContainerWindow.triggerMethodExecutorRefresh(null);
-//        }
-//    }
 
     public void setAtomicWindowHeading(String name) {
         atomicTestContent.setDisplayName(name);
@@ -1432,16 +1430,12 @@ final public class InsidiousService implements
         return this.candidateIndividualContextMap;
     }
 
-    public AtomicRecordService getAtomicRecordService() {
-        return this.atomicRecordService;
-    }
-
     public void toggleReportGeneration() {
 //        this.reportingService.toggleReportMode();
     }
 
     public MethodDefinition getMethodInformation(MethodUnderTest methodUnderTest) {
-        return sessionInstance.getMethodDefinition(methodUnderTest);
+        return currentState.getSessionInstance().getMethodDefinition(methodUnderTest);
     }
 
     public void highlightLines(HighlightedRequest highlightRequest) {
@@ -1449,10 +1443,11 @@ final public class InsidiousService implements
             return;
         }
 
+        HighlightedRequest currentHighlightedRequest = currentState.getCurrentHighlightedRequest();
         if (currentHighlightedRequest != null && classModifiedFlagMap.containsKey(
                 currentHighlightedRequest.getMethodUnderTest().getClassName())) {
             removeCurrentActiveHighlights();
-            currentHighlightedRequest = null;
+            currentState.setCurrentHighlightedRequest(null);
         }
 
         if (classModifiedFlagMap.containsKey(highlightRequest.getMethodUnderTest().getClassName())) {
@@ -1461,12 +1456,14 @@ final public class InsidiousService implements
 
 
         // no new highlight if disabled or tool window is hidden
-        if (!codeCoverageHighlightEnabled || (toolWindow == null || !toolWindow.isVisible()) || !agentStateProvider.isAgentRunning()) {
-            currentHighlightedRequest = highlightRequest;
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
+        if (!currentState.isCodeCoverageHighlightEnabled() || (toolWindow == null || !toolWindow.isVisible()) || !currentState.isAgentServerRunning()) {
+            currentState.setCurrentHighlightedRequest(highlightRequest);
             removeCurrentActiveHighlights();
             return;
         }
-        if (Objects.equals(highlightRequest, currentHighlightedRequest) && currentActiveHighlight != null) {
+        if (Objects.equals(highlightRequest,
+                currentHighlightedRequest) && currentState.getCurrentHighlightedRequest() != null) {
             // its already highlighted ?
             return;
         } else {
@@ -1497,7 +1494,8 @@ final public class InsidiousService implements
         }
 
         List<RangeHighlighter> newHighlightList = new ArrayList<>();
-        currentActiveHighlight = new ActiveHighlight(newHighlightList, selectedTextEditor);
+        ActiveHighlight currentActiveHighlight = new ActiveHighlight(newHighlightList, selectedTextEditor);
+        currentState.setCurrentActiveHighlight(currentActiveHighlight);
 
         TextAttributes attributes = new TextAttributes();
         attributes.setBackgroundColor(UIUtils.HIGHLIGHT_BACKGROUND_COLOR);
@@ -1514,6 +1512,7 @@ final public class InsidiousService implements
 
     public void removeCurrentActiveHighlights() {
         // remove existing highlighters
+        ActiveHighlight currentActiveHighlight = currentState.getCurrentActiveHighlight();
         if (currentActiveHighlight != null) {
             Editor editor = currentActiveHighlight.getEditor();
             MarkupModel markupModel = editor.getMarkupModel();
@@ -1524,21 +1523,17 @@ final public class InsidiousService implements
                     logger.warn("failed to remove highlight: " + e.getMessage());
                 }
             }
-            currentActiveHighlight = null;
+            currentState.setCurrentActiveHighlight(null);
         }
     }
 
     public void setCodeCoverageHighlightEnabled(boolean state) {
-        this.codeCoverageHighlightEnabled = state;
-        highlightLines(currentHighlightedRequest);
-    }
-
-    public ToolWindow getToolWindow() {
-        return toolWindow;
+        currentState.setCodeCoverageHighlightEnabled(state);
+        highlightLines(currentState.getCurrentHighlightedRequest());
     }
 
     public HighlightedRequest getCurrentHighlightRequest() {
-        return currentHighlightedRequest;
+        return currentState.getCurrentHighlightedRequest();
     }
 
     public JUnitTestCaseWriter getJUnitTestCaseWriter() {
@@ -1546,22 +1541,27 @@ final public class InsidiousService implements
     }
 
     public String guessModuleBasePath(ClassAdapter currentClass) {
+        AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         return atomicRecordService.guessModuleBasePath((PsiClass) currentClass.getSource());
     }
 
     public List<DeclaredMock> getDeclaredMocksOf(MethodUnderTest methodUnderTest) {
+        AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         return atomicRecordService.getDeclaredMocksOf(methodUnderTest);
     }
 
     public List<DeclaredMock> getDeclaredMocksFor(MethodUnderTest methodUnderTest) {
+        AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         return atomicRecordService.getDeclaredMocksFor(methodUnderTest);
     }
 
     public List<DeclaredMock> getAllDeclaredMocks() {
+        AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         return atomicRecordService.getAllDeclaredMocks();
     }
 
     public void saveMockDefinition(DeclaredMock declaredMock, MethodUnderTest methodUnderTest) {
+        AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         atomicRecordService.saveMockDefinition(methodUnderTest, declaredMock);
         if (!isMockEnabled(declaredMock)) {
             enableMock(declaredMock);
@@ -1572,6 +1572,7 @@ final public class InsidiousService implements
 
     public void deleteMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {
         disableMock(declaredMock);
+        AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         atomicRecordService.deleteMockDefinition(methodUnderTest, declaredMock);
         if (isFieldMockActive(declaredMock.getSourceClassName(), declaredMock.getFieldName())) {
             removeMocksInRunningProcess(List.of(declaredMock));
@@ -1611,6 +1612,7 @@ final public class InsidiousService implements
     }
 
     public void showIntroductionPanel() {
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
         ContentManager contentManager = toolWindow.getContentManager();
         if (introPanelContent == null) {
             ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
@@ -1626,5 +1628,55 @@ final public class InsidiousService implements
 
     public void loadDefaultSession() {
         setSession(sessionManager.loadDefaultSession());
+    }
+
+    public void onAgentConnected(ServerMetadata serverMetadata) {
+        currentState.setAgentServerRunning(true);
+        Collection<? extends AnAction> actions = Arrays.asList(
+                new AnAction("Direct Invoke") {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        focusDirectInvokeTab();
+                        openToolWindow();
+                    }
+                },
+                new AnAction("Replay List") {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        focusAtomicTestsWindow();
+                        openToolWindow();
+                    }
+                }
+        );
+//        InsidiousNotification.notifyMessage("Recording in progress package " +
+//                        serverMetadata.getIncludePackageName() + " " +
+//                        "Executed methods and saved replays will show up in the " +
+//                        "Replay tab. Use DirectInvoke to execute methods from here.",
+//                NotificationType.INFORMATION, actions);
+
+        stompWindow.setConnectedAndWaiting();
+
+        triggerGutterIconReload();
+        setAgentProcessState(GutterState.PROCESS_RUNNING);
+//        focusDirectInvokeTab();
+    }
+
+    public void onAgentDisconnected() {
+        if (atomicTestComponentWindow != null) {
+            atomicTestComponentWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+        }
+        AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
+        if (atomicRecordService != null) {
+            ApplicationManager.getApplication().runWriteAction(atomicRecordService::writeAll);
+        }
+        stompWindow.disconnected();
+        removeCurrentActiveHighlights();
+        triggerGutterIconReload();
+        configurationState.clearPermanentFieldMockSetting();
+        cachedGutterState.clear();
+    }
+
+    public int getMethodCallCountBetween(long start, long end) {
+        return getSessionInstance().getMethodCallCountBetween(start, end);
     }
 }

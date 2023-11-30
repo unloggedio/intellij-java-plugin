@@ -6,7 +6,9 @@ import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.ui.methodscope.CandidateFilterType;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
+import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -119,7 +121,7 @@ public class AtomicTestComponent {
 
 
         CandidateSearchQuery candidateSearchQuery =
-                insidiousService.createSearchQueryForMethod(focussedMethod);
+                insidiousService.createSearchQueryForMethod(focussedMethod, CandidateFilterType.METHOD);
 
         List<StoredCandidate> methodTestCandidates =
                 ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
@@ -155,7 +157,8 @@ public class AtomicTestComponent {
         }
         long end = new Date().getTime();
 
-        logger.warn("load and refresh candidates in ATC for took " + (end - start) + " ms for [" + focussedMethod.getName() + "]");
+        logger.warn(
+                "load and refresh candidates in ATC for took " + (end - start) + " ms for [" + focussedMethod.getName() + "]");
 
 
     }

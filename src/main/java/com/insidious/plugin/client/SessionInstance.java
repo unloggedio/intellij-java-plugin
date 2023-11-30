@@ -105,6 +105,7 @@ public class SessionInstance implements Runnable {
     private final String processorId;
     private final Map<Integer, Integer> methodLineCount = new HashMap<>();
     private final Map<Integer, Boolean> methodUsesFields = new HashMap<>();
+    private final List<SessionScanEventListener> sessionScanEventListeners = new ArrayList<>();
     private boolean scanEnable = false;
     private List<File> sessionArchives = new ArrayList<>();
     private ArchiveIndex archiveIndex;
@@ -191,6 +192,7 @@ public class SessionInstance implements Runnable {
             executorPool.submit(zipConsumer);
             executorPool.submit(() -> {
                 try {
+                    publishEvent(ScanEventType.START);
                     this.sessionArchives = refreshSessionArchivesList(false);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -207,7 +209,6 @@ public class SessionInstance implements Runnable {
     private static int getThreadIdFromFileName(String archiveFile) {
         return Integer.parseInt(archiveFile.substring(archiveFile.lastIndexOf("-") + 1, archiveFile.lastIndexOf(".")));
     }
-
 
     private static DataEventWithSessionId createDataEventFromBlock(int fileThreadId, KaitaiInsidiousEventParser.DetailedEventBlock eventBlock) {
         DataEventWithSessionId dataEvent = new DataEventWithSessionId(fileThreadId);
@@ -271,6 +272,42 @@ public class SessionInstance implements Runnable {
         }
     }
 
+    private void publishEvent(ScanEventType scanEventType) {
+        switch (scanEventType) {
+
+            case START:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::started);
+                break;
+            case PAUSED:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::paused);
+                break;
+            case WAITING:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::waiting);
+                break;
+            case ENDED:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::ended);
+                break;
+            case PROGRESS:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::started);
+                break;
+        }
+    }
+
+    private void publishProgressEvent(ScanProgress scanProgress) {
+        sessionScanEventListeners.
+                parallelStream()
+                .forEach(e -> e.progress(scanProgress));
+    }
 
     private Map<String, LogFile> getLogFileMap() {
         Map<String, LogFile> logFileMap = new HashMap<>();
@@ -2251,12 +2288,6 @@ public class SessionInstance implements Runnable {
     }
 
     private void scanDataAndBuildReplay() {
-        if (!scanEnable) {
-            logger.warn("scan is not enabled: " + project.getName());
-            // there is another session which created the lock file and will do the scanning
-            // this happens when multiple ide windows open, so each one creates a sessionInstance
-            return;
-        }
         if (probeInfoIndex == null) {
             logger.warn("probe info index is not ready: " + this.executionSession.getPath());
             return;
@@ -2278,6 +2309,7 @@ public class SessionInstance implements Runnable {
             long scanStart = System.currentTimeMillis();
 
             List<LogFile> logFilesToProcess = daoService.getPendingLogFilesToProcess(processorId);
+            final int logFileCount = logFilesToProcess.size();
 
             Map<Integer, List<LogFile>> logFilesByThreadMap = logFilesToProcess.stream()
                     .collect(Collectors.groupingBy(LogFile::getThreadId));
@@ -2300,6 +2332,7 @@ public class SessionInstance implements Runnable {
                 checkProgressIndicator("Processing files for thread " + i + " / " + allThreads.size(), null);
                 List<LogFile> logFiles = logFilesByThreadMap.get(threadId);
                 ThreadProcessingState threadState = daoService.getThreadState(threadId);
+                publishProgressEvent(new ScanProgress(processedCount + logFiles.size(), logFileCount));
                 boolean newCandidateIdentifiedNew = processPendingThreadFiles(threadState, logFiles,
                         parameterContainer);
                 newCandidateIdentified = newCandidateIdentified | newCandidateIdentifiedNew;
@@ -3589,6 +3622,15 @@ public class SessionInstance implements Runnable {
         daoService.createOrUpdateIncompleteCall(threadState.getCallStack());
         daoService.updateCalls(callsToUpdate);
         daoService.createOrUpdateTestCandidate(candidatesToSave);
+
+        if (testCandidateListener != null && candidatesToSave.size() > 0) {
+            for (NewTestCandidateIdentifiedListener newTestCandidateIdentifiedListener : testCandidateListener) {
+                newTestCandidateIdentifiedListener.onNewTestCandidateIdentified(1, 1);
+            }
+
+        }
+
+
         if (candidatesToSave.size() > 0) {
             newTestCaseIdentified = true;
         }
@@ -4061,6 +4103,7 @@ public class SessionInstance implements Runnable {
         }
         shutdown = true;
         logger.warn("Closing session instance: " + executionSession.getPath());
+        publishEvent(ScanEventType.ENDED);
         try {
             if (zipConsumer != null) {
                 zipConsumer.close();
@@ -4122,12 +4165,30 @@ public class SessionInstance implements Runnable {
         return classInfoIndexByName;
     }
 
-    public void getAllTestCandidates(Consumer<TestCandidateMetadata> testCandidateReceiver) throws SQLException {
+    public void getAllTestCandidates(Consumer<TestCandidateMetadata> testCandidateReceiver, long afterEventId) throws SQLException {
 
         int page = 0;
         int limit = 100;
         while (true) {
-            List<TestCandidateMetadata> testCandidateMetadataList = daoService.getTestCandidatePaginated(page, limit);
+            List<TestCandidateMetadata> testCandidateMetadataList = daoService
+                    .getTestCandidatePaginated(afterEventId, page, limit);
+            for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
+                testCandidateReceiver.accept(testCandidateMetadata);
+            }
+            page++;
+            if (testCandidateMetadataList.size() < limit) {
+                break;
+            }
+        }
+    }
+
+    public void getTopLevelTestCandidates(Consumer<TestCandidateMetadata> testCandidateReceiver, long afterEventId) throws SQLException {
+
+        int page = 0;
+        int limit = 100;
+        while (true) {
+            List<TestCandidateMetadata> testCandidateMetadataList = daoService
+                    .getTopLevelTestCandidatePaginated(afterEventId, page, limit);
             for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
                 testCandidateReceiver.accept(testCandidateMetadata);
             }
@@ -4151,7 +4212,10 @@ public class SessionInstance implements Runnable {
         while (true) {
             try {
                 scanLock.take();
-                scanDataAndBuildReplay();
+                if (scanEnable && !isSessionCorrupted) {
+                    scanDataAndBuildReplay();
+                    publishEvent(ScanEventType.WAITING);
+                }
             } catch (InterruptedException ie) {
                 logger.warn("scan checker interrupted");
                 return;
@@ -4168,4 +4232,14 @@ public class SessionInstance implements Runnable {
                 methodUnderTest1.getName(), methodUnderTest1.getSignature());
     }
 
+    public int getMethodCallCountBetween(long start, long end) {
+        return daoService.getCallCountBetween(start, end);
+    }
+
+    public void addSessionScanEventListener(SessionScanEventListener listener) {
+        this.sessionScanEventListeners.add(listener);
+        if (scanEnable) {
+            listener.started();
+        }
+    }
 }

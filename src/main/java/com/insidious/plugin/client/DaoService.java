@@ -14,11 +14,10 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.dao.*;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.StringUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
@@ -27,7 +26,6 @@ import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.dao.GenericRawResults;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.table.TableUtils;
-
 
 import java.sql.SQLException;
 import java.time.Instant;
@@ -130,8 +128,8 @@ public class DaoService {
             "group by mc.methodName\n" +
             "order by mc.methodName;";
     private final static Logger logger = LoggerUtil.getInstance(DaoService.class);
-    private final ObjectMapper objectMapper;
     private static final String QUERY_METHOD_DEFINITIONS_BY_ID_IN = "select * from method_definition where id in (IDS)";
+    private final ObjectMapper objectMapper;
     private final JdbcConnectionSource connectionSource;
     private final Dao<DataEventWithSessionId, Long> dataEventDao;
     private final Dao<MethodCallExpression, Long> methodCallExpressionDao;
@@ -205,7 +203,7 @@ public class DaoService {
         return testCandidateList;
     }
 
-    
+
     private com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata
     convertTestCandidateMetadata(TestCandidateMetadata testCandidateMetadata, Boolean loadCalls) throws Exception {
 //        logger.warn("Build test candidate - " + testCandidateMetadata.getEntryProbeIndex());
@@ -348,7 +346,7 @@ public class DaoService {
 
     }
 
-    
+
     private List<MethodCallExpression> getMethodCallExpressionsInCandidate(TestCandidateMetadata testCandidateMetadata) throws Exception {
         long mainMethodId = testCandidateMetadata.getMainMethod();
         GenericRawResults<MethodCallExpression> results = methodCallExpressionDao
@@ -409,7 +407,6 @@ public class DaoService {
     }
 
 
-    
     private List<com.insidious.plugin.pojo.MethodCallExpression> buildFromDbMce(
             List<MethodCallExpressionInterface> mceList
     ) throws Exception {
@@ -1170,7 +1167,7 @@ public class DaoService {
 
             parameterIds.close();
             long end = new Date().getTime();
-            logger.warn("found [" + resultList.size() + "] candidates in " +  (end - start) + " ms");
+            logger.warn("found [" + resultList.size() + "] candidates in " + (end - start) + " ms");
             return resultList;
         } catch (Exception e) {
             e.printStackTrace();
@@ -1290,7 +1287,7 @@ public class DaoService {
         return archiveFileDao.queryForId(name);
     }
 
-     Map<String, ArchiveFile> getArchiveFileMap() {
+    Map<String, ArchiveFile> getArchiveFileMap() {
         List<ArchiveFile> archiveFileList = getArchiveList();
         Map<String, ArchiveFile> archiveFileMap = new HashMap<>();
         for (ArchiveFile archiveFile : archiveFileList) {
@@ -1331,7 +1328,7 @@ public class DaoService {
 
         String[] callIdsList = threadState.getCallStack()
                 .split(",");
-         List<MethodCallExpression> callStack;
+        List<MethodCallExpression> callStack;
         callStack = new ArrayList<>(callIdsList.length);
         for (String callId : callIdsList) {
             if (callId.equals("")) {
@@ -1370,7 +1367,7 @@ public class DaoService {
         }
 
         List<MethodCallExpression> callStack = threadState.getCallStack();
-         String callStackList = StringUtils.join(callStack.stream()
+        String callStackList = StringUtils.join(callStack.stream()
                 .map(MethodCallExpression::getId)
                 .collect(Collectors.toList()), ",");
 
@@ -1464,13 +1461,57 @@ public class DaoService {
         }
     }
 
+    public int getCallCountBetween(long probe1, long probe2) {
+        try {
+            GenericRawResults<String[]> dbCandidateList = testCandidateDao.queryRaw("" +
+                            "select count(*)\n" +
+                            "from method_call mc\n" +
+                            "where mc.entryProbe_id > ? and mc.returnDataEvent < ?",
+                    String.valueOf(probe1), String.valueOf(probe2)
+            );
+            return Integer.parseInt(dbCandidateList.getFirstResult()[0]);
+        } catch (SQLException e) {
+            //
+            logger.warn("Failed to get method call count between");
+            return 0;
+        }
+
+    }
+
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-    getTestCandidatePaginated(int page, int limit) throws SQLException {
+    getTestCandidatePaginated(long afterEventId, int page, int limit) throws SQLException {
         List<TestCandidateMetadata> dbCandidateList = testCandidateDao.queryBuilder()
+                .where()
+                .ge("entryProbeIndex", afterEventId)
+                .queryBuilder()
                 .offset((long) page * limit)
                 .limit((long) limit)
                 .orderBy("entryProbeIndex", true)
                 .query();
+
+        return dbCandidateList
+                .stream()
+                .map(e -> {
+                    try {
+                        return convertTestCandidateMetadata(e, true);
+                    } catch (Exception ex) {
+                        throw new RuntimeException(ex);
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
+    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
+    getTopLevelTestCandidatePaginated(long afterEventId, int page, int limit) throws SQLException {
+
+        List<TestCandidateMetadata> dbCandidateList = testCandidateDao.queryRaw("select t.*\n" +
+                        "from test_candidate t\n" +
+                        "         join method_call mc on mc.id = t.mainMethod_id\n" +
+                        "where t.entryProbeIndex > ?\n" +
+                        "and mc.parentId == 0\n" +
+                        "order by t.entryProbeIndex\n" +
+                        "limit ? offset ?; ", testCandidateDao.getRawRowMapper(),
+                String.valueOf(afterEventId), String.valueOf(limit), String.valueOf(page * limit)).getResults();
 
         return dbCandidateList
                 .stream()

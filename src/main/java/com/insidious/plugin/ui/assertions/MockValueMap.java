@@ -1,15 +1,9 @@
 package com.insidious.plugin.ui.assertions;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
+import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.highlighter.MockMethodLineHighlighter;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
@@ -19,40 +13,38 @@ import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.ArrayUtil;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class MockValueMap {
 
-    private HashMap<String, ArrayList<String>> dependencyMockMap = new HashMap<String, ArrayList<String>> ();
+    private HashMap<String, ArrayList<String>> dependencyMockMap = new HashMap<String, ArrayList<String>>();
     private HashMap<String, String> mockNameIdMap = new HashMap<String, String>();
     private HashMap<String, PsiMethodCallExpression> referenceToPsiMethodCallExpression = new HashMap<String, PsiMethodCallExpression>();
 
-    public HashMap<String, ArrayList<String>> getDependencyMockMap(){
-        return this.dependencyMockMap;
-    }
-
-    public HashMap<String, String> getMockNameIdMap(){
-        return this.mockNameIdMap;
-    }
-
-    public HashMap<String, PsiMethodCallExpression> getReferenceToPsiMethodCallExpression() {
-        return this.referenceToPsiMethodCallExpression;
-    }
-
     public MockValueMap(InsidiousService insidiousService) {
 
-        AtomicRecordService atomicRecordService = insidiousService.getAtomicRecordService();
+        AtomicRecordService atomicRecordService = insidiousService
+                .getProject()
+                .getService(AtomicRecordService.class);
         MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(insidiousService.getCurrentMethod());
         Project project = insidiousService.getProject();
 
         // add dependent methods without declared mock
-        PsiClass classPsi = JavaPsiFacade.getInstance(project).findClass(methodUnderTest.getClassName(), GlobalSearchScope.projectScope(project));
+        PsiClass classPsi = JavaPsiFacade.getInstance(project)
+                .findClass(methodUnderTest.getClassName(), GlobalSearchScope.projectScope(project));
 
-        PsiMethodCallExpression[] methodCallExpressions = getChildrenOfTypeRecursive(classPsi, PsiMethodCallExpression.class);
+        PsiMethodCallExpression[] methodCallExpressions = getChildrenOfTypeRecursive(classPsi,
+                PsiMethodCallExpression.class);
         // todo: check if methodCallExpressions is null
         List<PsiMethodCallExpression> mockableCallExpressions = Arrays.stream(methodCallExpressions)
-            .filter(MockMethodLineHighlighter::isNonStaticDependencyCall)
-            .collect(Collectors.toList());
+                .filter(MockMethodLineHighlighter::isNonStaticDependencyCall)
+                .collect(Collectors.toList());
 
-        for (PsiMethodCallExpression local: mockableCallExpressions) {
+        for (PsiMethodCallExpression local : mockableCallExpressions) {
             String localMockMethodName = local.getMethodExpression().getReferenceName();
             if (!referenceToPsiMethodCallExpression.containsKey(localMockMethodName)) {
                 referenceToPsiMethodCallExpression.put(localMockMethodName, local);
@@ -99,5 +91,17 @@ public class MockValueMap {
             }
         }
         return result;
+    }
+
+    public HashMap<String, ArrayList<String>> getDependencyMockMap() {
+        return this.dependencyMockMap;
+    }
+
+    public HashMap<String, String> getMockNameIdMap() {
+        return this.mockNameIdMap;
+    }
+
+    public HashMap<String, PsiMethodCallExpression> getReferenceToPsiMethodCallExpression() {
+        return this.referenceToPsiMethodCallExpression;
     }
 }
