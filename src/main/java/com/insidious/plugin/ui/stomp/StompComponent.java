@@ -9,12 +9,12 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.util.UIUtils;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ActiveIcon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
+import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
 import java.awt.*;
@@ -23,22 +23,27 @@ import java.awt.event.MouseEvent;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Consumer;
 
 public class StompComponent implements Consumer<TestCandidateMetadata>, TestCandidateLifeListener {
-    public static final int component_height = 120;
+    public static final int component_height = 93;
     private final InsidiousService insidiousService;
     private final JPanel itemPanel;
     private final StompStatusComponent stompStatusComponent;
     private JPanel mainPanel;
     private JPanel northPanelContainer;
-    private JPanel centerPanelContainer;
     private JScrollPane historyStreamScrollPanel;
     private JPanel scrollContainer;
-    private JLabel reloadButton;
-    private JLabel filterButton;
+    private JButton reloadButton;
+    private JButton filterButton;
+    private JButton saveReplayButton;
+    private JButton replayButton;
+    private JButton saveAsMockButton;
+    private JButton generateJUnitButton;
+    private JPanel filterButtonContainer;
     private long lastEventId = 0;
     private List<StompItem> stompItems = new ArrayList<>(500);
     private ConnectedAndWaiting connectedAndWaiting;
@@ -48,11 +53,20 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
+
         itemPanel = new JPanel();
-        itemPanel.setLayout(new GridBagLayout());
+        GridLayout mgr = new GridLayout(0, 1, 0, 6);
+        itemPanel.setLayout(mgr);
         itemPanel.setBackground(JBColor.WHITE);
-        itemPanel.add(Box.createVerticalBox());
+        itemPanel.setAlignmentY(0);
+        itemPanel.setAlignmentX(0);
+
+
+        itemPanel.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 50));
+
         historyStreamScrollPanel.setViewportView(itemPanel);
+        historyStreamScrollPanel.setBorder(BorderFactory.createEmptyBorder());
+        scrollContainer.setBorder(BorderFactory.createEmptyBorder());
         reloadButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -66,6 +80,17 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
                 }
             }
         });
+
+
+//        filterButton.setSize(new Dimension(98, 32));
+//        filterButton.setPreferredSize(new Dimension(98, 32));
+//        filterButton.setMinimumSize(new Dimension(98, 32));
+//        filterButton.setMaximumSize(new Dimension(98, 32));
+//        filterButton.setBorder(new RoundBtnBorder(15));
+//        Font font = filterButton.getFont();
+//        Font boldFont = font.deriveFont(Font.BOLD);
+//        filterButton.setFont(boldFont);
+
 
         reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         filterButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -104,6 +129,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         scanEventListener = new SessionScanEventListener() {
             @Override
             public void started() {
+                lastEventId = 0;
                 stompStatusComponent.addRightStatus("last-updated", "Last updated at " + simpleTime(new Date()));
             }
 
@@ -139,6 +165,44 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         stompStatusComponent = new StompStatusComponent();
         mainPanel.add(stompStatusComponent.getComponent(), BorderLayout.SOUTH);
 
+
+//        filterButton.setContentAreaFilled(false);
+//        filterButton.setOpaque(false);
+//
+//
+//        reloadButton.setContentAreaFilled(false);
+//        reloadButton.setOpaque(false);
+//
+//        saveReplayButton.setContentAreaFilled(false);
+//        saveReplayButton.setOpaque(false);
+//
+//
+//        replayButton.setContentAreaFilled(false);
+//        replayButton.setOpaque(false);
+//
+//        generateJUnitButton.setContentAreaFilled(false);
+//        generateJUnitButton.setOpaque(false);
+//
+//        saveAsMockButton.setContentAreaFilled(false);
+//        saveAsMockButton.setOpaque(false);
+
+    }
+
+    private static void addComponentTop(JPanel panel, GridConstraints gbc, Component comp, List<Component> components) {
+        // Increment gridy for existing components
+//        for (Component existingComp : components) {
+//            GridConstraints existingGbc = ((GridLayout) panel.getLayout()).(existingComp);
+//            existingGbc.gridy++;
+//            panel.add(existingComp, existingGbc); // Re-add with new constraints
+//        }
+
+        // Add the new component at the top
+//        gbc.gridy = 0;
+        panel.add(comp, gbc);
+
+        // Refresh the panel
+        panel.revalidate();
+        panel.repaint();
     }
 
     public String simpleTime(Date currentDate) {
@@ -167,16 +231,19 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 //        currentSize.height = component_height;
 //        component.setSize(currentSize);
         component.setMaximumSize(new Dimension(itemPanel.getWidth(), component_height));
+//        component.setPreferredSize(new Dimension(itemPanel.getWidth(), component_height));
+        component.setMinimumSize(new Dimension(itemPanel.getWidth(), component_height));
+//        component.setSize(new Dimension(itemPanel.getWidth(), component_height));
 //        component.setPreferredSize(currentSize);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL; // This allows the component to expand horizontally and vertically
-        gbc.weightx = 1.0; // This prevents vertical expansion
-        gbc.weighty = 0.0; // This prevents vertical expansion
-        gbc.anchor = GridBagConstraints.NORTH; // This aligns the component to the top
-        gbc.gridheight = component_height;
-        gbc.gridwidth = GridBagConstraints.REMAINDER;
-
-        itemPanel.add(component, gbc, 0);
+//        GridConstraints gbc = new GridConstraints();
+//        addComponentTop(itemPanel, gbc, component, Arrays.asList(itemPanel.getComponents()));
+        itemPanel.add(component, 0);
+//        JPanel spacer = new JPanel();
+//        spacer.setOpaque(false);
+//        spacer.setMaximumSize(new Dimension(itemPanel.getWidth(), 4));
+//        spacer.setMinimumSize(new Dimension(itemPanel.getWidth(), 4));
+//        spacer.setPreferredSize(new Dimension(itemPanel.getWidth(), 4));
+//        itemPanel.add(spacer, 1);
 
         int stompItemCount = stompItems.size();
         if (stompItemCount > 500) {
@@ -187,13 +254,14 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         }
 
         if (stompItems.size() * component_height < 500) {
-            itemPanel.setSize(new Dimension(-1, component_height * stompItems.size()));
-            historyStreamScrollPanel.setSize(new Dimension(-1, component_height * stompItems.size()));
+//            itemPanel.setMinimumSize(new Dimension(-1, component_height * stompItems.size() + 10));
+//            itemPanel.setPreferredSize(new Dimension(-1, component_height * stompItems.size() + 10));
+//            historyStreamScrollPanel.setSize(new Dimension(-1, component_height * stompItems.size() + 10));
         }
 
         itemPanel.revalidate();
-        historyStreamScrollPanel.revalidate();
         itemPanel.repaint();
+        historyStreamScrollPanel.revalidate();
         historyStreamScrollPanel.repaint();
 
     }
@@ -255,21 +323,16 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 
     }
 
-    @Override
-    public Project getProject() {
-        return null;
-    }
-
     public void clear() {
         lastEventId = 0;
         itemPanel.removeAll();
         stompItems.clear();
-
         stompStatusComponent.setDisconnected();
     }
 
     public void disconnected() {
         stompStatusComponent.setDisconnected();
+        scanEventListener.ended();
     }
 
     public void setConnectedAndWaiting() {

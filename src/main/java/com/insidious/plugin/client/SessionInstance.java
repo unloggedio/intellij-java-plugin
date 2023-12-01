@@ -3627,7 +3627,6 @@ public class SessionInstance implements Runnable {
             for (NewTestCandidateIdentifiedListener newTestCandidateIdentifiedListener : testCandidateListener) {
                 newTestCandidateIdentifiedListener.onNewTestCandidateIdentified(1, 1);
             }
-
         }
 
 

@@ -38,5 +38,4 @@ public interface TestCandidateLifeListener {
 
     void onCancel();
 
-    Project getProject();
 }

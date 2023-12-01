@@ -121,12 +121,11 @@ public class StompItem {
         if (className.contains(".")) {
             className = className.substring(className.lastIndexOf(".") + 1);
         }
-        setTitledBorder("[" + candidateMetadata.getEntryProbeIndex() + "] " + className);
+//        setTitledBorder("[" + candidateMetadata.getEntryProbeIndex() + "] " + className);
         long timeTakenMs = (candidateMetadata.getMainMethod().getReturnValue().getProb().getRecordedAt() -
                 candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt()) / (1000 * 1000);
         String classNameColor = StringColorPicker.pickColor(methodUnderTest.getName());
-        String itemLabel = String.format("<html><font color='%s'><b>%s</b></font>()</html>",
-                classNameColor, methodUnderTest.getName()
+        String itemLabel = String.format("<html><font><b>%s</b></font>()</html>", methodUnderTest.getName()
         );
 
 
@@ -134,8 +133,7 @@ public class StompItem {
         String timeTakenMsString = ExecutionTimeCategorizer.formatTimePeriod(timeTakenMs);
 
         timeTakenMsLabel.setText(String.format(
-                "<html>" + "<font color='%s'><u><small>%s</small></u>" + "</font></html>",
-                category.getColorHex(), timeTakenMsString));
+                "<html>" + "<font><u><small>%s</small></u>" + "</font></html>", timeTakenMsString));
 
         candidateTitleLabel.setText(itemLabel);
         parameterCountLabel.setText(String.format("<html><u>%d Argument</u></html>",
@@ -148,7 +146,7 @@ public class StompItem {
     }
 
     public JPanel getComponent() {
-        return this.mainPanel;
+        return mainPanel;
     }
 
     public void setTitledBorder(String title) {

@@ -115,8 +115,8 @@ public class UIUtils {
     public static Icon TEST_CASES_ICON_PINK = IconLoader.getIcon("/icons/png/test_cases_icon_pink.png", UIUtils.class);
     public static Icon COMPASS_DISCOVER_LINE = IconLoader.getIcon("/icons/png/compass-discover-line.png",
             UIUtils.class);
-    public static Icon FILTER_LINE = IconLoader.getIcon("/icons/png/filter-line.png",
-            UIUtils.class);
+    public static Icon FILTER_LINE = IconLoader.getIcon("/icons/png/filter-line.png", UIUtils.class);
+    public static Icon FILTER_LINE_2 = IconLoader.getIcon("/icons/png/filter-2-line.png", UIUtils.class);
     public static Icon TEST_CASES_ICON_TEAL = IconLoader.getIcon("/icons/png/test_cases_icon_teal.png", UIUtils.class);
     public static Icon WAITING_COMPONENT_WAITING = IconLoader.getIcon("/icons/png/waiting_icon_yellow_64.png",
             UIUtils.class);
