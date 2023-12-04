@@ -12,9 +12,10 @@ import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.ui.popup.ActiveIcon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.uiDesigner.core.GridConstraints;
+import org.gradle.internal.impldep.org.joda.time.Instant;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -55,14 +56,14 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         this.insidiousService = insidiousService;
 
         itemPanel = new JPanel();
-        GridLayout mgr = new GridLayout(0, 1, 0, 6);
+        GridBagLayout mgr = new GridBagLayout();
         itemPanel.setLayout(mgr);
-        itemPanel.setBackground(JBColor.WHITE);
+//        itemPanel.setBackground(JBColor.WHITE);
         itemPanel.setAlignmentY(0);
         itemPanel.setAlignmentX(0);
 
 
-        itemPanel.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 50));
+        itemPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 0, 0));
 
         historyStreamScrollPanel.setViewportView(itemPanel);
         historyStreamScrollPanel.setBorder(BorderFactory.createEmptyBorder());
@@ -186,6 +187,23 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 //        saveAsMockButton.setContentAreaFilled(false);
 //        saveAsMockButton.setOpaque(false);
 
+
+        GridBagConstraints gbc = new GridBagConstraints();
+
+        gbc.gridx = 0;
+        gbc.gridy = GridBagConstraints.RELATIVE;
+        gbc.gridwidth = 1;
+        gbc.gridheight = 1;
+
+        gbc.weightx = 1;
+        gbc.weighty = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.insets = new Insets(0, 0, 6, 0);
+        gbc.ipadx = 0;
+        gbc.ipady = 0;
+//        itemPanel.add(new JLabel("Exec tue a metho d"), gbc, 0);
     }
 
     private static void addComponentTop(JPanel panel, GridConstraints gbc, Component comp, List<Component> components) {
@@ -237,7 +255,111 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 //        component.setPreferredSize(currentSize);
 //        GridConstraints gbc = new GridConstraints();
 //        addComponentTop(itemPanel, gbc, component, Arrays.asList(itemPanel.getComponents()));
-        itemPanel.add(component, 0);
+        GridBagConstraints gbc = new GridBagConstraints();
+
+        gbc.gridx = 0;
+        gbc.gridy = GridBagConstraints.RELATIVE;
+        gbc.gridwidth = 1;
+        gbc.gridheight = 1;
+
+        gbc.weightx = 1;
+        gbc.weighty = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.insets = new Insets(0, 0, 6, 0);
+        gbc.ipadx = 0;
+        gbc.ipady = 0;
+
+        itemPanel.add(component, gbc, 0);
+
+        GridBagConstraints gbc1 = new GridBagConstraints();
+
+        gbc1.gridx = 1;
+        gbc1.gridy = GridBagConstraints.RELATIVE;
+        gbc1.gridwidth = 1;
+        gbc1.gridheight = 1;
+
+        gbc1.weightx = 0.1;
+        gbc1.weighty = 1;
+        gbc1.anchor = GridBagConstraints.NORTH;
+        gbc1.fill = GridBagConstraints.BOTH;
+
+        gbc1.insets = new Insets(0, 0, 0, 0);
+        gbc1.ipadx = 0;
+        gbc1.ipady = 0;
+
+
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        JPanel comp = new JPanel();
+        BorderLayout mgr = new BorderLayout();
+        comp.setLayout(mgr);
+        JLabel hello = new JLabel(String.format(
+                "          %s",
+                sdf.format(
+                        Instant.ofEpochMilli((testCandidateMetadata.getCallTimeNanoSecond() / (1000 * 1000))).toDate())
+        ));
+        Font font = hello.getFont();
+        hello.setFont(font.deriveFont(10.0f));
+        hello.setForeground(Color.decode("#8C8C8C"));
+        hello.setUI(new VerticalLabelUI(true));
+        comp.add(hello, BorderLayout.CENTER);
+
+
+        JPanel lineContainer = new JPanel();
+        lineContainer.setLayout(new GridBagLayout());
+//        separator.setBorder();
+        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 2));
+//        separator.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 5));
+
+        JLabel comp1 = new JLabel();
+        comp1.setIcon(UIUtils.CIRCLE_EMPTY);
+        comp1.setMaximumSize(new Dimension(16, 16));
+        comp1.setMinimumSize(new Dimension(16, 16));
+        comp1.setPreferredSize(new Dimension(16, 16));
+
+        JPanel comp2 = new JPanel();
+        comp2.add(comp1);
+//        comp2.setMaximumSize(new Dimension(20, 20));
+//        comp2.setMinimumSize(new Dimension(20, 20));
+//        comp2.setPreferredSize(new Dimension(20, 20));
+        comp2.setBorder(BorderFactory.createEmptyBorder(1, 0, 1, 0));
+
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.weightx = 0;
+        constraints.weighty = 1;
+        constraints.anchor = GridBagConstraints.NORTH;
+        constraints.fill = GridBagConstraints.VERTICAL;
+
+        lineContainer.add(createSeparator(), constraints);
+        GridBagConstraints constraints1 = new GridBagConstraints();
+        constraints1.gridx = 0;
+        constraints1.gridy = 1;
+        constraints1.weightx = 0;
+        constraints1.weighty = 0;
+        constraints1.anchor = GridBagConstraints.CENTER;
+        constraints1.fill = GridBagConstraints.NONE;
+
+        lineContainer.add(comp2, constraints1);
+        GridBagConstraints constraints2 = new GridBagConstraints();
+        constraints2.gridx = 0;
+        constraints2.gridy = 2;
+        constraints2.weightx = 0;
+        constraints2.weighty = 1;
+        constraints2.anchor = GridBagConstraints.SOUTH;
+        constraints2.fill = GridBagConstraints.VERTICAL;
+        lineContainer.add(createSeparator(), constraints2);
+
+        comp.add(lineContainer, BorderLayout.WEST);
+//        comp.setBorder(BorderFactory.createEmptyBorder());
+//        comp.setMaximumSize(new Dimension(10, component_height));
+//        comp.setMinimumSize(new Dimension(10, component_height));
+//        comp.setPreferredSize(new Dimension(10, component_height));
+        itemPanel.add(comp, gbc1, 1);
+
+
 //        JPanel spacer = new JPanel();
 //        spacer.setOpaque(false);
 //        spacer.setMaximumSize(new Dimension(itemPanel.getWidth(), 4));
@@ -264,6 +386,17 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         historyStreamScrollPanel.revalidate();
         historyStreamScrollPanel.repaint();
 
+    }
+
+    @NotNull
+    private JSeparator createSeparator() {
+        JSeparator separator = new JSeparator(SwingConstants.VERTICAL);
+        Dimension size = new Dimension(2, (component_height / 4) - 2); // Set preferred size for the separator
+        separator.setForeground(Color.RED);
+        separator.setPreferredSize(size);
+        separator.setMaximumSize(size);
+        separator.setMinimumSize(size);
+        return separator;
     }
 
     @Override

@@ -130,9 +130,7 @@
       <grid id="a92dc" binding="scrollContainer" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
         <margin top="0" left="0" bottom="0" right="0"/>
         <constraints border-constraint="Center"/>
-        <properties>
-          <background color="-2"/>
-        </properties>
+        <properties/>
         <border type="none"/>
         <children>
           <scrollpane id="848d" binding="historyStreamScrollPanel">

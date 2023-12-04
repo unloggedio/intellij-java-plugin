@@ -28,6 +28,8 @@ public class UIUtils {
     public static final Icon FIND_BUGS_TEAL = IconLoader.getIcon("/icons/png/findBugsTeal.png", UIUtils.class);
     public static final Icon OPTIMIZE_TEAL = IconLoader.getIcon("/icons/png/optimizeTeal.png", UIUtils.class);
     public static final Icon DISCONNECTED_ICON = IconLoader.getIcon("/icons/png/record-circle-fill-black.png", UIUtils.class);
+    public static final Icon CIRCLE_EMPTY = IconLoader.getIcon("/icons/png/checkbox-blank-circle-line.png",
+            UIUtils.class);
     public static final Icon CONNECTED_ICON = IconLoader.getIcon("/icons/png/record-circle-fill.png", UIUtils.class);
     public static final Icon REFACTOR_TEAL = IconLoader.getIcon("/icons/png/refactorTeal.png", UIUtils.class);
     public static final Icon EXPLAIN_TEAL = IconLoader.getIcon("/icons/png/explainTeal.png", UIUtils.class);

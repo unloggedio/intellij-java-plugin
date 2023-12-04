@@ -16,8 +16,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class StompItem {
-    public static final JBColor TAG_LABEL_BACKGROUND_GREY = new JBColor(new Color(113, 128, 150, 13),
-            new Color(113, 128, 150, 13));
+    public static final JBColor TAG_LABEL_BACKGROUND_GREY = new JBColor(new Color(232, 232, 236),
+            new Color(232, 232, 236));
     public static final JBColor TAG_LABEL_TEXT_GREY = new JBColor(new Color(113, 128, 150, 255),
             new Color(113, 128, 150, 255));
     private static final Logger logger = LoggerUtil.getInstance(StompItem.class);
