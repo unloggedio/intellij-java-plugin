@@ -59,7 +59,6 @@ public class TestCandidateListedItemComponent {
         this.methodArgumentValues = candidateMetadata.getMethodArguments();
         this.parameterMap = generateParameterMap(argumentNameValuePairs);
         parameterPanel.setLayout(new BorderLayout());
-
         //saved candidate check
         if (candidateMetadata.getName() != null && candidateMetadata.getName().length() > 0) {
             setTitledBorder(candidateMetadata.getName());
@@ -94,7 +93,6 @@ public class TestCandidateListedItemComponent {
                 });
             }
         });
-        generateJunitLabel.setEnabled(getCanGenerateUnitCase());
         generateJunitLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -107,6 +105,7 @@ public class TestCandidateListedItemComponent {
                 AgentCommandResponse<String> agentCommandResponse = new AgentCommandResponse<>();
                 agentCommandResponse.setResponseClassName(candidateMetadata.getReturnValueClassname());
                 agentCommandResponse.setMethodReturnValue(candidateMetadata.getReturnValue());
+                //cause for 2 issues here
                 agentCommandResponse.setResponseType(ResponseType.NORMAL);
                 candidateLifeListener.onSaveRequest(candidateMetadata, agentCommandResponse);
             }

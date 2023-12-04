@@ -291,7 +291,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
     public void refreshAndReloadCandidates(final MethodAdapter methodAdapter, List<StoredCandidate> candidates) {
         long start = new Date().getTime();
-        updateJunitButtonStatuses();
+//        updateJunitButtonStatuses();
 
         if (methodElement == null || methodAdapter == null
                 || methodAdapter.getPsiMethod() != methodElement.getPsiMethod()) {
