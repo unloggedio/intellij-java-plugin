@@ -498,7 +498,7 @@ final public class InsidiousService implements
                 contentFactory.createContent(atomicTestComponentWindow.getComponent(), "Get Started", false);
         atomicTestContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
-        contentManager.addContent(atomicTestContent);
+//        contentManager.addContent(atomicTestContent);
 
         if (currentState.isAgentServerRunning()) {
             atomicTestComponentWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
@@ -926,7 +926,9 @@ final public class InsidiousService implements
 
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
-        stompWindow.loadNewCandidates();
+        if (stompWindow != null) {
+            stompWindow.loadNewCandidates();
+        }
     }
 
     public void updateCoverageReport() {

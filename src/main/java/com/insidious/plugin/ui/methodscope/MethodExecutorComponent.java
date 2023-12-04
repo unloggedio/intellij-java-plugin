@@ -269,6 +269,9 @@ public class MethodExecutorComponent implements StoredCandidateLifeListener {
         if (DumbService.getInstance(getProject()).isDumb()) {
             return;
         }
+        if (methodElement.getContainingFile() == null) {
+            return;
+        }
         methodUnderTest = MethodUnderTest.fromMethodAdapter(methodElement);
         methodInfo = insidiousService.getMethodInformation(methodUnderTest);
 

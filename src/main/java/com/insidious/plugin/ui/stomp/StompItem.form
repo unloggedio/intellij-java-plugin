@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="com.insidious.plugin.ui.stomp.StompItem">
   <grid id="5c3ae" binding="mainPanel" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-    <margin top="0" left="4" bottom="6" right="4"/>
+    <margin top="8" left="8" bottom="8" right="8"/>
     <constraints>
       <xy x="6" y="5" width="461" height="116"/>
     </constraints>
@@ -53,42 +53,13 @@
               </grid>
             </children>
           </grid>
-          <grid id="8a4ae" binding="metadataPanel" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="0" bottom="0" right="0"/>
+          <grid id="8a4ae" binding="metadataPanel" layout-manager="FlowLayout" hgap="5" vgap="5" flow-align="1">
             <constraints>
-              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="2" fill="1" indent="0" use-parent-layout="false"/>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="10" fill="0" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties/>
             <border type="none"/>
-            <children>
-              <component id="bf0d9" class="javax.swing.JLabel" binding="parameterCountLabel">
-                <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <text value="2 Arguments"/>
-                </properties>
-              </component>
-              <component id="4c489" class="javax.swing.JLabel" binding="callsCountLabel">
-                <constraints>
-                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <text value="3 Downstream"/>
-                </properties>
-              </component>
-              <component id="13c8b" class="javax.swing.JLabel" binding="timeTakenMsLabel">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="1" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <background color="-1"/>
-                  <font size="12" style="1"/>
-                  <horizontalAlignment value="0"/>
-                  <text value="5ms"/>
-                </properties>
-              </component>
-            </children>
+            <children/>
           </grid>
         </children>
       </grid>
@@ -120,16 +91,16 @@
                 <properties/>
                 <border type="empty"/>
                 <children>
-                  <component id="b350a" class="javax.swing.JLabel" binding="generateJunitLabel">
+                  <vspacer id="80d43">
+                    <constraints/>
+                  </vspacer>
+                  <component id="2b7db" class="javax.swing.JLabel" binding="generateJunitLabel">
                     <constraints/>
                     <properties>
                       <text value=""/>
                     </properties>
                   </component>
-                  <vspacer id="80d43">
-                    <constraints/>
-                  </vspacer>
-                  <component id="17c24" class="javax.swing.JLabel" binding="statusLabel">
+                  <component id="e2528" class="javax.swing.JCheckBox" binding="selectCandidateCheckbox">
                     <constraints/>
                     <properties>
                       <text value=""/>

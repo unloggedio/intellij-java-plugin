@@ -23,7 +23,6 @@ import java.awt.event.MouseEvent;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Consumer;
@@ -33,6 +32,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     private final InsidiousService insidiousService;
     private final JPanel itemPanel;
     private final StompStatusComponent stompStatusComponent;
+    private final List<TestCandidateMetadata> selectedCandidates = new ArrayList<>();
     private JPanel mainPanel;
     private JPanel northPanelContainer;
     private JScrollPane historyStreamScrollPanel;
@@ -219,7 +219,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         if (testCandidateMetadata.getExitProbeIndex() > lastEventId) {
             lastEventId = testCandidateMetadata.getExitProbeIndex();
         }
-        StompItem stompItem = new StompItem(testCandidateMetadata, this, insidiousService);
+        StompItem stompItem = new StompItem(testCandidateMetadata, this);
         if (stompItems.size() > 0) {
             StompItem last = stompItems.get(stompItems.size() - 1);
             int count = insidiousService.getMethodCallCountBetween(last.getTestCandidate().getExitProbeIndex(),
@@ -281,6 +281,16 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     @Override
     public void onSaved(TestCandidateMetadata storedCandidate) {
 
+    }
+
+    @Override
+    public void onSelected(TestCandidateMetadata storedCandidate) {
+        this.selectedCandidates.add(storedCandidate);
+    }
+
+    @Override
+    public void unSelected(TestCandidateMetadata storedCandidate) {
+        this.selectedCandidates.remove(storedCandidate);
     }
 
     @Override
