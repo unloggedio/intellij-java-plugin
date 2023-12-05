@@ -144,6 +144,7 @@ final public class InsidiousService implements
     private Content introPanelContent = null;
     private Map<String, GutterState> cachedGutterState = new HashMap<>();
     private GetProjectSessionsCallback sessionListener;
+    private ReportingService reportingService = new ReportingService(this);
 
 
     public InsidiousService(Project project) {
@@ -1372,7 +1373,7 @@ final public class InsidiousService implements
     }
 
     public void addExecutionRecord(DifferenceResult result) {
-//        reportingService.addRecord(result);
+        reportingService.addRecord(result);
     }
 
     public void setAgentProcessState(GutterState newState) {
@@ -1447,7 +1448,7 @@ final public class InsidiousService implements
     }
 
     public void toggleReportGeneration() {
-//        this.reportingService.toggleReportMode();
+        this.reportingService.toggleReportMode();
     }
 
     public MethodDefinition getMethodInformation(MethodUnderTest methodUnderTest) {
