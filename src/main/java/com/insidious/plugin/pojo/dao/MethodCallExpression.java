@@ -5,6 +5,7 @@ import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.StringUtils;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
+import org.objectweb.asm.Opcodes;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -264,6 +265,11 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
     public void setIsStatic(boolean aStatic) {
         this.isStaticCall = aStatic;
     }
+
+    public boolean isMethodPublic() {
+        return (methodAccess & Opcodes.ACC_PUBLIC) == Opcodes.ACC_PUBLIC;
+    }
+
 
     public boolean isStaticCall() {
         return isStaticCall;

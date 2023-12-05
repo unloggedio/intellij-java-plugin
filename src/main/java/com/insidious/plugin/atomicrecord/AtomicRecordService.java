@@ -11,6 +11,7 @@ import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.MockIntersection;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
@@ -138,6 +139,7 @@ public class AtomicRecordService {
                                         NotificationType.INFORMATION);
                             }
                             logger.info("[ATRS] Replacing existing record");
+                            candidate.setMockIds(MockIntersection.enabledStoredMock(insidiousService, candidate.getMockIds()));
                             storedCandidate.copyFrom(candidate);
                             break;
                         }
@@ -254,7 +256,7 @@ public class AtomicRecordService {
         try {
             psiClass = JavaPsiFacade.getInstance(project).findClass(className, GlobalSearchScope.allScope(project));
             if (psiClass == null) {
-                logger.error("Class not found [" + className + "] for saving atomic records");
+                logger.warn("Class not found [" + className + "] for saving atomic records");
             } else {
                 return guessModuleForPsiClass(psiClass);
             }
@@ -341,7 +343,9 @@ public class AtomicRecordService {
 
     private void addNewRecord(String methodHashKey, String className, StoredCandidate candidate) {
         AtomicRecord record = new AtomicRecord(className);
-        record.getStoredCandidateMap().put(methodHashKey, Collections.singletonList(candidate));
+        ArrayList<StoredCandidate> value = new ArrayList<>();
+        value.add(candidate);
+        record.getStoredCandidateMap().put(methodHashKey, value);
         classAtomicRecordMap.put(className, record);
         writeToFile(new File(getFilenameForClass(className)), record, FileUpdateType.ADD_CANDIDATE, useNotifications);
     }
@@ -355,6 +359,7 @@ public class AtomicRecordService {
         try (FileOutputStream resourceFile = new FileOutputStream(file)) {
             String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(atomicRecord);
             resourceFile.write(json.getBytes(StandardCharsets.UTF_8));
+            resourceFile.flush();
             logger.info("[ATRS] file write successful => " + file.getAbsolutePath());
             if (notify) {
                 InsidiousNotification.notifyMessage(getMessageForOperationType(type, file.getPath(), true),
@@ -505,7 +510,9 @@ public class AtomicRecordService {
     public void setCandidateStateForCandidate(String candidateID, String classname,
                                               String methodKey, StoredCandidateMetadata.CandidateStatus state) {
         AtomicRecord record = classAtomicRecordMap.get(classname);
-        if (record == null || record.getStoredCandidateMap().get(methodKey).size() == 0) {
+        if (record == null
+                || !record.getStoredCandidateMap().containsKey(methodKey)
+                || record.getStoredCandidateMap().get(methodKey).size() == 0) {
             return;
         }
         List<StoredCandidate> list = record.getStoredCandidateMap().get(methodKey);

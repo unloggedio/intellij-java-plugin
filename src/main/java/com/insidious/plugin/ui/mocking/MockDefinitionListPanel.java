@@ -1,11 +1,15 @@
 package com.insidious.plugin.ui.mocking;
 
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.popup.*;
@@ -18,7 +22,11 @@ import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.lang.reflect.Method;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
 
@@ -47,7 +55,9 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     private JScrollPane savedItemScrollPanel;
     private JPanel northPanel;
     private JLabel mockCountLabel;
+    private JLabel permanentMockHelpLabel;
     private JBPopup componentPopUp;
+    private List<DeclaredMock> declaredMockList;
 
     public MockDefinitionListPanel(PsiMethodCallExpression methodCallExpression) {
         this.methodCallExpression = methodCallExpression;
@@ -65,20 +75,54 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
         methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethod));
 
         boolean fieldMockIsActive = insidiousService.isFieldMockActive(parentClassName, fieldName);
+//        boolean fieldMockIsActive = insidiousService.isPermanentMocks();
         fieldMockSwitch = new OnOffButton();
         fieldMockSwitch.setSelected(fieldMockIsActive);
 
+        permanentMockHelpLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
 
-        mockFieldSwitchPanel.add(fieldMockSwitch, BorderLayout.EAST);
-        fieldMockSwitch.addActionListener(e -> {
-            boolean isActive = fieldMockSwitch.isSelected();
-            logger.warn("Field active changed: " + isActive);
-            if (isActive) {
-                insidiousService.enableFieldMock(parentClassName, fieldName);
-            } else {
-                insidiousService.disableFieldMock(parentClassName, fieldName);
+
+                insidiousService.getProject()
+                        .getMessageBus().syncPublisher(Notifications.TOPIC)
+                        .notify(new Notification(InsidiousNotification.DISPLAY_ID, "Permanent mocks",
+                                "Activate Persistent Mocking to simulate call responses when triggered by external " +
+                                        "methods.\n All the enabled mocks will work for all code executions",
+                                NotificationType.INFORMATION));
+
+
             }
         });
+
+
+        mockFieldSwitchPanel.add(fieldMockSwitch, BorderLayout.EAST);
+        if (!insidiousService.getAgentStateProvider().isAgentRunning()) {
+            fieldMockSwitch.setEnabled(false);
+            fieldMockSwitch.setToolTipText("Start your application with unlogged-sdk to enable permanent mocking");
+        } else {
+            fieldMockSwitch.addActionListener(e -> {
+                boolean isActive = fieldMockSwitch.isSelected();
+                logger.warn("Field active changed: " + isActive);
+                if (isActive) {
+                    // inject only those mock definitions which are marked as enabled
+                    List<DeclaredMock> declaredMocksOf = insidiousService
+                            .getDeclaredMocksOf(methodUnderTest)
+                            .stream()
+                            .filter(insidiousService::isMockEnabled)
+                            .collect(Collectors.toList());
+
+                    insidiousService.injectMocksInRunningProcess(declaredMocksOf);
+                    insidiousService.enableFieldMock(parentClassName, fieldName);
+                } else {
+                    // try to remove all mocks irrespective of they are enabled or not
+                    List<DeclaredMock> declaredMocksOf = insidiousService.getDeclaredMocksOf(methodUnderTest);
+                    insidiousService.removeMocksInRunningProcess(declaredMocksOf);
+                    insidiousService.disableFieldMock(parentClassName, fieldName);
+                }
+            });
+        }
 
         int argumentCount = targetMethod.getParameterList().getParametersCount();
         mockedMethodText.setText(
@@ -95,7 +139,7 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     }
 
     private void loadDefinitions(boolean showAddNewIfEmpty) {
-        List<DeclaredMock> declaredMockList = insidiousService.getDeclaredMocksOf(methodUnderTest);
+        declaredMockList = insidiousService.getDeclaredMocksOf(methodUnderTest);
 
         int savedCandidateCount = declaredMockList.size();
 
@@ -152,7 +196,7 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
         }
     }
 
-    private void showMockEditor(DeclaredMock declaredMock) {
+    public void showMockEditor(DeclaredMock declaredMock) {
         JBPopup editorPopup = null;
 
         MockDefinitionEditor mockDefinitionEditor;
@@ -219,9 +263,9 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     @Override
     public void onEnable(DeclaredMock declaredMock) {
         insidiousService.enableMock(declaredMock);
-        if (!fieldMockSwitch.isSelected()) {
-            fieldMockSwitch.setSelected(true);
-        }
+//        if (!fieldMockSwitch.isSelected()) {
+//            fieldMockSwitch.setSelected(true);
+//        }
     }
 
     @Override
@@ -234,10 +278,10 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     }
 
     @Override
-    public void onSaveDeclaredMock(DeclaredMock declaredMock) {
-        insidiousService.saveMockDefinition(declaredMock, methodUnderTest);
+    public void onSaveDeclaredMock(DeclaredMock declaredMock, MethodUnderTest methodUnderTest) {
+        insidiousService.saveMockDefinition(declaredMock, this.methodUnderTest);
         insidiousService.enableMock(declaredMock);
-        insidiousService.enableFieldMock(parentClassName, fieldName);
-        fieldMockSwitch.setSelected(true);
+//        insidiousService.enableFieldMock(parentClassName, fieldName);
+//        fieldMockSwitch.setSelected(true);
     }
 }

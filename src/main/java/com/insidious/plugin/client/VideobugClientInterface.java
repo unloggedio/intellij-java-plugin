@@ -56,9 +56,9 @@ public interface VideobugClientInterface {
     void queryTracePointsByEventType(SearchQuery searchQuery, String sessionId,
                                      ClientCallBack<TracePoint> tracePointsCallback);
 
-    ReplayData fetchObjectHistoryByObjectId(
-            FilteredDataEventsRequest request
-    ) throws SessionNotSelectedException;
+//    ReplayData fetchObjectHistoryByObjectId(
+//            FilteredDataEventsRequest request
+//    ) throws SessionNotSelectedException;
 
     void queryTracePointsByTypes(SearchQuery classList, String sessionId, int historyDepth,
                                  ClientCallBack<TracePoint> getProjectSessionErrorsCallback);
@@ -88,4 +88,6 @@ public interface VideobugClientInterface {
 
 
     SessionInstance getSessionInstance();
+
+    ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filterRequest);
 }

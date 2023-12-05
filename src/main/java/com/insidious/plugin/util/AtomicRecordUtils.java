@@ -10,9 +10,6 @@ public class AtomicRecordUtils {
 
 
     public static FilteredCandidateResponseList filterStoredCandidates(List<StoredCandidate> candidates) {
-//        Map<Long, StoredCandidate> selectedCandidates = new TreeMap<>();
-//        Map<String, StoredCandidate> candidatesByArguments = new HashMap<>();
-
         List<StoredCandidate> savedCandidates = candidates.stream()
                 .filter(e -> e.getCandidateId() != null)
                 .collect(Collectors.toList());
@@ -25,17 +22,17 @@ public class AtomicRecordUtils {
                 .collect(Collectors.toList());
 
         Map<String, List<StoredCandidate>> savedCandidatesByArgumentsMap = savedCandidates.stream()
-                .collect(Collectors.groupingBy(e -> StringUtils.join(e.getMethodArguments(), ",")));
-
+                .collect(Collectors.groupingBy(StoredCandidate::calculateCandidateHash));
+        filterCandidatesForFloatAndDoubleTypes(savedCandidatesByArgumentsMap);
 
         Map<String, List<StoredCandidate>> unsavedCandidatesByArguments = unsavedCandidates.stream()
-                .collect(Collectors.groupingBy(e -> StringUtils.join(e.getMethodArguments(), ",")));
-
-//        Map<String, Boolean> lineNumbersUpdates = new HashMap<>();
+                .collect(Collectors.groupingBy(StoredCandidate::calculateCandidateHash));
+        filterCandidatesForFloatAndDoubleTypes(unsavedCandidatesByArguments);
 
         for (String commaSeparatedArguments : unsavedCandidatesByArguments.keySet()) {
             if (!savedCandidatesByArgumentsMap.containsKey(commaSeparatedArguments)) {
-                finalCandidateList.addAll(unsavedCandidatesByArguments.get(commaSeparatedArguments));
+                //use only the saved ones
+                finalCandidateList.add(unsavedCandidatesByArguments.get(commaSeparatedArguments).get(0));
             } else {
                 StoredCandidate oneUnsavedCandidate = unsavedCandidatesByArguments.get(commaSeparatedArguments).get(0);
                 Set<Integer> newLineNumberSet = unsavedCandidatesByArguments
@@ -68,40 +65,18 @@ public class AtomicRecordUtils {
                 }
             }
         }
-
-
-//        for (StoredCandidate unsavedCandidate : unsavedCandidates) {
-//            String commaSeparatedArguments = StringUtils.join(unsavedCandidate.getMethodArguments(), ",");
-//            if (savedCandidatesByArgumentsMap.containsKey(commaSeparatedArguments)) {
-//                // update line numbers on the existing saved candidates
-//                boolean clearExistingLineNumbers = false;
-//                if (!lineNumbersUpdates.containsKey(commaSeparatedArguments)) {
-//                    clearExistingLineNumbers = true;
-//                    lineNumbersUpdates.put(commaSeparatedArguments, true);
-//                }
-//                List<StoredCandidate> existingSavedCandidates = savedCandidatesByArgumentsMap.get(commaSeparatedArguments);
-//                for (StoredCandidate existingSavedCandidate : existingSavedCandidates) {
-//                    if (clearExistingLineNumbers) {
-//                        existingSavedCandidate.getLineNumbers().clear();
-//                    }
-//                    existingSavedCandidate.getLineNumbers().addAll(unsavedCandidate.getLineNumbers());
-//                }
-//            } else {
-//                finalCandidateList.add(unsavedCandidate);
-//            }
-//        }
-
-
-//        for (StoredCandidate candidate : candidates) {
-//            if (!selectedCandidates.containsKey(candidate.getEntryProbeIndex())) {
-//                selectedCandidates.put(candidate.getEntryProbeIndex(), candidate);
-//            } else {
-//                //saved candidate
-//                if (candidate.getCandidateId() != null) {
-//                    selectedCandidates.put(candidate.getEntryProbeIndex(), candidate);
-//                }
-//            }
-//        }
         return new FilteredCandidateResponseList(finalCandidateList, updatedCandidateIds);
+    }
+
+    private static void filterCandidatesForFloatAndDoubleTypes(Map<String, List<StoredCandidate>> aggregate) {
+        aggregate.forEach((e, v) -> {
+            v.forEach(sc -> {
+                if (sc.getReturnValueClassname() == null) {
+                    sc.setReturnValueClassname("null");
+                }
+                sc.setReturnValue(ParameterUtils.processResponseForFloatAndDoubleTypes(
+                        sc.getReturnValueClassname(), sc.getReturnValue()));
+            });
+        });
     }
 }

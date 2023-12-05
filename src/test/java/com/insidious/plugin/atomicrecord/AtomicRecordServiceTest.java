@@ -5,6 +5,7 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
@@ -30,6 +31,7 @@ public class AtomicRecordServiceTest {
     @BeforeEach
     public void setup() {
         insidiousService = Mockito.mock(InsidiousService.class);
+        UsageInsightTracker.getInstance().close();
 
         String currentDir = System.getProperty("user.dir");
         Project project = Mockito.mock(Project.class);

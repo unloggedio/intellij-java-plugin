@@ -69,7 +69,8 @@ public class AgentClient {
                 eventProperties.put("responseClass", agentCommandResponse.getResponseClassName());
             }
             UsageInsightTracker.getInstance().RecordEvent(
-                    "AGENT_RESPONSE_" + agentCommandResponse.getResponseType(), eventProperties);
+                    agentCommandRequest.getCommand() + "_AGENT_RESPONSE_" + agentCommandResponse.getResponseType(),
+                    eventProperties);
             return agentCommandResponse;
         } catch (Throwable e) {
             JSONObject properties = new JSONObject();

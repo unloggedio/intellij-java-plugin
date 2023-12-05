@@ -9,7 +9,6 @@ import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.codeInsight.daemon.LineMarkerProvider;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
 
 import javax.swing.*;
@@ -23,6 +22,7 @@ public class LineHighlighter implements LineMarkerProvider {
 
     private static final Logger logger = LoggerUtil.getInstance(LineHighlighter.class);
     private static final Pattern testFileNamePattern = Pattern.compile("^Test.*V.java$");
+    private static final Pattern testPreviewFilePattern = Pattern.compile("^.*_Unlogged_Preview.java$");
     private static final Pattern testMethodNamePattern = Pattern.compile("^test.*");
     private static final Supplier<String> accessibleNameProvider = () -> "Execute method";
     private final Map<GutterState, UnloggedGutterNavigationHandler> navHandlerMap = new HashMap<>();
@@ -46,10 +46,18 @@ public class LineHighlighter implements LineMarkerProvider {
             if (fileMatcher.matches()) {
                 return null;
             }
-
+            Matcher previewFileMatcher = testPreviewFilePattern.matcher(element.getContainingFile().getName());
+            if (previewFileMatcher.matches()) {
+                return null;
+            }
 
             PsiMethod psiMethod = (PsiMethod) element.getParent();
             if (psiMethod.isConstructor()) {
+                return null;
+            }
+            if (psiMethod.getName().equals("main")
+                    && psiMethod.getModifierList().hasModifierProperty(PsiModifier.STATIC)
+            ) {
                 return null;
             }
             if (psiMethod.getContainingClass() instanceof PsiAnonymousClass) {
@@ -58,10 +66,11 @@ public class LineHighlighter implements LineMarkerProvider {
             GutterState gutterStateForMethod = getGutterStateForMethod(psiMethod);
             final Icon gutterIcon = UIUtils.getGutterIconForState(gutterStateForMethod);
 
-            return new LineMarkerInfo<>(
+            LineMarkerInfo<PsiIdentifier> psiIdentifierLineMarkerInfo = new LineMarkerInfo<>(
                     (PsiIdentifier) element,
                     element.getTextRange(), gutterIcon, psiIdentifier -> gutterStateForMethod.getToolTipText(),
                     navHandlerMap.get(gutterStateForMethod), GutterIconRenderer.Alignment.LEFT);
+            return psiIdentifierLineMarkerInfo;
         }
         return null;
     }

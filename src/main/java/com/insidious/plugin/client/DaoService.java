@@ -575,7 +575,7 @@ public class DaoService {
                 String callDescFromEntryProbe = methodCallExpression.getEntryProbeInfo()
                         .getAttribute("Desc", null);
                 if (callDescFromEntryProbe != null) {
-                    List<String> descriptorData = ClassTypeUtils.splitMethodDesc(callDescFromEntryProbe);
+                    List<String> descriptorData = ClassTypeUtils.splitMethodDescriptor(callDescFromEntryProbe);
                     String returnType = descriptorData.remove(descriptorData.size() - 1);
                     argumentTypesFromMethodDefinition =
                             descriptorData.stream()
@@ -1119,8 +1119,9 @@ public class DaoService {
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
     getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
-        logger.warn("query test candidates: " + candidateSearchQuery);
+//        logger.warn("query test candidates: " + candidateSearchQuery);
         try {
+            long start = new Date().getTime();
 
             GenericRawResults<TestCandidateMetadata> parameterIds;
             switch (candidateSearchQuery.getCandidateFilterType()) {
@@ -1166,7 +1167,8 @@ public class DaoService {
             }
 
             parameterIds.close();
-            logger.warn("found [" + resultList.size() + "] candidates");
+            long end = new Date().getTime();
+            logger.warn("found [" + resultList.size() + "] candidates in " +  (end - start) + " ms");
             return resultList;
         } catch (Exception e) {
             e.printStackTrace();
@@ -1277,8 +1279,8 @@ public class DaoService {
             TestCandidateMetadata dbCandidate = testCandidateDao.queryForId(testCandidateId);
             return convertTestCandidateMetadata(dbCandidate, loadCalls);
         } catch (Exception e) {
-            logger.error("failed to load test candidate by id [" + testCandidateId + "]", e);
-            throw new RuntimeException(e);
+            logger.warn("failed to load test candidate by id [" + testCandidateId + "]", e);
+            return null;
         }
     }
 

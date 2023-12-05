@@ -20,7 +20,9 @@ import java.nio.charset.StandardCharsets;
 public class UnloggedTestUtils {
     public static final String UNLOGGED_FIXTURES_PATH = "unlogged-fixtures/";
     public static final int BUFFER_SIZE = 8192;
-    private final static Gson gson = new GsonBuilder().serializeNulls().create();
+    private final static Gson gson = new GsonBuilder()
+            .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX")
+            .serializeNulls().create();
     public static String testResourceFilePath = null;
     private static JsonObject sourceObject = null;
 

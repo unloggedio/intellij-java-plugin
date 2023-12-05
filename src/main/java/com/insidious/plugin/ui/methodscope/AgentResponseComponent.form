@@ -166,7 +166,7 @@
                               <actionCommand value="view Differences"/>
                               <contentAreaFilled value="false"/>
                               <icon value="icons/png/json_difference_icon.png"/>
-                              <text value="Detailed View"/>
+                              <text value="Show JSON Diff"/>
                             </properties>
                           </component>
                         </children>

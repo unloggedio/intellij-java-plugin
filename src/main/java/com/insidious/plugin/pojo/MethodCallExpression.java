@@ -1,6 +1,5 @@
 package com.insidious.plugin.pojo;
 
-import com.esotericsoftware.asm.Opcodes;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.ParameterNameFactory;
@@ -14,6 +13,7 @@ import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
+import org.objectweb.asm.Opcodes;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -159,7 +159,7 @@ public class MethodCallExpression implements Expression, Serializable {
         if the parameter type and template map are not equal
         then Generates a New Name,
      */
-    private Parameter generateParameterName(Parameter parameter, ObjectRoutineScript ors) {
+    public Parameter generateParameterName(Parameter parameter, ObjectRoutineScript ors) {
         ParameterNameFactory nameFactory = ors.getTestGenerationState().getParameterNameFactory();
         String lhsExprName = nameFactory.getNameForUse(parameter, this.methodName);
         Parameter variableExistingParameter = ors.getCreatedVariables()
@@ -568,7 +568,7 @@ public class MethodCallExpression implements Expression, Serializable {
     public String toString() {
         return "MethodCallExpression{" +
                 "methodName='" + methodName + '\'' +
-                ", subject=" + subject.getType() +
+                (", subject=" + (subject == null ? "" : subject.getType())) +
                 ", id=" + id +
                 '}';
     }

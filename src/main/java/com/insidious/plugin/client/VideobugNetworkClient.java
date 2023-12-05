@@ -693,10 +693,10 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     }
 
-    @Override
-    public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
-        return null;
-    }
+//    @Override
+//    public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
+//        return null;
+//    }
 
     @Override
     public TypeInfo getTypeInfoByName(String sessionId, String type) {
@@ -705,6 +705,11 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     @Override
     public SessionInstance getSessionInstance() {
+        return null;
+    }
+
+    @Override
+    public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filterRequest) {
         return null;
     }
 

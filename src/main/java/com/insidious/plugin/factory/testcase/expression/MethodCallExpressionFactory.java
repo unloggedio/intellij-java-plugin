@@ -34,8 +34,8 @@ public class MethodCallExpressionFactory {
 //        GsonClass = makeParameter("gson", "com.google.gson.Gson");
     }
 
-    public static Parameter makeParameter(String name, String type) {
-        Parameter param = new Parameter();
+    public static Parameter makeParameter(String name, String type, long value) {
+        Parameter param = new Parameter(value);
         param.setName(name);
         param.setType(type);
         return param;

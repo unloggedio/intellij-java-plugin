@@ -1,11 +1,14 @@
 package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.agent.ResponseType;
+import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.pojo.ReplayAllExecutionContext;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
-import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.components.JBScrollPane;
@@ -32,26 +35,30 @@ public class TestCandidateListedItemComponent {
     private static final Logger logger = LoggerUtil.getInstance(TestCandidateListedItemComponent.class);
     private final List<String> methodArgumentValues;
     private final Map<String, ArgumentNameValuePair> parameterMap;
+    private final CandidateLifeListener candidateLifeListener;
     private StoredCandidate candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
     private JPanel mainContentPanel;
-    private JLabel executeLabel;
+    private JButton executeLabel;
     private JPanel controlPanel;
+    private JPanel controlContainer;
+    private JButton generateJunitLabel;
+    private JButton saveReplayButton;
+    private JPanel parameterPanel;
     private JLabel assertionCountLabel;
 
     public TestCandidateListedItemComponent(
             StoredCandidate storedCandidate,
             List<ArgumentNameValuePair> argumentNameValuePairs,
-            MethodExecutionListener methodExecutionListener,
-            CandidateSelectedListener candidateSelectedListener,
+            CandidateLifeListener candidateLifeListener,
             InsidiousService insidiousService,
             MethodAdapter method) {
         this.candidateMetadata = storedCandidate;
+        this.candidateLifeListener = candidateLifeListener;
         this.methodArgumentValues = candidateMetadata.getMethodArguments();
         this.parameterMap = generateParameterMap(argumentNameValuePairs);
-        mainContentPanel.setLayout(new BorderLayout());
-
+        parameterPanel.setLayout(new BorderLayout());
         //saved candidate check
         if (candidateMetadata.getName() != null && candidateMetadata.getName().length() > 0) {
             setTitledBorder(candidateMetadata.getName());
@@ -60,7 +67,6 @@ public class TestCandidateListedItemComponent {
                 setTitledBorder("#Saved candidate with no name");
             }
         }
-
 
         mainPanel.revalidate();
 
@@ -74,38 +80,65 @@ public class TestCandidateListedItemComponent {
                     eventProperties.put("methodName", storedCandidate.getMethod().getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
                     statusLabel.setText("Executing");
-                    methodExecutionListener.executeCandidate(
-                            Collections.singletonList(candidateMetadata), psiClass, "individual",
+                    ReplayAllExecutionContext context = new ReplayAllExecutionContext("individual",
+                            false);
+                    candidateLifeListener.executeCandidate(
+                            Collections.singletonList(candidateMetadata), psiClass, context,
                             (candidateMetadata, agentCommandResponse, diffResult) -> {
                                 insidiousService.updateMethodHashForExecutedMethod(method);
-                                candidateSelectedListener.onCandidateSelected(candidateMetadata);
+                                candidateLifeListener.onCandidateSelected(candidateMetadata);
                                 insidiousService.triggerGutterIconReload();
                             }
                     );
                 });
             }
         });
+        generateJunitLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                candidateLifeListener.onGenerateJunitTestCaseRequest(candidateMetadata);
+            }
+        });
+        saveReplayButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                AgentCommandResponse<String> agentCommandResponse = new AgentCommandResponse<>();
+                agentCommandResponse.setResponseClassName(candidateMetadata.getReturnValueClassname());
+                agentCommandResponse.setMethodReturnValue(candidateMetadata.getReturnValue());
+                //cause for 2 issues here
+                agentCommandResponse.setResponseType(ResponseType.NORMAL);
+                candidateLifeListener.onSaveRequest(candidateMetadata, agentCommandResponse);
+            }
+        });
+
         statusLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (!statusLabel.getText().trim().isEmpty()) {
-                    candidateSelectedListener.onCandidateSelected(candidateMetadata);
+                    candidateLifeListener.onCandidateSelected(candidateMetadata);
                 }
             }
         });
-        executeLabel.setIcon(UIUtils.EXECUTE_COMPONENT);
         statusLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        executeLabel.setIcon(UIUtils.EXECUTE_ICON_OUTLINED_SVG);
+        saveReplayButton.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
+        generateJunitLabel.setIcon(UIUtils.TEST_CASES_ICON_PINK);
+
         executeLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        saveReplayButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        generateJunitLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
         mainPanel.addMouseListener(new MouseAdapter() {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                candidateSelectedListener.onCandidateSelected(candidateMetadata);
+                candidateLifeListener.onCandidateSelected(candidateMetadata);
             }
         });
+
         mainPanel.setBackground(UIUtils.agentResponseBaseColor);
-        executeLabel.setIcon(UIUtils.EXECUTE_ICON_OUTLINED_SVG);
-        mainContentPanel.setOpaque(false);
+        parameterPanel.setOpaque(false);
         controlPanel.setOpaque(false);
 
 
@@ -121,14 +154,14 @@ public class TestCandidateListedItemComponent {
 
     private void loadInputTree() {
 
-        mainContentPanel.removeAll();
+        parameterPanel.removeAll();
         DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
         Set<String> methodArgumentNames = this.parameterMap.values()
                 .stream().map(ArgumentNameValuePair::getName)
                 .collect(Collectors.toSet());
         int methodArgumentCount = methodArgumentNames.size();
         if (methodArgumentCount == 0) {
-            DefaultMutableTreeNode node = new DefaultMutableTreeNode("No inputs for this method.");
+            DefaultMutableTreeNode node = new DefaultMutableTreeNode("No arguments");
             inputRoot.add(node);
         } else {
             for (String key : methodArgumentNames) {
@@ -149,11 +182,11 @@ public class TestCandidateListedItemComponent {
 //        GridLayout gridLayout = new GridLayout(1, 1);
         int desiredHeightPerInput = 50;
         int desiredHeight = inputRoot.getLeafCount() * desiredHeightPerInput;
-        if (desiredHeight < 70) {
-            desiredHeight = 70;
+        if (desiredHeight < 150) {
+            desiredHeight = 150;
         }
-        if (desiredHeight > 220) {
-            desiredHeight = 220;
+        if (desiredHeight > 250) {
+            desiredHeight = 250;
         }
 
         inputTree.setSize(new Dimension(-1, desiredHeight));
@@ -169,17 +202,17 @@ public class TestCandidateListedItemComponent {
         mainPanel.setMinimumSize(new Dimension(-1, 100));
         mainPanel.setMaximumSize(new Dimension(-1, desiredHeight));
 
-        mainContentPanel.setSize(new Dimension(-1, desiredHeight));
+        parameterPanel.setSize(new Dimension(-1, desiredHeight));
 
-        mainContentPanel.setMaximumSize(new Dimension(-1, desiredHeight));
-        mainContentPanel.setPreferredSize(new Dimension(-1, desiredHeight));
+        parameterPanel.setMaximumSize(new Dimension(-1, desiredHeight));
+        parameterPanel.setPreferredSize(new Dimension(-1, desiredHeight));
         scrollPane.setBorder(JBUI.Borders.empty());
         scrollPane.setOpaque(false);
         scrollPane.getViewport().setOpaque(false);
         inputTree.setOpaque(false);
 //        inputTree.path
         inputTree.setBackground(UIUtils.agentResponseBaseColor);
-        mainContentPanel.add(scrollPane, BorderLayout.CENTER);
+        parameterPanel.add(scrollPane, BorderLayout.CENTER);
 
         if (candidateMetadata.getCandidateId() != null && candidateMetadata.getTestAssertions() != null) {
             int assertionCount = AtomicAssertionUtils.countAssertions(candidateMetadata.getTestAssertions());
@@ -195,12 +228,12 @@ public class TestCandidateListedItemComponent {
             countPanel.add(assertionCountLabel, BorderLayout.WEST);
             countPanel.setAlignmentY(1.0F);
             countPanel.setOpaque(false);
-            mainContentPanel.add(countPanel, BorderLayout.SOUTH);
+            parameterPanel.add(countPanel, BorderLayout.SOUTH);
         }
-//        mainContentPanel.add(argumentsLabelPanel, BorderLayout.NORTH);
+//        parameterPanel.add(argumentsLabelPanel, BorderLayout.NORTH);
 
-        mainContentPanel.revalidate();
-        mainContentPanel.repaint();
+        parameterPanel.revalidate();
+        parameterPanel.repaint();
     }
 
     public Map<String, ArgumentNameValuePair> generateParameterMap(List<ArgumentNameValuePair> argumentNameTypeList) {
@@ -215,10 +248,10 @@ public class TestCandidateListedItemComponent {
 
                 if (argumentTypeCanonicalName.equals("float") ||
                         argumentTypeCanonicalName.equals("java.lang.Float")) {
-                    parameterValue = String.valueOf(Float.intBitsToFloat(Integer.parseInt(parameterValue)));
+                    parameterValue = ParameterUtils.getFloatValue(parameterValue);
                 } else if (argumentTypeCanonicalName.equals("double") ||
                         argumentTypeCanonicalName.equals("java.lang.Double")) {
-                    parameterValue = String.valueOf(Double.longBitsToDouble(Long.parseLong(parameterValue)));
+                    parameterValue = ParameterUtils.getDoubleValue(parameterValue);
                 }
             } catch (Exception e) {
                 logger.warn("Failed to parse double/float [" + parameterValue + "]", e);
@@ -282,5 +315,20 @@ public class TestCandidateListedItemComponent {
 
     public void setStatus(String statusText) {
         statusLabel.setText(statusText);
+    }
+
+    public void refreshJunitButtonStatus() {
+        //only needed if not available
+        if (!this.generateJunitLabel.isEnabled()) {
+            generateJunitLabel.setEnabled(getCanGenerateUnitCase());
+        }
+    }
+
+    public void setJunitButtonEnableState(boolean state) {
+        generateJunitLabel.setEnabled(state);
+    }
+
+    private boolean getCanGenerateUnitCase() {
+        return candidateLifeListener.canGenerateUnitCase(candidateMetadata);
     }
 }

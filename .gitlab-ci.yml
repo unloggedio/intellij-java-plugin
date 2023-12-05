@@ -40,7 +40,7 @@ build:
 
 test:
   stage: build
-  script: ./gradlew check
+  script: ./gradlew check --scan --info
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: pull
@@ -48,8 +48,9 @@ test:
       - .gradle
       - .cache
   artifacts:
+    when: always
     untracked: false
     name: test-report.html
     paths:
-      - build/reports/tests/test/index.html
+      - build/reports/tests/test/*
     expire_in: 30 days

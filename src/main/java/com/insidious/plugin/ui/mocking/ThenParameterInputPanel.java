@@ -29,6 +29,7 @@ public class ThenParameterInputPanel {
             "boolean",
             "float",
             "double",
+            "void",
             "long"
     ));
 
@@ -106,6 +107,9 @@ public class ThenParameterInputPanel {
         }
         if (className.contains("<")) {
             className = className.substring(0, className.indexOf("<"));
+        }
+        if (className.contains("[")) {
+            className = className.substring(0, className.indexOf("["));
         }
 
         PsiClass locatedClass = JavaPsiFacade.getInstance(project)

@@ -6,11 +6,11 @@ import com.squareup.javapoet.ClassName;
 import static com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory.makeParameter;
 
 public enum JsonFramework {
-    Gson(makeParameter("gson", "com.google.gson.Gson"),
+    Gson(makeParameter("gson", "com.google.gson.Gson", -99883),
             "fromJson", "toJson",
             ClassName.bestGuess("com.google.gson.reflect.TypeToken")
     ),
-    Jackson(makeParameter("objectMapper", "com.fasterxml.jackson.databind.ObjectMapper"),
+    Jackson(makeParameter("objectMapper", "com.fasterxml.jackson.databind.ObjectMapper", -99884),
             "readValue", "writeValueAsString",
             ClassName.bestGuess("com.fasterxml.jackson.core.type.TypeReference"));
 

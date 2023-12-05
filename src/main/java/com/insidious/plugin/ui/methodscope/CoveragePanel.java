@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.methodscope;
 import com.insidious.plugin.factory.InsidiousService;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -36,8 +37,13 @@ public class CoveragePanel {
         if (totalLineCount > 0) {
             int coverageSavedPercent = (coveredSavedLineCount * 100) / totalLineCount;
             progressBar1.setValue(coverageSavedPercent);
+            progressBar1.setForeground(Color.GREEN);
             percentLabel.setText(coverageSavedPercent + "%");
             int coverageUnsavedPercent = (coveredUnsavedLineCount * 100) / totalLineCount;
+            if (coverageSavedPercent == 0 && coverageUnsavedPercent > 0) {
+                progressBar1.setValue(coverageUnsavedPercent);
+                progressBar1.setForeground(Color.ORANGE);
+            }
             if (coverageUnsavedPercent > 0) {
                 int totalFinalPercent = coverageUnsavedPercent + coverageSavedPercent;
                 potentialNewPercent.setText(totalFinalPercent + "%");

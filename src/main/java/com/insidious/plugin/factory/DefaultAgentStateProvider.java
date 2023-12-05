@@ -3,19 +3,21 @@ package com.insidious.plugin.factory;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.agent.ConnectionStateListener;
 import com.insidious.plugin.agent.ServerMetadata;
-import com.insidious.plugin.ui.methodscope.HighlightedRequest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiPackage;
-
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -60,7 +62,7 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
 
             finalIncludedPackageName = includedPackageName;
             String finalIncludedPackageName1 = finalIncludedPackageName;
-             PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
+            PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
                     (Computable<PsiPackage>) () -> JavaPsiFacade.getInstance(insidiousService.getProject())
                             .findPackage(finalIncludedPackageName1));
             if (locatedPackage == null) {
@@ -79,9 +81,26 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
         }
         this.isAgentServerRunning = true;
 
-        InsidiousNotification.notifyMessage("New session identified tracking package [" + finalIncludedPackageName
-                        + "] connected, agent version: " + serverMetadata.getAgentVersion(),
-                NotificationType.INFORMATION);
+        Collection<? extends AnAction> actions = Arrays.asList(
+                new AnAction("Direct Invoke") {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        insidiousService.focusDirectInvokeTab();
+                        insidiousService.openToolWindow();
+                    }
+                },
+                new AnAction("Replay List") {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        insidiousService.focusAtomicTestsWindow();
+                        insidiousService.openToolWindow();
+                    }
+                }
+        );
+        InsidiousNotification.notifyMessage("Recording in progress package "
+                        + "[" + finalIncludedPackageName + "]. Executed methods and saved replays will show up in the" +
+                        " Replay tab. Use DirectInvoke to execute methods from here.",
+                NotificationType.INFORMATION, actions);
 
 
         insidiousService.triggerGutterIconReload();
@@ -99,6 +118,7 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
             insidiousService.getAtomicRecordService().writeAll();
         }
         ApplicationManager.getApplication().invokeLater(() -> {
+            insidiousService.onDisconnectedFromAgentServer();
             insidiousService.removeCurrentActiveHighlights();
             insidiousService.triggerGutterIconReload();
             insidiousService.setAgentProcessState(GutterState.PROCESS_NOT_RUNNING);

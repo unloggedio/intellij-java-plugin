@@ -24,7 +24,6 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.ValueResourceContainer;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
@@ -34,8 +33,10 @@ import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
@@ -65,6 +66,8 @@ import org.objectweb.asm.Opcodes;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -99,6 +102,7 @@ public class TestCaseDesigner implements Disposable {
     private JPanel jsonFrameworkChoicePanel;
     private JComboBox<ResourceEmbedMode> resourceEmberModeComboBox;
     private JPanel resourceEmbedModeChoicePanel;
+    private JButton backToReplayListButton;
     private MethodAdapter currentMethod;
     private ClassAdapter currentClass;
     private Editor editor;
@@ -111,11 +115,18 @@ public class TestCaseDesigner implements Disposable {
     public TestCaseDesigner() {
         saveTestCaseButton.setEnabled(false);
         saveTestCaseButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        backToReplayListButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        backToReplayListButton.setForeground(UIUtils.defaultForeground);
+        saveTestCaseButton.setForeground(UIUtils.defaultForeground);
+
         testFrameworkComboBox.setModel(new DefaultComboBoxModel<>(TestFramework.values()));
         mockFrameworkComboBox.setModel(new DefaultComboBoxModel<>(MockFramework.values()));
-        jsonFrameworkComboBox.setModel(new DefaultComboBoxModel<>(JsonFramework.values()));
-        resourceEmberModeComboBox.setModel(new DefaultComboBoxModel<>(ResourceEmbedMode.values()));
 
+        jsonFrameworkComboBox.setModel(new DefaultComboBoxModel<>(JsonFramework.values()));
+        jsonFrameworkComboBox.setSelectedItem(JsonFramework.Jackson);
+
+        resourceEmberModeComboBox.setModel(new DefaultComboBoxModel<>(ResourceEmbedMode.values()));
         resourceEmberModeComboBox.setSelectedItem(ResourceEmbedMode.IN_CODE);
 
         addFieldMocksCheckBox.addActionListener(e -> {
@@ -150,6 +161,10 @@ public class TestCaseDesigner implements Disposable {
             updatePreviewTestCase();
         });
 
+        backToReplayListButton.addActionListener(e -> {
+            InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
+            insidiousService.focusAtomicTestsWindow();
+        });
 
         saveTestCaseButton.addActionListener(e -> {
 
@@ -338,13 +353,15 @@ public class TestCaseDesigner implements Disposable {
         return mainContainer;
     }
 
-    public void generateTestCaseBoilerPlace(MethodAdapter method) {
-        if (this.currentMethod != null && this.currentMethod.equals(method)) {
-            return;
+    public TestCaseGenerationConfiguration generateTestCaseBoilerPlace(MethodAdapter method) {
+
+        if (method == null) {
+            return null;
         }
         PsiFile containingFile = method.getContainingFile();
         if (containingFile.getVirtualFile() == null || containingFile.getVirtualFile().getPath().contains("/test/")) {
-            return;
+            InsidiousNotification.notifyMessage("Failed to method source code", NotificationType.ERROR);
+            return null;
         }
 
         saveLocationTextField.setText("");
@@ -381,8 +398,7 @@ public class TestCaseDesigner implements Disposable {
         currentTestGenerationConfiguration.getTestCandidateMetadataList().clear();
         currentTestGenerationConfiguration.getTestCandidateMetadataList().addAll(testCandidateMetadataList);
 
-        updatePreviewTestCase();
-
+        return currentTestGenerationConfiguration;
     }
 
     public void updatePreviewTestCase() {
@@ -510,6 +526,7 @@ public class TestCaseDesigner implements Disposable {
         }
 
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
+        testCandidateMetadata.setLines(List.of());
 
         Parameter testSubjectParameter = new Parameter();
         testSubjectParameter.setType(currentClass.getQualifiedName());
@@ -675,7 +692,11 @@ public class TestCaseDesigner implements Disposable {
 
                         List<Parameter> methodArguments = new ArrayList<>();
                         Parameter methodReturnValue = new Parameter();
-                        methodReturnValue.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
+                        DataInfo probeInfo1 = new DataInfo(
+                                0, 0, 0, 0, 0, EventType.ARRAY_LENGTH, Descriptor.Boolean, ""
+                        );
+
+                        methodReturnValue.setProbeAndProbeInfo(new DataEventWithSessionId(), probeInfo1);
 
                         ClassAdapter calledMethodClassReference = getClassByName(fieldByName.getType());
                         if (calledMethodClassReference == null) {

@@ -6,7 +6,7 @@ import com.squareup.javapoet.ClassName;
 
 public enum TestFramework {
     JUnit4(
-            MethodCallExpressionFactory.makeParameter("Assert", "org.junit.Assert"),
+            MethodCallExpressionFactory.makeParameter("Assert", "org.junit.Assert", -99881),
             "assertEquals",
             "assertArrayEquals",
             "assertFalse",
@@ -15,7 +15,7 @@ public enum TestFramework {
             ClassName.bestGuess("org.junit.Test")
     ),
     JUnit5(
-            MethodCallExpressionFactory.makeParameter("Assertions", "org.junit.jupiter.api.Assertions"),
+            MethodCallExpressionFactory.makeParameter("Assertions", "org.junit.jupiter.api.Assertions", -99882),
             "assertEquals",
             "assertArrayEquals",
             "assertFalse",

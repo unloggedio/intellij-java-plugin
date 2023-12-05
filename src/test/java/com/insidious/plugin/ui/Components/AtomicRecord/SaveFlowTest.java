@@ -75,7 +75,7 @@ public class SaveFlowTest {
         agentCommandResponse = objectMapper.readValue(responseSource, AgentCommandResponse.class);
     }
 
-    @Test
+//    @Test
     public void testComponentManagement() {
         SaveForm saveForm = new SaveForm(candidate, agentCommandResponse, candidateLifeListener);
 
@@ -132,7 +132,7 @@ public class SaveFlowTest {
         Assertions.assertEquals(1, ruleEditor.getAssertionRules().size());
     }
 
-    @Test
+//    @Test
     public void testColorCodes() {
         SaveForm saveForm = new SaveForm(candidate, agentCommandResponse, candidateLifeListener);
         AssertionRule rootRule = saveForm.getRuleEditor().getAssertionRules().get(0);

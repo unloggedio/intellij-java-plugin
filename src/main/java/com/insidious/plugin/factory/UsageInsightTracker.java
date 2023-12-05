@@ -6,10 +6,8 @@ import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.application.PermanentInstallationID;
 import org.json.JSONObject;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.TimeZone;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.insidious.plugin.Constants.HOSTNAME;
 
@@ -18,14 +16,19 @@ public class UsageInsightTracker {
     private static final String OS_VERSION = System.getProperty("os.version");
     private static final String LANGUAGE = Locale.getDefault().getLanguage();
     private static final String OS_TAG = OS_NAME + ":" + OS_VERSION;
+    public static final String REMOTE_IP_AMPLITUDE_CONST = "$remote";
     private static UsageInsightTracker instance;
     private final Amplitude amplitudeClient;
     private final VersionManager versionManager;
     private final List<String> UsersToSkip = Arrays.asList(
             "artpar",
             "Amogh",
-            "testerfresher"
+            "testerfresher",
+            "short-kt"
     );
+    private final long sessionId = new Date().getTime();
+    private final AtomicInteger eventId = new AtomicInteger();
+    private boolean shutdown = false;
 
     private UsageInsightTracker() {
         amplitudeClient = Amplitude.getInstance("PLUGIN");
@@ -47,17 +50,30 @@ public class UsageInsightTracker {
     }
 
     public void RecordEvent(String eventName, JSONObject eventProperties) {
-        if (UsersToSkip.contains(HOSTNAME)) {
+        if (shutdown || UsersToSkip.contains(HOSTNAME)) {
             return;
         }
         Event event = new Event(eventName, HOSTNAME);
-        event.platform = OS_TAG + "/" + ApplicationInfo.getInstance().getVersionName();
-        event.country = TimeZone.getDefault().getID();
+        event.platform = TimeZone.getDefault().getID();
+//        event.country = TimeZone.getDefault().getID();
         event.osName = OS_TAG;
-        event.language = LANGUAGE;
+//        event.language = LANGUAGE;
+        event.ip = REMOTE_IP_AMPLITUDE_CONST;
+        event.sessionId = sessionId;
         event.appVersion = versionManager.getVersion();
         event.deviceId = PermanentInstallationID.get();
+        event.eventId = eventId.getAndIncrement();
+        event.deviceModel = ApplicationInfo.getInstance().getFullVersion();
         event.eventProperties = eventProperties;
         amplitudeClient.logEvent(event);
+    }
+
+    public void close() {
+        shutdown = true;
+        try {
+            amplitudeClient.shutdown();
+        } catch (InterruptedException e) {
+            // throw new RuntimeException(e);
+        }
     }
 }

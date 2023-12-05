@@ -74,9 +74,10 @@ public class ReplayData {
         pageInfo = new PageInfo(pageInfo.getNumber() + 1, pageInfo.getSize(), pageOrder);
 
         filteredDataEventsRequestClone.setPageInfo(pageInfo);
-        return client.fetchObjectHistoryByObjectId(
-                filteredDataEventsRequestClone
-        );
+//        return client.fetchObjectHistoryByObjectId(
+//                filteredDataEventsRequestClone
+//        );
+        return null;
     }
 
     public void setClient(VideobugClientInterface client) {
@@ -98,7 +99,8 @@ public class ReplayData {
         filterRequest.setThreadId(event.getThreadId());
         filterRequest.setNanotime(event.getEventId());
         filterRequest.setPageInfo(paginationOlder);
-        return client.fetchObjectHistoryByObjectId(filterRequest);
+//        return client.fetchObjectHistoryByObjectId(filterRequest);
+        return null;
     }
 
     public ReplayData fetchEventsPost(DataEventWithSessionId event, int size) throws SessionNotSelectedException {
@@ -109,7 +111,8 @@ public class ReplayData {
         filterRequest.setThreadId(event.getThreadId());
         filterRequest.setNanotime(event.getEventId());
         filterRequest.setPageInfo(pageNext);
-        return client.fetchObjectHistoryByObjectId(filterRequest);
+//        return client.fetchObjectHistoryByObjectId(filterRequest);
+        return null;
     }
 
     public TypeInfo getTypeInfoByName(String type) {
@@ -453,9 +456,11 @@ public class ReplayData {
         pageInfo = new PageInfo(newPageNumber, pageInfo.getSize(), pageOrder);
 
         filteredDataEventsRequestClone.setPageInfo(pageInfo);
-        return client.fetchObjectHistoryByObjectId(
-                filteredDataEventsRequestClone
-        );
+//        return client.fetchObjectHistoryByObjectId(
+//                filteredDataEventsRequestClone
+//        );
+        return null;
+
     }
 
     public ReplayData getPage(int newPageNumber) throws SessionNotSelectedException {
@@ -468,9 +473,10 @@ public class ReplayData {
         pageInfo = new PageInfo(newPageNumber, pageInfo.getSize(), pageOrder);
 
         filteredDataEventsRequestClone.setPageInfo(pageInfo);
-        return client.fetchObjectHistoryByObjectId(
-                filteredDataEventsRequestClone
-        );
+//        return client.fetchObjectHistoryByObjectId(
+//                filteredDataEventsRequestClone
+//        );
+        return null;
     }
 
     public int getNextProbeIndex(Integer probeIndex) {

@@ -19,7 +19,7 @@ public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> 
     private long callTimeNanoSecond;
     private long entryProbeIndex;
     private long exitProbeIndex;
-    private List<Integer> lineNumbers;
+    private List<Integer> lineNumbers = new ArrayList<>();
 
     public TestCandidateMetadata(TestCandidateMetadata original) {
 

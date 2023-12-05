@@ -15,6 +15,7 @@ import com.intellij.openapi.util.Computable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,6 +86,8 @@ public class AtomicTestContainer {
     }
 
     public void triggerMethodExecutorRefresh(MethodAdapter method) {
+        long start = new Date().getTime();
+
         final MethodAdapter focussedMethod;
         if (method == null) {
             focussedMethod = methodExecutorComponent.getCurrentMethod();
@@ -92,6 +95,7 @@ public class AtomicTestContainer {
             focussedMethod = method;
         }
         if (focussedMethod == null) {
+            insidiousService.getDirectInvokeTab().updateCandidateCount(0);
             return;
         }
         lastSelection = focussedMethod;
@@ -100,12 +104,14 @@ public class AtomicTestContainer {
         }
 
         if (currentState.equals(GutterState.PROCESS_NOT_RUNNING) || insidiousService.getSessionInstance() == null) {
+            insidiousService.getDirectInvokeTab().updateCandidateCount(0);
             loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
             return;
         }
 
 
         if (GutterState.EXECUTE.equals(currentState) || GutterState.DATA_AVAILABLE.equals(currentState)) {
+            insidiousService.getDirectInvokeTab().updateCandidateCount(0);
             methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, List.of());
 //            insidiousService.focusAtomicTestsWindow();
             return;
@@ -119,9 +125,10 @@ public class AtomicTestContainer {
                 ApplicationManager.getApplication().runReadAction((Computable<List<StoredCandidate>>) () ->
                         insidiousService.getStoredCandidatesFor(candidateSearchQuery));
 
-        logger.warn("Candidates for [ " + candidateSearchQuery + "] => " + methodTestCandidates.size());
+//        logger.warn("Candidates for [ " + candidateSearchQuery + "] => " + methodTestCandidates.size());
 
         loadExecutionFlow();
+        insidiousService.getDirectInvokeTab().updateCandidateCount(methodTestCandidates.size());
         if (methodTestCandidates.size() > 0) {
 
             String className = candidateSearchQuery.getClassName();
@@ -143,9 +150,13 @@ public class AtomicTestContainer {
 //            insidiousService.focusAtomicTestsWindow();
         } else {
             //runs for process_running
-            insidiousService.focusDirectInvokeTab();
+            methodExecutorComponent.refreshAndReloadCandidates(focussedMethod, methodTestCandidates);
             loadComponentForState(currentState);
         }
+        long end = new Date().getTime();
+
+        logger.warn("load and refresh candidates in ATC for took " + (end - start) + " ms for [" + focussedMethod.getName() + "]");
+
 
     }
 

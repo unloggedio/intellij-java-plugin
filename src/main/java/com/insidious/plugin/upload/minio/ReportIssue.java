@@ -99,6 +99,18 @@ public class ReportIssue {
         return zippingTask;
     }
 
+    public Task.Backgroundable sendSupportMessage(Project project, String userEmail, String issueName, String customMessage) {
+        prepareForMail(userEmail, issueName, customMessage);
+        Task.Backgroundable sendingMailTask = new Task.Backgroundable(project, "Unlogged", false) {
+            @Override
+            public void run(ProgressIndicator indicator) {
+                checkProgressIndicator("Sending mail", null);
+                createMailAndRedirectUser();
+            }
+        };
+        return sendingMailTask;
+    }
+
     public void prepareForUpload(String userEmail, String issueTitle, String description, String checkBoxLabels) {
 
         File selogDir = new File(getLatestSeLogFolderPath());
@@ -124,6 +136,35 @@ public class ReportIssue {
         this.issueTitle = issueTitle;
     }
 
+    public void prepareForUpload(String userEmail, String issueTitle, String customMessage) {
+        File selogDir = new File(getLatestSeLogFolderPath());
+        String dirName = !selogDir.getName().equals("") ? selogDir.getName() : NO_SELOG_FOLDER_NAME;
+        String s3BucketParentPath = userEmail + "/" + dirName + "-" + Time.uniqueId();
+        this.sessionKeyObject = s3BucketParentPath + "/" + dirName + ".zip";
+        System.out.println(this.sessionKeyObject);
+        String sessionURI = FileUploader.ENDPOINT + "/" + FileUploader.BUCKET_NAME + "/" + this.sessionKeyObject;
+        String issueDescription = "Issue Raised by: `" + userEmail + "`\n\n"
+                + (dirName.equals(NO_SELOG_FOLDER_NAME) ? "The session folder was empty. \n\n" : "")
+                + "\n"
+                + "[Session Logs](" + sessionURI.replace("+", "%2B").replace("@", "%40") + ")"
+                + "\n\n"
+                + "Issue description : \n\n"
+                + customMessage;
+        this.formattedDescription = issueDescription;
+        this.issueTitle = issueTitle + " faced by "+userEmail;
+        }
+
+    public void prepareForMail(String userEmail, String issueTitle, String customMessage) {
+        String issueDescription = "Issue Raised by: `" + userEmail + "`\n\n"
+                + "Issue description : \n"
+                + customMessage;
+        this.formattedDescription = issueDescription;
+        if(issueTitle.equals("Other"))
+        {
+            issueTitle = "Issue";
+        }
+        this.issueTitle = issueTitle + " faced by "+userEmail;
+    }
 
     private void createMailAndRedirectUser() {
 
