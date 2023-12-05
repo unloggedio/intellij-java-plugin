@@ -27,6 +27,8 @@ public class UIUtils {
     public static final Icon EXPLAIN_GREY = IconLoader.getIcon("/icons/png/explain_grey.png", UIUtils.class);
     public static final Icon FIND_BUGS_TEAL = IconLoader.getIcon("/icons/png/findBugsTeal.png", UIUtils.class);
     public static final Icon OPTIMIZE_TEAL = IconLoader.getIcon("/icons/png/optimizeTeal.png", UIUtils.class);
+    public static final Icon EXPAND_UP_DOWN = IconLoader.getIcon("/icons/png/expand-up-down-line.png", UIUtils.class);
+    public static final Icon EQUALIZER = IconLoader.getIcon("/icons/png/equalizer-line.png", UIUtils.class);
     public static final Icon DISCONNECTED_ICON = IconLoader.getIcon("/icons/png/record-circle-fill-black.png", UIUtils.class);
     public static final Icon CIRCLE_EMPTY = IconLoader.getIcon("/icons/png/checkbox-blank-circle-line.png",
             UIUtils.class);
@@ -117,6 +119,9 @@ public class UIUtils {
     public static Icon TEST_CASES_ICON_PINK = IconLoader.getIcon("/icons/png/test_cases_icon_pink.png", UIUtils.class);
     public static Icon COMPASS_DISCOVER_LINE = IconLoader.getIcon("/icons/png/compass-discover-line.png", UIUtils.class);
     public static Icon PUSHPIN_LINE = IconLoader.getIcon("/icons/png/pushpin-line.png", UIUtils.class);
+    public static Icon PUSHPIN_2_FILL = IconLoader.getIcon("/icons/png/pushpin-2-fill.png", UIUtils.class);
+    public static Icon PUSHPIN_2_LINE = IconLoader.getIcon("/icons/png/pushpin-2-line.png", UIUtils.class);
+    public static Icon UNPIN_LINE = IconLoader.getIcon("/icons/png/unpin-line.png", UIUtils.class);
     public static Icon FILTER_LINE = IconLoader.getIcon("/icons/png/filter-line.png", UIUtils.class);
     public static Icon FILTER_LINE_2 = IconLoader.getIcon("/icons/png/filter-2-line.png", UIUtils.class);
     public static Icon TEST_CASES_ICON_TEAL = IconLoader.getIcon("/icons/png/test_cases_icon_teal.png", UIUtils.class);

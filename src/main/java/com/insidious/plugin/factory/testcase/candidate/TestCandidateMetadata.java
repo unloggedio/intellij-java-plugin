@@ -19,6 +19,7 @@ public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> 
     private long entryProbeIndex;
     private long exitProbeIndex;
     private List<Integer> lineNumbers = new ArrayList<>();
+    private long createdAt;
 
     public TestCandidateMetadata(TestCandidateMetadata original) {
 
@@ -34,6 +35,7 @@ public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> 
         callTimeNanoSecond = original.callTimeNanoSecond;
         entryProbeIndex = original.entryProbeIndex;
         exitProbeIndex = original.exitProbeIndex;
+        createdAt = original.createdAt;
         lineNumbers = new ArrayList<>(original.lineNumbers);
     }
 
@@ -156,5 +158,13 @@ public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> 
 
     public void setLines(List<Integer> lineNumbers) {
         this.lineNumbers = lineNumbers;
+    }
+
+    public void setCreatedAt(long createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public long getCreatedAt() {
+        return createdAt;
     }
 }

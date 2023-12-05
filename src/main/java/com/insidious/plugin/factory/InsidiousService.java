@@ -97,6 +97,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -1656,6 +1657,7 @@ final public class InsidiousService implements
 //                        "Replay tab. Use DirectInvoke to execute methods from here.",
 //                NotificationType.INFORMATION, actions);
 
+        stompWindow.clear();
         stompWindow.setConnectedAndWaiting();
 
         triggerGutterIconReload();
@@ -1680,5 +1682,9 @@ final public class InsidiousService implements
 
     public int getMethodCallCountBetween(long start, long end) {
         return getSessionInstance().getMethodCallCountBetween(start, end);
+    }
+
+    public List<TestCandidateMetadata> getTestCandidateBetween(long eventId, long eventId1) throws SQLException {
+        return getSessionInstance().getTestCandidateBetween(eventId, eventId1);
     }
 }

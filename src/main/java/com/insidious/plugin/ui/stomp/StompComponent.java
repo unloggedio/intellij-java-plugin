@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.stomp;
 
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.callbacks.TestCandidateLifeListener;
 import com.insidious.plugin.client.ScanProgress;
@@ -9,23 +10,24 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.ui.popup.ActiveIcon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.ui.awt.RelativePoint;
-import com.intellij.uiDesigner.core.GridConstraints;
-import org.gradle.internal.impldep.org.joda.time.Instant;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
+import java.util.*;
 import java.util.function.Consumer;
 
 public class StompComponent implements Consumer<TestCandidateMetadata>, TestCandidateLifeListener {
@@ -44,6 +46,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     private JButton replayButton;
     private JButton saveAsMockButton;
     private JButton generateJUnitButton;
+    private JPanel controlPanel;
     private JPanel filterButtonContainer;
     private long lastEventId = 0;
     private List<StompItem> stompItems = new ArrayList<>(500);
@@ -51,6 +54,8 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     private DisconnectedAnd disconnectedAnd;
     private SessionScanEventListener scanEventListener;
     private SimpleDateFormat dateFormat;
+
+    private Map<TestCandidateMetadata, Component> candidateMetadataStompItemMap = new HashMap<>();
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -93,7 +98,6 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 //        filterButton.setFont(boldFont);
 
 
-        reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         filterButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         filterButton.addMouseListener(new MouseAdapter() {
             @Override
@@ -167,27 +171,6 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         mainPanel.add(stompStatusComponent.getComponent(), BorderLayout.SOUTH);
 
 
-//        filterButton.setContentAreaFilled(false);
-//        filterButton.setOpaque(false);
-//
-//
-//        reloadButton.setContentAreaFilled(false);
-//        reloadButton.setOpaque(false);
-//
-//        saveReplayButton.setContentAreaFilled(false);
-//        saveReplayButton.setOpaque(false);
-//
-//
-//        replayButton.setContentAreaFilled(false);
-//        replayButton.setOpaque(false);
-//
-//        generateJUnitButton.setContentAreaFilled(false);
-//        generateJUnitButton.setOpaque(false);
-//
-//        saveAsMockButton.setContentAreaFilled(false);
-//        saveAsMockButton.setOpaque(false);
-
-
         GridBagConstraints gbc = new GridBagConstraints();
 
         gbc.gridx = 0;
@@ -200,31 +183,13 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        gbc.insets = new Insets(0, 0, 6, 0);
+        gbc.insets = JBUI.insetsBottom(6);
         gbc.ipadx = 0;
         gbc.ipady = 0;
 //        itemPanel.add(new JLabel("Exec tue a metho d"), gbc, 0);
     }
 
-    private static void addComponentTop(JPanel panel, GridConstraints gbc, Component comp, List<Component> components) {
-        // Increment gridy for existing components
-//        for (Component existingComp : components) {
-//            GridConstraints existingGbc = ((GridLayout) panel.getLayout()).(existingComp);
-//            existingGbc.gridy++;
-//            panel.add(existingComp, existingGbc); // Re-add with new constraints
-//        }
-
-        // Add the new component at the top
-//        gbc.gridy = 0;
-        panel.add(comp, gbc);
-
-        // Refresh the panel
-        panel.revalidate();
-        panel.repaint();
-    }
-
     public String simpleTime(Date currentDate) {
-        // Use the format method to format the date as a string
         return dateFormat.format(currentDate);
     }
 
@@ -237,24 +202,62 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         if (testCandidateMetadata.getExitProbeIndex() > lastEventId) {
             lastEventId = testCandidateMetadata.getExitProbeIndex();
         }
-        StompItem stompItem = new StompItem(testCandidateMetadata, this);
         if (stompItems.size() > 0) {
             StompItem last = stompItems.get(stompItems.size() - 1);
             int count = insidiousService.getMethodCallCountBetween(last.getTestCandidate().getExitProbeIndex(),
-                    stompItem.getTestCandidate().getEntryProbeIndex());
+                    testCandidateMetadata.getEntryProbeIndex());
+            if (count > 0) {
+                JLabel laterLabel = new JLabel(String.format("%s calls later", count));
+                laterLabel.setIcon(UIUtils.EXPAND_UP_DOWN);
+                laterLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                JPanel labelPanel = new JPanel();
+                labelPanel.setLayout(new BorderLayout());
+                Border lineBorder = BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(Color.decode("#D9D9D9"), 1, true),
+                        BorderFactory.createEmptyBorder(2, 2, 2, 2)
+                );
+                labelPanel.setBorder(lineBorder);
+                labelPanel.add(laterLabel, BorderLayout.WEST);
+                itemPanel.add(labelPanel, createGBCForLeftMainComponent(), 0);
+                itemPanel.add(createLinePanel(createLineComponent()), createGBCForLinePanel(), 1);
+            }
         }
+
+        addCandidateToUi(testCandidateMetadata, 0);
+
+    }
+
+    private void addCandidateToUi(TestCandidateMetadata testCandidateMetadata, int index) {
+        StompItem stompItem = new StompItem(testCandidateMetadata, this, insidiousService);
         stompItems.add(stompItem);
+
         JPanel component = stompItem.getComponent();
-//        Dimension currentSize = component.getSize();
-//        currentSize.height = component_height;
-//        component.setSize(currentSize);
+        candidateMetadataStompItemMap.put(testCandidateMetadata, component);
         component.setMaximumSize(new Dimension(itemPanel.getWidth(), component_height));
-//        component.setPreferredSize(new Dimension(itemPanel.getWidth(), component_height));
         component.setMinimumSize(new Dimension(itemPanel.getWidth(), component_height));
-//        component.setSize(new Dimension(itemPanel.getWidth(), component_height));
-//        component.setPreferredSize(currentSize);
-//        GridConstraints gbc = new GridConstraints();
-//        addComponentTop(itemPanel, gbc, component, Arrays.asList(itemPanel.getComponents()));
+
+        GridBagConstraints gbc = createGBCForLeftMainComponent();
+
+        itemPanel.add(component, gbc, index);
+
+        JPanel dateAndTimePanel = createDateAndTimePanel(createTimeLineComponent(),
+                Date.from(Instant.ofEpochMilli(testCandidateMetadata.getCreatedAt())));
+        GridBagConstraints dateAndTimePanelConstraints = createGBCForDateAndTimePanel();
+        itemPanel.add(dateAndTimePanel, dateAndTimePanelConstraints, index + 1);
+
+        while (stompItems.size() > 500) {
+            StompItem last = stompItems.remove(0);
+            itemPanel.remove(last.getComponent());
+        }
+
+        itemPanel.revalidate();
+        itemPanel.repaint();
+        historyStreamScrollPanel.revalidate();
+        historyStreamScrollPanel.repaint();
+    }
+
+    @NotNull
+    private GridBagConstraints createGBCForLeftMainComponent() {
         GridBagConstraints gbc = new GridBagConstraints();
 
         gbc.gridx = 0;
@@ -267,12 +270,13 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        gbc.insets = new Insets(0, 0, 6, 0);
+        gbc.insets = JBUI.insetsBottom(8);
         gbc.ipadx = 0;
         gbc.ipady = 0;
+        return gbc;
+    }
 
-        itemPanel.add(component, gbc, 0);
-
+    private GridBagConstraints createGBCForDateAndTimePanel() {
         GridBagConstraints gbc1 = new GridBagConstraints();
 
         gbc1.gridx = 1;
@@ -285,20 +289,37 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         gbc1.anchor = GridBagConstraints.NORTH;
         gbc1.fill = GridBagConstraints.BOTH;
 
-        gbc1.insets = new Insets(0, 0, 0, 0);
+        gbc1.insets = JBUI.emptyInsets();
         gbc1.ipadx = 0;
         gbc1.ipady = 0;
+        return gbc1;
+    }
 
+    private GridBagConstraints createGBCForLinePanel() {
+        GridBagConstraints gbc1 = new GridBagConstraints();
 
+        gbc1.gridx = 1;
+        gbc1.gridy = GridBagConstraints.RELATIVE;
+        gbc1.gridwidth = 1;
+        gbc1.gridheight = 1;
+
+        gbc1.weightx = 0.1;
+        gbc1.weighty = 1;
+        gbc1.anchor = GridBagConstraints.WEST;
+        gbc1.fill = GridBagConstraints.VERTICAL;
+
+        gbc1.insets = JBUI.insets(0, 16, 0, 0);
+        gbc1.ipadx = 0;
+        gbc1.ipady = 0;
+        return gbc1;
+    }
+
+    private JPanel createDateAndTimePanel(JPanel lineContainer, Date date) {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         JPanel comp = new JPanel();
         BorderLayout mgr = new BorderLayout();
         comp.setLayout(mgr);
-        JLabel hello = new JLabel(String.format(
-                "          %s",
-                sdf.format(
-                        Instant.ofEpochMilli((testCandidateMetadata.getCallTimeNanoSecond() / (1000 * 1000))).toDate())
-        ));
+        JLabel hello = new JLabel(String.format("          %s", sdf.format(date)));
         Font font = hello.getFont();
         hello.setFont(font.deriveFont(10.0f));
         hello.setForeground(Color.decode("#8C8C8C"));
@@ -306,11 +327,44 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         comp.add(hello, BorderLayout.CENTER);
 
 
+        comp.add(lineContainer, BorderLayout.WEST);
+
+        return comp;
+    }
+
+    private JPanel createLinePanel(JPanel lineContainer) {
+        JPanel comp = new JPanel();
+        BorderLayout mgr = new BorderLayout();
+        comp.setLayout(mgr);
+        JLabel comp1 = new JLabel("      ");
+        comp1.setUI(new VerticalLabelUI(true));
+
+//        comp.add(comp1, BorderLayout.CENTER);
+        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 4));
+        comp.add(lineContainer, BorderLayout.WEST);
+        return comp;
+    }
+
+    private JPanel createLineComponent() {
         JPanel lineContainer = new JPanel();
         lineContainer.setLayout(new GridBagLayout());
-//        separator.setBorder();
         lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 2));
-//        separator.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 5));
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.weightx = 0;
+        constraints.weighty = 1;
+        constraints.anchor = GridBagConstraints.NORTH;
+        constraints.fill = GridBagConstraints.BOTH;
+        lineContainer.add(createSeparator(), constraints);
+
+        return lineContainer;
+    }
+
+    private JPanel createTimeLineComponent() {
+        JPanel lineContainer = new JPanel();
+        lineContainer.setLayout(new GridBagLayout());
+        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 2));
 
         JLabel comp1 = new JLabel();
         comp1.setIcon(UIUtils.CIRCLE_EMPTY);
@@ -320,9 +374,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 
         JPanel comp2 = new JPanel();
         comp2.add(comp1);
-//        comp2.setMaximumSize(new Dimension(20, 20));
-//        comp2.setMinimumSize(new Dimension(20, 20));
-//        comp2.setPreferredSize(new Dimension(20, 20));
+
         comp2.setBorder(BorderFactory.createEmptyBorder(1, 0, 1, 0));
 
         GridBagConstraints constraints = new GridBagConstraints();
@@ -351,48 +403,14 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         constraints2.anchor = GridBagConstraints.SOUTH;
         constraints2.fill = GridBagConstraints.VERTICAL;
         lineContainer.add(createSeparator(), constraints2);
-
-        comp.add(lineContainer, BorderLayout.WEST);
-//        comp.setBorder(BorderFactory.createEmptyBorder());
-//        comp.setMaximumSize(new Dimension(10, component_height));
-//        comp.setMinimumSize(new Dimension(10, component_height));
-//        comp.setPreferredSize(new Dimension(10, component_height));
-        itemPanel.add(comp, gbc1, 1);
-
-
-//        JPanel spacer = new JPanel();
-//        spacer.setOpaque(false);
-//        spacer.setMaximumSize(new Dimension(itemPanel.getWidth(), 4));
-//        spacer.setMinimumSize(new Dimension(itemPanel.getWidth(), 4));
-//        spacer.setPreferredSize(new Dimension(itemPanel.getWidth(), 4));
-//        itemPanel.add(spacer, 1);
-
-        int stompItemCount = stompItems.size();
-        if (stompItemCount > 500) {
-            for (int i = stompItemCount - 500; i > 0; i--) {
-                StompItem last = stompItems.remove(0);
-                itemPanel.remove(last.getComponent());
-            }
-        }
-
-        if (stompItems.size() * component_height < 500) {
-//            itemPanel.setMinimumSize(new Dimension(-1, component_height * stompItems.size() + 10));
-//            itemPanel.setPreferredSize(new Dimension(-1, component_height * stompItems.size() + 10));
-//            historyStreamScrollPanel.setSize(new Dimension(-1, component_height * stompItems.size() + 10));
-        }
-
-        itemPanel.revalidate();
-        itemPanel.repaint();
-        historyStreamScrollPanel.revalidate();
-        historyStreamScrollPanel.repaint();
-
+        return lineContainer;
     }
 
     @NotNull
     private JSeparator createSeparator() {
         JSeparator separator = new JSeparator(SwingConstants.VERTICAL);
         Dimension size = new Dimension(2, (component_height / 4) - 2); // Set preferred size for the separator
-        separator.setForeground(Color.RED);
+        separator.setForeground(Color.decode("#D9D9D9"));
         separator.setPreferredSize(size);
         separator.setMaximumSize(size);
         separator.setMinimumSize(size);
@@ -419,11 +437,31 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     @Override
     public void onSelected(TestCandidateMetadata storedCandidate) {
         this.selectedCandidates.add(storedCandidate);
+        updateControlPanel();
+    }
+
+    private void updateControlPanel() {
+        if (selectedCandidates.size() > 0 && !controlPanel.isEnabled()) {
+//            reloadButton.setEnabled(true);
+            generateJUnitButton.setEnabled(true);
+            saveAsMockButton.setEnabled(true);
+            replayButton.setEnabled(true);
+            saveReplayButton.setEnabled(true);
+            controlPanel.setEnabled(true);
+        } else if (selectedCandidates.size() == 0 && controlPanel.isEnabled()) {
+//            reloadButton.setEnabled(false);
+            generateJUnitButton.setEnabled(false);
+            saveAsMockButton.setEnabled(false);
+            replayButton.setEnabled(false);
+            saveReplayButton.setEnabled(false);
+            controlPanel.setEnabled(false);
+        }
     }
 
     @Override
     public void unSelected(TestCandidateMetadata storedCandidate) {
         this.selectedCandidates.remove(storedCandidate);
+        updateControlPanel();
     }
 
     @Override
@@ -466,6 +504,29 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 
     }
 
+    @Override
+    public void onExpandChildren(TestCandidateMetadata candidateMetadata) {
+        try {
+            List<TestCandidateMetadata> childCandidates =
+                    insidiousService.getTestCandidateBetween(
+                            candidateMetadata.getMainMethod().getEntryProbe().getEventId(),
+                            candidateMetadata.getMainMethod().getReturnDataEvent().getEventId());
+
+            Component component = candidateMetadataStompItemMap.get(candidateMetadata);
+            int parentIndex = itemPanel.getComponentZOrder(component);
+
+            for (TestCandidateMetadata childCandidate : childCandidates) {
+                addCandidateToUi(childCandidate, parentIndex);
+            }
+
+
+        } catch (SQLException e) {
+            InsidiousNotification.notifyMessage("Failed to load child calls: " + e.getMessage(),
+                    NotificationType.ERROR);
+            throw new RuntimeException(e);
+        }
+    }
+
     public void clear() {
         lastEventId = 0;
         itemPanel.removeAll();
@@ -479,6 +540,8 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     }
 
     public void setConnectedAndWaiting() {
+        itemPanel.add(new JLabel("Process started"), createGBCForLeftMainComponent());
+        itemPanel.add(createLinePanel(createLineComponent()), createGBCForLinePanel());
         stompStatusComponent.setConnected();
     }
 

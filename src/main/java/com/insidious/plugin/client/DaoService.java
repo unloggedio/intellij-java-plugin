@@ -1524,4 +1524,29 @@ public class DaoService {
                 })
                 .collect(Collectors.toList());
     }
+
+    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
+    getTestCandidateBetween(long afterEventId, long beforeEventId) throws SQLException {
+
+        List<TestCandidateMetadata> dbCandidateList = testCandidateDao.queryRaw("select t.*\n" +
+                        "from test_candidate t\n" +
+                        "         join method_call mc on mc.id = t.mainMethod_id\n" +
+                        "where t.entryProbeIndex > ?\n" +
+                        "and t.exitProbeIndex < ?\n" +
+                        "and mc.parentId == 0\n" +
+                        "order by t.entryProbeIndex\n" +
+                        "; ", testCandidateDao.getRawRowMapper(),
+                String.valueOf(afterEventId), String.valueOf(beforeEventId)).getResults();
+
+        return dbCandidateList
+                .stream()
+                .map(e -> {
+                    try {
+                        return convertTestCandidateMetadata(e, true);
+                    } catch (Exception ex) {
+                        throw new RuntimeException(ex);
+                    }
+                })
+                .collect(Collectors.toList());
+    }
 }

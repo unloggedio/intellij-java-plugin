@@ -1,8 +1,10 @@
 package com.insidious.plugin.ui.stomp;
 
 import com.insidious.plugin.callbacks.TestCandidateLifeListener;
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
+import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
@@ -16,16 +18,16 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class StompItem {
-    public static final JBColor TAG_LABEL_BACKGROUND_GREY = new JBColor(new Color(232, 232, 236),
-            new Color(232, 232, 236));
+    public static final JBColor TAG_LABEL_BACKGROUND_GREY = new JBColor(new Color(235, 235, 238),
+            new Color(235, 235, 238));
     public static final JBColor TAG_LABEL_TEXT_GREY = new JBColor(new Color(113, 128, 150, 255),
             new Color(113, 128, 150, 255));
     private static final Logger logger = LoggerUtil.getInstance(StompItem.class);
-    private final TestCandidateLifeListener storedCandidateLifeListener;
+    private final TestCandidateLifeListener testCandidateLifeListener;
     private TestCandidateMetadata candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
-    private JLabel generateJunitLabel;
+    private JLabel pinLabel;
     private JLabel timeTakenMsLabel;
     private JLabel lineCoverageLabel;
     private JLabel candidateTitleLabel;
@@ -38,15 +40,49 @@ public class StompItem {
     private JPanel controlContainer;
     private JPanel metadataPanel;
     private JCheckBox selectCandidateCheckbox;
+    private boolean isPinned = false;
 
     public StompItem(
             TestCandidateMetadata testCandidateMetadata,
-            TestCandidateLifeListener testCandidateLifeListener) {
+            TestCandidateLifeListener testCandidateLifeListener,
+            InsidiousService insidiousService) {
         this.candidateMetadata = testCandidateMetadata;
-        this.storedCandidateLifeListener = testCandidateLifeListener;
+        this.testCandidateLifeListener = testCandidateLifeListener;
         Color defaultPanelColor = mainPanel.getBackground();
 
+        titleLabelContainer.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                if (candidateMetadata.getLineNumbers().size() > 0) {
+                    Integer firstLine = candidateMetadata.getLineNumbers().get(0);
+                    InsidiousUtils.focusProbeLocationInEditor(firstLine,
+                            candidateMetadata.getFullyQualifiedClassname(), insidiousService.getProject());
+                }
+            }
+        });
+
+        candidateTitleLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (candidateMetadata.getLineNumbers().size() > 0) {
+                    Integer firstLine = candidateMetadata.getLineNumbers().get(0);
+                    InsidiousUtils.focusProbeLocationInEditor(firstLine,
+                            candidateMetadata.getFullyQualifiedClassname(), insidiousService.getProject());
+                }
+            }
+        });
         mainPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (candidateMetadata.getLineNumbers().size() > 0) {
+                    Integer firstLine = candidateMetadata.getLineNumbers().get(0);
+                    InsidiousUtils.focusProbeLocationInEditor(firstLine,
+                            candidateMetadata.getFullyQualifiedClassname(), insidiousService.getProject());
+                }
+
+            }
+
             @Override
             public void mouseEntered(MouseEvent e) {
 //                mainPanel.setBackground(JBColor.ORANGE);
@@ -81,9 +117,16 @@ public class StompItem {
 //                                });
 //                    }
 //                });
-        generateJunitLabel.addMouseListener(new MouseAdapter() {
+        pinLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
+                if (isPinned) {
+                    isPinned = false;
+                    pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
+                } else {
+                    isPinned = true;
+                    pinLabel.setIcon(UIUtils.PUSHPIN_2_FILL);
+                }
                 testCandidateLifeListener.onGenerateJunitTestCaseRequest(candidateMetadata);
             }
         });
@@ -116,8 +159,29 @@ public class StompItem {
 
 //        executeLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 //        saveReplayButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        generateJunitLabel.setIcon(UIUtils.PUSHPIN_LINE);
-        generateJunitLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
+        pinLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        pinLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (isPinned) {
+                    pinLabel.setIcon(UIUtils.UNPIN_LINE);
+                } else {
+                    pinLabel.setIcon(UIUtils.PUSHPIN_2_LINE);
+                }
+                super.mouseEntered(e);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (isPinned) {
+                    pinLabel.setIcon(UIUtils.PUSHPIN_2_FILL);
+                } else {
+                    pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
+                }
+                super.mouseExited(e);
+            }
+        });
 
         mainPanel.addMouseListener(new MouseAdapter() {
 
@@ -144,15 +208,18 @@ public class StompItem {
 //        setTitledBorder("[" + candidateMetadata.getEntryProbeIndex() + "] " + className);
         long timeTakenMs = (candidateMetadata.getMainMethod().getReturnValue().getProb().getRecordedAt() -
                 candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt()) / (1000 * 1000);
-        String classNameColor = StringColorPicker.pickColor(methodUnderTest.getName());
-        String itemLabel = String.format("<html><b>%s</b>()</html>", methodUnderTest.getName()
-        );
+        String itemLabel = String.format("%s()", methodUnderTest.getName());
+        if (itemLabel.length() > 30) {
+            itemLabel = itemLabel.substring(0, 27) + "...";
+        }
 
 
         ExecutionTimeCategory category = ExecutionTimeCategorizer.categorizeExecutionTime(timeTakenMs);
         String timeTakenMsString = ExecutionTimeCategorizer.formatTimePeriod(timeTakenMs);
 
         candidateTitleLabel.setText(itemLabel);
+        candidateTitleLabel.setToolTipText(
+                className + "." + methodUnderTest.getName() + methodUnderTest.getSignature());
 
         timeTakenMsLabel = createTagLabel("%s", timeTakenMsString, Color.decode(category.getColorHex()), JBColor.WHITE);
         metadataPanel.add(timeTakenMsLabel);
@@ -172,6 +239,16 @@ public class StompItem {
         callsCountLabel = createTagLabel("%d Downstream", candidateMetadata.getCallsList().size(),
                 TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY);
         metadataPanel.add(callsCountLabel);
+
+        callsCountLabel.setToolTipText("Click to show downstream calls");
+        callsCountLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        callsCountLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                testCandidateLifeListener.onExpandChildren(candidateMetadata);
+                super.mouseClicked(e);
+            }
+        });
 
         selectCandidateCheckbox.addActionListener(e -> {
             if (selectCandidateCheckbox.isSelected()) {

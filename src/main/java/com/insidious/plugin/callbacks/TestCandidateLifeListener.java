@@ -41,4 +41,5 @@ public interface TestCandidateLifeListener {
 
     void onCancel();
 
+    void onExpandChildren(TestCandidateMetadata candidateMetadata);
 }
