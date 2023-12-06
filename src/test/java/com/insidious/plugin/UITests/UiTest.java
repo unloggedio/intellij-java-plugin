@@ -100,7 +100,7 @@ public class UiTest {
         // OUT OF BOUNDS exception for click in EntityTagMap, AppointmentRes
         // Keep an eye out for ui freezes (of runIdeForTests Instance)
         String startWith = "PatientCaseAuditService";
-        boolean startFrom = true;
+        boolean startFrom = false;
         ContainerFixture projectView;
         if (!startFrom) {
             idea.getExpandAllButton().click();
