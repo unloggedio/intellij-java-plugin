@@ -17,6 +17,7 @@ def getGitHash = { ->
 group 'org.videobug'
 version '1.18.17-' + getGitHash()
 
+def remoteRobotVersion = "0.11.19"
 
 compileJava {
     sourceCompatibility = '11'
@@ -27,12 +28,13 @@ repositories {
     mavenCentral()
     maven {
         url 'https://gitlab.com/api/v4/projects/35360521/packages/maven'
+        url = 'https://packages.jetbrains.team/maven/p/ij/intellij-dependencies'
         name "GitLab"
         credentials(HttpHeaderCredentials) {
             name = 'Private-Token'
             value = gitLabPrivateToken
         }
-        maven { url = "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies" }
+        maven { url = 'https://packages.jetbrains.team/maven/p/ij/intellij-dependencies' }
         authentication {
             header(HttpHeaderAuthentication)
         }
@@ -73,6 +75,7 @@ runIde {
             "-Xmx1G",
             "--add-exports",
             "java.base/jdk.internal.vm=ALL-UNNAMED",
+            "--add-opens=java.base/java.lang=ALL-UNNAMED"
 //            "-XX:FlightRecorderOptions=stackdepth=100"
     ]
 }
@@ -96,15 +99,16 @@ dependencies {
     implementation 'org.json:json:20201115'
     implementation 'com.amplitude:java-sdk:1.12.0'
     implementation 'com.squareup:javapoet:1.13.0'
-    implementation 'org.junit.jupiter:junit-jupiter-api:5.9.3'
     implementation 'org.apache.logging.log4j:log4j-api:2.17.2'
     implementation 'org.apache.logging.log4j:log4j-core:2.17.2'
     implementation 'com.github.javaparser:javaparser-core:3.24.8'
     implementation 'io.minio:minio:8.4.3'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
     testImplementation 'org.mockito:mockito-core:4.0.0'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.10.0'
+
     implementation 'com.squareup.okhttp3:okhttp:4.9.0'
 //    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2'
 
@@ -116,8 +120,8 @@ dependencies {
     implementation 'com.googlecode.cqengine:cqengine:3.6.0'
     implementation 'io.kaitai:kaitai-struct-runtime:0.9'
 
-    testImplementation 'com.intellij.remoterobot:remote-robot:0.11.20'
-    testImplementation 'com.intellij.remoterobot:remote-fixtures:0.11.20'
+    testImplementation 'com.intellij.remoterobot:remote-robot:' + remoteRobotVersion
+    testImplementation 'com.intellij.remoterobot:remote-fixtures:' + remoteRobotVersion
 
 //    implementation files("/Users/artpar/.m2/repository/video/bug/unlogged-sdk/0.1.12/unlogged-sdk-0.1.12.jar")
 //    annotationProcessor files("/Users/artpar/.m2/repository/video/bug/unlogged-sdk/0.1.12/unlogged-sdk-0.1.12.jar")
@@ -207,11 +211,19 @@ publishPlugin {
 }
 
 runIdeForUiTests {
-    systemProperty "robot-server.port", "8082" // default port 8580
+    systemProperty "robot-server.port", "8082"
+    systemProperty "ide.mac.message.dialogs.as.sheets", "false"
+    systemProperty "jb.privacy.policy.text", "<!--999.999-->"
+    systemProperty "jb.consents.confirmation.enabled", "false"
+    systemProperty "ide.mac.file.chooser.native", "false"
+    systemProperty "jbScreenMenuBar.enabled", "false"
+    systemProperty "apple.laf.useScreenMenuBar", "false"
+    systemProperty "idea.trust.all.projects", "true"
+    systemProperty "ide.show.tips.on.startup.default.value", "false"
 }
 
 downloadRobotServerPlugin {
-    version = '0.11.20'
+    version.set(remoteRobotVersion)
 }
 
 
