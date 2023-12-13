@@ -94,7 +94,7 @@ public class AutomaticExecutorService {
 
                 AgentCommandRequest agentCommandRequest =
                         MethodUtils.createExecuteRequestWithParameters(methodAdapter, psiClass, methodArgumentValues,
-                                false);
+                                false, new ArrayList<>());
                 agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
 
                 insidiousService.executeMethodInRunningProcess(agentCommandRequest,
@@ -138,7 +138,7 @@ public class AutomaticExecutorService {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 if (consumerThread != null) {
-                    consumerThread.stop();
+                    consumerThread.interrupt();
                 }
                 reportingQueue.clear();
                 AutoExecutionConsumer consumer = new AutoExecutionConsumer(insidiousService, reportingQueue);
