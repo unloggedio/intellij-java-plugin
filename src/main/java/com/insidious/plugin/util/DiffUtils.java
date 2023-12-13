@@ -15,6 +15,8 @@ import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static com.insidious.plugin.util.ParameterUtils.processResponseForFloatAndDoubleTypes;
+
 public class DiffUtils {
     static final private Logger logger = LoggerUtil.getInstance(DiffUtils.class);
     static final private ObjectMapper objectMapper = new ObjectMapper();
@@ -23,13 +25,12 @@ public class DiffUtils {
             StoredCandidate testCandidateMetadata,
             AgentCommandResponse<String> agentCommandResponse
     ) {
-
         AtomicAssertion testAssertions = testCandidateMetadata.getTestAssertions();
-
-
-        String returnValueAsString = String.valueOf(agentCommandResponse.getMethodReturnValue());
-        if (agentCommandResponse.getResponseClassName() != null
-                && agentCommandResponse.getResponseClassName().equals("java.lang.String")
+        String returnValueAsString = processResponseForFloatAndDoubleTypes(
+                agentCommandResponse.getResponseClassName(), String.valueOf(agentCommandResponse.getMethodReturnValue()));
+        String responseClassname = agentCommandResponse.getResponseClassName();
+        if (responseClassname != null
+                && responseClassname.equals("java.lang.String")
                 && !returnValueAsString.startsWith("\"") && !returnValueAsString.endsWith("\"")
                 && !returnValueAsString.equals("null")
         ) {
@@ -105,7 +106,6 @@ public class DiffUtils {
             }
             return new DifferenceResult(differencesList, diffResultType, leftOnlyMap, rightOnlyMap);
         }
-
         String expectedStringFromCandidate = testCandidateMetadata.getReturnValue();
         if ("java.lang.String".equals(testCandidateMetadata.getReturnValueClassname())
                 && !expectedStringFromCandidate.startsWith("\"")
@@ -122,21 +122,21 @@ public class DiffUtils {
         }
 
         // void return value
-        if ("void".equals(agentCommandResponse.getResponseClassName()) && "0".equals(expectedStringFromCandidate)) {
+        if ("void".equals(responseClassname) && "0".equals(expectedStringFromCandidate)) {
             expectedStringFromCandidate = "null";
         }
 
 
-        if ("float".equals(agentCommandResponse.getResponseClassName())) {
-            expectedStringFromCandidate = String.valueOf(
-                    Float.intBitsToFloat(Integer.parseInt(expectedStringFromCandidate)));
-            returnValueAsString = String.valueOf(Float.intBitsToFloat(Integer.parseInt(returnValueAsString)));
+        if ("float".equals(responseClassname)
+                || responseClassname.equalsIgnoreCase("java.lang.float")) {
+            expectedStringFromCandidate = ParameterUtils.getFloatValue(returnValueAsString);
+            returnValueAsString = ParameterUtils.getFloatValue(returnValueAsString);
         }
 
-        if ("double".equals(agentCommandResponse.getResponseClassName())) {
-            expectedStringFromCandidate = String.valueOf(
-                    Double.longBitsToDouble(Long.parseLong(expectedStringFromCandidate)));
-            returnValueAsString = String.valueOf(Double.longBitsToDouble(Long.parseLong(returnValueAsString)));
+        if ("double".equals(responseClassname)
+                || responseClassname.equalsIgnoreCase("java.lang.double")) {
+            expectedStringFromCandidate = ParameterUtils.getDoubleValue(returnValueAsString);
+            returnValueAsString = ParameterUtils.getDoubleValue(returnValueAsString);
         }
 
         if (testCandidateMetadata.isException() ||
@@ -165,7 +165,7 @@ public class DiffUtils {
 
         if (agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION)) {
             try {
-                String responseClassName = agentCommandResponse.getResponseClassName();
+                String responseClassName = responseClassname;
                 String expectedClassName = testCandidateMetadata.getReturnValueClassname();
 
                 isDifferent = responseClassName.equals(expectedClassName);

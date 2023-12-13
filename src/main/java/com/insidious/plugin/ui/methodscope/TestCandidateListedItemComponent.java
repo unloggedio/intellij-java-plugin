@@ -2,9 +2,11 @@ package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.pojo.ReplayAllExecutionContext;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.util.*;
@@ -61,7 +63,6 @@ public class TestCandidateListedItemComponent {
         this.methodArgumentValues = candidateMetadata.getMethodArguments();
         this.parameterMap = generateParameterMap(argumentNameValuePairs);
         parameterPanel.setLayout(new BorderLayout());
-
         //saved candidate check
         if (candidateMetadata.getName() != null && candidateMetadata.getName().length() > 0) {
             setTitledBorder(candidateMetadata.getName());
@@ -82,11 +83,12 @@ public class TestCandidateListedItemComponent {
         jb.setColor(UIUtils.pink);
         jb.setBorder(new RoundedLineBorder(new Color(151, 38, 109), 6));
 
-        saveButtonHolder.setLayout(new GridLayout(1, 1));
-        GridConstraints constraints = new GridConstraints();
-        constraints.setRow(0);
+//        saveButtonHolder.setLayout(new GridLayout(1, 1));
+//        GridConstraints constraints = new GridConstraints();
+//        constraints.setRow(0);
+//
+//        saveButtonHolder.add(jb, constraints);
 
-        saveButtonHolder.add(jb, constraints);
 
         mainPanel.revalidate();
 
@@ -100,8 +102,10 @@ public class TestCandidateListedItemComponent {
                     eventProperties.put("methodName", storedCandidate.getMethod().getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
                     statusLabel.setText("Executing");
+                    ReplayAllExecutionContext context = new ReplayAllExecutionContext("individual",
+                            false);
                     candidateLifeListener.executeCandidate(
-                            Collections.singletonList(candidateMetadata), psiClass, "individual",
+                            Collections.singletonList(candidateMetadata), psiClass, context,
                             (candidateMetadata, agentCommandResponse, diffResult) -> {
                                 insidiousService.updateMethodHashForExecutedMethod(method);
                                 candidateLifeListener.onCandidateSelected(candidateMetadata);
@@ -123,7 +127,8 @@ public class TestCandidateListedItemComponent {
                 AgentCommandResponse<String> agentCommandResponse = new AgentCommandResponse<>();
                 agentCommandResponse.setResponseClassName(candidateMetadata.getReturnValueClassname());
                 agentCommandResponse.setMethodReturnValue(candidateMetadata.getReturnValue());
-
+                //cause for 2 issues here
+                agentCommandResponse.setResponseType(ResponseType.NORMAL);
                 candidateLifeListener.onSaveRequest(candidateMetadata, agentCommandResponse);
             }
         });
@@ -197,8 +202,8 @@ public class TestCandidateListedItemComponent {
 //        GridLayout gridLayout = new GridLayout(1, 1);
         int desiredHeightPerInput = 50;
         int desiredHeight = inputRoot.getLeafCount() * desiredHeightPerInput;
-        if (desiredHeight < 130) {
-            desiredHeight = 130;
+        if (desiredHeight < 150) {
+            desiredHeight = 150;
         }
         if (desiredHeight > 250) {
             desiredHeight = 250;
@@ -263,10 +268,10 @@ public class TestCandidateListedItemComponent {
 
                 if (argumentTypeCanonicalName.equals("float") ||
                         argumentTypeCanonicalName.equals("java.lang.Float")) {
-                    parameterValue = String.valueOf(Float.intBitsToFloat(Integer.parseInt(parameterValue)));
+                    parameterValue = ParameterUtils.getFloatValue(parameterValue);
                 } else if (argumentTypeCanonicalName.equals("double") ||
                         argumentTypeCanonicalName.equals("java.lang.Double")) {
-                    parameterValue = String.valueOf(Double.longBitsToDouble(Long.parseLong(parameterValue)));
+                    parameterValue = ParameterUtils.getDoubleValue(parameterValue);
                 }
             } catch (Exception e) {
                 logger.warn("Failed to parse double/float [" + parameterValue + "]", e);
@@ -330,5 +335,20 @@ public class TestCandidateListedItemComponent {
 
     public void setStatus(String statusText) {
         statusLabel.setText(statusText);
+    }
+
+    public void refreshJunitButtonStatus() {
+        //only needed if not available
+        if (!this.generateJunitLabel.isEnabled()) {
+            generateJunitLabel.setEnabled(getCanGenerateUnitCase());
+        }
+    }
+
+    public void setJunitButtonEnableState(boolean state) {
+        generateJunitLabel.setEnabled(state);
+    }
+
+    private boolean getCanGenerateUnitCase() {
+        return candidateLifeListener.canGenerateUnitCase(candidateMetadata);
     }
 }

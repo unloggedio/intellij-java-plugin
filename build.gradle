@@ -1,0 +1,214 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.intellij' version '1.16.0'
+    id 'com.palantir.git-version' version '0.14.0'
+}
+
+def getGitHash = { ->
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', '--short', 'HEAD'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
+
+group 'org.videobug'
+version '1.18.17-' + getGitHash()
+
+
+compileJava {
+    sourceCompatibility = '11'
+    targetCompatibility = '11'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://gitlab.com/api/v4/projects/35360521/packages/maven'
+        name "GitLab"
+        credentials(HttpHeaderCredentials) {
+            name = 'Private-Token'
+            value = gitLabPrivateToken
+        }
+        authentication {
+            header(HttpHeaderAuthentication)
+        }
+    }
+
+}
+
+task createProperties() {
+    doLast {
+        def details = versionDetails()
+        new File("$rootDir/src/main/resources/version.properties").withWriter { w ->
+            Properties p = new Properties()
+            p['version'] = project.version.toString()
+            p['gitLastTag'] = details.lastTag
+            p['gitCommitDistance'] = details.commitDistance.toString()
+            p['gitHash'] = details.gitHash.toString()
+            p['gitHashFull'] = details.gitHashFull.toString() // full 40-character Git commit hash
+//            p['gitBranchName'] = details.branchName // is null if the repository in detached HEAD mode
+            p['gitIsCleanTag'] = details.isCleanTag.toString()
+            p.store w, null
+        }
+        // copy needed, otherwise the bean VersionController can't load the file at startup when running complete-app tests.
+//        copy {
+//            from "$rootDir/src/main/resources/version.properties"
+//            into "bin/main/"
+//        }
+    }
+}
+classes {
+    dependsOn createProperties
+}
+
+
+runIde {
+    autoReloadPlugins = true
+    jvmArgs = [
+            "--add-opens=java.base/java.util=ALL-UNNAMED",
+            "-Xmx1G",
+            "--add-exports",
+            "java.base/jdk.internal.vm=ALL-UNNAMED",
+//            "-XX:FlightRecorderOptions=stackdepth=100"
+    ]
+}
+
+task postBuildPlugin(type: Exec) {
+    // auto picks version of plugin
+    environment('PLUGIN_VERSION', version)
+    commandLine './post-build-plugin.sh'
+}
+
+// runs postbuild automatically after build plugin
+postBuildPlugin.dependsOn buildPlugin
+buildPlugin.finalizedBy postBuildPlugin
+
+dependencies {
+    implementation 'video.bug:common:1.4.4'
+//    implementation files("/Users/artpar/.m2/repository/video/bug/common/1.4.4/common-1.4.4.jar")
+    implementation 'org.slf4j:slf4j-api:2.0.3'
+    implementation 'net.openhft:chronicle-map:3.22.9'
+    implementation 'net.openhft:chronicle-queue:5.22.28'
+    implementation 'org.json:json:20201115'
+    implementation 'com.amplitude:java-sdk:1.12.0'
+    implementation 'com.squareup:javapoet:1.13.0'
+    implementation 'org.junit.jupiter:junit-jupiter-api:5.9.3'
+    implementation 'org.apache.logging.log4j:log4j-api:2.17.2'
+    implementation 'org.apache.logging.log4j:log4j-core:2.17.2'
+    implementation 'com.github.javaparser:javaparser-core:3.24.8'
+    implementation 'io.minio:minio:8.4.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
+    testImplementation 'org.mockito:mockito-core:4.0.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'com.squareup.okhttp3:okhttp:4.9.0'
+//    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2'
+
+    implementation group: 'com.j256.ormlite', name: 'ormlite-jdbc', version: '6.1'
+    implementation group: 'com.j256.ormlite', name: 'ormlite-core', version: '6.1'
+    implementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.39.3.0'
+//    implementation group: 'org.apache.poi', name: 'poi', version: '5.2.2'
+//    implementation group: 'org.apache.poi', name: 'poi-ooxml', version: '5.2.2'
+    implementation 'com.googlecode.cqengine:cqengine:3.6.0'
+    implementation 'io.kaitai:kaitai-struct-runtime:0.9'
+
+//    implementation files("/Users/artpar/.m2/repository/video/bug/unlogged-sdk/0.1.12/unlogged-sdk-0.1.12.jar")
+//    annotationProcessor files("/Users/artpar/.m2/repository/video/bug/unlogged-sdk/0.1.12/unlogged-sdk-0.1.12.jar")
+
+//    implementation 'video.bug:unlogged-sdk:0.1.12'
+//    annotationProcessor 'video.bug:unlogged-sdk:0.1.12'
+
+}
+
+runPluginVerifier {
+    ideVersions = [
+            "IU-2019.3.5",
+            "IU-2020.3.4",
+            "IU-2021.3.3",
+            "IU-2022.3.3"
+    ]
+    verificationReportsDir = "verificationReport"
+}
+
+// See https://github.com/JetBrains/gradle-intellij-plugin/
+intellij {
+    version = '2022.3'
+    plugins = ['com.intellij.java', 'maven', 'gradle', 'org.jetbrains.kotlin']
+    updateSinceUntilBuild = false
+    sameSinceUntilBuild = true
+//    pluginDependencies = [
+//            { pluginId = "net.ashald.envfile" }
+//    ]
+
+}
+patchPluginXml {
+    changeNotes = """
+
+
+
+    <h4>Unlogged.io Empowering Developer Efficiency and Testing Precision</h4>
+
+    <p>Greetings Java Developers! We're thrilled to announce the latest Unlogged.io release, 
+    packed with powerful features designed to supercharge your development workflow and testing capabilities.
+    Let's dive into the exciting updates:</p>
+    
+    <h5>Dynamic Mocks for Comprehensive Testing</h5>
+    
+    <p>Unleash the potential of your testing scenarios with dynamic mocks! Now, developers can effortlessly 
+    create mocks for APIs, database calls, file operations, and downstream services. Tailor your mocks to 
+    simulate real-world situations and enhance the precision of your testing.</p>
+    
+    <h5>Swift Workflow with Saved Mocks</h5>
+    
+    <p>Time is of the essence, and we understand that. With Unlogged.io's latest release, 
+    save your meticulously crafted mocks for future use. Experience an accelerated workflow 
+    as you reuse saved mocks, ensuring consistency and efficiency in your development process.</p>
+    
+    <h5>Permanent Mocking for External Testing</h5>
+    
+    <p>Extend your testing capabilities beyond Unlogged.io. Our new release enables permanent mocking, 
+    allowing developers to seamlessly test their code with external tools like Postman or Swagger. Enjoy 
+    the flexibility of choice without compromising on the precision of your tests.</p>
+    
+    <h5>CI Integration for Automated Replays</h5>
+    
+    <p>Effortlessly integrate Unlogged.io into your CI/CD pipeline with our CI runner, a seamless part of 
+    the Unlogged SDK. Associate your replays with mock definitions by utilizing the unlogged plugin. Your CI 
+    process becomes a breeze as the runner picks up files, ensuring thorough testing with every build.</p>
+    
+    <h5>Enhanced Association with Unlogged Plugin</h5>
+    
+    <p>Take control of your replays and mock definitions with the Unlogged plugin. Easily create associations 
+    between your replays and mock definitions, providing a unified and organized testing environment for your 
+    projects.</p>
+    
+    <p>Upgrade to Unlogged.io's latest release today and revolutionize your development and testing experience. 
+    Stay ahead of the curve, boost efficiency, and ensure the robustness of your code.</p>
+    <br />
+    <p>Happy coding!</p>
+
+
+
+    <h4>Version: 1.18.12</h4>
+    <p><strong>#Unlogged #JavaDevelopers #CodingExcellence #DeveloperTools #Innovation #CodeCoverage #UnitTesting</strong></p>    
+    """
+}
+
+publishPlugin {
+    token = "$System.env.JETBRAINS_PUBLISH_TOKEN"
+    channels = ["$System.env.JEBTRAINS_PUBLISH_CHANNEL"]
+}
+
+
+test {
+    useJUnitPlatform()
+    jvmArgs = [
+            "-Xmx512G"
+    ]
+}
+//sourceCompatibility = JavaVersion.VERSION_17
+//targetCompatibility = JavaVersion.VERSION_17
+

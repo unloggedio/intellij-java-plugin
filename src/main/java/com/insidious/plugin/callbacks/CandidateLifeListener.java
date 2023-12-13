@@ -1,6 +1,7 @@
 package com.insidious.plugin.callbacks;
 
 import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.pojo.ReplayAllExecutionContext;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
@@ -13,11 +14,11 @@ public interface CandidateLifeListener {
     void executeCandidate(
             List<StoredCandidate> metadata,
             ClassUnderTest classUnderTest,
-            String source,
+            ReplayAllExecutionContext context,
             AgentCommandResponseListener<String> stringAgentCommandResponseListener
     );
 
-    void displayResponse(Component responseComponent);
+    void displayResponse(Component responseComponent, boolean isExceptionFlow);
 
     void onSaved(StoredCandidate storedCandidate);
 
@@ -34,6 +35,8 @@ public interface CandidateLifeListener {
     void onGenerateJunitTestCaseRequest(StoredCandidate storedCandidate);
 
     void onCandidateSelected(StoredCandidate testCandidateMetadata);
+
+    boolean canGenerateUnitCase(StoredCandidate candidate);
 
     void onCancel();
 

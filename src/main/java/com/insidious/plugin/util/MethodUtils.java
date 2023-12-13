@@ -5,6 +5,7 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.agent.AgentCommand;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
+import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.util.Computable;
@@ -17,10 +18,13 @@ public class MethodUtils {
             MethodAdapter methodAdapter,
             ClassUnderTest classUnderTest,
             List<String> parameterValues,
-            boolean processArgumentTypes) {
+            boolean processArgumentTypes,
+            ArrayList<DeclaredMock> enabledMock) {
 
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.EXECUTE);
+
+        agentCommandRequest.setDeclaredMocks(enabledMock);
 
         String qualifiedName = ApplicationManager.getApplication().runReadAction(
                 (Computable<String>) () -> {
@@ -45,9 +49,9 @@ public class MethodUtils {
                 String parameterValue = parameterValues.get(i);
                 String parameterType = parameterTypes.get(i);
                 if (parameterType.equals("float")) {
-                    parameterValue = String.valueOf(Float.intBitsToFloat(Integer.parseInt(parameterValue)));
+                    parameterValue = ParameterUtils.getFloatValue(parameterValue);
                 } else if (parameterType.equals("double")) {
-                    parameterValue = String.valueOf(Double.longBitsToDouble(Long.parseLong(parameterValue)));
+                    parameterValue = ParameterUtils.getDoubleValue(parameterValue);
                 }
                 convertedParameterValues.add(parameterValue);
             }

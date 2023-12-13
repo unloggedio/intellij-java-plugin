@@ -22,6 +22,7 @@ public class LineHighlighter implements LineMarkerProvider {
 
     private static final Logger logger = LoggerUtil.getInstance(LineHighlighter.class);
     private static final Pattern testFileNamePattern = Pattern.compile("^Test.*V.java$");
+    private static final Pattern testPreviewFilePattern = Pattern.compile("^.*_Unlogged_Preview.java$");
     private static final Pattern testMethodNamePattern = Pattern.compile("^test.*");
     private static final Supplier<String> accessibleNameProvider = () -> "Execute method";
     private final Map<GutterState, UnloggedGutterNavigationHandler> navHandlerMap = new HashMap<>();
@@ -45,7 +46,10 @@ public class LineHighlighter implements LineMarkerProvider {
             if (fileMatcher.matches()) {
                 return null;
             }
-
+            Matcher previewFileMatcher = testPreviewFilePattern.matcher(element.getContainingFile().getName());
+            if (previewFileMatcher.matches()) {
+                return null;
+            }
 
             PsiMethod psiMethod = (PsiMethod) element.getParent();
             if (psiMethod.isConstructor()) {

@@ -467,7 +467,7 @@ public class SessionInstance implements Runnable {
                             || methodName.equals("hashCode")
                             || methodName.startsWith("<")) {
                     } else {
-                        List<String> descriptorItemsList = ClassTypeUtils.splitMethodDesc(
+                        List<String> descriptorItemsList = ClassTypeUtils.splitMethodDescriptor(
                                 methodInfo.getMethodDesc());
                         if (descriptorItemsList.size() > 1) {
                             isPojo = false;
@@ -3541,7 +3541,7 @@ public class SessionInstance implements Runnable {
         daoService.createOrUpdateProbeInfo(probesToSave);
 
 
-        if (threadState.getCallStack().size() > 100) {
+        if (threadState.getCallStack().size() > 1000) {
             StringBuilder infiniteRecursionDetectedMessage = new StringBuilder(
                     "<html>There was an infinite recursion " +
                             "detected. Events cannot be processed further for thread [" + threadId + "]. " +

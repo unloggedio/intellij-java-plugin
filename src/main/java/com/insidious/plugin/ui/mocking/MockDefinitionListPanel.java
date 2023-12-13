@@ -24,6 +24,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -195,7 +196,7 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
         }
     }
 
-    private void showMockEditor(DeclaredMock declaredMock) {
+    public void showMockEditor(DeclaredMock declaredMock) {
         JBPopup editorPopup = null;
 
         MockDefinitionEditor mockDefinitionEditor;
@@ -277,8 +278,8 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     }
 
     @Override
-    public void onSaveDeclaredMock(DeclaredMock declaredMock) {
-        insidiousService.saveMockDefinition(declaredMock, methodUnderTest);
+    public void onSaveDeclaredMock(DeclaredMock declaredMock, MethodUnderTest methodUnderTest) {
+        insidiousService.saveMockDefinition(declaredMock, this.methodUnderTest);
         insidiousService.enableMock(declaredMock);
 //        insidiousService.enableFieldMock(parentClassName, fieldName);
 //        fieldMockSwitch.setSelected(true);

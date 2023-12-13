@@ -32,6 +32,7 @@ public class UIUtils {
     public static final Icon SAVE_CANDIDATE_GREY = IconLoader.getIcon("/icons/png/save_candidate.png", UIUtils.class);
     public static final Icon SAVE_CANDIDATE_PINK = IconLoader.getIcon("/icons/png/save-line-pink.png", UIUtils.class);
     public static final Icon SAVE_CANDIDATE_GREEN_SVG = IconLoader.getIcon("/icons/svg/save-line.svg", UIUtils.class);
+    public static final Icon CLOSE_FILE_RED_SVG = IconLoader.getIcon("/icons/svg/close_case_preview.svg", UIUtils.class);
     public static final Icon DELETE_CANDIDATE_RED_SVG = IconLoader.getIcon("/icons/svg/delete-bin-6-line.svg",
             UIUtils.class);
     public static final Icon REPLAY_PINK = IconLoader.getIcon("/icons/svg/replay-all-pink.svg", UIUtils.class);
@@ -50,7 +51,7 @@ public class UIUtils {
     public static Color green = new JBColor(new Color(56, 161, 105), new Color(56, 161, 105));
     public static Color yellow_alert = new JBColor(new Color(225, 163, 54), new Color(225, 163, 54));
     public static Color orange = new JBColor(new Color(221, 107, 32), new Color(221, 107, 32));
-    public static Color defaultForeground = Gray._187;
+    public static JBColor defaultForeground = new JBColor(Color.black, Gray._187);
     public static Color NeutralGrey = new JBColor(new Color(81, 85, 87), new Color(81, 85, 87));
     public static Color WARNING_RED = new JBColor(new Color(239, 144, 160), new Color(239, 144, 160));
     public static Color black_custom = new JBColor(Gray._32, Gray._32);
@@ -77,8 +78,15 @@ public class UIUtils {
     public static Icon TEST_TUBE_ICON_SVG = IconLoader.getIcon("/icons/svg/test_tube_icon_green.svg", UIUtils.class);
     public static Icon TEST_TUBE_FILL = IconLoader.getIcon("/icons/svg/test_tube_unlogged.svg", UIUtils.class);
     public static Icon RE_EXECUTE = IconLoader.getIcon("/icons/svg/execute_v2.svg", UIUtils.class);
+    public static Icon CREATED_BY = IconLoader.getIcon("/icons/svg/created_by.svg", UIUtils.class);
+    public static Icon STATUS = IconLoader.getIcon("/icons/svg/status.svg", UIUtils.class);
+    public static Icon MACHINE = IconLoader.getIcon("/icons/svg/machine.svg", UIUtils.class);
+    public static Icon CLOCK = IconLoader.getIcon("/icons/svg/clock.svg", UIUtils.class);
+    public static Icon TESTTUBE = IconLoader.getIcon("/icons/svg/testtube.svg", UIUtils.class);
+    public static Icon MOCK_DATA = IconLoader.getIcon("/icons/svg/mock_data.svg", UIUtils.class);
     public static Icon DIFF_GUTTER = IconLoader.getIcon("/icons/svg/diff_gutter.svg", UIUtils.class);
     public static Icon NO_DIFF_GUTTER = IconLoader.getIcon("/icons/svg/no_diff_gutter.svg", UIUtils.class);
+    public static Icon MOCK_ADD = IconLoader.getIcon("/icons/svg/mock_add.svg", UIUtils.class);
 
     public static Icon NO_AGENT_GUTTER = IconLoader.getIcon("/icons/svg/no_agent_gutter.svg", UIUtils.class);
     public static Icon EXECUTE_COMPONENT = IconLoader.getIcon("/icons/svg/execute_component.svg", UIUtils.class);
@@ -133,7 +141,7 @@ public class UIUtils {
     public static Icon GENERATE_ICON = IconLoader.getIcon("/icons/png/generate_icon.png", UIUtils.class);
     public static Icon DOWNLOAD_WHITE = IconLoader.getIcon("/icons/png/download_white.png", UIUtils.class);
     public static Icon NO_AGENT_HEADER = IconLoader.getIcon("/icons/png/no_agent_header.png", UIUtils.class);
-    public static Icon GHOST_MOCK = IconLoader.getIcon("/icons/png/ghost-mock.png", UIUtils.class);
+    public static Icon GHOST_MOCK = IconLoader.getIcon("/icons/svg/mock_ghost_icon_v2.svg", UIUtils.class);
     public static Icon PROCESS_RUNNING_HEADER = IconLoader.getIcon("/icons/png/process_running_header.png",
             UIUtils.class);
     public static Icon DATA_AVAILABLE_HEADER = IconLoader.getIcon("/icons/png/data_available_header.png",

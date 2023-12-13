@@ -316,17 +316,18 @@ public class TestCaseService {
         // gotta mock'em all
         for (Parameter fieldParameter : fields) {
 
-            if (fieldParameter.getType().startsWith("org.slf4j.Logger")) {
+            String fieldParameterType = fieldParameter.getType();
+            if (fieldParameterType.startsWith("org.slf4j.Logger")) {
                 continue;
             }
-            if (fieldParameter.getType().startsWith("org.springframework.cglib.proxy.MethodInterceptor")) {
+            if (fieldParameterType.startsWith("org.springframework.cglib.proxy.MethodInterceptor")) {
                 continue;
             }
 
             List<String> typeNames = new LinkedList<>();
-            typeNames.add(fieldParameter.getType());
+            typeNames.add(fieldParameterType);
 
-            TypeInfo fieldTypeInfo = sessionInstance.getTypeInfo(fieldParameter.getType());
+            TypeInfo fieldTypeInfo = sessionInstance.getTypeInfo(fieldParameterType);
             for (int interfaceTypeId : fieldTypeInfo.getInterfaces()) {
                 TypeInfo interfaceTypeInfo = sessionInstance.getTypeInfo(interfaceTypeId);
                 typeNames.add(interfaceTypeInfo.getTypeNameFromClass());
@@ -352,13 +353,13 @@ public class TestCaseService {
 
                     boolean nameChosen = false;
                     if (fieldMatchingNameAndType.size() == 0) {
-                        logger.warn("no matching field of type [" + fieldParameter.getType()
+                        logger.warn("no matching field of type [" + fieldParameterType
                                 + "] with matching [" + fieldParameter.getNames() + "] was found. The names found were: "
                                 + fieldMatchingParameterType.stream()
                                 .map(PsiField::getName)
                                 .collect(Collectors.toList()));
                     } else if (fieldMatchingNameAndType.size() > 1) {
-                        logger.warn("more than 1 matching field of type [" + fieldParameter.getType()
+                        logger.warn("more than 1 matching field of type [" + fieldParameterType
                                 + "] with matching [" + fieldParameter.getNames() + "] was found. The names found were: "
                                 + fieldMatchingParameterType.stream()
                                 .map(PsiField::getName)
@@ -377,7 +378,7 @@ public class TestCaseService {
 
                 } else {
                     logger.warn(
-                            "no matching field of type [" + fieldParameter.getType() + "] found in class [" + target.getType() + "]");
+                            "no matching field of type [" + fieldParameterType + "] found in class [" + target.getType() + "]");
                 }
             }
         }

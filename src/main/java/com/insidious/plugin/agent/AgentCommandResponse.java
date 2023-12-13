@@ -1,5 +1,7 @@
 package com.insidious.plugin.agent;
 
+import java.util.HashSet;
+
 public class AgentCommandResponse<T> {
     private T methodReturnValue;
     private ResponseType responseType;

@@ -16,13 +16,15 @@ public class UsageInsightTracker {
     private static final String OS_VERSION = System.getProperty("os.version");
     private static final String LANGUAGE = Locale.getDefault().getLanguage();
     private static final String OS_TAG = OS_NAME + ":" + OS_VERSION;
+    public static final String REMOTE_IP_AMPLITUDE_CONST = "$remote";
     private static UsageInsightTracker instance;
     private final Amplitude amplitudeClient;
     private final VersionManager versionManager;
     private final List<String> UsersToSkip = Arrays.asList(
             "artpar",
             "Amogh",
-            "testerfresher"
+            "testerfresher",
+            "short-kt"
     );
     private final long sessionId = new Date().getTime();
     private final AtomicInteger eventId = new AtomicInteger();
@@ -52,10 +54,11 @@ public class UsageInsightTracker {
             return;
         }
         Event event = new Event(eventName, HOSTNAME);
-        event.platform = OS_TAG + "/" + ApplicationInfo.getInstance().getFullVersion();
-        event.country = TimeZone.getDefault().getID();
+        event.platform = TimeZone.getDefault().getID();
+//        event.country = TimeZone.getDefault().getID();
         event.osName = OS_TAG;
-        event.language = LANGUAGE;
+//        event.language = LANGUAGE;
+        event.ip = REMOTE_IP_AMPLITUDE_CONST;
         event.sessionId = sessionId;
         event.appVersion = versionManager.getVersion();
         event.deviceId = PermanentInstallationID.get();
