@@ -75,9 +75,6 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
     ) {
         this.storedCandidate = storedCandidate;
         this.listener = listener;
-        agentCommandResponse.setMethodReturnValue(
-                processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(),
-                        agentCommandResponse.getMethodReturnValue()));
         this.agentCommandResponse = agentCommandResponse;
         this.enabledMockList = new HashSet<>(this.storedCandidate.getMockIds());
 

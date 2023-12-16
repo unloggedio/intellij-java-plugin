@@ -29,6 +29,7 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.TestCaseUnit;
+import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
@@ -40,14 +41,15 @@ import com.insidious.plugin.util.UIUtils;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
-import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
@@ -59,6 +61,7 @@ import com.intellij.psi.impl.source.tree.java.PsiJavaTokenImpl;
 import com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl;
 import com.intellij.psi.impl.source.tree.java.PsiThisExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.util.FileContentUtil;
 import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
@@ -71,53 +74,65 @@ import java.awt.event.ActionListener;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
-public class TestCaseDesigner implements Disposable {
-    private static final Logger logger = LoggerUtil.getInstance(TestCaseDesigner.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-    Random random = new Random(new Date().getTime());
-    private JPanel mainContainer;
-    private JPanel selectedClassDetailsPanel;
-    private JLabel selectedMethodNameLabel;
-    private JPanel testCasePreviewPanel;
-    private JTextField saveLocationTextField;
-    private JButton saveTestCaseButton;
+public class TestCaseDesignerLite {
+    private JPanel mainPanel;
+    private JPanel configurationPanel;
+    private JPanel saveDetailsPanel;
+    private JPanel leftOptions;
+    private JPanel rightOptions;
     private JPanel bottomControlPanel;
-    private JPanel configurationControlPanel;
-    private JCheckBox addFieldMocksCheckBox;
-    private JTextArea instructionsArea;
-    private JCheckBox useMockitoAnnotationsMockCheckBox;
-    private JPanel testFrameWorkPanel;
-    private JComboBox<TestFramework> testFrameworkComboBox;
-    private JComboBox<MockFramework> mockFrameworkComboBox;
-    private JComboBox<JsonFramework> jsonFrameworkComboBox;
-    private JLabel mockFrameworkLabel;
-    private JLabel testFrameworkLabel;
-    private JPanel mockFrameworkPanel;
-    private JPanel useMockitoConfigPanel;
+    private JTextField saveLocationTextField;
+    private JButton closeButton;
+    private JButton saveTestCaseButton;
     private JPanel addFieldMocksConfigPanel;
+    private JCheckBox addFieldMocksCheckBox;
+    private JPanel useMockitoConfigPanel;
+    private JCheckBox useMockitoAnnotationsMockCheckBox;
+    private JPanel mockitoOptions;
+    private JPanel testFrameWorkPanel;
+    private JLabel testFrameworkLabel;
+    private JComboBox testFrameworkComboBox;
+    private JPanel mockFrameworkPanel;
+    private JLabel mockFrameworkLabel;
+    private JComboBox mockFrameworkComboBox;
     private JPanel jsonFrameworkChoicePanel;
-    private JComboBox<ResourceEmbedMode> resourceEmberModeComboBox;
+    private JComboBox jsonFrameworkComboBox;
     private JPanel resourceEmbedModeChoicePanel;
-    private JButton backToReplayListButton;
-    private MethodAdapter currentMethod;
-    private ClassAdapter currentClass;
-    private Editor editor;
-    private MethodCallExpression mainMethod;
-    private List<String> methodChecked;
-    private Map<String, Parameter> fieldMapByName;
+    private JComboBox resourceEmberModeComboBox;
+    private JPanel testOptions;
+    private static final Logger logger = LoggerUtil.getInstance(TestCaseDesigner.class);
+    private LightVirtualFile testCaseScriptFile;
+    private MethodAdapter methodAdapter;
+    Random random = new Random(new Date().getTime());
     private TestCaseGenerationConfiguration currentTestGenerationConfiguration;
     private TestCaseUnit testCaseScript;
+    private List<String> methodChecked;
+    private Map<String, Parameter> fieldMapByName;
+    private Editor editorReference;
+    private FileEditor fileEditorReference;
+    private Project project;
+    private ObjectMapper objectMapper = new ObjectMapper();
 
-    public TestCaseDesigner() {
+    public TestCaseDesignerLite(MethodAdapter currentMethod,
+                                TestCaseGenerationConfiguration configuration,
+                                boolean generateOnlyBoilerPlate,
+                                Project project) {
+        this.methodAdapter = currentMethod;
+        this.mainPanel.setMaximumSize(new Dimension(-1, 300));
+        this.currentTestGenerationConfiguration = configuration;
+        this.project = project;
+        testCaseScriptFile = new LightVirtualFile(currentMethod.getName() + "_Unlogged_Preview.java");
+
         saveTestCaseButton.setEnabled(false);
         saveTestCaseButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        backToReplayListButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        closeButton.setIcon(UIUtils.CLOSE_FILE_RED_SVG);
 
-        backToReplayListButton.setForeground(UIUtils.defaultForeground);
+        closeButton.setForeground(UIUtils.defaultForeground);
         saveTestCaseButton.setForeground(UIUtils.defaultForeground);
 
         testFrameworkComboBox.setModel(new DefaultComboBoxModel<>(TestFramework.values()));
@@ -129,10 +144,14 @@ public class TestCaseDesigner implements Disposable {
         resourceEmberModeComboBox.setModel(new DefaultComboBoxModel<>(ResourceEmbedMode.values()));
         resourceEmberModeComboBox.setSelectedItem(ResourceEmbedMode.IN_CODE);
 
+        if (generateOnlyBoilerPlate ||
+                currentTestGenerationConfiguration == null) {
+            generateTestCaseBoilerPlace();
+        }
+
         addFieldMocksCheckBox.addActionListener(e -> {
             updatePreviewTestCase();
         });
-
 
         testFrameworkComboBox.addActionListener(e -> {
             currentTestGenerationConfiguration.setTestFramework(
@@ -161,21 +180,16 @@ public class TestCaseDesigner implements Disposable {
             updatePreviewTestCase();
         });
 
-        backToReplayListButton.addActionListener(e -> {
-            InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
-            insidiousService.focusAtomicTestsWindow();
-        });
-
         saveTestCaseButton.addActionListener(e -> {
-
             UsageInsightTracker.getInstance().RecordEvent(
                     "SAVE_JUNIT_TEST_CASE",
                     null
             );
 
+            ClassAdapter currentClass = methodAdapter.getContainingClass();
             String saveLocation = saveLocationTextField.getText();
             InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
-            String basePath = insidiousService.guessModuleBasePath(currentClass);
+            String basePath = insidiousService.guessModuleBasePath(currentMethod.getContainingClass());
             try {
                 insidiousService.getJUnitTestCaseWriter().ensureTestUtilClass(basePath);
             } catch (IOException ex) {
@@ -188,15 +202,13 @@ public class TestCaseDesigner implements Disposable {
                 throw new RuntimeException(ex);
             }
 
-
             File testcaseFile = new File(saveLocation);
             testcaseFile.getParentFile().mkdirs();
 
             logger.info("[TEST CASE SAVE] testcaseFile : " + testcaseFile.getAbsolutePath());
             UsageInsightTracker.getInstance().RecordEvent("TestCaseSaved", new JSONObject());
 
-
-            TestCaseGenerationConfiguration generationConfig = testCaseScript.getTestGenerationConfig();
+            TestCaseGenerationConfiguration generationConfig = currentTestGenerationConfiguration;
             if (generationConfig.getResourceEmbedMode() == ResourceEmbedMode.IN_FILE) {
                 String resourceDirectory = insidiousService.getJUnitTestCaseWriter()
                         .getTestResourcesDirectory(basePath) + "unlogged-fixtures" + File.separator;
@@ -221,18 +233,16 @@ public class TestCaseDesigner implements Disposable {
                             properties
                     );
 
-
                     InsidiousNotification.notifyMessage(
                             "Failed to write test resource case: " + e1.getMessage(), NotificationType.ERROR
                     );
                     return;
                 }
-
             }
-
+            String fileContents = testCaseScriptFile.getContent().toString();
             if (!testcaseFile.exists()) {
                 try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
-                    out.write(editor.getDocument().getText().getBytes());
+                    out.write(fileContents.getBytes());
                 } catch (Exception e1) {
                     InsidiousNotification.notifyMessage(
                             "Failed to write test case: " + e1.getMessage(), NotificationType.ERROR
@@ -241,6 +251,8 @@ public class TestCaseDesigner implements Disposable {
             } else {
                 saveMethodToExistingFile(testcaseFile);
             }
+
+            closeEditorWindow();
 
             VirtualFile newFile = VirtualFileManager.getInstance()
                     .refreshAndFindFileByUrl(FileSystems.getDefault()
@@ -252,18 +264,35 @@ public class TestCaseDesigner implements Disposable {
             }
             newFile.refresh(true, false);
 
-
             List<VirtualFile> newFile1 = new ArrayList<>();
             newFile1.add(newFile);
             FileContentUtil.reparseFiles(currentClass.getProject(), newFile1, true);
-//            Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
 
             FileEditorManager.getInstance(currentClass.getProject())
                     .openFile(newFile, true, true);
             InsidiousNotification.notifyMessage("Created test case: " + testcaseFile.getName(),
                     NotificationType.WARNING);
-
         });
+
+        this.closeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                closeEditorWindow();
+            }
+        });
+
+        generateAndPreviewTestCase(currentTestGenerationConfiguration);
+    }
+
+    public JPanel getMainPanel() {
+        return mainPanel;
+    }
+
+    public void closeEditorWindow() {
+        if (fileEditorReference != null) {
+            FileEditorManager.getInstance(project)
+                    .closeFile(fileEditorReference.getFile());
+        }
     }
 
     private static int buildMethodAccessModifier(PsiModifierList modifierList) {
@@ -305,9 +334,9 @@ public class TestCaseDesigner implements Disposable {
                 return;
             }
             CompilationUnit existingCompilationUnit = parsedFile.getResult().get();
-
+            String testContents = testCaseScriptFile.getContent().toString();
             ParseResult<CompilationUnit> parseResult = javaParser.parse(
-                    new ByteArrayInputStream(editor.getDocument().getText().getBytes()));
+                    new ByteArrayInputStream(testContents.getBytes()));
             if (!parseResult.isSuccessful()) {
                 logger.error("Failed to parse test case to be written: \n" +
                         "\nProblems");
@@ -326,12 +355,6 @@ public class TestCaseDesigner implements Disposable {
                     .getResult()
                     .get();
 
-//            MethodDeclaration newMethodDeclaration =
-//                    newCompilationUnit.getClassByName("Test" + currentClass.getName() + "V")
-//                            .get()
-//                            .getMethodsByName("testMethod" + ClassTypeUtils.upperInstanceName(currentMethod.getName()))
-//                            .get(0);
-
             JavaParserUtils.mergeCompilationUnits(existingCompilationUnit, newCompilationUnit);
 
             try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
@@ -339,7 +362,7 @@ public class TestCaseDesigner implements Disposable {
                         .getBytes(StandardCharsets.UTF_8));
             } catch (Exception e1) {
                 InsidiousNotification.notifyMessage(
-                        "Failed to write test case for class " + currentClass.getName() + " -> "
+                        "Failed to write test case for class " + methodAdapter.getContainingClass().getName() + " -> "
                                 + e1.getMessage(), NotificationType.ERROR
                 );
             }
@@ -349,32 +372,20 @@ public class TestCaseDesigner implements Disposable {
         }
     }
 
-    public JComponent getContent() {
-        return mainContainer;
-    }
+    public void generateTestCaseBoilerPlace() {
 
-    public TestCaseGenerationConfiguration generateTestCaseBoilerPlace(MethodAdapter method) {
-
-        if (method == null) {
-            return null;
-        }
-        PsiFile containingFile = method.getContainingFile();
+        PsiFile containingFile = methodAdapter.getContainingFile();
         if (containingFile.getVirtualFile() == null || containingFile.getVirtualFile().getPath().contains("/test/")) {
             InsidiousNotification.notifyMessage("Failed to method source code", NotificationType.ERROR);
-            return null;
+            return;
         }
 
         saveLocationTextField.setText("");
-
-        this.currentMethod = method;
-        this.currentClass = method.getContainingClass();
-
         List<TestCandidateMetadata> testCandidateMetadataList =
                 ApplicationManager.getApplication().runReadAction(
                         (Computable<List<TestCandidateMetadata>>) this::createTestCandidate);
 
-        String testMethodName = "testMethod" + ClassTypeUtils.upperInstanceName(currentMethod.getName());
-
+        String testMethodName = "testMethod" + ClassTypeUtils.upperInstanceName(methodAdapter.getName());
         currentTestGenerationConfiguration = new TestCaseGenerationConfiguration(
                 (TestFramework) testFrameworkComboBox.getSelectedItem(),
                 (MockFramework) mockFrameworkComboBox.getSelectedItem(),
@@ -391,24 +402,18 @@ public class TestCaseDesigner implements Disposable {
             currentTestGenerationConfiguration.getCallExpressionList().addAll(testCandidateMetadata.getCallsList());
         }
 
-
         currentTestGenerationConfiguration.setTestMethodName(testMethodName);
-
-
         currentTestGenerationConfiguration.getTestCandidateMetadataList().clear();
         currentTestGenerationConfiguration.getTestCandidateMetadataList().addAll(testCandidateMetadataList);
-
-        return currentTestGenerationConfiguration;
     }
 
     public void updatePreviewTestCase() {
-        generateAndPreviewTestCase(currentTestGenerationConfiguration, currentMethod);
+        generateAndPreviewTestCase(currentTestGenerationConfiguration);
     }
 
-    public void generateAndPreviewTestCase(TestCaseGenerationConfiguration testCaseGenerationConfiguration, MethodAdapter currentMethod) {
-        this.currentMethod = currentMethod;
-        this.currentClass = currentMethod.getContainingClass();
-        this.currentTestGenerationConfiguration = testCaseGenerationConfiguration;
+    public void generateAndPreviewTestCase(TestCaseGenerationConfiguration testCaseGenerationConfiguration) {
+        ClassAdapter currentClass = methodAdapter.getContainingClass();
+        currentTestGenerationConfiguration = testCaseGenerationConfiguration;
 
         currentTestGenerationConfiguration.setTestFramework((TestFramework) testFrameworkComboBox.getSelectedItem());
         currentTestGenerationConfiguration.setMockFramework((MockFramework) mockFrameworkComboBox.getSelectedItem());
@@ -417,19 +422,10 @@ public class TestCaseDesigner implements Disposable {
         currentTestGenerationConfiguration.setResourceEmbedMode(
                 (ResourceEmbedMode) resourceEmberModeComboBox.getSelectedItem());
 
-
-        selectedMethodNameLabel.setText(currentClass.getName() + "." + currentMethod.getName() + "()");
-
-        InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
-
+        InsidiousService insidiousService = methodAdapter.getProject().getService(InsidiousService.class);
         EditorFactory editorFactory = EditorFactory.getInstance();
-        int scrollIndex = 0;
-        int offset = 0;
-        if (editor != null && !editor.isDisposed()) {
-            EditorFactory.getInstance().releaseEditor(editor);
-        }
         try {
-            testCaseScript = currentMethod
+            testCaseScript = methodAdapter
                     .getProject()
                     .getService(InsidiousService.class)
                     .getTestCandidateCode(testCaseGenerationConfiguration);
@@ -438,9 +434,7 @@ public class TestCaseDesigner implements Disposable {
                 return;
             }
 
-
             String moduleBasePath = insidiousService.guessModuleBasePath(currentClass);
-
             PsiJavaFileImpl containingFile = currentClass.getContainingFile();
             String packageName = containingFile.getPackageName();
             String testOutputDirPath = insidiousService.getJUnitTestCaseWriter()
@@ -451,18 +445,17 @@ public class TestCaseDesigner implements Disposable {
             String testCaseScriptCode = testCaseScript.getCode();
             String[] codeLines = testCaseScriptCode.split("\n");
             int classStartIndex = 0;
-            offset = testCaseScriptCode.indexOf(testCaseGenerationConfiguration.getTestMethodName());
             for (String codeLine : codeLines) {
                 if (codeLine.contains(testCaseGenerationConfiguration.getTestMethodName())) {
                     break;
                 }
                 classStartIndex++;
             }
-            scrollIndex = Math.min(classStartIndex + 10, codeLines.length);
 
             Document document = editorFactory.createDocument(testCaseScriptCode);
-            editor = editorFactory.createEditor(document, currentMethod.getProject(), JavaFileType.INSTANCE, false);
+            Editor editor = editorFactory.createEditor(document, methodAdapter.getProject(), JavaFileType.INSTANCE, false);
 
+            testCaseScriptFile.setContent(this, editor.getDocument().getText(), true);
             saveTestCaseButton.setEnabled(true);
             bottomControlPanel.setEnabled(true);
 
@@ -473,29 +466,30 @@ public class TestCaseDesigner implements Disposable {
             e.printStackTrace(stringWriter);
             String exceptionText = out.toString().replace("\r", "");
             Document document = editorFactory.createDocument(exceptionText);
-            editor = editorFactory.createEditor(document, currentMethod.getProject(), PlainTextFileType.INSTANCE, true);
+            Editor editor = editorFactory.createEditor(document, methodAdapter.getProject(), PlainTextFileType.INSTANCE, true);
 
+            testCaseScriptFile.setContent(this, editor.getDocument().getText(), true);
             saveTestCaseButton.setEnabled(false);
             bottomControlPanel.setEnabled(false);
-
         }
+        updateFileContents();
+    }
 
-
-        testCasePreviewPanel.removeAll();
-        testCasePreviewPanel.add(editor.getComponent(), BorderLayout.CENTER);
-        editor.getCaretModel().getCurrentCaret().moveToOffset(offset);
-        logger.info("scroll to line: " + scrollIndex);
-        editor.getScrollingModel().scroll(1, offset);
-        testCasePreviewPanel.revalidate();
-        testCasePreviewPanel.repaint();
+    private void updateFileContents() {
+        ApplicationManager.getApplication().runWriteAction(() -> {
+            if (this.editorReference != null) {
+                Document document = editorReference.getDocument();
+                document.setText(testCaseScript.getCode());
+            }
+        });
     }
 
     private List<TestCandidateMetadata> createTestCandidate() {
 
-        if (currentClass == null) {
+        if (methodAdapter.getContainingClass() == null) {
             return new ArrayList<>();
         }
-
+        ClassAdapter currentClass = methodAdapter.getContainingClass();
         List<TestCandidateMetadata> testCandidateMetadataList = new ArrayList<>();
 
         fieldMapByName = new HashMap<>();
@@ -534,22 +528,16 @@ public class TestCaseDesigner implements Disposable {
         DataEventWithSessionId testSubjectParameterProbe = new DataEventWithSessionId();
         testSubjectParameter.setProbeAndProbeInfo(testSubjectParameterProbe, new DataInfo());
 
-        // constructor
-
         List<TestCandidateMetadata> constructorCandidate = buildConstructorCandidate(currentClass, testSubjectParameter,
                 fieldContainer);
         testCandidateMetadataList.addAll(constructorCandidate);
 
-        // test subject
-
-
-        // method return value
         Parameter returnValue = null;
-        if (currentMethod.getReturnType() != null) {
+        if (methodAdapter.getReturnType() != null) {
             returnValue = new Parameter();
             returnValue.setValue(random.nextLong());
 
-            PsiType returnType = currentMethod.getReturnType();
+            PsiType returnType = methodAdapter.getReturnType();
             TestCaseWriter.setParameterTypeFromPsiType(returnValue, returnType, true);
 
             DataEventWithSessionId returnValueProbe = new DataEventWithSessionId();
@@ -557,7 +545,7 @@ public class TestCaseDesigner implements Disposable {
         }
 
         // method parameters
-        ParameterAdapter[] parameterList = currentMethod.getParameters();
+        ParameterAdapter[] parameterList = methodAdapter.getParameters();
         List<Parameter> arguments = new ArrayList<>(parameterList.length);
         for (ParameterAdapter parameter : parameterList) {
             Parameter argumentParameter = new Parameter();
@@ -584,10 +572,10 @@ public class TestCaseDesigner implements Disposable {
         }
 
 
-        PsiModifierList modifierList = currentMethod.getModifierList();
+        PsiModifierList modifierList = methodAdapter.getModifierList();
         int methodAccess = buildMethodAccessModifier(modifierList);
-        mainMethod = new MethodCallExpression(
-                currentMethod.getName(), testSubjectParameter, arguments, returnValue, 0
+        MethodCallExpression mainMethod = new MethodCallExpression(
+                methodAdapter.getName(), testSubjectParameter, arguments, returnValue, 0
         );
         mainMethod.setSubject(testSubjectParameter);
         mainMethod.setMethodAccess(methodAccess);
@@ -596,29 +584,24 @@ public class TestCaseDesigner implements Disposable {
 
         testCandidateMetadata.setTestSubject(testSubjectParameter);
 
-
-        if (currentMethod.getReturnType() != null && !currentMethod.getReturnType().getCanonicalText().equals("void")) {
+        if (methodAdapter.getReturnType() != null && !methodAdapter.getReturnType().getCanonicalText().equals("void")) {
             Parameter assertionExpectedValue = new Parameter();
             assertionExpectedValue.setName(returnValue.getName() + "Expected");
             assertionExpectedValue.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
 
-            TestCaseWriter.setParameterTypeFromPsiType(assertionExpectedValue, currentMethod.getReturnType(), true);
-
+            TestCaseWriter.setParameterTypeFromPsiType(assertionExpectedValue, methodAdapter.getReturnType(), true);
             TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, assertionExpectedValue, returnValue);
-
             testCandidateMetadata.getAssertionList().add(testAssertion);
         }
 
-
         // fields
-
         if (addFieldMocksCheckBox.isSelected()) {
             // field parameters are going to be mocked and then injected
             fieldContainer.all().forEach(e -> testCandidateMetadata.getFields().add(e));
         }
 
         methodChecked = new ArrayList<>();
-        List<MethodCallExpression> collectedMceList = extractMethodCalls(currentMethod);
+        List<MethodCallExpression> collectedMceList = extractMethodCalls(methodAdapter);
         for (int i = 0; i < collectedMceList.size(); i++) {
             MethodCallExpression methodCallExpression = collectedMceList.get(i);
             DataEventWithSessionId entryProbe = new DataEventWithSessionId();
@@ -627,10 +610,7 @@ public class TestCaseDesigner implements Disposable {
         }
 
         testCandidateMetadata.getCallsList().addAll(collectedMceList);
-
-
         testCandidateMetadataList.add(testCandidateMetadata);
-
         return testCandidateMetadataList;
     }
 
@@ -644,7 +624,6 @@ public class TestCaseDesigner implements Disposable {
                 continue;
             }
             PsiElement[] callExpressionChildren = psiMethodCallExpression.getChildren();
-//            logger.warn("call expression child: " + psiMethodCallExpression);
             if (callExpressionChildren[0] instanceof PsiReferenceExpressionImpl) {
                 PsiReferenceExpressionImpl callReferenceExpression = (PsiReferenceExpressionImpl) callExpressionChildren[0];
                 PsiExpressionListImpl callParameterExpression = null;
@@ -772,7 +751,7 @@ public class TestCaseDesigner implements Disposable {
                                 prob.setSerializedValue(("\"" + parameter.getName() + "\"").getBytes());
                             } else {
                                 String serializedStringValue = ClassUtils.createDummyValue(
-                                        typeToAssignFrom, new LinkedList<>(), currentClass.getProject()
+                                        typeToAssignFrom, new LinkedList<>(), methodAdapter.getContainingClass().getProject()
                                 );
                                 prob.setSerializedValue(serializedStringValue.getBytes());
 
@@ -794,7 +773,7 @@ public class TestCaseDesigner implements Disposable {
                         );
                         DataEventWithSessionId returnValueDataEvent = new DataEventWithSessionId();
                         returnValueDataEvent.setSerializedValue(ClassUtils.createDummyValue(methodReturnPsiReference,
-                                new LinkedList<>(), currentClass.getProject()).getBytes());
+                                new LinkedList<>(), methodAdapter.getContainingClass().getProject()).getBytes());
                         methodReturnValue.setProbeAndProbeInfo(returnValueDataEvent, probeInfo);
 
 
@@ -807,8 +786,6 @@ public class TestCaseDesigner implements Disposable {
 
                         collectedMceList.add(mce);
                     }
-
-
                 } else if (referenceChildren.length == 2) {
                     // call to a method in same class
                     PsiElement methodNameNode = referenceChildren[1];
@@ -831,7 +808,7 @@ public class TestCaseDesigner implements Disposable {
     }
 
     private List<MethodCallExpression> getCallsFromMethod(PsiExpressionListImpl callParameterExpression, String invokedMethodName) {
-        MethodAdapter matchedMethod = getMatchingMethod(currentClass, invokedMethodName, callParameterExpression);
+        MethodAdapter matchedMethod = getMatchingMethod(methodAdapter.getContainingClass(), invokedMethodName, callParameterExpression);
         if (matchedMethod == null) {
             return Collections.emptyList();
         }
@@ -844,9 +821,7 @@ public class TestCaseDesigner implements Disposable {
             String methodName,
             PsiExpressionListImpl callParameterExpression
     ) {
-
         logger.debug("Find matching method for [" + methodName + "] - " + classReference.getName());
-
         List<ClassAdapter> classesToCheck = new ArrayList<>();
         classesToCheck.add(classReference);
         Set<ClassAdapter> interfaces = getInterfaces(classReference);
@@ -885,8 +860,6 @@ public class TestCaseDesigner implements Disposable {
                 }
             }
         }
-
-
         return null;
     }
 
@@ -902,8 +875,6 @@ public class TestCaseDesigner implements Disposable {
             interfacesList.add(aSuper);
             interfacesList.addAll(getInterfaces(aSuper));
         }
-
-
         return interfacesList;
     }
 
@@ -984,7 +955,6 @@ public class TestCaseDesigner implements Disposable {
                 methodArgumentParameter.setName(parameterName);
                 TestCaseWriter.setParameterTypeFromPsiType(methodArgumentParameter, parameterType, false);
                 methodArgumentParameter.setValue(random.nextLong());
-//                methodArgumentParameter.setProbeInfo(new DataInfo());
                 DataEventWithSessionId argumentProbe = new DataEventWithSessionId();
 
                 if (methodArgumentParameter.isPrimitiveType()) {
@@ -1014,15 +984,10 @@ public class TestCaseDesigner implements Disposable {
                             buildConstructorCandidate(parameterClassReference, methodArgumentParameter, fieldContainer);
                     candidateList.addAll(constructorMetadata);
                 }
-
                 methodArgumentParameter.setProbeAndProbeInfo(argumentProbe, new DataInfo());
-
                 methodArguments.add(methodArgumentParameter);
             }
-
-
         }
-
 
         MethodCallExpression constructorMethod = new MethodCallExpression("<init>", testSubject, methodArguments,
                 testSubject, 0);
@@ -1035,9 +1000,9 @@ public class TestCaseDesigner implements Disposable {
     }
 
     private ClassAdapter getClassByName(String className) {
-        PsiClass aClass = JavaPsiFacade.getInstance(currentClass.getProject())
+        PsiClass aClass = JavaPsiFacade.getInstance(methodAdapter.getProject())
                 .findClass(ClassTypeUtils.getJavaClassName(className),
-                        GlobalSearchScope.allScope(currentClass.getProject()));
+                        GlobalSearchScope.allScope(methodAdapter.getProject()));
         if (aClass == null) {
             return null;
         }
@@ -1050,25 +1015,23 @@ public class TestCaseDesigner implements Disposable {
         if (element == null) {
             return returnList;
         }
-
         if (element instanceof PsiMethodCallExpression) {
             returnList.add((PsiMethodCallExpression) element);
         }
-
         PsiElement[] children = element.getChildren();
 
         for (PsiElement child : children) {
             returnList.addAll(collectMethodCallExpressions(child));
         }
-
-
         return returnList;
     }
 
-    @Override
-    public void dispose() {
-        if (editor != null && !editor.isDisposed()) {
-            EditorFactory.getInstance().releaseEditor(editor);
-        }
+    public LightVirtualFile getLightVirtualFile() {
+        return testCaseScriptFile;
+    }
+
+    public void setEditorReferences(Editor viewerFileEditor, FileEditor fileEditor) {
+        this.editorReference = viewerFileEditor;
+        this.fileEditorReference = fileEditor;
     }
 }

@@ -6,6 +6,7 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.pojo.ReplayAllExecutionContext;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.util.*;
@@ -58,7 +59,6 @@ public class TestCandidateListedItemComponent {
         this.methodArgumentValues = candidateMetadata.getMethodArguments();
         this.parameterMap = generateParameterMap(argumentNameValuePairs);
         parameterPanel.setLayout(new BorderLayout());
-
         //saved candidate check
         if (candidateMetadata.getName() != null && candidateMetadata.getName().length() > 0) {
             setTitledBorder(candidateMetadata.getName());
@@ -67,7 +67,6 @@ public class TestCandidateListedItemComponent {
                 setTitledBorder("#Saved candidate with no name");
             }
         }
-
 
         mainPanel.revalidate();
 
@@ -81,8 +80,10 @@ public class TestCandidateListedItemComponent {
                     eventProperties.put("methodName", storedCandidate.getMethod().getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
                     statusLabel.setText("Executing");
+                    ReplayAllExecutionContext context = new ReplayAllExecutionContext("individual",
+                            false);
                     candidateLifeListener.executeCandidate(
-                            Collections.singletonList(candidateMetadata), psiClass, "individual",
+                            Collections.singletonList(candidateMetadata), psiClass, context,
                             (candidateMetadata, agentCommandResponse, diffResult) -> {
                                 insidiousService.updateMethodHashForExecutedMethod(method);
                                 candidateLifeListener.onCandidateSelected(candidateMetadata);
@@ -104,8 +105,8 @@ public class TestCandidateListedItemComponent {
                 AgentCommandResponse<String> agentCommandResponse = new AgentCommandResponse<>();
                 agentCommandResponse.setResponseClassName(candidateMetadata.getReturnValueClassname());
                 agentCommandResponse.setMethodReturnValue(candidateMetadata.getReturnValue());
+                //cause for 2 issues here
                 agentCommandResponse.setResponseType(ResponseType.NORMAL);
-
                 candidateLifeListener.onSaveRequest(candidateMetadata, agentCommandResponse);
             }
         });
@@ -314,5 +315,20 @@ public class TestCandidateListedItemComponent {
 
     public void setStatus(String statusText) {
         statusLabel.setText(statusText);
+    }
+
+    public void refreshJunitButtonStatus() {
+        //only needed if not available
+        if (!this.generateJunitLabel.isEnabled()) {
+            generateJunitLabel.setEnabled(getCanGenerateUnitCase());
+        }
+    }
+
+    public void setJunitButtonEnableState(boolean state) {
+        generateJunitLabel.setEnabled(state);
+    }
+
+    private boolean getCanGenerateUnitCase() {
+        return candidateLifeListener.canGenerateUnitCase(candidateMetadata);
     }
 }

@@ -8,6 +8,12 @@
     <description>
         <![CDATA[
 
+        <p> We are thrilled to unveil the latest version of Unlogged, a powerful tool that revolutionizes automated regression testing for your Java projects. This release comes packed with exciting new features, enhanced functionalities, and bug fixes that elevate your testing experience. </p>
+
+        <h4> Introducing the Unlogged Test Editor: </h4>
+
+        <p> JUnit test case generation has never been easier! Our new, intuitive editor simplifies the process, allowing you to create comprehensive test cases effortlessly. Boost your testing productivity and ensure robust code coverage with Unlogged's user-friendly interface. </p>
+
         <h4>Assertions for Custom Validation:</h4>
 
         <p>Unlogged now introduces the power of assertions with a brand-new intuitive user interface (UI). With this feature, developers can define custom assertions to validate method return values, all the way down to the key level, without writing any code manually. Say goodbye to spending hours crafting assertion rules; now, you can create complex and nested validation rules with ease through our UI.</p>
@@ -39,17 +45,44 @@
         <li>Define the assertions as you like, and Save!</li>
         </ul>
 
+
         <h4>Bug Fixes and Improvements</h4>
 
         <p>In addition to the exciting new features, this release includes various bug fixes and performance improvements. Unlogged is now more stable and efficient than ever, providing a seamless experience for developers.</p>
 
         <p>We hope that this latest release of Unlogged brings immense value to your Java development. As always, we are open to feedback and suggestions to make Unlogged even better. Feel free to reach out to our support team on Discord with any questions or comments.</p>
 
+        <h4> Gutter Icon Update for Mocking: </h4>
+
+        <p> Experience flawless mocking with our perfected gutter icon updates. Now, monitoring and managing mock states is more seamless than ever, providing you with accurate insights into your test scenarios. </p>
+
+        <h4> Seamless Mock Creation: </h4>
+
+        <p> Unlogged eliminates hiccups in mock creation. Enjoy a smooth testing experience as we've fine-tuned the process, ensuring that your mocks work seamlessly and reliably. </p>
+
+        <h4> Jackson Support for JDK 1.8: </h4>
+
+        <p> Unlogged now offers extended support for Jackson on JDK 1.8, ensuring compatibility with the latest technologies and frameworks. </p>
+
+        <h4> Hot Reload Option via Code Changes: </h4>
+
+        <p> Respond swiftly to code modifications with our enhanced hot reload option. Witness the immediate impact of your changes without compromising testing integrity, making development iterations more efficient. </p>
+
+        <h4> Gutter Icon State Retrieval from Saved Replays: </h4>
+
+        <p> Your test scenarios are now more resilient with Unlogged. Gutter icon states will be accurately picked up from saved replays, providing consistent and reliable results across testing iterations. </p>
+
+        <h4> Support for Automated JUnit Test Case Generation for Private Methods: </h4>
+
+        <p> Unlogged goes the extra mile by introducing support for automated JUnit test case generation for private methods. Uncover hidden bugs and ensure thorough testing of all aspects of your codebase. </p>
+
+        <p> Upgrade to Unlogged Version 1.18.14 today and take your automated regression testing to new heights. Embrace a testing environment that's not just efficient but also intuitive, providing you with the tools you need to build robust and reliable software. Unleash the power of seamless testing with Unlogged! </p>
+
         <a href="https://discord.gg/Hhwvay8uTa">Join Unlogged at Discord</a>
 
 
 
-        <h3>Version 1.16.3 (5th Jul 2023) </h3>
+        <h3>Version 1.18.14 (17th Nov 2023) </h3>
             <h2 class="c9" id="h.6kd09fd21779"><span class="c6">Mock Panel</span></h2>
             <p class="c4 c8"><span class="c1"></span></p>
             <p class="c4"><span class="c1">We are happy to launch the all new feature of mock linking. Now you can bind mocks with candidates and replay them for testing.</span></p>
@@ -153,8 +186,6 @@
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
         <applicationService serviceImplementation="com.insidious.plugin.factory.ApplicationConfigurationState"/>
         <testFinder implementation="com.insidious.plugin.tester.testfinder.UnloggedTestFinder"/>
-<!--        <testCreator language="JAVA"-->
-<!--                     implementationClass="com.insidious.plugin.tester.creator.UnloggedClassTestCreator"/>-->
 
         <codeInsight.lineMarkerProvider
                 language="JAVA"

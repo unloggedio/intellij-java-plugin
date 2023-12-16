@@ -12,6 +12,7 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.pojo.ReplayAllExecutionContext;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
@@ -208,6 +209,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         clearBottomPanel();
         List<StoredCandidate> methodTestCandidates = getCandidatesFromComponents();
         String methodName = methodElement.getName();
+        boolean hasStoredCandidates = methodTestCandidates.stream().anyMatch(e -> e.getCandidateId() != null);
         if (methodTestCandidates.size() == 0) {
             InsidiousNotification.notifyMessage(
                     "Please use the agent to record values for replay. " +
@@ -235,7 +237,9 @@ public class MethodExecutorComponent implements CandidateLifeListener {
                 AtomicInteger passingCandidateCount = new AtomicInteger(0);
 
                 long batchTime = System.currentTimeMillis();
-                executeCandidate(new ArrayList<>(methodTestCandidates), psiClass1, "all-" + batchTime,
+                ReplayAllExecutionContext context = new ReplayAllExecutionContext("all-" + batchTime,
+                        hasStoredCandidates);
+                executeCandidate(new ArrayList<>(methodTestCandidates), psiClass1, context,
                         (testCandidate, agentCommandResponse, diffResult) -> {
                             int currentCount = componentCounter.incrementAndGet();
                             if (diffResult.getDiffResultType().equals(DiffResultType.SAME)) {
@@ -276,9 +280,18 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
     }
 
-    public void refreshAndReloadCandidates(final MethodAdapter methodAdapter, List<StoredCandidate> candidates) {
+    private void updateJunitButtonStatuses() {
+        try {
+            candidateComponentMap.values().forEach(
+                    TestCandidateListedItemComponent::refreshJunitButtonStatus);
+        } catch (Exception e) {
+            logger.info("Exception updating enable status of Junit buttons for candidates " + e);
+        }
+    }
 
+    public void refreshAndReloadCandidates(final MethodAdapter methodAdapter, List<StoredCandidate> candidates) {
         long start = new Date().getTime();
+//        updateJunitButtonStatuses();
 
         if (methodElement == null || methodAdapter == null
                 || methodAdapter.getPsiMethod() != methodElement.getPsiMethod()) {
@@ -307,13 +320,14 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
 
         List<ArgumentNameValuePair> methodArgumentNameList = generateParameterList(methodElement.getParameters());
-
         candidates.stream()
                 .filter(testCandidateMetadata -> {
                     TestCandidateListedItemComponent existingComponent = candidateComponentMap.get(
                             getKeyForCandidate(testCandidateMetadata));
                     if (existingComponent != null) {
-                        existingComponent.setCandidate(testCandidateMetadata);
+                        if (existingComponent.getCandidateMetadata().getCandidateId() == null) {
+                            existingComponent.setCandidate(testCandidateMetadata);
+                        }
                     }
                     if (currentResponsePreviewComponent != null) {
                         StoredCandidate previewCandidate = currentResponsePreviewComponent.getTestCandidate();
@@ -331,10 +345,11 @@ public class MethodExecutorComponent implements CandidateLifeListener {
                         this, insidiousService, methodAdapter)
                 )
                 .forEach(e -> {
-                    candidateComponentMap.put(getKeyForCandidate(e.getCandidateMetadata()), e);
-                    gridPanel.add(e.getComponent());
+                    if (!candidateComponentMap.containsKey(getKeyForCandidate(e.getCandidateMetadata()))) {
+                        candidateComponentMap.put(getKeyForCandidate(e.getCandidateMetadata()), e);
+                        gridPanel.add(e.getComponent());
+                    }
                 });
-
         refreshCoverageData();
         executeAndShowDifferencesButton.setEnabled(true);
 
@@ -354,8 +369,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
     }
 
     private String getKeyForCandidate(StoredCandidate testCandidateMetadata) {
-        return testCandidateMetadata.getCandidateId() == null ? String.valueOf(
-                testCandidateMetadata.getSessionIdentifier()) : testCandidateMetadata.getCandidateId();
+        return testCandidateMetadata.calculateCandidateHash();
     }
 
     private void refreshCoverageData() {
@@ -441,18 +455,18 @@ public class MethodExecutorComponent implements CandidateLifeListener {
     public void executeCandidate(
             List<StoredCandidate> testCandidateList,
             ClassUnderTest classUnderTest,
-            String source,
+            ReplayAllExecutionContext context,
             AgentCommandResponseListener<String> agentCommandResponseListener
     ) {
         for (StoredCandidate testCandidate : testCandidateList) {
-            executeSingleCandidate(testCandidate, classUnderTest, source, agentCommandResponseListener);
+            executeSingleCandidate(testCandidate, classUnderTest, context, agentCommandResponseListener);
         }
     }
 
     private void executeSingleCandidate(
             StoredCandidate testCandidate,
             ClassUnderTest classUnderTest,
-            String source,
+            ReplayAllExecutionContext context,
             AgentCommandResponseListener<String> agentCommandResponseListener
     ) {
         List<String> methodArgumentValues = testCandidate.getMethodArguments();
@@ -464,18 +478,15 @@ public class MethodExecutorComponent implements CandidateLifeListener {
                 candidateComponentMap.get(getKeyForCandidate(testCandidate));
 
         candidateComponent.setStatus("Executing");
-
         insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                 (request, agentCommandResponse) -> {
                     candidateResponseMap.put(getKeyForCandidate(testCandidate), agentCommandResponse);
 
                     DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
-
-                    logger.info("Source [EXEC]: " + source);
-                    if (source.startsWith("all")) {
+                    if (context.getSource().startsWith("all")) {
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_REPLAY);
                         diffResult.setIndividualContext(false);
-                        String batchID = source.split("-")[1];
+                        String batchID = context.getSource().split("-")[1];
                         diffResult.setBatchID(batchID);
                     } else {
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_INDIVIDUAL);
@@ -484,15 +495,21 @@ public class MethodExecutorComponent implements CandidateLifeListener {
                                 diffResult.getDiffResultType());
                         String methodKey = agentCommandRequest.getClassName()
                                 + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
-                        logger.info("Setting status multi run : " + status);
                         insidiousService.getIndividualCandidateContextMap().put(methodKey, status);
                         diffResult.setIndividualContext(true);
                     }
-
                     diffResult.setResponse(agentCommandResponse);
                     diffResult.setCommand(agentCommandRequest);
 
-                    insidiousService.addDiffRecord(diffResult);
+                    //skip considering non saved candidates for gutter state calc if
+                    //there are saved candidates.
+                    if (context.isSavedCandidateCentricFlow()) {
+                        if (testCandidate.getCandidateId() != null) {
+                            insidiousService.addDiffRecord(diffResult);
+                        }
+                    } else {
+                        insidiousService.addDiffRecord(diffResult);
+                    }
 
                     StoredCandidateMetadata meta = testCandidate.getMetadata();
                     if (meta == null) {
@@ -533,23 +550,38 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         }
     }
 
-    //refactor pending - if there are stored candidates show only from stored, else others.
     public String getExecutionStatusFromCandidates(String excludeKey, DiffResultType type) {
-        if (showDifferentStatus(type)) {
-            return "Diff";
+        List<TestCandidateListedItemComponent> savedCandidateComponents = candidateComponentMap.values().stream()
+                .filter(e -> e.getCandidateMetadata().getCandidateId() != null).collect(Collectors.toList());
+        boolean isKeySaved = savedCandidateComponents.stream()
+                .anyMatch(e -> e.getCandidateMetadata().calculateCandidateHash().equals(excludeKey));
+        if (isKeySaved) {
+            if (showDifferentStatus(type)) {
+                return "Diff";
+            }
         }
+        //show state for only saved candidates if they exist.
+        if (savedCandidateComponents.size() > 0) {
+            return getGutterStatusForComponents(savedCandidateComponents, excludeKey);
+        } else {
+            return getGutterStatusForComponents(candidateComponentMap.values().stream().collect(Collectors.toList()),
+                    excludeKey);
+        }
+    }
+
+    private String getGutterStatusForComponents(List<TestCandidateListedItemComponent> candidateListedItemComponents,
+                                                String excludeKey) {
         boolean hasDiff = false;
         boolean hasNoRun = false;
-        for (String key : candidateComponentMap.keySet()) {
-            if (Objects.equals(key, excludeKey)) {
+        for (TestCandidateListedItemComponent component : candidateListedItemComponents) {
+            if (Objects.equals(component.getCandidateMetadata().calculateCandidateHash(), excludeKey)) {
                 continue;
             }
-            TestCandidateListedItemComponent component = candidateComponentMap.get(key);
             String status = component.getExecutionStatus().trim();
             if (status.isEmpty() || status.isBlank()) {
                 hasNoRun = true;
             }
-            if (status.contains("Diff")) {
+            if (status.contains("Fail")) {
                 hasDiff = true;
             }
         }
@@ -661,8 +693,9 @@ public class MethodExecutorComponent implements CandidateLifeListener {
             eventProperties.put("className", psiClass.getQualifiedClassName());
             eventProperties.put("methodName", methodElement.getName());
             UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE_UPDATE", eventProperties);
+            ReplayAllExecutionContext context = new ReplayAllExecutionContext("individual", false);
             executeCandidate(
-                    Collections.singletonList(candidate), psiClass, "individual",
+                    Collections.singletonList(candidate), psiClass, context,
                     (candidateMetadata, agentCommandResponse, diffResult) -> {
                         insidiousService.updateMethodHashForExecutedMethod(methodElement);
                         component.setAndDisplayResponse(diffResult);
@@ -732,7 +765,6 @@ public class MethodExecutorComponent implements CandidateLifeListener {
     }
 
     public void onLastCandidateDeleted() {
-//        GutterState currentState = insidiousService.getGutterStateFor(methodElement);
         //reload this view, to add
         refreshSearchAndLoad();
     }
@@ -763,7 +795,6 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         logger.warn("Create test case: " + testCandidate);
 
 //        progressIndicator.setText("Generating JUnit Test case");
-
         TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
                 .getTestCandidateById(testCandidate.getEntryProbeIndex(), true);
         if (loadedTestCandidate == null) {
@@ -794,11 +825,21 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         }
 
         try {
-            insidiousService.previewTestCase(methodElement, testCaseGenerationConfiguration);
+            insidiousService.previewTestCase(methodElement, testCaseGenerationConfiguration, false);
         } catch (Exception ex) {
             InsidiousNotification.notifyMessage("Failed to generate test case: " + ex.getMessage(),
                     NotificationType.ERROR);
         }
+    }
+
+    @Override
+    public boolean canGenerateUnitCase(StoredCandidate candidate) {
+        TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
+                .getTestCandidateById(candidate.getEntryProbeIndex(), true);
+        if (loadedTestCandidate != null) {
+            return true;
+        }
+        return false;
     }
 
     @Override
