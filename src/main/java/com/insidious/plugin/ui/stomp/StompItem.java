@@ -23,6 +23,7 @@ public class StompItem {
     public static final JBColor TAG_LABEL_TEXT_GREY = new JBColor(new Color(113, 128, 150, 255),
             new Color(113, 128, 150, 255));
     private static final Logger logger = LoggerUtil.getInstance(StompItem.class);
+    public static final int MAX_METHOD_NAME_LABEL_LENGTH = 20;
     private final TestCandidateLifeListener testCandidateLifeListener;
     private TestCandidateMetadata candidateMetadata;
     private JPanel mainPanel;
@@ -209,8 +210,8 @@ public class StompItem {
         long timeTakenMs = (candidateMetadata.getMainMethod().getReturnValue().getProb().getRecordedAt() -
                 candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt()) / (1000 * 1000);
         String itemLabel = String.format("%s()", methodUnderTest.getName());
-        if (itemLabel.length() > 30) {
-            itemLabel = itemLabel.substring(0, 27) + "...";
+        if (itemLabel.length() > MAX_METHOD_NAME_LABEL_LENGTH) {
+            itemLabel = itemLabel.substring(0, MAX_METHOD_NAME_LABEL_LENGTH - 3) + "...";
         }
 
 

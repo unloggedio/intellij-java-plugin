@@ -59,7 +59,7 @@ public class LineHighlighter implements LineMarkerProvider {
             if (psiMethod.getContainingClass() instanceof PsiAnonymousClass) {
                 return null;
             }
-            GutterState gutterStateForMethod = getGutterStateForMethod(psiMethod);
+            GutterState gutterStateForMethod = GutterState.PROCESS_RUNNING;
             final Icon gutterIcon = UIUtils.getGutterIconForState(gutterStateForMethod);
 
             LineMarkerInfo<PsiIdentifier> psiIdentifierLineMarkerInfo = new LineMarkerInfo<>(

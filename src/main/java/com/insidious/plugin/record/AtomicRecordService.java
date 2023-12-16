@@ -60,52 +60,53 @@ public class AtomicRecordService {
     }
 
     public GutterState computeGutterState(MethodUnderTest method) {
+        return GutterState.EXECUTE;
 
-        try {
-            String methodKey = method.getMethodHashKey();
-            AtomicRecord record = classAtomicRecordMap.get(method.getClassName());
-            if (record == null) {
-                return null;
-            }
-            List<StoredCandidate> candidates;
-            if (record.getStoredCandidateMap().get(methodKey) != null) {
-                candidates = new ArrayList<>(record.getStoredCandidateMap().get(methodKey));
-            } else {
-                return null;
-            }
-            boolean hashChange = false;
-            StoredCandidateMetadata.CandidateStatus status = null;
-            for (StoredCandidate candidate : candidates) {
-                MethodUnderTest candidateMethodUnderTest = candidate.getMethod();
-                if (candidateMethodUnderTest.getMethodHash() != method.getMethodHash()) {
-                    hashChange = true;
-                }
-                if (status == null) {
-                    status = candidate.getMetadata().getCandidateStatus();
-                } else {
-                    if (candidate.getMetadata()
-                            .getCandidateStatus().equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
-                        status = StoredCandidateMetadata.CandidateStatus.FAILING;
-                    }
-                }
-            }
-            if (hashChange) {
-                return GutterState.EXECUTE;
-            }
-            if (status == null || status == StoredCandidateMetadata.CandidateStatus.NA) {
-                return GutterState.DATA_AVAILABLE;
-            }
-            if (status.equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
-                return GutterState.DIFF;
-            } else if (status.equals(StoredCandidateMetadata.CandidateStatus.PASSING)) {
-                return GutterState.NO_DIFF;
-            } else {
-                return GutterState.DATA_AVAILABLE;
-            }
-        } catch (Exception e) {
-            logger.info("Exception computing gutter state." + e);
-            return null;
-        }
+//        try {
+//            String methodKey = method.getMethodHashKey();
+//            AtomicRecord record = classAtomicRecordMap.get(method.getClassName());
+//            if (record == null) {
+//                return null;
+//            }
+//            List<StoredCandidate> candidates;
+//            if (record.getStoredCandidateMap().get(methodKey) != null) {
+//                candidates = new ArrayList<>(record.getStoredCandidateMap().get(methodKey));
+//            } else {
+//                return null;
+//            }
+//            boolean hashChange = false;
+//            StoredCandidateMetadata.CandidateStatus status = null;
+//            for (StoredCandidate candidate : candidates) {
+//                MethodUnderTest candidateMethodUnderTest = candidate.getMethod();
+//                if (candidateMethodUnderTest.getMethodHash() != method.getMethodHash()) {
+//                    hashChange = true;
+//                }
+//                if (status == null) {
+//                    status = candidate.getMetadata().getCandidateStatus();
+//                } else {
+//                    if (candidate.getMetadata()
+//                            .getCandidateStatus().equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
+//                        status = StoredCandidateMetadata.CandidateStatus.FAILING;
+//                    }
+//                }
+//            }
+//            if (hashChange) {
+//                return GutterState.EXECUTE;
+//            }
+//            if (status == null || status == StoredCandidateMetadata.CandidateStatus.NA) {
+//                return GutterState.DATA_AVAILABLE;
+//            }
+//            if (status.equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
+//                return GutterState.DIFF;
+//            } else if (status.equals(StoredCandidateMetadata.CandidateStatus.PASSING)) {
+//                return GutterState.NO_DIFF;
+//            } else {
+//                return GutterState.DATA_AVAILABLE;
+//            }
+//        } catch (Exception e) {
+//            logger.info("Exception computing gutter state." + e);
+//            return null;
+//        }
     }
 
 

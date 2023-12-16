@@ -101,7 +101,7 @@ public class JsonTreeUtils {
         }
     }
 
-    public static Object getValueFromJsonNode(JsonNode objectNode, String selectedKey) {
+    public static JsonNode getValueFromJsonNode(JsonNode objectNode, String selectedKey) {
         if (selectedKey.equals("/")) {
             selectedKey = "";
         }

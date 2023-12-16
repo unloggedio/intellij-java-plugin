@@ -22,6 +22,7 @@ public class UIUtils {
             UIUtils.class);
     public static final Icon FIND_BUGS_GREY = IconLoader.getIcon("/icons/png/findbug_grey.png", UIUtils.class);
     public static final Icon CLASS_ICON = IconLoader.getIcon("/icons/png/class.png", UIUtils.class);
+    public static final Icon LINK = IconLoader.getIcon("/icons/png/link.png", UIUtils.class);
     public static final Icon OPTIMIZE_GREY = IconLoader.getIcon("/icons/png/optimize_grey.png", UIUtils.class);
     public static final Icon REFACTOR_GREY = IconLoader.getIcon("/icons/png/refactor_grey.png", UIUtils.class);
     public static final Icon EXPLAIN_GREY = IconLoader.getIcon("/icons/png/explain_grey.png", UIUtils.class);
@@ -29,7 +30,8 @@ public class UIUtils {
     public static final Icon OPTIMIZE_TEAL = IconLoader.getIcon("/icons/png/optimizeTeal.png", UIUtils.class);
     public static final Icon EXPAND_UP_DOWN = IconLoader.getIcon("/icons/png/expand-up-down-line.png", UIUtils.class);
     public static final Icon EQUALIZER = IconLoader.getIcon("/icons/png/equalizer-line.png", UIUtils.class);
-    public static final Icon DISCONNECTED_ICON = IconLoader.getIcon("/icons/png/record-circle-fill-black.png", UIUtils.class);
+    public static final Icon DISCONNECTED_ICON = IconLoader.getIcon("/icons/png/record-circle-fill-black.png",
+            UIUtils.class);
     public static final Icon CIRCLE_EMPTY = IconLoader.getIcon("/icons/png/checkbox-blank-circle-line.png",
             UIUtils.class);
     public static final Icon CONNECTED_ICON = IconLoader.getIcon("/icons/png/record-circle-fill.png", UIUtils.class);
@@ -98,6 +100,7 @@ public class UIUtils {
     public static Icon EXECUTE_COMPONENT = IconLoader.getIcon("/icons/svg/execute_component.svg", UIUtils.class);
     public static Icon EXCEPTION_CASE = IconLoader.getIcon("/icons/svg/exception_diff_case.svg", UIUtils.class);
     public static Icon PROCESS_RUNNING = IconLoader.getIcon("/icons/svg/process_running.svg", UIUtils.class);
+    public static Icon EXECUTE = IconLoader.getIcon("/icons/png/execute.png", UIUtils.class);
     public static Icon PROCESS_NOT_RUNNING = IconLoader.getIcon("/icons/svg/process_not_running.svg", UIUtils.class);
     public static Icon DATA_AVAILABLE = IconLoader.getIcon("/icons/svg/data_available_v2.svg", UIUtils.class);
     public static Icon ATOMIC_TESTS = IconLoader.getIcon("/icons/svg/atomic_tests_v2.svg", UIUtils.class);
@@ -117,7 +120,8 @@ public class UIUtils {
     public static Icon ONBOARDING_ICON_TEAL = IconLoader.getIcon("/icons/png/onboarding_icon_teal.png", UIUtils.class);
     public static Icon TEST_CASES_ICON_DARK = IconLoader.getIcon("/icons/png/test_case_icon_dark.png", UIUtils.class);
     public static Icon TEST_CASES_ICON_PINK = IconLoader.getIcon("/icons/png/test_cases_icon_pink.png", UIUtils.class);
-    public static Icon COMPASS_DISCOVER_LINE = IconLoader.getIcon("/icons/png/compass-discover-line.png", UIUtils.class);
+    public static Icon COMPASS_DISCOVER_LINE = IconLoader.getIcon("/icons/png/compass-discover-line.png",
+            UIUtils.class);
     public static Icon PUSHPIN_LINE = IconLoader.getIcon("/icons/png/pushpin-line.png", UIUtils.class);
     public static Icon PUSHPIN_2_FILL = IconLoader.getIcon("/icons/png/pushpin-2-fill.png", UIUtils.class);
     public static Icon PUSHPIN_2_LINE = IconLoader.getIcon("/icons/png/pushpin-2-line.png", UIUtils.class);
@@ -262,10 +266,8 @@ public class UIUtils {
                 return NO_DIFF_GUTTER;
             case DIFF:
                 return DIFF_GUTTER;
-//            case NO_AGENT:
-//                return NO_AGENT_GUTTER;
             case PROCESS_RUNNING:
-                return PROCESS_RUNNING;
+                return EXECUTE;
             case PROCESS_NOT_RUNNING:
                 return PROCESS_NOT_RUNNING;
             case DATA_AVAILABLE:

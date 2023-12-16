@@ -79,14 +79,22 @@ public class DaoService {
             "                          or (mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
             "                              mc.isStaticCall = true and mc.usesFields = true and mc.subject_id != 0 and\n" +
             "                              mc.threadId = ?)))";
-    //    public static final String QUERY_TEST_CANDIDATE_BY_PUBLIC_METHOD_SELECT = "select tc.*\n" +
-//            "from test_candidate tc\n" +
-//            "         join method_call mc on mc.id = mainMethod_id\n" +
-//            "join method_definition md on md.id = mc.methodDefinitionId\n" +
-//            "where md.ownerType = ?\n" +
-//            "  and mc.methodName = ?\n" +
-//            "  and mc.methodAccess & 1 == 1\n" +
-//            "order by mc.methodName asc, tc.entryProbeIndex desc limit 10";
+
+    public static final String QUERY_CALLS_TO_MOCK_COUNT_SELECT_BY_PARENT_CHILD_CALLS = "select count(*)\n" +
+            "from method_call mc\n" +
+            "         left join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "where (md.ownerType is null or md.ownerType not like 'java.lang%')\n" +
+            "  and (mc.methodAccess & 1 == 1 or mc.methodAccess & 4 == 4)\n" +
+            "  and mc.parentId in (select mc.id\n" +
+            "                      from method_call mc\n" +
+            "                               left join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "                      where (md.ownerType is null or md.ownerType not like 'java.lang%')\n" +
+            "                        and ((mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
+            "                              mc.subject_id = ? and mc.threadId = ?)\n" +
+            "                          or (mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
+            "                              mc.isStaticCall = true and mc.usesFields = true and mc.subject_id != 0 and\n" +
+            "                              mc.threadId = ?)))";
+
     public static final String QUERY_TEST_CANDIDATE_BY_METHOD_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
@@ -257,6 +265,13 @@ public class DaoService {
 
 
         } else {
+
+            int methodCallsCountFromDb = getMethodCallExpressionToMockCount(testCandidateMetadata);
+            callsList = new ArrayList<>(methodCallsCountFromDb);
+            for (int i = 0; i < methodCallsCountFromDb; i++) {
+                callsList.add(new com.insidious.plugin.pojo.MethodCallExpression());
+            }
+
             List<MethodCallExpressionInterface> mces = new ArrayList<>();
             mces.add(getMethodCallExpressionById(testCandidateMetadata.getMainMethod()));
             converted.setMainMethod(buildFromDbMce(mces).get(0));
@@ -338,10 +353,27 @@ public class DaoService {
 //            logger.warn("Load calls took[1]: " + (end - start) + " ms");
             return callsList;
         } catch (Exception e) {
+            e.printStackTrace();
             logger.error(e.getMessage(), e);
             InsidiousNotification.notifyMessage("Failed to load test candidate - " + e.getMessage(),
                     NotificationType.ERROR);
             throw new RuntimeException(e);
+        }
+
+    }
+
+    private int getMethodCallExpressionToMockCount(TestCandidateMetadata testCandidateMetadata) {
+
+        long start = Date.from(Instant.now()).getTime();
+        try {
+            int callCount = getMethodCallExpressionsCountInCandidate(testCandidateMetadata);
+            return callCount;
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error(e.getMessage(), e);
+            InsidiousNotification.notifyMessage("Failed to load test candidate - " + e.getMessage(),
+                    NotificationType.ERROR);
+            return 0;
         }
 
     }
@@ -378,6 +410,23 @@ public class DaoService {
             subCalls.close();
         }
         return mceList;
+    }
+
+    private int getMethodCallExpressionsCountInCandidate(TestCandidateMetadata testCandidateMetadata) throws Exception {
+
+        long mainMethodId = testCandidateMetadata.getMainMethod();
+        MethodCallExpression mainMethod = getMethodCallExpressionById(mainMethodId);
+
+        long subCallsCount = methodCallExpressionDao.queryRawValue(
+                QUERY_CALLS_TO_MOCK_COUNT_SELECT_BY_PARENT_CHILD_CALLS,
+                String.valueOf(mainMethodId), String.valueOf(testCandidateMetadata.getExitProbeIndex()),
+                String.valueOf(testCandidateMetadata.getEntryProbeIndex()),
+                String.valueOf(testCandidateMetadata.getTestSubject()),
+                String.valueOf(mainMethod.getThreadId()),
+                String.valueOf(mainMethodId), String.valueOf(testCandidateMetadata.getExitProbeIndex()),
+                String.valueOf(testCandidateMetadata.getEntryProbeIndex()), String.valueOf(mainMethod.getThreadId())
+        );
+        return Math.toIntExact(subCallsCount);
     }
 
     public ClassMethodAggregates getClassMethodCallAggregates(String className) {
@@ -1517,7 +1566,7 @@ public class DaoService {
                 .stream()
                 .map(e -> {
                     try {
-                        return convertTestCandidateMetadata(e, true);
+                        return convertTestCandidateMetadata(e, false);
                     } catch (Exception ex) {
                         throw new RuntimeException(ex);
                     }

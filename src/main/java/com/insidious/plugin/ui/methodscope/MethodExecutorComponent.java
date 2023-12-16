@@ -3,19 +3,16 @@ package com.insidious.plugin.ui.methodscope;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
-import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.StoredCandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
@@ -23,7 +20,9 @@ import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.assertions.SaveForm;
-import com.insidious.plugin.util.*;
+import com.insidious.plugin.util.ClassTypeUtils;
+import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -45,8 +44,6 @@ import java.util.List;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import static com.insidious.plugin.Constants.HOSTNAME;
 
 public class MethodExecutorComponent implements StoredCandidateLifeListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
@@ -198,58 +195,63 @@ public class MethodExecutorComponent implements StoredCandidateLifeListener {
         ApplicationManager.getApplication().invokeLater(() -> {
             JSONObject eventProperties = new JSONObject();
 
-            insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(), psiClass1 -> {
-                eventProperties.put("className", psiClass1.getQualifiedClassName());
-                eventProperties.put("methodName", methodName);
-                eventProperties.put("count", methodTestCandidates.size());
-                UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
+            insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(),
+                    psiClass1 -> {
+                        eventProperties.put("className", psiClass1.getQualifiedClassName());
+                        eventProperties.put("methodName", methodName);
+                        eventProperties.put("count", methodTestCandidates.size());
+                        UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
 
-                callCount = methodTestCandidates.size();
-                long savedCandidatesCount = methodTestCandidates.stream()
-                        .filter(e -> e.getCandidateId() != null)
-                        .count();
-                AtomicInteger componentCounter = new AtomicInteger(0);
-                AtomicInteger passingSavedCandidateCount = new AtomicInteger(0);
-                AtomicInteger passingCandidateCount = new AtomicInteger(0);
+                        callCount = methodTestCandidates.size();
+                        long savedCandidatesCount = methodTestCandidates.stream()
+                                .filter(e -> e.getCandidateId() != null)
+                                .count();
+                        AtomicInteger componentCounter = new AtomicInteger(0);
+                        AtomicInteger passingSavedCandidateCount = new AtomicInteger(0);
+                        AtomicInteger passingCandidateCount = new AtomicInteger(0);
 
-                long batchTime = System.currentTimeMillis();
-                executeCandidate(new ArrayList<>(methodTestCandidates), psiClass1, "all-" + batchTime,
-                        (testCandidate, agentCommandResponse, diffResult) -> {
-                            int currentCount = componentCounter.incrementAndGet();
-                            if (diffResult.getDiffResultType().equals(DiffResultType.SAME)) {
-                                if (testCandidate.getCandidateId() != null) {
-                                    passingSavedCandidateCount.incrementAndGet();
-                                }
-                                passingCandidateCount.incrementAndGet();
-                            }
-                            logger.warn("component counter: " + currentCount);
-                            if (currentCount == callCount) {
-                                insidiousService.updateMethodHashForExecutedMethod(methodElement);
-                                insidiousService.triggerGutterIconReload();
-                                ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
-                                int passedCount;
-                                if (savedCandidatesCount > 0) {
-                                    passedCount = passingSavedCandidateCount.get();
-                                    if (passedCount == savedCandidatesCount) {
-                                        InsidiousNotification.notifyMessage(passedCount + " of " + savedCandidatesCount
-                                                + " saved atomic tests passed", NotificationType.INFORMATION);
-                                    } else {
-                                        InsidiousNotification.notifyMessage(passedCount + " of " + savedCandidatesCount
-                                                + " saved atomic tests passed", NotificationType.WARNING);
+                        long batchTime = System.currentTimeMillis();
+                        executeCandidate(new ArrayList<>(methodTestCandidates), psiClass1, "all-" + batchTime,
+                                (testCandidate, agentCommandResponse, diffResult) -> {
+                                    int currentCount = componentCounter.incrementAndGet();
+                                    if (diffResult.getDiffResultType().equals(DiffResultType.SAME)) {
+                                        if (testCandidate.getCandidateId() != null) {
+                                            passingSavedCandidateCount.incrementAndGet();
+                                        }
+                                        passingCandidateCount.incrementAndGet();
                                     }
-                                } else {
-                                    passedCount = passingCandidateCount.get();
-                                    if (passedCount == callCount) {
-                                        InsidiousNotification.notifyMessage(passedCount + " of " + callCount
-                                                + " atomic tests passed", NotificationType.INFORMATION);
-                                    } else {
-                                        InsidiousNotification.notifyMessage(passedCount + " of " + callCount
-                                                + " atomic tests passed", NotificationType.WARNING);
+                                    logger.warn("component counter: " + currentCount);
+                                    if (currentCount == callCount) {
+                                        insidiousService.updateMethodHashForExecutedMethod(methodElement);
+                                        insidiousService.triggerGutterIconReload();
+                                        ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
+                                        int passedCount;
+                                        if (savedCandidatesCount > 0) {
+                                            passedCount = passingSavedCandidateCount.get();
+                                            if (passedCount == savedCandidatesCount) {
+                                                InsidiousNotification.notifyMessage(
+                                                        passedCount + " of " + savedCandidatesCount
+                                                                + " saved atomic tests passed",
+                                                        NotificationType.INFORMATION);
+                                            } else {
+                                                InsidiousNotification.notifyMessage(
+                                                        passedCount + " of " + savedCandidatesCount
+                                                                + " saved atomic tests passed",
+                                                        NotificationType.WARNING);
+                                            }
+                                        } else {
+                                            passedCount = passingCandidateCount.get();
+                                            if (passedCount == callCount) {
+                                                InsidiousNotification.notifyMessage(passedCount + " of " + callCount
+                                                        + " atomic tests passed", NotificationType.INFORMATION);
+                                            } else {
+                                                InsidiousNotification.notifyMessage(passedCount + " of " + callCount
+                                                        + " atomic tests passed", NotificationType.WARNING);
+                                            }
+                                        }
                                     }
-                                }
-                            }
-                        });
-            });
+                                });
+                    });
         });
 
     }
@@ -426,119 +428,13 @@ public class MethodExecutorComponent implements StoredCandidateLifeListener {
             AgentCommandResponseListener<StoredCandidate, String> agentCommandResponseListener
     ) {
         for (StoredCandidate testCandidate : testCandidateList) {
-            executeSingleCandidate(testCandidate, classUnderTest, source, agentCommandResponseListener);
+            insidiousService.executeSingleCandidate(testCandidate, classUnderTest, source, agentCommandResponseListener,
+                    this.methodElement);
         }
     }
 
-    private void executeSingleCandidate(
-            StoredCandidate testCandidate,
-            ClassUnderTest classUnderTest,
-            String source,
-            AgentCommandResponseListener<StoredCandidate, String> agentCommandResponseListener
-    ) {
-        List<String> methodArgumentValues = testCandidate.getMethodArguments();
-        ArrayList<DeclaredMock> testCandidateStoredEnabledMockDefinition = MockIntersection.enabledStoredMockDefination(insidiousService, testCandidate.getMockIds());
-        AgentCommandRequest agentCommandRequest = MethodUtils.createExecuteRequestWithParameters(
-                methodElement, classUnderTest, methodArgumentValues, true, testCandidateStoredEnabledMockDefinition);
-
-        TestCandidateListedItemComponent candidateComponent =
-                candidateComponentMap.get(getKeyForCandidate(testCandidate));
-
-        candidateComponent.setStatus("Executing");
-
-        insidiousService.executeMethodInRunningProcess(agentCommandRequest,
-                (request, agentCommandResponse) -> {
-                    candidateResponseMap.put(getKeyForCandidate(testCandidate), agentCommandResponse);
-
-                    DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
-
-                    logger.info("Source [EXEC]: " + source);
-                    if (source.startsWith("all")) {
-                        diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_REPLAY);
-                        diffResult.setIndividualContext(false);
-                        String batchID = source.split("-")[1];
-                        diffResult.setBatchID(batchID);
-                    } else {
-                        diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_INDIVIDUAL);
-                        //check other statuses and add them for individual execution
-                        String status = getExecutionStatusFromCandidates(getKeyForCandidate(testCandidate),
-                                diffResult.getDiffResultType());
-                        String methodKey = agentCommandRequest.getClassName()
-                                + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
-                        logger.info("Setting status multi run : " + status);
-                        insidiousService.getIndividualCandidateContextMap().put(methodKey, status);
-                        diffResult.setIndividualContext(true);
-                    }
-
-                    diffResult.setResponse(agentCommandResponse);
-                    diffResult.setCommand(agentCommandRequest);
-
-                    insidiousService.addDiffRecord(diffResult);
-
-                    StoredCandidateMetadata meta = testCandidate.getMetadata();
-                    if (meta == null) {
-                        meta = new StoredCandidateMetadata(HOSTNAME, HOSTNAME, agentCommandResponse.getTimestamp(),
-                                getStatusForState(diffResult.getDiffResultType()));
-                    }
-                    meta.setTimestamp(agentCommandResponse.getTimestamp());
-                    meta.setCandidateStatus(getStatusForState(diffResult.getDiffResultType()));
-                    if (testCandidate.getCandidateId() != null) {
-                        getProject().getService(AtomicRecordService.class)
-                                .setCandidateStateForCandidate(
-                                testCandidate.getCandidateId(),
-                                agentCommandRequest.getClassName(),
-                                methodUnderTest.getMethodHashKey(),
-                                testCandidate.getMetadata().getCandidateStatus());
-                    }
-                    candidateComponent.setAndDisplayResponse(diffResult);
-
-
-                    agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
-                });
-    }
-
-
-    private boolean showDifferentStatus(DiffResultType type) {
-        return type != DiffResultType.SAME;
-    }
-
-    private StoredCandidateMetadata.CandidateStatus getStatusForState(DiffResultType type) {
-        switch (type) {
-            case SAME:
-            case NO_ORIGINAL:
-                return StoredCandidateMetadata.CandidateStatus.PASSING;
-            default:
-                return StoredCandidateMetadata.CandidateStatus.FAILING;
-        }
-    }
 
     //refactor pending - if there are stored candidates show only from stored, else others.
-    public String getExecutionStatusFromCandidates(String excludeKey, DiffResultType type) {
-        if (showDifferentStatus(type)) {
-            return "Diff";
-        }
-        boolean hasDiff = false;
-        boolean hasNoRun = false;
-        for (String key : candidateComponentMap.keySet()) {
-            if (Objects.equals(key, excludeKey)) {
-                continue;
-            }
-            TestCandidateListedItemComponent component = candidateComponentMap.get(key);
-            String status = component.getExecutionStatus().trim();
-            if (status.isEmpty() || status.isBlank()) {
-                hasNoRun = true;
-            }
-            if (status.contains("Diff")) {
-                hasDiff = true;
-            }
-        }
-        if (hasDiff) {
-            return "Diff";
-        } else if (hasNoRun) {
-            return "NoRun";
-        }
-        return "Same";
-    }
 
     public JComponent getContent() {
         return rootContent;
