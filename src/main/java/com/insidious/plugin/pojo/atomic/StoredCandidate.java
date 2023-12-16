@@ -259,6 +259,10 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         return id.hashCode();
     }
 
+    public String calculateCandidateHash() {
+        return String.valueOf((methodArguments.toString() + "->" + returnValue).hashCode());
+    }
+
     public void copyFrom(StoredCandidate candidate) {
         this.setCandidateId(candidate.getCandidateId());
         this.setName(candidate.getName());

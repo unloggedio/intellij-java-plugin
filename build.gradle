@@ -15,7 +15,7 @@ def getGitHash = { ->
 
 
 group 'org.videobug'
-version '1.18.15-' + getGitHash()
+version '1.18.17-' + getGitHash()
 
 
 compileJava {
@@ -198,16 +198,15 @@ patchPluginXml {
 }
 
 publishPlugin {
-    token = "perm:c2hhcmR1bGxhdmVrYXI=.OTItODk5Mg==.ZZ1bQHA4AD2K7XM3tR0j2PpqwhYool"
-//    channels = ["$System.env.JEBTRAINS_PUBLISH_CHANNEL"]
+    token = "$System.env.JETBRAINS_PUBLISH_TOKEN"
+    channels = ["$System.env.JEBTRAINS_PUBLISH_CHANNEL"]
 }
 
 
 test {
     useJUnitPlatform()
     jvmArgs = [
-            "-Xmx512G",
-            "-XX:+UnlockDiagnosticVMOptions"
+            "-Xmx512G"
     ]
 }
 //sourceCompatibility = JavaVersion.VERSION_17

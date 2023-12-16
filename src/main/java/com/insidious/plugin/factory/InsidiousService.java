@@ -35,7 +35,7 @@ import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
-import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
+import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
@@ -65,14 +65,16 @@ import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
-import com.intellij.openapi.fileEditor.FileEditor;
-import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileEditor.*;
+import com.intellij.openapi.module.Module;
+import com.intellij.openapi.module.ModuleManager;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
-import com.intellij.openapi.util.Disposer;
+import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
@@ -84,7 +86,7 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import java.awt.*;
@@ -385,7 +387,6 @@ final public class InsidiousService implements
         Clipboard clipboard = Toolkit.getDefaultToolkit()
                 .getSystemClipboard();
         clipboard.setContents(selection, null);
-//        logger.info(selection);
     }
 
 
@@ -415,24 +416,22 @@ final public class InsidiousService implements
 
     public synchronized void previewTestCase(MethodAdapter methodElement, TestCaseGenerationConfiguration generationConfiguration) {
 
-        if (!currentState.isTestCaseDesignerWindowAdded()) {
-            ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
+        if (!testCaseDesignerWindowAdded) {
             ContentManager contentManager = toolWindow.getContentManager();
             contentManager.addContent(testDesignerContent);
-            currentState.setTestCaseDesignerWindowAdded(true);
+            testCaseDesignerWindowAdded = true;
         }
 
         UsageInsightTracker.getInstance().RecordEvent(
                 "CREATE_JUNIT_TEST",
                 null
         );
-        testCaseDesignerWindow.generateAndPreviewTestCase(generationConfiguration, methodElement);
-        focusTestCaseDesignerTab();
+        showDesignerLiteForm(methodElement, generationConfiguration, generateOnlyBoilerPlate);
     }
 
     private synchronized void initiateUI() throws IOException, FontFormatException {
         logger.info("initiate ui");
-        if (testCaseDesignerWindow != null) {
+        if (atomicTestContainerWindow != null) {
             return;
         }
 
@@ -463,13 +462,10 @@ final public class InsidiousService implements
         } else {
             addAllTabs();
         }
-
-
     }
 
     public void addAllTabs() throws IOException, FontFormatException {
-
-        if (testCaseDesignerWindow != null) {
+        if (atomicTestContainerWindow != null) {
             return;
         }
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
@@ -765,8 +761,6 @@ final public class InsidiousService implements
     ) {
 
         methodArgumentValueCache.addArgumentSet(agentCommandRequest);
-
-
         agentCommandRequest.setRequestAuthentication(getRequestAuthentication());
 
         MethodUnderTest methodUnderTest = new MethodUnderTest(
@@ -792,7 +786,6 @@ final public class InsidiousService implements
                     setMock.add(localMock);
                 }
             }
-
             agentCommandRequest.setDeclaredMocks(setMock);
         }
 
@@ -1130,6 +1123,28 @@ final public class InsidiousService implements
 //        }
     }
 
+    private boolean shouldShowReExecute(MethodAdapter adapter, MethodUnderTest methodUnderTest) {
+        String methodText = adapter.getText();
+        if (!this.methodHash.containsKey(methodUnderTest.getMethodHashKey())) {
+            //register new hash
+            this.methodHash.put(methodUnderTest.getMethodHashKey(), methodText.hashCode());
+        }
+
+        int lastHash = this.methodHash.get(methodUnderTest.getMethodHashKey());
+        int currentHash = methodText.hashCode();
+
+        if (lastHash != currentHash) {
+            //re-execute as there are hash diffs
+            //update hash after execution is complete for this method,
+            //to prevent state change before exec complete.
+            classModifiedFlagMap.put(methodUnderTest.getClassName(), true);
+            ApplicationManager.getApplication().invokeLater(() -> highlightLines(currentHighlightedRequest));
+            cachedGutterState.put(methodUnderTest.getMethodHashKey(), GutterState.EXECUTE);
+            return true;
+        }
+        return false;
+    }
+
     public GutterState getGutterStateBasedOnAgentState() {
 //        if(!agentStateProvider.doesAgentExist())
 //        {
@@ -1217,6 +1232,9 @@ final public class InsidiousService implements
 //        logger.info("StoredCandidates pre filter for " + method.getName() + " -> " + storedCandidates);
         FilteredCandidateResponseList filterStoredCandidates = filterStoredCandidates(storedCandidates);
         List<String> updatedCandidateIds = filterStoredCandidates.getUpdatedCandidateIds();
+        updateProbeIdsForSavedCandidatesWithOldProbeIndex(
+                filterStoredCandidates.getCandidateList(),
+                candidateMetadataList);
         if (updatedCandidateIds.size() > 0) {
             atomicRecordService.setUseNotifications(false);
             // because we are dealing with objects
@@ -1232,6 +1250,24 @@ final public class InsidiousService implements
         return filterStoredCandidates.getCandidateList();
     }
 
+    private void updateProbeIdsForSavedCandidatesWithOldProbeIndex(List<StoredCandidate> storedCandidates, List<TestCandidateMetadata> candidateMetadataList) {
+        List<StoredCandidate> savedCandidatesWithOldProbes = storedCandidates.stream()
+                .filter(e ->
+                        e.getCandidateId() != null &&
+                                sessionInstance.getTestCandidateById(
+                                        e.getEntryProbeIndex(), true) == null)
+                .collect(Collectors.toList());
+        savedCandidatesWithOldProbes.forEach(e -> {
+            for (TestCandidateMetadata candidateMetadata : candidateMetadataList) {
+                List<String> arguments = TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata);
+                if (arguments.toString().equals(e.getMethodArguments().toString())) {
+                    e.setEntryProbeIndex(candidateMetadata.getEntryProbeIndex());
+                    break;
+                }
+            }
+        });
+
+    }
 
     public String getMethodArgsDescriptor(MethodAdapter method) {
         ParameterAdapter[] methodParams = method.getParameters();
@@ -1358,6 +1394,36 @@ final public class InsidiousService implements
         }
         fileEditorManager.addTopComponent(selectedEditor, saveForm.getComponent());
         saveFormEditorMap.put(saveForm, selectedEditor);
+    }
+
+    public void showDesignerLiteForm(MethodAdapter methodAdapter,
+                                     @Nullable TestCaseGenerationConfiguration configuration,
+                                     boolean generateOnlyBoilerPlate) {
+        if (methodAdapter == null) {
+            InsidiousNotification.notifyMessage("Please select a method to generate a Junit test case.",
+                    NotificationType.INFORMATION);
+            return;
+        }
+        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+        TestCaseDesignerLite designerLite = new TestCaseDesignerLite(methodAdapter,
+                configuration,
+                generateOnlyBoilerPlate,
+                project);
+        fileEditorManager.openFile(designerLite.getLightVirtualFile(), true);
+        FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
+        if (selectedEditor == null) {
+            selectedEditor = InsidiousUtils.focusProbeLocationInEditor(0,
+                    methodAdapter.getContainingClass().getQualifiedName(), this);
+            if (selectedEditor == null) {
+                InsidiousNotification.notifyMessage(
+                        "No editor tab is open, please open an editor tab",
+                        NotificationType.ERROR
+                );
+                return;
+            }
+        }
+        fileEditorManager.addBottomComponent(selectedEditor, designerLite.getMainPanel());
+        designerLite.setEditorReferences(fileEditorManager.getSelectedTextEditor(), selectedEditor);
     }
 
     public void hideCandidateSaveForm(SaveForm saveFormReference) {
@@ -1612,7 +1678,6 @@ final public class InsidiousService implements
             injectMocksInRunningProcess(List.of(declaredMock));
         }
     }
-
 
     public boolean isMockEnabled(DeclaredMock declaredMock) {
         return configurationState.isActiveMock(declaredMock.getId());
