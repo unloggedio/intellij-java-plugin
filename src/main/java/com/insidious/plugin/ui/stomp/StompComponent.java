@@ -4,6 +4,7 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.TestCandidateLifeListener;
 import com.insidious.plugin.client.ScanProgress;
 import com.insidious.plugin.client.SessionScanEventListener;
@@ -14,9 +15,11 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
+import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.ui.popup.ActiveIcon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
@@ -28,12 +31,12 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.IOException;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -41,12 +44,16 @@ import java.util.List;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class StompComponent implements Consumer<TestCandidateMetadata>, TestCandidateLifeListener {
+public class StompComponent implements Consumer<TestCandidateMetadata>, TestCandidateLifeListener, OnCloseListener {
     public static final int component_height = 93;
     private final InsidiousService insidiousService;
     private final JPanel itemPanel;
     private final StompStatusComponent stompStatusComponent;
     private final List<TestCandidateMetadata> selectedCandidates = new ArrayList<>();
+    private final List<StompItem> stompItems = new ArrayList<>(500);
+    private final SessionScanEventListener scanEventListener;
+    private final SimpleDateFormat dateFormat;
+    private final Map<TestCandidateMetadata, Component> candidateMetadataStompItemMap = new HashMap<>();
     private JPanel mainPanel;
     private JPanel northPanelContainer;
     private JScrollPane historyStreamScrollPanel;
@@ -58,16 +65,11 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     private JButton saveAsMockButton;
     private JButton generateJUnitButton;
     private JPanel controlPanel;
-    private JPanel filterButtonContainer;
     private long lastEventId = 0;
-    private List<StompItem> stompItems = new ArrayList<>(500);
     private ConnectedAndWaiting connectedAndWaiting;
     private DisconnectedAnd disconnectedAnd;
-    private SessionScanEventListener scanEventListener;
-    private SimpleDateFormat dateFormat;
-
-    private Map<TestCandidateMetadata, Component> candidateMetadataStompItemMap = new HashMap<>();
     private MethodDirectInvokeComponent directInvokeComponent = null;
+    private JPanel directInvokeRow = null;
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -184,37 +186,53 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 
 
         replayButton.addActionListener(e -> {
+
+            if (DumbService.getInstance(insidiousService.getProject()).isDumb()) {
+                InsidiousNotification.notifyMessage("Please try after indexing is complete", NotificationType.WARNING);
+                return;
+            }
+
             for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
-                PsiClass classPsiElement = JavaPsiFacade
-                        .getInstance(insidiousService.getProject())
-                        .findClass(selectedCandidate.getFullyQualifiedClassname(),
-                                GlobalSearchScope.projectScope(insidiousService.getProject()));
-                PsiMethod methodPsiElement = null;
-                JvmMethod[] methodsByName = classPsiElement.findMethodsByName(
-                        selectedCandidate.getMainMethod().getMethodName());
-                for (JvmMethod jvmMethod : methodsByName) {
-                    if (selectedCandidate.getMainMethod().getArguments().size() == jvmMethod.getParameters().length) {
-                        methodPsiElement = (PsiMethod) jvmMethod.getSourceElement();
-                    }
-
-                }
-                long batchTime = System.currentTimeMillis();
-
-                insidiousService.executeSingleCandidate(
-                        new StoredCandidate(selectedCandidate),
-                        new ClassUnderTest(selectedCandidate.getFullyQualifiedClassname()),
-                        "all-" + batchTime,
-                        new AgentCommandResponseListener<StoredCandidate, String>() {
-                            @Override
-                            public void onSuccess(StoredCandidate testCandidate, AgentCommandResponse<String> agentCommandResponse, DifferenceResult diffResult) {
-
-                            }
-                        },
-                        new JavaMethodAdapter(methodPsiElement)
-                );
+                executeSingleTestCandidate(selectedCandidate);
             }
         });
 
+    }
+
+    private void executeSingleTestCandidate(TestCandidateMetadata selectedCandidate) {
+        PsiMethod methodPsiElement = getPsiMethod(selectedCandidate);
+        long batchTime = System.currentTimeMillis();
+
+        insidiousService.executeSingleCandidate(
+                new StoredCandidate(selectedCandidate),
+                new ClassUnderTest(selectedCandidate.getFullyQualifiedClassname()),
+                ExecutionRequestSourceType.Bulk,
+                new AgentCommandResponseListener<StoredCandidate, String>() {
+                    @Override
+                    public void onSuccess(StoredCandidate testCandidate, AgentCommandResponse<String> agentCommandResponse, DifferenceResult diffResult) {
+
+                    }
+                },
+                new JavaMethodAdapter(methodPsiElement)
+        );
+    }
+
+    @Nullable
+    private PsiMethod getPsiMethod(TestCandidateMetadata selectedCandidate) {
+        PsiClass classPsiElement = JavaPsiFacade
+                .getInstance(insidiousService.getProject())
+                .findClass(selectedCandidate.getFullyQualifiedClassname(),
+                        GlobalSearchScope.projectScope(insidiousService.getProject()));
+        PsiMethod methodPsiElement = null;
+        JvmMethod[] methodsByName = classPsiElement.findMethodsByName(
+                selectedCandidate.getMainMethod().getMethodName());
+        for (JvmMethod jvmMethod : methodsByName) {
+            if (selectedCandidate.getMainMethod().getArguments().size() == jvmMethod.getParameters().length) {
+                methodPsiElement = (PsiMethod) jvmMethod.getSourceElement();
+            }
+
+        }
+        return methodPsiElement;
     }
 
     public String simpleTime(Date currentDate) {
@@ -259,7 +277,11 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 //            }
 //        }
 
-        addCandidateToUi(testCandidateMetadata, 0);
+        if (directInvokeComponent == null) {
+            addCandidateToUi(testCandidateMetadata, 0);
+        } else {
+            addCandidateToUi(testCandidateMetadata, 1);
+        }
 
     }
 
@@ -285,7 +307,9 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 
 
         makeSpace();
-        itemPanel.add(rowPanel, createGBCForLeftMainComponent());
+        GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent();
+        gbcForLeftMainComponent.gridy = index;
+        itemPanel.add(rowPanel, gbcForLeftMainComponent);
         itemPanel.revalidate();
         itemPanel.repaint();
         historyStreamScrollPanel.revalidate();
@@ -349,6 +373,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         gbc.ipady = 0;
         return gbc;
     }
+
     private GridBagConstraints createGBCForFakeComponent() {
         GridBagConstraints gbc = new GridBagConstraints();
 
@@ -515,8 +540,15 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 
     @Override
     public void executeCandidate(List<TestCandidateMetadata> metadata,
-                                 ClassUnderTest classUnderTest, String source,
+                                 ClassUnderTest classUnderTest, ExecutionRequestSourceType source,
                                  AgentCommandResponseListener<TestCandidateMetadata, String> responseListener) {
+
+        if (source == ExecutionRequestSourceType.Single) {
+            TestCandidateMetadata selectedCandidate = metadata.get(0);
+            PsiMethod methodPsiElement = getPsiMethod(selectedCandidate);
+
+            showDirectInvoke(new JavaMethodAdapter(methodPsiElement));
+        }
 
     }
 
@@ -635,23 +667,23 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         scanEventListener.ended();
     }
 
-    public void showDirectInvoke(MethodAdapter method) throws IOException, FontFormatException {
+    public void showDirectInvoke(MethodAdapter method) {
         if (directInvokeComponent == null) {
-            directInvokeComponent = new MethodDirectInvokeComponent(insidiousService);
+            directInvokeComponent = new MethodDirectInvokeComponent(insidiousService, this);
             JComponent content = directInvokeComponent.getContent();
-            content.setMaximumSize(new Dimension(-1, 500));
-            content.setPreferredSize(new Dimension(-1, 300));
+            content.setMaximumSize(new Dimension(-1, 400));
+            content.setPreferredSize(new Dimension(-1, 250));
 //            content.setSize(new Dimension(-1, 500));
 
-            JPanel anotherRowPanel = new JPanel();
-            anotherRowPanel.setLayout(new BorderLayout());
+            directInvokeRow = new JPanel();
+            directInvokeRow.setLayout(new BorderLayout());
 
 
-            anotherRowPanel.add(content, BorderLayout.CENTER);
-            anotherRowPanel.add(createDateAndTimePanel(createTimeLineComponent(),
+            directInvokeRow.add(content, BorderLayout.CENTER);
+            directInvokeRow.add(createDateAndTimePanel(createTimeLineComponent(),
                     Date.from(Instant.now())), BorderLayout.EAST);
             makeSpace();
-            itemPanel.add(anotherRowPanel, createGBCForLeftMainComponent(), 0);
+            itemPanel.add(directInvokeRow, createGBCForLeftMainComponent(), 0);
         }
         directInvokeComponent.renderForMethod(method);
 
@@ -662,6 +694,9 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     void makeSpace() {
         Component[] components = itemPanel.getComponents();
         for (Component component : components) {
+            if (component == directInvokeRow) {
+                continue;
+            }
             GridBagConstraints gbc = ((GridBagLayout) itemPanel.getLayout()).getConstraints(component);
             gbc.gridy += 1;
             itemPanel.add(component, gbc);
@@ -669,11 +704,14 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     }
 
     public void removeDirectInvoke() {
-        int index = itemPanel.getComponentZOrder(directInvokeComponent.getContent());
-        itemPanel.remove(index);
-        itemPanel.remove(index);
+        itemPanel.remove(directInvokeRow);
+        directInvokeRow = null;
+        directInvokeComponent = null;
         itemPanel.revalidate();
         itemPanel.repaint();
+        historyStreamScrollPanel.revalidate();
+        historyStreamScrollPanel.repaint();
+
     }
 
     public void setConnectedAndWaiting() {
@@ -683,8 +721,8 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         startedPanel.setLayout(new BorderLayout());
         process_started.setBorder(
                 BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(JBColor.GREEN, 3, true),
-                        BorderFactory.createEmptyBorder(4, 4, 4, 4)
+                        BorderFactory.createLineBorder(JBColor.GREEN, 2, true),
+                        BorderFactory.createEmptyBorder(6, 6, 6, 6)
                 )
         );
         startedPanel.add(process_started, BorderLayout.EAST);
@@ -729,4 +767,9 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         return scanEventListener;
     }
 
+    @Override
+    public void onClose(MethodDirectInvokeComponent methodDirectInvokeComponent) {
+        removeDirectInvoke();
+
+    }
 }

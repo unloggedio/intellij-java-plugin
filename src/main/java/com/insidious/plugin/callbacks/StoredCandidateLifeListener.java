@@ -13,7 +13,7 @@ public interface StoredCandidateLifeListener {
     void executeCandidate(
             List<StoredCandidate> metadata,
             ClassUnderTest classUnderTest,
-            String source,
+            ExecutionRequestSourceType source,
             AgentCommandResponseListener<StoredCandidate, String> stringAgentCommandResponseListener
     );
 

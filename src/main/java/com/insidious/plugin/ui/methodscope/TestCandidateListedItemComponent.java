@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.methodscope;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
+import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.StoredCandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -76,7 +77,7 @@ public class TestCandidateListedItemComponent {
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
                     statusLabel.setText("Executing");
                     storedCandidateLifeListener.executeCandidate(
-                            Collections.singletonList(candidateMetadata), psiClass, "individual",
+                            Collections.singletonList(candidateMetadata), psiClass, ExecutionRequestSourceType.Single,
                             (candidateMetadata, agentCommandResponse, diffResult) -> {
                                 insidiousService.updateMethodHashForExecutedMethod(method);
                                 storedCandidateLifeListener.onCandidateSelected(candidateMetadata);

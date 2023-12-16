@@ -102,6 +102,13 @@
                       <text value=""/>
                     </properties>
                   </component>
+                  <component id="24510" class="javax.swing.JLabel" binding="replaySingle">
+                    <constraints/>
+                    <properties>
+                      <icon value="icons/png/replay.png"/>
+                      <text value=""/>
+                    </properties>
+                  </component>
                 </children>
               </grid>
             </children>

@@ -1,8 +1,10 @@
 package com.insidious.plugin.ui.stomp;
 
+import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.TestCandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.util.LoggerUtil;
@@ -16,14 +18,16 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Arrays;
+import java.util.Collections;
 
 public class StompItem {
     public static final JBColor TAG_LABEL_BACKGROUND_GREY = new JBColor(new Color(235, 235, 238),
             new Color(235, 235, 238));
     public static final JBColor TAG_LABEL_TEXT_GREY = new JBColor(new Color(113, 128, 150, 255),
             new Color(113, 128, 150, 255));
-    private static final Logger logger = LoggerUtil.getInstance(StompItem.class);
     public static final int MAX_METHOD_NAME_LABEL_LENGTH = 20;
+    private static final Logger logger = LoggerUtil.getInstance(StompItem.class);
     private final TestCandidateLifeListener testCandidateLifeListener;
     private TestCandidateMetadata candidateMetadata;
     private JPanel mainPanel;
@@ -41,6 +45,7 @@ public class StompItem {
     private JPanel controlContainer;
     private JPanel metadataPanel;
     private JCheckBox selectCandidateCheckbox;
+    private JLabel replaySingle;
     private boolean isPinned = false;
 
     public StompItem(
@@ -162,6 +167,17 @@ public class StompItem {
 //        saveReplayButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
         pinLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        replaySingle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        replaySingle.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                testCandidateLifeListener.executeCandidate(Collections.singletonList(candidateMetadata),
+                        new ClassUnderTest(candidateMetadata.getFullyQualifiedClassname()), ExecutionRequestSourceType.Single,
+                        (testCandidate, agentCommandResponse, diffResult) -> {
+
+                        });
+            }
+        });
         pinLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {

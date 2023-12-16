@@ -5,6 +5,7 @@ import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
+import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.StoredCandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -211,7 +212,8 @@ public class MethodExecutorComponent implements StoredCandidateLifeListener {
                         AtomicInteger passingCandidateCount = new AtomicInteger(0);
 
                         long batchTime = System.currentTimeMillis();
-                        executeCandidate(new ArrayList<>(methodTestCandidates), psiClass1, "all-" + batchTime,
+                        executeCandidate(new ArrayList<>(methodTestCandidates), psiClass1,
+                                ExecutionRequestSourceType.Bulk,
                                 (testCandidate, agentCommandResponse, diffResult) -> {
                                     int currentCount = componentCounter.incrementAndGet();
                                     if (diffResult.getDiffResultType().equals(DiffResultType.SAME)) {
@@ -424,7 +426,7 @@ public class MethodExecutorComponent implements StoredCandidateLifeListener {
     public void executeCandidate(
             List<StoredCandidate> testCandidateList,
             ClassUnderTest classUnderTest,
-            String source,
+            ExecutionRequestSourceType source,
             AgentCommandResponseListener<StoredCandidate, String> agentCommandResponseListener
     ) {
         for (StoredCandidate testCandidate : testCandidateList) {
@@ -537,7 +539,7 @@ public class MethodExecutorComponent implements StoredCandidateLifeListener {
             eventProperties.put("methodName", methodElement.getName());
             UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE_UPDATE", eventProperties);
             executeCandidate(
-                    Collections.singletonList(candidate), psiClass, "individual",
+                    Collections.singletonList(candidate), psiClass, ExecutionRequestSourceType.Single,
                     (candidateMetadata, agentCommandResponse, diffResult) -> {
                         insidiousService.updateMethodHashForExecutedMethod(methodElement);
                         component.setAndDisplayResponse(diffResult);

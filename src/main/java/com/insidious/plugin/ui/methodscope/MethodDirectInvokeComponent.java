@@ -23,7 +23,6 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.search.ProjectAndLibrariesScope;
@@ -63,6 +62,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JPanel candidateCountLinkLabelParent;
     private JLabel coveragePercentLabel;
     private JButton modifyArgumentsButton;
+    private JLabel closeButton;
+    private JLabel createBoilerPlate;
     private MethodAdapter methodElement;
     //    private Font SOURCE_CODE = Font.createFont(Font.TRUETYPE_FONT, getClass().getResourceAsStream("/fonts" +
 //            "/SourceCodePro-Regular.ttf"));
@@ -72,7 +73,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JBScrollPane parameterScrollPanel;
 
 
-    public MethodDirectInvokeComponent(InsidiousService insidiousService) {
+    public MethodDirectInvokeComponent(InsidiousService insidiousService, OnCloseListener onCloseListener) {
         this.insidiousService = insidiousService;
         this.objectMapper = this.insidiousService.getObjectMapper();
         modifyArgumentsButton.setVisible(false);
@@ -83,7 +84,23 @@ public class MethodDirectInvokeComponent implements ActionListener {
         candidateCountPanelParent.setVisible(false);
 //        setActionPanelTitle("This will be available after IDEA indexing is complete");
 //        executeButton.setEnabled(false);
+        createBoilerPlate.setText("<html><u><s>Create JUnit Boilerplate</s></u></html>");
+        createBoilerPlate.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        createBoilerPlate.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
 
+            }
+        });
+
+        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        closeButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                onCloseListener.onClose(MethodDirectInvokeComponent.this);
+            }
+        });
         executeButton.addActionListener(e -> executeMethodWithParameters());
         methodParameterScrollContainer.addKeyListener(new KeyAdapter() {
 
@@ -136,6 +153,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
             }
         });
         modifyArgumentsButton.addActionListener(e -> {
+            modifyArgumentsButton.setVisible(false);
+            executeButton.setText("Execute");
             renderForMethod(methodElement);
         });
     }
@@ -184,7 +203,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
     }
 
     private void executeMethodWithParameters() {
-
         boolean isConnected = insidiousService.isAgentConnected();
 //        returnValueTextArea.setFont(SOURCE_CODE);
 
@@ -206,9 +224,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
             InsidiousNotification.notifyMessage(message, NotificationType.WARNING);
             return;
         }
-
-//        descriptionScrollContainer.setVisible(false);
-//        scrollerContainer.setVisible(true);
+        executeButton.setText("Executing...");
+        executeButton.setEnabled(false);
 
 
         insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(), psiClass -> {
@@ -251,6 +268,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
 //                    + agentCommandRequest.getClassName() + "].\nWaiting for response...");
             insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                     (agentCommandRequest1, agentCommandResponse) -> {
+                        executeButton.setEnabled(true);
+                        executeButton.setText("Re-execute");
 //                        logger.warn("Agent command execution response: " + agentCommandResponse);
                         if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
                             if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
@@ -280,9 +299,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
                             targetMethodName = agentCommandRequest.getMethodName();
                         }
                         argumentValueTree.collapsePath(new TreePath(argumentValueTree.getModel().getRoot()));
-                        returnValueTextArea.setToolTipText("Timestamp: " +
+                        String toolTipText = "Timestamp: " +
                                 new Timestamp(agentCommandResponse.getTimestamp()) + " from "
-                                + targetClassName + "." + targetMethodName + "( " + " )");
+                                + targetClassName + "." + targetMethodName + "( " + " )";
+                        returnValueTextArea.setToolTipText(toolTipText);
                         if (responseType == null) {
 //                            panelTitledBoarder.setTitle(responseObjectClassName);
                             parameterScrollPanel.setViewportView(returnValueTextArea);
@@ -291,28 +311,18 @@ public class MethodDirectInvokeComponent implements ActionListener {
                         }
 
                         if (responseType.equals(ResponseType.NORMAL)) {
-                            String returnTypePresentableText = ApplicationManager.getApplication()
-                                    .runReadAction(
-                                            (Computable<String>) () -> {
-                                                PsiType returnType = methodElement.getReturnType();
-                                                if (returnType == null) {
-                                                    return "void";
-                                                }
-                                                return returnType.getPresentableText();
-                                            });
-//                            panelTitledBoarder.setTitle(returnTypePresentableText);
+
                             ObjectMapper objectMapper = insidiousService.getObjectMapper();
                             try {
                                 String returnValueString = String.valueOf(methodReturnValue);
 
                                 String responseClassName = agentCommandResponse.getResponseClassName();
-                                if (responseClassName.equals("float")
-                                        || responseClassName.equals("java.lang.Float")) {
+                                if (responseClassName.equals("float") || responseClassName.equals("java.lang.Float")) {
                                     returnValueString = ParameterUtils.getFloatValue(returnValueString);
                                 }
 
-                                if (responseClassName.equals("double")
-                                        || responseClassName.equals("java.lang.Double")) {
+                                if (responseClassName.equals("double") || responseClassName.equals(
+                                        "java.lang.Double")) {
                                     returnValueString = ParameterUtils.getDoubleValue(returnValueString);
                                 }
 
@@ -327,6 +337,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
 //                                returnValuePanel.setViewportView(returnValueTextArea);
                                 Tree comp = new Tree(responseObjectTree);
+                                comp.setToolTipText(toolTipText);
                                 int totalNodeCount = expandAllNodes(comp);
 //                                JPanel responseTreeContainer = new JPanel(new BorderLayout());
 //                                responseTreeContainer.add(comp, BorderLayout.CENTER);

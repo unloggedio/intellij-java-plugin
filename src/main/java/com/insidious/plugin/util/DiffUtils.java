@@ -37,6 +37,9 @@ public class DiffUtils {
         ) {
             returnValueAsString = "\"" + returnValueAsString + "\"";
         }
+        if (responseClassname == null) {
+            responseClassname = "";
+        }
 
         if (testAssertions != null && AtomicAssertionUtils.countAssertions(testAssertions) > 0) {
             Map<String, Object> leftOnlyMap = new HashMap<>();
@@ -166,10 +169,9 @@ public class DiffUtils {
 
         if (agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION)) {
             try {
-                String responseClassName = responseClassname;
                 String expectedClassName = testCandidateMetadata.getReturnValueClassname();
 
-                isDifferent = responseClassName.equals(expectedClassName);
+                isDifferent = responseClassname.equals(expectedClassName);
                 if (!isDifferent) {
                     return new DifferenceResult(new LinkedList<>(), DiffResultType.SAME, null, null);
                 }

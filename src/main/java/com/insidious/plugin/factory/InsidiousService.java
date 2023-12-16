@@ -11,6 +11,7 @@ import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.*;
 import com.insidious.plugin.auth.RequestAuthentication;
 import com.insidious.plugin.auth.SimpleAuthority;
+import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
@@ -493,26 +494,26 @@ final public class InsidiousService implements
         contentManager.addContent(stompWindowContent);
 
         // method executor window
-        atomicTestComponentWindow = new AtomicTestComponent(this);
-        atomicTestContent =
-                contentFactory.createContent(atomicTestComponentWindow.getComponent(), "Get Started", false);
-        atomicTestContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
+//        atomicTestComponentWindow = new AtomicTestComponent(this);
+//        atomicTestContent =
+//                contentFactory.createContent(atomicTestComponentWindow.getComponent(), "Get Started", false);
+//        atomicTestContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+//        atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
 //        contentManager.addContent(atomicTestContent);
 
-        if (currentState.isAgentServerRunning()) {
-            atomicTestComponentWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
-        } else {
-            atomicTestComponentWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
-        }
+//        if (currentState.isAgentServerRunning()) {
+//            atomicTestComponentWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
+//        } else {
+//            atomicTestComponentWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+//        }
 
 
-        methodDirectInvokeComponent = new MethodDirectInvokeComponent(this);
-        this.directMethodInvokeContent =
-                contentFactory.createContent(methodDirectInvokeComponent.getContent(), "Direct Invoke", false);
-        this.directMethodInvokeContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        this.directMethodInvokeContent.setIcon(UIUtils.EXECUTE_METHOD);
-        contentManager.addContent(this.directMethodInvokeContent);
+//        methodDirectInvokeComponent = new MethodDirectInvokeComponent(this);
+//        this.directMethodInvokeContent =
+//                contentFactory.createContent(methodDirectInvokeComponent.getContent(), "Direct Invoke", false);
+//        this.directMethodInvokeContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+//        this.directMethodInvokeContent.setIcon(UIUtils.EXECUTE_METHOD);
+//        contentManager.addContent(this.directMethodInvokeContent);
 
 
         SingleWindowView singleWindowView = new SingleWindowView(project);
@@ -520,14 +521,14 @@ final public class InsidiousService implements
                 "Raw Cases", false);
 
 
-        coverageReportComponent = new CoverageReportComponent();
-        Content coverageComponent = contentFactory.createContent(coverageReportComponent.getContent(),
-                "Coverage", false);
-
-        coverageComponent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        coverageComponent.setIcon(UIUtils.COVERAGE_TOOL_WINDOW_ICON);
-        contentManager.addContent(coverageComponent);
-
+//        coverageReportComponent = new CoverageReportComponent();
+//        Content coverageComponent = contentFactory.createContent(coverageReportComponent.getContent(),
+//                "Coverage", false);
+//
+//        coverageComponent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+//        coverageComponent.setIcon(UIUtils.COVERAGE_TOOL_WINDOW_ICON);
+//        contentManager.addContent(coverageComponent);
+//
     }
 
     public VideobugClientInterface getClient() {
@@ -637,11 +638,7 @@ final public class InsidiousService implements
     }
 
     public void showDirectInvoke(MethodAdapter method) {
-        try {
-            stompWindow.showDirectInvoke(method);
-        } catch (IOException | FontFormatException e) {
-            throw new RuntimeException(e);
-        }
+        stompWindow.showDirectInvoke(method);
 
     }
 
@@ -799,36 +796,35 @@ final public class InsidiousService implements
             agentCommandRequest.setDeclaredMocks(setMock);
         }
 
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            ApplicationManager.getApplication().runReadAction(() -> {
-                try {
-                    AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(
-                            agentCommandRequest);
-                    logger.warn("agent command response - " + agentCommandResponse);
-                    if (executionResponseListener != null) {
-                        cachedGutterState.remove(methodUnderTest.getMethodHashKey());
+        ApplicationManager.getApplication().executeOnPooledThread(() ->
+                ApplicationManager.getApplication().runReadAction(() -> {
+            try {
+                AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(
+                        agentCommandRequest);
+                logger.warn("agent command response - " + agentCommandResponse);
+                if (executionResponseListener != null) {
+                    cachedGutterState.remove(methodUnderTest.getMethodHashKey());
 
-                        // TODO: search by signature and remove loop
-                        PsiMethod[] methodPsiList = JavaPsiFacade.getInstance(project)
-                                .findClass(agentCommandRequest.getClassName(), GlobalSearchScope.projectScope(project))
-                                .findMethodsByName(agentCommandRequest.getMethodName(), true);
-                        for (PsiMethod psiMethod : methodPsiList) {
-                            if (psiMethod.getName().equals(agentCommandRequest.getMethodName())) {
-                                updateMethodHashForExecutedMethod(new JavaMethodAdapter(psiMethod));
-                            }
+                    // TODO: search by signature and remove loop
+                    PsiMethod[] methodPsiList = JavaPsiFacade.getInstance(project)
+                            .findClass(agentCommandRequest.getClassName(), GlobalSearchScope.projectScope(project))
+                            .findMethodsByName(agentCommandRequest.getMethodName(), true);
+                    for (PsiMethod psiMethod : methodPsiList) {
+                        if (psiMethod.getName().equals(agentCommandRequest.getMethodName())) {
+                            updateMethodHashForExecutedMethod(new JavaMethodAdapter(psiMethod));
                         }
-                        triggerGutterIconReload();
-
-                        executionResponseListener.onExecutionComplete(agentCommandRequest, agentCommandResponse);
-                    } else {
-                        logger.warn("no body listening for the response");
                     }
-                } catch (IOException e) {
-                    logger.warn("failed to execute command - " + e.getMessage(), e);
-                }
+                    triggerGutterIconReload();
 
-            });
-        });
+                    executionResponseListener.onExecutionComplete(agentCommandRequest, agentCommandResponse);
+                } else {
+                    logger.warn("no body listening for the response");
+                }
+            } catch (IOException e) {
+                logger.warn("failed to execute command - " + e.getMessage(), e);
+            }
+
+        }));
     }
 
     private RequestAuthentication getRequestAuthentication() {
@@ -1429,12 +1425,12 @@ final public class InsidiousService implements
 
 
     public void setAtomicWindowHeading(String name) {
-        atomicTestContent.setDisplayName(name);
-        if (name.startsWith("Get")) {
-            atomicTestContent.setIcon(UIUtils.ONBOARDING_ICON_PINK);
-        } else {
-            atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
-        }
+//        atomicTestContent.setDisplayName(name);
+//        if (name.startsWith("Get")) {
+//            atomicTestContent.setIcon(UIUtils.ONBOARDING_ICON_PINK);
+//        } else {
+//            atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
+//        }
     }
 
     public Map<String, String> getIndividualCandidateContextMap() {
@@ -1699,10 +1695,10 @@ final public class InsidiousService implements
     public void executeSingleCandidate(
             StoredCandidate testCandidate,
             ClassUnderTest classUnderTest,
-            String source,
+            ExecutionRequestSourceType source,
             AgentCommandResponseListener<StoredCandidate, String> agentCommandResponseListener,
             MethodAdapter methodElement) {
-        MethodUnderTest methodUnderTest  = testCandidate.getMethod();
+        MethodUnderTest methodUnderTest = testCandidate.getMethod();
         List<String> methodArgumentValues = testCandidate.getMethodArguments();
         ArrayList<DeclaredMock> testCandidateStoredEnabledMockDefinition = MockIntersection.enabledStoredMockDefination(
                 this, testCandidate.getMockIds());
@@ -1716,10 +1712,10 @@ final public class InsidiousService implements
                     DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
 
                     logger.info("Source [EXEC]: " + source);
-                    if (source.startsWith("all")) {
+                    if (source == ExecutionRequestSourceType.Bulk) {
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_REPLAY);
                         diffResult.setIndividualContext(false);
-                        String batchID = source.split("-")[1];
+                        String batchID = String.valueOf(new Date().getTime());
                         diffResult.setBatchID(batchID);
                     } else {
                         diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_INDIVIDUAL);
