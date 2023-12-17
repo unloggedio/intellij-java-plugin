@@ -10,6 +10,8 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.*;
 import com.insidious.plugin.atomicrecord.AtomicRecordService;
+import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
+import com.insidious.plugin.autoexecutor.AutomaticExecutorService;
 import com.insidious.plugin.auth.RequestAuthentication;
 import com.insidious.plugin.auth.SimpleAuthority;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
@@ -31,6 +33,7 @@ import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
+import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
@@ -73,6 +76,7 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.*;
+import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.content.Content;
@@ -143,9 +147,9 @@ final public class InsidiousService implements
     private HighlightedRequest currentHighlightedRequest = null;
     private Content introPanelContent = null;
     private Map<String, GutterState> cachedGutterState = new HashMap<>();
+    private AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
     private GetProjectSessionsCallback sessionListener;
     private ReportingService reportingService = new ReportingService(this);
-
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -308,6 +312,10 @@ final public class InsidiousService implements
 
     private static String getClassMethodHashKey(AgentCommandRequest agentCommandRequest) {
         return agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
+    }
+
+    public ReportingService getReportingService() {
+        return reportingService;
     }
 
     public MethodAdapter getCurrentMethod() {
@@ -1369,7 +1377,13 @@ final public class InsidiousService implements
         } else {
             executionRecord.put(keyName, newDiffRecord);
         }
-        addExecutionRecord(newDiffRecord);
+        addExecutionRecord(new AutoExecutorReportRecord(newDiffRecord,
+                sessionInstance.getProcessedFileCount(),
+                sessionInstance.getTotalFileCount()));
+    }
+
+    public void addExecutionRecord(AutoExecutorReportRecord result) {
+        reportingService.addRecord(result);
     }
 
     public void addExecutionRecord(DifferenceResult result) {
@@ -1632,6 +1646,10 @@ final public class InsidiousService implements
             contentManager.addContent(introPanelContent);
         }
         contentManager.setSelectedContent(introPanelContent);
+    }
+
+    public void executeAllMethodsInCurrentClass() {
+        automaticExecutorService.executeAllJavaMethodsInProject();
     }
 
     public void loadDefaultSession() {
