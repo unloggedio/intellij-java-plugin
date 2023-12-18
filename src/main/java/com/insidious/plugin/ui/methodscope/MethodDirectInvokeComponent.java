@@ -26,15 +26,18 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.search.ProjectAndLibrariesScope;
+import com.intellij.ui.KeyStrokeAdapter;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreeNode;
-import javax.swing.tree.TreePath;
+import javax.swing.border.BevelBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.TreeModelEvent;
+import javax.swing.event.TreeModelListener;
+import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.Timestamp;
@@ -71,6 +74,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private DefaultMutableTreeNode argumentsValueTreeNode;
     private JsonNode argumentsValueJsonNode;
     private JBScrollPane parameterScrollPanel;
+    private DefaultTreeCellEditor cellEditor;
 
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService, OnCloseListener onCloseListener) {
@@ -89,7 +93,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         createBoilerPlate.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-
+                insidiousService.previewTestCase(methodElement, null, true);
             }
         });
 
@@ -155,7 +159,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         modifyArgumentsButton.addActionListener(e -> {
             modifyArgumentsButton.setVisible(false);
             executeButton.setText("Execute");
-            renderForMethod(methodElement);
+            renderForMethod(methodElement, null);
         });
     }
 
@@ -205,6 +209,9 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private void executeMethodWithParameters() {
         boolean isConnected = insidiousService.isAgentConnected();
 //        returnValueTextArea.setFont(SOURCE_CODE);
+
+        returnValueTextArea = new JTextArea();
+        returnValueTextArea.setLineWrap(true);
 
         if (!isConnected) {
             String message = "Start your application with Java unlogged-sdk to start using " +
@@ -259,9 +266,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
                     MethodUtils.createExecuteRequestWithParameters(methodElement, psiClass, methodArgumentValues,
                             false, null);
             agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
-            returnValueTextArea = new JTextArea();
-            returnValueTextArea.setLineWrap(true);
-            returnValueTextArea.setText("");
 
 
 //            returnValueTextArea.setText("Executing method [" + agentCommandRequest.getMethodName() + "()]\nin class ["
@@ -298,7 +302,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
                         if (targetMethodName == null) {
                             targetMethodName = agentCommandRequest.getMethodName();
                         }
-                        argumentValueTree.collapsePath(new TreePath(argumentValueTree.getModel().getRoot()));
+                        ApplicationManager.getApplication()
+                                .runWriteAction(() -> {
+                                    argumentValueTree.collapsePath(new TreePath(argumentValueTree.getModel().getRoot()));
+                                });
                         String toolTipText = "Timestamp: " +
                                 new Timestamp(agentCommandResponse.getTimestamp()) + " from "
                                 + targetClassName + "." + targetMethodName + "( " + " )";
@@ -394,7 +401,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
     }
 
-    public void renderForMethod(MethodAdapter methodElement1) {
+    public void renderForMethod(MethodAdapter methodElement1, List<String> methodArgumentValues) {
         if (methodElement1 == null) {
             logger.info("DirectInvoke got null method");
             return;
@@ -404,6 +411,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
         this.methodElement = methodElement1;
         String methodName = methodElement.getName();
+        ((TitledBorder) mainContainer.getBorder()).setTitle(methodName);
         ClassAdapter containingClass = methodElement.getContainingClass();
 
         logger.warn("render method executor for: " + methodName);
@@ -414,7 +422,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
         ParameterAdapter[] methodParameters = methodElement.getParameters();
 
 //        TestCandidateMetadata mostRecentTestCandidate = null;
-        List<String> methodArgumentValues = null;
         AgentCommandRequest agentCommandRequest = MethodUtils.createExecuteRequestWithParameters(methodElement,
                 new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) containingClass.getSource())),
                 methodArgumentValues, false, null);
@@ -509,6 +516,89 @@ public class MethodDirectInvokeComponent implements ActionListener {
             }
             argumentsValueTreeNode = JsonTreeUtils.buildJsonTree(source, "Method Arguments");
             argumentValueTree = new Tree(argumentsValueTreeNode);
+            argumentValueTree.setEditable(true);
+            cellEditor = new DefaultTreeCellEditor(argumentValueTree, null) {
+                private JTextField editor;
+                private String key;
+
+                @Override
+                public boolean isCellEditable(EventObject event) {
+                    boolean isEditable = super.isCellEditable(event);
+                    if (isEditable) {
+                        // Make sure only leaf nodes are editable
+                        TreePath path = tree.getSelectionPath();
+                        return path != null && tree.getModel().isLeaf(path.getLastPathComponent());
+                    }
+                    return false;
+                }
+
+                @Override
+                public Component getTreeCellEditorComponent(JTree tree, Object value, boolean isSelected, boolean expanded, boolean leaf, int row) {
+                    editor = new JTextField();
+                    if (value instanceof DefaultMutableTreeNode) {
+                        Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
+                        String[] parts = userObject.toString().split(":");
+                        key = parts[0];
+                        editor.setText(parts[1].trim());
+                        editor.addKeyListener(new KeyStrokeAdapter() {
+                            @Override
+                            public void keyTyped(KeyEvent event) {
+                                super.keyTyped(event);
+                                if (event.getKeyChar() == KeyEvent.VK_ENTER) {
+                                    cellEditor.stopCellEditing();
+                                }
+                            }
+                        });
+                    }
+                    return editor;
+                }
+
+                @Override
+                public boolean stopCellEditing() {
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) argumentValueTree.getLastSelectedPathComponent();
+                    if (node != null && node.isLeaf()) {
+                        DefaultTreeModel model = (DefaultTreeModel) argumentValueTree.getModel();
+                        node.setUserObject(getCellEditorValue());
+                        model.nodeChanged(node); // Notify the model that the node has changed
+                    }
+                    return super.stopCellEditing();
+                }
+
+                @Override
+                public Object getCellEditorValue() {
+                    return key + ": " + editor.getText().trim();
+                }
+            };
+
+            // Listener to handle changes in the tree nodes
+            argumentValueTree.getModel().addTreeModelListener(new TreeModelListener() {
+                @Override
+                public void treeNodesChanged(TreeModelEvent e) {
+                    TreePath path = e.getTreePath();
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
+                    try {
+                        String editedValue = (String) node.getUserObject();
+                        // Here, you can further process the edited value if necessary
+                        // For example, validate or parse it before saving
+                        node.setUserObject(editedValue);
+                    } catch (Exception ex) {
+                        logger.error("Failed to read value", ex);
+                        InsidiousNotification.notifyMessage("Failed to read value, please report this on github",
+                                NotificationType.ERROR);
+                    }
+                }
+
+                public void treeNodesInserted(TreeModelEvent e) {
+                }
+
+                public void treeNodesRemoved(TreeModelEvent e) {
+                }
+
+                public void treeStructureChanged(TreeModelEvent e) {
+                }
+            });
+
+            argumentValueTree.setCellEditor(cellEditor);
             expandAllNodes(argumentValueTree);
             methodParameterContainer.add(argumentValueTree, BorderLayout.CENTER);
         } else {
@@ -531,17 +621,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
         mainContainer.revalidate();
         mainContainer.repaint();
-
-        ApplicationManager.getApplication().invokeLater(() -> {
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                //
-            }
-//            parameterScrollPanel.getViewport().setViewPosition(new Point(0, 0));
-            parameterScrollPanel.getVerticalScrollBar().setValue(0);
-//            parameterScrollPanel.repaint();
-        });
 
     }
 

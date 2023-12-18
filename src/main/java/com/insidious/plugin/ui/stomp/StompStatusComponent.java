@@ -18,7 +18,7 @@ public class StompStatusComponent {
     private JPanel rightPanelContainer;
     private JLabel connectionStatusLabel;
 
-    public StompStatusComponent() {
+    public StompStatusComponent(FilterModel filterModel) {
 
         // Create an EmptyBorder with desired margins (top, left, bottom, right)
         int topMargin = 7;

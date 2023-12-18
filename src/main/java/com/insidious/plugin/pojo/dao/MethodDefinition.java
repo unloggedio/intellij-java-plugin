@@ -3,10 +3,9 @@ package com.insidious.plugin.pojo.dao;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.MethodInfo;
 import com.insidious.plugin.util.ClassTypeUtils;
+import com.insidious.plugin.util.StringUtils;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import org.apache.commons.lang.StringUtils;
-
 import org.objectweb.asm.Opcodes;
 
 import java.util.List;
@@ -210,7 +209,7 @@ public class MethodDefinition implements Comparable<MethodDefinition> {
     }
 
     @Override
-    public int compareTo( MethodDefinition o) {
+    public int compareTo(MethodDefinition o) {
         return Integer.compare(this.id, o.id);
     }
 }

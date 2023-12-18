@@ -29,15 +29,11 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.TestCaseUnit;
-import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import com.insidious.plugin.util.ClassTypeUtils;
-import com.insidious.plugin.util.ClassUtils;
-import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.UIUtils;
+import com.insidious.plugin.util.*;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
@@ -63,7 +59,6 @@ import com.intellij.psi.impl.source.tree.java.PsiThisExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.util.FileContentUtil;
-import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
 
@@ -74,11 +69,13 @@ import java.awt.event.ActionListener;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class TestCaseDesignerLite {
+    private static final Logger logger = LoggerUtil.getInstance(TestCaseDesigner.class);
+    Random random = new Random(new Date().getTime());
     private JPanel mainPanel;
     private JPanel configurationPanel;
     private JPanel saveDetailsPanel;
@@ -104,10 +101,8 @@ public class TestCaseDesignerLite {
     private JPanel resourceEmbedModeChoicePanel;
     private JComboBox resourceEmberModeComboBox;
     private JPanel testOptions;
-    private static final Logger logger = LoggerUtil.getInstance(TestCaseDesigner.class);
     private LightVirtualFile testCaseScriptFile;
     private MethodAdapter methodAdapter;
-    Random random = new Random(new Date().getTime());
     private TestCaseGenerationConfiguration currentTestGenerationConfiguration;
     private TestCaseUnit testCaseScript;
     private List<String> methodChecked;
@@ -144,8 +139,7 @@ public class TestCaseDesignerLite {
         resourceEmberModeComboBox.setModel(new DefaultComboBoxModel<>(ResourceEmbedMode.values()));
         resourceEmberModeComboBox.setSelectedItem(ResourceEmbedMode.IN_CODE);
 
-        if (generateOnlyBoilerPlate ||
-                currentTestGenerationConfiguration == null) {
+        if (generateOnlyBoilerPlate || currentTestGenerationConfiguration == null) {
             generateTestCaseBoilerPlace();
         }
 
@@ -284,17 +278,6 @@ public class TestCaseDesignerLite {
         generateAndPreviewTestCase(currentTestGenerationConfiguration);
     }
 
-    public JPanel getMainPanel() {
-        return mainPanel;
-    }
-
-    public void closeEditorWindow() {
-        if (fileEditorReference != null) {
-            FileEditorManager.getInstance(project)
-                    .closeFile(fileEditorReference.getFile());
-        }
-    }
-
     private static int buildMethodAccessModifier(PsiModifierList modifierList) {
         int methodAccess = 0;
         if (modifierList != null) {
@@ -321,6 +304,17 @@ public class TestCaseDesignerLite {
             }
         }
         return methodAccess;
+    }
+
+    public JPanel getMainPanel() {
+        return mainPanel;
+    }
+
+    public void closeEditorWindow() {
+        if (fileEditorReference != null) {
+            FileEditorManager.getInstance(project)
+                    .closeFile(fileEditorReference.getFile());
+        }
     }
 
     private void saveMethodToExistingFile(File testcaseFile) {
@@ -453,7 +447,8 @@ public class TestCaseDesignerLite {
             }
 
             Document document = editorFactory.createDocument(testCaseScriptCode);
-            Editor editor = editorFactory.createEditor(document, methodAdapter.getProject(), JavaFileType.INSTANCE, false);
+            Editor editor = editorFactory.createEditor(document, methodAdapter.getProject(), JavaFileType.INSTANCE,
+                    false);
 
             testCaseScriptFile.setContent(this, editor.getDocument().getText(), true);
             saveTestCaseButton.setEnabled(true);
@@ -466,7 +461,8 @@ public class TestCaseDesignerLite {
             e.printStackTrace(stringWriter);
             String exceptionText = out.toString().replace("\r", "");
             Document document = editorFactory.createDocument(exceptionText);
-            Editor editor = editorFactory.createEditor(document, methodAdapter.getProject(), PlainTextFileType.INSTANCE, true);
+            Editor editor = editorFactory.createEditor(document, methodAdapter.getProject(), PlainTextFileType.INSTANCE,
+                    true);
 
             testCaseScriptFile.setContent(this, editor.getDocument().getText(), true);
             saveTestCaseButton.setEnabled(false);
@@ -751,7 +747,8 @@ public class TestCaseDesignerLite {
                                 prob.setSerializedValue(("\"" + parameter.getName() + "\"").getBytes());
                             } else {
                                 String serializedStringValue = ClassUtils.createDummyValue(
-                                        typeToAssignFrom, new LinkedList<>(), methodAdapter.getContainingClass().getProject()
+                                        typeToAssignFrom, new LinkedList<>(),
+                                        methodAdapter.getContainingClass().getProject()
                                 );
                                 prob.setSerializedValue(serializedStringValue.getBytes());
 
@@ -808,7 +805,8 @@ public class TestCaseDesignerLite {
     }
 
     private List<MethodCallExpression> getCallsFromMethod(PsiExpressionListImpl callParameterExpression, String invokedMethodName) {
-        MethodAdapter matchedMethod = getMatchingMethod(methodAdapter.getContainingClass(), invokedMethodName, callParameterExpression);
+        MethodAdapter matchedMethod = getMatchingMethod(methodAdapter.getContainingClass(), invokedMethodName,
+                callParameterExpression);
         if (matchedMethod == null) {
             return Collections.emptyList();
         }

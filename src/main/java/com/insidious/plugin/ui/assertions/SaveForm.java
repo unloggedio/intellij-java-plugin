@@ -7,7 +7,7 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.assertions.*;
-import com.insidious.plugin.callbacks.StoredCandidateLifeListener;
+import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.mocking.DeclaredMock;
@@ -36,17 +36,16 @@ import javax.swing.event.ChangeListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.List;
 import java.util.*;
-
-import static com.insidious.plugin.util.ParameterUtils.processResponseForFloatAndDoubleTypes;
 
 public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
 
     private static final Logger logger = LoggerUtil.getInstance(SaveForm.class);
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
-    private final StoredCandidateLifeListener listener;
+    private final CandidateLifeListener listener;
     private final StoredCandidate storedCandidate;
     private final AgentCommandResponse<String> agentCommandResponse;
     private final AssertionBlock ruleEditor;
@@ -68,7 +67,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
     public SaveForm(
             StoredCandidate storedCandidate,
             AgentCommandResponse<String> agentCommandResponse,
-            StoredCandidateLifeListener listener
+            CandidateLifeListener listener
     ) {
         this.storedCandidate = storedCandidate;
         this.listener = listener;
@@ -221,13 +220,10 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         bottomTabPanel.addTab("Assertion", assertionPanel);
         bottomTabPanel.addTab("Mock Data", this.mockPanel);
 
-        bottomTabPanel.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                JSONObject panelChanged = new JSONObject();
-                panelChanged.put("tabIndex", bottomTabPanel.getSelectedIndex());
-                UsageInsightTracker.getInstance().RecordEvent("MOCK_LINKING_TAB_TYPE", panelChanged);
-            }
+        bottomTabPanel.addChangeListener(e -> {
+            JSONObject panelChanged = new JSONObject();
+            panelChanged.put("tabIndex", bottomTabPanel.getSelectedIndex());
+            UsageInsightTracker.getInstance().RecordEvent("MOCK_LINKING_TAB_TYPE", panelChanged);
         });
         JPanel primaryContentPanel = new JPanel();
         BoxLayout boxLayout = new BoxLayout(primaryContentPanel, BoxLayout.Y_AXIS);
@@ -281,7 +277,8 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
 
     public JPanel genMockMethodPanelSingle(String localKey) {
         ArrayList<String> localKeyData = this.mockValueMap.getDependencyMockMap().get(localKey);
-        PsiMethodCallExpression psiMethodCallExpression = this.mockValueMap.getReferenceToPsiMethodCallExpression().get(localKey);
+        PsiMethodCallExpression psiMethodCallExpression = this.mockValueMap.getReferenceToPsiMethodCallExpression()
+                .get(localKey);
         JPanel mockMethodPanelSingle = new JPanel();
         mockMethodPanelSingle.setLayout(new BoxLayout(mockMethodPanelSingle, BoxLayout.Y_AXIS));
 
@@ -303,7 +300,8 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
 
         JCheckBox mockButtonMain = new JCheckBox();
         this.buttonMap.put(mockButtonMain, new ArrayList<JCheckBox>());
-        mockButtonMain.setSelected(!localKeyData.isEmpty() && this.storedCandidate.getMockIds().containsAll(localKeyData));
+        mockButtonMain.setSelected(
+                !localKeyData.isEmpty() && this.storedCandidate.getMockIds().containsAll(localKeyData));
         ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
 
         mockButtonMain.addActionListener(e -> {
@@ -361,8 +359,10 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
                 JBPopup editorPopup = null;
 
                 PsiMethod targetMethod = psiMethodCallExpression.resolveMethod();
-                MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethod));
-                MockDefinitionEditor mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest, psiMethodCallExpression, project, self);
+                MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
+                        new JavaMethodAdapter(targetMethod));
+                MockDefinitionEditor mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest,
+                        psiMethodCallExpression, project, self);
                 JComponent gutterMethodComponent = mockDefinitionEditor.getComponent();
                 ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
                         .createComponentPopupBuilder(gutterMethodComponent, null);

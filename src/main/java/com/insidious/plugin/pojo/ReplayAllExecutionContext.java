@@ -1,19 +1,21 @@
 package com.insidious.plugin.pojo;
 
+import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
+
 public class ReplayAllExecutionContext {
-    private String source;
+    private ExecutionRequestSourceType source;
     private boolean savedCandidateCentricFlow;
 
-    public ReplayAllExecutionContext(String source, boolean savedCandidateCentricFlow) {
+    public ReplayAllExecutionContext(ExecutionRequestSourceType source, boolean savedCandidateCentricFlow) {
         this.source = source;
         this.savedCandidateCentricFlow = savedCandidateCentricFlow;
     }
 
-    public String getSource() {
+    public ExecutionRequestSourceType getSource() {
         return source;
     }
 
-    public void setSource(String source) {
+    public void setSource(ExecutionRequestSourceType source) {
         this.source = source;
     }
 

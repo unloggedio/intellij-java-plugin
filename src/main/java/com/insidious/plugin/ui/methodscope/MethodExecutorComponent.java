@@ -7,6 +7,7 @@ import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
+import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -47,8 +48,6 @@ import java.util.List;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import static com.insidious.plugin.Constants.HOSTNAME;
 
 public class MethodExecutorComponent implements CandidateLifeListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
@@ -222,71 +221,77 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         ApplicationManager.getApplication().invokeLater(() -> {
             JSONObject eventProperties = new JSONObject();
 
-            ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass1 -> {
-                eventProperties.put("className", psiClass1.getQualifiedClassName());
-                eventProperties.put("methodName", methodName);
-                eventProperties.put("count", methodTestCandidates.size());
-                UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
+            insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(),
+                    psiClass1 -> {
+                        eventProperties.put("className", psiClass1.getQualifiedClassName());
+                        eventProperties.put("methodName", methodName);
+                        eventProperties.put("count", methodTestCandidates.size());
+                        UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
 
-                callCount = methodTestCandidates.size();
-                long savedCandidatesCount = methodTestCandidates.stream()
-                        .filter(e -> e.getCandidateId() != null)
-                        .count();
-                AtomicInteger componentCounter = new AtomicInteger(0);
-                AtomicInteger passingSavedCandidateCount = new AtomicInteger(0);
-                AtomicInteger passingCandidateCount = new AtomicInteger(0);
+                        callCount = methodTestCandidates.size();
+                        long savedCandidatesCount = methodTestCandidates.stream()
+                                .filter(e -> e.getCandidateId() != null)
+                                .count();
+                        AtomicInteger componentCounter = new AtomicInteger(0);
+                        AtomicInteger passingSavedCandidateCount = new AtomicInteger(0);
+                        AtomicInteger passingCandidateCount = new AtomicInteger(0);
 
-                long batchTime = System.currentTimeMillis();
-                ReplayAllExecutionContext context = new ReplayAllExecutionContext("all-" + batchTime,
-                        hasStoredCandidates);
-                executeCandidate(new ArrayList<>(methodTestCandidates), psiClass1, context,
-                        (testCandidate, agentCommandResponse, diffResult) -> {
-                            int currentCount = componentCounter.incrementAndGet();
-                            if (diffResult.getDiffResultType().equals(DiffResultType.SAME)) {
-                                if (testCandidate.getCandidateId() != null) {
-                                    passingSavedCandidateCount.incrementAndGet();
-                                }
-                                passingCandidateCount.incrementAndGet();
-                            }
-                            logger.warn("component counter: " + currentCount);
-                            if (currentCount == callCount) {
-                                insidiousService.updateMethodHashForExecutedMethod(methodElement);
-                                insidiousService.triggerGutterIconReload();
-                                ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
-                                int passedCount;
-                                if (savedCandidatesCount > 0) {
-                                    passedCount = passingSavedCandidateCount.get();
-                                    if (passedCount == savedCandidatesCount) {
-                                        InsidiousNotification.notifyMessage(passedCount + " of " + savedCandidatesCount
-                                                + " saved atomic tests passed", NotificationType.INFORMATION);
-                                    } else {
-                                        InsidiousNotification.notifyMessage(passedCount + " of " + savedCandidatesCount
-                                                + " saved atomic tests passed", NotificationType.WARNING);
+                        long batchTime = System.currentTimeMillis();
+                        ReplayAllExecutionContext context = new ReplayAllExecutionContext(
+                                ExecutionRequestSourceType.Bulk,
+                                hasStoredCandidates);
+                        executeCandidate(new ArrayList<>(methodTestCandidates), psiClass1, context,
+                                (testCandidate, agentCommandResponse, diffResult) -> {
+                                    int currentCount = componentCounter.incrementAndGet();
+                                    if (diffResult.getDiffResultType().equals(DiffResultType.SAME)) {
+//                                if (testCandidate.getCandidateId() != null) {
+//                                    passingSavedCandidateCount.incrementAndGet();
+//                                }
+//                                passingCandidateCount.incrementAndGet();
                                     }
-                                } else {
-                                    passedCount = passingCandidateCount.get();
-                                    if (passedCount == callCount) {
-                                        InsidiousNotification.notifyMessage(passedCount + " of " + callCount
-                                                + " atomic tests passed", NotificationType.INFORMATION);
-                                    } else {
-                                        InsidiousNotification.notifyMessage(passedCount + " of " + callCount
-                                                + " atomic tests passed", NotificationType.WARNING);
+                                    logger.warn("component counter: " + currentCount);
+                                    if (currentCount == callCount) {
+                                        insidiousService.updateMethodHashForExecutedMethod(methodElement);
+                                        insidiousService.triggerGutterIconReload();
+                                        ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
+                                        int passedCount;
+                                        if (savedCandidatesCount > 0) {
+                                            passedCount = passingSavedCandidateCount.get();
+                                            if (passedCount == savedCandidatesCount) {
+                                                InsidiousNotification.notifyMessage(
+                                                        passedCount + " of " + savedCandidatesCount
+                                                                + " saved atomic tests passed",
+                                                        NotificationType.INFORMATION);
+                                            } else {
+                                                InsidiousNotification.notifyMessage(
+                                                        passedCount + " of " + savedCandidatesCount
+                                                                + " saved atomic tests passed",
+                                                        NotificationType.WARNING);
+                                            }
+                                        } else {
+                                            passedCount = passingCandidateCount.get();
+                                            if (passedCount == callCount) {
+                                                InsidiousNotification.notifyMessage(passedCount + " of " + callCount
+                                                        + " atomic tests passed", NotificationType.INFORMATION);
+                                            } else {
+                                                InsidiousNotification.notifyMessage(passedCount + " of " + callCount
+                                                        + " atomic tests passed", NotificationType.WARNING);
+                                            }
+                                        }
                                     }
-                                }
-                            }
-                        });
-            });
+                                });
+                    });
         });
 
     }
 
     private void updateJunitButtonStatuses() {
-        try {
-            candidateComponentMap.values().forEach(
-                    TestCandidateListedItemComponent::refreshJunitButtonStatus);
-        } catch (Exception e) {
-            logger.info("Exception updating enable status of Junit buttons for candidates " + e);
-        }
+//        try {
+//            candidateComponentMap.values().forEach(
+//                    TestCandidateListedItemComponent::refreshJunitButtonStatus);
+//        } catch (Exception e) {
+//            logger.info("Exception updating enable status of Junit buttons for candidates " + e);
+//        }
     }
 
     public void refreshAndReloadCandidates(final MethodAdapter methodAdapter, List<StoredCandidate> candidates) {
@@ -456,7 +461,7 @@ public class MethodExecutorComponent implements CandidateLifeListener {
             List<StoredCandidate> testCandidateList,
             ClassUnderTest classUnderTest,
             ReplayAllExecutionContext context,
-            AgentCommandResponseListener<String> agentCommandResponseListener
+            AgentCommandResponseListener<TestCandidateMetadata, String> agentCommandResponseListener
     ) {
         for (StoredCandidate testCandidate : testCandidateList) {
             executeSingleCandidate(testCandidate, classUnderTest, context, agentCommandResponseListener);
@@ -467,67 +472,68 @@ public class MethodExecutorComponent implements CandidateLifeListener {
             StoredCandidate testCandidate,
             ClassUnderTest classUnderTest,
             ReplayAllExecutionContext context,
-            AgentCommandResponseListener<String> agentCommandResponseListener
+            AgentCommandResponseListener<TestCandidateMetadata, String> agentCommandResponseListener
     ) {
-        List<String> methodArgumentValues = testCandidate.getMethodArguments();
-        ArrayList<DeclaredMock> testCandidateStoredEnabledMockDefination = MockIntersection.enabledStoredMockDefination(insidiousService, testCandidate.getMockIds());
-        AgentCommandRequest agentCommandRequest = MethodUtils.createExecuteRequestWithParameters(
-                methodElement, classUnderTest, methodArgumentValues, true, testCandidateStoredEnabledMockDefination);
-
-        TestCandidateListedItemComponent candidateComponent =
-                candidateComponentMap.get(getKeyForCandidate(testCandidate));
-
-        candidateComponent.setStatus("Executing");
-        insidiousService.executeMethodInRunningProcess(agentCommandRequest,
-                (request, agentCommandResponse) -> {
-                    candidateResponseMap.put(getKeyForCandidate(testCandidate), agentCommandResponse);
-
-                    DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
-                    if (context.getSource().startsWith("all")) {
-                        diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_REPLAY);
-                        diffResult.setIndividualContext(false);
-                        String batchID = context.getSource().split("-")[1];
-                        diffResult.setBatchID(batchID);
-                    } else {
-                        diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_INDIVIDUAL);
-                        //check other statuses and add them for individual execution
-                        String status = getExecutionStatusFromCandidates(getKeyForCandidate(testCandidate),
-                                diffResult.getDiffResultType());
-                        String methodKey = agentCommandRequest.getClassName()
-                                + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
-                        insidiousService.getIndividualCandidateContextMap().put(methodKey, status);
-                        diffResult.setIndividualContext(true);
-                    }
-                    diffResult.setResponse(agentCommandResponse);
-                    diffResult.setCommand(agentCommandRequest);
-
-                    //skip considering non saved candidates for gutter state calc if
-                    //there are saved candidates.
-                    if (context.isSavedCandidateCentricFlow()) {
-                        if (testCandidate.getCandidateId() != null) {
-                            insidiousService.addDiffRecord(diffResult);
-                        }
-                    } else {
-                        insidiousService.addDiffRecord(diffResult);
-                    }
-
-                    StoredCandidateMetadata meta = testCandidate.getMetadata();
-                    if (meta == null) {
-                        meta = new StoredCandidateMetadata(HOSTNAME, HOSTNAME, agentCommandResponse.getTimestamp(),
-                                getStatusForState(diffResult.getDiffResultType()));
-                    }
-                    meta.setTimestamp(agentCommandResponse.getTimestamp());
-                    meta.setCandidateStatus(getStatusForState(diffResult.getDiffResultType()));
-                    if (testCandidate.getCandidateId() != null) {
-                        insidiousService.getAtomicRecordService().setCandidateStateForCandidate(
-                                testCandidate.getCandidateId(),
-                                agentCommandRequest.getClassName(),
-                                methodUnderTest.getMethodHashKey(),
-                                testCandidate.getMetadata().getCandidateStatus());
-                    }
-                    candidateComponent.setAndDisplayResponse(diffResult);
-                    agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
-                });
+//        List<String> methodArgumentValues = testCandidate.getMethodArguments();
+//        ArrayList<DeclaredMock> testCandidateStoredEnabledMockDefination = MockIntersection.enabledStoredMockDefination(
+//                insidiousService, testCandidate.getMockIds(), insidiousService.getCurrentMethod());
+//        AgentCommandRequest agentCommandRequest = MethodUtils.createExecuteRequestWithParameters(
+//                methodElement, classUnderTest, methodArgumentValues, true, testCandidateStoredEnabledMockDefination);
+//
+//        TestCandidateListedItemComponent candidateComponent =
+//                candidateComponentMap.get(getKeyForCandidate(testCandidate));
+//
+//        candidateComponent.setStatus("Executing");
+//        insidiousService.executeMethodInRunningProcess(agentCommandRequest,
+//                (request, agentCommandResponse) -> {
+//                    candidateResponseMap.put(getKeyForCandidate(testCandidate), agentCommandResponse);
+//
+//                    DifferenceResult diffResult = DiffUtils.calculateDifferences(testCandidate, agentCommandResponse);
+//                    if (context.getSource() == ExecutionRequestSourceType.Bulk) {
+//                        diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_REPLAY);
+//                        diffResult.setIndividualContext(false);
+//                        String batchID = String.valueOf(new Date().getTime());
+//                        diffResult.setBatchID(batchID);
+//                    } else {
+//                        diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.ATOMIC_RUN_INDIVIDUAL);
+//                        //check other statuses and add them for individual execution
+//                        String status = getExecutionStatusFromCandidates(getKeyForCandidate(testCandidate),
+//                                diffResult.getDiffResultType());
+//                        String methodKey = agentCommandRequest.getClassName()
+//                                + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
+//                        insidiousService.getIndividualCandidateContextMap().put(methodKey, status);
+//                        diffResult.setIndividualContext(true);
+//                    }
+//                    diffResult.setResponse(agentCommandResponse);
+//                    diffResult.setCommand(agentCommandRequest);
+//
+//                    //skip considering non saved candidates for gutter state calc if
+//                    //there are saved candidates.
+//                    if (context.isSavedCandidateCentricFlow()) {
+//                        if (testCandidate.getCandidateId() != null) {
+//                            insidiousService.addDiffRecord(diffResult);
+//                        }
+//                    } else {
+//                        insidiousService.addDiffRecord(diffResult);
+//                    }
+//
+//                    StoredCandidateMetadata meta = testCandidate.getMetadata();
+//                    if (meta == null) {
+//                        meta = new StoredCandidateMetadata(HOSTNAME, HOSTNAME, agentCommandResponse.getTimestamp(),
+//                                getStatusForState(diffResult.getDiffResultType()));
+//                    }
+//                    meta.setTimestamp(agentCommandResponse.getTimestamp());
+//                    meta.setCandidateStatus(getStatusForState(diffResult.getDiffResultType()));
+//                    if (testCandidate.getCandidateId() != null) {
+//                        insidiousService.getAtomicRecordService().setCandidateStateForCandidate(
+//                                testCandidate.getCandidateId(),
+//                                agentCommandRequest.getClassName(),
+//                                methodUnderTest.getMethodHashKey(),
+//                                testCandidate.getMetadata().getCandidateStatus());
+//                    }
+//                    candidateComponent.setAndDisplayResponse(diffResult);
+//                    agentCommandResponseListener.onSuccess(testCandidate, agentCommandResponse, diffResult);
+//                });
     }
 
 
@@ -644,21 +650,22 @@ public class MethodExecutorComponent implements CandidateLifeListener {
             StoredCandidate testCandidateMetadata,
             AgentCommandResponse<String> agentCommandResponse
     ) {
-        if (testCandidateMetadata.isException()) {
-            return new AgentExceptionResponseComponent(
-                    testCandidateMetadata, agentCommandResponse, insidiousService, this);
-        }
-        if (agentCommandResponse.getResponseType() != null &&
-                (agentCommandResponse.getResponseType().equals(ResponseType.FAILED) ||
-                        agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
-            return new AgentExceptionResponseComponent(
-                    testCandidateMetadata, agentCommandResponse, insidiousService, this);
-        } else {
-            return new AgentResponseComponent(
-                    agentCommandResponse, testCandidateMetadata,
-                    insidiousService::generateCompareWindows, this
-            );
-        }
+//        if (testCandidateMetadata.isException()) {
+//            return new AgentExceptionResponseComponent(
+//                    testCandidateMetadata, agentCommandResponse, insidiousService, this);
+//        }
+//        if (agentCommandResponse.getResponseType() != null &&
+//                (agentCommandResponse.getResponseType().equals(ResponseType.FAILED) ||
+//                        agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
+//            return new AgentExceptionResponseComponent(
+//                    testCandidateMetadata, agentCommandResponse, insidiousService, this);
+//        } else {
+//            return new AgentResponseComponent(
+//                    agentCommandResponse, testCandidateMetadata,
+//                    insidiousService::generateCompareWindows, this
+//            );
+//        }
+        return null;
     }
 
     private void actionPerformed(ActionEvent e) {
@@ -667,58 +674,58 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
     @Override
     public void onSaved(StoredCandidate candidate) {
-        TestCandidateListedItemComponent candidateItem = candidateComponentMap.get(getKeyForCandidate(candidate));
-        if (candidate.getCandidateId() == null) {
-            candidate.setCandidateId(UUID.randomUUID().toString());
-            candidateComponentMap.put(getKeyForCandidate(candidate), candidateItem);
-        }
-        insidiousService.getAtomicRecordService()
-                .saveCandidate(MethodUnderTest.fromMethodAdapter(methodElement), candidate);
-        candidateItem.getComponent().setEnabled(true);
-        candidateItem.setCandidate(candidate);
-        triggerReExecute(candidate);
-        candidateItem.getComponent().revalidate();
-        gridPanel.revalidate();
-        gridPanel.repaint();
-        insidiousService.hideCandidateSaveForm(saveFormReference);
-        saveFormReference = null;
-        refreshCoverageData();
+//        TestCandidateListedItemComponent candidateItem = candidateComponentMap.get(getKeyForCandidate(candidate));
+//        if (candidate.getCandidateId() == null) {
+//            candidate.setCandidateId(UUID.randomUUID().toString());
+//            candidateComponentMap.put(getKeyForCandidate(candidate), candidateItem);
+//        }
+//        insidiousService.getAtomicRecordService()
+//                .saveCandidate(MethodUnderTest.fromMethodAdapter(methodElement), candidate);
+//        candidateItem.getComponent().setEnabled(true);
+//        candidateItem.setCandidate(candidate);
+//        triggerReExecute(candidate);
+//        candidateItem.getComponent().revalidate();
+//        gridPanel.revalidate();
+//        gridPanel.repaint();
+//        insidiousService.hideCandidateSaveForm(saveFormReference);
+//        saveFormReference = null;
+//        refreshCoverageData();
     }
 
     private void triggerReExecute(StoredCandidate candidate) {
-        TestCandidateListedItemComponent component = candidateComponentMap.get(
-                getKeyForCandidate(candidate));
-        ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {
-            JSONObject eventProperties = new JSONObject();
-            eventProperties.put("className", psiClass.getQualifiedClassName());
-            eventProperties.put("methodName", methodElement.getName());
-            UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE_UPDATE", eventProperties);
-            ReplayAllExecutionContext context = new ReplayAllExecutionContext("individual", false);
-            executeCandidate(
-                    Collections.singletonList(candidate), psiClass, context,
-                    (candidateMetadata, agentCommandResponse, diffResult) -> {
-                        insidiousService.updateMethodHashForExecutedMethod(methodElement);
-                        component.setAndDisplayResponse(diffResult);
-                        onCandidateSelected(candidateMetadata);
-                        insidiousService.triggerGutterIconReload();
-                    }
-            );
-        });
+//        TestCandidateListedItemComponent component = candidateComponentMap.get(
+//                getKeyForCandidate(candidate));
+//        insidiousService.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {
+//            JSONObject eventProperties = new JSONObject();
+//            eventProperties.put("className", psiClass.getQualifiedClassName());
+//            eventProperties.put("methodName", methodElement.getName());
+//            UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE_UPDATE", eventProperties);
+//            ReplayAllExecutionContext context = new ReplayAllExecutionContext(ExecutionRequestSourceType.Single, false);
+//            executeCandidate(
+//                    Collections.singletonList(candidate), psiClass, context,
+//                    (candidateMetadata, agentCommandResponse, diffResult) -> {
+//                        insidiousService.updateMethodHashForExecutedMethod(methodElement);
+//                        component.setAndDisplayResponse(diffResult);
+//                        onCandidateSelected(candidateMetadata);
+//                        insidiousService.triggerGutterIconReload();
+//                    }
+//            );
+//        });
     }
 
     @Override
     public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
-        if (saveFormReference != null) {
-            insidiousService.hideCandidateSaveForm(saveFormReference);
-            saveFormReference = null;
-        }
-        if (storedCandidate.getCandidateId() == null) {
-            // new test case
-            storedCandidate.setName("test " + storedCandidate.getMethod().getName() + " returns expected value when");
-            storedCandidate.setDescription("assert that the response value matches expected value");
-        }
-        saveFormReference = new SaveForm(storedCandidate, agentCommandResponse, this);
-        insidiousService.showCandidateSaveForm(saveFormReference);
+//        if (saveFormReference != null) {
+//            insidiousService.hideCandidateSaveForm(saveFormReference);
+//            saveFormReference = null;
+//        }
+//        if (storedCandidate.getCandidateId() == null) {
+//            // new test case
+//            storedCandidate.setName("test " + storedCandidate.getMethod().getName() + " returns expected value when");
+//            storedCandidate.setDescription("assert that the response value matches expected value");
+//        }
+//        saveFormReference = new SaveForm(storedCandidate, agentCommandResponse, this);
+//        insidiousService.showCandidateSaveForm(saveFormReference);
 
     }
 
@@ -741,8 +748,8 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
     @Override
     public void onDeleted(StoredCandidate storedCandidate) {
-        insidiousService.getAtomicRecordService().deleteStoredCandidate(
-                methodUnderTest.getClassName(), methodUnderTest.getMethodHashKey(), storedCandidate.getCandidateId());
+//        insidiousService.getAtomicRecordService().deleteStoredCandidate(
+//                methodUnderTest.getClassName(), methodUnderTest.getMethodHashKey(), storedCandidate.getCandidateId());
         TestCandidateListedItemComponent testCandidateListedItemComponent = candidateComponentMap.get(
                 getKeyForCandidate(storedCandidate));
         JPanel candidateComponent = testCandidateListedItemComponent.getComponent();

@@ -8,23 +8,22 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.codeInsight.hints.FactoryInlayHintsCollector;
 import com.intellij.codeInsight.hints.InlayHintsSink;
-import com.intellij.codeInsight.hints.InlayPresentationFactory;
-import com.intellij.codeInsight.hints.presentation.*;
+import com.intellij.codeInsight.hints.presentation.InlayPresentation;
+import com.intellij.codeInsight.hints.presentation.PresentationFactory;
+import com.intellij.codeInsight.hints.presentation.SequencePresentation;
+import com.intellij.codeInsight.hints.presentation.SpacePresentation;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.ex.util.EditorUtil;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
+import com.intellij.psi.impl.source.PsiMethodImpl;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.ui.JBColor;
 import com.intellij.util.containers.JBIterable;
-import kotlin.Unit;
-import kotlin.jvm.functions.Function2;
-import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
-import java.awt.event.MouseEvent;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -77,6 +76,9 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
             return true;
         }
 
+        if (currentClass == null) {
+            currentClass = ((PsiMethodImpl) element).getContainingClass();
+        }
 
 //        if (element instanceof PsiMethod) {
         if (classMethodAggregates == null) {

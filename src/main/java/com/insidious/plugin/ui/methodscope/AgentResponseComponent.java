@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.insidious.plugin.agent.AgentCommandResponse;
-import com.insidious.plugin.callbacks.StoredCandidateLifeListener;
+import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.*;
 import com.intellij.openapi.diagnostic.Logger;
@@ -24,7 +24,7 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
     private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = false;
     private final AgentCommandResponse<String> agentCommandResponse;
-//    private JButton createTestCaseButton;
+    //    private JButton createTestCaseButton;
     private StoredCandidate testCandidate;
     private JPanel mainPanel;
     private JPanel centerPanel;
@@ -48,7 +48,7 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
             AgentCommandResponse<String> agentCommandResponse,
             StoredCandidate testCandidate,
             FullViewEventListener fullViewEventListener,
-            StoredCandidateLifeListener storedCandidateLifeListener
+            CandidateLifeListener storedCandidateLifeListener
     ) {
         this.agentCommandResponse = agentCommandResponse;
         this.testCandidate = testCandidate;
@@ -72,8 +72,10 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
 
         setInfoLabel("Replayed at " + DateUtils.formatDate(new Date(agentCommandResponse.getTimestamp())) +
                 " for " + methodLabel);
-        String processedOriginal = processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(), originalString);
-        String processedActual = processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(), actualString);
+        String processedOriginal = processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(),
+                originalString);
+        String processedActual = processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(),
+                actualString);
         viewFullButton.addActionListener(
                 e -> fullViewEventListener.generateCompareWindows(processedOriginal, processedActual));
 
@@ -185,17 +187,17 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
     }
 
     @Override
+    public StoredCandidate getTestCandidate() {
+        return testCandidate;
+    }
+
+    @Override
     public void setTestCandidate(StoredCandidate candidate) {
         this.testCandidate = candidate;
 //        if (testCandidate.getEntryProbeIndex() > 1 && !createTestCaseButton.isEnabled()) {
 //            createTestCaseButton.setEnabled(true);
 //            createTestCaseButton.setText("Create JUnit test case");
 //        }
-    }
-
-    @Override
-    public StoredCandidate getTestCandidate() {
-        return testCandidate;
     }
 
 }

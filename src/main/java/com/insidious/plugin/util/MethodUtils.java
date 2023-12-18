@@ -19,12 +19,12 @@ public class MethodUtils {
             ClassUnderTest classUnderTest,
             List<String> parameterValues,
             boolean processArgumentTypes,
-            ArrayList<DeclaredMock> enabledMock) {
+            List<DeclaredMock> declaredMocks) {
 
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.EXECUTE);
 
-        agentCommandRequest.setDeclaredMocks(enabledMock);
+        agentCommandRequest.setDeclaredMocks(declaredMocks);
 
         String qualifiedName = ApplicationManager.getApplication().runReadAction(
                 (Computable<String>) () -> {

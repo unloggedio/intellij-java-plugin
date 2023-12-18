@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.ui.stomp.FilterModel;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
@@ -21,8 +22,13 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
 
     private Map<String, Boolean> classFieldMockActiveStatus = new HashMap<>();
     private Map<String, Boolean> mockActiveStatus = new HashMap<>();
+    private FilterModel filterModel = new FilterModel();
 
     public InsidiousConfigurationState() {
+    }
+
+    public FilterModel getFilterModel() {
+        return filterModel;
     }
 
     @Override

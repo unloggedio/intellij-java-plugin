@@ -1527,6 +1527,28 @@ public class DaoService {
 
     }
 
+    public List<com.insidious.plugin.pojo.MethodCallExpression> getCallsBetween(long probe1, long probe2) {
+        try {
+            GenericRawResults<MethodCallExpression> mceList = methodCallExpressionDao.queryRaw("" +
+                            "select mc.*\n" +
+                            "from method_call mc\n" +
+                            "where mc.entryProbe_id > ? and mc.returnDataEvent < ?",
+                    methodCallExpressionDao.getRawRowMapper(),
+                    String.valueOf(probe1), String.valueOf(probe2)
+            );
+            List<MethodCallExpression> results = mceList.getResults();
+            mceList.close();
+            List<MethodCallExpressionInterface> resultsI = new ArrayList<>(results);
+
+            return buildFromDbMce(resultsI);
+        } catch (Exception e) {
+            //
+            logger.warn("Failed to get method calls between: " + probe1 + ":" + probe2);
+            return new ArrayList<>();
+        }
+
+    }
+
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
     getTestCandidatePaginated(long afterEventId, int page, int limit) throws SQLException {
         List<TestCandidateMetadata> dbCandidateList = testCandidateDao.queryBuilder()

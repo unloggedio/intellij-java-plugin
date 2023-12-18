@@ -3,13 +3,17 @@ package com.insidious.plugin.ui.methodscope;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
+import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
-import com.insidious.plugin.callbacks.StoredCandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.pojo.ReplayAllExecutionContext;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
-import com.insidious.plugin.util.*;
+import com.insidious.plugin.util.AtomicAssertionUtils;
+import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.ParameterUtils;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
 import org.json.JSONObject;
 
@@ -30,7 +34,7 @@ public class TestCandidateListedItemComponent {
     private static final Logger logger = LoggerUtil.getInstance(TestCandidateListedItemComponent.class);
     private final List<String> methodArgumentValues;
     private final Map<String, ArgumentNameValuePair> parameterMap;
-    private final StoredCandidateLifeListener storedCandidateLifeListener;
+    private final CandidateLifeListener candidateLifeListener;
     private StoredCandidate candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
@@ -46,11 +50,11 @@ public class TestCandidateListedItemComponent {
     public TestCandidateListedItemComponent(
             StoredCandidate storedCandidate,
             List<ArgumentNameValuePair> argumentNameValuePairs,
-            StoredCandidateLifeListener storedCandidateLifeListener,
+            CandidateLifeListener candidateLifeListener,
             InsidiousService insidiousService,
             MethodAdapter method) {
         this.candidateMetadata = storedCandidate;
-        this.storedCandidateLifeListener = storedCandidateLifeListener;
+        this.candidateLifeListener = candidateLifeListener;
         this.methodArgumentValues = candidateMetadata.getMethodArguments();
         this.parameterMap = generateParameterMap(argumentNameValuePairs);
         parameterPanel.setLayout(new BorderLayout());
@@ -76,11 +80,12 @@ public class TestCandidateListedItemComponent {
                     eventProperties.put("methodName", storedCandidate.getMethod().getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
                     statusLabel.setText("Executing");
-                    storedCandidateLifeListener.executeCandidate(
-                            Collections.singletonList(candidateMetadata), psiClass, ExecutionRequestSourceType.Single,
+                    candidateLifeListener.executeCandidate(
+                            Collections.singletonList(candidateMetadata), psiClass,
+                            new ReplayAllExecutionContext(ExecutionRequestSourceType.Single, false),
                             (candidateMetadata, agentCommandResponse, diffResult) -> {
                                 insidiousService.updateMethodHashForExecutedMethod(method);
-                                storedCandidateLifeListener.onCandidateSelected(candidateMetadata);
+                                candidateLifeListener.onCandidateSelected(new StoredCandidate(candidateMetadata));
                                 insidiousService.triggerGutterIconReload();
                             }
                     );
@@ -90,7 +95,7 @@ public class TestCandidateListedItemComponent {
         generateJunitLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                storedCandidateLifeListener.onGenerateJunitTestCaseRequest(candidateMetadata);
+                candidateLifeListener.onGenerateJunitTestCaseRequest(candidateMetadata);
             }
         });
         saveReplayButton.addMouseListener(new MouseAdapter() {
@@ -101,7 +106,7 @@ public class TestCandidateListedItemComponent {
                 agentCommandResponse.setMethodReturnValue(candidateMetadata.getReturnValue());
                 agentCommandResponse.setResponseType(ResponseType.NORMAL);
 
-                storedCandidateLifeListener.onSaveRequest(candidateMetadata, agentCommandResponse);
+                candidateLifeListener.onSaveRequest(candidateMetadata, agentCommandResponse);
             }
         });
 
@@ -109,7 +114,7 @@ public class TestCandidateListedItemComponent {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (!statusLabel.getText().trim().isEmpty()) {
-                    storedCandidateLifeListener.onCandidateSelected(candidateMetadata);
+                    candidateLifeListener.onCandidateSelected(candidateMetadata);
                 }
             }
         });
@@ -127,7 +132,7 @@ public class TestCandidateListedItemComponent {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                storedCandidateLifeListener.onCandidateSelected(candidateMetadata);
+                candidateLifeListener.onCandidateSelected(candidateMetadata);
             }
         });
 

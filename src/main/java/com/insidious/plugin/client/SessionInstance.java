@@ -4245,4 +4245,8 @@ public class SessionInstance implements Runnable {
     public List<TestCandidateMetadata> getTestCandidateBetween(long eventId, long eventId1) throws SQLException {
         return daoService.getTestCandidateBetween(eventId, eventId1);
     }
+
+    public List<MethodCallExpression> getMethodCallsBetween(long start, long end) {
+        return daoService.getCallsBetween(start, end);
+    }
 }

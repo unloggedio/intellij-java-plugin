@@ -1,6 +1,7 @@
 package com.insidious.plugin.callbacks;
 
 import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ReplayAllExecutionContext;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -15,7 +16,7 @@ public interface CandidateLifeListener {
             List<StoredCandidate> metadata,
             ClassUnderTest classUnderTest,
             ReplayAllExecutionContext context,
-            AgentCommandResponseListener<String> stringAgentCommandResponseListener
+            AgentCommandResponseListener<TestCandidateMetadata, String> stringAgentCommandResponseListener
     );
 
     void displayResponse(Component responseComponent, boolean isExceptionFlow);

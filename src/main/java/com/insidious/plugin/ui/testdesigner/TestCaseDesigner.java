@@ -57,7 +57,6 @@ import com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl;
 import com.intellij.psi.impl.source.tree.java.PsiThisExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.FileContentUtil;
-import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
 

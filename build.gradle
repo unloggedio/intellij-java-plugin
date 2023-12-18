@@ -128,14 +128,17 @@ runPluginVerifier {
             "IU-2019.3.5",
             "IU-2020.3.4",
             "IU-2021.3.3",
-            "IU-2022.3.3"
+            "IU-2022.3.3",
+            "IU-2023.1.5",
+            "IU-2023.2.5",
+            "IU-2023.3.1"
     ]
     verificationReportsDir = "verificationReport"
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    version = '2022.3'
+    version = '2023.3'
     plugins = ['com.intellij.java', 'maven', 'gradle', 'org.jetbrains.kotlin']
     updateSinceUntilBuild = false
     sameSinceUntilBuild = true

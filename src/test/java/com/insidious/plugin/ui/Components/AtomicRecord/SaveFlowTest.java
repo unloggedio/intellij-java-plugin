@@ -2,7 +2,7 @@ package com.insidious.plugin.ui.Components.AtomicRecord;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.agent.AgentCommandResponse;
-import com.insidious.plugin.callbacks.StoredCandidateLifeListener;
+import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.assertions.AssertionBlock;
 import com.insidious.plugin.ui.assertions.AssertionRule;
@@ -16,8 +16,10 @@ import javax.swing.*;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.Random;
 
 public class SaveFlowTest {
 
@@ -63,18 +65,18 @@ public class SaveFlowTest {
                 }
             """;
     private String responseSource = "{\"methodReturnValue\":\"{\\\"user_id\\\":1,\\\"username\\\":\\\"Something else\\\",\\\"password\\\":\\\"admin\\\",\\\"email\\\":\\\"admin@jsp_wfm\\\"}\",\"responseType\":\"NORMAL\",\"responseClassName\":\"com.jsp.jspwfm.Models.Entities.User\",\"message\":null,\"targetMethodName\":\"testFetchUser\",\"targetClassName\":\"com.jsp.jspwfm.Controllers.UserController\",\"targetMethodSignature\":\"(Ljava/lang/String;)Lcom/jsp/jspwfm/Models/Entities/User;\",\"timestamp\":1690874956616}";
-    private StoredCandidateLifeListener storedCandidateLifeListener;
+    private CandidateLifeListener storedCandidateLifeListener;
     private StoredCandidate candidate;
     private AgentCommandResponse<String> agentCommandResponse;
 
     @BeforeEach
     public void setup() throws Exception {
-        storedCandidateLifeListener = Mockito.mock(StoredCandidateLifeListener.class);
+        storedCandidateLifeListener = Mockito.mock(CandidateLifeListener.class);
         candidate = objectMapper.readValue(storedCandidateSource, StoredCandidate.class);
         agentCommandResponse = objectMapper.readValue(responseSource, AgentCommandResponse.class);
     }
 
-//    @Test
+    //    @Test
     public void testComponentManagement() {
         SaveForm saveForm = new SaveForm(candidate, agentCommandResponse, storedCandidateLifeListener);
 
@@ -131,7 +133,7 @@ public class SaveFlowTest {
         Assertions.assertEquals(1, ruleEditor.getAssertionRules().size());
     }
 
-//    @Test
+    //    @Test
     public void testColorCodes() {
         SaveForm saveForm = new SaveForm(candidate, agentCommandResponse, storedCandidateLifeListener);
         AssertionRule rootRule = saveForm.getRuleEditor().getAssertionRules().get(0);
