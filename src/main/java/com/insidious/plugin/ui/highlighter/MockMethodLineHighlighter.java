@@ -43,9 +43,11 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
         }
         String expressionParentClass = parentClass.getQualifiedName();
 
-        String fieldParentClass = ((PsiClass) ((PsiReferenceExpression) qualifier).resolve()
-                .getParent()).getQualifiedName();
-        if (!Objects.equals(fieldParentClass, expressionParentClass)) {
+        PsiClass fieldParentPsiClass = (PsiClass) ((PsiReferenceExpression) qualifier).resolve()
+                .getParent();
+        String fieldParentClass = fieldParentPsiClass.getQualifiedName();
+        if (!Objects.equals(fieldParentClass, expressionParentClass) &&
+                !IsImplementedBy(fieldParentPsiClass, parentClass)) {
             // this field belongs to some other class
             return false;
         }
@@ -65,6 +67,78 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
 
     }
 
+    // method call expressions are in the form
+    // <optional qualifier>.<method reference name>( < arguments list > )
+    public static boolean isNonStaticDependencyCall(PsiMethod targetMethod) {
+
+        // not mocking static calls for now
+        if (targetMethod == null) {
+            logger.warn("Failed to resolve target method call: " + targetMethod.getText());
+            return false;
+        }
+        PsiModifierList modifierList = targetMethod.getModifierList();
+        if (modifierList.hasModifierProperty(PsiModifier.STATIC)) {
+            return false;
+        }
+
+        return true;
+
+    }
+
+    public static boolean isNonStaticDependencyCall(PsiMethodReferenceExpression methodCall) {
+        final PsiExpression qualifier = methodCall.getQualifierExpression();
+        if (!(qualifier instanceof PsiReferenceExpression) ||
+                !(((PsiReferenceExpression) qualifier).resolve() instanceof PsiField)) {
+            return false;
+        }
+
+        PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCall, PsiClass.class);
+        if (parentClass == null) {
+            logger.warn("parent class is null [" + methodCall.getText() + " ]");
+            return false;
+        }
+        String expressionParentClass = parentClass.getQualifiedName();
+
+        PsiClass fieldParentPsiClass = (PsiClass) ((PsiReferenceExpression) qualifier).resolve()
+                .getParent();
+        String fieldParentClass = fieldParentPsiClass.getQualifiedName();
+        if (!Objects.equals(fieldParentClass, expressionParentClass) &&
+                !IsImplementedBy(fieldParentPsiClass, parentClass)) {
+            // this field belongs to some other class
+            return false;
+        }
+
+        // not mocking static calls for now
+        PsiMethod targetMethod = (PsiMethod) methodCall.getReference().resolve();
+        if (targetMethod == null) {
+            logger.warn("Failed to resolve target method call: " + methodCall.getText());
+            return false;
+        }
+        PsiModifierList modifierList = targetMethod.getModifierList();
+        if (modifierList.hasModifierProperty(PsiModifier.STATIC)) {
+            return false;
+        }
+
+        return true;
+
+    }
+
+    private static boolean IsImplementedBy(PsiClass topClass, PsiClass bottomClass) {
+        if (bottomClass == null) {
+            return false;
+        }
+        if (bottomClass.getQualifiedName().equals(topClass.getQualifiedName())) {
+            return true;
+        }
+        for (PsiClassType referencedType : bottomClass.getImplementsList().getReferencedTypes()) {
+            if (IsImplementedBy(topClass, referencedType.resolve())) {
+                return true;
+            }
+        }
+
+        return IsImplementedBy(topClass, bottomClass.getSuperClass());
+    }
+
 
     @Override
     public void collectSlowLineMarkers(@NotNull List<? extends PsiElement> elements, @NotNull Collection<? super LineMarkerInfo<?>> result) {
@@ -76,6 +150,21 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
             Matcher previewFileMatcher = testPreviewFilePattern.matcher(element.getContainingFile().getName());
             if (previewFileMatcher.matches()) {
                 continue;
+            }
+            logger.warn("element [" + element.getClass().getName() + "] => " + element);
+            if (element instanceof PsiMethodReferenceExpression) {
+                final PsiMethodReferenceExpression methodCall = (PsiMethodReferenceExpression) element;
+                final PsiStatement statement = PsiTreeUtil.getParentOfType(methodCall, PsiStatement.class, true,
+                        PsiMethod.class);
+                if (!statements.contains(statement) && isNonStaticDependencyCall(methodCall)) {
+                    statements.add(statement);
+                    ContainerUtil.addIfNotNull(result,
+                            new LineMarkerInfo<>(
+                                    (PsiIdentifier) element.getFirstChild().getLastChild(),
+                                    methodCall.getTextRange(), UIUtils.GHOST_MOCK,
+                                    psiIdentifier -> "Add mock response",
+                                    methodMockGutterNavigationHandler, GutterIconRenderer.Alignment.LEFT));
+                }
             }
             if (element instanceof PsiMethodCallExpression) {
                 final PsiMethodCallExpression methodCall = (PsiMethodCallExpression) element;
