@@ -594,7 +594,7 @@ public class AtomicRecordService {
                 .stream().map(e -> e.getDeclaredMockMap().values())
                 .flatMap(Collection::stream)
                 .flatMap(Collection::stream)
-                .filter(e -> e.getSourceClassName() != null && e.getSourceClassName().equals(methodUnderTest.getClassName()))
+//                .filter(e -> e.getSourceClassName() != null && e.getSourceClassName().equals(methodUnderTest.getClassName()))
                 .collect(Collectors.toList());
 
     }
