@@ -253,7 +253,7 @@ final public class InsidiousService implements
                                 "project [" + project.getName() + "]" +
                                 " -> " + mostRecentSession.getLogFilePath());
                         checkCache.put(mostRecentSession.getSessionId(), false);
-                        return false;
+//                        return false;
                     }
                     logger.warn("Package for agent [" + finalIncludedPackagedName + "] FOUND in current " +
                             "project [" + project.getName() + "]" +

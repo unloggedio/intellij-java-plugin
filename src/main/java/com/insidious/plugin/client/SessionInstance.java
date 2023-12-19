@@ -1928,6 +1928,13 @@ public class SessionInstance implements Runnable {
 
                 for (String archiveFile : archiveFiles) {
                     checkProgressIndicator(null, "Reading events from  " + archiveFile);
+                    if (archiveIndex == null) {
+                        try {
+                            readClassWeaveInfoStream(sessionArchive);
+                        } catch (FailedToReadClassWeaveException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
 
                     if (remaining == 0) {
                         break;
@@ -3177,14 +3184,25 @@ public class SessionInstance implements Runnable {
                         continue;
                     }
 
-                    ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
+                    ClassInfo probeClassInfo = classInfoIndex.get(probeInfo.getClassId());
                     String topCallSubjectType = methodCallSubjectTypeMap.get(threadState.getTopCall().getId());
 //                            parameterContainer.getParameterByValue(threadState.getTopCall().getSubject()).getType();
 //                    String topCallSubjectType = topCallSubject.getType();
-                    String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(classInfo.getClassName());
+                    String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(probeClassInfo.getClassName());
 
 
-                    if (!topCallSubjectType.equals(currentProbeClassOwner)
+                    boolean isMethodClassSameAsProbedClass = topCallSubjectType.equals(currentProbeClassOwner);
+
+                    ClassInfo topCallClassInfo = classInfoIndexByName.get(topCallSubjectType);
+                    while (topCallClassInfo != null) {
+                        if (probeClassInfo.getClassName().equals(topCallClassInfo.getSuperName())) {
+                            isMethodClassSameAsProbedClass = true;
+                            break;
+                        }
+                        topCallClassInfo = classInfoIndexByName.get(ClassTypeUtils.getDottedClassName(topCallClassInfo.getSuperName()));
+                    }
+
+                    if (!isMethodClassSameAsProbedClass
                             || threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
 
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
@@ -3273,6 +3291,8 @@ public class SessionInstance implements Runnable {
 
                     if (completedMainMethod != null) {
                         completedExceptional.setTestSubject(completedMainMethod.getSubject());
+                    } else {
+                        logger.error("completedMainMethod is null");
                     }
 
 
