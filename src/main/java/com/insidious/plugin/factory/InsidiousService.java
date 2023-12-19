@@ -150,8 +150,9 @@ final public class InsidiousService implements
     private HighlightedRequest currentHighlightedRequest = null;
     private Content introPanelContent = null;
     private Map<String, GutterState> cachedGutterState = new HashMap<>();
+    private AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
     private GetProjectSessionsCallback sessionListener;
-
+    private ReportingService reportingService = new ReportingService(this);
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -314,6 +315,10 @@ final public class InsidiousService implements
 
     private static String getClassMethodHashKey(AgentCommandRequest agentCommandRequest) {
         return agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
+    }
+
+    public ReportingService getReportingService() {
+        return reportingService;
     }
 
     public MethodAdapter getCurrentMethod() {
@@ -1423,7 +1428,13 @@ final public class InsidiousService implements
         } else {
             executionRecord.put(keyName, newDiffRecord);
         }
-        addExecutionRecord(newDiffRecord);
+        addExecutionRecord(new AutoExecutorReportRecord(newDiffRecord,
+                sessionInstance.getProcessedFileCount(),
+                sessionInstance.getTotalFileCount()));
+    }
+
+    public void addExecutionRecord(AutoExecutorReportRecord result) {
+        reportingService.addRecord(result);
     }
 
     public void addExecutionRecord(DifferenceResult result) {
@@ -1686,6 +1697,10 @@ final public class InsidiousService implements
             contentManager.addContent(introPanelContent);
         }
         contentManager.setSelectedContent(introPanelContent);
+    }
+
+    public void executeAllMethodsInCurrentClass() {
+        automaticExecutorService.executeAllJavaMethodsInProject();
     }
 
     public void loadDefaultSession() {

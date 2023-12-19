@@ -10,6 +10,7 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
+import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.*;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -184,7 +185,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         scrollerContainer.setVisible(true);
 
 
-        ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), psiClass -> {
+        ClassUtils.chooseClassImplementation(methodElement.getContainingClass(), true, psiClass -> {
             JSONObject eventProperties = new JSONObject();
             eventProperties.put("className", psiClass.getQualifiedClassName());
             eventProperties.put("methodName", methodElement.getName());
@@ -312,11 +313,11 @@ public class MethodDirectInvokeComponent implements ActionListener {
 //                        diffResult.setMethodAdapter(methodElement);
                         diffResult.setResponse(agentCommandResponse);
                         diffResult.setCommand(agentCommandRequest);
-                        insidiousService.addExecutionRecord(diffResult);
+                        insidiousService.addExecutionRecord(new AutoExecutorReportRecord(diffResult,
+                                insidiousService.getSessionInstance().getProcessedFileCount(),
+                                insidiousService.getSessionInstance().getTotalFileCount()));
                     });
         });
-
-
     }
 
     public void renderForMethod(MethodAdapter methodElement1) {
