@@ -12,6 +12,8 @@ import com.insidious.plugin.agent.*;
 import com.insidious.plugin.atomicrecord.AtomicRecordService;
 import com.insidious.plugin.auth.RequestAuthentication;
 import com.insidious.plugin.auth.SimpleAuthority;
+import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
+import com.insidious.plugin.autoexecutor.AutomaticExecutorService;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
@@ -32,7 +34,10 @@ import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
-import com.insidious.plugin.util.*;
+import com.insidious.plugin.util.ClassUtils;
+import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.TestCandidateUtils;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
@@ -60,7 +65,9 @@ import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
-import com.intellij.openapi.fileEditor.*;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileEditor.FileEditor;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -722,6 +729,54 @@ final public class InsidiousService implements
                 logger.warn("failed to execute command - " + e.getMessage(), e);
             }
         });
+    }
+
+    public void executeMethodInRunningProcessSync(
+            AgentCommandRequest agentCommandRequest,
+            ExecutionResponseListener executionResponseListener
+    ) {
+
+        methodArgumentValueCache.addArgumentSet(agentCommandRequest);
+        agentCommandRequest.setRequestAuthentication(getRequestAuthentication());
+
+        MethodUnderTest methodUnderTest = new MethodUnderTest(
+                agentCommandRequest.getMethodName(), agentCommandRequest.getMethodSignature(),
+                0, agentCommandRequest.getClassName()
+        );
+
+        List<DeclaredMock> availableMocks = getDeclaredMocksFor(methodUnderTest);
+        if (agentCommandRequest.getRequestType().equals(DIRECT_INVOKE)) {
+            List<DeclaredMock> activeMocks = availableMocks
+                    .stream()
+//              .filter(e -> isFieldMockActive(e.getSourceClassName(), e.getFieldName()))
+                    .filter(this::isMockEnabled)
+                    .collect(Collectors.toList());
+
+            agentCommandRequest.setDeclaredMocks(activeMocks);
+        } else {
+            List<DeclaredMock> enabledMock = agentCommandRequest.getDeclaredMocks();
+            ArrayList<DeclaredMock> setMock = new ArrayList<>();
+
+            for (DeclaredMock localMock : enabledMock) {
+                if (availableMocks.contains(localMock)) {
+                    setMock.add(localMock);
+                }
+            }
+            agentCommandRequest.setDeclaredMocks(setMock);
+        }
+
+        try {
+            AgentCommandResponse<String> agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
+            logger.warn("agent command response - " + agentCommandResponse);
+            if (executionResponseListener != null) {
+                cachedGutterState.remove(methodUnderTest.getMethodHashKey());
+                executionResponseListener.onExecutionComplete(agentCommandRequest, agentCommandResponse);
+            } else {
+                logger.warn("no body listening for the response");
+            }
+        } catch (IOException e) {
+            logger.warn("failed to execute command - " + e.getMessage(), e);
+        }
     }
 
     private RequestAuthentication getRequestAuthentication() {

@@ -84,7 +84,12 @@ public class ClassUtils {
                                 rawTypeCanonicalText.equals("java.util.Set")
                 ) {
                     dummyValue.append("[");
-                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
+                    PsiType type =
+                            ApplicationManager.getApplication().runReadAction((Computable<PsiType>) () ->
+                                    classReferenceType.getParameters().length > 0 ?
+                                            classReferenceType.getParameters()[0] : PsiType.getTypeByName("java.lang" +
+                                            ".Object", project, GlobalSearchScope.allScope(project)));
+                    dummyValue.append(createDummyValue(type, creationStack, project));
                     dummyValue.append("]");
                     return dummyValue.toString();
                 }

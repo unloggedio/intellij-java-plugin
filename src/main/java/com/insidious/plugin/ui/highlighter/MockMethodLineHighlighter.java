@@ -151,7 +151,7 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
             if (previewFileMatcher.matches()) {
                 continue;
             }
-            logger.warn("element [" + element.getClass().getName() + "] => " + element);
+//            logger.warn("element [" + element.getClass().getName() + "] => " + element);
             if (element instanceof PsiMethodReferenceExpression) {
                 final PsiMethodReferenceExpression methodCall = (PsiMethodReferenceExpression) element;
                 final PsiStatement statement = PsiTreeUtil.getParentOfType(methodCall, PsiStatement.class, true,
