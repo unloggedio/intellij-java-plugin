@@ -142,7 +142,7 @@ public class ReportingService {
         cell.setCellValue(output);
 
         //make check for plugin exception
-        String exceptionTrace = isException ? result.getResponse().getMethodReturnValue().toString() : "";
+        String exceptionTrace = isException ? String.valueOf(result.getResponse().getMethodReturnValue()) : "";
 //        System.out.println("Exception trace : "+exceptionTrace);
         if (pluginException) {
             exceptionTrace = "plugin exception, no response";

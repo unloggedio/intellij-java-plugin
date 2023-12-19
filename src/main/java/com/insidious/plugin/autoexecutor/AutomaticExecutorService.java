@@ -23,18 +23,26 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.*;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.*;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.util.indexing.FileBasedIndex;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class AutomaticExecutorService {
 
-    private InsidiousService insidiousService;
-    private AutoExecutionRecordQueue reportingQueue;
+    private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(50);
+    private final InsidiousService insidiousService;
+    private final AutoExecutionRecordQueue reportingQueue;
     private Thread consumerThread;
     private boolean executeInBackground = true;
 
@@ -51,7 +59,7 @@ public class AutomaticExecutorService {
         }
     }
 
-    private void executeAllMethodsForClass(ClassAdapter sourceClass) {
+    public void executeAllMethodsForClass(ClassAdapter sourceClass) {
         ObjectMapper objectMapper = new ObjectMapper();
         insidiousService.getReportingService().setReportingEnabled(true);
         MethodAdapter[] methods = sourceClass.getMethods();
@@ -61,13 +69,13 @@ public class AutomaticExecutorService {
 
             if (parameters.length > 0) {
                 for (ParameterAdapter parameterAdapter : parameters) {
-                    String value = ClassUtils.createDummyValue(parameterAdapter.getType(), new ArrayList<>(4),
-                            insidiousService.getProject());
+                    String value = ApplicationManager.getApplication().runReadAction(
+                            (Computable<String>) () -> ClassUtils.createDummyValue(parameterAdapter.getType(),
+                                    new ArrayList<>(4), insidiousService.getProject()));
                     argumentValues.add(value);
                 }
             }
 
-            System.out.println("Executing method " + methodAdapter.getName());
             ClassUtils.chooseClassImplementation(methodAdapter.getContainingClass(), false, psiClass -> {
                 JSONObject eventProperties = new JSONObject();
                 eventProperties.put("className", psiClass.getQualifiedClassName());
@@ -80,7 +88,8 @@ public class AutomaticExecutorService {
                     ParameterAdapter parameter = params[i];
                     String parameterValue = argumentValues.get(i);
                     String cannonicalText =
-                            ApplicationManager.getApplication().runReadAction((Computable<String>) () -> parameter.getType().getCanonicalText());
+                            ApplicationManager.getApplication()
+                                    .runReadAction((Computable<String>) () -> parameter.getType().getCanonicalText());
                     if ("java.lang.String".equals(cannonicalText) &&
                             !parameterValue.startsWith("\"")) {
                         try {
@@ -97,38 +106,45 @@ public class AutomaticExecutorService {
                                 false, new ArrayList<>());
                 agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
 
-                insidiousService.executeMethodInRunningProcess(agentCommandRequest,
-                        (agentCommandRequest1, agentCommandResponse) -> {
-                            if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
-                                if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
-                                    InsidiousNotification.notifyMessage(
-                                            "Exception thrown when trying to invoke " + agentCommandRequest.getMethodName(),
-                                            NotificationType.ERROR
-                                    );
-                                    return;
-                                }
-                            }
-                            ResponseType responseType1 = agentCommandResponse.getResponseType();
-                            DiffResultType diffResultType = responseType1.equals(
-                                    ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
-                            DifferenceResult diffResult = new DifferenceResult(null,
-                                    diffResultType, null,
-                                    DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
-                            diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
-                            diffResult.setResponse(agentCommandResponse);
-                            diffResult.setCommand(agentCommandRequest);
+                threadPoolExecutor.submit(() -> {
+                    ApplicationManager.getApplication().runReadAction(() -> {
+                        System.out.println("Executing method " + methodAdapter.getName());
+                        insidiousService.executeMethodInRunningProcessSync(agentCommandRequest,
+                                (agentCommandRequest1, agentCommandResponse) -> {
+                                    if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
+                                        if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
+                                            InsidiousNotification.notifyMessage(
+                                                    "Exception thrown when trying to invoke " + agentCommandRequest.getMethodName(),
+                                                    NotificationType.ERROR
+                                            );
+                                            return;
+                                        }
+                                    }
+                                    ResponseType responseType1 = agentCommandResponse.getResponseType();
+                                    DiffResultType diffResultType = responseType1.equals(
+                                            ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
+                                    DifferenceResult diffResult = new DifferenceResult(null,
+                                            diffResultType, null,
+                                            DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
+                                    diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
+                                    diffResult.setResponse(agentCommandResponse);
+                                    diffResult.setCommand(agentCommandRequest);
 
-                            if (reportingQueue.isFull()) {
-                                try {
-                                    reportingQueue.waitIsNotFull();
-                                } catch (InterruptedException e) {
+                                    if (reportingQueue.isFull()) {
+                                        try {
+                                            reportingQueue.waitIsNotFull();
+                                        } catch (InterruptedException e) {
 //                                    System.out.println("Error while waiting to Produce messages.");
-                                }
-                            }
-                            reportingQueue.add(new AutoExecutorReportRecord(diffResult,
-                                    insidiousService.getSessionInstance().getProcessedFileCount(),
-                                    insidiousService.getSessionInstance().getTotalFileCount()));
-                        });
+                                        }
+                                    }
+                                    reportingQueue.add(new AutoExecutorReportRecord(diffResult,
+                                            insidiousService.getSessionInstance().getProcessedFileCount(),
+                                            insidiousService.getSessionInstance().getTotalFileCount()));
+                                });
+                    });
+
+                });
+
             });
         }
     }
@@ -146,21 +162,26 @@ public class AutomaticExecutorService {
                 consumerThread.start();
 
                 System.out.println("Starting execution of all ");
-                Collection<VirtualFile> javaFiles = ApplicationManager.getApplication().runReadAction((Computable<Collection<VirtualFile>>) () -> FileBasedIndex.getInstance()
-                        .getContainingFiles(
-                                FileTypeIndex.NAME,
-                                JavaFileType.INSTANCE,
-                                GlobalJavaSearchContext.projectScope(insidiousService.getProject())));
+                Collection<VirtualFile> javaFiles = ApplicationManager.getApplication()
+                        .runReadAction((Computable<Collection<VirtualFile>>) () -> FileBasedIndex.getInstance()
+                                .getContainingFiles(
+                                        FileTypeIndex.NAME,
+                                        JavaFileType.INSTANCE,
+                                        GlobalJavaSearchContext.projectScope(insidiousService.getProject())));
                 for (VirtualFile virtualFile : javaFiles) {
                     PsiFile psiFile =
-                            ApplicationManager.getApplication().runReadAction((Computable<PsiFile>) () -> PsiManager.getInstance(insidiousService.getProject()).findFile(virtualFile));
+                            ApplicationManager.getApplication().runReadAction(
+                                    (Computable<PsiFile>) () -> PsiManager.getInstance(insidiousService.getProject())
+                                            .findFile(virtualFile));
                     if (psiFile instanceof PsiJavaFile) {
                         PsiJavaFile psiJavaFile = (PsiJavaFile) psiFile;
                         PsiClass[] javaFileClasses =
-                                ApplicationManager.getApplication().runReadAction((Computable<PsiClass[]>) () -> psiJavaFile.getClasses());
+                                ApplicationManager.getApplication()
+                                        .runReadAction((Computable<PsiClass[]>) () -> psiJavaFile.getClasses());
                         for (PsiClass javaFileClass : javaFileClasses) {
                             String currentClassname =
-                                    ApplicationManager.getApplication().runReadAction((Computable<String>) () -> javaFileClass.getName());
+                                    ApplicationManager.getApplication()
+                                            .runReadAction((Computable<String>) () -> javaFileClass.getName());
                             checkProgressIndicator("Executing methods in class", currentClassname);
                             executeAllMethodsForClass(new JavaClassAdapter(javaFileClass));
                         }
