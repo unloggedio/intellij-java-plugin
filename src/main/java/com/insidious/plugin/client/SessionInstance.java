@@ -3188,41 +3188,40 @@ public class SessionInstance implements Runnable {
                         threadState.setSkipTillNextMethodExit(true);
                         continue;
                     }
+//
+//                    ClassInfo probeClassInfo = classInfoIndex.get(probeInfo.getClassId());
+//                    String topCallSubjectType = methodCallSubjectTypeMap.get(threadState.getTopCall().getId());
+////                            parameterContainer.getParameterByValue(threadState.getTopCall().getSubject()).getType();
+////                    String topCallSubjectType = topCallSubject.getType();
+//                    String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(probeClassInfo.getClassName());
+//
+//
+//                    boolean isMethodClassSameAsProbedClass =
+//                            topCallSubjectType.equals(currentProbeClassOwner) ||
+//                                    "java.lang.Object".equals(topCallSubjectType);
+//
+//                    ClassInfo topCallClassInfo = classInfoIndexByName.get(topCallSubjectType);
+//                    while (topCallClassInfo != null && !isMethodClassSameAsProbedClass) {
+//                        if (probeClassInfo.getClassName().equals(topCallClassInfo.getSuperName())) {
+//                            isMethodClassSameAsProbedClass = true;
+//                            break;
+//                        }
+//                        topCallClassInfo = classInfoIndexByName.get(
+//                                ClassTypeUtils.getDottedClassName(topCallClassInfo.getSuperName()));
+//                    }
+//
+//                    ClassInfo probeClassInfoCurrent = probeClassInfo;
+//                    while (probeClassInfoCurrent != null && !isMethodClassSameAsProbedClass) {
+//                        if (topCallSubjectType.equals(
+//                                ClassTypeUtils.getDottedClassName(probeClassInfoCurrent.getClassName()))) {
+//                            isMethodClassSameAsProbedClass = true;
+//                            break;
+//                        }
+//                        probeClassInfoCurrent = classInfoIndexByName.get(
+//                                ClassTypeUtils.getDottedClassName(probeClassInfoCurrent.getSuperName()));
+//                    }
 
-                    ClassInfo probeClassInfo = classInfoIndex.get(probeInfo.getClassId());
-                    String topCallSubjectType = methodCallSubjectTypeMap.get(threadState.getTopCall().getId());
-//                            parameterContainer.getParameterByValue(threadState.getTopCall().getSubject()).getType();
-//                    String topCallSubjectType = topCallSubject.getType();
-                    String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(probeClassInfo.getClassName());
-
-
-                    boolean isMethodClassSameAsProbedClass =
-                            topCallSubjectType.equals(currentProbeClassOwner) ||
-                                    "java.lang.Object".equals(topCallSubjectType);
-
-                    ClassInfo topCallClassInfo = classInfoIndexByName.get(topCallSubjectType);
-                    while (topCallClassInfo != null && !isMethodClassSameAsProbedClass) {
-                        if (probeClassInfo.getClassName().equals(topCallClassInfo.getSuperName())) {
-                            isMethodClassSameAsProbedClass = true;
-                            break;
-                        }
-                        topCallClassInfo = classInfoIndexByName.get(
-                                ClassTypeUtils.getDottedClassName(topCallClassInfo.getSuperName()));
-                    }
-
-                    ClassInfo probeClassInfoCurrent = probeClassInfo;
-                    while (probeClassInfoCurrent != null && !isMethodClassSameAsProbedClass) {
-                        if (topCallSubjectType.equals(
-                                ClassTypeUtils.getDottedClassName(probeClassInfoCurrent.getClassName()))) {
-                            isMethodClassSameAsProbedClass = true;
-                            break;
-                        }
-                        probeClassInfoCurrent = classInfoIndexByName.get(
-                                ClassTypeUtils.getDottedClassName(probeClassInfoCurrent.getSuperName()));
-                    }
-
-                    if (!isMethodClassSameAsProbedClass
-                            || threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
+                    if (threadState.candidateSize() + 1 == threadState.getCallStackSize()) {
 
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
