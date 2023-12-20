@@ -135,6 +135,13 @@ public class DaoService {
             "where md.ownerType = ?\n" +
             "group by mc.methodName\n" +
             "order by mc.methodName;";
+
+    public static final String QUERY_PROCESSED_FILE_COUNT = "select count(*)\n" +
+            "from log_file lf\n" +
+            "where lf.status = 'completed'";
+    public static final String QUERY_FILE_COUNT = "select count(*)\n" +
+            "from log_file lf'";
+
     private final static Logger logger = LoggerUtil.getInstance(DaoService.class);
     private static final String QUERY_METHOD_DEFINITIONS_BY_ID_IN = "select * from method_definition where id in (IDS)";
     private final ObjectMapper objectMapper;
@@ -1364,6 +1371,7 @@ public class DaoService {
                 .query();
     }
 
+
     public long getPendingLogFilesToProcessCount() throws SQLException {
         return logFilesDao.queryBuilder().where().eq("status", Constants.PENDING).countOf();
     }
@@ -1619,5 +1627,24 @@ public class DaoService {
                     }
                 })
                 .collect(Collectors.toList());
+    }
+
+    public int getProcessedFileCount() {
+        try {
+            GenericRawResults<String[]> rows = logFilesDao.queryRaw(QUERY_PROCESSED_FILE_COUNT);
+            Optional<String> processed_count = Arrays.stream(rows.getFirstResult()).findFirst();
+            return Integer.parseInt(processed_count.get());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public int getTotalFileCount() {
+        try {
+            long count = logFilesDao.countOf();
+            return (int) count;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

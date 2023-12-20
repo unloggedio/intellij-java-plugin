@@ -43,6 +43,7 @@ import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.IndexNotReadyException;
@@ -1962,6 +1963,13 @@ public class SessionInstance implements Runnable {
 
                 for (String archiveFile : archiveFiles) {
                     checkProgressIndicator(null, "Reading events from  " + archiveFile);
+                    if (archiveIndex == null) {
+                        try {
+                            readClassWeaveInfoStream(sessionArchive);
+                        } catch (FailedToReadClassWeaveException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
 
                     if (remaining == 0) {
                         break;
@@ -2344,9 +2352,13 @@ public class SessionInstance implements Runnable {
 //            checkProgressIndicator("Saving " + allParameters.size() + " parameters", "");
 //            daoService.createOrUpdateParameter(allParameters);
             if (newCandidateIdentified && testCandidateListener != null) {
-                int finalProcessedCount = processedCount;
-                testCandidateListener.forEach(e -> e.onNewTestCandidateIdentified(finalProcessedCount,
-                        logFilesToProcess.size()));
+                final int finalProcessedCount = processedCount;
+                testCandidateListener.forEach(e -> {
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        e.onNewTestCandidateIdentified(finalProcessedCount,
+                                logFilesToProcess.size());
+                    });
+                });
             }
 
 
@@ -2530,7 +2542,7 @@ public class SessionInstance implements Runnable {
 
 
             final long eventValue = eventBlock.valueId();
-
+// 70849
             DataInfo probeInfo = probeInfoIndex.get(eventBlock.probeId());
             if (probeInfo == null) {
                 try {
@@ -3206,16 +3218,40 @@ public class SessionInstance implements Runnable {
                         threadState.setSkipTillNextMethodExit(true);
                         continue;
                     }
+//
+//                    ClassInfo probeClassInfo = classInfoIndex.get(probeInfo.getClassId());
+//                    String topCallSubjectType = methodCallSubjectTypeMap.get(threadState.getTopCall().getId());
+////                            parameterContainer.getParameterByValue(threadState.getTopCall().getSubject()).getType();
+////                    String topCallSubjectType = topCallSubject.getType();
+//                    String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(probeClassInfo.getClassName());
+//
+//
+//                    boolean isMethodClassSameAsProbedClass =
+//                            topCallSubjectType.equals(currentProbeClassOwner) ||
+//                                    "java.lang.Object".equals(topCallSubjectType);
+//
+//                    ClassInfo topCallClassInfo = classInfoIndexByName.get(topCallSubjectType);
+//                    while (topCallClassInfo != null && !isMethodClassSameAsProbedClass) {
+//                        if (probeClassInfo.getClassName().equals(topCallClassInfo.getSuperName())) {
+//                            isMethodClassSameAsProbedClass = true;
+//                            break;
+//                        }
+//                        topCallClassInfo = classInfoIndexByName.get(
+//                                ClassTypeUtils.getDottedClassName(topCallClassInfo.getSuperName()));
+//                    }
+//
+//                    ClassInfo probeClassInfoCurrent = probeClassInfo;
+//                    while (probeClassInfoCurrent != null && !isMethodClassSameAsProbedClass) {
+//                        if (topCallSubjectType.equals(
+//                                ClassTypeUtils.getDottedClassName(probeClassInfoCurrent.getClassName()))) {
+//                            isMethodClassSameAsProbedClass = true;
+//                            break;
+//                        }
+//                        probeClassInfoCurrent = classInfoIndexByName.get(
+//                                ClassTypeUtils.getDottedClassName(probeClassInfoCurrent.getSuperName()));
+//                    }
 
-                    ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
-                    String topCallSubjectType = methodCallSubjectTypeMap.get(threadState.getTopCall().getId());
-//                            parameterContainer.getParameterByValue(threadState.getTopCall().getSubject()).getType();
-//                    String topCallSubjectType = topCallSubject.getType();
-                    String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(classInfo.getClassName());
-
-
-                    if (!topCallSubjectType.equals(currentProbeClassOwner)
-                            || threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
+                    if (threadState.candidateSize() + 1 == threadState.getCallStackSize()) {
 
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
@@ -3303,6 +3339,8 @@ public class SessionInstance implements Runnable {
 
                     if (completedMainMethod != null) {
                         completedExceptional.setTestSubject(completedMainMethod.getSubject());
+                    } else {
+                        logger.error("completedMainMethod is null");
                     }
 
 
@@ -4249,4 +4287,12 @@ public class SessionInstance implements Runnable {
     public List<MethodCallExpression> getMethodCallsBetween(long start, long end) {
         return daoService.getCallsBetween(start, end);
     }
+    public int getProcessedFileCount() {
+        return daoService.getProcessedFileCount();
+    }
+
+    public int getTotalFileCount() {
+        return daoService.getTotalFileCount();
+    }
+
 }

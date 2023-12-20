@@ -41,9 +41,11 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
         }
         String expressionParentClass = parentClass.getQualifiedName();
 
-        String fieldParentClass = ((PsiClass) ((PsiReferenceExpression) qualifier).resolve()
-                .getParent()).getQualifiedName();
-        if (!Objects.equals(fieldParentClass, expressionParentClass)) {
+        PsiClass fieldParentPsiClass = (PsiClass) ((PsiReferenceExpression) qualifier).resolve()
+                .getParent();
+        String fieldParentClass = fieldParentPsiClass.getQualifiedName();
+        if (!Objects.equals(fieldParentClass, expressionParentClass) &&
+                !IsImplementedBy(fieldParentPsiClass, parentClass)) {
             // this field belongs to some other class
             return false;
         }
@@ -61,6 +63,78 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
 
         return true;
 
+    }
+
+    // method call expressions are in the form
+    // <optional qualifier>.<method reference name>( < arguments list > )
+    public static boolean isNonStaticDependencyCall(PsiMethod targetMethod) {
+
+        // not mocking static calls for now
+        if (targetMethod == null) {
+            logger.warn("Failed to resolve target method call: " + targetMethod.getText());
+            return false;
+        }
+        PsiModifierList modifierList = targetMethod.getModifierList();
+        if (modifierList.hasModifierProperty(PsiModifier.STATIC)) {
+            return false;
+        }
+
+        return true;
+
+    }
+
+    public static boolean isNonStaticDependencyCall(PsiMethodReferenceExpression methodCall) {
+        final PsiExpression qualifier = methodCall.getQualifierExpression();
+        if (!(qualifier instanceof PsiReferenceExpression) ||
+                !(((PsiReferenceExpression) qualifier).resolve() instanceof PsiField)) {
+            return false;
+        }
+
+        PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCall, PsiClass.class);
+        if (parentClass == null) {
+            logger.warn("parent class is null [" + methodCall.getText() + " ]");
+            return false;
+        }
+        String expressionParentClass = parentClass.getQualifiedName();
+
+        PsiClass fieldParentPsiClass = (PsiClass) ((PsiReferenceExpression) qualifier).resolve()
+                .getParent();
+        String fieldParentClass = fieldParentPsiClass.getQualifiedName();
+        if (!Objects.equals(fieldParentClass, expressionParentClass) &&
+                !IsImplementedBy(fieldParentPsiClass, parentClass)) {
+            // this field belongs to some other class
+            return false;
+        }
+
+        // not mocking static calls for now
+        PsiMethod targetMethod = (PsiMethod) methodCall.getReference().resolve();
+        if (targetMethod == null) {
+            logger.warn("Failed to resolve target method call: " + methodCall.getText());
+            return false;
+        }
+        PsiModifierList modifierList = targetMethod.getModifierList();
+        if (modifierList.hasModifierProperty(PsiModifier.STATIC)) {
+            return false;
+        }
+
+        return true;
+
+    }
+
+    private static boolean IsImplementedBy(PsiClass topClass, PsiClass bottomClass) {
+        if (bottomClass == null) {
+            return false;
+        }
+        if (bottomClass.getQualifiedName().equals(topClass.getQualifiedName())) {
+            return true;
+        }
+        for (PsiClassType referencedType : bottomClass.getImplementsList().getReferencedTypes()) {
+            if (IsImplementedBy(topClass, referencedType.resolve())) {
+                return true;
+            }
+        }
+
+        return IsImplementedBy(topClass, bottomClass.getSuperClass());
     }
 
 

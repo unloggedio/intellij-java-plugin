@@ -10,6 +10,7 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
+import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.GutterState;
@@ -392,13 +393,11 @@ public class MethodDirectInvokeComponent implements ActionListener {
 //                        diffResult.setMethodAdapter(methodElement);
                         diffResult.setResponse(agentCommandResponse);
                         diffResult.setCommand(agentCommandRequest);
-                        insidiousService.addExecutionRecord(diffResult);
-                        methodParameterScrollContainer.revalidate();
-                        methodParameterScrollContainer.repaint();
+                        insidiousService.addExecutionRecord(new AutoExecutorReportRecord(diffResult,
+                                insidiousService.getSessionInstance().getProcessedFileCount(),
+                                insidiousService.getSessionInstance().getTotalFileCount()));
                     });
         });
-
-
     }
 
     public void renderForMethod(MethodAdapter methodElement1, List<String> methodArgumentValues) {
