@@ -41,11 +41,11 @@ public class StompItem {
     private JPanel detailPanel;
     private JPanel infoPanel;
     private JPanel titleLabelContainer;
-    private JPanel controlPanel;
-    private JPanel controlContainer;
     private JPanel metadataPanel;
     private JCheckBox selectCandidateCheckbox;
     private JLabel replaySingle;
+    private JPanel controlPanel;
+    private JPanel controlContainer;
     private boolean isPinned = false;
 
     public StompItem(

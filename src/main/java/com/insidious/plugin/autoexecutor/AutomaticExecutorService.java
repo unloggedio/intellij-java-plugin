@@ -106,44 +106,42 @@ public class AutomaticExecutorService {
                                 false, new ArrayList<>());
                 agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
 
-                threadPoolExecutor.submit(() -> {
-                    ApplicationManager.getApplication().runReadAction(() -> {
-                        System.out.println("Executing method " + methodAdapter.getName());
-                        insidiousService.executeMethodInRunningProcessSync(agentCommandRequest,
-                                (agentCommandRequest1, agentCommandResponse) -> {
-                                    if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
-                                        if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
-                                            InsidiousNotification.notifyMessage(
-                                                    "Exception thrown when trying to invoke " + agentCommandRequest.getMethodName(),
-                                                    NotificationType.ERROR
-                                            );
-                                            return;
-                                        }
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    System.out.println("Executing method " + methodAdapter.getName());
+                    insidiousService.executeMethodInRunningProcessSync(agentCommandRequest,
+                            (agentCommandRequest1, agentCommandResponse) -> {
+                                if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
+                                    if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
+                                        InsidiousNotification.notifyMessage(
+                                                "Exception thrown when trying to invoke " + agentCommandRequest.getMethodName(),
+                                                NotificationType.ERROR
+                                        );
+                                        return;
                                     }
-                                    ResponseType responseType1 = agentCommandResponse.getResponseType();
-                                    DiffResultType diffResultType = responseType1.equals(
-                                            ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
-                                    DifferenceResult diffResult = new DifferenceResult(null,
-                                            diffResultType, null,
-                                            DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
-                                    diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
-                                    diffResult.setResponse(agentCommandResponse);
-                                    diffResult.setCommand(agentCommandRequest);
+                                }
+                                ResponseType responseType1 = agentCommandResponse.getResponseType();
+                                DiffResultType diffResultType = responseType1.equals(
+                                        ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
+                                DifferenceResult diffResult = new DifferenceResult(null,
+                                        diffResultType, null,
+                                        DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
+                                diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
+                                diffResult.setResponse(agentCommandResponse);
+                                diffResult.setCommand(agentCommandRequest);
 
-                                    if (reportingQueue.isFull()) {
-                                        try {
-                                            reportingQueue.waitIsNotFull();
-                                        } catch (InterruptedException e) {
+                                if (reportingQueue.isFull()) {
+                                    try {
+                                        reportingQueue.waitIsNotFull();
+                                    } catch (InterruptedException e) {
 //                                    System.out.println("Error while waiting to Produce messages.");
-                                        }
                                     }
-                                    reportingQueue.add(new AutoExecutorReportRecord(diffResult,
-                                            insidiousService.getSessionInstance().getProcessedFileCount(),
-                                            insidiousService.getSessionInstance().getTotalFileCount()));
-                                });
-                    });
-
+                                }
+                                reportingQueue.add(new AutoExecutorReportRecord(diffResult,
+                                        insidiousService.getSessionInstance().getProcessedFileCount(),
+                                        insidiousService.getSessionInstance().getTotalFileCount()));
+                            });
                 });
+
 
             });
         }

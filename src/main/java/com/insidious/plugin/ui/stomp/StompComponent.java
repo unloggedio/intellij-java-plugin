@@ -60,12 +60,12 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     private JPanel northPanelContainer;
     private JScrollPane historyStreamScrollPanel;
     private JPanel scrollContainer;
-    private JButton reloadButton;
-    private JButton filterButton;
+    private JLabel reloadButton;
+    private JLabel filterButton;
     private JButton saveReplayButton;
-    private JButton replayButton;
-    private JButton saveAsMockButton;
-    private JButton generateJUnitButton;
+    private JLabel replayButton;
+    private JLabel saveAsMockButton;
+    private JLabel generateJUnitButton;
     private JPanel controlPanel;
     private JPanel infoPanel;
     private JLabel selectedCountLabel;
@@ -96,6 +96,13 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         historyStreamScrollPanel.setViewportView(itemPanel);
         historyStreamScrollPanel.setBorder(BorderFactory.createEmptyBorder());
         scrollContainer.setBorder(BorderFactory.createEmptyBorder());
+
+        replayButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        saveAsMockButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        generateJUnitButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        filterButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
         reloadButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -195,15 +202,18 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         mainPanel.add(stompStatusComponent.getComponent(), BorderLayout.SOUTH);
 
 
-        replayButton.addActionListener(e -> {
+        replayButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (DumbService.getInstance(insidiousService.getProject()).isDumb()) {
+                    InsidiousNotification.notifyMessage("Please try after indexing is complete",
+                            NotificationType.WARNING);
+                    return;
+                }
 
-            if (DumbService.getInstance(insidiousService.getProject()).isDumb()) {
-                InsidiousNotification.notifyMessage("Please try after indexing is complete", NotificationType.WARNING);
-                return;
-            }
-
-            for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
-                executeSingleTestCandidate(selectedCandidate);
+                for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
+                    executeSingleTestCandidate(selectedCandidate);
+                }
             }
         });
 
@@ -279,8 +289,13 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
                 JPanel rowPanel = new JPanel(new BorderLayout());
                 rowPanel.add(labelPanel, BorderLayout.CENTER);
                 rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
-                makeSpace(0);
-                itemPanel.add(rowPanel, createGBCForLeftMainComponent(), 0);
+                if (directInvokeComponent == null) {
+                    makeSpace(0);
+                    itemPanel.add(rowPanel, createGBCForLeftMainComponent(), 0);
+                } else {
+                    makeSpace(1);
+                    itemPanel.add(rowPanel, createGBCForLeftMainComponent(), 1);
+                }
             }
         }
 
@@ -302,8 +317,8 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 
         JPanel component = stompItem.getComponent();
         candidateMetadataStompItemMap.put(testCandidateMetadata, component);
-        component.setMaximumSize(new Dimension(itemPanel.getWidth(), component_height));
-        component.setMinimumSize(new Dimension(itemPanel.getWidth(), component_height));
+        component.setMaximumSize(new Dimension(500, component_height));
+        component.setMinimumSize(new Dimension(300, component_height));
 
 
         rowPanel.add(component, BorderLayout.CENTER);
@@ -585,7 +600,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
             replayButton.setEnabled(true);
             saveReplayButton.setEnabled(true);
             controlPanel.setEnabled(true);
-            setLabelsVisible(true);
+//            setLabelsVisible(true);
         } else if (selectedCandidates.size() == 0 && controlPanel.isEnabled()) {
             selectedCountLabel.setText("None selected");
 //            reloadButton.setEnabled(false);
@@ -594,7 +609,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
             replayButton.setEnabled(false);
             saveReplayButton.setEnabled(false);
             controlPanel.setEnabled(false);
-            setLabelsVisible(false);
+//            setLabelsVisible(false);
         }
     }
 
@@ -738,7 +753,9 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         startedPanel.setLayout(new BorderLayout());
         process_started.setBorder(
                 BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(JBColor.GREEN, 2, true),
+                        BorderFactory.createLineBorder(new JBColor(
+                                new Color(35, 103, 30),
+                                new Color(35, 103, 30)), 2, true),
                         BorderFactory.createEmptyBorder(6, 6, 6, 6)
                 )
         );

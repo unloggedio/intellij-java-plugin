@@ -24,6 +24,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.search.ProjectAndLibrariesScope;
@@ -34,7 +35,6 @@ import com.intellij.ui.treeStructure.Tree;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.border.BevelBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeModelListener;
@@ -159,6 +159,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         });
         modifyArgumentsButton.addActionListener(e -> {
             modifyArgumentsButton.setVisible(false);
+            createBoilerPlate.setVisible(true);
             executeButton.setText("Execute");
             renderForMethod(methodElement, null);
         });
@@ -234,122 +235,131 @@ public class MethodDirectInvokeComponent implements ActionListener {
         }
         executeButton.setText("Executing...");
         executeButton.setEnabled(false);
+        createBoilerPlate.setVisible(false);
 
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(),
+                    psiClass -> {
+                        JSONObject eventProperties = new JSONObject();
+                        eventProperties.put("className", psiClass.getQualifiedClassName());
+                        eventProperties.put("methodName", methodElement.getName());
 
-        insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(), psiClass -> {
-            JSONObject eventProperties = new JSONObject();
-            eventProperties.put("className", psiClass.getQualifiedClassName());
-            eventProperties.put("methodName", methodElement.getName());
-
-            UsageInsightTracker.getInstance().RecordEvent("DIRECT_INVOKE", eventProperties);
-            List<String> methodArgumentValues = new ArrayList<>();
-            ParameterAdapter[] parameters = methodElement.getParameters();
-            for (int i = 0; i < parameters.length; i++) {
+                        UsageInsightTracker.getInstance().RecordEvent("DIRECT_INVOKE", eventProperties);
+                        List<String> methodArgumentValues = new ArrayList<>();
+                        ParameterAdapter[] parameters = methodElement.getParameters();
+                        for (int i = 0; i < parameters.length; i++) {
 //                ParameterInputComponent parameterInputComponent = parameterInputComponents.get(i);
-                ParameterAdapter parameter = parameters[i];
+                            ParameterAdapter parameter = parameters[i];
 
-                String selectedKey = "/" + parameter.getName();
-                JsonNode valueFromJsonNode = JsonTreeUtils.getValueFromJsonNode(argumentsValueJsonNode, selectedKey);
+                            String selectedKey = "/" + parameter.getName();
+                            JsonNode valueFromJsonNode = JsonTreeUtils.getValueFromJsonNode(argumentsValueJsonNode,
+                                    selectedKey);
 
-                String parameterValue = valueFromJsonNode.toString();
-                if ("java.lang.String".equals(parameter.getType().getCanonicalText()) &&
-                        !parameterValue.startsWith("\"")) {
-                    try {
-                        parameterValue = objectMapper.writeValueAsString(parameterValue);
-                    } catch (JsonProcessingException e) {
-                        // should never happen
-                    }
-                }
-                methodArgumentValues.add(parameterValue);
-            }
+                            String parameterValue = valueFromJsonNode.toString();
+                            String canonicalText = ApplicationManager.getApplication().runReadAction(
+                                    (Computable<String>) () -> parameter.getType().getCanonicalText());
+                            if ("java.lang.String".equals(canonicalText) &&
+                                    !parameterValue.startsWith("\"")) {
+                                try {
+                                    parameterValue = objectMapper.writeValueAsString(parameterValue);
+                                } catch (JsonProcessingException e) {
+                                    // should never happen
+                                }
+                            }
+                            methodArgumentValues.add(parameterValue);
+                        }
 
-            AgentCommandRequest agentCommandRequest =
-                    MethodUtils.createExecuteRequestWithParameters(methodElement, psiClass, methodArgumentValues,
-                            false, null);
-            agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
+                        AgentCommandRequest agentCommandRequest =
+                                MethodUtils.createExecuteRequestWithParameters(methodElement, psiClass,
+                                        methodArgumentValues,
+                                        false, null);
+                        agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
 
 
 //            returnValueTextArea.setText("Executing method [" + agentCommandRequest.getMethodName() + "()]\nin class ["
 //                    + agentCommandRequest.getClassName() + "].\nWaiting for response...");
-            insidiousService.executeMethodInRunningProcess(agentCommandRequest,
-                    (agentCommandRequest1, agentCommandResponse) -> {
-                        executeButton.setEnabled(true);
-                        executeButton.setText("Re-execute");
+                        insidiousService.executeMethodInRunningProcess(agentCommandRequest,
+                                (agentCommandRequest1, agentCommandResponse) -> {
+                                    executeButton.setEnabled(true);
+                                    executeButton.setText("Re-execute");
 //                        logger.warn("Agent command execution response: " + agentCommandResponse);
-                        if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
-                            if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
-                                InsidiousNotification.notifyMessage(
-                                        "Exception thrown when trying to direct invoke " + agentCommandRequest.getMethodName(),
-                                        NotificationType.ERROR
-                                );
-                                return;
-                            }
-                        }
+                                    if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
+                                        if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
+                                            InsidiousNotification.notifyMessage(
+                                                    "Exception thrown when trying to direct invoke " + agentCommandRequest.getMethodName(),
+                                                    NotificationType.ERROR
+                                            );
+                                            return;
+                                        }
+                                    }
 
-                        ResponseType responseType = agentCommandResponse.getResponseType();
-                        String responseMessage = agentCommandResponse.getMessage() == null ? "" :
-                                agentCommandResponse.getMessage() + "\n";
+                                    ResponseType responseType = agentCommandResponse.getResponseType();
+                                    String responseMessage = agentCommandResponse.getMessage() == null ? "" :
+                                            agentCommandResponse.getMessage() + "\n";
 //                        TitledBorder panelTitledBoarder = (TitledBorder) scrollerContainer.getBorder();
-                        String responseObjectClassName = agentCommandResponse.getResponseClassName();
-                        Object methodReturnValue = agentCommandResponse.getMethodReturnValue();
-                        modifyArgumentsButton.setVisible(true);
+                                    String responseObjectClassName = agentCommandResponse.getResponseClassName();
+                                    Object methodReturnValue = agentCommandResponse.getMethodReturnValue();
+                                    modifyArgumentsButton.setVisible(true);
 
-                        String targetClassName = agentCommandResponse.getTargetClassName();
-                        if (targetClassName == null) {
-                            targetClassName = agentCommandRequest.getClassName();
-                        }
-                        targetClassName = targetClassName.substring(targetClassName.lastIndexOf(".") + 1);
-                        String targetMethodName = agentCommandResponse.getTargetMethodName();
-                        if (targetMethodName == null) {
-                            targetMethodName = agentCommandRequest.getMethodName();
-                        }
-                        ApplicationManager.getApplication()
-                                .runWriteAction(() -> {
-                                    argumentValueTree.collapsePath(new TreePath(argumentValueTree.getModel().getRoot()));
-                                });
-                        String toolTipText = "Timestamp: " +
-                                new Timestamp(agentCommandResponse.getTimestamp()) + " from "
-                                + targetClassName + "." + targetMethodName + "( " + " )";
-                        returnValueTextArea.setToolTipText(toolTipText);
-                        if (responseType == null) {
+                                    String targetClassName = agentCommandResponse.getTargetClassName();
+                                    if (targetClassName == null) {
+                                        targetClassName = agentCommandRequest.getClassName();
+                                    }
+                                    targetClassName = targetClassName.substring(targetClassName.lastIndexOf(".") + 1);
+                                    String targetMethodName = agentCommandResponse.getTargetMethodName();
+                                    if (targetMethodName == null) {
+                                        targetMethodName = agentCommandRequest.getMethodName();
+                                    }
+                                    ApplicationManager.getApplication()
+                                            .invokeLater(() -> {
+                                                argumentValueTree.collapsePath(
+                                                        new TreePath(argumentValueTree.getModel().getRoot()));
+                                            });
+                                    String toolTipText = "Timestamp: " +
+                                            new Timestamp(agentCommandResponse.getTimestamp()) + " from "
+                                            + targetClassName + "." + targetMethodName + "( " + " )";
+                                    returnValueTextArea.setToolTipText(toolTipText);
+                                    if (responseType == null) {
 //                            panelTitledBoarder.setTitle(responseObjectClassName);
-                            parameterScrollPanel.setViewportView(returnValueTextArea);
-                            returnValueTextArea.setText(responseMessage + methodReturnValue);
-                            return;
-                        }
+                                        parameterScrollPanel.setViewportView(returnValueTextArea);
+                                        returnValueTextArea.setText(responseMessage + methodReturnValue);
+                                        return;
+                                    }
 
-                        if (responseType.equals(ResponseType.NORMAL)) {
+                                    if (responseType.equals(ResponseType.NORMAL)) {
 
-                            ObjectMapper objectMapper = insidiousService.getObjectMapper();
-                            try {
-                                String returnValueString = String.valueOf(methodReturnValue);
+                                        ObjectMapper objectMapper = insidiousService.getObjectMapper();
+                                        try {
+                                            String returnValueString = String.valueOf(methodReturnValue);
 
-                                String responseClassName = agentCommandResponse.getResponseClassName();
-                                if (responseClassName.equals("float") || responseClassName.equals("java.lang.Float")) {
-                                    returnValueString = ParameterUtils.getFloatValue(returnValueString);
-                                }
+                                            String responseClassName = agentCommandResponse.getResponseClassName();
+                                            if (responseClassName.equals("float") || responseClassName.equals(
+                                                    "java.lang.Float")) {
+                                                returnValueString = ParameterUtils.getFloatValue(returnValueString);
+                                            }
 
-                                if (responseClassName.equals("double") || responseClassName.equals(
-                                        "java.lang.Double")) {
-                                    returnValueString = ParameterUtils.getDoubleValue(returnValueString);
-                                }
+                                            if (responseClassName.equals("double") || responseClassName.equals(
+                                                    "java.lang.Double")) {
+                                                returnValueString = ParameterUtils.getDoubleValue(returnValueString);
+                                            }
 
-                                JsonNode jsonNode = objectMapper.readValue(returnValueString, JsonNode.class);
+                                            JsonNode jsonNode = objectMapper.readValue(returnValueString,
+                                                    JsonNode.class);
 
-                                DefaultMutableTreeNode responseObjectTree = JsonTreeUtils.buildJsonTree(
-                                        objectMapper.writeValueAsString(jsonNode),
-                                        responseClassName);
+                                            DefaultMutableTreeNode responseObjectTree = JsonTreeUtils.buildJsonTree(
+                                                    objectMapper.writeValueAsString(jsonNode),
+                                                    responseClassName);
 
 //                                returnValueTextArea.setText(objectMapper.writerWithDefaultPrettyPrinter()
 //                                        .writeValueAsString(jsonNode));
 
 //                                returnValuePanel.setViewportView(returnValueTextArea);
-                                Tree comp = new Tree(responseObjectTree);
-                                comp.setToolTipText(toolTipText);
-                                int totalNodeCount = expandAllNodes(comp);
+                                            Tree comp = new Tree(responseObjectTree);
+                                            comp.setToolTipText(toolTipText);
+                                            int totalNodeCount = expandAllNodes(comp);
 //                                JPanel responseTreeContainer = new JPanel(new BorderLayout());
 //                                responseTreeContainer.add(comp, BorderLayout.CENTER);
-                                parameterScrollPanel.setViewportView(comp);
+                                            parameterScrollPanel.setViewportView(comp);
 //                                if (totalNodeCount > 4) {
 //                                    int min = Math.min(totalNodeCount * 30, 300);
 //                                    returnValuePanel.setSize(new Dimension(-1, min));
@@ -361,42 +371,44 @@ public class MethodDirectInvokeComponent implements ActionListener {
 //                                    returnValuePanel.setMaximumSize(new Dimension(-1, 100));
 //
 //                                }
-                            } catch (JsonProcessingException ex) {
-                                parameterScrollPanel.setViewportView(returnValueTextArea);
-                                returnValueTextArea.setText(methodReturnValue.toString());
-                            }
-                        } else if (responseType.equals(ResponseType.EXCEPTION)) {
+                                        } catch (JsonProcessingException ex) {
+                                            parameterScrollPanel.setViewportView(returnValueTextArea);
+                                            returnValueTextArea.setText(methodReturnValue.toString());
+                                        }
+                                    } else if (responseType.equals(ResponseType.EXCEPTION)) {
 //                            panelTitledBoarder.setTitle(responseObjectClassName);
-                            if (methodReturnValue != null) {
-                                parameterScrollPanel.setViewportView(returnValueTextArea);
-                                returnValueTextArea.setText(
-                                        ExceptionUtils.prettyPrintException(methodReturnValue.toString()));
-                            } else {
-                                parameterScrollPanel.setViewportView(returnValueTextArea);
-                                returnValueTextArea.setText(agentCommandResponse.getMessage());
-                            }
-                        } else {
+                                        if (methodReturnValue != null) {
+                                            parameterScrollPanel.setViewportView(returnValueTextArea);
+                                            returnValueTextArea.setText(
+                                                    ExceptionUtils.prettyPrintException(methodReturnValue.toString()));
+                                        } else {
+                                            parameterScrollPanel.setViewportView(returnValueTextArea);
+                                            returnValueTextArea.setText(agentCommandResponse.getMessage());
+                                        }
+                                    } else {
 //                            panelTitledBoarder.setTitle(responseObjectClassName);
-                            parameterScrollPanel.setViewportView(returnValueTextArea);
-                            returnValueTextArea.setText(responseMessage + methodReturnValue);
-                        }
+                                        parameterScrollPanel.setViewportView(returnValueTextArea);
+                                        returnValueTextArea.setText(responseMessage + methodReturnValue);
+                                    }
 //                        scrollerContainer.revalidate();
 //                        scrollerContainer.repaint();
 
-                        ResponseType responseType1 = agentCommandResponse.getResponseType();
-                        DiffResultType diffResultType = responseType1.equals(
-                                ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
-                        DifferenceResult diffResult = new DifferenceResult(null,
-                                diffResultType, null,
-                                DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
-                        diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
+                                    ResponseType responseType1 = agentCommandResponse.getResponseType();
+                                    DiffResultType diffResultType = responseType1.equals(
+                                            ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
+                                    DifferenceResult diffResult = new DifferenceResult(null,
+                                            diffResultType, null,
+                                            DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
+                                    diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
 //                        diffResult.setMethodAdapter(methodElement);
-                        diffResult.setResponse(agentCommandResponse);
-                        diffResult.setCommand(agentCommandRequest);
-                        insidiousService.addExecutionRecord(new AutoExecutorReportRecord(diffResult,
-                                insidiousService.getSessionInstance().getProcessedFileCount(),
-                                insidiousService.getSessionInstance().getTotalFileCount()));
+                                    diffResult.setResponse(agentCommandResponse);
+                                    diffResult.setCommand(agentCommandRequest);
+                                    insidiousService.addExecutionRecord(new AutoExecutorReportRecord(diffResult,
+                                            insidiousService.getSessionInstance().getProcessedFileCount(),
+                                            insidiousService.getSessionInstance().getTotalFileCount()));
+                                });
                     });
+
         });
     }
 

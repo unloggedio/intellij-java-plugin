@@ -13,6 +13,7 @@ import com.insidious.plugin.auth.RequestAuthentication;
 import com.insidious.plugin.auth.SimpleAuthority;
 import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
 import com.insidious.plugin.autoexecutor.AutomaticExecutorService;
+import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
@@ -42,10 +43,7 @@ import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
-import com.insidious.plugin.util.ClassUtils;
-import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.TestCandidateUtils;
-import com.insidious.plugin.util.UIUtils;
+import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
 import com.intellij.debugger.DebuggerManagerEx;
@@ -74,12 +72,6 @@ import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
-import com.intellij.openapi.fileEditor.FileEditor;
-import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.module.Module;
-import com.intellij.openapi.module.ModuleManager;
-import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.DumbService;
@@ -159,9 +151,7 @@ final public class InsidiousService implements
     private Content atomicTestContent;
     private Content stompWindowContent;
     private Content introPanelContent = null;
-    private Map<String, GutterState> cachedGutterState = new HashMap<>();
     private AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
-    private GetProjectSessionsCallback sessionListener;
     private ReportingService reportingService = new ReportingService(this);
 
     public InsidiousService(Project project) {
@@ -315,8 +305,8 @@ final public class InsidiousService implements
     public void chooseClassImplementation(String className, ClassChosenListener classChosenListener) {
 
 
-        PsiClass psiClass1 = JavaPsiFacade.getInstance(project)
-                .findClass(className, GlobalSearchScope.projectScope(project));
+        PsiClass psiClass1 = ApplicationManager.getApplication().runReadAction((Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
+                .findClass(className, GlobalSearchScope.projectScope(project)));
 
         ImplementationSearcher implementationSearcher = new ImplementationSearcher();
         PsiElement[] implementations = implementationSearcher.searchImplementations(
@@ -329,12 +319,15 @@ final public class InsidiousService implements
         }
         if (implementations.length == 1) {
             PsiClass singleImplementation = (PsiClass) implementations[0];
-            if (singleImplementation.isInterface() || singleImplementation.hasModifierProperty(ABSTRACT)) {
+            if (ApplicationManager.getApplication().runReadAction(
+                    (Computable<Boolean>) () -> singleImplementation.isInterface()) || ApplicationManager.getApplication().runReadAction(
+                    (Computable<Boolean>) () -> singleImplementation.hasModifierProperty(ABSTRACT))) {
                 InsidiousNotification.notifyMessage("No implementations found for " + className,
                         NotificationType.ERROR);
                 return;
             }
-            classChosenListener.classSelected(new ClassUnderTest(JvmClassUtil.getJvmClassName(singleImplementation)));
+            classChosenListener.classSelected(new ClassUnderTest(ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> JvmClassUtil.getJvmClassName(singleImplementation))));
             return;
         }
 
@@ -357,7 +350,7 @@ final public class InsidiousService implements
         JBPopup implementationChooserPopup = JBPopupFactory
                 .getInstance()
                 .createPopupChooserBuilder(implementationOptions.stream()
-                        .map(PsiClass::getQualifiedName)
+                        .map(e -> e.getQualifiedName())
                         .sorted()
                         .collect(Collectors.toList()))
                 .setTitle("Run using implementation for " + className)
@@ -801,36 +794,38 @@ final public class InsidiousService implements
             agentCommandRequest.setDeclaredMocks(setMock);
         }
 
-        ApplicationManager.getApplication().executeOnPooledThread(() ->
-                ApplicationManager.getApplication().runReadAction(() -> {
-                    try {
-                        AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(
-                                agentCommandRequest);
-                        logger.warn("agent command response - " + agentCommandResponse);
-                        if (executionResponseListener != null) {
-                            cachedGutterState.remove(methodUnderTest.getMethodHashKey());
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            ApplicationManager.getApplication().runReadAction(() -> {
+                try {
+                    AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(
+                            agentCommandRequest);
+                    logger.warn("agent command response - " + agentCommandResponse);
+                    if (executionResponseListener != null) {
+                        cachedGutterState.remove(methodUnderTest.getMethodHashKey());
 
-                            // TODO: search by signature and remove loop
-                            PsiMethod[] methodPsiList = JavaPsiFacade.getInstance(project)
-                                    .findClass(agentCommandRequest.getClassName(),
-                                            GlobalSearchScope.projectScope(project))
-                                    .findMethodsByName(agentCommandRequest.getMethodName(), true);
-                            for (PsiMethod psiMethod : methodPsiList) {
-                                if (psiMethod.getName().equals(agentCommandRequest.getMethodName())) {
-                                    updateMethodHashForExecutedMethod(new JavaMethodAdapter(psiMethod));
-                                }
+                        // TODO: search by signature and remove loop
+                        PsiMethod[] methodPsiList = JavaPsiFacade.getInstance(project)
+                                .findClass(agentCommandRequest.getClassName(),
+                                        GlobalSearchScope.projectScope(project))
+                                .findMethodsByName(agentCommandRequest.getMethodName(), true);
+                        for (PsiMethod psiMethod : methodPsiList) {
+                            if (psiMethod.getName().equals(agentCommandRequest.getMethodName())) {
+                                updateMethodHashForExecutedMethod(new JavaMethodAdapter(psiMethod));
                             }
-                            triggerGutterIconReload();
-
-                            executionResponseListener.onExecutionComplete(agentCommandRequest, agentCommandResponse);
-                        } else {
-                            logger.warn("no body listening for the response");
                         }
-                    } catch (IOException e) {
-                        logger.warn("failed to execute command - " + e.getMessage(), e);
-                    }
+                        triggerGutterIconReload();
 
-                }));
+                        executionResponseListener.onExecutionComplete(agentCommandRequest, agentCommandResponse);
+                    } else {
+                        logger.warn("no body listening for the response");
+                    }
+                } catch (IOException e) {
+                    logger.warn("failed to execute command - " + e.getMessage(), e);
+                }
+
+            });
+
+        });
     }
 
     public void executeMethodInRunningProcessSync(
@@ -868,7 +863,7 @@ final public class InsidiousService implements
         }
 
         try {
-            AgentCommandResponse<String> agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
+            AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(agentCommandRequest);
             logger.warn("agent command response - " + agentCommandResponse);
             if (executionResponseListener != null) {
                 cachedGutterState.remove(methodUnderTest.getMethodHashKey());
@@ -884,9 +879,10 @@ final public class InsidiousService implements
     private RequestAuthentication getRequestAuthentication() {
         RequestAuthentication requestAuthentication = new RequestAuthentication();
 
-        PsiClass springUserDetailsClass = JavaPsiFacade.getInstance(project)
-                .findClass("org.springframework.security.core.userdetails.UserDetails",
-                        GlobalSearchScope.allScope(project));
+        PsiClass springUserDetailsClass = ApplicationManager.getApplication()
+                .runReadAction((Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
+                        .findClass("org.springframework.security.core.userdetails.UserDetails",
+                                GlobalSearchScope.allScope(project)));
         requestAuthentication.setAuthenticated(true);
         requestAuthentication.setAuthorities(List.of(new SimpleAuthority("ROLE_ADMIN")));
         requestAuthentication.setCredential("password");
@@ -1498,8 +1494,8 @@ final public class InsidiousService implements
             executionRecord.put(keyName, newDiffRecord);
         }
         addExecutionRecord(new AutoExecutorReportRecord(newDiffRecord,
-                sessionInstance.getProcessedFileCount(),
-                sessionInstance.getTotalFileCount()));
+                currentState.getSessionInstance().getProcessedFileCount(),
+                currentState.getSessionInstance().getTotalFileCount()));
     }
 
     public void addExecutionRecord(AutoExecutorReportRecord result) {
