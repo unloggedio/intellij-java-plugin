@@ -7,6 +7,7 @@ import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.lang.jvm.JvmParameter;
+import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -75,7 +76,7 @@ public class MockDefinitionEditor {
         if (returnType != null) {
             returnDummyValue = ClassUtils.createDummyValue(returnType, new ArrayList<>(),
                     destinationMethod.getProject());
-            methodReturnTypeName = returnType.getCanonicalText();
+            methodReturnTypeName = buildJvmClassName(returnType);
         } else {
             methodReturnTypeName = "java.lang.Object";
             returnDummyValue = "{}";
@@ -141,6 +142,27 @@ public class MockDefinitionEditor {
 
         updateUiValues();
         addListeners(methodUnderTest);
+    }
+
+    private String buildJvmClassName(PsiType returnType) {
+        if (!(returnType instanceof PsiClassReferenceType)) {
+            return returnType.getCanonicalText();
+        }
+        PsiClassReferenceType classReferenceType = (PsiClassReferenceType) returnType;
+
+        StringBuilder jvmClassName =
+                new StringBuilder(JvmClassUtil.getJvmClassName(classReferenceType.resolve()));
+        int paramCount = classReferenceType.getParameterCount();
+        if (paramCount > 0) {
+            jvmClassName.append("<");
+            for (PsiType parameter : classReferenceType.getParameters()) {
+                jvmClassName.append(buildJvmClassName(parameter));
+            }
+            jvmClassName.append(">");
+
+        }
+
+        return jvmClassName.toString();
     }
 
     @Nullable
