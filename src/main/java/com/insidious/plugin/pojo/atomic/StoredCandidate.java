@@ -35,6 +35,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     private byte[] probSerializedValue;
     private MethodUnderTest methodUnderTest;
     private HashSet<String> mockIds = new HashSet<String>();
+    private long createdAt;
 
     private StoredCandidate() {
     }
@@ -52,6 +53,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
                     .getSerializedValue();
         }
         this.sessionIdentifier = generateIdentifier(candidateMetadata);
+        this.createdAt = candidateMetadata.getCreatedAt();
         this.entryProbeIndex = candidateMetadata.getEntryProbeIndex();
         this.lineNumbers = candidateMetadata.getLineNumbers();
         this.metadata = new StoredCandidateMetadata(
@@ -59,21 +61,22 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         );
     }
 
-    public static StoredCandidate createCandidateFor(StoredCandidate metadata, AgentCommandResponse<String> response) {
+    public static StoredCandidate createCandidateFor(StoredCandidate metadata) {
         StoredCandidate candidate = new StoredCandidate();
         candidate.setCandidateId(metadata.getCandidateId());
         candidate.setMethod(metadata.getMethod());
         candidate.setMethodArguments(metadata.getMethodArguments());
         candidate.setLineNumbers(metadata.getLineNumbers());
-        candidate.setException(!response.getResponseType().equals(ResponseType.NORMAL));
-        candidate.setReturnValue(response.getMethodReturnValue());
+        candidate.setException(metadata.isException());
+        candidate.setCreatedAt(metadata.getCreatedAt());
+        candidate.setReturnValue(metadata.getReturnValue());
         candidate.setMockIds(metadata.getMockIds());
         //to be updated
         candidate.setProbSerializedValue(metadata.getProbSerializedValue());
         //to be updated
         candidate.setSessionIdentifier(metadata.getSessionIdentifier());
         candidate.setEntryProbeIndex(metadata.getEntryProbeIndex());
-        candidate.setReturnValueClassname(response.getResponseClassName());
+        candidate.setReturnValueClassname(metadata.getReturnValueClassname());
 
         if (metadata.getMetadata() != null) {
             candidate.setMetadata(metadata.getMetadata());
@@ -81,11 +84,19 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
             candidate.getMetadata().setRecordedBy(HOSTNAME);
         } else {
             StoredCandidateMetadata metadata1 = new StoredCandidateMetadata(
-                    HOSTNAME, HOSTNAME, response.getTimestamp()
+                    HOSTNAME, HOSTNAME, metadata.getCreatedAt()
             );
             candidate.setMetadata(metadata1);
         }
         return candidate;
+    }
+
+    public void setCreatedAt(long createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    private long getCreatedAt() {
+        return createdAt;
     }
 
     public HashSet<String> getMockIds() {
@@ -273,6 +284,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.setProbSerializedValue(candidate.getProbSerializedValue());
         this.setException(candidate.isException());
         this.setReturnValueClassname(candidate.getReturnValueClassname());
+        this.setCreatedAt(candidate.getCreatedAt());
         this.setLineNumbers(candidate.getLineNumbers());
         this.setTestAssertions(candidate.getTestAssertions());
         this.setMockIds(candidate.getMockIds());

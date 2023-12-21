@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
-import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.assertions.*;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
@@ -31,8 +30,6 @@ import com.intellij.util.ui.JBUI;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import java.awt.*;
@@ -45,9 +42,8 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
 
     private static final Logger logger = LoggerUtil.getInstance(SaveForm.class);
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
-    private final CandidateLifeListener listener;
+    private final CandidateLifeListener candidateLifeListener;
     private final StoredCandidate storedCandidate;
-    private final AgentCommandResponse<String> agentCommandResponse;
     private final AssertionBlock ruleEditor;
     private final SaveFormMetadataPanel metadataForm;
     private final JPanel mainPanel;
@@ -66,21 +62,19 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
 
     public SaveForm(
             StoredCandidate storedCandidate,
-            AgentCommandResponse<String> agentCommandResponse,
-            CandidateLifeListener listener
+            CandidateLifeListener candidateLifeListener
     ) {
         this.storedCandidate = storedCandidate;
-        this.listener = listener;
-        this.agentCommandResponse = agentCommandResponse;
+        this.candidateLifeListener = candidateLifeListener;
         this.enabledMockList = new HashSet<>(this.storedCandidate.getMockIds());
 
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
         candidateExplorerTree = new Tree(getTree());
 
-        String methodReturnValue = agentCommandResponse.getMethodReturnValue();
+        String methodReturnValue = storedCandidate.getReturnValue();
 
-        responseNode = getResponseNode(methodReturnValue, agentCommandResponse.getResponseClassName());
+        responseNode = getResponseNode(methodReturnValue, storedCandidate.getReturnValueClassname());
 
 
         // clone the assertions
@@ -121,7 +115,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
             @Override
             public KeyValue getCurrentTreeKey() {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) candidateExplorerTree.getLastSelectedPathComponent();
-                String methodReturnValue = agentCommandResponse.getMethodReturnValue();
+                String methodReturnValue = storedCandidate.getReturnValue();
                 if (node == null) return new KeyValue("/", methodReturnValue);
                 TreeNode[] nodes = node.getPath();
                 String selectedKey = JsonTreeUtils.getFlatMap(nodes);
@@ -159,7 +153,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         // cancel button in panel
         JButton cancelButton = new JButton();
         cancelButton.setText("Cancel");
-        cancelButton.addActionListener(e -> listener.onCancel());
+        cancelButton.addActionListener(e -> candidateLifeListener.onCancel());
         buttonPanel.add(cancelButton);
 
         // save button in panel
@@ -257,7 +251,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         applyMockPanel.setMaximumSize(new Dimension(3999, 30));
         mockDataPanelContent.add(applyMockPanel);
 
-        this.insidiousService = this.listener.getProject().getService(InsidiousService.class);
+        this.insidiousService = this.candidateLifeListener.getProject().getService(InsidiousService.class);
         this.mockValueMap = new MockValueMap(insidiousService);
 
         // define mockMethodPanel
@@ -299,7 +293,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         mockMethodNamePanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
 
         JCheckBox mockButtonMain = new JCheckBox();
-        this.buttonMap.put(mockButtonMain, new ArrayList<JCheckBox>());
+        this.buttonMap.put(mockButtonMain, new ArrayList<>());
         mockButtonMain.setSelected(
                 !localKeyData.isEmpty() && this.storedCandidate.getMockIds().containsAll(localKeyData));
         ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
@@ -501,13 +495,13 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         }
 
         this.enabledMockList.clear();
-        StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate, agentCommandResponse);
+        StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate);
         candidate.setMetadata(payload.getStoredCandidateMetadata());
         candidate.setName(assertionName);
         candidate.setDescription(assertionDescription);
         candidate.setTestAssertions(atomicAssertion);
 
-        listener.onSaved(candidate);
+        candidateLifeListener.onSaved(candidate);
     }
 
     private String prepareString(String source) {
@@ -519,8 +513,8 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
     }
 
     public DefaultMutableTreeNode getTree() {
-        return JsonTreeUtils.buildJsonTree(agentCommandResponse.getMethodReturnValue(),
-                getSimpleName(agentCommandResponse.getResponseClassName()));
+        return JsonTreeUtils.buildJsonTree(storedCandidate.getReturnValue(),
+                getSimpleName(storedCandidate.getReturnValueClassname()));
     }
 
     private String getSimpleName(String qualifiedName) {

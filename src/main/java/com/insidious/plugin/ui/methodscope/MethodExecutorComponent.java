@@ -23,6 +23,7 @@ import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
+import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.util.*;
@@ -674,22 +675,25 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
     @Override
     public void onSaved(StoredCandidate candidate) {
-//        TestCandidateListedItemComponent candidateItem = candidateComponentMap.get(getKeyForCandidate(candidate));
-//        if (candidate.getCandidateId() == null) {
-//            candidate.setCandidateId(UUID.randomUUID().toString());
-//            candidateComponentMap.put(getKeyForCandidate(candidate), candidateItem);
-//        }
+        TestCandidateListedItemComponent candidateItem = candidateComponentMap.get(getKeyForCandidate(candidate));
+        if (candidate.getCandidateId() == null) {
+            candidate.setCandidateId(UUID.randomUUID().toString());
+            candidateComponentMap.put(getKeyForCandidate(candidate), candidateItem);
+        }
+        insidiousService.getProject().getService(AtomicRecordService.class)
+                .saveCandidate(MethodUnderTest.fromMethodAdapter(methodElement), candidate);
+
 //        insidiousService.getAtomicRecordService()
 //                .saveCandidate(MethodUnderTest.fromMethodAdapter(methodElement), candidate);
-//        candidateItem.getComponent().setEnabled(true);
-//        candidateItem.setCandidate(candidate);
-//        triggerReExecute(candidate);
-//        candidateItem.getComponent().revalidate();
-//        gridPanel.revalidate();
-//        gridPanel.repaint();
-//        insidiousService.hideCandidateSaveForm(saveFormReference);
-//        saveFormReference = null;
-//        refreshCoverageData();
+        candidateItem.getComponent().setEnabled(true);
+        candidateItem.setCandidate(candidate);
+        triggerReExecute(candidate);
+        candidateItem.getComponent().revalidate();
+        gridPanel.revalidate();
+        gridPanel.repaint();
+        insidiousService.hideCandidateSaveForm(saveFormReference);
+        saveFormReference = null;
+        refreshCoverageData();
     }
 
     private void triggerReExecute(StoredCandidate candidate) {
@@ -715,17 +719,17 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
     @Override
     public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
-//        if (saveFormReference != null) {
-//            insidiousService.hideCandidateSaveForm(saveFormReference);
-//            saveFormReference = null;
-//        }
-//        if (storedCandidate.getCandidateId() == null) {
-//            // new test case
-//            storedCandidate.setName("test " + storedCandidate.getMethod().getName() + " returns expected value when");
-//            storedCandidate.setDescription("assert that the response value matches expected value");
-//        }
-//        saveFormReference = new SaveForm(storedCandidate, agentCommandResponse, this);
-//        insidiousService.showCandidateSaveForm(saveFormReference);
+        if (saveFormReference != null) {
+            insidiousService.hideCandidateSaveForm(saveFormReference);
+            saveFormReference = null;
+        }
+        if (storedCandidate.getCandidateId() == null) {
+            // new test case
+            storedCandidate.setName("test " + storedCandidate.getMethod().getName() + " returns expected value when");
+            storedCandidate.setDescription("assert that the response value matches expected value");
+        }
+        saveFormReference = new SaveForm(storedCandidate, this);
+        insidiousService.showCandidateSaveForm(saveFormReference);
 
     }
 

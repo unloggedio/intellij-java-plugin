@@ -12,10 +12,7 @@ import com.intellij.ui.DocumentAdapter;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+import java.awt.event.*;
 
 public class AssertionRule {
     private static final Logger logger = LoggerUtil.getInstance(AssertionRule.class);
@@ -23,9 +20,9 @@ public class AssertionRule {
     private final AtomicAssertion assertion;
     private JPanel mainPanel;
     private JPanel topAligner;
-    private JTextField nameSelector;
-    private JComboBox<String> operationSelector;
-    private JTextField valueField;
+    private JLabel nameSelector;
+    private JLabel operationSelector;
+    private JLabel valueField;
     private JButton trashButton;
 
     public AssertionRule(AssertionBlock assertionBlock, AtomicAssertion atomicAssertion) {
@@ -81,93 +78,93 @@ public class AssertionRule {
             case EQUAL:
                 switch (atomicAssertion.getExpression()) {
                     case SELF:
-                        operationSelector.setSelectedItem("is");
+                        operationSelector.setText("is");
                         break;
                     case SIZE:
-                        operationSelector.setSelectedItem("size is");
+                        operationSelector.setText("size is");
                         break;
                     case LENGTH:
-                        operationSelector.setSelectedItem("length is");
+                        operationSelector.setText("length is");
                         break;
                 }
                 break;
             case EQUAL_IGNORE_CASE:
-                operationSelector.setSelectedItem("equals ignore case");
+                operationSelector.setText("equals ignore case");
                 break;
             case NOT_EQUAL:
                 switch (atomicAssertion.getExpression()) {
                     case SELF:
-                        operationSelector.setSelectedItem("is not");
+                        operationSelector.setText("is not");
                         break;
                     case SIZE:
-                        operationSelector.setSelectedItem("size is not");
+                        operationSelector.setText("size is not");
                         break;
                     case LENGTH:
-                        operationSelector.setSelectedItem("length is not");
+                        operationSelector.setText("length is not");
                         break;
                 }
 
                 break;
             case FALSE:
-                operationSelector.setSelectedItem("is false");
+                operationSelector.setText("is false");
                 break;
             case MATCHES_REGEX:
-                operationSelector.setSelectedItem("matches regex");
+                operationSelector.setText("matches regex");
                 break;
             case NOT_MATCHES_REGEX:
-                operationSelector.setSelectedItem("not matches regex");
+                operationSelector.setText("not matches regex");
                 break;
             case TRUE:
-                operationSelector.setSelectedItem("is true");
+                operationSelector.setText("is true");
                 break;
             case LESS_THAN:
-                operationSelector.setSelectedItem("<");
+                operationSelector.setText("<");
                 break;
             case LESS_THAN_OR_EQUAL:
-                operationSelector.setSelectedItem("<=");
+                operationSelector.setText("<=");
                 break;
             case GREATER_THAN:
-                operationSelector.setSelectedItem(">");
+                operationSelector.setText(">");
                 break;
             case GREATER_THAN_OR_EQUAL:
-                operationSelector.setSelectedItem(">=");
+                operationSelector.setText(">=");
                 break;
             case NOT_NULL:
-                operationSelector.setSelectedItem("is not null");
+                operationSelector.setText("is not null");
                 break;
             case NULL:
-                operationSelector.setSelectedItem("is null");
+                operationSelector.setText("is null");
                 break;
             case EMPTY:
-                operationSelector.setSelectedItem("is empty");
+                operationSelector.setText("is empty");
                 break;
             case NOT_EMPTY:
-                operationSelector.setSelectedItem("is not empty");
+                operationSelector.setText("is not empty");
                 break;
             case CONTAINS_KEY:
-                operationSelector.setSelectedItem("contains key in object");
+                operationSelector.setText("contains key in object");
                 break;
             case CONTAINS_ITEM:
-                operationSelector.setSelectedItem("contains item in array");
+                operationSelector.setText("contains item in array");
                 break;
             case NOT_CONTAINS_ITEM:
-                operationSelector.setSelectedItem("not contains item in array");
+                operationSelector.setText("not contains item in array");
                 break;
             case CONTAINS_STRING:
-                operationSelector.setSelectedItem("contains substring");
+                operationSelector.setText("contains substring");
                 break;
             case NOT_CONTAINS_KEY:
-                operationSelector.setSelectedItem("not contains key in object");
+                operationSelector.setText("not contains key in object");
                 break;
             case NOT_CONTAINS_STRING:
-                operationSelector.setSelectedItem("not contains substring");
+                operationSelector.setText("not contains substring");
                 break;
         }
 
-        operationSelector.addActionListener(new ActionListener() {
+        operationSelector.addMouseListener(new MouseAdapter() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                String selectedItem = (String) operationSelector.getSelectedItem();
+            public void mouseClicked(MouseEvent e) {
+                String selectedItem = (String) operationSelector.getText();
                 logger.warn("Operator selected: " + selectedItem);
                 switch (selectedItem) {
                     case "is":
@@ -298,7 +295,7 @@ public class AssertionRule {
         });
 
 
-        valueField.setCaretPosition(0);
+//        valueField.setCaretPosition(0);
         valueField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged( DocumentEvent e) {

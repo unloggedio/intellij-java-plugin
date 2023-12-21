@@ -1,11 +1,14 @@
 package com.insidious.plugin.record;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.weisj.jsvg.S;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -688,6 +691,46 @@ public class AtomicRecordService {
             return null;
         }
         return classAtomicRecordMap.get(fullyClassifiedClassName).getStoredCandidateMap();
+    }
+
+    public StoredCandidate getStoredCandidateFor(MethodUnderTest methodUnderTest, TestCandidateMetadata testCandidate) {
+        StoredCandidate potentialCandidate = new StoredCandidate(testCandidate);
+
+
+//        StoredCandidate candidate;
+        AtomicRecord ars = classAtomicRecordMap.get(testCandidate.getFullyQualifiedClassname());
+        if (ars == null) {
+            return potentialCandidate;
+        }
+
+        List<StoredCandidate> methodStoredCandidates = ars.getStoredCandidateMap()
+                .get(methodUnderTest.getMethodHashKey());
+        if (methodStoredCandidates == null || methodStoredCandidates.size() == 0) {
+            return potentialCandidate;
+        }
+
+        for (StoredCandidate methodStoredCandidate : methodStoredCandidates) {
+            List<Parameter> arguments = testCandidate.getMainMethod().getArguments();
+            if (methodStoredCandidate.getMethodArguments().size() == arguments.size()) {
+                boolean match = true;
+                List<String> methodArguments = methodStoredCandidate.getMethodArguments();
+                for (int i = 0; i < methodArguments.size(); i++) {
+                    String methodArgument = methodArguments.get(i);
+                    String expectedValue = potentialCandidate.getMethodArguments().get(i);
+                    if (!methodArgument.equals(expectedValue)) {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match) {
+                    return methodStoredCandidate;
+                }
+
+            }
+        }
+
+
+        return potentialCandidate;
     }
 
     public enum FileUpdateType {

@@ -28,6 +28,7 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.search.ProjectAndLibrariesScope;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.KeyStrokeAdapter;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
@@ -71,7 +72,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private MethodAdapter methodElement;
     //    private Font SOURCE_CODE = Font.createFont(Font.TRUETYPE_FONT, getClass().getResourceAsStream("/fonts" +
 //            "/SourceCodePro-Regular.ttf"));
-    private Tree argumentValueTree;
+    private Tree argumentValueTree = null;
     private DefaultMutableTreeNode argumentsValueTreeNode;
     private JsonNode argumentsValueJsonNode;
     private JBScrollPane parameterScrollPanel;
@@ -312,8 +313,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
                                     }
                                     ApplicationManager.getApplication()
                                             .invokeLater(() -> {
-                                                argumentValueTree.collapsePath(
-                                                        new TreePath(argumentValueTree.getModel().getRoot()));
+                                                if (argumentValueTree != null) {
+                                                    argumentValueTree.collapsePath(
+                                                            new TreePath(argumentValueTree.getModel().getRoot()));
+                                                }
                                             });
                                     String toolTipText = "Timestamp: " +
                                             new Timestamp(agentCommandResponse.getTimestamp()) + " from "
@@ -356,6 +359,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
 //                                returnValuePanel.setViewportView(returnValueTextArea);
                                             Tree comp = new Tree(responseObjectTree);
                                             comp.setToolTipText(toolTipText);
+                                            comp.setBackground(JBColor.WHITE);
+                                            comp.setBorder(BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
                                             int totalNodeCount = expandAllNodes(comp);
 //                                JPanel responseTreeContainer = new JPanel(new BorderLayout());
 //                                responseTreeContainer.add(comp, BorderLayout.CENTER);

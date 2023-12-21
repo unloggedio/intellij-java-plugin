@@ -9,9 +9,12 @@ import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.util.Computable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 public class MethodUtils {
     public static AgentCommandRequest createExecuteRequestWithParameters(
@@ -26,7 +29,8 @@ public class MethodUtils {
 
         agentCommandRequest.setDeclaredMocks(declaredMocks);
 
-        String qualifiedName = ApplicationManager.getApplication().runReadAction(
+        @NotNull Future<String> qualifiedName = ApplicationManager.getApplication().executeOnPooledThread(() ->
+                ApplicationManager.getApplication().runReadAction(
                 (Computable<String>) () -> {
                     agentCommandRequest.setMethodSignature(methodAdapter.getJVMSignature());
                     agentCommandRequest.setClassName(classUnderTest.getQualifiedClassName());
@@ -40,7 +44,12 @@ public class MethodUtils {
                     agentCommandRequest.setParameterTypes(List.of(parameterCanonicalStrings));
 
                     return methodAdapter.getContainingClass().getQualifiedName();
-                });
+                }));
+        try {
+            qualifiedName.get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
 
         if (processArgumentTypes && parameterValues != null) {
             ArrayList<String> convertedParameterValues = new ArrayList<>(parameterValues.size());

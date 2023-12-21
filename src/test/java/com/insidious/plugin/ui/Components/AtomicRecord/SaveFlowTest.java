@@ -78,7 +78,7 @@ public class SaveFlowTest {
 
     //    @Test
     public void testComponentManagement() {
-        SaveForm saveForm = new SaveForm(candidate, agentCommandResponse, storedCandidateLifeListener);
+        SaveForm saveForm = new SaveForm(candidate, storedCandidateLifeListener);
 
         AssertionBlock ruleEditor = saveForm.getRuleEditor();
         JTree candidateExplorerTree = saveForm.getCandidateExplorerTree();
@@ -135,7 +135,7 @@ public class SaveFlowTest {
 
     //    @Test
     public void testColorCodes() {
-        SaveForm saveForm = new SaveForm(candidate, agentCommandResponse, storedCandidateLifeListener);
+        SaveForm saveForm = new SaveForm(candidate, storedCandidateLifeListener);
         AssertionRule rootRule = saveForm.getRuleEditor().getAssertionRules().get(0);
 
         //expected : The background color to be green for the default rule.

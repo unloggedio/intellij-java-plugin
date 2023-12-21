@@ -4,6 +4,7 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.TestCandidateLifeListener;
 import com.insidious.plugin.client.ScanProgress;
@@ -12,16 +13,22 @@ import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.ReplayAllExecutionContext;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.record.AtomicRecordService;
+import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
+import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.project.DumbService;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ActiveIcon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
@@ -37,6 +44,8 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.SQLException;
@@ -77,6 +86,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     private DisconnectedAnd disconnectedAnd;
     private MethodDirectInvokeComponent directInvokeComponent = null;
     private JPanel directInvokeRow = null;
+    private SaveForm saveFormReference;
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -114,6 +124,117 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
                     historyStreamScrollPanel.revalidate();
                     historyStreamScrollPanel.repaint();
                 }
+            }
+        });
+
+        saveReplayButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (saveFormReference != null) {
+                    insidiousService.hideCandidateSaveForm(saveFormReference);
+                    saveFormReference = null;
+                }
+                AtomicRecordService atomicRecordService = insidiousService.getProject().getService(AtomicRecordService.class);
+                StoredCandidate storedCandidate = new StoredCandidate(selectedCandidates.get(0));
+
+                for (TestCandidateMetadata testCandidate : selectedCandidates) {
+                    MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(getPsiMethod(testCandidate)));
+                    StoredCandidate candidate = atomicRecordService.getStoredCandidateFor(methodUnderTest,
+                            testCandidate);
+                    if (candidate.getCandidateId() == null) {
+                        candidate.setCandidateId(UUID.randomUUID().toString());
+                    }
+
+                    atomicRecordService.saveCandidate(methodUnderTest, candidate);
+
+                }
+
+
+                if (storedCandidate.getCandidateId() == null) {
+                    // new test case
+                    storedCandidate.setName("test " + storedCandidate.getMethod().getName() + " returns expected value when");
+                    storedCandidate.setDescription("assert that the response value matches expected value");
+                }
+                saveFormReference = new SaveForm(storedCandidate, new CandidateLifeListener() {
+                    @Override
+                    public void executeCandidate(List<StoredCandidate> metadata, ClassUnderTest classUnderTest, ReplayAllExecutionContext context, AgentCommandResponseListener<TestCandidateMetadata, String> stringAgentCommandResponseListener) {
+
+                    }
+
+                    @Override
+                    public void displayResponse(Component responseComponent, boolean isExceptionFlow) {
+
+                    }
+
+                    @Override
+                    public void onSaved(StoredCandidate storedCandidate) {
+                        for (TestCandidateMetadata testCandidate : selectedCandidates) {
+                            MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(getPsiMethod(testCandidate)));
+                            StoredCandidate candidate = atomicRecordService.getStoredCandidateFor(methodUnderTest,
+                                    testCandidate);
+                            if (candidate.getCandidateId() == null) {
+                                candidate.setCandidateId(UUID.randomUUID().toString());
+                            }
+                            candidate.setTestAssertions(storedCandidate.getTestAssertions());
+                            atomicRecordService.saveCandidate(methodUnderTest, candidate);
+
+                        }
+
+                    }
+
+                    @Override
+                    public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
+
+                    }
+
+                    @Override
+                    public void onDeleteRequest(StoredCandidate storedCandidate) {
+
+                    }
+
+                    @Override
+                    public void onDeleted(StoredCandidate storedCandidate) {
+
+                    }
+
+                    @Override
+                    public void onUpdated(StoredCandidate storedCandidate) {
+
+                    }
+
+                    @Override
+                    public void onUpdateRequest(StoredCandidate storedCandidate) {
+
+                    }
+
+                    @Override
+                    public void onGenerateJunitTestCaseRequest(StoredCandidate storedCandidate) {
+
+                    }
+
+                    @Override
+                    public void onCandidateSelected(StoredCandidate testCandidateMetadata) {
+
+                    }
+
+                    @Override
+                    public boolean canGenerateUnitCase(StoredCandidate candidate) {
+                        return false;
+                    }
+
+                    @Override
+                    public void onCancel() {
+                        insidiousService.hideCandidateSaveForm(saveFormReference);
+                        saveFormReference = null;
+                    }
+
+                    @Override
+                    public Project getProject() {
+                        return insidiousService.getProject();
+                    }
+                });
+
+                insidiousService.showCandidateSaveForm(saveFormReference);
             }
         });
 

@@ -16,15 +16,15 @@
         <properties/>
         <border type="none"/>
         <children>
-          <component id="20d57" class="javax.swing.JComboBox" binding="operationSelector">
+          <component id="87234" class="javax.swing.JLabel" binding="operationSelector">
             <constraints>
               <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties>
-              <model/>
+              <text value="Label"/>
             </properties>
           </component>
-          <component id="7e8de" class="javax.swing.JTextField" binding="valueField">
+          <component id="9722e" class="javax.swing.JLabel" binding="valueField">
             <constraints>
               <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
                 <preferred-size width="150" height="-1"/>
@@ -34,14 +34,14 @@
               <text value="some value"/>
             </properties>
           </component>
-          <component id="9b59a" class="javax.swing.JTextField" binding="nameSelector">
+          <component id="701a3" class="javax.swing.JLabel" binding="nameSelector">
             <constraints>
               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false">
                 <preferred-size width="150" height="-1"/>
               </grid>
             </constraints>
             <properties>
-              <editable value="true"/>
+              <text value="Label"/>
               <toolTipText value="Select a node in the tree above and create a new rule"/>
             </properties>
           </component>
