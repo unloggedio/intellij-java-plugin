@@ -163,10 +163,8 @@ public class AutomaticExecutorService {
 
                 System.out.println("Starting execution of all ");
                 Collection<VirtualFile> javaFiles = ApplicationManager.getApplication()
-                        .runReadAction((Computable<Collection<VirtualFile>>) () -> FileBasedIndex.getInstance()
-                                .getContainingFiles(
-                                        FileTypeIndex.NAME,
-                                        JavaFileType.INSTANCE,
+                        .runReadAction((Computable<Collection<VirtualFile>>) () -> FileTypeIndex.
+                                getFiles(JavaFileType.INSTANCE,
                                         GlobalJavaSearchContext.projectScope(insidiousService.getProject())));
                 for (VirtualFile virtualFile : javaFiles) {
                     PsiFile psiFile =
