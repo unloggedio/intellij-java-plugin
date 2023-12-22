@@ -120,7 +120,7 @@ final public class InsidiousService implements
         GutterStateProvider {
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
-    final static private int TOOL_WINDOW_WIDTH = 500;
+    final static private int TOOL_WINDOW_WIDTH = 300;
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
     private final UnloggedSdkApiAgent unloggedSdkApiAgent;
     private final SessionLoader sessionLoader;
@@ -305,8 +305,9 @@ final public class InsidiousService implements
     public void chooseClassImplementation(String className, ClassChosenListener classChosenListener) {
 
 
-        PsiClass psiClass1 = ApplicationManager.getApplication().runReadAction((Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
-                .findClass(className, GlobalSearchScope.projectScope(project)));
+        PsiClass psiClass1 = ApplicationManager.getApplication()
+                .runReadAction((Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
+                        .findClass(className, GlobalSearchScope.projectScope(project)));
 
         ImplementationSearcher implementationSearcher = new ImplementationSearcher();
         PsiElement[] implementations = implementationSearcher.searchImplementations(
@@ -320,8 +321,9 @@ final public class InsidiousService implements
         if (implementations.length == 1) {
             PsiClass singleImplementation = (PsiClass) implementations[0];
             if (ApplicationManager.getApplication().runReadAction(
-                    (Computable<Boolean>) () -> singleImplementation.isInterface()) || ApplicationManager.getApplication().runReadAction(
-                    (Computable<Boolean>) () -> singleImplementation.hasModifierProperty(ABSTRACT))) {
+                    (Computable<Boolean>) () -> singleImplementation.isInterface()) || ApplicationManager.getApplication()
+                    .runReadAction(
+                            (Computable<Boolean>) () -> singleImplementation.hasModifierProperty(ABSTRACT))) {
                 InsidiousNotification.notifyMessage("No implementations found for " + className,
                         NotificationType.ERROR);
                 return;
@@ -1771,8 +1773,10 @@ final public class InsidiousService implements
 //                        "Replay tab. Use DirectInvoke to execute methods from here.",
 //                NotificationType.INFORMATION, actions);
 
-        stompWindow.clear();
-        stompWindow.setConnectedAndWaiting();
+        if (stompWindow != null) {
+            stompWindow.clear();
+            stompWindow.setConnectedAndWaiting();
+        }
 
         triggerGutterIconReload();
         setAgentProcessState(GutterState.PROCESS_RUNNING);
@@ -1785,9 +1789,11 @@ final public class InsidiousService implements
         }
         AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         if (atomicRecordService != null) {
-            ApplicationManager.getApplication().runWriteAction(atomicRecordService::writeAll);
+            atomicRecordService.writeAll();
         }
-        stompWindow.disconnected();
+        if (stompWindow != null) {
+            stompWindow.disconnected();
+        }
         removeCurrentActiveHighlights();
         triggerGutterIconReload();
         configurationState.clearPermanentFieldMockSetting();

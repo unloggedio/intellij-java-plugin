@@ -73,7 +73,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
     //    private Font SOURCE_CODE = Font.createFont(Font.TRUETYPE_FONT, getClass().getResourceAsStream("/fonts" +
 //            "/SourceCodePro-Regular.ttf"));
     private Tree argumentValueTree = null;
-    private DefaultMutableTreeNode argumentsValueTreeNode;
+    private TreeModel argumentsValueTreeNode;
     private JsonNode argumentsValueJsonNode;
     private JBScrollPane parameterScrollPanel;
     private DefaultTreeCellEditor cellEditor;
@@ -159,10 +159,11 @@ public class MethodDirectInvokeComponent implements ActionListener {
             }
         });
         modifyArgumentsButton.addActionListener(e -> {
-            modifyArgumentsButton.setVisible(false);
-            createBoilerPlate.setVisible(true);
-            executeButton.setText("Execute");
-            renderForMethod(methodElement, null);
+            try {
+                renderForMethod(methodElement, null);
+            } catch (JsonProcessingException ex) {
+                throw new RuntimeException(ex);
+            }
         });
     }
 
@@ -253,10 +254,15 @@ public class MethodDirectInvokeComponent implements ActionListener {
                             ParameterAdapter parameter = parameters[i];
 
                             String selectedKey = "/" + parameter.getName();
-                            JsonNode valueFromJsonNode = JsonTreeUtils.getValueFromJsonNode(argumentsValueJsonNode,
-                                    selectedKey);
 
-                            String parameterValue = valueFromJsonNode.toString();
+                            JsonNode valueFromJsonNode = JsonTreeUtils.treeModelToJson(argumentsValueTreeNode);
+
+                            String parameterValue = null;
+                            try {
+                                parameterValue = objectMapper.writeValueAsString(valueFromJsonNode.get(parameter.getName()));
+                            } catch (JsonProcessingException e) {
+                                throw new RuntimeException(e);
+                            }
                             String canonicalText = ApplicationManager.getApplication().runReadAction(
                                     (Computable<String>) () -> parameter.getType().getCanonicalText());
                             if ("java.lang.String".equals(canonicalText) &&
@@ -349,9 +355,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
                                             JsonNode jsonNode = objectMapper.readValue(returnValueString,
                                                     JsonNode.class);
 
-                                            DefaultMutableTreeNode responseObjectTree = JsonTreeUtils.buildJsonTree(
-                                                    objectMapper.writeValueAsString(jsonNode),
-                                                    responseClassName);
+                                            TreeModel responseObjectTree = JsonTreeUtils.jsonToTreeModel(
+                                                    jsonNode, responseClassName);
 
 //                                returnValueTextArea.setText(objectMapper.writerWithDefaultPrettyPrinter()
 //                                        .writeValueAsString(jsonNode));
@@ -417,18 +422,20 @@ public class MethodDirectInvokeComponent implements ActionListener {
         });
     }
 
-    public void renderForMethod(MethodAdapter methodElement1, List<String> methodArgumentValues) {
+    public void renderForMethod(MethodAdapter methodElement1, List<String> methodArgumentValues) throws JsonProcessingException {
         if (methodElement1 == null) {
             logger.info("DirectInvoke got null method");
             return;
         }
 
-//        clearOutputSection();
-
         this.methodElement = methodElement1;
         String methodName = methodElement.getName();
         ((TitledBorder) mainContainer.getBorder()).setTitle(methodName);
         ClassAdapter containingClass = methodElement.getContainingClass();
+
+        modifyArgumentsButton.setVisible(false);
+        createBoilerPlate.setVisible(true);
+        executeButton.setText("Execute");
 
         logger.warn("render method executor for: " + methodName);
         String methodNameForLabel = methodName.length() > 40 ? methodName.substring(0, 40) + "..." : methodName;
@@ -530,8 +537,11 @@ public class MethodDirectInvokeComponent implements ActionListener {
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-            argumentsValueTreeNode = JsonTreeUtils.buildJsonTree(source, "Method Arguments");
+            argumentsValueTreeNode = JsonTreeUtils.jsonToTreeModel(objectMapper.readTree(source), "Method Arguments");
             argumentValueTree = new Tree(argumentsValueTreeNode);
+            argumentValueTree.setBackground(JBColor.WHITE);
+            argumentValueTree.setBorder(BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
+
             argumentValueTree.setEditable(true);
             cellEditor = new DefaultTreeCellEditor(argumentValueTree, null) {
                 private JTextField editor;
@@ -670,6 +680,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
     public JComponent getContent() {
         return mainContainer;
+    }
+
+    public void triggerExecute() {
+        executeMethodWithParameters();
     }
 
 //    public void uncheckPermanentMocks() {

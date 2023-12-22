@@ -115,8 +115,8 @@ dependencies {
     implementation 'com.googlecode.cqengine:cqengine:3.6.0'
     implementation 'io.kaitai:kaitai-struct-runtime:0.9'
 
-//    implementation files("/Users/artpar/.m2/repository/video/bug/unlogged-sdk/0.1.12/unlogged-sdk-0.1.12.jar")
-//    annotationProcessor files("/Users/artpar/.m2/repository/video/bug/unlogged-sdk/0.1.12/unlogged-sdk-0.1.12.jar")
+//    implementation files("/Users/artpar/.m2/repository/video/bug/unlogged-sdk/0.1.33/unlogged-sdk-0.1.33.jar")
+//    annotationProcessor files("/Users/artpar/.m2/repository/video/bug/unlogged-sdk/0.1.33/unlogged-sdk-0.1.33.jar")
 
 //    implementation 'video.bug:unlogged-sdk:0.1.12'
 //    annotationProcessor 'video.bug:unlogged-sdk:0.1.12'

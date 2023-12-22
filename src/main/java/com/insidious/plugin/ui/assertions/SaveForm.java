@@ -15,8 +15,12 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.TestType;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
-import com.insidious.plugin.util.*;
+import com.insidious.plugin.util.JsonTreeUtils;
+import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.ObjectMapperInstance;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.*;
@@ -31,10 +35,9 @@ import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreeNode;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.List;
 import java.util.*;
 
@@ -63,7 +66,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
     public SaveForm(
             StoredCandidate storedCandidate,
             CandidateLifeListener candidateLifeListener
-    ) {
+    ) throws JsonProcessingException {
         this.storedCandidate = storedCandidate;
         this.candidateLifeListener = candidateLifeListener;
         this.enabledMockList = new HashSet<>(this.storedCandidate.getMockIds());
@@ -207,7 +210,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
 
         // mock panel
         this.mockPanel = new JPanel();
-        addDataMockPanel();
+        ApplicationManager.getApplication().executeOnPooledThread(this::addDataMockPanel);
 
         // define lowerPanel
         bottomTabPanel = new JBTabbedPane();
@@ -252,7 +255,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         mockDataPanelContent.add(applyMockPanel);
 
         this.insidiousService = this.candidateLifeListener.getProject().getService(InsidiousService.class);
-        this.mockValueMap = new MockValueMap(insidiousService);
+        this.mockValueMap = new MockValueMap(insidiousService.getProject(), storedCandidate.getMethod());
 
         // define mockMethodPanel
         JPanel mockMethodPanel = new JPanel();
@@ -346,44 +349,41 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         addMockButton.setText("Add Mock");
         addMockButton.setIcon(UIUtils.MOCK_ADD);
         addMockButton.setPreferredSize(new Dimension(100, 25));
-        addMockButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Project project = insidiousService.getProject();
-                JBPopup editorPopup = null;
+        addMockButton.addActionListener(e -> {
+            Project project = insidiousService.getProject();
+            JBPopup editorPopup = null;
 
-                PsiMethod targetMethod = psiMethodCallExpression.resolveMethod();
-                MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
-                        new JavaMethodAdapter(targetMethod));
-                MockDefinitionEditor mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest,
-                        psiMethodCallExpression, project, self);
-                JComponent gutterMethodComponent = mockDefinitionEditor.getComponent();
-                ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
-                        .createComponentPopupBuilder(gutterMethodComponent, null);
-                editorPopup = gutterMethodComponentPopup
-                        .setProject(psiMethodCallExpression.getProject())
-                        .setShowBorder(true)
-                        .setShowShadow(true)
-                        .setFocusable(true)
-                        .setRequestFocus(true)
-                        .setResizable(true)
-                        .setCancelOnClickOutside(true)
-                        .setCancelOnOtherWindowOpen(true)
-                        .setCancelKeyEnabled(true)
-                        .setBelongsToGlobalPopupStack(false)
-                        .setTitle("Mock Editor")
-                        .addListener(new JBPopupListener() {
-                            @Override
-                            public void onClosed(LightweightWindowEvent event) {
-                                JBPopupListener.super.onClosed(event);
-                            }
-                        })
-                        .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
-                        .createPopup();
-                editorPopup.showUnderneathOf(addMockButton);
+            PsiMethod targetMethod = psiMethodCallExpression.resolveMethod();
+            MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
+                    new JavaMethodAdapter(targetMethod));
+            MockDefinitionEditor mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest,
+                    psiMethodCallExpression, project, self);
+            JComponent gutterMethodComponent = mockDefinitionEditor.getComponent();
+            ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+                    .createComponentPopupBuilder(gutterMethodComponent, null);
+            editorPopup = gutterMethodComponentPopup
+                    .setProject(psiMethodCallExpression.getProject())
+                    .setShowBorder(true)
+                    .setShowShadow(true)
+                    .setFocusable(true)
+                    .setRequestFocus(true)
+                    .setResizable(true)
+                    .setCancelOnClickOutside(true)
+                    .setCancelOnOtherWindowOpen(true)
+                    .setCancelKeyEnabled(true)
+                    .setBelongsToGlobalPopupStack(false)
+                    .setTitle("Mock Editor")
+                    .addListener(new JBPopupListener() {
+                        @Override
+                        public void onClosed(LightweightWindowEvent event) {
+                            JBPopupListener.super.onClosed(event);
+                        }
+                    })
+                    .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
+                    .createPopup();
+            editorPopup.showUnderneathOf(addMockButton);
 
-                mockDefinitionEditor.setPopupHandle(editorPopup);
-            }
+            mockDefinitionEditor.setPopupHandle(editorPopup);
         });
         return addMockButton;
     }
@@ -481,13 +481,13 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         if (payload.getType() == TestType.UNIT) {
             // unit test
             HashSet<String> enabledMockUnDeleted = new HashSet<String>();
-            for (DeclaredMock localMock : this.insidiousService.getDeclaredMocksFor(this.storedCandidate.getMethod())) {
+            for (DeclaredMock localMock : insidiousService.getDeclaredMocksFor(this.storedCandidate.getMethod())) {
                 if (this.enabledMockList.contains(localMock.getId())) {
                     enabledMockUnDeleted.add(localMock.getId());
                 }
             }
 
-            enabledMockUnDeleted = MockIntersection.enabledStoredMock(insidiousService, enabledMockUnDeleted);
+//            enabledMockUnDeleted = MockIntersection.enabledStoredMock(insidiousService, enabledMockUnDeleted);
             this.storedCandidate.setMockIds(enabledMockUnDeleted);
         } else {
             // integration test
@@ -512,8 +512,8 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         }
     }
 
-    public DefaultMutableTreeNode getTree() {
-        return JsonTreeUtils.buildJsonTree(storedCandidate.getReturnValue(),
+    public TreeModel getTree() throws JsonProcessingException {
+        return JsonTreeUtils.jsonToTreeModel(objectMapper.readTree(storedCandidate.getReturnValue()),
                 getSimpleName(storedCandidate.getReturnValueClassname()));
     }
 

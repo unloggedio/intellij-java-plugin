@@ -4,6 +4,7 @@ import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.diagnostic.Logger;
 
 import java.util.ArrayList;
@@ -11,7 +12,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class SessionLoader implements Runnable, GetProjectSessionsCallback {
+public class SessionLoader implements Runnable, GetProjectSessionsCallback, Disposable {
 
 
     private static final Logger logger = LoggerUtil.getInstance(SessionLoader.class);
@@ -66,5 +67,10 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
 
     public void removeListener(GetProjectSessionsCallback getProjectSessionsCallback) {
         this.listeners.remove(getProjectSessionsCallback);
+    }
+
+    @Override
+    public void dispose() {
+        ourPool.shutdown();
     }
 }

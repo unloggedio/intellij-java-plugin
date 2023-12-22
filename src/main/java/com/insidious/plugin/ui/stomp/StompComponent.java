@@ -1,9 +1,11 @@
 package com.insidious.plugin.ui.stomp;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.TestCandidateLifeListener;
@@ -20,18 +22,18 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
-import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
-import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ActiveIcon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
@@ -53,6 +55,7 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public class StompComponent implements Consumer<TestCandidateMetadata>, TestCandidateLifeListener, OnCloseListener, OnExpandListener {
@@ -78,15 +81,15 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     private JPanel controlPanel;
     private JPanel infoPanel;
     private JLabel selectedCountLabel;
-    private JLabel mockLabel;
-    private JLabel executeLabel;
-    private JLabel convertToJunitLabel;
+    private JLabel selectAllLabel;
+    private JLabel clearSelectionLabel;
     private long lastEventId = 0;
     private ConnectedAndWaiting connectedAndWaiting;
     private DisconnectedAnd disconnectedAnd;
     private MethodDirectInvokeComponent directInvokeComponent = null;
     private JPanel directInvokeRow = null;
     private SaveForm saveFormReference;
+    private SimpleDateFormat simpleDateFormat = new SimpleDateFormat();
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -107,11 +110,43 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         historyStreamScrollPanel.setBorder(BorderFactory.createEmptyBorder());
         scrollContainer.setBorder(BorderFactory.createEmptyBorder());
 
+        clearSelectionLabel.setVisible(false);
+        selectAllLabel.setVisible(false);
+        selectAllLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        clearSelectionLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        clearSelectionLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                selectedCandidates.clear();
+                for (StompItem stompItem : stompItems) {
+                    stompItem.setSelected(false);
+                }
+            }
+        });
+
+        selectAllLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                for (StompItem stompItem : stompItems) {
+                    stompItem.setSelected(true);
+                    selectedCandidates.add(stompItem.getTestCandidate());
+                }
+            }
+        });
+
         replayButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         saveAsMockButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         generateJUnitButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         filterButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        saveAsMockButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+            }
+        });
 
         reloadButton.addMouseListener(new MouseAdapter() {
             @Override
@@ -134,17 +169,28 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
                     insidiousService.hideCandidateSaveForm(saveFormReference);
                     saveFormReference = null;
                 }
-                AtomicRecordService atomicRecordService = insidiousService.getProject().getService(AtomicRecordService.class);
+                AtomicRecordService atomicRecordService = insidiousService.getProject()
+                        .getService(AtomicRecordService.class);
                 StoredCandidate storedCandidate = new StoredCandidate(selectedCandidates.get(0));
 
                 for (TestCandidateMetadata testCandidate : selectedCandidates) {
-                    MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(getPsiMethod(testCandidate)));
-                    StoredCandidate candidate = atomicRecordService.getStoredCandidateFor(methodUnderTest,
-                            testCandidate);
+                    MethodUnderTest methodUnderTest = null;
+                    try {
+                        methodUnderTest = ApplicationManager.getApplication().executeOnPooledThread(
+                                        () -> ApplicationManager.getApplication().runReadAction(
+                                                (Computable<MethodUnderTest>) () -> MethodUnderTest.fromMethodAdapter(
+                                                        new JavaMethodAdapter(getPsiMethod(testCandidate)))))
+                                .get();
+                    } catch (InterruptedException | ExecutionException ex) {
+                        continue;
+//                        throw new RuntimeException(ex);
+                    }
+                    StoredCandidate candidate = atomicRecordService
+                            .getStoredCandidateFor(methodUnderTest, testCandidate);
                     if (candidate.getCandidateId() == null) {
                         candidate.setCandidateId(UUID.randomUUID().toString());
                     }
-
+                    candidate.setName("saved on " + simpleDateFormat.format(new Date()));
                     atomicRecordService.saveCandidate(methodUnderTest, candidate);
 
                 }
@@ -152,87 +198,101 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 
                 if (storedCandidate.getCandidateId() == null) {
                     // new test case
-                    storedCandidate.setName("test " + storedCandidate.getMethod().getName() + " returns expected value when");
+                    storedCandidate.setName(
+                            "test " + storedCandidate.getMethod().getName() + " returns expected value when");
                     storedCandidate.setDescription("assert that the response value matches expected value");
                 }
-                saveFormReference = new SaveForm(storedCandidate, new CandidateLifeListener() {
-                    @Override
-                    public void executeCandidate(List<StoredCandidate> metadata, ClassUnderTest classUnderTest, ReplayAllExecutionContext context, AgentCommandResponseListener<TestCandidateMetadata, String> stringAgentCommandResponseListener) {
-
-                    }
-
-                    @Override
-                    public void displayResponse(Component responseComponent, boolean isExceptionFlow) {
-
-                    }
-
-                    @Override
-                    public void onSaved(StoredCandidate storedCandidate) {
-                        for (TestCandidateMetadata testCandidate : selectedCandidates) {
-                            MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(getPsiMethod(testCandidate)));
-                            StoredCandidate candidate = atomicRecordService.getStoredCandidateFor(methodUnderTest,
-                                    testCandidate);
-                            if (candidate.getCandidateId() == null) {
-                                candidate.setCandidateId(UUID.randomUUID().toString());
-                            }
-                            candidate.setTestAssertions(storedCandidate.getTestAssertions());
-                            atomicRecordService.saveCandidate(methodUnderTest, candidate);
+                try {
+                    saveFormReference = new SaveForm(storedCandidate, new CandidateLifeListener() {
+                        @Override
+                        public void executeCandidate(List<StoredCandidate> metadata, ClassUnderTest classUnderTest, ReplayAllExecutionContext context, AgentCommandResponseListener<TestCandidateMetadata, String> stringAgentCommandResponseListener) {
 
                         }
 
-                    }
+                        @Override
+                        public void displayResponse(Component responseComponent, boolean isExceptionFlow) {
 
-                    @Override
-                    public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
+                        }
 
-                    }
+                        @Override
+                        public void onSaved(StoredCandidate storedCandidate) {
+                            for (TestCandidateMetadata testCandidate : selectedCandidates) {
+                                MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
+                                        new JavaMethodAdapter(getPsiMethod(testCandidate)));
+                                StoredCandidate candidate = atomicRecordService.getStoredCandidateFor(methodUnderTest,
+                                        testCandidate);
+                                if (candidate.getCandidateId() == null) {
+                                    candidate.setCandidateId(UUID.randomUUID().toString());
+                                }
+                                candidate.setTestAssertions(storedCandidate.getTestAssertions());
+                                simpleDateFormat = new SimpleDateFormat();
+                                if (candidate.getName() == null) {
+                                    candidate.setName("saved on " + simpleDateFormat.format(new Date()));
+                                }
+                                atomicRecordService.saveCandidate(methodUnderTest, candidate);
 
-                    @Override
-                    public void onDeleteRequest(StoredCandidate storedCandidate) {
+                            }
 
-                    }
+                            insidiousService.hideCandidateSaveForm(saveFormReference);
+                            saveFormReference = null;
 
-                    @Override
-                    public void onDeleted(StoredCandidate storedCandidate) {
 
-                    }
+                        }
 
-                    @Override
-                    public void onUpdated(StoredCandidate storedCandidate) {
+                        @Override
+                        public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
 
-                    }
+                        }
 
-                    @Override
-                    public void onUpdateRequest(StoredCandidate storedCandidate) {
+                        @Override
+                        public void onDeleteRequest(StoredCandidate storedCandidate) {
 
-                    }
+                        }
 
-                    @Override
-                    public void onGenerateJunitTestCaseRequest(StoredCandidate storedCandidate) {
+                        @Override
+                        public void onDeleted(StoredCandidate storedCandidate) {
 
-                    }
+                        }
 
-                    @Override
-                    public void onCandidateSelected(StoredCandidate testCandidateMetadata) {
+                        @Override
+                        public void onUpdated(StoredCandidate storedCandidate) {
 
-                    }
+                        }
 
-                    @Override
-                    public boolean canGenerateUnitCase(StoredCandidate candidate) {
-                        return false;
-                    }
+                        @Override
+                        public void onUpdateRequest(StoredCandidate storedCandidate) {
 
-                    @Override
-                    public void onCancel() {
-                        insidiousService.hideCandidateSaveForm(saveFormReference);
-                        saveFormReference = null;
-                    }
+                        }
 
-                    @Override
-                    public Project getProject() {
-                        return insidiousService.getProject();
-                    }
-                });
+                        @Override
+                        public void onGenerateJunitTestCaseRequest(StoredCandidate storedCandidate) {
+
+                        }
+
+                        @Override
+                        public void onCandidateSelected(StoredCandidate testCandidateMetadata) {
+
+                        }
+
+                        @Override
+                        public boolean canGenerateUnitCase(StoredCandidate candidate) {
+                            return false;
+                        }
+
+                        @Override
+                        public void onCancel() {
+                            insidiousService.hideCandidateSaveForm(saveFormReference);
+                            saveFormReference = null;
+                        }
+
+                        @Override
+                        public Project getProject() {
+                            return insidiousService.getProject();
+                        }
+                    });
+                } catch (JsonProcessingException ex) {
+                    throw new RuntimeException(ex);
+                }
 
                 insidiousService.showCandidateSaveForm(saveFormReference);
             }
@@ -341,27 +401,30 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     }
 
     private void setLabelsVisible(boolean b) {
-        mockLabel.setVisible(b);
-        executeLabel.setVisible(b);
-        convertToJunitLabel.setVisible(b);
+//        mockLabel.setVisible(b);
+//        executeLabel.setVisible(b);
+//        convertToJunitLabel.setVisible(b);
     }
 
     private void executeSingleTestCandidate(TestCandidateMetadata selectedCandidate) {
-        PsiMethod methodPsiElement = getPsiMethod(selectedCandidate);
-        long batchTime = System.currentTimeMillis();
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            PsiMethod methodPsiElement = ApplicationManager.getApplication().runReadAction(
+                    (Computable<PsiMethod>) () -> getPsiMethod(selectedCandidate));
+            long batchTime = System.currentTimeMillis();
 
-        insidiousService.executeSingleCandidate(
-                new StoredCandidate(selectedCandidate),
-                new ClassUnderTest(selectedCandidate.getFullyQualifiedClassname()),
-                ExecutionRequestSourceType.Bulk,
-                new AgentCommandResponseListener<StoredCandidate, String>() {
-                    @Override
-                    public void onSuccess(StoredCandidate testCandidate, AgentCommandResponse<String> agentCommandResponse, DifferenceResult diffResult) {
-
-                    }
-                },
-                new JavaMethodAdapter(methodPsiElement)
-        );
+            insidiousService.executeSingleCandidate(
+                    new StoredCandidate(selectedCandidate),
+                    new ClassUnderTest(selectedCandidate.getFullyQualifiedClassname()),
+                    ExecutionRequestSourceType.Bulk,
+                    (testCandidate, agentCommandResponse, diffResult) -> {
+                        if (agentCommandResponse.getResponseType() == ResponseType.FAILED) {
+                            InsidiousNotification.notifyMessage(agentCommandResponse.getMessage(),
+                                    NotificationType.WARNING);
+                        }
+                    },
+                    new JavaMethodAdapter(methodPsiElement)
+            );
+        });
     }
 
     @Nullable
@@ -396,6 +459,20 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
             lastEventId = testCandidateMetadata.getExitProbeIndex();
         }
         if (stompItems.size() > 0) {
+
+            boolean isExisting = false;
+            for (StompItem stompItem : stompItems) {
+                if (stompItem.getTestCandidate().getEntryProbeIndex() == testCandidateMetadata.getEntryProbeIndex()) {
+                    isExisting = true;
+                    break;
+                }
+            }
+            if (isExisting) {
+                // matched an existing pinned item
+                return;
+            }
+
+
             StompItem last = stompItems.get(stompItems.size() - 1);
             long gapStartIndex = last.getTestCandidate().getExitProbeIndex();
             long gapEndIndex = testCandidateMetadata.getEntryProbeIndex();
@@ -688,9 +765,10 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 
         if (source == ExecutionRequestSourceType.Single) {
             TestCandidateMetadata selectedCandidate = metadata.get(0);
-            PsiMethod methodPsiElement = getPsiMethod(selectedCandidate);
-
+            PsiMethod methodPsiElement = ApplicationManager.getApplication()
+                    .runReadAction((Computable<PsiMethod>) () -> getPsiMethod(selectedCandidate));
             showDirectInvoke(new JavaMethodAdapter(methodPsiElement));
+            directInvokeComponent.triggerExecute();
         }
 
     }
@@ -716,6 +794,11 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         selectedCountLabel.setText(selectedCandidates.size() + " selected");
         if (selectedCandidates.size() > 0 && !controlPanel.isEnabled()) {
 //            reloadButton.setEnabled(true);
+
+            clearSelectionLabel.setVisible(true);
+            selectAllLabel.setVisible(true);
+
+
             generateJUnitButton.setEnabled(true);
             saveAsMockButton.setEnabled(true);
             replayButton.setEnabled(true);
@@ -724,6 +807,10 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 //            setLabelsVisible(true);
         } else if (selectedCandidates.size() == 0 && controlPanel.isEnabled()) {
             selectedCountLabel.setText("None selected");
+            clearSelectionLabel.setVisible(false);
+            selectAllLabel.setVisible(false);
+
+
 //            reloadButton.setEnabled(false);
             generateJUnitButton.setEnabled(false);
             saveAsMockButton.setEnabled(false);
@@ -805,11 +892,46 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 
     public void clear() {
         lastEventId = 0;
-        itemPanel.removeAll();
-        itemPanel.add(new JPanel(), createGBCForFakeComponent());
+
+        List<Component> itemsToNotDelete = new ArrayList<>();
+        List<StompItem> pinnedStomps = new ArrayList<>();
+        for (StompItem stompItem : stompItems) {
+            if (stompItem.isPinned()) {
+                pinnedStomps.add(stompItem);
+                stompItem.setSelected(false);
+                itemsToNotDelete.add(stompItem.getComponent().getParent());
+            }
+        }
+        List<Component> allComponents = new ArrayList<>(Arrays.asList(itemPanel.getComponents()));
+        allComponents.removeAll(itemsToNotDelete);
+        for (Component component : allComponents) {
+            itemPanel.remove(component);
+        }
+        normalizeItemPanelComponents();
+
+
+        if (directInvokeRow != null) {
+            itemPanel.add(directInvokeRow, createGBCForLeftMainComponent(), 0);
+        }
+
+        GridBagConstraints gbcForFakeComponent = createGBCForFakeComponent();
+        gbcForFakeComponent.gridy = itemPanel.getComponentCount();
+        itemPanel.add(new JPanel(), gbcForFakeComponent, itemPanel.getComponentCount());
+
         selectedCandidates.clear();
         updateControlPanel();
         stompItems.clear();
+        stompItems.addAll(pinnedStomps);
+    }
+
+    private void normalizeItemPanelComponents() {
+        Component[] components = itemPanel.getComponents();
+        for (int i = 0; i < components.length; i++) {
+            Component component = components[i];
+            GridBagConstraints gbc = ((GridBagLayout) itemPanel.getLayout()).getConstraints(component);
+            gbc.gridy = i;
+            itemPanel.add(component, gbc);
+        }
     }
 
     public void disconnected() {
@@ -835,7 +957,11 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
             makeSpace(0);
             itemPanel.add(directInvokeRow, createGBCForLeftMainComponent(), 0);
         }
-        directInvokeComponent.renderForMethod(method, null);
+        try {
+            directInvokeComponent.renderForMethod(method, null);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
 
         historyStreamScrollPanel.revalidate();
         historyStreamScrollPanel.repaint();
@@ -889,6 +1015,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         rowPanel.add(startedPanel, BorderLayout.CENTER);
         rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
         makeSpace(0);
+        rowPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
         itemPanel.add(rowPanel, createGBCForProcessStartedComponent());
         if (directInvokeComponent != null) {
 

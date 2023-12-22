@@ -67,13 +67,16 @@ public class AgentConnectionStateTracker implements AgentConnectionStateNotifier
                 return;
             } else {
 
-                ApplicationManager.getApplication().runReadAction(() -> {
-                    List<String> classNameList = Arrays.stream(locatedPackage.getDirectories())
-                            .map(PsiDirectory::getName)
-                            .collect(Collectors.toList());
-                    logger.info("Package [" + finalIncludedPackageName1 + "] found in [" + locatedPackage.getProject()
-                            .getName() + "] -> " + classNameList);
-                });
+                ApplicationManager.getApplication()
+                        .executeOnPooledThread(() ->
+                                ApplicationManager.getApplication().runReadAction(() -> {
+                            List<String> classNameList = Arrays.stream(locatedPackage.getDirectories())
+                                    .map(PsiDirectory::getName)
+                                    .collect(Collectors.toList());
+                            logger.info(
+                                    "Package [" + finalIncludedPackageName1 + "] found in [" + locatedPackage.getProject()
+                                            .getName() + "] -> " + classNameList);
+                        }));
             }
         }
         insidiousService.onAgentConnected(serverMetadata);

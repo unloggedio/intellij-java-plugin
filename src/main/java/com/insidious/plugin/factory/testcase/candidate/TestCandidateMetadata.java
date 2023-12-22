@@ -29,7 +29,7 @@ public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> 
         methodCallExpressions = original.methodCallExpressions
                 .stream().map(MethodCallExpression::new)
                 .collect(Collectors.toList());
-        fields = (VariableContainer) original.fields.clone();
+        fields = original.fields.clone();
         mainMethod = new MethodCallExpression(original.mainMethod);
         testSubject = new Parameter(original.testSubject);
         callTimeNanoSecond = original.callTimeNanoSecond;

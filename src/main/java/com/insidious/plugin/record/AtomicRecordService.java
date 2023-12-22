@@ -1,7 +1,6 @@
 package com.insidious.plugin.record;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.weisj.jsvg.S;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
@@ -17,6 +16,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.MockIntersection;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
@@ -25,6 +25,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.roots.ProjectRootManager;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
@@ -145,8 +146,7 @@ public class AtomicRecordService {
                                         NotificationType.INFORMATION);
                             }
                             logger.info("[ATRS] Replacing existing record");
-                            candidate.setMockIds(
-                                    MockIntersection.enabledStoredMock(insidiousService, candidate.getMockIds()));
+//                            candidate.setMockIds(candidate.getMockIds());
                             storedCandidate.copyFrom(candidate);
                             break;
                         }
@@ -261,11 +261,16 @@ public class AtomicRecordService {
 
         PsiClass psiClass;
         try {
-            psiClass = JavaPsiFacade.getInstance(project).findClass(className, GlobalSearchScope.allScope(project));
+            psiClass = ApplicationManager.getApplication()
+                    .executeOnPooledThread(() -> ApplicationManager.getApplication().runReadAction(
+                            (Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
+                                    .findClass(className, GlobalSearchScope.allScope(project)))).get();
             if (psiClass == null) {
                 logger.warn("Class not found [" + className + "] for saving atomic records");
             } else {
-                return guessModuleForPsiClass(psiClass);
+                return ApplicationManager.getApplication().executeOnPooledThread(() ->
+                        ApplicationManager.getApplication().runReadAction(
+                                (Computable<Module>) () -> guessModuleForPsiClass(psiClass))).get();
             }
         } catch (Exception e) {
             // failed to find modules and a more specific save path

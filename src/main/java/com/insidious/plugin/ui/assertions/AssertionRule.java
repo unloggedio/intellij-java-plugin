@@ -296,14 +296,14 @@ public class AssertionRule {
 
 
 //        valueField.setCaretPosition(0);
-        valueField.getDocument().addDocumentListener(new DocumentAdapter() {
-            @Override
-            protected void textChanged( DocumentEvent e) {
-                logger.warn("Value field updated: " + valueField.getText().trim());
-                assertion.setExpectedValue(valueField.getText().trim());
-                updateResult();
-            }
-        });
+//        valueField.getDocument().addDocumentListener(new DocumentAdapter() {
+//            @Override
+//            protected void textChanged( DocumentEvent e) {
+//                logger.warn("Value field updated: " + valueField.getText().trim());
+//                assertion.setExpectedValue(valueField.getText().trim());
+//                updateResult();
+//            }
+//        });
 
         trashButton.addActionListener(e -> deleteRule());
         updateResult();
@@ -329,42 +329,42 @@ public class AssertionRule {
     }
 
     private void setupOptions() {
-        operationSelector.addItem("is");
-        operationSelector.addItem("is not");
-        operationSelector.addItem(">");
-        operationSelector.addItem(">=");
-        operationSelector.addItem("<");
-        operationSelector.addItem("<=");
-
-
-        operationSelector.addItem("is null");
-        operationSelector.addItem("is empty");
-        operationSelector.addItem("is true");
-
-        operationSelector.addItem("is false");
-        operationSelector.addItem("is not empty");
-        operationSelector.addItem("is not null");
-
-        operationSelector.addItem("size is");
-        operationSelector.addItem("size is not");
-        operationSelector.addItem("length is");
-        operationSelector.addItem("length is not");
-
-        operationSelector.addItem("equals ignore case");
-
-        operationSelector.addItem("contains substring");
-        operationSelector.addItem("matches regex");
-        operationSelector.addItem("contains item in array");
-        operationSelector.addItem("contains key in object");
-        operationSelector.addItem("starts with");
-        operationSelector.addItem("ends with");
-
-        operationSelector.addItem("not contains substring");
-        operationSelector.addItem("not matches regex");
-        operationSelector.addItem("not contains item in array");
-        operationSelector.addItem("not contains key in object");
-        operationSelector.addItem("not starts with");
-        operationSelector.addItem("not ends with");
+//        operationSelector.addItem("is");
+//        operationSelector.addItem("is not");
+//        operationSelector.addItem(">");
+//        operationSelector.addItem(">=");
+//        operationSelector.addItem("<");
+//        operationSelector.addItem("<=");
+//
+//
+//        operationSelector.addItem("is null");
+//        operationSelector.addItem("is empty");
+//        operationSelector.addItem("is true");
+//
+//        operationSelector.addItem("is false");
+//        operationSelector.addItem("is not empty");
+//        operationSelector.addItem("is not null");
+//
+//        operationSelector.addItem("size is");
+//        operationSelector.addItem("size is not");
+//        operationSelector.addItem("length is");
+//        operationSelector.addItem("length is not");
+//
+//        operationSelector.addItem("equals ignore case");
+//
+//        operationSelector.addItem("contains substring");
+//        operationSelector.addItem("matches regex");
+//        operationSelector.addItem("contains item in array");
+//        operationSelector.addItem("contains key in object");
+//        operationSelector.addItem("starts with");
+//        operationSelector.addItem("ends with");
+//
+//        operationSelector.addItem("not contains substring");
+//        operationSelector.addItem("not matches regex");
+//        operationSelector.addItem("not contains item in array");
+//        operationSelector.addItem("not contains key in object");
+//        operationSelector.addItem("not starts with");
+//        operationSelector.addItem("not ends with");
 
 
     }

@@ -11,7 +11,6 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -92,10 +91,12 @@ public class ClassTypeUtils {
     }
 
 
-    
     public static String getDescriptorName(String className) {
-        if (className.contains("$")) {
-            className = className.substring(0, className.indexOf('$'));
+        if (className == null) {
+            return "V";
+        }
+        if (className.length() < 2) {
+            return className;
         }
         return "L" + className.replace('.', '/') + ";";
     }
@@ -188,7 +189,7 @@ public class ClassTypeUtils {
             }
             try {
                 returnValueSquareClass = ClassName.bestGuess(typeName);
-            }catch (Exception exception) {
+            } catch (Exception exception) {
                 // java poet failed to create class name from string
                 String packageName = typeName.substring(0, typeName.lastIndexOf("."));
                 String simpleName = typeName.substring(typeName.lastIndexOf(".") + 1);
@@ -219,7 +220,8 @@ public class ClassTypeUtils {
             TypeName[] typeArgumentsArray = new TypeName[typeArguments.size()];
             for (int j = 0; j < typeArguments.size(); j++) {
                 Type typeArgument = typeArguments.get(j);
-                typeArgumentsArray[j] = createTypeFromTypeDeclaration(typeArgument.asClassOrInterfaceType().getNameWithScope());
+                typeArgumentsArray[j] = createTypeFromTypeDeclaration(
+                        typeArgument.asClassOrInterfaceType().getNameWithScope());
             }
 
 

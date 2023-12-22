@@ -1,9 +1,9 @@
 package com.insidious.plugin.ui.methodscope;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
-import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
@@ -12,7 +12,6 @@ import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.ReplayAllExecutionContext;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
@@ -26,7 +25,9 @@ import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.assertions.SaveForm;
-import com.insidious.plugin.util.*;
+import com.insidious.plugin.util.ClassTypeUtils;
+import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -728,8 +729,12 @@ public class MethodExecutorComponent implements CandidateLifeListener {
             storedCandidate.setName("test " + storedCandidate.getMethod().getName() + " returns expected value when");
             storedCandidate.setDescription("assert that the response value matches expected value");
         }
-        saveFormReference = new SaveForm(storedCandidate, this);
-        insidiousService.showCandidateSaveForm(saveFormReference);
+        try {
+            saveFormReference = new SaveForm(storedCandidate, this);
+            insidiousService.showCandidateSaveForm(saveFormReference);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
 
     }
 

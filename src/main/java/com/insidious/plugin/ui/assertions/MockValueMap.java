@@ -1,11 +1,12 @@
 package com.insidious.plugin.ui.assertions;
 
-import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.highlighter.MockMethodLineHighlighter;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
@@ -25,27 +26,26 @@ public class MockValueMap {
     private HashMap<String, String> mockNameIdMap = new HashMap<String, String>();
     private HashMap<String, PsiMethodCallExpression> referenceToPsiMethodCallExpression = new HashMap<String, PsiMethodCallExpression>();
 
-    public MockValueMap(InsidiousService insidiousService) {
+    public MockValueMap(Project project, MethodUnderTest methodUnderTest) {
 
-        AtomicRecordService atomicRecordService = insidiousService
-                .getProject()
-                .getService(AtomicRecordService.class);
-        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(insidiousService.getCurrentMethod());
-        Project project = insidiousService.getProject();
+        AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
 
         // add dependent methods without declared mock
-        PsiClass classPsi = JavaPsiFacade.getInstance(project)
-                .findClass(methodUnderTest.getClassName(), GlobalSearchScope.projectScope(project));
+        PsiClass classPsi = ApplicationManager.getApplication().runReadAction((Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
+                .findClass(methodUnderTest.getClassName(), GlobalSearchScope.projectScope(project)));
 
-        PsiMethodCallExpression[] methodCallExpressions = getChildrenOfTypeRecursive(classPsi,
-                PsiMethodCallExpression.class);
+        PsiMethodCallExpression[] methodCallExpressions = ApplicationManager.getApplication()
+                .runReadAction((Computable<PsiMethodCallExpression[]>) () ->
+                        getChildrenOfTypeRecursive(classPsi, PsiMethodCallExpression.class));
         // todo: check if methodCallExpressions is null
         List<PsiMethodCallExpression> mockableCallExpressions = Arrays.stream(methodCallExpressions)
-                .filter(MockMethodLineHighlighter::isNonStaticDependencyCall)
+                .filter(e -> ApplicationManager.getApplication().runReadAction(
+                        (Computable<Boolean>) () -> MockMethodLineHighlighter.isNonStaticDependencyCall(e)))
                 .collect(Collectors.toList());
 
         for (PsiMethodCallExpression local : mockableCallExpressions) {
-            String localMockMethodName = local.getMethodExpression().getReferenceName();
+            String localMockMethodName = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> local.getMethodExpression().getReferenceName());
             if (!referenceToPsiMethodCallExpression.containsKey(localMockMethodName)) {
                 referenceToPsiMethodCallExpression.put(localMockMethodName, local);
             }

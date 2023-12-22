@@ -9,6 +9,7 @@ import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.JBColor;
 
@@ -171,11 +172,13 @@ public class StompItem {
         replaySingle.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                testCandidateLifeListener.executeCandidate(Collections.singletonList(candidateMetadata),
-                        new ClassUnderTest(candidateMetadata.getFullyQualifiedClassname()), ExecutionRequestSourceType.Single,
-                        (testCandidate, agentCommandResponse, diffResult) -> {
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    testCandidateLifeListener.executeCandidate(Collections.singletonList(candidateMetadata),
+                            new ClassUnderTest(candidateMetadata.getFullyQualifiedClassname()), ExecutionRequestSourceType.Single,
+                            (testCandidate, agentCommandResponse, diffResult) -> {
 
-                        });
+                            });
+                });
             }
         });
         pinLabel.addMouseListener(new MouseAdapter() {
@@ -313,5 +316,13 @@ public class StompItem {
 
     public TestCandidateMetadata getTestCandidate() {
         return candidateMetadata;
+    }
+
+    public void setSelected(boolean b) {
+        selectCandidateCheckbox.setSelected(b);
+    }
+
+    public boolean isPinned() {
+        return isPinned;
     }
 }

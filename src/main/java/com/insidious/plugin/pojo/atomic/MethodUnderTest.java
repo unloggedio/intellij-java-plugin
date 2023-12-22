@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.util.ClassTypeUtils;
 
 import java.util.Objects;
 
@@ -34,8 +36,23 @@ public class MethodUnderTest {
 
     public static MethodUnderTest fromTestCandidateMetadata(TestCandidateMetadata testCandidateMetadata) {
         return new MethodUnderTest(
-                testCandidateMetadata.getMainMethod().getMethodName(), null, 0,
+                testCandidateMetadata.getMainMethod().getMethodName(), buildMethodSignature(testCandidateMetadata), 0,
                 testCandidateMetadata.getFullyQualifiedClassname());
+    }
+
+    private static String buildMethodSignature(TestCandidateMetadata testCandidateMetadata) {
+        StringBuilder methodSignature = new StringBuilder("(");
+
+        for (Parameter argument : testCandidateMetadata.getMainMethod().getArguments()) {
+            String type = argument.getType();
+            methodSignature.append(ClassTypeUtils.getDescriptorName(type));
+        }
+
+        methodSignature.append(")");
+        String type = testCandidateMetadata.getMainMethod().getReturnValue().getType();
+        methodSignature.append(ClassTypeUtils.getDescriptorName(type));
+
+        return methodSignature.toString();
     }
 
     public static MethodUnderTest fromCandidateSearchQuery(CandidateSearchQuery candidateSearchQuery) {
