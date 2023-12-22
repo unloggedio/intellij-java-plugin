@@ -124,15 +124,17 @@ public class MockMethodLineHighlighter implements LineMarkerProvider {
     }
 
     private static boolean IsImplementedBy(PsiClass topClass, PsiClass bottomClass) {
-        if (bottomClass == null) {
+        if (bottomClass == null || bottomClass.getQualifiedName() == null) {
             return false;
         }
         if (bottomClass.getQualifiedName().equals(topClass.getQualifiedName())) {
             return true;
         }
-        for (PsiClassType referencedType : bottomClass.getImplementsList().getReferencedTypes()) {
-            if (IsImplementedBy(topClass, referencedType.resolve())) {
-                return true;
+        if (bottomClass.getImplementsList() != null) {
+            for (PsiClassType referencedType : bottomClass.getImplementsList().getReferencedTypes()) {
+                if (IsImplementedBy(topClass, referencedType.resolve())) {
+                    return true;
+                }
             }
         }
 
