@@ -446,7 +446,9 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
 //        TestCandidateMetadata mostRecentTestCandidate = null;
         AgentCommandRequest agentCommandRequest = MethodUtils.createExecuteRequestWithParameters(methodElement,
-                new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) containingClass.getSource())),
+                new ClassUnderTest(ApplicationManager.getApplication().runReadAction(
+                        (Computable<String>) () ->
+                                JvmClassUtil.getJvmClassName((PsiClass) containingClass.getSource()))),
                 methodArgumentValues, false, null);
 
         AgentCommandRequest existingRequests = insidiousService.getAgentCommandRequests(agentCommandRequest);
