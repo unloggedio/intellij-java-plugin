@@ -145,13 +145,24 @@ public class MockDefinitionEditor {
     }
 
     private String buildJvmClassName(PsiType returnType) {
+        if (returnType == null) {
+            return "java.lang.Object";
+        }
+
         if (!(returnType instanceof PsiClassReferenceType)) {
             return returnType.getCanonicalText();
         }
         PsiClassReferenceType classReferenceType = (PsiClassReferenceType) returnType;
+        if (classReferenceType.resolve() == null) {
+            return "java.lang.Object";
+        }
 
+        String jvmClassName1 = JvmClassUtil.getJvmClassName(classReferenceType.resolve());
+        if (jvmClassName1 == null) {
+            jvmClassName1 = "java.lang.Object";
+        }
         StringBuilder jvmClassName =
-                new StringBuilder(JvmClassUtil.getJvmClassName(classReferenceType.resolve()));
+                new StringBuilder(jvmClassName1);
         int paramCount = classReferenceType.getParameterCount();
         if (paramCount > 0) {
             jvmClassName.append("<");
