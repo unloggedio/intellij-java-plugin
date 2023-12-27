@@ -16,10 +16,12 @@ import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.DiffUtils;
+import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.MethodUtils;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.*;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -45,6 +47,16 @@ public class AutomaticExecutorService {
     private final AutoExecutionRecordQueue reportingQueue;
     private Thread consumerThread;
     private boolean executeInBackground = true;
+    public static long classcount = 0;
+    public static long methodcount = 0;
+    public static long jsonExceptioncount = 0;
+    public static long executingCount = 0;
+    public static long responses = 0;
+    public static long waitInterrupts = 0;
+    public static long nullclasses = 0;
+    public static long waiting = 0;
+    public static long doneWaiting = 0;
+    private static final Logger logger = LoggerUtil.getInstance(AutomaticExecutorService.class);
 
     public AutomaticExecutorService(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -63,7 +75,15 @@ public class AutomaticExecutorService {
         ObjectMapper objectMapper = new ObjectMapper();
         insidiousService.getReportingService().setReportingEnabled(true);
         MethodAdapter[] methods = sourceClass.getMethods();
+        methodcount += methods.length;
         for (MethodAdapter methodAdapter : methods) {
+            if (methodAdapter.getName().equals("main")) {
+                System.out.println("Possible main method : " + methodAdapter.getName());
+                continue;
+            }
+//            if (true) {
+//                return;
+//            }
             List<String> argumentValues = new ArrayList<>();
             ParameterAdapter[] parameters = methodAdapter.getParameters();
 
@@ -96,6 +116,7 @@ public class AutomaticExecutorService {
                             parameterValue = objectMapper.writeValueAsString(parameterValue);
                         } catch (JsonProcessingException e) {
                             // should never happen
+                            jsonExceptioncount++;
                         }
                     }
                     methodArgumentValues.add(parameterValue);
@@ -106,50 +127,71 @@ public class AutomaticExecutorService {
                                 false, new ArrayList<>());
                 agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
 
-                threadPoolExecutor.submit(() -> {
-                    ApplicationManager.getApplication().runReadAction(() -> {
-                        System.out.println("Executing method " + methodAdapter.getName());
-                        insidiousService.executeMethodInRunningProcessSync(agentCommandRequest,
-                                (agentCommandRequest1, agentCommandResponse) -> {
-                                    if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
-                                        if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
-                                            InsidiousNotification.notifyMessage(
-                                                    "Exception thrown when trying to invoke " + agentCommandRequest.getMethodName(),
-                                                    NotificationType.ERROR
-                                            );
-                                            return;
-                                        }
-                                    }
-                                    ResponseType responseType1 = agentCommandResponse.getResponseType();
-                                    DiffResultType diffResultType = responseType1.equals(
-                                            ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
-                                    DifferenceResult diffResult = new DifferenceResult(null,
-                                            diffResultType, null,
-                                            DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
-                                    diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
-                                    diffResult.setResponse(agentCommandResponse);
-                                    diffResult.setCommand(agentCommandRequest);
+//                System.out.println("Executing method " + methodAdapter.getName());
+                executingCount++;
+//                System.out.println("L0 : [Classcount,MethodCount,Executing,responses,waiting,doneWaiting] : [" + classcount +
+//                        "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
+//                logger.info("L0 : [Classcount,MethodCount,Executing,responses,waiting,doneWaiting] : [" + classcount +
+//                        "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
 
-                                    if (reportingQueue.isFull()) {
-                                        try {
-                                            reportingQueue.waitIsNotFull();
-                                        } catch (InterruptedException e) {
+                insidiousService.executeMethodInRunningProcessSync(agentCommandRequest,
+                        (agentCommandRequest1, agentCommandResponse) -> {
+                            if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
+                                if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
+                                    InsidiousNotification.notifyMessage(
+                                            "Exception thrown when trying to invoke " + agentCommandRequest.getMethodName(),
+                                            NotificationType.ERROR
+                                    );
+                                    nullclasses++;
+                                    System.out.println("Got a null case : " + nullclasses);
+                                    return;
+                                }
+                            }
+                            ResponseType responseType1 = agentCommandResponse.getResponseType();
+                            DiffResultType diffResultType = responseType1.equals(
+                                    ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
+                            DifferenceResult diffResult = new DifferenceResult(null,
+                                    diffResultType, null,
+                                    DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
+                            diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
+                            diffResult.setResponse(agentCommandResponse);
+                            diffResult.setCommand(agentCommandRequest);
+
+                            boolean waiting_State = false;
+                            if (reportingQueue.isFull()) {
+                                try {
+                                    waiting_State = true;
+                                    waiting++;
+                                    reportingQueue.waitIsNotFull();
+                                } catch (InterruptedException e) {
 //                                    System.out.println("Error while waiting to Produce messages.");
-                                        }
-                                    }
-                                    reportingQueue.add(new AutoExecutorReportRecord(diffResult,
-                                            insidiousService.getSessionInstance().getProcessedFileCount(),
-                                            insidiousService.getSessionInstance().getTotalFileCount()));
-                                });
-                    });
-
-                });
-
+                                    waitInterrupts++;
+                                }
+                            }
+                            responses++;
+//                            System.out.println("L1 : [Classcount,MethodCount,Executing,responses,waiting,doneWaiting] : [" + classcount +
+//                                    "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
+                            logger.info("L1 : [Classcount,MethodCount,Executing,responses,waiting,doneWaiting] : [" + classcount +
+                                    "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
+                            reportingQueue.add(new AutoExecutorReportRecord(diffResult,
+                                    insidiousService.getSessionInstance().getProcessedFileCount(),
+                                    insidiousService.getSessionInstance().getTotalFileCount()));
+                        });
             });
         }
     }
 
     public void executeInBackground() {
+        classcount = 0;
+        methodcount = 0;
+        responses = 0;
+        executingCount = 0;
+        waiting = 0;
+        doneWaiting = 0;
+
+        nullclasses = 0;
+        jsonExceptioncount = 0;
+        waitInterrupts = 0;
         Task.Backgroundable executeAll = new Task.Backgroundable(insidiousService.getProject(), "Unlogged", false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
@@ -180,6 +222,7 @@ public class AutomaticExecutorService {
                             String currentClassname =
                                     ApplicationManager.getApplication()
                                             .runReadAction((Computable<String>) () -> javaFileClass.getName());
+                            classcount++;
                             checkProgressIndicator("Executing methods in class", currentClassname);
                             executeAllMethodsForClass(new JavaClassAdapter(javaFileClass));
                         }

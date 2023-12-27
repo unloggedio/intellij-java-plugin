@@ -139,7 +139,23 @@ public class ReportingService {
             }
         }
         cell = row.createCell(5);
-        cell.setCellValue(output);
+        if (output == null) {
+            System.out.println("Output is null : ");
+            cell.setCellValue("null - from agent");
+        } else {
+            System.out.println("Output length : " + output.length());
+            cell.setCellValue(wrapLargeStrings(output));
+        }
+
+//        cell.setCellValue(wrapLargeStrings(output));
+//        if (output.length() > 32767) {
+//            System.out.println("Output Too large to add , len : " + output.length());
+//            System.out.println("Class : " + classname);
+//            System.out.println("Method : " + method);
+//            cell.setCellValue("Output too large");
+//        } else {
+//            cell.setCellValue(output);
+//        }
 
         //make check for plugin exception
         String exceptionTrace = isException ? String.valueOf(result.getResponse().getMethodReturnValue()) : "";
@@ -148,7 +164,21 @@ public class ReportingService {
             exceptionTrace = "plugin exception, no response";
         }
         cell = row.createCell(6);
-        cell.setCellValue(exceptionTrace);
+        if (exceptionTrace == null) {
+            cell.setCellValue("");
+        } else {
+            System.out.println("Exception length : " + exceptionTrace.length());
+            cell.setCellValue(wrapLargeStrings(exceptionTrace));
+        }
+//        cell.setCellValue(wrapLargeStrings(exceptionTrace));
+//        if (exceptionTrace.length() > 32767) {
+//            System.out.println("Exception Too large to add , len : " + exceptionTrace.length());
+//            System.out.println("Class : " + classname);
+//            System.out.println("Method : " + method);
+//            cell.setCellValue("Exception too large");
+//        } else {
+//        cell.setCellValue(exceptionTrace);
+//        }
 
         String exceptionType = "";
         if (isException) {
@@ -297,5 +327,13 @@ public class ReportingService {
         ZonedDateTime dateTime = Instant.ofEpochMilli(timestamp)
                 .atZone(ZoneId.of("Asia/Kolkata"));
         return dateTime.toString();
+    }
+
+    private String wrapLargeStrings(String inputString) {
+        if (inputString.length() >= 32767) {
+            inputString = inputString.substring(0, 32766);
+        }
+        System.out.println("Returning string : " + inputString);
+        return inputString;
     }
 }
