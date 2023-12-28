@@ -63,9 +63,9 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     public MockDefinitionListPanel(PsiMethodCallExpression methodCallExpression) {
         this.methodCallExpression = methodCallExpression;
 
-        PsiExpression qualifierExpression = methodCallExpression.getMethodExpression().getQualifierExpression();
-        this.fieldName = qualifierExpression.getText();
-        PsiReferenceExpression qualifierExpression1 = (PsiReferenceExpression) qualifierExpression;
+        PsiExpression fieldExpression = methodCallExpression.getMethodExpression().getQualifierExpression();
+        this.fieldName = fieldExpression.getText();
+        PsiReferenceExpression qualifierExpression1 = (PsiReferenceExpression) fieldExpression;
         PsiField fieldPsiInstance = (PsiField) qualifierExpression1.resolve();
 
         savedItemScrollPanel.setViewportView(itemListPanel);
@@ -73,6 +73,9 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
         itemListPanel.setAlignmentY(0);
 
         PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
+        PsiType fieldTypeSubstitutor = TypeConversionUtil.getClassSubstitutor(fieldPsiInstance.getContainingClass(),
+                parentOfType, PsiSubstitutor.EMPTY).substitute(fieldPsiInstance.getType());
+
         parentClassName = parentOfType.getQualifiedName();
 
         insidiousService = methodCallExpression.getProject().getService(InsidiousService.class);
@@ -83,8 +86,6 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
             methodUnderTest.setClassName(fieldPsiInstance.getType().getCanonicalText());
         }
 
-        PsiType fieldTypeSubstitutor = TypeConversionUtil.getClassSubstitutor(fieldPsiInstance.getContainingClass(),
-                        parentOfType, PsiSubstitutor.EMPTY).substitute(fieldPsiInstance.getType());
         if (fieldTypeSubstitutor != null) {
             String actualClass = fieldTypeSubstitutor.getCanonicalText();
             methodUnderTest.setClassName(actualClass);
