@@ -698,7 +698,7 @@ final public class InsidiousService implements
                 agentCommandRequest.getMethodName(), agentCommandRequest.getMethodSignature(),
                 0, agentCommandRequest.getClassName()
         );
-
+        atomicRecordService.checkPreRequisites();
         List<DeclaredMock> availableMocks = getDeclaredMocksFor(methodUnderTest);
         if (agentCommandRequest.getRequestType().equals(DIRECT_INVOKE)) {
             List<DeclaredMock> activeMocks = availableMocks

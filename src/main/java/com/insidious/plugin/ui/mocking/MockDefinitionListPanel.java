@@ -13,16 +13,20 @@ import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.popup.*;
+import com.intellij.openapi.util.NlsSafe;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.TypeConversionUtil;
 import com.intellij.ui.components.OnOffButton;
 import com.intellij.uiDesigner.core.GridConstraints;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
@@ -68,7 +72,8 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
         itemListPanel.setBorder(BorderFactory.createEmptyBorder());
         itemListPanel.setAlignmentY(0);
 
-        parentClassName = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class).getQualifiedName();
+        PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
+        parentClassName = parentOfType.getQualifiedName();
 
         insidiousService = methodCallExpression.getProject().getService(InsidiousService.class);
 
@@ -76,6 +81,13 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
         methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethod));
         if (fieldPsiInstance != null && fieldPsiInstance.getType() != null) {
             methodUnderTest.setClassName(fieldPsiInstance.getType().getCanonicalText());
+        }
+
+        PsiType fieldTypeSubstitutor = TypeConversionUtil.getClassSubstitutor(fieldPsiInstance.getContainingClass(),
+                        parentOfType, PsiSubstitutor.EMPTY).substitute(fieldPsiInstance.getType());
+        if (fieldTypeSubstitutor != null) {
+            String actualClass = fieldTypeSubstitutor.getCanonicalText();
+            methodUnderTest.setClassName(actualClass);
         }
 
         boolean fieldMockIsActive = insidiousService.isFieldMockActive(parentClassName, fieldName);

@@ -139,7 +139,8 @@ public class AtomicRecordService {
                                         NotificationType.INFORMATION);
                             }
                             logger.info("[ATRS] Replacing existing record");
-                            candidate.setMockIds(MockIntersection.enabledStoredMock(insidiousService, candidate.getMockIds()));
+                            candidate.setMockIds(
+                                    MockIntersection.enabledStoredMock(insidiousService, candidate.getMockIds()));
                             storedCandidate.copyFrom(candidate);
                             break;
                         }
@@ -532,9 +533,10 @@ public class AtomicRecordService {
             for (String classname : classAtomicRecordMap.keySet()) {
                 AtomicRecord recordForClass = classAtomicRecordMap.get(classname);
                 try {
-                    writeToFile(new File(getFilenameForClass(classname)), recordForClass, FileUpdateType.UPDATE_CANDIDATE,
+                    writeToFile(new File(getFilenameForClass(classname)), recordForClass,
+                            FileUpdateType.UPDATE_CANDIDATE,
                             false);
-                }catch (Exception e) {
+                } catch (Exception e) {
                     // class not found... class was renamed
                     // this record is now orphan
                 }
@@ -545,10 +547,8 @@ public class AtomicRecordService {
     }
 
     public void checkPreRequisites() {
-        if (classAtomicRecordMap == null) {
-            classAtomicRecordMap = updateMap();
-            insidiousService.updateCoverageReport();
-        }
+        classAtomicRecordMap = updateMap();
+        insidiousService.updateCoverageReport();
     }
 
     public boolean isUseNotifications() {
