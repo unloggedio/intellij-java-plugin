@@ -3221,7 +3221,8 @@ public class SessionInstance implements Runnable {
 //                                ClassTypeUtils.getDottedClassName(probeClassInfoCurrent.getSuperName()));
 //                    }
 
-                    if (threadState.candidateSize() + 1 == threadState.getCallStackSize()) {
+                    if (threadState.candidateSize() + 1 == threadState.getCallStackSize()
+                     && threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
 
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
