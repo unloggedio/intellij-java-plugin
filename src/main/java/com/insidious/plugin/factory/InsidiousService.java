@@ -1430,7 +1430,7 @@ final public class InsidiousService implements
         }
         addExecutionRecord(new AutoExecutorReportRecord(newDiffRecord,
                 sessionInstance.getProcessedFileCount(),
-                sessionInstance.getTotalFileCount()));
+                sessionInstance.getTotalFileCount(), agentCommandRequest.getDeclaredMocks()));
     }
 
     public void addExecutionRecord(AutoExecutorReportRecord result) {

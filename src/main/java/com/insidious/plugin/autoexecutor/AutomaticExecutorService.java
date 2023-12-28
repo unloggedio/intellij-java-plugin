@@ -7,38 +7,50 @@ import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.adapter.java.JavaClassAdapter;
+import com.insidious.plugin.adapter.java.JavaMethodAdapter;
+import com.insidious.plugin.adapter.java.JavaParameterAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.mocking.*;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
+import com.insidious.plugin.ui.highlighter.MockMethodLineHighlighter;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.DiffUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.MethodUtils;
+import com.intellij.debugger.engine.JVMNameUtil;
 import com.intellij.ide.highlighter.JavaFileType;
+import com.intellij.lang.jvm.JvmParameter;
+import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.*;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiJavaFile;
-import com.intellij.psi.PsiManager;
+import com.intellij.psi.*;
+import com.intellij.psi.impl.PsiExpressionEvaluator;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
+import com.intellij.psi.impl.source.resolve.graphInference.PsiPolyExpressionUtil;
 import com.intellij.psi.search.FileTypeIndex;
+import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.PsiUtil;
 import com.intellij.util.indexing.FileBasedIndex;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+
+import static com.insidious.plugin.ui.assertions.MockValueMap.getChildrenOfTypeRecursive;
 
 public class AutomaticExecutorService {
 
@@ -56,6 +68,7 @@ public class AutomaticExecutorService {
     public static long nullclasses = 0;
     public static long waiting = 0;
     public static long doneWaiting = 0;
+    public boolean enableMocks = true;
     private static final Logger logger = LoggerUtil.getInstance(AutomaticExecutorService.class);
 
     public AutomaticExecutorService(InsidiousService insidiousService) {
@@ -76,6 +89,12 @@ public class AutomaticExecutorService {
         insidiousService.getReportingService().setReportingEnabled(true);
         MethodAdapter[] methods = sourceClass.getMethods();
         methodcount += methods.length;
+
+//        ArrayList<DeclaredMock> declaredMocks = ApplicationManager.getApplication()
+//                .runReadAction((Computable<ArrayList<DeclaredMock>>) () -> getDeclaredMocksForClass(sourceClass));
+//        System.out.println("Declared mocks for class : " + sourceClass.getName());
+//        System.out.println(declaredMocks.toString());
+
         for (MethodAdapter methodAdapter : methods) {
             if (methodAdapter.getName().equals("main")) {
                 System.out.println("Possible main method : " + methodAdapter.getName());
@@ -121,12 +140,15 @@ public class AutomaticExecutorService {
                     }
                     methodArgumentValues.add(parameterValue);
                 }
-
+                ArrayList<DeclaredMock> declaredMocks = ApplicationManager.getApplication()
+                        .runReadAction((Computable<ArrayList<DeclaredMock>>) () -> getDeclaredMocksForMethod(methodAdapter));
+//                if (true) {
+//                    return;
+//                }
                 AgentCommandRequest agentCommandRequest =
                         MethodUtils.createExecuteRequestWithParameters(methodAdapter, psiClass, methodArgumentValues,
-                                false, new ArrayList<>());
+                                false, declaredMocks);
                 agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
-
 //                System.out.println("Executing method " + methodAdapter.getName());
                 executingCount++;
 //                System.out.println("L0 : [Classcount,MethodCount,Executing,responses,waiting,doneWaiting] : [" + classcount +
@@ -175,7 +197,7 @@ public class AutomaticExecutorService {
                                     "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
                             reportingQueue.add(new AutoExecutorReportRecord(diffResult,
                                     insidiousService.getSessionInstance().getProcessedFileCount(),
-                                    insidiousService.getSessionInstance().getTotalFileCount()));
+                                    insidiousService.getSessionInstance().getTotalFileCount(), agentCommandRequest1.getDeclaredMocks()));
                         });
             });
         }
@@ -249,5 +271,154 @@ public class AutomaticExecutorService {
                         .setText(text1);
             }
         }
+    }
+
+    private ArrayList<DeclaredMock> getDeclaredMocksForClass(ClassAdapter classAdapter) {
+//        System.out.println("Trying to find mocks for class : " + classAdapter.getName());
+        ArrayList<DeclaredMock> declaredMocks = new ArrayList<>();
+        PsiMethodCallExpression[] methodCallExpressions = getChildrenOfTypeRecursive(classAdapter.getSource(),
+                PsiMethodCallExpression.class);
+        if (methodCallExpressions == null || methodCallExpressions.length == 0) {
+            return new ArrayList<>();
+        }
+        List<PsiMethodCallExpression> mockableCallExpressions = Arrays.stream(methodCallExpressions)
+                .filter(MockMethodLineHighlighter::isNonStaticDependencyCall)
+                .collect(Collectors.toList());
+
+        for (PsiMethodCallExpression local : mockableCallExpressions) {
+//            System.out.println("[AUTOMOCK] Local mockable method : " + localMockMethodName);
+            PsiMethod methodFromExpression = local.resolveMethod();
+            if (methodFromExpression == null) {
+//                System.out.println("No method found to resolve");
+            } else {
+//                System.out.println("[FETCHED] Method from call : "
+//                        + methodFromExpression.getName() + " from "
+//                        + methodFromExpression.getContainingClass().getName());
+                DeclaredMock newmock = createDummyMockForMethod(
+                        new JavaMethodAdapter(methodFromExpression), local);
+                declaredMocks.add(newmock);
+            }
+        }
+        return declaredMocks;
+    }
+
+    private ArrayList<DeclaredMock> getDeclaredMocksForMethod(MethodAdapter methodAdapter) {
+//        System.out.println("Trying to find methods to mock for : " + methodAdapter.getName());
+//        if (methodAdapter.getName().equals("implPickupTest")) {
+//            System.out.println("In debug method");
+//        }
+        ArrayList<DeclaredMock> declaredMocks = new ArrayList<>();
+        PsiClass classPsi = JavaPsiFacade.getInstance(insidiousService.getProject())
+                .findClass(methodAdapter.getContainingClass().getQualifiedName(),
+                        GlobalSearchScope.projectScope(insidiousService.getProject()));
+        PsiMethodCallExpression[] methodCallExpressions = getChildrenOfTypeRecursive(classPsi, PsiMethodCallExpression.class);
+        if (methodCallExpressions == null || methodCallExpressions.length == 0) {
+            return new ArrayList<>();
+        }
+        List<PsiMethodCallExpression> mockableCallExpressions = Arrays.stream(methodCallExpressions)
+                .filter(MockMethodLineHighlighter::isNonStaticDependencyCall)
+                .collect(Collectors.toList());
+
+        for (PsiMethodCallExpression local : mockableCallExpressions) {
+            String localMockMethodName = local.getMethodExpression().getReferenceName();
+//            System.out.println("[AUTOMOCK] Local mockable method : " + localMockMethodName);
+//            System.out.println("[FULL EXP] full expression : " + local.getText());
+
+            if (methodContainsCall(methodAdapter.getText(), local.getText())) {
+                //create a mock for this method
+                System.out.println("Creating a mock for : " + local.getText());
+                PsiMethod methodFromExpression = local.resolveMethod();
+                if (methodFromExpression == null) {
+//                System.out.println("No method found to resolve");
+                } else {
+//                System.out.println("[FETCHED] Method from call : "
+//                        + methodFromExpression.getName() + " from "
+//                        + methodFromExpression.getContainingClass().getName());
+                    DeclaredMock newmock = createDummyMockForMethod(
+                            new JavaMethodAdapter(methodFromExpression), local);
+                    declaredMocks.add(newmock);
+                }
+            }
+        }
+        return declaredMocks;
+    }
+
+    private boolean methodContainsCall(String methodText, String methodCall) {
+        return methodText.contains(methodCall);
+    }
+
+    private DeclaredMock createDummyMockForMethod(MethodAdapter methodAdapter,
+                                                  PsiMethodCallExpression methodCallExpression) {
+        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(methodAdapter);
+
+        PsiElement callerQualifier = methodCallExpression.getMethodExpression().getQualifier();
+        String fieldName = callerQualifier.getText();
+        PsiElement[] callerQualifierChildren = callerQualifier.getChildren();
+        if (callerQualifierChildren.length > 1) {
+            fieldName = callerQualifierChildren[callerQualifierChildren.length - 1].getText();
+        }
+        List<ParameterMatcher> parameterList = new ArrayList<>();
+        JvmParameter[] jvmParameters = methodAdapter.getPsiMethod().getParameters();
+
+        PsiType[] methodParameterTypes = methodCallExpression.getArgumentList().getExpressionTypes();
+        for (int i = 0; i < methodParameterTypes.length; i++) {
+            JavaParameterAdapter param = new JavaParameterAdapter(jvmParameters[i]);
+            PsiType parameterType = methodParameterTypes[i];
+
+            String parameterTypeName = parameterType.getCanonicalText();
+            if (parameterType instanceof PsiClassReferenceType) {
+                PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
+                parameterTypeName = classReferenceType.rawType().getCanonicalText();
+            }
+            ParameterMatcher parameterMatcher = new ParameterMatcher(param.getName(),
+                    ParameterMatcherType.ANY, parameterTypeName);
+            parameterList.add(parameterMatcher);
+        }
+
+        ArrayList<ThenParameter> thenParameterList = new ArrayList<>();
+        String value = ApplicationManager.getApplication().runReadAction(
+                (Computable<String>) () -> ClassUtils.createDummyValue(methodAdapter.getReturnType(),
+                        new ArrayList<>(4), insidiousService.getProject()));
+        String returnTypeName = "java.lang.Object";
+        if (methodAdapter.getReturnType() != null) {
+            returnTypeName = buildJvmClassName(methodAdapter.getReturnType());
+        }
+        thenParameterList.add(createDummyThenParameter(value, returnTypeName));
+        DeclaredMock declaredMock = new DeclaredMock(
+                "temp-mock" + methodAdapter.getName().hashCode(),
+                methodUnderTest.getClassName(), methodAdapter.getContainingClass().getQualifiedName(),
+                fieldName,
+                methodUnderTest.getName(), parameterList, thenParameterList
+        );
+        return declaredMock;
+    }
+
+    @NotNull
+    private ThenParameter createDummyThenParameter(String value, String returnTypeName) {
+        ReturnValue returnValue = new ReturnValue(value, returnTypeName, ReturnValueType.REAL);
+        return new ThenParameter(returnValue, MethodExitType.NORMAL);
+    }
+
+    //this fails
+    private String buildJvmClassName(PsiType returnType) {
+        if (!(returnType instanceof PsiClassReferenceType)) {
+            return returnType.getCanonicalText();
+        }
+        PsiClassReferenceType classReferenceType = (PsiClassReferenceType) returnType;
+        String classname = JvmClassUtil.getJvmClassName(classReferenceType.resolve());
+        if (classname == null) {
+            return "java.lang.Object";
+        }
+        StringBuilder jvmClassName =
+                new StringBuilder(classname);
+        int paramCount = classReferenceType.getParameterCount();
+        if (paramCount > 0) {
+            jvmClassName.append("<");
+            for (PsiType parameter : classReferenceType.getParameters()) {
+                jvmClassName.append(buildJvmClassName(parameter));
+            }
+            jvmClassName.append(">");
+        }
+        return jvmClassName.toString();
     }
 }

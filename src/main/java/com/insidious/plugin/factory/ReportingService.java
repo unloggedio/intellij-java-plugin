@@ -140,10 +140,10 @@ public class ReportingService {
         }
         cell = row.createCell(5);
         if (output == null) {
-            System.out.println("Output is null : ");
+//            System.out.println("Output is null : ");
             cell.setCellValue("null - from agent");
         } else {
-            System.out.println("Output length : " + output.length());
+//            System.out.println("Output length : " + output.length());
             cell.setCellValue(wrapLargeStrings(output));
         }
 
@@ -167,7 +167,7 @@ public class ReportingService {
         if (exceptionTrace == null) {
             cell.setCellValue("");
         } else {
-            System.out.println("Exception length : " + exceptionTrace.length());
+//            System.out.println("Exception length : " + exceptionTrace.length());
             cell.setCellValue(wrapLargeStrings(exceptionTrace));
         }
 //        cell.setCellValue(wrapLargeStrings(exceptionTrace));
@@ -220,6 +220,15 @@ public class ReportingService {
 
         cell = row.createCell(12);
         cell.setCellValue(autoExecutorReportRecord.getTotalFileCount());
+
+        cell = row.createCell(13);
+        if (autoExecutorReportRecord.getDeclaredMockList() == null) {
+//            System.out.println("Mocks used is null");
+            cell.setCellValue("no mocks found in request - plugin");
+        } else {
+//            System.out.println("Mocks length : " + autoExecutorReportRecord.getDeclaredMockList().size());
+            cell.setCellValue(wrapLargeStrings(autoExecutorReportRecord.getDeclaredMockList().toString()));
+        }
 
         try {
             FileOutputStream out = new FileOutputStream(new File(insidiousService.getProject().getBasePath()
@@ -297,6 +306,9 @@ public class ReportingService {
 
                 cell = row.createCell(12);
                 cell.setCellValue("Total number of files");
+
+                cell = row.createCell(13);
+                cell.setCellValue("Mocks used");
 
                 FileOutputStream out = new FileOutputStream(
                         new File(insidiousService.getProject().getBasePath() + "/" + filename));

@@ -33,4 +33,12 @@ public class ThenParameter {
     public void setMethodExitType(MethodExitType methodExitType) {
         this.methodExitType = methodExitType;
     }
+
+    @Override
+    public String toString() {
+        return "ThenParameter{" +
+                "returnParameter=" + returnParameter +
+                ", methodExitType=" + methodExitType +
+                '}';
+    }
 }

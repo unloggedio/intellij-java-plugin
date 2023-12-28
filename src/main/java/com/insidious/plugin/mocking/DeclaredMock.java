@@ -123,4 +123,18 @@ public class DeclaredMock {
     public void setThenParameter(List<ThenParameter> thenParameter) {
         this.thenParameter = thenParameter;
     }
+
+    @Override
+    public String toString() {
+        return "DeclaredMock{" +
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", fieldTypeName='" + fieldTypeName + '\'' +
+                ", sourceClassName='" + sourceClassName + '\'' +
+                ", fieldName='" + fieldName + '\'' +
+                ", methodName='" + methodName + '\'' +
+                ", whenParameter=" + whenParameter +
+                ", thenParameter=" + thenParameter +
+                '}';
+    }
 }
