@@ -345,7 +345,7 @@ public class ReportingService {
         if (inputString.length() >= 32767) {
             inputString = inputString.substring(0, 32766);
         }
-        System.out.println("Returning string : " + inputString);
+//        System.out.println("Returning string : " + inputString);
         return inputString;
     }
 }

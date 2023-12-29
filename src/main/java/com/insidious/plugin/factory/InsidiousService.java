@@ -13,6 +13,7 @@ import com.insidious.plugin.atomicrecord.AtomicRecordService;
 import com.insidious.plugin.auth.RequestAuthentication;
 import com.insidious.plugin.auth.SimpleAuthority;
 import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
+import com.insidious.plugin.autoexecutor.AutoExecutorRunOptions;
 import com.insidious.plugin.autoexecutor.AutomaticExecutorService;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.ClassMethodAggregates;
@@ -750,7 +751,26 @@ final public class InsidiousService implements
         );
 
         List<DeclaredMock> availableMocks = getDeclaredMocksFor(methodUnderTest);
-        if (agentCommandRequest.getRequestType().equals(DIRECT_INVOKE)) {
+//        if (agentCommandRequest.getRequestType().equals(DIRECT_INVOKE)) {
+//            List<DeclaredMock> activeMocks = availableMocks
+//                    .stream()
+////              .filter(e -> isFieldMockActive(e.getSourceClassName(), e.getFieldName()))
+//                    .filter(this::isMockEnabled)
+//                    .collect(Collectors.toList());
+//
+//            agentCommandRequest.setDeclaredMocks(activeMocks);
+//        } else {
+//            List<DeclaredMock> enabledMock = agentCommandRequest.getDeclaredMocks();
+//            ArrayList<DeclaredMock> setMock = new ArrayList<>();
+//
+//            for (DeclaredMock localMock : enabledMock) {
+//                if (availableMocks.contains(localMock)) {
+//                    setMock.add(localMock);
+//                }
+//            }
+//            agentCommandRequest.setDeclaredMocks(setMock);
+//        }
+        if (agentCommandRequest.getDeclaredMocks() == null || agentCommandRequest.getDeclaredMocks().isEmpty()) {
             List<DeclaredMock> activeMocks = availableMocks
                     .stream()
 //              .filter(e -> isFieldMockActive(e.getSourceClassName(), e.getFieldName()))
@@ -758,18 +778,11 @@ final public class InsidiousService implements
                     .collect(Collectors.toList());
 
             agentCommandRequest.setDeclaredMocks(activeMocks);
-        } else {
-            List<DeclaredMock> enabledMock = agentCommandRequest.getDeclaredMocks();
-            ArrayList<DeclaredMock> setMock = new ArrayList<>();
-
-            for (DeclaredMock localMock : enabledMock) {
-                if (availableMocks.contains(localMock)) {
-                    setMock.add(localMock);
-                }
-            }
-            agentCommandRequest.setDeclaredMocks(setMock);
         }
-
+//        if (agentCommandRequest.getClassName().contains("UserInstanceDao")) {
+//            System.out.println("Before Execute : " + agentCommandRequest.getMethodName());
+//            System.out.println("Declared mocks : " + agentCommandRequest.getDeclaredMocks().toString());
+//        }
         try {
             AgentCommandResponse<String> agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
             logger.warn("agent command response - " + agentCommandResponse);
@@ -1699,8 +1712,8 @@ final public class InsidiousService implements
         contentManager.setSelectedContent(introPanelContent);
     }
 
-    public void executeAllMethodsInCurrentClass() {
-        automaticExecutorService.executeAllJavaMethodsInProject();
+    public void executeAllMethodsInCurrentClass(AutoExecutorRunOptions options) {
+        automaticExecutorService.executeAllJavaMethodsInProject(options);
     }
 
     public void loadDefaultSession() {

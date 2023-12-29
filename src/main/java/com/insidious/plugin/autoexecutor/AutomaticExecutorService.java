@@ -37,12 +37,15 @@ import com.intellij.psi.*;
 import com.intellij.psi.impl.PsiExpressionEvaluator;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.impl.source.resolve.graphInference.PsiPolyExpressionUtil;
+import com.intellij.psi.impl.source.tree.java.*;
 import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.PsiTypesUtil;
 import com.intellij.psi.util.PsiUtil;
 import com.intellij.util.indexing.FileBasedIndex;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import java.util.*;
@@ -68,7 +71,7 @@ public class AutomaticExecutorService {
     public static long nullclasses = 0;
     public static long waiting = 0;
     public static long doneWaiting = 0;
-    public boolean enableMocks = true;
+    public boolean enableMocks = false;
     private static final Logger logger = LoggerUtil.getInstance(AutomaticExecutorService.class);
 
     public AutomaticExecutorService(InsidiousService insidiousService) {
@@ -76,8 +79,15 @@ public class AutomaticExecutorService {
         reportingQueue = new AutoExecutionRecordQueue();
     }
 
-    public void executeAllJavaMethodsInProject() {
+    public void setEnableMocks(boolean status) {
+        this.enableMocks = status;
+        InsidiousNotification.notifyMessage("AutoExecutor mock enabled : " + enableMocks
+                , NotificationType.INFORMATION);
+    }
 
+    public void executeAllJavaMethodsInProject(AutoExecutorRunOptions options) {
+
+        setEnableMocks(options.isUseMocks());
         insidiousService.getReportingService().setReportingEnabled(true);
         if (executeInBackground) {
             executeInBackground();
@@ -90,6 +100,21 @@ public class AutomaticExecutorService {
         MethodAdapter[] methods = sourceClass.getMethods();
         methodcount += methods.length;
 
+//        boolean debug = false;
+//        if (sourceClass.getQualifiedName().contains("UserInstanceDao")) {
+//            System.out.println("Found User Instance Dao");
+//            System.out.println("Methods in the class : " + methods.length);
+//            debug = true;
+//        }
+//        if (sourceClass.getQualifiedName().contains("Dao_Custom")) {
+//            System.out.println("Found Dao_Custom");
+//            System.out.println("Methods in the class : " + methods.length);
+//            debug = true;
+//        }
+//        if (sourceClass.isInterface()) {
+//            debug = true;
+//        }
+
 //        ArrayList<DeclaredMock> declaredMocks = ApplicationManager.getApplication()
 //                .runReadAction((Computable<ArrayList<DeclaredMock>>) () -> getDeclaredMocksForClass(sourceClass));
 //        System.out.println("Declared mocks for class : " + sourceClass.getName());
@@ -97,12 +122,9 @@ public class AutomaticExecutorService {
 
         for (MethodAdapter methodAdapter : methods) {
             if (methodAdapter.getName().equals("main")) {
-                System.out.println("Possible main method : " + methodAdapter.getName());
+//                System.out.println("Possible main method : " + methodAdapter.getName());
                 continue;
             }
-//            if (true) {
-//                return;
-//            }
             List<String> argumentValues = new ArrayList<>();
             ParameterAdapter[] parameters = methodAdapter.getParameters();
 
@@ -140,11 +162,11 @@ public class AutomaticExecutorService {
                     }
                     methodArgumentValues.add(parameterValue);
                 }
-                ArrayList<DeclaredMock> declaredMocks = ApplicationManager.getApplication()
-                        .runReadAction((Computable<ArrayList<DeclaredMock>>) () -> getDeclaredMocksForMethod(methodAdapter));
-//                if (true) {
-//                    return;
-//                }
+                ArrayList<DeclaredMock> declaredMocks = new ArrayList<>();
+                if (enableMocks) {
+                    declaredMocks = ApplicationManager.getApplication()
+                            .runReadAction((Computable<ArrayList<DeclaredMock>>) () -> getDeclaredMocksForMethod(methodAdapter));
+                }
                 AgentCommandRequest agentCommandRequest =
                         MethodUtils.createExecuteRequestWithParameters(methodAdapter, psiClass, methodArgumentValues,
                                 false, declaredMocks);
@@ -165,10 +187,25 @@ public class AutomaticExecutorService {
                                             NotificationType.ERROR
                                     );
                                     nullclasses++;
-                                    System.out.println("Got a null case : " + nullclasses);
+//                                    System.out.println("Got a null case : " + nullclasses);
                                     return;
                                 }
                             }
+//                            if (sourceClass.getQualifiedName().contains("Dao_Custom")) {
+//                                System.out.println("A Dao Custom Response : ");
+//                                System.out.println("Method : " + agentCommandRequest1.getMethodName());
+//                                System.out.println("Mock : " + agentCommandRequest1.getDeclaredMocks().toString());
+//                                System.out.println("Class from outer : " + sourceClass.getQualifiedName());
+//                                System.out.println("Response status : " + agentCommandResponse.getResponseType());
+//                            }
+//                            if (sourceClass.getQualifiedName().contains("UserInstanceDao")) {
+//                                System.out.println("Got userInstancedao response : ");
+//                                System.out.println("Method : " + agentCommandRequest1.getMethodName());
+//                                System.out.println("Mock : " + agentCommandRequest1.getDeclaredMocks().toString());
+//                                System.out.println("Class from outer : " + sourceClass.getQualifiedName());
+//                                System.out.println("Response status : " + agentCommandResponse.getResponseType());
+//                            }
+
                             ResponseType responseType1 = agentCommandResponse.getResponseType();
                             DiffResultType diffResultType = responseType1.equals(
                                     ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
@@ -225,7 +262,7 @@ public class AutomaticExecutorService {
                 consumerThread = new Thread(consumer);
                 consumerThread.start();
 
-                System.out.println("Starting execution of all ");
+                System.out.println("[AutoExecutor] Starting execution of all methods.");
                 Collection<VirtualFile> javaFiles = ApplicationManager.getApplication()
                         .runReadAction((Computable<Collection<VirtualFile>>) () -> FileTypeIndex.
                                 getFiles(JavaFileType.INSTANCE,
@@ -303,7 +340,6 @@ public class AutomaticExecutorService {
     }
 
     private ArrayList<DeclaredMock> getDeclaredMocksForMethod(MethodAdapter methodAdapter) {
-//        System.out.println("Trying to find methods to mock for : " + methodAdapter.getName());
 //        if (methodAdapter.getName().equals("implPickupTest")) {
 //            System.out.println("In debug method");
 //        }
@@ -326,7 +362,7 @@ public class AutomaticExecutorService {
 
             if (methodContainsCall(methodAdapter.getText(), local.getText())) {
                 //create a mock for this method
-                System.out.println("Creating a mock for : " + local.getText());
+//                System.out.println("Creating a mock for : " + local.getText());
                 PsiMethod methodFromExpression = local.resolveMethod();
                 if (methodFromExpression == null) {
 //                System.out.println("No method found to resolve");
@@ -334,8 +370,10 @@ public class AutomaticExecutorService {
 //                System.out.println("[FETCHED] Method from call : "
 //                        + methodFromExpression.getName() + " from "
 //                        + methodFromExpression.getContainingClass().getName());
-                    DeclaredMock newmock = createDummyMockForMethod(
-                            new JavaMethodAdapter(methodFromExpression), local);
+//                    DeclaredMock newmock = createDummyMockForMethod(
+//                            new JavaMethodAdapter(methodFromExpression), local);
+                    DeclaredMock newmock = createDummyMockV2(
+                            methodAdapter, local);
                     declaredMocks.add(newmock);
                 }
             }
@@ -381,7 +419,12 @@ public class AutomaticExecutorService {
                         new ArrayList<>(4), insidiousService.getProject()));
         String returnTypeName = "java.lang.Object";
         if (methodAdapter.getReturnType() != null) {
-            returnTypeName = buildJvmClassName(methodAdapter.getReturnType());
+            PsiClass returnTypeClass = PsiTypesUtil.getPsiClass(methodAdapter.getReturnType());
+            if (returnTypeClass != null) {
+                returnTypeName = returnTypeClass.getQualifiedName();
+            } else {
+                returnTypeName = buildJvmClassName(methodAdapter.getReturnType());
+            }
         }
         thenParameterList.add(createDummyThenParameter(value, returnTypeName));
         DeclaredMock declaredMock = new DeclaredMock(
@@ -420,5 +463,132 @@ public class AutomaticExecutorService {
             jvmClassName.append(">");
         }
         return jvmClassName.toString();
+    }
+
+    private DeclaredMock createDummyMockV2(MethodAdapter methodBeingRun,
+                                           PsiMethodCallExpression methodCallExpression) {
+
+        PsiMethod destinationMethod = methodCallExpression.resolveMethod();
+        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(methodBeingRun);
+        PsiType returnType = identifyReturnType(methodCallExpression);
+        String returnDummyValue;
+        String methodReturnTypeName;
+
+//        boolean debugThis = false;
+//        if (methodBeingRun.getContainingClass().getQualifiedName().contains("Dao_Custom")) {
+//            System.out.println("Dao custom mock");
+//            System.out.println("Method : " + methodBeingRun.getName());
+//            debugThis = true;
+//        }
+
+        if (returnType != null) {
+            returnDummyValue = ClassUtils.createDummyValue(returnType, new ArrayList<>(),
+                    destinationMethod.getProject());
+            methodReturnTypeName = buildJvmClassName(returnType);
+        } else {
+            methodReturnTypeName = "java.lang.Object";
+            returnDummyValue = "{}";
+        }
+//        boolean debug = false;
+        PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
+//        if (parentClass != null && parentClass.getName().contains("UserInstanceDao")) {
+//            System.out.println("In debug loop case");
+//            System.out.println("Method : " + methodBeingRun.getName());
+//            System.out.println("Return value : " + returnDummyValue);
+//            System.out.println("Return type : " + methodReturnTypeName);
+//            debug = true;
+//        }
+
+        if (parentClass == null) {
+            InsidiousNotification.notifyMessage("Failed to identify parent class for the call [" +
+                    methodCallExpression.getText() + "]", NotificationType.ERROR);
+            throw new RuntimeException("Failed to identify parent class for the call [" +
+                    methodCallExpression.getText() + "]");
+        }
+        String expressionText = methodCallExpression.getMethodExpression().getText();
+        PsiType[] methodParameterTypes = methodCallExpression.getArgumentList().getExpressionTypes();
+        JvmParameter[] jvmParameters = destinationMethod.getParameters();
+        List<ParameterMatcher> parameterList = new ArrayList<>();
+        for (int i = 0; i < methodParameterTypes.length; i++) {
+            JavaParameterAdapter param = new JavaParameterAdapter(jvmParameters[i]);
+            PsiType parameterType = methodParameterTypes[i];
+
+            String parameterTypeName = parameterType.getCanonicalText();
+            if (parameterType instanceof PsiClassReferenceType) {
+                PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
+                parameterTypeName = classReferenceType.rawType().getCanonicalText();
+            }
+            ParameterMatcher parameterMatcher = new ParameterMatcher(param.getName(),
+                    ParameterMatcherType.ANY_OF_TYPE, parameterTypeName);
+            parameterList.add(parameterMatcher);
+        }
+
+        ArrayList<ThenParameter> thenParameterList = new ArrayList<>();
+        thenParameterList.add(createDummyThenParameter(returnDummyValue, methodReturnTypeName));
+        PsiElement callerQualifier = methodCallExpression.getMethodExpression().getQualifier();
+        String fieldName = callerQualifier.getText();
+        PsiElement[] callerQualifierChildren = callerQualifier.getChildren();
+        if (callerQualifierChildren.length > 1) {
+            fieldName = callerQualifierChildren[callerQualifierChildren.length - 1].getText();
+        }
+        DeclaredMock mock = new DeclaredMock(
+                "mock response " + expressionText,
+                methodUnderTest.getClassName(), parentClass.getQualifiedName(),
+                fieldName,
+                methodUnderTest.getName(), parameterList, thenParameterList
+        );
+//        if (debugThis) {
+//            System.out.println("Overall mock generated for method : " + methodBeingRun.getName());
+//            System.out.println("Mock : " + mock.toString());
+//        }
+        return mock;
+    }
+
+    @Nullable
+    private PsiType identifyReturnType(PsiExpression methodCallExpression) {
+        PsiType returnType = null;
+
+        if (methodCallExpression.getParent() instanceof PsiConditionalExpressionImpl) {
+            return identifyReturnType((PsiConditionalExpressionImpl) methodCallExpression.getParent());
+        } else if (methodCallExpression.getParent() instanceof PsiLocalVariableImpl
+                && methodCallExpression.getParent().getParent() instanceof PsiDeclarationStatementImpl) {
+            // this is an assignment and we can probably get a better return type from the variable type which
+            // this is being assigned to
+            returnType = ((PsiLocalVariableImpl) methodCallExpression.getParent()).getType();
+        } else if (methodCallExpression.getParent() instanceof PsiAssignmentExpressionImpl
+                && methodCallExpression.getParent().getParent() instanceof PsiExpressionStatement) {
+            // this is an assignment and we can probably get a better return type from the variable type which
+            // this is being assigned to
+            returnType = ((PsiAssignmentExpressionImpl) methodCallExpression.getParent()).getType();
+        } else if (methodCallExpression.getParent() instanceof PsiExpressionListImpl
+                && methodCallExpression.getParent().getParent() instanceof PsiMethodCallExpressionImpl) {
+            // the return value is being passed to another method as a parameter
+            PsiExpressionListImpl expressionList = (PsiExpressionListImpl) methodCallExpression.getParent();
+            PsiType[] expressionTypes = expressionList.getExpressionTypes();
+            PsiExpression[] allExpressions = expressionList.getExpressions();
+            // identify the return value is which index
+            int i = 0;
+            for (PsiExpression expression : allExpressions) {
+                if (expression == methodCallExpression) {
+                    break;
+                }
+                i++;
+            }
+
+            if (i < expressionTypes.length) {
+                returnType = expressionTypes[i];
+            }
+
+        } else if (methodCallExpression.getParent() instanceof PsiReturnStatementImpl) {
+            // value is being returned, so we can use the return type of the method which contains this call
+            PsiMethod parentMethod = PsiTreeUtil.getParentOfType(
+                    methodCallExpression, PsiMethod.class);
+            if (parentMethod != null && parentMethod.getReturnType() != null) {
+                returnType = parentMethod.getReturnType();
+            }
+        } else if (methodCallExpression instanceof PsiMethodCallExpression) {
+            returnType = ((PsiMethodCallExpression) methodCallExpression).resolveMethod().getReturnType();
+        }
+        return returnType;
     }
 }
