@@ -13,19 +13,20 @@ import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.popup.*;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiMethod;
-import com.intellij.psi.PsiMethodCallExpression;
+import com.intellij.openapi.util.NlsSafe;
+import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.TypeConversionUtil;
 import com.intellij.ui.components.OnOffButton;
 import com.intellij.uiDesigner.core.GridConstraints;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
@@ -62,17 +63,33 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     public MockDefinitionListPanel(PsiMethodCallExpression methodCallExpression) {
         this.methodCallExpression = methodCallExpression;
 
-        this.fieldName = methodCallExpression.getMethodExpression().getQualifierExpression().getText();
+        PsiExpression fieldExpression = methodCallExpression.getMethodExpression().getQualifierExpression();
+        this.fieldName = fieldExpression.getText();
+        PsiReferenceExpression qualifierExpression1 = (PsiReferenceExpression) fieldExpression;
+        PsiField fieldPsiInstance = (PsiField) qualifierExpression1.resolve();
+
         savedItemScrollPanel.setViewportView(itemListPanel);
         itemListPanel.setBorder(BorderFactory.createEmptyBorder());
         itemListPanel.setAlignmentY(0);
 
-        parentClassName = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class).getQualifiedName();
+        PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
+        PsiType fieldTypeSubstitutor = TypeConversionUtil.getClassSubstitutor(fieldPsiInstance.getContainingClass(),
+                parentOfType, PsiSubstitutor.EMPTY).substitute(fieldPsiInstance.getType());
+
+        parentClassName = parentOfType.getQualifiedName();
 
         insidiousService = methodCallExpression.getProject().getService(InsidiousService.class);
 
         PsiMethod targetMethod = methodCallExpression.resolveMethod();
         methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethod));
+        if (fieldPsiInstance != null && fieldPsiInstance.getType() != null) {
+            methodUnderTest.setClassName(fieldPsiInstance.getType().getCanonicalText());
+        }
+
+        if (fieldTypeSubstitutor != null) {
+            String actualClass = fieldTypeSubstitutor.getCanonicalText();
+            methodUnderTest.setClassName(actualClass);
+        }
 
         boolean fieldMockIsActive = insidiousService.isFieldMockActive(parentClassName, fieldName);
 //        boolean fieldMockIsActive = insidiousService.isPermanentMocks();

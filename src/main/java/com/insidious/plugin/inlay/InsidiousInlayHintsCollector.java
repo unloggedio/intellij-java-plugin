@@ -17,6 +17,7 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.ex.util.EditorUtil;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
+import com.intellij.psi.impl.source.PsiMethodImpl;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.ui.JBColor;
 import com.intellij.util.containers.JBIterable;
@@ -73,6 +74,12 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
             return true;
         }
 
+        if (currentClass == null) {
+            currentClass = ((PsiMethodImpl) element).getContainingClass();
+            if (currentClass == null) {
+                return true;
+            }
+        }
 
 //        if (element instanceof PsiMethod) {
         if (classMethodAggregates == null) {
@@ -169,7 +176,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         return TextRange.create(start.getTextRange().getStartOffset(), element.getTextRange().getEndOffset());
     }
 
-    
+
     private InlayPresentation createInlayPresentation(String inlayText) {
 
         PresentationFactory factory = getFactory();
@@ -193,7 +200,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 //        });
     }
 
-    
+
     private InlayPresentation createInlayPresentation(Map valueInMap) {
 
         PresentationFactory factory = getFactory();
