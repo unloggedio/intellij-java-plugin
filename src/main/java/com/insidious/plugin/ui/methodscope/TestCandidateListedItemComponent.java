@@ -51,6 +51,7 @@ public class TestCandidateListedItemComponent {
     private JPanel parameterPanel;
     private JPanel controlContainer;
     private JLabel assertionCountLabel;
+    private JPanel saveButtonHolder;
 
     public TestCandidateListedItemComponent(
             StoredCandidate storedCandidate,
