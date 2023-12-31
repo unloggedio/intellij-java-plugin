@@ -383,10 +383,7 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
 
     @Override
     public String toString() {
-        return "{" +
-                "methodName='" + methodName + '\'' +
-                ", entryProbe_id=" + entryProbe_id +
-                '}';
+        return "[" + id + "]" + methodName + "() entryId = " + entryProbe_id;
     }
 
     public long getReturnNanoTime() {
