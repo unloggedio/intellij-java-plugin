@@ -16,6 +16,7 @@ import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.impl.source.tree.java.*;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.TypeConversionUtil;
 import com.intellij.uiDesigner.core.GridConstraints;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -95,9 +96,22 @@ public class MockDefinitionEditor {
         PsiType[] methodParameterTypes = methodCallExpression.getArgumentList().getExpressionTypes();
         JvmParameter[] jvmParameters = destinationMethod.getParameters();
         List<ParameterMatcher> parameterList = new ArrayList<>();
+
+        PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
+        PsiClass containingClass = destinationMethod.getContainingClass();
+        PsiSubstitutor classSubstitutor = null;
+        if (containingClass != null && parentOfType != null) {
+            classSubstitutor = TypeConversionUtil
+                    .getClassSubstitutor(containingClass, parentOfType, PsiSubstitutor.EMPTY);
+        }
+
         for (int i = 0; i < methodParameterTypes.length; i++) {
             JavaParameterAdapter param = new JavaParameterAdapter(jvmParameters[i]);
             PsiType parameterType = methodParameterTypes[i];
+
+            if (classSubstitutor != null) {
+                parameterType = classSubstitutor.substitute(parameterType);
+            }
 
             String parameterTypeName = parameterType.getCanonicalText();
             if (parameterType instanceof PsiClassReferenceType) {
@@ -145,13 +159,24 @@ public class MockDefinitionEditor {
     }
 
     private String buildJvmClassName(PsiType returnType) {
+        if (returnType == null) {
+            return "java.lang.Object";
+        }
+
         if (!(returnType instanceof PsiClassReferenceType)) {
             return returnType.getCanonicalText();
         }
         PsiClassReferenceType classReferenceType = (PsiClassReferenceType) returnType;
+        if (classReferenceType.resolve() == null) {
+            return "java.lang.Object";
+        }
 
+        String jvmClassName1 = JvmClassUtil.getJvmClassName(classReferenceType.resolve());
+        if (jvmClassName1 == null) {
+            jvmClassName1 = "java.lang.Object";
+        }
         StringBuilder jvmClassName =
-                new StringBuilder(JvmClassUtil.getJvmClassName(classReferenceType.resolve()));
+                new StringBuilder(jvmClassName1);
         int paramCount = classReferenceType.getParameterCount();
         if (paramCount > 0) {
             jvmClassName.append("<");
@@ -200,16 +225,78 @@ public class MockDefinitionEditor {
                 returnType = expressionTypes[i];
             }
 
+            PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
+            PsiMethodCallExpression parentCall = PsiTreeUtil.getParentOfType(expressionList,
+                    PsiMethodCallExpression.class);
+            if (parentCall != null && parentCall.resolveMethod() != null) {
+                PsiMethod psiMethod = parentCall.resolveMethod();
+                PsiClass containingClass = psiMethod.getContainingClass();
+                if (containingClass != null && parentOfType != null) {
+                    PsiSubstitutor classSubstitutor = TypeConversionUtil
+                            .getClassSubstitutor(containingClass,
+                                    parentOfType, PsiSubstitutor.EMPTY);
+                    if (classSubstitutor != null) {
+                        PsiType fieldTypeSubstitutor = classSubstitutor.substitute(returnType);
+                        if (fieldTypeSubstitutor != null) {
+                            returnType = fieldTypeSubstitutor;
+                        }
+                    }
+                }
+            }
+
+
         } else if (methodCallExpression.getParent() instanceof PsiReturnStatementImpl) {
             // value is being returned, so we can use the return type of the method which contains this call
-            PsiMethod parentMethod = PsiTreeUtil.getParentOfType(
-                    methodCallExpression, PsiMethod.class);
+            PsiMethod parentMethod = PsiTreeUtil.getParentOfType(methodCallExpression, PsiMethod.class);
             if (parentMethod != null && parentMethod.getReturnType() != null) {
                 returnType = parentMethod.getReturnType();
+                PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
+                PsiClass containingClass = parentMethod.getContainingClass();
+                if (containingClass != null && parentOfType != null) {
+                    PsiSubstitutor classSubstitutor = TypeConversionUtil
+                            .getClassSubstitutor(containingClass, parentOfType, PsiSubstitutor.EMPTY);
+                    if (classSubstitutor != null) {
+                        PsiType fieldTypeSubstitutor = classSubstitutor.substitute(returnType);
+                        if (fieldTypeSubstitutor != null) {
+                            returnType = fieldTypeSubstitutor;
+                        }
+                    }
+                }
             }
+
+
         } else if (methodCallExpression instanceof PsiMethodCallExpression) {
-            returnType = ((PsiMethodCallExpression) methodCallExpression).resolveMethod().getReturnType();
+            PsiMethod psiMethod = ((PsiMethodCallExpression) methodCallExpression).resolveMethod();
+
+            PsiField fieldImpl = (PsiField) ((PsiReferenceExpression)
+                    ((PsiMethodCallExpression) methodCallExpression)
+                            .getMethodExpression().getQualifierExpression()).resolve();
+
+            if (psiMethod != null) {
+                returnType = psiMethod.getReturnType();
+                if (fieldImpl != null && fieldImpl.getContainingClass() != null) {
+                    PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
+
+                    if (parentOfType != null) {
+                        PsiSubstitutor classSubstitutor = TypeConversionUtil
+                                .getClassSubstitutor(fieldImpl.getContainingClass(), parentOfType,
+                                        PsiSubstitutor.EMPTY);
+                        if (classSubstitutor != null) {
+                            PsiType fieldTypeSubstitutor = classSubstitutor.substitute(returnType);
+                            if (fieldTypeSubstitutor != null) {
+                                returnType = fieldTypeSubstitutor;
+                            }
+                        }
+                    }
+
+                }
+
+            }
+
+
         }
+
+
         return returnType;
     }
 

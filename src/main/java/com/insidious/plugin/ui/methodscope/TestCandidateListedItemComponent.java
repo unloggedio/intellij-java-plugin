@@ -15,6 +15,11 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ParameterUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.ui.RoundedLineBorder;
+import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.treeStructure.Tree;
+import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.util.ui.JBUI;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -67,6 +72,23 @@ public class TestCandidateListedItemComponent {
                 setTitledBorder("#Saved candidate with no name");
             }
         }
+        Button jb = new Button("Save Replay");
+//        JLabel label = new JLabel("Save Replay");
+//        label.setForeground(Color.white);
+//        label.setIcon(UIUtils.SAVE_CANDIDATE_GREY);
+//        label.setHorizontalAlignment(SwingConstants.CENTER);
+//        jb.setLayout(new GridLayout(1, 1));
+//        GridConstraints buttonConsts = new GridConstraints();
+//        buttonConsts.setRow(0);
+//        jb.add(label, buttonConsts);
+//        jb.setColor(UIUtils.pink);
+//        jb.setBorder(new RoundedLineBorder(new Color(151, 38, 109), 6));
+
+        saveButtonHolder.setLayout(new GridLayout(1, 1));
+        GridConstraints constraints = new GridConstraints();
+        constraints.setRow(0);
+//
+        saveButtonHolder.add(jb, constraints);
 
 
         mainPanel.revalidate();
@@ -121,6 +143,7 @@ public class TestCandidateListedItemComponent {
         statusLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         executeLabel.setIcon(UIUtils.EXECUTE_ICON_OUTLINED_SVG);
+//        jb.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
         saveReplayButton.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
         generateJunitLabel.setIcon(UIUtils.TEST_CASES_ICON_PINK);
 

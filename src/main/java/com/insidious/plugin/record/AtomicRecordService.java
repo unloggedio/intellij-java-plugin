@@ -558,10 +558,8 @@ public class AtomicRecordService {
     }
 
     public void checkPreRequisites() {
-        if (classAtomicRecordMap == null) {
-            classAtomicRecordMap = updateMap();
-            insidiousService.updateCoverageReport();
-        }
+        classAtomicRecordMap = updateMap();
+        insidiousService.updateCoverageReport();
     }
 
     public boolean isUseNotifications() {

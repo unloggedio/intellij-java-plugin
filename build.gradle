@@ -15,7 +15,7 @@ def getGitHash = { ->
 
 
 group 'org.videobug'
-version '1.18.20-' + getGitHash()
+version '1.18.23-' + getGitHash()
 
 
 compileJava {
@@ -204,7 +204,6 @@ publishPlugin {
     token = "$System.env.JETBRAINS_PUBLISH_TOKEN"
     channels = ["$System.env.JEBTRAINS_PUBLISH_CHANNEL"]
 }
-
 
 test {
     useJUnitPlatform()

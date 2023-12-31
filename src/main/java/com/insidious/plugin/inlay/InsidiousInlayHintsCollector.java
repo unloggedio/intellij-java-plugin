@@ -78,6 +78,9 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
         if (currentClass == null) {
             currentClass = ((PsiMethodImpl) element).getContainingClass();
+            if (currentClass == null) {
+                return true;
+            }
         }
 
 //        if (element instanceof PsiMethod) {

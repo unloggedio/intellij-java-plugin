@@ -3251,7 +3251,8 @@ public class SessionInstance implements Runnable {
 //                                ClassTypeUtils.getDottedClassName(probeClassInfoCurrent.getSuperName()));
 //                    }
 
-                    if (threadState.candidateSize() + 1 == threadState.getCallStackSize()) {
+                    if (threadState.candidateSize() < threadState.getCallStackSize()
+                     && threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
 
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
@@ -3533,6 +3534,10 @@ public class SessionInstance implements Runnable {
                         callsToSave.add(topCall);
                         methodCallMap.remove(topCall.getId());
                         methodCallSubjectTypeMap.remove(topCall.getId());
+
+                        if (threadState.getTopCandidate().getMainMethod() == topCall.getId()) {
+
+                        }
 
                         threadState.setMostRecentReturnedCall(topCall);
 
