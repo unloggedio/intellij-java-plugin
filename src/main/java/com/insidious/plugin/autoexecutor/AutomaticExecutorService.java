@@ -11,6 +11,7 @@ import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.adapter.java.JavaParameterAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
+import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -100,29 +101,14 @@ public class AutomaticExecutorService {
         MethodAdapter[] methods = sourceClass.getMethods();
         methodcount += methods.length;
 
-//        boolean debug = false;
-//        if (sourceClass.getQualifiedName().contains("UserInstanceDao")) {
-//            System.out.println("Found User Instance Dao");
-//            System.out.println("Methods in the class : " + methods.length);
-//            debug = true;
+//        if (!sourceClass.getQualifiedName().contains("UserController")) {
+//            return;
+//        } else {
+//            System.out.println("Executing UserController");
 //        }
-//        if (sourceClass.getQualifiedName().contains("Dao_Custom")) {
-//            System.out.println("Found Dao_Custom");
-//            System.out.println("Methods in the class : " + methods.length);
-//            debug = true;
-//        }
-//        if (sourceClass.isInterface()) {
-//            debug = true;
-//        }
-
-//        ArrayList<DeclaredMock> declaredMocks = ApplicationManager.getApplication()
-//                .runReadAction((Computable<ArrayList<DeclaredMock>>) () -> getDeclaredMocksForClass(sourceClass));
-//        System.out.println("Declared mocks for class : " + sourceClass.getName());
-//        System.out.println(declaredMocks.toString());
 
         for (MethodAdapter methodAdapter : methods) {
             if (methodAdapter.getName().equals("main")) {
-//                System.out.println("Possible main method : " + methodAdapter.getName());
                 continue;
             }
             List<String> argumentValues = new ArrayList<>();
@@ -171,7 +157,6 @@ public class AutomaticExecutorService {
                         MethodUtils.createExecuteRequestWithParameters(methodAdapter, psiClass, methodArgumentValues,
                                 false, declaredMocks);
                 agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
-//                System.out.println("Executing method " + methodAdapter.getName());
                 executingCount++;
 //                System.out.println("L0 : [Classcount,MethodCount,Executing,responses,waiting,doneWaiting] : [" + classcount +
 //                        "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
@@ -187,24 +172,9 @@ public class AutomaticExecutorService {
                                             NotificationType.ERROR
                                     );
                                     nullclasses++;
-//                                    System.out.println("Got a null case : " + nullclasses);
                                     return;
                                 }
                             }
-//                            if (sourceClass.getQualifiedName().contains("Dao_Custom")) {
-//                                System.out.println("A Dao Custom Response : ");
-//                                System.out.println("Method : " + agentCommandRequest1.getMethodName());
-//                                System.out.println("Mock : " + agentCommandRequest1.getDeclaredMocks().toString());
-//                                System.out.println("Class from outer : " + sourceClass.getQualifiedName());
-//                                System.out.println("Response status : " + agentCommandResponse.getResponseType());
-//                            }
-//                            if (sourceClass.getQualifiedName().contains("UserInstanceDao")) {
-//                                System.out.println("Got userInstancedao response : ");
-//                                System.out.println("Method : " + agentCommandRequest1.getMethodName());
-//                                System.out.println("Mock : " + agentCommandRequest1.getDeclaredMocks().toString());
-//                                System.out.println("Class from outer : " + sourceClass.getQualifiedName());
-//                                System.out.println("Response status : " + agentCommandResponse.getResponseType());
-//                            }
 
                             ResponseType responseType1 = agentCommandResponse.getResponseType();
                             DiffResultType diffResultType = responseType1.equals(
@@ -223,7 +193,6 @@ public class AutomaticExecutorService {
                                     waiting++;
                                     reportingQueue.waitIsNotFull();
                                 } catch (InterruptedException e) {
-//                                    System.out.println("Error while waiting to Produce messages.");
                                     waitInterrupts++;
                                 }
                             }
@@ -232,6 +201,12 @@ public class AutomaticExecutorService {
 //                                    "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
                             logger.info("L1 : [Classcount,MethodCount,Executing,responses,waiting,doneWaiting] : [" + classcount +
                                     "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
+                            if (sourceClass.isInterface()) {
+                                // report using actual class rather than the executed impl
+                                // without this impl classes will have 2 sets of executions in the report
+                                // while the original interface here will have no entries
+                                diffResult.getCommand().setClassName(sourceClass.getQualifiedName());
+                            }
                             reportingQueue.add(new AutoExecutorReportRecord(diffResult,
                                     insidiousService.getSessionInstance().getProcessedFileCount(),
                                     insidiousService.getSessionInstance().getTotalFileCount(), agentCommandRequest1.getDeclaredMocks()));
@@ -311,7 +286,6 @@ public class AutomaticExecutorService {
     }
 
     private ArrayList<DeclaredMock> getDeclaredMocksForClass(ClassAdapter classAdapter) {
-//        System.out.println("Trying to find mocks for class : " + classAdapter.getName());
         ArrayList<DeclaredMock> declaredMocks = new ArrayList<>();
         PsiMethodCallExpression[] methodCallExpressions = getChildrenOfTypeRecursive(classAdapter.getSource(),
                 PsiMethodCallExpression.class);
@@ -323,14 +297,8 @@ public class AutomaticExecutorService {
                 .collect(Collectors.toList());
 
         for (PsiMethodCallExpression local : mockableCallExpressions) {
-//            System.out.println("[AUTOMOCK] Local mockable method : " + localMockMethodName);
             PsiMethod methodFromExpression = local.resolveMethod();
-            if (methodFromExpression == null) {
-//                System.out.println("No method found to resolve");
-            } else {
-//                System.out.println("[FETCHED] Method from call : "
-//                        + methodFromExpression.getName() + " from "
-//                        + methodFromExpression.getContainingClass().getName());
+            if (methodFromExpression != null) {
                 DeclaredMock newmock = createDummyMockForMethod(
                         new JavaMethodAdapter(methodFromExpression), local);
                 declaredMocks.add(newmock);
@@ -340,9 +308,6 @@ public class AutomaticExecutorService {
     }
 
     private ArrayList<DeclaredMock> getDeclaredMocksForMethod(MethodAdapter methodAdapter) {
-//        if (methodAdapter.getName().equals("implPickupTest")) {
-//            System.out.println("In debug method");
-//        }
         ArrayList<DeclaredMock> declaredMocks = new ArrayList<>();
         PsiClass classPsi = JavaPsiFacade.getInstance(insidiousService.getProject())
                 .findClass(methodAdapter.getContainingClass().getQualifiedName(),
@@ -356,22 +321,9 @@ public class AutomaticExecutorService {
                 .collect(Collectors.toList());
 
         for (PsiMethodCallExpression local : mockableCallExpressions) {
-            String localMockMethodName = local.getMethodExpression().getReferenceName();
-//            System.out.println("[AUTOMOCK] Local mockable method : " + localMockMethodName);
-//            System.out.println("[FULL EXP] full expression : " + local.getText());
-
             if (methodContainsCall(methodAdapter.getText(), local.getText())) {
-                //create a mock for this method
-//                System.out.println("Creating a mock for : " + local.getText());
                 PsiMethod methodFromExpression = local.resolveMethod();
-                if (methodFromExpression == null) {
-//                System.out.println("No method found to resolve");
-                } else {
-//                System.out.println("[FETCHED] Method from call : "
-//                        + methodFromExpression.getName() + " from "
-//                        + methodFromExpression.getContainingClass().getName());
-//                    DeclaredMock newmock = createDummyMockForMethod(
-//                            new JavaMethodAdapter(methodFromExpression), local);
+                if (methodFromExpression != null) {
                     DeclaredMock newmock = createDummyMockV2(
                             methodAdapter, local);
                     declaredMocks.add(newmock);
@@ -469,17 +421,12 @@ public class AutomaticExecutorService {
                                            PsiMethodCallExpression methodCallExpression) {
 
         PsiMethod destinationMethod = methodCallExpression.resolveMethod();
+        MethodUnderTest destinationMethodUnterTest =
+                MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(destinationMethod));
         MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(methodBeingRun);
         PsiType returnType = identifyReturnType(methodCallExpression);
         String returnDummyValue;
         String methodReturnTypeName;
-
-//        boolean debugThis = false;
-//        if (methodBeingRun.getContainingClass().getQualifiedName().contains("Dao_Custom")) {
-//            System.out.println("Dao custom mock");
-//            System.out.println("Method : " + methodBeingRun.getName());
-//            debugThis = true;
-//        }
 
         if (returnType != null) {
             returnDummyValue = ClassUtils.createDummyValue(returnType, new ArrayList<>(),
@@ -489,15 +436,7 @@ public class AutomaticExecutorService {
             methodReturnTypeName = "java.lang.Object";
             returnDummyValue = "{}";
         }
-//        boolean debug = false;
         PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
-//        if (parentClass != null && parentClass.getName().contains("UserInstanceDao")) {
-//            System.out.println("In debug loop case");
-//            System.out.println("Method : " + methodBeingRun.getName());
-//            System.out.println("Return value : " + returnDummyValue);
-//            System.out.println("Return type : " + methodReturnTypeName);
-//            debug = true;
-//        }
 
         if (parentClass == null) {
             InsidiousNotification.notifyMessage("Failed to identify parent class for the call [" +
@@ -533,14 +472,12 @@ public class AutomaticExecutorService {
         }
         DeclaredMock mock = new DeclaredMock(
                 "mock response " + expressionText,
-                methodUnderTest.getClassName(), parentClass.getQualifiedName(),
+                destinationMethodUnterTest.getClassName(), //part that messes up mocking
+                parentClass.getQualifiedName(),
                 fieldName,
-                methodUnderTest.getName(), parameterList, thenParameterList
+                destinationMethodUnterTest.getName(),
+                parameterList, thenParameterList
         );
-//        if (debugThis) {
-//            System.out.println("Overall mock generated for method : " + methodBeingRun.getName());
-//            System.out.println("Mock : " + mock.toString());
-//        }
         return mock;
     }
 
