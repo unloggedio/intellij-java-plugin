@@ -101,10 +101,14 @@ public class AutomaticExecutorService {
         MethodAdapter[] methods = sourceClass.getMethods();
         methodcount += methods.length;
 
-//        if (!sourceClass.getQualifiedName().contains("UserController")) {
+//        if (!sourceClass.getQualifiedName().contains("AdpHelper")) {
 //            return;
 //        } else {
-//            System.out.println("Executing UserController");
+//            System.out.println("Executing AdpHelper");
+//            System.out.println("Number of methods : " + methods.length);
+//            List<String> methodnames = Arrays.stream(methods).map(e -> e.getName())
+//                    .collect(Collectors.toList());
+//            System.out.println("Mehtod names : " + methodnames.toString());
 //        }
 
         for (MethodAdapter methodAdapter : methods) {
@@ -326,7 +330,9 @@ public class AutomaticExecutorService {
                 if (methodFromExpression != null) {
                     DeclaredMock newmock = createDummyMockV2(
                             methodAdapter, local);
-                    declaredMocks.add(newmock);
+                    if (newmock != null) {
+                        declaredMocks.add(newmock);
+                    }
                 }
             }
         }
@@ -367,7 +373,14 @@ public class AutomaticExecutorService {
 
     private DeclaredMock createDummyMockV2(MethodAdapter methodBeingRun,
                                            PsiMethodCallExpression methodCallExpression) {
-
+//        System.out.println("[ERR] Mock for Method being run : " + methodBeingRun.getName() + " " +
+//                "from class : " + methodBeingRun.getContainingClass().getQualifiedName());
+        //skip anything that's log.error or log.info
+        if (methodCallExpression.getText().contains("log.")
+                || methodCallExpression.getText().contains("logger.")) {
+            //return null if the method is a logger method
+            return null;
+        }
         PsiMethod destinationMethod = methodCallExpression.resolveMethod();
         MethodUnderTest destinationMethodUnterTest =
                 MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(destinationMethod));
