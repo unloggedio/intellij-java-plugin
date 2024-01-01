@@ -299,7 +299,7 @@ public class AutomaticExecutorService {
         for (PsiMethodCallExpression local : mockableCallExpressions) {
             PsiMethod methodFromExpression = local.resolveMethod();
             if (methodFromExpression != null) {
-                DeclaredMock newmock = createDummyMockForMethod(
+                DeclaredMock newmock = createDummyMockV2(
                         new JavaMethodAdapter(methodFromExpression), local);
                 declaredMocks.add(newmock);
             }
@@ -337,64 +337,12 @@ public class AutomaticExecutorService {
         return methodText.contains(methodCall);
     }
 
-    private DeclaredMock createDummyMockForMethod(MethodAdapter methodAdapter,
-                                                  PsiMethodCallExpression methodCallExpression) {
-        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(methodAdapter);
-
-        PsiElement callerQualifier = methodCallExpression.getMethodExpression().getQualifier();
-        String fieldName = callerQualifier.getText();
-        PsiElement[] callerQualifierChildren = callerQualifier.getChildren();
-        if (callerQualifierChildren.length > 1) {
-            fieldName = callerQualifierChildren[callerQualifierChildren.length - 1].getText();
-        }
-        List<ParameterMatcher> parameterList = new ArrayList<>();
-        JvmParameter[] jvmParameters = methodAdapter.getPsiMethod().getParameters();
-
-        PsiType[] methodParameterTypes = methodCallExpression.getArgumentList().getExpressionTypes();
-        for (int i = 0; i < methodParameterTypes.length; i++) {
-            JavaParameterAdapter param = new JavaParameterAdapter(jvmParameters[i]);
-            PsiType parameterType = methodParameterTypes[i];
-
-            String parameterTypeName = parameterType.getCanonicalText();
-            if (parameterType instanceof PsiClassReferenceType) {
-                PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
-                parameterTypeName = classReferenceType.rawType().getCanonicalText();
-            }
-            ParameterMatcher parameterMatcher = new ParameterMatcher(param.getName(),
-                    ParameterMatcherType.ANY, parameterTypeName);
-            parameterList.add(parameterMatcher);
-        }
-
-        ArrayList<ThenParameter> thenParameterList = new ArrayList<>();
-        String value = ApplicationManager.getApplication().runReadAction(
-                (Computable<String>) () -> ClassUtils.createDummyValue(methodAdapter.getReturnType(),
-                        new ArrayList<>(4), insidiousService.getProject()));
-        String returnTypeName = "java.lang.Object";
-        if (methodAdapter.getReturnType() != null) {
-            PsiClass returnTypeClass = PsiTypesUtil.getPsiClass(methodAdapter.getReturnType());
-            if (returnTypeClass != null) {
-                returnTypeName = returnTypeClass.getQualifiedName();
-            } else {
-                returnTypeName = buildJvmClassName(methodAdapter.getReturnType());
-            }
-        }
-        thenParameterList.add(createDummyThenParameter(value, returnTypeName));
-        DeclaredMock declaredMock = new DeclaredMock(
-                "temp-mock" + methodAdapter.getName().hashCode(),
-                methodUnderTest.getClassName(), methodAdapter.getContainingClass().getQualifiedName(),
-                fieldName,
-                methodUnderTest.getName(), parameterList, thenParameterList
-        );
-        return declaredMock;
-    }
-
     @NotNull
     private ThenParameter createDummyThenParameter(String value, String returnTypeName) {
         ReturnValue returnValue = new ReturnValue(value, returnTypeName, ReturnValueType.REAL);
         return new ThenParameter(returnValue, MethodExitType.NORMAL);
     }
 
-    //this fails
     private String buildJvmClassName(PsiType returnType) {
         if (!(returnType instanceof PsiClassReferenceType)) {
             return returnType.getCanonicalText();
@@ -423,7 +371,6 @@ public class AutomaticExecutorService {
         PsiMethod destinationMethod = methodCallExpression.resolveMethod();
         MethodUnderTest destinationMethodUnterTest =
                 MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(destinationMethod));
-        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(methodBeingRun);
         PsiType returnType = identifyReturnType(methodCallExpression);
         String returnDummyValue;
         String methodReturnTypeName;
@@ -472,7 +419,7 @@ public class AutomaticExecutorService {
         }
         DeclaredMock mock = new DeclaredMock(
                 "mock response " + expressionText,
-                destinationMethodUnterTest.getClassName(), //part that messes up mocking
+                destinationMethodUnterTest.getClassName(),
                 parentClass.getQualifiedName(),
                 fieldName,
                 destinationMethodUnterTest.getName(),
