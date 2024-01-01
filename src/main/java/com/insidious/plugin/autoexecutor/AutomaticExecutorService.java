@@ -126,7 +126,7 @@ public class AutomaticExecutorService {
             }
 
             checkProgressIndicator("Executing methods in class : "+sourceClass.getName()+" " +
-            "| Executions : "+executingCount, methodAdapter.getName()+"()");
+            "| Executions : "+responses, methodAdapter.getName()+"()");
 //            System.out.println("Executing method : "+methodAdapter.getName());
             List<String> argumentValues = new ArrayList<>();
             ParameterAdapter[] parameters = methodAdapter.getParameters();
@@ -141,53 +141,42 @@ public class AutomaticExecutorService {
             }
             try {
                 ClassUtils.chooseClassImplementation(methodAdapter.getContainingClass(), false, psiClass -> {
-                    //nothing to do here
-                });
-            }
-            catch (Exception ez)
-            {
-                System.out.println("Got a PsiLambdaExpressionImpl cast exception");
-                //skip this method
-                //java.lang.ClassCastException: class com.intellij.psi.impl.source.tree.java.PsiLambdaExpressionImpl cannot be cast to class com.intellij.psi.PsiClass (com.intellij.psi.impl.source.tree.java.PsiLambdaExpressionImpl and com.intellij.psi.PsiClass are in unnamed module of loader com.intellij.ide.plugins.cl.PluginClassLoader @3dd0ba8b)
-                return;
-            }
-            ClassUtils.chooseClassImplementation(methodAdapter.getContainingClass(), false, psiClass -> {
-                JSONObject eventProperties = new JSONObject();
-                eventProperties.put("className", psiClass.getQualifiedClassName());
-                eventProperties.put("methodName", methodAdapter.getName());
+                    JSONObject eventProperties = new JSONObject();
+                    eventProperties.put("className", psiClass.getQualifiedClassName());
+                    eventProperties.put("methodName", methodAdapter.getName());
 
-                UsageInsightTracker.getInstance().RecordEvent("ALL_INVOKE_CLASS", eventProperties);
-                List<String> methodArgumentValues = new ArrayList<>();
-                ParameterAdapter[] params = methodAdapter.getParameters();
-                for (int i = 0; i < argumentValues.size(); i++) {
-                    ParameterAdapter parameter = params[i];
-                    String parameterValue = argumentValues.get(i);
-                    String cannonicalText =
-                            ApplicationManager.getApplication()
-                                    .runReadAction((Computable<String>) () -> parameter.getType().getCanonicalText());
-                    if ("java.lang.String".equals(cannonicalText) &&
-                            !parameterValue.startsWith("\"")) {
-                        try {
-                            parameterValue = objectMapper.writeValueAsString(parameterValue);
-                        } catch (JsonProcessingException e) {
-                            // should never happen
-                            jsonExceptioncount++;
+                    UsageInsightTracker.getInstance().RecordEvent("ALL_INVOKE_CLASS", eventProperties);
+                    List<String> methodArgumentValues = new ArrayList<>();
+                    ParameterAdapter[] params = methodAdapter.getParameters();
+                    for (int i = 0; i < argumentValues.size(); i++) {
+                        ParameterAdapter parameter = params[i];
+                        String parameterValue = argumentValues.get(i);
+                        String cannonicalText =
+                                ApplicationManager.getApplication()
+                                        .runReadAction((Computable<String>) () -> parameter.getType().getCanonicalText());
+                        if ("java.lang.String".equals(cannonicalText) &&
+                                !parameterValue.startsWith("\"")) {
+                            try {
+                                parameterValue = objectMapper.writeValueAsString(parameterValue);
+                            } catch (JsonProcessingException e) {
+                                // should never happen
+                                jsonExceptioncount++;
+                            }
                         }
+                        methodArgumentValues.add(parameterValue);
                     }
-                    methodArgumentValues.add(parameterValue);
-                }
-                ArrayList<DeclaredMock> declaredMocks = new ArrayList<>();
-                if (enableMocks) {
-                    if (methodAdapter == null) {
-                        System.out.println("Found null method in class : " + sourceClass.getQualifiedName());
+                    ArrayList<DeclaredMock> declaredMocks = new ArrayList<>();
+                    if (enableMocks) {
+                        if (methodAdapter == null) {
+                            System.out.println("Found null method in class : " + sourceClass.getQualifiedName());
+                        }
+                        declaredMocks = ApplicationManager.getApplication()
+                                .runReadAction((Computable<ArrayList<DeclaredMock>>) () -> getDeclaredMocksForMethod(methodAdapter));
                     }
-                    declaredMocks = ApplicationManager.getApplication()
-                            .runReadAction((Computable<ArrayList<DeclaredMock>>) () -> getDeclaredMocksForMethod(methodAdapter));
-                }
-                AgentCommandRequest agentCommandRequest =
-                        MethodUtils.createExecuteRequestWithParameters(methodAdapter, psiClass, methodArgumentValues,
-                                false, declaredMocks);
-                agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
+                    AgentCommandRequest agentCommandRequest =
+                            MethodUtils.createExecuteRequestWithParameters(methodAdapter, psiClass, methodArgumentValues,
+                                    false, declaredMocks);
+                    agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
 
 //                if (true) {
 //                    return;
@@ -199,61 +188,70 @@ public class AutomaticExecutorService {
 //                    return;
 //                }
 
-                executingCount++;
+                    executingCount++;
 //                System.out.println("L0 : [Classcount,MethodCount,Executing,responses,waiting,doneWaiting] : [" + classcount +
 //                        "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
 //                logger.info("L0 : [Classcount,MethodCount,Executing,responses,waiting,doneWaiting] : [" + classcount +
 //                        "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
 
-                insidiousService.executeMethodInRunningProcessSync(agentCommandRequest,
-                        (agentCommandRequest1, agentCommandResponse) -> {
-                            if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
-                                if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
-                                    InsidiousNotification.notifyMessage(
-                                            "Exception thrown when trying to invoke " + agentCommandRequest.getMethodName(),
-                                            NotificationType.ERROR
-                                    );
-                                    nullclasses++;
-                                    return;
+                    insidiousService.executeMethodInRunningProcessSync(agentCommandRequest,
+                            (agentCommandRequest1, agentCommandResponse) -> {
+                                if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
+                                    if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
+                                        InsidiousNotification.notifyMessage(
+                                                "Exception thrown when trying to invoke " + agentCommandRequest.getMethodName(),
+                                                NotificationType.ERROR
+                                        );
+                                        nullclasses++;
+                                        return;
+                                    }
                                 }
-                            }
 
-                            ResponseType responseType1 = agentCommandResponse.getResponseType();
-                            DiffResultType diffResultType = responseType1.equals(
-                                    ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
-                            DifferenceResult diffResult = new DifferenceResult(null,
-                                    diffResultType, null,
-                                    DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
-                            diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
-                            diffResult.setResponse(agentCommandResponse);
-                            diffResult.setCommand(agentCommandRequest);
+                                ResponseType responseType1 = agentCommandResponse.getResponseType();
+                                DiffResultType diffResultType = responseType1.equals(
+                                        ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
+                                DifferenceResult diffResult = new DifferenceResult(null,
+                                        diffResultType, null,
+                                        DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
+                                diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
+                                diffResult.setResponse(agentCommandResponse);
+                                diffResult.setCommand(agentCommandRequest);
 
-                            boolean waiting_State = false;
-                            if (reportingQueue.isFull()) {
-                                try {
-                                    waiting_State = true;
-                                    waiting++;
-                                    reportingQueue.waitIsNotFull();
-                                } catch (InterruptedException e) {
-                                    waitInterrupts++;
+                                boolean waiting_State = false;
+                                if (reportingQueue.isFull()) {
+                                    try {
+                                        waiting_State = true;
+                                        waiting++;
+                                        reportingQueue.waitIsNotFull();
+                                    } catch (InterruptedException e) {
+                                        waitInterrupts++;
+                                    }
                                 }
-                            }
-                            responses++;
+                                responses++;
 //                            System.out.println("L1 : [Classcount,MethodCount,Executing,responses,waiting,doneWaiting] : [" + classcount +
 //                                    "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
-                            logger.info("L1 : [Classcount,MethodCount,Executing,responses,waiting,doneWaiting] : [" + classcount +
-                                    "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
-                            if (sourceClass.isInterface()) {
-                                // report using actual class rather than the executed impl
-                                // without this impl classes will have 2 sets of executions in the report
-                                // while the original interface here will have no entries
-                                diffResult.getCommand().setClassName(sourceClass.getQualifiedName());
-                            }
-                            reportingQueue.add(new AutoExecutorReportRecord(diffResult,
-                                    insidiousService.getSessionInstance().getProcessedFileCount(),
-                                    insidiousService.getSessionInstance().getTotalFileCount(), agentCommandRequest1.getDeclaredMocks()));
-                        });
-            });
+                                logger.info("L1 : [Classcount,MethodCount,Executing,responses,waiting,doneWaiting] : [" + classcount +
+                                        "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
+                                if (sourceClass.isInterface()) {
+                                    // report using actual class rather than the executed impl
+                                    // without this impl classes will have 2 sets of executions in the report
+                                    // while the original interface here will have no entries
+                                    diffResult.getCommand().setClassName(sourceClass.getQualifiedName());
+                                }
+                                reportingQueue.add(new AutoExecutorReportRecord(diffResult,
+                                        0,
+                                        0,
+                                        agentCommandRequest1.getDeclaredMocks()));
+                            });
+                });
+            }
+            catch (Exception ez)
+            {
+                System.out.println("Got a PsiLambdaExpressionImpl cast exception");
+                //skip this method
+                //java.lang.ClassCastException: class com.intellij.psi.impl.source.tree.java.PsiLambdaExpressionImpl cannot be cast to class com.intellij.psi.PsiClass (com.intellij.psi.impl.source.tree.java.PsiLambdaExpressionImpl and com.intellij.psi.PsiClass are in unnamed module of loader com.intellij.ide.plugins.cl.PluginClassLoader @3dd0ba8b)
+                return;
+            }
         }
     }
 
@@ -300,7 +298,7 @@ public class AutomaticExecutorService {
                                             .runReadAction((Computable<String>) () -> javaFileClass.getName());
                             classcount++;
                             checkProgressIndicator("Executing methods in class : "+currentClassname+" " +
-                                    "| Executions : "+executingCount, null);
+                                    "| Executions : "+responses, null);
                             executeAllMethodsForClass(new JavaClassAdapter(javaFileClass));
                         }
                     }
