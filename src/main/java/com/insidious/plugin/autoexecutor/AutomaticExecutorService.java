@@ -101,20 +101,33 @@ public class AutomaticExecutorService {
         MethodAdapter[] methods = sourceClass.getMethods();
         methodcount += methods.length;
 
-//        if (!sourceClass.getQualifiedName().contains("AdpHelper")) {
+        if(sourceClass.getQualifiedName().contains("com.appsmith.server.dtos.UserSessionDTO"))
+        {
+            //skip this class
+            return;
+        }
+
+        System.out.println("Executing class : "+sourceClass.getQualifiedName());
+        System.out.println("Counts : C,M : "+classcount+","+methodcount);
+//        System.out.println("Class and method count : "+classcount+" , "+methodcount);
+//        if (!sourceClass.getQualifiedName().contains("SaaSPluginError")) {
 //            return;
 //        } else {
-//            System.out.println("Executing AdpHelper");
+//            System.out.println("Executing SaaSPluginError");
 //            System.out.println("Number of methods : " + methods.length);
 //            List<String> methodnames = Arrays.stream(methods).map(e -> e.getName())
 //                    .collect(Collectors.toList());
-//            System.out.println("Mehtod names : " + methodnames.toString());
+//            System.out.println("Method names : " + methodnames.toString());
 //        }
 
         for (MethodAdapter methodAdapter : methods) {
             if (methodAdapter.getName().equals("main")) {
                 continue;
             }
+
+            checkProgressIndicator("Executing methods in class : "+sourceClass.getName()+" " +
+            "| Executions : "+executingCount, methodAdapter.getName()+"()");
+//            System.out.println("Executing method : "+methodAdapter.getName());
             List<String> argumentValues = new ArrayList<>();
             ParameterAdapter[] parameters = methodAdapter.getParameters();
 
@@ -126,7 +139,18 @@ public class AutomaticExecutorService {
                     argumentValues.add(value);
                 }
             }
-
+            try {
+                ClassUtils.chooseClassImplementation(methodAdapter.getContainingClass(), false, psiClass -> {
+                    //nothing to do here
+                });
+            }
+            catch (Exception ez)
+            {
+                System.out.println("Got a PsiLambdaExpressionImpl cast exception");
+                //skip this method
+                //java.lang.ClassCastException: class com.intellij.psi.impl.source.tree.java.PsiLambdaExpressionImpl cannot be cast to class com.intellij.psi.PsiClass (com.intellij.psi.impl.source.tree.java.PsiLambdaExpressionImpl and com.intellij.psi.PsiClass are in unnamed module of loader com.intellij.ide.plugins.cl.PluginClassLoader @3dd0ba8b)
+                return;
+            }
             ClassUtils.chooseClassImplementation(methodAdapter.getContainingClass(), false, psiClass -> {
                 JSONObject eventProperties = new JSONObject();
                 eventProperties.put("className", psiClass.getQualifiedClassName());
@@ -154,6 +178,9 @@ public class AutomaticExecutorService {
                 }
                 ArrayList<DeclaredMock> declaredMocks = new ArrayList<>();
                 if (enableMocks) {
+                    if (methodAdapter == null) {
+                        System.out.println("Found null method in class : " + sourceClass.getQualifiedName());
+                    }
                     declaredMocks = ApplicationManager.getApplication()
                             .runReadAction((Computable<ArrayList<DeclaredMock>>) () -> getDeclaredMocksForMethod(methodAdapter));
                 }
@@ -161,6 +188,17 @@ public class AutomaticExecutorService {
                         MethodUtils.createExecuteRequestWithParameters(methodAdapter, psiClass, methodArgumentValues,
                                 false, declaredMocks);
                 agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
+
+//                if (true) {
+//                    return;
+//                }
+//
+//                boolean isAgentRunning = insidiousService.getAgentStateProvider().isAgentRunning();
+//                if (!isAgentRunning) {
+//                    System.out.println("Agent run stopped");
+//                    return;
+//                }
+
                 executingCount++;
 //                System.out.println("L0 : [Classcount,MethodCount,Executing,responses,waiting,doneWaiting] : [" + classcount +
 //                        "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
@@ -261,7 +299,8 @@ public class AutomaticExecutorService {
                                     ApplicationManager.getApplication()
                                             .runReadAction((Computable<String>) () -> javaFileClass.getName());
                             classcount++;
-                            checkProgressIndicator("Executing methods in class", currentClassname);
+                            checkProgressIndicator("Executing methods in class : "+currentClassname+" " +
+                                    "| Executions : "+executingCount, null);
                             executeAllMethodsForClass(new JavaClassAdapter(javaFileClass));
                         }
                     }
@@ -328,10 +367,19 @@ public class AutomaticExecutorService {
             if (methodContainsCall(methodAdapter.getText(), local.getText())) {
                 PsiMethod methodFromExpression = local.resolveMethod();
                 if (methodFromExpression != null) {
-                    DeclaredMock newmock = createDummyMockV2(
-                            methodAdapter, local);
-                    if (newmock != null) {
-                        declaredMocks.add(newmock);
+                    try {
+                        DeclaredMock newmock = createDummyMockV2(
+                                methodAdapter, local);
+                        if (newmock != null) {
+                            declaredMocks.add(newmock);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        //don't add mocks in this case.
+                        //caused when the number of arguments used in funtion is different from what method expects (from PSI).
+                        //expression vs psClass method prams usage
+//                        System.out.println("Failed to create a mock for method");
                     }
                 }
             }
@@ -340,7 +388,12 @@ public class AutomaticExecutorService {
     }
 
     private boolean methodContainsCall(String methodText, String methodCall) {
-        return methodText.contains(methodCall);
+        try {
+            return methodText.contains(methodCall);
+        } catch (NullPointerException e) {
+            //if you get a null pointer exception because body is null, return false
+            return false;
+        }
     }
 
     @NotNull

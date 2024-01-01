@@ -43,7 +43,7 @@ public class AutoExecutionConsumer implements Runnable {
                 break;
             }
             addcounts++;
-//            System.out.println("[Autex] Consumer adding record : " + addcounts);
+            System.out.println("[Autex] Consumer adding record : " + addcounts);
             logger.info("[Autex] Consumer adding record : " + addcounts);
             AutoExecutorReportRecord record = queue.poll();
             insidiousService.addExecutionRecord(record);
