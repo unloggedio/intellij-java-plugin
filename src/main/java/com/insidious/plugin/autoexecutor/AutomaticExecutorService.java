@@ -44,11 +44,13 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiTypesUtil;
 import com.intellij.psi.util.PsiUtil;
+import com.intellij.psi.util.TypeConversionUtil;
 import com.intellij.util.indexing.FileBasedIndex;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
+import javax.swing.*;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -101,19 +103,18 @@ public class AutomaticExecutorService {
         MethodAdapter[] methods = sourceClass.getMethods();
         methodcount += methods.length;
 
-        if(sourceClass.getQualifiedName().contains("com.appsmith.server.dtos.UserSessionDTO"))
-        {
+        if (sourceClass.getQualifiedName().contains("com.appsmith.server.dtos.UserSessionDTO")) {
             //skip this class
             return;
         }
-
-        System.out.println("Executing class : "+sourceClass.getQualifiedName());
-        System.out.println("Counts : C,M : "+classcount+","+methodcount);
+//        System.out.println("Executing class : "+sourceClass.getQualifiedName());
+//        System.out.println("Counts : C,M : "+classcount+","+methodcount);
 //        System.out.println("Class and method count : "+classcount+" , "+methodcount);
-//        if (!sourceClass.getQualifiedName().contains("SaaSPluginError")) {
+
+//        if (!sourceClass.getQualifiedName().contains("UserService")) {
 //            return;
 //        } else {
-//            System.out.println("Executing SaaSPluginError");
+//            System.out.println("Executing UserService");
 //            System.out.println("Number of methods : " + methods.length);
 //            List<String> methodnames = Arrays.stream(methods).map(e -> e.getName())
 //                    .collect(Collectors.toList());
@@ -125,8 +126,8 @@ public class AutomaticExecutorService {
                 continue;
             }
 
-            checkProgressIndicator("Executing methods in class : "+sourceClass.getName()+" " +
-            "| Executions : "+responses, methodAdapter.getName()+"()");
+            checkProgressIndicator("Executing methods in class : " + sourceClass.getName() + " " +
+                    "| Executions : " + responses, methodAdapter.getName() + "()");
 //            System.out.println("Executing method : "+methodAdapter.getName());
             List<String> argumentValues = new ArrayList<>();
             ParameterAdapter[] parameters = methodAdapter.getParameters();
@@ -167,9 +168,6 @@ public class AutomaticExecutorService {
                     }
                     ArrayList<DeclaredMock> declaredMocks = new ArrayList<>();
                     if (enableMocks) {
-                        if (methodAdapter == null) {
-                            System.out.println("Found null method in class : " + sourceClass.getQualifiedName());
-                        }
                         declaredMocks = ApplicationManager.getApplication()
                                 .runReadAction((Computable<ArrayList<DeclaredMock>>) () -> getDeclaredMocksForMethod(methodAdapter));
                     }
@@ -244,9 +242,7 @@ public class AutomaticExecutorService {
                                         agentCommandRequest1.getDeclaredMocks()));
                             });
                 });
-            }
-            catch (Exception ez)
-            {
+            } catch (Exception ez) {
                 System.out.println("Got a PsiLambdaExpressionImpl cast exception");
                 //skip this method
                 //java.lang.ClassCastException: class com.intellij.psi.impl.source.tree.java.PsiLambdaExpressionImpl cannot be cast to class com.intellij.psi.PsiClass (com.intellij.psi.impl.source.tree.java.PsiLambdaExpressionImpl and com.intellij.psi.PsiClass are in unnamed module of loader com.intellij.ide.plugins.cl.PluginClassLoader @3dd0ba8b)
@@ -297,8 +293,8 @@ public class AutomaticExecutorService {
                                     ApplicationManager.getApplication()
                                             .runReadAction((Computable<String>) () -> javaFileClass.getName());
                             classcount++;
-                            checkProgressIndicator("Executing methods in class : "+currentClassname+" " +
-                                    "| Executions : "+responses, null);
+                            checkProgressIndicator("Executing methods in class : " + currentClassname + " " +
+                                    "| Executions : " + responses, null);
                             executeAllMethodsForClass(new JavaClassAdapter(javaFileClass));
                         }
                     }
@@ -349,11 +345,10 @@ public class AutomaticExecutorService {
     }
 
     private ArrayList<DeclaredMock> getDeclaredMocksForMethod(MethodAdapter methodAdapter) {
+//        System.out.println("Creating mocks for method : " + methodAdapter.getName());
         ArrayList<DeclaredMock> declaredMocks = new ArrayList<>();
-        PsiClass classPsi = JavaPsiFacade.getInstance(insidiousService.getProject())
-                .findClass(methodAdapter.getContainingClass().getQualifiedName(),
-                        GlobalSearchScope.projectScope(insidiousService.getProject()));
-        PsiMethodCallExpression[] methodCallExpressions = getChildrenOfTypeRecursive(classPsi, PsiMethodCallExpression.class);
+        PsiMethodCallExpression[] methodCallExpressions = getChildrenOfTypeRecursive(methodAdapter.getPsiMethod(),
+                PsiMethodCallExpression.class);
         if (methodCallExpressions == null || methodCallExpressions.length == 0) {
             return new ArrayList<>();
         }
@@ -369,15 +364,16 @@ public class AutomaticExecutorService {
                         DeclaredMock newmock = createDummyMockV2(
                                 methodAdapter, local);
                         if (newmock != null) {
+//                            System.out.println("Generated mock for expression : " + local.getText());
+//                            System.out.println("Mock : " + newmock.toString());
                             declaredMocks.add(newmock);
                         }
-                    }
-                    catch (Exception e)
-                    {
+                    } catch (Exception e) {
                         //don't add mocks in this case.
                         //caused when the number of arguments used in funtion is different from what method expects (from PSI).
                         //expression vs psClass method prams usage
-//                        System.out.println("Failed to create a mock for method");
+                        System.out.println("Failed to create a mock for method : " + methodAdapter.getName());
+                        System.out.println("Expression  : " + local.getText());
                     }
                 }
             }
@@ -432,9 +428,12 @@ public class AutomaticExecutorService {
             //return null if the method is a logger method
             return null;
         }
+
         PsiMethod destinationMethod = methodCallExpression.resolveMethod();
         MethodUnderTest destinationMethodUnterTest =
                 MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(destinationMethod));
+        destinationMethodUnterTest = processClassnameForDestinationMethod(destinationMethodUnterTest,
+                methodCallExpression);
         PsiType returnType = identifyReturnType(methodCallExpression);
         String returnDummyValue;
         String methodReturnTypeName;
@@ -481,6 +480,8 @@ public class AutomaticExecutorService {
         if (callerQualifierChildren.length > 1) {
             fieldName = callerQualifierChildren[callerQualifierChildren.length - 1].getText();
         }
+//        String ftname = destinationMethodUnterTest.getClassName();
+//        System.out.println("Filed type name : " + ftname);
         DeclaredMock mock = new DeclaredMock(
                 "mock response " + expressionText,
                 destinationMethodUnterTest.getClassName(),
@@ -538,5 +539,28 @@ public class AutomaticExecutorService {
             returnType = ((PsiMethodCallExpression) methodCallExpression).resolveMethod().getReturnType();
         }
         return returnType;
+    }
+
+    private MethodUnderTest processClassnameForDestinationMethod(MethodUnderTest methodUnderTest,
+                                                                 PsiMethodCallExpression expression) {
+        PsiExpression fieldExpression = expression.getMethodExpression().getQualifierExpression();
+        PsiReferenceExpression qualifierExpression1 = (PsiReferenceExpression) fieldExpression;
+        PsiField fieldPsiInstance = (PsiField) qualifierExpression1.resolve();
+
+        PsiClass parentOfType = PsiTreeUtil.getParentOfType(expression, PsiClass.class);
+        PsiType fieldTypeSubstitutor = TypeConversionUtil.getClassSubstitutor(fieldPsiInstance.getContainingClass(),
+                parentOfType, PsiSubstitutor.EMPTY).substitute(fieldPsiInstance.getType());
+
+        PsiMethod targetMethod = expression.resolveMethod();
+        methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethod));
+        if (fieldPsiInstance != null && fieldPsiInstance.getType() != null) {
+            methodUnderTest.setClassName(fieldPsiInstance.getType().getCanonicalText());
+        }
+
+        if (fieldTypeSubstitutor != null) {
+            String actualClass = fieldTypeSubstitutor.getCanonicalText();
+            methodUnderTest.setClassName(actualClass);
+        }
+        return methodUnderTest;
     }
 }
