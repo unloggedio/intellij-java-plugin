@@ -32,10 +32,8 @@ public class AutoExecutionConsumer implements Runnable {
         while (consuming) {
             if (queue.isEmpty()) {
                 try {
-//                    System.out.println("Consumer is waiting");
                     queue.waitIsNotEmpty();
                 } catch (InterruptedException e) {
-//                    System.out.println("Error while waiting to Consume record.");
                     break;
                 }
             }
@@ -43,7 +41,6 @@ public class AutoExecutionConsumer implements Runnable {
                 break;
             }
             addcounts++;
-            System.out.println("[Autex] Consumer adding record : " + addcounts);
             logger.info("[Autex] Consumer adding record : " + addcounts);
             AutoExecutorReportRecord record = queue.poll();
             insidiousService.addExecutionRecord(record);
