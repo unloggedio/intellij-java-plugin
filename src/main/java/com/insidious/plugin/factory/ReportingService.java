@@ -3,7 +3,6 @@ package com.insidious.plugin.factory;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.ResponseType;
-import com.insidious.plugin.autoexecutor.AutoExecutionConsumer;
 import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
@@ -205,7 +204,7 @@ public class ReportingService {
             out.close();
         } catch (Exception e) {
             logger.info("Exception writing record to file " + e);
-            logger.error(e.getMessage(), e);
+//            logger.error(e.getMessage(), e);
         }
     }
 
@@ -284,7 +283,7 @@ public class ReportingService {
                 return workbook;
             } catch (Exception e) {
                 logger.info("Exception creating new excel file : " + e);
-                logger.error(e.getMessage(), e);
+//                logger.error(e.getMessage(), e);
                 return null;
             }
         } else {
@@ -294,7 +293,7 @@ public class ReportingService {
                 return workbook;
             } catch (Exception e) {
                 logger.info("Exception opening existing excel file : " + e);
-                logger.error(e.getMessage(), e);
+//                logger.error(e.getMessage(), e);
                 return null;
             }
         }

@@ -223,13 +223,13 @@ public class AutomaticExecutorService {
                 });
             } catch (ClassCastException classCastException) {
                 logger.info("Got a PsiLambdaExpressionImpl cast exception");
-                logger.error(classCastException.getMessage(), classCastException);
+//                logger.error(classCastException.getMessage(), classCastException);
                 //skip this method
                 //java.lang.ClassCastException: class com.intellij.psi.impl.source.tree.java.PsiLambdaExpressionImpl cannot be cast to class com.intellij.psi.PsiClass (com.intellij.psi.impl.source.tree.java.PsiLambdaExpressionImpl and com.intellij.psi.PsiClass are in unnamed module of loader com.intellij.ide.plugins.cl.PluginClassLoader @3dd0ba8b)
                 return;
             } catch (Exception e) {
                 logger.info("Exception trying to Invoke method  : " + methodAdapter.getName());
-                logger.error(e.getMessage(), e);
+//                logger.error(e.getMessage(), e);
             }
         }
     }
