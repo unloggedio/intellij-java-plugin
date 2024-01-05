@@ -15,10 +15,11 @@ import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.DiffUtils;
+import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.MethodUtils;
-import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.*;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -26,11 +27,9 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiManager;
-import com.intellij.psi.search.FileTypeIndex;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 public class ExecutionUnit implements Runnable {
@@ -39,9 +38,9 @@ public class ExecutionUnit implements Runnable {
     private Thread consumerThread;
     private ExecutionUnitConfiguration configuration;
     private AutoExecutionRecordQueue reportingQueue;
-
-    public static long classcount = 0;
-    public static long responses = 0;
+    public long classcount = 0;
+    public long responses = 0;
+    private static final Logger logger = LoggerUtil.getInstance(ExecutionUnit.class);
 
     public ExecutionUnit(AutomaticExecutorService executorService,
                          ExecutionUnitConfiguration configuration) {
@@ -53,8 +52,6 @@ public class ExecutionUnit implements Runnable {
 
     @Override
     public void run() {
-//        System.out.println("Execution Unit : " + configuration.getExecutorId() +
-//                " -> Payload size : " + configuration.getPayload().size());
         executeInBackground();
     }
 
@@ -64,7 +61,7 @@ public class ExecutionUnit implements Runnable {
 
     public void executeInBackground() {
         Task.Backgroundable executeAll = new Task.Backgroundable(automaticExecutorService.getInsidiousService().getProject(),
-                "Unlogged - Autex", false) {
+                "Unlogged - Autex - " + configuration.getExecutorId(), false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 if (consumerThread != null) {
@@ -76,7 +73,6 @@ public class ExecutionUnit implements Runnable {
                 consumerThread = new Thread(consumer);
                 consumerThread.start();
 
-//                System.out.println("Unit start : " + configuration.getExecutorId());
                 for (VirtualFile virtualFile : configuration.getPayload()) {
                     PsiFile psiFile =
                             ApplicationManager.getApplication().runReadAction(
@@ -170,20 +166,16 @@ public class ExecutionUnit implements Runnable {
                         methodArgumentValues.add(parameterValue);
                     }
                     ArrayList<DeclaredMock> declaredMocks = new ArrayList<>();
-//                    if (configuration.isUseMocks()) {
-//                        declaredMocks = ApplicationManager.getApplication()
-//                                .runReadAction((Computable<ArrayList<DeclaredMock>>) () -> getDeclaredMocksForMethod(methodAdapter));
-//                    }
-//                    if (true) {
-//                        return;
-//                    }
+                    if (configuration.isUseMocks()) {
+                        declaredMocks = ApplicationManager.getApplication()
+                                .runReadAction((Computable<ArrayList<DeclaredMock>>) () -> MockUtils.getDeclaredMocksForMethod(methodAdapter));
+                    }
 
                     AgentCommandRequest agentCommandRequest =
                             MethodUtils.createExecuteRequestWithParameters(methodAdapter, psiClass, methodArgumentValues,
                                     false, declaredMocks);
                     agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
 
-//                    executingCount++;
                     automaticExecutorService.getInsidiousService().executeMethodInRunningProcessSync(agentCommandRequest,
                             (agentCommandRequest1, agentCommandResponse) -> {
                                 if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
@@ -206,18 +198,16 @@ public class ExecutionUnit implements Runnable {
                                 diffResult.setResponse(agentCommandResponse);
                                 diffResult.setCommand(agentCommandRequest);
 
-                                boolean waiting_State = false;
                                 if (reportingQueue.isFull()) {
                                     try {
-                                        waiting_State = true;
-//                                        waiting++;
                                         reportingQueue.waitIsNotFull();
                                     } catch (InterruptedException e) {
-//                                        waitInterrupts++;
+                                        logger.info("Queue wait exception interrupted for executor : " +
+                                                configuration.getExecutorId());
+                                        logger.error(e.getMessage(), e);
                                     }
                                 }
-//                                logger.info("[Autex] : [Classcount,MethodCount,Executing,responses,waiting,doneWaiting] : [" + classcount +
-//                                        "," + methodcount + "," + executingCount + "," + responses + "," + waiting + "," + doneWaiting + "]");
+                                responses++;
                                 if (sourceClass.isInterface()) {
                                     // report using actual class rather than the executed impl
                                     // without this impl classes will have 2 sets of executions in the report
@@ -234,14 +224,14 @@ public class ExecutionUnit implements Runnable {
                     AutomaticExecutorService.incrementResponses();
                 });
             } catch (ClassCastException classCastException) {
-//                logger.info("Got a PsiLambdaExpressionImpl cast exception");
-//                logger.error(classCastException.getMessage(), classCastException);
+                logger.info("Got a PsiLambdaExpressionImpl cast exception");
+                logger.error(classCastException.getMessage(), classCastException);
                 //skip this method
                 //java.lang.ClassCastException: class com.intellij.psi.impl.source.tree.java.PsiLambdaExpressionImpl cannot be cast to class com.intellij.psi.PsiClass (com.intellij.psi.impl.source.tree.java.PsiLambdaExpressionImpl and com.intellij.psi.PsiClass are in unnamed module of loader com.intellij.ide.plugins.cl.PluginClassLoader @3dd0ba8b)
                 return;
             } catch (Exception e) {
-//                logger.info("Exception trying to Invoke method  : " + methodAdapter.getName());
-//                logger.error(e.getMessage(), e);
+                logger.info("Exception trying to Invoke method  : " + methodAdapter.getName());
+                logger.error(e.getMessage(), e);
             }
         }
     }

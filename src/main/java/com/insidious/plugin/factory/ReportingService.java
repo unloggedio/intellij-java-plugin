@@ -201,7 +201,8 @@ public class ReportingService {
 
         try {
             LocalDate now = LocalDate.now();
-            String filename = insidiousService.getProject().getName() + autoExecutorReportRecord.getSource() + "_" + now.getYear() + "_" + now.getMonth()
+            String filename = insidiousService.getProject().getName() + "_"
+                    + autoExecutorReportRecord.getSource() + "_" + now.getYear() + "_" + now.getMonth()
                     + "_" + now.getDayOfMonth() + ".xlsx";
             FileOutputStream out = new FileOutputStream(new File(insidiousService.getProject().getBasePath()
                     + "/" + filename));
@@ -229,7 +230,8 @@ public class ReportingService {
 
     private XSSFWorkbook getWorkbook(String source) {
         LocalDate now = LocalDate.now();
-        String filename = insidiousService.getProject().getName() + source + "_" + now.getYear() + "_" + now.getMonth()
+        String filename = insidiousService.getProject().getName() + "_"
+                + source + "_" + now.getYear() + "_" + now.getMonth()
                 + "_" + now.getDayOfMonth() + ".xlsx";
         File file = new File(insidiousService.getProject().getBasePath() + "/" + filename);
         if (!file.exists()) {
