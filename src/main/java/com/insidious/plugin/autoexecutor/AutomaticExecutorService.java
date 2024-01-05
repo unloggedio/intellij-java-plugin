@@ -1,51 +1,17 @@
 package com.insidious.plugin.autoexecutor;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.adapter.ClassAdapter;
-import com.insidious.plugin.adapter.MethodAdapter;
-import com.insidious.plugin.adapter.ParameterAdapter;
-import com.insidious.plugin.adapter.java.JavaClassAdapter;
-import com.insidious.plugin.adapter.java.JavaMethodAdapter;
-import com.insidious.plugin.adapter.java.JavaParameterAdapter;
-import com.insidious.plugin.agent.AgentCommandRequest;
-import com.insidious.plugin.agent.AgentCommandRequestType;
-import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.mocking.*;
-import com.insidious.plugin.pojo.atomic.MethodUnderTest;
-import com.insidious.plugin.ui.highlighter.MockMethodLineHighlighter;
-import com.insidious.plugin.ui.methodscope.DiffResultType;
-import com.insidious.plugin.ui.methodscope.DifferenceResult;
-import com.insidious.plugin.util.ClassUtils;
-import com.insidious.plugin.util.DiffUtils;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.MethodUtils;
 import com.intellij.ide.highlighter.JavaFileType;
-import com.intellij.lang.jvm.JvmParameter;
-import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.*;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.*;
-import com.intellij.psi.impl.source.PsiClassReferenceType;
-import com.intellij.psi.impl.source.tree.java.*;
 import com.intellij.psi.search.FileTypeIndex;
-import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.psi.util.TypeConversionUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
-
-import static com.insidious.plugin.ui.assertions.MockValueMap.getChildrenOfTypeRecursive;
 
 public class AutomaticExecutorService {
 
@@ -62,7 +28,11 @@ public class AutomaticExecutorService {
     public static long writes = 0;
     public boolean enableMocks = false;
     private static final Logger logger = LoggerUtil.getInstance(AutomaticExecutorService.class);
-    //number or executor threads and
+    /**
+     * @Param executorCount controls the number of producer consumer pairs generated and used.
+     * Each ExecutionUnit (A producer and consumer pair) will write to one file.
+     * Each ExecutionUnit will write to a different file based on their ID.
+     */
     private final int executorCount = 3;
     private List<ExecutionUnit> executors;
 

@@ -7,7 +7,6 @@ import java.util.List;
 
 public class AutoExecutorReportRecord {
     private DifferenceResult differenceResult;
-    //index 0 points to processed count, index 1 points to total
     private int scannedFileCount;
     private int totalFileCount;
     private List<DeclaredMock> declaredMockList;
