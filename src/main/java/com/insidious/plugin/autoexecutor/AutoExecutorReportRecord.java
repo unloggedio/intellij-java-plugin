@@ -11,6 +11,7 @@ public class AutoExecutorReportRecord {
     private int scannedFileCount;
     private int totalFileCount;
     private List<DeclaredMock> declaredMockList;
+    private String source;
 
     public AutoExecutorReportRecord(DifferenceResult differenceResult,
                                     int scannedFileCount, int totalFileCount,
@@ -35,5 +36,13 @@ public class AutoExecutorReportRecord {
 
     public List<DeclaredMock> getDeclaredMockList() {
         return declaredMockList;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
     }
 }

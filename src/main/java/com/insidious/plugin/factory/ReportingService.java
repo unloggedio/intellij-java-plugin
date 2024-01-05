@@ -4,6 +4,7 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
+import com.insidious.plugin.autoexecutor.AutomaticExecutorService;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.util.LoggerUtil;
@@ -67,11 +68,12 @@ public class ReportingService {
         boolean isAgentException = false;
         boolean pluginException = false;
 
-        XSSFWorkbook workbook = getWorkbook();
+        XSSFWorkbook workbook = getWorkbook(autoExecutorReportRecord.getSource());
         if (workbook == null) {
             logger.info("Workbook Fetch failed");
             return;
         }
+
         XSSFSheet sheet = workbook.getSheetAt(0);
         int rowNum = sheet.getLastRowNum() + 1;
         XSSFRow row = sheet.createRow(rowNum);
@@ -198,10 +200,17 @@ public class ReportingService {
         }
 
         try {
+            LocalDate now = LocalDate.now();
+            String filename = insidiousService.getProject().getName() + autoExecutorReportRecord.getSource() + "_" + now.getYear() + "_" + now.getMonth()
+                    + "_" + now.getDayOfMonth() + ".xlsx";
             FileOutputStream out = new FileOutputStream(new File(insidiousService.getProject().getBasePath()
-                    + "/" + this.output_file_name));
+                    + "/" + filename));
             workbook.write(out);
-            out.close();
+            workbook.close();
+            out.flush();
+            org.apache.commons.io.IOUtils.closeQuietly(out);
+            AutomaticExecutorService.incrementWrites();
+//            out.close();
         } catch (Exception e) {
             logger.info("Exception writing record to file " + e);
 //            logger.error(e.getMessage(), e);
@@ -218,18 +227,17 @@ public class ReportingService {
         return inputList;
     }
 
-    private XSSFWorkbook getWorkbook() {
-        Date today = new Date();
+    private XSSFWorkbook getWorkbook(String source) {
         LocalDate now = LocalDate.now();
-        String filename = insidiousService.getProject().getName() + "_" + now.getYear() + "_" + now.getMonth()
+        String filename = insidiousService.getProject().getName() + source + "_" + now.getYear() + "_" + now.getMonth()
                 + "_" + now.getDayOfMonth() + ".xlsx";
-        this.output_file_name = filename;
         File file = new File(insidiousService.getProject().getBasePath() + "/" + filename);
         if (!file.exists()) {
             try {
                 XSSFWorkbook workbook = new XSSFWorkbook();
                 XSSFSheet spreadsheet
                         = workbook.createSheet("Executions");
+
                 XSSFRow row = spreadsheet.createRow(0);
 
                 Cell cell = row.createCell(0);
@@ -283,7 +291,6 @@ public class ReportingService {
                 return workbook;
             } catch (Exception e) {
                 logger.info("Exception creating new excel file : " + e);
-//                logger.error(e.getMessage(), e);
                 return null;
             }
         } else {
