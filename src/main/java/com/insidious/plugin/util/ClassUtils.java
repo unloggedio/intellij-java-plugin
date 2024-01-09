@@ -62,7 +62,7 @@ public class ClassUtils {
                 return "\"string\"";
             }
             if (parameterTypeCanonicalText.startsWith("java.lang.")) {
-                return "0";
+                return "\"0\"";
             }
 
             if (parameterTypeCanonicalText.equals("java.util.Random")) {
@@ -210,7 +210,7 @@ public class ClassUtils {
                 if ("boolean".equals(primitiveType.getName())) {
                     return "true";
                 }
-                return "0";
+                return "\"0\"";
             }
             return dummyValue.toString();
 
