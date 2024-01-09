@@ -114,7 +114,8 @@ public class AtomicRecordService {
             String methodKey = methodUnderTest.getMethodHashKey();
             if (atomicRecord == null) {
                 //create record
-                logger.info("[ATRS] creating a new record");
+                logger.info("[ATRS] No Atomic record found for this class, " +
+                        "creating a new atomic record");
                 addNewRecord(methodKey, methodUnderTest.getClassName(), candidate);
             } else {
                 //read as array of AtomicRecords
@@ -151,7 +152,8 @@ public class AtomicRecordService {
                     List<StoredCandidate> candidates = new ArrayList<>();
                     candidates.add(candidate);
                     atomicRecord.getStoredCandidateMap().put(methodKey, candidates);
-
+                    writeToFile(new File(getFilenameForClass(methodUnderTest.getClassName())),
+                            atomicRecord, FileUpdateType.UPDATE_CANDIDATE, useNotifications);
                 } else if (!foundCandidate) {
                     //add to stored candidates
                     logger.info("[ATRS] Adding Candidate");
@@ -368,6 +370,7 @@ public class AtomicRecordService {
             }
         } catch (Exception e) {
             logger.info("[ATRS] Failed to write to file : " + e);
+            logger.error(e.getMessage(), e);
             InsidiousNotification.notifyMessage(getMessageForOperationType(type, file.getPath(), false),
                     NotificationType.ERROR);
         }

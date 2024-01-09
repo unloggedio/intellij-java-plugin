@@ -13,7 +13,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 
 public class UnloggedSDKOnboarding {
-    private final String UNLOGGED_SDK_VERSION = "0.1.38";
+    private final String UNLOGGED_SDK_VERSION = "0.1.40";
     private JPanel mainPanel;
     private JTextArea mavenDependencyArea;
     private JButton copyCodeButtonMaven;
