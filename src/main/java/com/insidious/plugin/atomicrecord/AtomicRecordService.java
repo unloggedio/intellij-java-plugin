@@ -612,6 +612,11 @@ public class AtomicRecordService {
     }
 
     public void saveMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("classname", methodUnderTest.getClassName());
+        jsonObject.put("methodname", methodUnderTest.getName());
+        jsonObject.put("signature", methodUnderTest.getSignature());
+
         AtomicRecord record;
         String className = methodUnderTest.getClassName();
         if (!classAtomicRecordMap.containsKey(className)) {
@@ -642,6 +647,11 @@ public class AtomicRecordService {
         }
 
         existingMocks.add(declaredMock);
+        String eventname = "SAVED_NEW_MOCK";
+        if (updated) {
+            eventname = "UPDATED_EXISTING_MOCK";
+        }
+        UsageInsightTracker.getInstance().RecordEvent(eventname, jsonObject);
         writeToFile(
                 new File(getFilenameForClass(className, guessModuleForClassName(declaredMock.getSourceClassName()))),
                 record,
@@ -649,6 +659,11 @@ public class AtomicRecordService {
     }
 
     public void deleteMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("classname", methodUnderTest.getClassName());
+        jsonObject.put("methodname", methodUnderTest.getName());
+        jsonObject.put("signature", methodUnderTest.getSignature());
+
         AtomicRecord record;
         String className = methodUnderTest.getClassName();
         if (!classAtomicRecordMap.containsKey(className)) {
@@ -676,8 +691,10 @@ public class AtomicRecordService {
             }
         }
         if (!found) {
+            UsageInsightTracker.getInstance().RecordEvent("DELETE_MOCK_FAILED", jsonObject);
             return;
         }
+        UsageInsightTracker.getInstance().RecordEvent("DELETED_MOCK", jsonObject);
         writeToFile(new File(getFilenameForClass(className)), record, FileUpdateType.DELETE_MOCK, true);
     }
 
