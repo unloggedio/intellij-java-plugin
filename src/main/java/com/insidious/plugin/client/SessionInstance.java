@@ -3252,7 +3252,7 @@ public class SessionInstance implements Runnable {
 //                    }
 
                     if (threadState.candidateSize() < threadState.getCallStackSize()
-                     && threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
+                            && threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
 
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
@@ -4226,19 +4226,34 @@ public class SessionInstance implements Runnable {
 
     public void getTopLevelTestCandidates(Consumer<TestCandidateMetadata> testCandidateReceiver, long afterEventId) throws SQLException {
 
-        int page = 0;
-        int limit = 100;
-        while (true) {
-            List<TestCandidateMetadata> testCandidateMetadataList = daoService
-                    .getTopLevelTestCandidatePaginated(afterEventId, page, limit);
-            for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
-                testCandidateReceiver.accept(testCandidateMetadata);
+
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try {
+
+                int page = 0;
+                int limit = 5;
+                int count = 0;
+                while (true) {
+                    List<TestCandidateMetadata> testCandidateMetadataList = daoService
+                            .getTopLevelTestCandidatePaginated(afterEventId, page, limit);
+                    for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
+                        count++;
+                        testCandidateReceiver.accept(testCandidateMetadata);
+                    }
+                    page++;
+                    if (testCandidateMetadataList.size() < limit || count > 100) {
+                        break;
+                    }
+                }
+
+            } catch (SQLException e) {
+                // failed to load candidates hmm
+                e.printStackTrace();
+                throw new RuntimeException(e);
             }
-            page++;
-            if (testCandidateMetadataList.size() < limit) {
-                break;
-            }
-        }
+        });
+
+
     }
 
     public Project getProject() {
@@ -4292,6 +4307,7 @@ public class SessionInstance implements Runnable {
     public List<MethodCallExpression> getMethodCallsBetween(long start, long end) {
         return daoService.getCallsBetween(start, end);
     }
+
     public int getProcessedFileCount() {
         return daoService.getProcessedFileCount();
     }

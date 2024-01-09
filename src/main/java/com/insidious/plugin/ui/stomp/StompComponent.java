@@ -13,21 +13,28 @@ import com.insidious.plugin.client.ScanProgress;
 import com.insidious.plugin.client.SessionScanEventListener;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.MethodCallExpression;
-import com.insidious.plugin.pojo.ReplayAllExecutionContext;
+import com.insidious.plugin.mocking.*;
+import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.pojo.frameworks.JsonFramework;
+import com.insidious.plugin.pojo.frameworks.MockFramework;
+import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.record.AtomicRecordService;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
+import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ActiveIcon;
@@ -60,6 +67,7 @@ import java.util.function.Consumer;
 
 public class StompComponent implements Consumer<TestCandidateMetadata>, TestCandidateLifeListener, OnCloseListener, OnExpandListener {
     public static final int component_height = 93;
+    private static final Logger logger = LoggerUtil.getInstance(StompComponent.class);
     private final InsidiousService insidiousService;
     private final JPanel itemPanel;
     private final StompStatusComponent stompStatusComponent;
@@ -83,6 +91,8 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     private JLabel selectedCountLabel;
     private JLabel selectAllLabel;
     private JLabel clearSelectionLabel;
+    private JPanel welcomePanel;
+    private JLabel manenDependencyIdentifierLabel;
     private long lastEventId = 0;
     private ConnectedAndWaiting connectedAndWaiting;
     private DisconnectedAnd disconnectedAnd;
@@ -90,6 +100,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     private JPanel directInvokeRow = null;
     private SaveForm saveFormReference;
     private SimpleDateFormat simpleDateFormat = new SimpleDateFormat();
+    private boolean welcomePanelRemoved = false;
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -106,9 +117,22 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 
         itemPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 0, 0));
 
+
         historyStreamScrollPanel.setViewportView(itemPanel);
         historyStreamScrollPanel.setBorder(BorderFactory.createEmptyBorder());
+        historyStreamScrollPanel.setVisible(false);
+
         scrollContainer.setBorder(BorderFactory.createEmptyBorder());
+
+
+        manenDependencyIdentifierLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        manenDependencyIdentifierLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+            }
+        });
+
 
         clearSelectionLabel.setVisible(false);
         selectAllLabel.setVisible(false);
@@ -141,12 +165,29 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         filterButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
+        generateJUnitButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
+                    onGenerateJunitTestCaseRequest(selectedCandidate);
+                }
+
+            }
+        });
+
         saveAsMockButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
+                for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
+                    onSaveAsMockRequest(selectedCandidate);
+                }
+                InsidiousNotification.notifyMessage(selectedCandidates.size() + " new mock definitions saved are " +
+                        "available now", NotificationType.INFORMATION);
+
             }
         });
+
 
         reloadButton.addMouseListener(new MouseAdapter() {
             @Override
@@ -194,6 +235,9 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
                     atomicRecordService.saveCandidate(methodUnderTest, candidate);
 
                 }
+
+                InsidiousNotification.notifyMessage("Saved " + selectedCandidates.size() + " tests",
+                        NotificationType.INFORMATION);
 
 
                 if (storedCandidate.getCandidateId() == null) {
@@ -395,6 +439,8 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
                 for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
                     executeSingleTestCandidate(selectedCandidate);
                 }
+                InsidiousNotification.notifyMessage("Re-executed " + selectedCandidates.size() + " records",
+                        NotificationType.INFORMATION);
             }
         });
 
@@ -455,6 +501,12 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 
     @Override
     synchronized public void accept(TestCandidateMetadata testCandidateMetadata) {
+        if (!welcomePanelRemoved) {
+            welcomePanel.setVisible(false);
+            historyStreamScrollPanel.setVisible(true);
+            welcomePanelRemoved = true;
+        }
+
         if (testCandidateMetadata.getExitProbeIndex() > lastEventId) {
             lastEventId = testCandidateMetadata.getExitProbeIndex();
         }
@@ -828,7 +880,57 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     }
 
     @Override
-    public void onSaveRequest(TestCandidateMetadata storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
+    public void onSaveAsTestRequest(TestCandidateMetadata storedCandidate) {
+
+    }
+
+    @Override
+    public void onSaveAsMockRequest(TestCandidateMetadata storedCandidate) {
+
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            PsiMethod targetMethodPsi = getPsiMethod(storedCandidate);
+            MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethodPsi));
+            DeclaredMock declaredMock = new DeclaredMock();
+            declaredMock.setMethodName(methodUnderTest.getName());
+            declaredMock.setName("mock recorded on " + new Date().toString());
+            declaredMock.setFieldName("*");
+            declaredMock.setId(UUID.randomUUID().toString());
+            declaredMock.setFieldTypeName(methodUnderTest.getClassName());
+            declaredMock.setSourceClassName("*");
+
+            List<ParameterMatcher> whenParameter = new ArrayList<>();
+            for (Parameter argument : storedCandidate.getMainMethod().getArguments()) {
+                ParameterMatcher parameterMatcher = new ParameterMatcher();
+                parameterMatcher.setType(ParameterMatcherType.EQUAL);
+                parameterMatcher.setName(argument.getName());
+                parameterMatcher.setValue(argument.getStringValue());
+                whenParameter.add(parameterMatcher);
+            }
+
+
+            declaredMock.setWhenParameter(whenParameter);
+            ThenParameter thenParameter = new ThenParameter();
+
+            Parameter returnValue = storedCandidate.getMainMethod().getReturnValue();
+            if (returnValue.isException()) {
+                thenParameter.setMethodExitType(MethodExitType.EXCEPTION);
+            } else if (returnValue.getValue() == 0) {
+                thenParameter.setMethodExitType(MethodExitType.NULL);
+            } else {
+                thenParameter.setMethodExitType(MethodExitType.NORMAL);
+            }
+            ReturnValue returnParameter = new ReturnValue();
+            returnParameter.setClassName(returnValue.getType());
+            returnParameter.setReturnValueType(ReturnValueType.REAL);
+            returnParameter.setValue(returnValue.getStringValue());
+            thenParameter.setReturnParameter(returnParameter);
+
+
+            List<ThenParameter> thenParameter1 = new ArrayList<>();
+            thenParameter1.add(thenParameter);
+            declaredMock.setThenParameter(thenParameter1);
+            insidiousService.saveMockDefinition(declaredMock, methodUnderTest);
+        });
 
     }
 
@@ -854,6 +956,43 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
 
     @Override
     public void onGenerateJunitTestCaseRequest(TestCandidateMetadata storedCandidate) {
+
+        TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
+                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Gson, ResourceEmbedMode.IN_FILE
+        );
+        TestCaseService testCaseService = insidiousService.getTestCaseService();
+
+        for (TestCandidateMetadata testCandidateMetadata : selectedCandidates) {
+
+            try {
+
+                Parameter testSubject = testCandidateMetadata.getTestSubject();
+                if (testSubject.isException()) {
+                    continue;
+                }
+                MethodCallExpression callExpression = testCandidateMetadata.getMainMethod();
+                logger.warn(
+                        "Generating test case: " + testSubject.getType() + "." + callExpression.getMethodName() + "()");
+                generationConfiguration.getTestCandidateMetadataList().clear();
+                generationConfiguration.getTestCandidateMetadataList().add(testCandidateMetadata);
+
+                generationConfiguration.getCallExpressionList().clear();
+                generationConfiguration.getCallExpressionList().addAll(testCandidateMetadata.getCallsList());
+
+                TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+                List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
+                testCaseUnit1.add(testCaseUnit);
+                TestSuite testSuite = new TestSuite(testCaseUnit1);
+                insidiousService.getJUnitTestCaseWriter().saveTestSuite(testSuite);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                InsidiousNotification.notifyMessage(
+                        "Failed to generate test case for [" + testCandidateMetadata.getTestSubject()
+                                .getType() + "] " + e.getMessage(), NotificationType.ERROR);
+            }
+        }
+
 
     }
 
@@ -994,6 +1133,12 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     }
 
     public void setConnectedAndWaiting() {
+        if (!welcomePanelRemoved) {
+            welcomePanel.setVisible(false);
+            historyStreamScrollPanel.setVisible(true);
+            welcomePanelRemoved = true;
+        }
+
         JLabel process_started = new JLabel("Process started");
         process_started.setIcon(UIUtils.LINK);
         JPanel startedPanel = new JPanel();

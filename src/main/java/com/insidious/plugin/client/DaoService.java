@@ -1594,6 +1594,7 @@ public class DaoService {
 
         return dbCandidateList
                 .stream()
+                .parallel()
                 .map(e -> {
                     try {
                         return convertTestCandidateMetadata(e, false);
