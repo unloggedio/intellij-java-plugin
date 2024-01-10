@@ -137,6 +137,9 @@ public class ExecutionUnit implements Runnable {
             if (methodAdapter.getName().equals("main")) {
                 continue;
             }
+            if (methodAdapter.isConstructor()) {
+                continue;
+            }
 
             checkProgressIndicator("Executing methods in class : " + sourceClass.getName() + " " +
                     "| Executions : " + responses, methodAdapter.getName() + "()");
