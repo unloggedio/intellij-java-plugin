@@ -15,6 +15,7 @@ import com.insidious.plugin.auth.SimpleAuthority;
 import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
 import com.insidious.plugin.autoexecutor.AutoExecutorRunOptions;
 import com.insidious.plugin.autoexecutor.AutomaticExecutorService;
+import com.insidious.plugin.autoexecutor.MockUtils;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
@@ -743,7 +744,9 @@ final public class InsidiousService implements
     ) {
 
         methodArgumentValueCache.addArgumentSet(agentCommandRequest);
-        agentCommandRequest.setRequestAuthentication(getRequestAuthentication());
+        RequestAuthentication requestAuthentication = ApplicationManager.getApplication()
+                .runReadAction((Computable<RequestAuthentication>) this::getRequestAuthentication);
+        agentCommandRequest.setRequestAuthentication(requestAuthentication);
 
         MethodUnderTest methodUnderTest = new MethodUnderTest(
                 agentCommandRequest.getMethodName(), agentCommandRequest.getMethodSignature(),
