@@ -31,6 +31,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ExecutionUnit implements Runnable {
 
@@ -41,6 +43,8 @@ public class ExecutionUnit implements Runnable {
     public long classcount = 0;
     public long responses = 0;
     private static final Logger logger = LoggerUtil.getInstance(ExecutionUnit.class);
+    private static final Pattern testFileNamePattern = Pattern.compile("^Test.*V.java$");
+
 
     public ExecutionUnit(AutomaticExecutorService executorService,
                          ExecutionUnitConfiguration configuration) {
@@ -74,6 +78,9 @@ public class ExecutionUnit implements Runnable {
                 consumerThread.start();
 
                 for (VirtualFile virtualFile : configuration.getPayload()) {
+                    if (isATestFile(virtualFile)) {
+                        continue;
+                    }
                     PsiFile psiFile =
                             ApplicationManager.getApplication().runReadAction(
                                     (Computable<PsiFile>) () -> PsiManager.getInstance(automaticExecutorService.getInsidiousService().getProject())
@@ -234,5 +241,20 @@ public class ExecutionUnit implements Runnable {
                 logger.error(e.getMessage(), e);
             }
         }
+    }
+
+    private boolean isATestFile(VirtualFile virtualFile) {
+        String testPath = "src/test";
+        String path = virtualFile.getPath();
+        if (path.contains(testPath)) {
+            //is in the test directory, mark true
+            return true;
+        }
+        Matcher matcher = testFileNamePattern.matcher(virtualFile.getName());
+        if (matcher.matches()) {
+            //is an unlogged testfile, mark true
+            return true;
+        }
+        return false;
     }
 }
