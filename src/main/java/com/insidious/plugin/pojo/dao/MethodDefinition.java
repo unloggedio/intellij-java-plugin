@@ -3,9 +3,10 @@ package com.insidious.plugin.pojo.dao;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.MethodInfo;
 import com.insidious.plugin.util.ClassTypeUtils;
+import com.insidious.plugin.util.StringUtils;
+import com.intellij.openapi.util.text.StringUtil;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import org.apache.commons.lang.StringUtils;
 
 import org.objectweb.asm.Opcodes;
 

@@ -29,15 +29,11 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.TestCaseUnit;
-import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import com.insidious.plugin.util.ClassTypeUtils;
-import com.insidious.plugin.util.ClassUtils;
-import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.UIUtils;
+import com.insidious.plugin.util.*;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
@@ -63,7 +59,6 @@ import com.intellij.psi.impl.source.tree.java.PsiThisExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.util.FileContentUtil;
-import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
 
@@ -74,8 +69,8 @@ import java.awt.event.ActionListener;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class TestCaseDesignerLite {
