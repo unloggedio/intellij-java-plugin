@@ -2,7 +2,6 @@ package com.insidious.plugin.util;
 
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
-import com.insidious.plugin.adapter.java.JavaClassAdapter;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.ui.methodscope.ClassChosenListener;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
@@ -39,7 +38,8 @@ public class ClassUtils {
             return "null";
         }
         String parameterTypeCanonicalText =
-                ApplicationManager.getApplication().runReadAction((Computable<String>) () -> parameterType.getCanonicalText());
+                ApplicationManager.getApplication()
+                        .runReadAction((Computable<String>) () -> parameterType.getCanonicalText());
         if (creationStack.contains(parameterTypeCanonicalText)) {
             return "null";
         }
@@ -52,7 +52,8 @@ public class ClassUtils {
                 PsiArrayType arrayType = (PsiArrayType) parameterType;
                 dummyValue.append("[");
                 PsiType psiType =
-                        ApplicationManager.getApplication().runReadAction((Computable<PsiType>) () -> arrayType.getComponentType());
+                        ApplicationManager.getApplication()
+                                .runReadAction((Computable<PsiType>) () -> arrayType.getComponentType());
                 dummyValue.append(createDummyValue(arrayType.getComponentType(), creationStack, project));
                 dummyValue.append("]");
                 return dummyValue.toString();
@@ -80,10 +81,12 @@ public class ClassUtils {
             if (parameterType instanceof PsiClassType) {
                 PsiClassType classReferenceType = (PsiClassType) parameterType;
                 PsiClassType psiClassRawType =
-                        ApplicationManager.getApplication().runReadAction((Computable<PsiClassType>) () -> classReferenceType.rawType());
+                        ApplicationManager.getApplication()
+                                .runReadAction((Computable<PsiClassType>) () -> classReferenceType.rawType());
 
                 String rawTypeCanonicalText =
-                        ApplicationManager.getApplication().runReadAction((Computable<String>) () -> psiClassRawType.getCanonicalText());
+                        ApplicationManager.getApplication()
+                                .runReadAction((Computable<String>) () -> psiClassRawType.getCanonicalText());
                 if (
                         rawTypeCanonicalText.equals("java.util.List") ||
                                 rawTypeCanonicalText.equals("java.util.ArrayList") ||
@@ -117,8 +120,10 @@ public class ClassUtils {
                 ) {
                     if (classReferenceType.getParameters().length == 2) {
                         dummyValue.append("{");
-                        dummyValue.append(
-                                createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
+                        // key for a map is always string in json
+                        // objectMapper cannot probably reconstruct this back
+                        //
+                        dummyValue.append("\"keyFromClass" + classReferenceType.getName() + "\"");
                         dummyValue.append(": ");
                         dummyValue.append(
                                 createDummyValue(classReferenceType.getParameters()[1], creationStack, project));
@@ -154,7 +159,8 @@ public class ClassUtils {
                 PsiClass resolvedClass =
                         ApplicationManager.getApplication().runReadAction((Computable<PsiClass>) () ->
                                 JavaPsiFacade.getInstance(project)
-                                        .findClass(classReferenceType.getCanonicalText(), GlobalSearchScope.allScope(project)));
+                                        .findClass(classReferenceType.getCanonicalText(),
+                                                GlobalSearchScope.allScope(project)));
 
                 if (resolvedClass == null) {
                     // class not resolved
@@ -171,19 +177,22 @@ public class ClassUtils {
                 }
 
                 PsiField[] parameterObjectFieldList =
-                        ApplicationManager.getApplication().runReadAction((Computable<PsiField[]>) () -> resolvedClass.getAllFields());
+                        ApplicationManager.getApplication()
+                                .runReadAction((Computable<PsiField[]>) () -> resolvedClass.getAllFields());
 
                 dummyValue.append("{");
                 if (creationStack.size() < 3) {
                     boolean firstField = true;
                     for (PsiField psiField : parameterObjectFieldList) {
                         String name =
-                                ApplicationManager.getApplication().runReadAction((Computable<String>) () -> psiField.getName());
+                                ApplicationManager.getApplication()
+                                        .runReadAction((Computable<String>) () -> psiField.getName());
                         if (name.equals("serialVersionUID")) {
                             continue;
                         }
                         boolean hasModifier =
-                                ApplicationManager.getApplication().runReadAction((Computable<Boolean>) () -> psiField.hasModifier(JvmModifier.STATIC));
+                                ApplicationManager.getApplication().runReadAction(
+                                        (Computable<Boolean>) () -> psiField.hasModifier(JvmModifier.STATIC));
                         if (hasModifier) {
                             continue;
                         }
@@ -193,12 +202,14 @@ public class ClassUtils {
 
                         dummyValue.append("\"");
                         String fieldName =
-                                ApplicationManager.getApplication().runReadAction((Computable<String>) () -> psiField.getName());
+                                ApplicationManager.getApplication()
+                                        .runReadAction((Computable<String>) () -> psiField.getName());
                         dummyValue.append(fieldName);
                         dummyValue.append("\"");
                         dummyValue.append(": ");
                         PsiType type =
-                                ApplicationManager.getApplication().runReadAction((Computable<PsiType>) () -> psiField.getType());
+                                ApplicationManager.getApplication()
+                                        .runReadAction((Computable<PsiType>) () -> psiField.getType());
                         dummyValue.append(createDummyValue(type, creationStack, project));
                         firstField = false;
                     }
@@ -238,16 +249,20 @@ public class ClassUtils {
         if (implementations.length == 1) {
             PsiClass singleImplementation = (PsiClass) implementations[0];
             boolean isInterface =
-                    ApplicationManager.getApplication().runReadAction((Computable<Boolean>) () -> singleImplementation.isInterface());
+                    ApplicationManager.getApplication()
+                            .runReadAction((Computable<Boolean>) () -> singleImplementation.isInterface());
             boolean hasModifiedProperty =
-                    ApplicationManager.getApplication().runReadAction((Computable<Boolean>) () -> singleImplementation.hasModifierProperty(ABSTRACT));
+                    ApplicationManager.getApplication().runReadAction(
+                            (Computable<Boolean>) () -> singleImplementation.hasModifierProperty(ABSTRACT));
             if (isInterface || hasModifiedProperty) {
                 InsidiousNotification.notifyMessage("No implementations found for " + psiClass.getName(),
                         NotificationType.ERROR);
                 return;
             }
             ClassUnderTest classUnderTest =
-                    ApplicationManager.getApplication().runReadAction((Computable<ClassUnderTest>) () -> new ClassUnderTest(JvmClassUtil.getJvmClassName(singleImplementation)));
+                    ApplicationManager.getApplication().runReadAction(
+                            (Computable<ClassUnderTest>) () -> new ClassUnderTest(
+                                    JvmClassUtil.getJvmClassName(singleImplementation)));
             classChosenListener.classSelected(classUnderTest);
             return;
         }
@@ -260,8 +275,10 @@ public class ClassUtils {
 
         List<PsiClass> implementationOptions = Arrays.stream(implementations)
                 .map(e -> (PsiClass) e)
-                .filter(e -> !ApplicationManager.getApplication().runReadAction((Computable<Boolean>) () -> e.isInterface()))
-                .filter(e -> !ApplicationManager.getApplication().runReadAction((Computable<Boolean>) () -> e.hasModifierProperty(ABSTRACT)))
+                .filter(e -> !ApplicationManager.getApplication()
+                        .runReadAction((Computable<Boolean>) () -> e.isInterface()))
+                .filter(e -> !ApplicationManager.getApplication()
+                        .runReadAction((Computable<Boolean>) () -> e.hasModifierProperty(ABSTRACT)))
                 .collect(Collectors.toList());
 
         if (implementationOptions.size() == 0) {
@@ -271,7 +288,9 @@ public class ClassUtils {
         }
         if (implementationOptions.size() == 1) {
             ClassUnderTest classUnderTest =
-                    ApplicationManager.getApplication().runReadAction((Computable<ClassUnderTest>) () -> new ClassUnderTest(JvmClassUtil.getJvmClassName(implementationOptions.get(0))));
+                    ApplicationManager.getApplication().runReadAction(
+                            (Computable<ClassUnderTest>) () -> new ClassUnderTest(
+                                    JvmClassUtil.getJvmClassName(implementationOptions.get(0))));
             classChosenListener.classSelected(classUnderTest);
             return;
         }
