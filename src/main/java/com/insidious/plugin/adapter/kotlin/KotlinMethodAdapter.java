@@ -5,7 +5,6 @@ import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
-import org.jetbrains.kotlin.psi.KtClass;
 import org.jetbrains.kotlin.psi.KtNamedFunction;
 import org.jetbrains.kotlin.psi.KtParameter;
 
@@ -20,8 +19,9 @@ public class KotlinMethodAdapter implements MethodAdapter {
 
     @Override
     public ClassAdapter getContainingClass() {
-        KtClass kotlinClass = (KtClass) method.getParent().getParent();
-        return new KotlinClassAdapter(kotlinClass);
+//        KtClass kotlinClass = (KtClass) method.getParent().getParent();
+//        return new KotlinClassAdapter(kotlinClass);
+        return null;
     }
 
     @Override
@@ -73,7 +73,7 @@ public class KotlinMethodAdapter implements MethodAdapter {
 
     @Override
     public PsiElement getBody() {
-        return method.getBodyExpression();
+        return (PsiElement) method.getBodyExpression();
     }
 
     @Override
