@@ -42,12 +42,12 @@ public class ClassUtils {
             creationStack.add(parameterTypeCanonicalText);
             StringBuilder dummyValue = new StringBuilder();
 
-            if (parameterType instanceof PsiArrayType || parameterType instanceof PsiEllipsisType) {
+            if (parameterType instanceof PsiArrayType) {
                 PsiArrayType arrayType = (PsiArrayType) parameterType;
                 dummyValue.append("[");
-                PsiType psiType =
-                        ApplicationManager.getApplication()
-                                .runReadAction((Computable<PsiType>) () -> arrayType.getComponentType());
+//                PsiType psiType =
+//                        ApplicationManager.getApplication()
+//                                .runReadAction((Computable<PsiType>) arrayType::getComponentType);
                 dummyValue.append(createDummyValue(arrayType.getComponentType(), creationStack, project));
                 dummyValue.append("]");
                 return dummyValue.toString();
@@ -56,8 +56,11 @@ public class ClassUtils {
             if (parameterTypeCanonicalText.equals("java.lang.String")) {
                 return "\"string\"";
             }
+            if (parameterTypeCanonicalText.equals("java.lang.Boolean")) {
+                return "\"true\"";
+            }
             if (parameterTypeCanonicalText.startsWith("java.lang.")) {
-                return "0";
+                return "\"0\"";
             }
 
             if (parameterTypeCanonicalText.equals("java.util.Random")) {
@@ -114,8 +117,10 @@ public class ClassUtils {
                 ) {
                     if (classReferenceType.getParameters().length == 2) {
                         dummyValue.append("{");
-                        dummyValue.append(
-                                createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
+                        // key for a map is always string in json
+                        // objectMapper cannot probably reconstruct this back
+                        //
+                        dummyValue.append("\"keyFromClass" + classReferenceType.getName() + "\"");
                         dummyValue.append(": ");
                         dummyValue.append(
                                 createDummyValue(classReferenceType.getParameters()[1], creationStack, project));
@@ -213,7 +218,7 @@ public class ClassUtils {
                 if ("boolean".equals(primitiveType.getName())) {
                     return "true";
                 }
-                return "0";
+                return "\"0\"";
             }
             return dummyValue.toString();
 

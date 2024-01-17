@@ -178,4 +178,49 @@ public class StringUtils {
         }
         return modified.toString();
     }
+
+    public static int getLevenshteinDistance(String s, String t) {
+        if (s != null && t != null) {
+            int n = s.length();
+            int m = t.length();
+            if (n == 0) {
+                return m;
+            } else if (m == 0) {
+                return n;
+            } else {
+                if (n > m) {
+                    String tmp = s;
+                    s = t;
+                    t = tmp;
+                    n = m;
+                    m = tmp.length();
+                }
+
+                int[] p = new int[n + 1];
+                int[] d = new int[n + 1];
+
+                int i;
+                for(i = 0; i <= n; p[i] = i++) {
+                }
+
+                for(int j = 1; j <= m; ++j) {
+                    char t_j = t.charAt(j - 1);
+                    d[0] = j;
+
+                    for(i = 1; i <= n; ++i) {
+                        int cost = s.charAt(i - 1) == t_j ? 0 : 1;
+                        d[i] = Math.min(Math.min(d[i - 1] + 1, p[i] + 1), p[i - 1] + cost);
+                    }
+
+                    int[] _d = p;
+                    p = d;
+                    d = _d;
+                }
+
+                return p[n];
+            }
+        } else {
+            throw new IllegalArgumentException("Strings must not be null");
+        }
+    }
 }

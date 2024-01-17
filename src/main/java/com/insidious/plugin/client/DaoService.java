@@ -250,6 +250,9 @@ public class DaoService {
                 if (mainMethod != null && methodCallExpressionById.getId() == mainMethod.getId()) {
                     continue;
                 }
+                com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata subTcm = getTestCandidateByMethodCallId(
+                        methodCallExpressionById.getId(), true);
+                converted.getLineNumbers().addAll(subTcm.getLineNumbers());
 //            logger.warn("Add call [" + methodCallExpressionById.getMethodName() + "] - " + methodCallExpressionById);
                 if (methodCallExpressionById.isMethodPublic()
                         || methodCallExpressionById.isMethodProtected()
@@ -1338,6 +1341,22 @@ public class DaoService {
             return null;
         }
     }
+
+    public com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata
+    getTestCandidateByMethodCallId(Long mainMethodId, boolean loadCalls) {
+        try {
+            GenericRawResults<TestCandidateMetadata> dbCandidate = testCandidateDao.queryRaw(
+                    "select tc.* from test_candidate tc where " +
+                            "tc.mainMethod_id = ?", testCandidateDao.getRawRowMapper(), String.valueOf(mainMethodId));
+            TestCandidateMetadata firstResult = dbCandidate.getFirstResult();
+            dbCandidate.close();
+            return convertTestCandidateMetadata(firstResult, loadCalls);
+        } catch (Exception e) {
+            logger.warn("failed to getTestCandidateByMethodCallId [" + mainMethodId + "]", e);
+            return null;
+        }
+    }
+
 
     public ArchiveFile getArchiveFileByName(String name) throws SQLException {
         return archiveFileDao.queryForId(name);

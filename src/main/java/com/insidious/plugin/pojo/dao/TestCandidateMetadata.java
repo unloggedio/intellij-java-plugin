@@ -49,11 +49,12 @@ public class TestCandidateMetadata {
         newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
         newCandidate.setCreatedAt(testCandidateMetadata.getCreatedAt());
         if (testCandidateMetadata.getLines() != null) {
-            newCandidate.setLines(Arrays.stream(testCandidateMetadata
-                            .getLines()
-                            .split(","))
-                    .map(Integer::parseInt)
-                    .collect(Collectors.toList())
+            newCandidate.setLines(
+                    new ArrayList<>(
+                            Arrays
+                                    .stream(testCandidateMetadata.getLines().split(","))
+                                    .map(Integer::parseInt).collect(Collectors.toList())
+                    )
             );
         }
 

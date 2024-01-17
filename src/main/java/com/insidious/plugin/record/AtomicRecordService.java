@@ -121,7 +121,8 @@ public class AtomicRecordService {
             String methodKey = methodUnderTest.getMethodHashKey();
             if (atomicRecord == null) {
                 //create record
-                logger.info("[ATRS] creating a new record");
+                logger.info("[ATRS] No Atomic record found for this class, " +
+                        "creating a new atomic record");
                 addNewRecord(methodKey, methodUnderTest.getClassName(), candidate);
             } else {
                 //read as array of AtomicRecords
@@ -157,7 +158,8 @@ public class AtomicRecordService {
                     List<StoredCandidate> candidates = new ArrayList<>();
                     candidates.add(candidate);
                     atomicRecord.getStoredCandidateMap().put(methodKey, candidates);
-
+                    writeToFile(new File(getFilenameForClass(methodUnderTest.getClassName())),
+                            atomicRecord, FileUpdateType.UPDATE_CANDIDATE, useNotifications);
                 } else if (!foundCandidate) {
                     //add to stored candidates
                     logger.info("[ATRS] Adding Candidate");
@@ -379,6 +381,7 @@ public class AtomicRecordService {
             }
         } catch (Exception e) {
             logger.info("[ATRS] Failed to write to file : " + e);
+            logger.error(e.getMessage(), e);
             InsidiousNotification.notifyMessage(getMessageForOperationType(type, file.getPath(), false),
                     NotificationType.ERROR);
         }
@@ -605,7 +608,8 @@ public class AtomicRecordService {
                 .stream().map(e -> e.getDeclaredMockMap().values())
                 .flatMap(Collection::stream)
                 .flatMap(Collection::stream)
-//                .filter(e -> e.getSourceClassName() != null && e.getSourceClassName().equals(methodUnderTest.getClassName()))
+                .filter(e -> e.getSourceClassName() != null && e.getSourceClassName()
+                        .equals(methodUnderTest.getClassName()))
                 .collect(Collectors.toList());
 
     }
@@ -620,6 +624,11 @@ public class AtomicRecordService {
     }
 
     public void saveMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("classname", methodUnderTest.getClassName());
+        jsonObject.put("methodname", methodUnderTest.getName());
+        jsonObject.put("signature", methodUnderTest.getSignature());
+
         AtomicRecord record;
         String className = methodUnderTest.getClassName();
         if (!classAtomicRecordMap.containsKey(className)) {
@@ -650,6 +659,11 @@ public class AtomicRecordService {
         }
 
         existingMocks.add(declaredMock);
+        String eventname = "SAVED_NEW_MOCK";
+        if (updated) {
+            eventname = "UPDATED_EXISTING_MOCK";
+        }
+        UsageInsightTracker.getInstance().RecordEvent(eventname, jsonObject);
         writeToFile(
                 new File(getFilenameForClass(className, guessModuleForClassName(declaredMock.getSourceClassName()))),
                 record,
@@ -657,6 +671,11 @@ public class AtomicRecordService {
     }
 
     public void deleteMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("classname", methodUnderTest.getClassName());
+        jsonObject.put("methodname", methodUnderTest.getName());
+        jsonObject.put("signature", methodUnderTest.getSignature());
+
         AtomicRecord record;
         String className = methodUnderTest.getClassName();
         if (!classAtomicRecordMap.containsKey(className)) {
@@ -684,8 +703,10 @@ public class AtomicRecordService {
             }
         }
         if (!found) {
+            UsageInsightTracker.getInstance().RecordEvent("DELETE_MOCK_FAILED", jsonObject);
             return;
         }
+        UsageInsightTracker.getInstance().RecordEvent("DELETED_MOCK", jsonObject);
         writeToFile(new File(getFilenameForClass(className)), record, FileUpdateType.DELETE_MOCK, true);
     }
 

@@ -171,6 +171,7 @@
                 implementationClass="com.insidious.plugin.ui.highlighter.KotlinLineHighlighter"/>
         <codeInsight.inlayProvider implementationClass="com.insidious.plugin.inlay.InsidiousInlayHintsProvider"
                                    language="JAVA"/>
+        <errorHandler implementation="com.insidious.plugin.exceptionhandler.InsidiousExceptionReportSubmitter"/>
 
         <!--        <coverageEngine implementation="com.insidious.plugin.coverage.InsidiousCoverageEngine"-->
         <!--                        id="insidiousCoverageEngine"/>-->
