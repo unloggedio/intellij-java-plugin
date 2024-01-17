@@ -198,6 +198,9 @@ public class ReportingService {
             cell.setCellValue(wrapLargeStrings(autoExecutorReportRecord.getDeclaredMockList().toString()));
         }
 
+        cell = row.createCell(14);
+        cell.setCellValue(autoExecutorReportRecord.getMethodReturnTypeCannonicalText());
+
         try {
             LocalDate now = LocalDate.now();
             String filename = insidiousService.getProject().getName() + "_"
@@ -282,6 +285,9 @@ public class ReportingService {
 
                 cell = row.createCell(13);
                 cell.setCellValue("Mocks used");
+
+                cell = row.createCell(14);
+                cell.setCellValue("Canonical return type");
 
                 FileOutputStream out = new FileOutputStream(
                         new File(insidiousService.getProject().getBasePath() + "/" + filename));

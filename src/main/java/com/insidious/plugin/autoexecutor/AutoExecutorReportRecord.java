@@ -11,7 +11,7 @@ public class AutoExecutorReportRecord {
     private int totalFileCount;
     private List<DeclaredMock> declaredMockList;
     private String source;
-
+    private String methodReturnTypeCannonicalText;
     public AutoExecutorReportRecord(DifferenceResult differenceResult,
                                     int scannedFileCount, int totalFileCount,
                                     List<DeclaredMock> declaredMocks) {
@@ -43,5 +43,13 @@ public class AutoExecutorReportRecord {
 
     public void setSource(String source) {
         this.source = source;
+    }
+
+    public String getMethodReturnTypeCannonicalText() {
+        return methodReturnTypeCannonicalText;
+    }
+
+    public void setMethodReturnTypeCannonicalText(String methodReturnTypeCannonicalText) {
+        this.methodReturnTypeCannonicalText = methodReturnTypeCannonicalText;
     }
 }

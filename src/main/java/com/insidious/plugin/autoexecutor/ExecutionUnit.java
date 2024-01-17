@@ -229,6 +229,8 @@ public class ExecutionUnit implements Runnable {
                                         0,
                                         agentCommandRequest1.getDeclaredMocks());
                                 record.setSource(configuration.getExecutorId());
+                                record.setMethodReturnTypeCannonicalText(
+                                        methodAdapter.getReturnType().getCanonicalText());
                                 reportingQueue.add(record);
                             });
                     AutomaticExecutorService.incrementResponses();
