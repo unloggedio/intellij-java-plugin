@@ -38,11 +38,12 @@ public class TestCandidateMetadata {
         newCandidate.setExitProbeIndex(testCandidateMetadata.getExitProbeIndex());
         newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
         if (testCandidateMetadata.getLines() != null) {
-            newCandidate.setLines(Arrays.stream(testCandidateMetadata
-                            .getLines()
-                            .split(","))
-                    .map(Integer::parseInt)
-                    .collect(Collectors.toList())
+            newCandidate.setLines(
+                    new ArrayList<>(
+                            Arrays
+                                    .stream(testCandidateMetadata.getLines().split(","))
+                                    .map(Integer::parseInt).collect(Collectors.toList())
+                    )
             );
         }
 

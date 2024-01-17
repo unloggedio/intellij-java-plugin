@@ -1,13 +1,7 @@
 package com.insidious.plugin.ui.highlighter;
 
-import com.insidious.plugin.adapter.kotlin.KotlinMethodAdapter;
-import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.factory.UsageInsightTracker;
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler;
 import com.intellij.psi.impl.source.tree.LeafPsiElement;
-import com.intellij.psi.util.PsiTreeUtil;
-import org.jetbrains.kotlin.psi.KtClass;
-import org.jetbrains.kotlin.psi.KtNamedFunction;
 
 import java.awt.event.MouseEvent;
 
@@ -16,13 +10,13 @@ public class KotlinUnloggedGutterNavigationHandler implements GutterIconNavigati
     @Override
     public void navigate(MouseEvent e, LeafPsiElement identifier) {
         return;
-        KtNamedFunction method = (KtNamedFunction) identifier.getParent();
-        KtClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(method.getContainingFile(),
-                method.getTextOffset(), KtClass.class, false);
-        InsidiousService insidiousService = psiClass.getProject().getService(InsidiousService.class);
-        insidiousService.openToolWindow();
-        insidiousService.methodFocussedHandler(new KotlinMethodAdapter(method));
-        UsageInsightTracker.getInstance().RecordEvent("TestIconClick", null);
+//        KtNamedFunction method = (KtNamedFunction) identifier.getParent();
+//        KtClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(method.getContainingFile(),
+//                method.getTextOffset(), KtClass.class, false);
+//        InsidiousService insidiousService = psiClass.getProject().getService(InsidiousService.class);
+//        insidiousService.openToolWindow();
+//        insidiousService.methodFocussedHandler(new KotlinMethodAdapter(method));
+//        UsageInsightTracker.getInstance().RecordEvent("TestIconClick", null);
 
 
 //         List<LineMarkerInfo<?>> lineMarkerInfoList = new LinkedList<>();

@@ -48,12 +48,12 @@ public class ClassUtils {
             creationStack.add(parameterTypeCanonicalText);
             StringBuilder dummyValue = new StringBuilder();
 
-            if (parameterType instanceof PsiArrayType || parameterType instanceof PsiEllipsisType) {
+            if (parameterType instanceof PsiArrayType) {
                 PsiArrayType arrayType = (PsiArrayType) parameterType;
                 dummyValue.append("[");
-                PsiType psiType =
-                        ApplicationManager.getApplication()
-                                .runReadAction((Computable<PsiType>) () -> arrayType.getComponentType());
+//                PsiType psiType =
+//                        ApplicationManager.getApplication()
+//                                .runReadAction((Computable<PsiType>) arrayType::getComponentType);
                 dummyValue.append(createDummyValue(arrayType.getComponentType(), creationStack, project));
                 dummyValue.append("]");
                 return dummyValue.toString();
@@ -61,6 +61,9 @@ public class ClassUtils {
 
             if (parameterTypeCanonicalText.equals("java.lang.String")) {
                 return "\"string\"";
+            }
+            if (parameterTypeCanonicalText.equals("java.lang.Boolean")) {
+                return "\"true\"";
             }
             if (parameterTypeCanonicalText.startsWith("java.lang.")) {
                 return "\"0\"";

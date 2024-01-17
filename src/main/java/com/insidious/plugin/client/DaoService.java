@@ -14,9 +14,9 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.dao.*;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.StringUtils;
 import com.intellij.notification.NotificationType;
@@ -26,7 +26,6 @@ import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.dao.GenericRawResults;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.table.TableUtils;
-
 
 import java.sql.SQLException;
 import java.time.Instant;
@@ -242,6 +241,9 @@ public class DaoService {
                 if (mainMethod != null && methodCallExpressionById.getId() == mainMethod.getId()) {
                     continue;
                 }
+                com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata subTcm = getTestCandidateByMethodCallId(
+                        methodCallExpressionById.getId(), true);
+                converted.getLineNumbers().addAll(subTcm.getLineNumbers());
 //            logger.warn("Add call [" + methodCallExpressionById.getMethodName() + "] - " + methodCallExpressionById);
                 if (methodCallExpressionById.isMethodPublic()
                         || methodCallExpressionById.isMethodProtected()
@@ -1289,6 +1291,22 @@ public class DaoService {
             return null;
         }
     }
+
+    public com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata
+    getTestCandidateByMethodCallId(Long mainMethodId, boolean loadCalls) {
+        try {
+            GenericRawResults<TestCandidateMetadata> dbCandidate = testCandidateDao.queryRaw(
+                    "select tc.* from test_candidate tc where " +
+                            "tc.mainMethod_id = ?", testCandidateDao.getRawRowMapper(), String.valueOf(mainMethodId));
+            TestCandidateMetadata firstResult = dbCandidate.getFirstResult();
+            dbCandidate.close();
+            return convertTestCandidateMetadata(firstResult, loadCalls);
+        } catch (Exception e) {
+            logger.warn("failed to getTestCandidateByMethodCallId [" + mainMethodId + "]", e);
+            return null;
+        }
+    }
+
 
     public ArchiveFile getArchiveFileByName(String name) throws SQLException {
         return archiveFileDao.queryForId(name);

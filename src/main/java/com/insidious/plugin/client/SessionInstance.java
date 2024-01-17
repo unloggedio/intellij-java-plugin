@@ -3667,7 +3667,7 @@ public class SessionInstance implements Runnable {
                     || candidateMethodName.equals("doFilter")
                     || candidateMethodName.equals("resolveToken")
                     || candidateMethodName.equals("toString")
-                    || candidateMethodName.contains("$")
+                    || (!candidateMethodName.startsWith("lambda$") && candidateMethodName.contains("$"))
                     || candidateMethodName.equals("getIndex")
                     || candidateMethodName.equals("values")
                     || candidateMethodName.equals("hashCode")
