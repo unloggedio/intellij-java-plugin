@@ -9,6 +9,7 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.adapter.java.JavaClassAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
+import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
@@ -32,7 +33,9 @@ import com.intellij.psi.PsiManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,7 +49,7 @@ public class ExecutionUnit implements Runnable {
     public long responses = 0;
     private static final Logger logger = LoggerUtil.getInstance(ExecutionUnit.class);
     private static final Pattern testFileNamePattern = Pattern.compile("^Test.*V.java$");
-
+    private int timeoutWaitDuration = 30;
 
     public ExecutionUnit(AutomaticExecutorService executorService,
                          ExecutionUnitConfiguration configuration) {
@@ -54,7 +57,6 @@ public class ExecutionUnit implements Runnable {
         this.configuration = configuration;
         reportingQueue = new AutoExecutionRecordQueue();
     }
-
 
     @Override
     public void run() {
@@ -192,55 +194,39 @@ public class ExecutionUnit implements Runnable {
                             MethodUtils.createExecuteRequestWithParameters(methodAdapter, classUnderTest, methodArgumentValues,
                                     false, declaredMocks);
                     agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
+                    ExecutorService executorService = Executors.newSingleThreadExecutor();
+                    Future future = executorService.submit(new MethodExecutionThread(
+                            this, agentCommandRequest, methodAdapter, classUnderTest));
+                    try {
+                        future.get(timeoutWaitDuration, TimeUnit.SECONDS);
+                    } catch (TimeoutException timeoutException) {
+                        future.cancel(true);
+                        InsidiousNotification.notifyMessage("Request timed out when trying to execute method : " +
+                                "" + methodAdapter.getName() + " from class : " + sourceClass.getName(), NotificationType.ERROR);
+                        AgentCommandResponse<String> response = new AgentCommandResponse<>();
+                        response.setResponseType(ResponseType.EXCEPTION);
+                        response.setTimestamp(new Date().getTime());
+                        DiffResultType diffResultType = DiffResultType.ACTUAL_EXCEPTION;
+                        response.setMethodReturnValue("Method Execution Timed out");
+                        DifferenceResult diffResult = new DifferenceResult(null,
+                                diffResultType, null,
+                                DiffUtils.getFlatMapFor(response.getMethodReturnValue()));
+                        diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
+                        diffResult.setResponse(response);
+                        diffResult.setCommand(agentCommandRequest);
 
-                    automaticExecutorService.getInsidiousService().executeMethodInRunningProcessSync(agentCommandRequest,
-                            (agentCommandRequest1, agentCommandResponse) -> {
-                                if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
-                                    if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
-                                        InsidiousNotification.notifyMessage(
-                                                "Exception thrown when trying to invoke " + agentCommandRequest.getMethodName(),
-                                                NotificationType.ERROR
-                                        );
-                                        return;
-                                    }
-                                }
-
-                                ResponseType responseType1 = agentCommandResponse.getResponseType();
-                                DiffResultType diffResultType = responseType1.equals(
-                                        ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
-                                DifferenceResult diffResult = new DifferenceResult(null,
-                                        diffResultType, null,
-                                        DiffUtils.getFlatMapFor(agentCommandResponse.getMethodReturnValue()));
-                                diffResult.setExecutionMode(DifferenceResult.EXECUTION_MODE.DIRECT_INVOKE);
-                                diffResult.setResponse(agentCommandResponse);
-                                diffResult.setCommand(agentCommandRequest);
-
-                                if (reportingQueue.isFull()) {
-                                    try {
-                                        reportingQueue.waitIsNotFull();
-                                    } catch (InterruptedException e) {
-                                        logger.info("Queue wait exception interrupted for executor : " +
-                                                configuration.getExecutorId());
-                                        logger.error(e.getMessage(), e);
-                                    }
-                                }
-                                responses++;
-                                if (sourceClass.isInterface()) {
-                                    // report using actual class rather than the executed impl
-                                    // without this impl classes will have 2 sets of executions in the report
-                                    // while the original interface here will have no entries
-                                    diffResult.getCommand().setClassName(sourceClass.getQualifiedName());
-                                }
-                                AutoExecutorReportRecord record = new AutoExecutorReportRecord(diffResult,
-                                        0,
-                                        0,
-                                        agentCommandRequest1.getDeclaredMocks());
-                                record.setSource(configuration.getExecutorId());
-                                record.setMethodReturnTypeCannonicalText(
-                                        methodAdapter.getReturnType().getCanonicalText());
-                                record.setImplementationSource(classUnderTest.getQualifiedClassName());
-                                reportingQueue.add(record);
-                            });
+                        AutoExecutorReportRecord record = new AutoExecutorReportRecord(diffResult, 0, 0, agentCommandRequest.getDeclaredMocks());
+                        record.setSource(configuration.getExecutorId());
+                        String cannonText = ApplicationManager.getApplication()
+                                .runReadAction((Computable<String>) () -> methodAdapter.getReturnType().getCanonicalText());
+                        record.setMethodReturnTypeCannonicalText(cannonText);
+                        record.setMethodReturnTypeCannonicalText(
+                                methodAdapter.getReturnType().getCanonicalText());
+                        record.setImplementationSource(classUnderTest.getQualifiedClassName());
+                        reportingQueue.add(record);
+                    } catch (Exception e) {
+                        System.out.println("Exception trying to execute method ");
+                    }
                     AutomaticExecutorService.incrementResponses();
                 }
             } catch (ClassCastException classCastException) {
@@ -269,5 +255,17 @@ public class ExecutionUnit implements Runnable {
             return true;
         }
         return false;
+    }
+
+    public AutomaticExecutorService getAutomaticExecutorService() {
+        return automaticExecutorService;
+    }
+
+    public AutoExecutionRecordQueue getReportingQueue() {
+        return reportingQueue;
+    }
+
+    public ExecutionUnitConfiguration getConfiguration() {
+        return configuration;
     }
 }
