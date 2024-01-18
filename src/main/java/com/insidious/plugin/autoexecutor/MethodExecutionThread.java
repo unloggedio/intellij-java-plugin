@@ -43,6 +43,8 @@ public class MethodExecutionThread implements Runnable {
                         }
                     }
 
+                    parentUnit.responses++;
+
                     ResponseType responseType1 = agentCommandResponse.getResponseType();
                     DiffResultType diffResultType = responseType1.equals(
                             ResponseType.NORMAL) ? DiffResultType.NO_ORIGINAL : DiffResultType.ACTUAL_EXCEPTION;
