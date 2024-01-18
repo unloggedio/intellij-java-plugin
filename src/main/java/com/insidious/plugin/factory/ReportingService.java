@@ -201,6 +201,9 @@ public class ReportingService {
         cell = row.createCell(14);
         cell.setCellValue(autoExecutorReportRecord.getMethodReturnTypeCannonicalText());
 
+        cell = row.createCell(15);
+        cell.setCellValue(autoExecutorReportRecord.getImplementationSource());
+
         try {
             LocalDate now = LocalDate.now();
             String filename = insidiousService.getProject().getName() + "_"
@@ -288,6 +291,9 @@ public class ReportingService {
 
                 cell = row.createCell(14);
                 cell.setCellValue("Canonical return type");
+
+                cell = row.createCell(15);
+                cell.setCellValue("Selected Implementation Class");
 
                 FileOutputStream out = new FileOutputStream(
                         new File(insidiousService.getProject().getBasePath() + "/" + filename));

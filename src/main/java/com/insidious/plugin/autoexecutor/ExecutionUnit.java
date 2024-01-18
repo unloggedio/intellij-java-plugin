@@ -238,6 +238,7 @@ public class ExecutionUnit implements Runnable {
                                 record.setSource(configuration.getExecutorId());
                                 record.setMethodReturnTypeCannonicalText(
                                         methodAdapter.getReturnType().getCanonicalText());
+                                record.setImplementationSource(classUnderTest.getQualifiedClassName());
                                 reportingQueue.add(record);
                             });
                     AutomaticExecutorService.incrementResponses();
