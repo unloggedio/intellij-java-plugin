@@ -316,6 +316,51 @@ public class ClassUtils {
 
     }
 
+    public static List<PsiClass> getListOfImplementationOptions(ClassAdapter psiClass, boolean showUI) {
+        ImplementationSearcher implementationSearcher = new ImplementationSearcher();
+        PsiElement element =
+                ApplicationManager.getApplication().runReadAction((Computable<PsiElement>) () -> psiClass.getSource());
+
+        PsiElement[] implementations = implementationSearcher.searchImplementations(
+                element, null, true, false
+        );
+        if (implementations == null || implementations.length == 0) {
+            InsidiousNotification.notifyMessage("No implementations found for " + psiClass.getName(),
+                    NotificationType.ERROR);
+            return null;
+        }
+        if (implementations.length == 1) {
+            PsiClass singleImplementation = (PsiClass) implementations[0];
+            boolean isInterface =
+                    ApplicationManager.getApplication()
+                            .runReadAction((Computable<Boolean>) () -> singleImplementation.isInterface());
+            boolean hasModifiedProperty =
+                    ApplicationManager.getApplication().runReadAction(
+                            (Computable<Boolean>) () -> singleImplementation.hasModifierProperty(ABSTRACT));
+            if (isInterface || hasModifiedProperty) {
+                InsidiousNotification.notifyMessage("No implementations found for " + psiClass.getName(),
+                        NotificationType.ERROR);
+                return null;
+            }
+            return Arrays.asList(singleImplementation);
+        }
+
+        List<PsiClass> implementationOptions = Arrays.stream(implementations)
+                .map(e -> (PsiClass) e)
+                .filter(e -> !ApplicationManager.getApplication()
+                        .runReadAction((Computable<Boolean>) () -> e.isInterface()))
+                .filter(e -> !ApplicationManager.getApplication()
+                        .runReadAction((Computable<Boolean>) () -> e.hasModifierProperty(ABSTRACT)))
+                .collect(Collectors.toList());
+
+        if (implementationOptions.size() == 0) {
+            InsidiousNotification.notifyMessage("No implementations found for " + psiClass.getName(),
+                    NotificationType.ERROR);
+            return null;
+        }
+        return implementationOptions;
+    }
+
     public static String getSimpleName(String className) {
         if (className.contains(".")) {
             return className.substring(className.lastIndexOf(".") + 1);

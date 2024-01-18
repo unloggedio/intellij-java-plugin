@@ -11,12 +11,14 @@ import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.DiffUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.MethodUtils;
+import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -156,7 +158,12 @@ public class ExecutionUnit implements Runnable {
                 }
             }
             try {
-                ClassUtils.chooseClassImplementation(methodAdapter.getContainingClass(), false, psiClass -> {
+                List<PsiClass> listOfImplementations = ClassUtils.getListOfImplementationOptions(methodAdapter.getContainingClass(), false);
+                for (PsiClass implementationOption : listOfImplementations) {
+                    ClassUnderTest classUnderTest =
+                            ApplicationManager.getApplication().runReadAction(
+                                    (Computable<ClassUnderTest>) () -> new ClassUnderTest(
+                                            JvmClassUtil.getJvmClassName(implementationOption)));
                     List<String> methodArgumentValues = new ArrayList<>();
                     ParameterAdapter[] params = methodAdapter.getParameters();
                     for (int i = 0; i < argumentValues.size(); i++) {
@@ -182,7 +189,7 @@ public class ExecutionUnit implements Runnable {
                     }
 
                     AgentCommandRequest agentCommandRequest =
-                            MethodUtils.createExecuteRequestWithParameters(methodAdapter, psiClass, methodArgumentValues,
+                            MethodUtils.createExecuteRequestWithParameters(methodAdapter, classUnderTest, methodArgumentValues,
                                     false, declaredMocks);
                     agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
 
@@ -234,7 +241,7 @@ public class ExecutionUnit implements Runnable {
                                 reportingQueue.add(record);
                             });
                     AutomaticExecutorService.incrementResponses();
-                });
+                }
             } catch (ClassCastException classCastException) {
                 logger.info("Got a PsiLambdaExpressionImpl cast exception");
                 logger.error(classCastException.getMessage(), classCastException);
