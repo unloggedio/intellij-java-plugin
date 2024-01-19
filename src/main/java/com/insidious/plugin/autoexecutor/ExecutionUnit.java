@@ -161,6 +161,11 @@ public class ExecutionUnit implements Runnable {
             }
             try {
                 List<PsiClass> listOfImplementations = ClassUtils.getListOfImplementationOptions(methodAdapter.getContainingClass(), false);
+                if(listOfImplementations==null)
+                {
+                    logger.info("Found nothing to execute with for method : "+methodAdapter.getName());
+                    continue;
+                }
                 for (PsiClass implementationOption : listOfImplementations) {
                     ClassUnderTest classUnderTest =
                             ApplicationManager.getApplication().runReadAction(
