@@ -150,7 +150,7 @@ public class EventLogWindow {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
-                int selectedColumn = eventsTable.getSelectedColumn();
+//                int selectedColumn = eventsTable.getSelectedColumn();
 //                String selectedColumnName = tableModel.getColumnName(selectedColumn);
 
                 int selectedRowIndex = eventsTable.getSelectedRow();

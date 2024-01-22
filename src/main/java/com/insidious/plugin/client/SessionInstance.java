@@ -4224,22 +4224,20 @@ public class SessionInstance implements Runnable {
         }
     }
 
-    public void getTopLevelTestCandidates(Consumer<TestCandidateMetadata> testCandidateReceiver, long afterEventId) throws SQLException {
+    public void getTopLevelTestCandidates(Consumer<List<TestCandidateMetadata>> testCandidateReceiver, long afterEventId) throws SQLException {
 
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
 
                 int page = 0;
-                int limit = 5;
+                int limit = 50;
                 int count = 0;
                 while (true) {
                     List<TestCandidateMetadata> testCandidateMetadataList = daoService
                             .getTopLevelTestCandidatePaginated(afterEventId, page, limit);
-                    for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
-                        count++;
-                        testCandidateReceiver.accept(testCandidateMetadata);
-                    }
+                    testCandidateReceiver.accept(testCandidateMetadataList);
+                    count += testCandidateMetadataList.size();
                     page++;
                     if (testCandidateMetadataList.size() < limit || count > 100) {
                         break;

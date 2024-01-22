@@ -592,7 +592,9 @@ public class AtomicRecordService {
         if (!declaredMockMap.containsKey(methodHashKey)) {
             return List.of();
         }
-        return declaredMockMap.get(methodHashKey);
+        return declaredMockMap.get(methodHashKey)
+                .stream().map(DeclaredMock::new)
+                .collect(Collectors.toList());
 
 
     }

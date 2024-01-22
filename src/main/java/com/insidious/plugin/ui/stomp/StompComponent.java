@@ -61,11 +61,17 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.List;
+import java.util.Queue;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
-public class StompComponent implements Consumer<TestCandidateMetadata>, TestCandidateLifeListener, OnCloseListener, OnExpandListener {
+public class StompComponent implements
+        Consumer<List<TestCandidateMetadata>>,
+        TestCandidateLifeListener,
+        OnCloseListener,
+        OnExpandListener {
     public static final int component_height = 93;
     private static final Logger logger = LoggerUtil.getInstance(StompComponent.class);
     private final InsidiousService insidiousService;
@@ -76,6 +82,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     private final SessionScanEventListener scanEventListener;
     private final SimpleDateFormat dateFormat;
     private final Map<TestCandidateMetadata, Component> candidateMetadataStompItemMap = new HashMap<>();
+    Queue<TestCandidateMetadata> incomingQueue = new ArrayBlockingQueue<>(100);
     private JPanel mainPanel;
     private JPanel northPanelContainer;
     private JScrollPane historyStreamScrollPanel;
@@ -101,6 +108,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     private SaveForm saveFormReference;
     private SimpleDateFormat simpleDateFormat = new SimpleDateFormat();
     private boolean welcomePanelRemoved = false;
+    private boolean isConsuming;
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -500,72 +508,105 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     }
 
     @Override
-    synchronized public void accept(TestCandidateMetadata testCandidateMetadata) {
+    synchronized public void accept(final List<TestCandidateMetadata> testCandidateMetadataList) {
         if (!welcomePanelRemoved) {
             welcomePanel.setVisible(false);
             historyStreamScrollPanel.setVisible(true);
             welcomePanelRemoved = true;
         }
 
-        if (testCandidateMetadata.getExitProbeIndex() > lastEventId) {
-            lastEventId = testCandidateMetadata.getExitProbeIndex();
+        for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
+            incomingQueue.offer(testCandidateMetadata);
         }
-        if (stompItems.size() > 0) {
 
-            boolean isExisting = false;
-            for (StompItem stompItem : stompItems) {
-                if (stompItem.getTestCandidate().getEntryProbeIndex() == testCandidateMetadata.getEntryProbeIndex()) {
-                    isExisting = true;
-                    break;
-                }
-            }
-            if (isExisting) {
-                // matched an existing pinned item
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            if (isConsuming) {
                 return;
             }
+            isConsuming = true;
+            int addedHeight = 0;
+            try {
+                for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
 
+                    if (testCandidateMetadata.getExitProbeIndex() > lastEventId) {
+                        lastEventId = testCandidateMetadata.getExitProbeIndex();
+                    }
+                    if (stompItems.size() > 0) {
 
-            StompItem last = stompItems.get(stompItems.size() - 1);
-            long gapStartIndex = last.getTestCandidate().getExitProbeIndex();
-            long gapEndIndex = testCandidateMetadata.getEntryProbeIndex();
-            int count = insidiousService.getMethodCallCountBetween(gapStartIndex, gapEndIndex);
-            if (count > 0) {
-                AFewCallsLater aFewCallsLater = new AFewCallsLater(gapStartIndex, gapEndIndex, count,
-                        this);
+                        StompItem last = stompItems.get(stompItems.size() - 1);
+                        long gapStartIndex = last.getTestCandidate().getExitProbeIndex();
+                        long gapEndIndex = testCandidateMetadata.getEntryProbeIndex();
+                        int count = insidiousService.getMethodCallCountBetween(gapStartIndex, gapEndIndex);
+                        if (count > 0) {
+                            AFewCallsLater aFewCallsLater = new AFewCallsLater(gapStartIndex, gapEndIndex, count,
+                                    this);
 
-                JPanel labelPanel = aFewCallsLater.getComponent();
-//                labelPanel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                            JScrollBar verticalScrollBar = historyStreamScrollPanel.getVerticalScrollBar();
+                            int scrollPosition = verticalScrollBar.getValue();
 
-                JPanel rowPanel = new JPanel(new BorderLayout());
-                rowPanel.add(labelPanel, BorderLayout.CENTER);
-                rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
-                if (directInvokeComponent == null) {
-                    makeSpace(0);
-                    itemPanel.add(rowPanel, createGBCForLeftMainComponent(), 0);
-                } else {
-                    makeSpace(1);
-                    itemPanel.add(rowPanel, createGBCForLeftMainComponent(), 1);
+                            JPanel labelPanel = aFewCallsLater.getComponent();
+
+                            JPanel rowPanel = new JPanel(new BorderLayout());
+                            rowPanel.add(labelPanel, BorderLayout.CENTER);
+                            rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
+                            GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent();
+                            if (directInvokeComponent == null) {
+                                makeSpace(0);
+                                itemPanel.add(rowPanel, gbcForLeftMainComponent, 0);
+                            } else {
+                                makeSpace(1);
+                                itemPanel.add(rowPanel, gbcForLeftMainComponent, 1);
+                            }
+
+                        }
+                    }
+
+                    if (directInvokeComponent == null) {
+                        addCandidateToUi(testCandidateMetadata, 0);
+                    } else {
+                        addCandidateToUi(testCandidateMetadata, 1);
+                    }
+
                 }
-            }
-        }
 
-        if (directInvokeComponent == null) {
-            addCandidateToUi(testCandidateMetadata, 0);
-        } else {
-            addCandidateToUi(testCandidateMetadata, 1);
-        }
+                itemPanel.revalidate();
+
+//                SwingUtilities.invokeLater(() -> {
+//                    double newPanelSize = rowPanel.getSize().getHeight();
+//                    int newScrollPosition = (int) (scrollPosition + newPanelSize);
+//                    logger.warn("setting scroll position to " + scrollPosition + "+" + newPanelSize
+//                            + " => " + newScrollPosition);
+//                    verticalScrollBar.setValue(newScrollPosition);
+//                });
+            } finally {
+                isConsuming = false;
+            }
+
+        });
+
 
     }
 
-    private void addCandidateToUi(TestCandidateMetadata testCandidateMetadata, int index) {
+    private synchronized void addCandidateToUi(TestCandidateMetadata testCandidateMetadata, int index) {
         StompItem stompItem = new StompItem(testCandidateMetadata, this, insidiousService);
+
+        JScrollBar verticalScrollBar = historyStreamScrollPanel.getVerticalScrollBar();
+        int scrollPosition = verticalScrollBar.getValue();
 
         JPanel rowPanel = new JPanel();
         rowPanel.setLayout(new BorderLayout());
 
         stompItems.add(stompItem);
 
-        JPanel component = stompItem.getComponent();
+        final JPanel component = stompItem.getComponent();
+
+        component.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                logger.warn("stomp item mouse click -> " + e.getButton());
+                super.mouseClicked(e);
+            }
+        });
         candidateMetadataStompItemMap.put(testCandidateMetadata, component);
         component.setMaximumSize(new Dimension(500, component_height));
         component.setMinimumSize(new Dimension(300, component_height));
@@ -586,6 +627,13 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         itemPanel.repaint();
         historyStreamScrollPanel.revalidate();
         historyStreamScrollPanel.repaint();
+
+        // Restore the scroll position after adding the component
+        double newPanelSize = component.getSize().getHeight();
+        int newScrollPosition = (int) (scrollPosition + newPanelSize);
+        logger.warn("setting scroll position to [1]" + scrollPosition + "+" + newPanelSize
+                + " => " + newScrollPosition);
+        verticalScrollBar.setValue(newScrollPosition);
     }
 
     private GridBagConstraints createGBCForLeftMainComponent() {
@@ -885,21 +933,21 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
     }
 
     @Override
-    public void onSaveAsMockRequest(TestCandidateMetadata storedCandidate) {
+    public void onSaveAsMockRequest(TestCandidateMetadata testCandidateMetadata) {
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            PsiMethod targetMethodPsi = getPsiMethod(storedCandidate);
+            PsiMethod targetMethodPsi = getPsiMethod(testCandidateMetadata);
             MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethodPsi));
             DeclaredMock declaredMock = new DeclaredMock();
             declaredMock.setMethodName(methodUnderTest.getName());
-            declaredMock.setName("mock recorded on " + new Date().toString());
+            declaredMock.setName("mock recorded on " + testCandidateMetadata.getCreatedAt());
             declaredMock.setFieldName("*");
             declaredMock.setId(UUID.randomUUID().toString());
             declaredMock.setFieldTypeName(methodUnderTest.getClassName());
             declaredMock.setSourceClassName("*");
 
             List<ParameterMatcher> whenParameter = new ArrayList<>();
-            for (Parameter argument : storedCandidate.getMainMethod().getArguments()) {
+            for (Parameter argument : testCandidateMetadata.getMainMethod().getArguments()) {
                 ParameterMatcher parameterMatcher = new ParameterMatcher();
                 parameterMatcher.setType(ParameterMatcherType.EQUAL);
                 parameterMatcher.setName(argument.getName());
@@ -911,7 +959,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
             declaredMock.setWhenParameter(whenParameter);
             ThenParameter thenParameter = new ThenParameter();
 
-            Parameter returnValue = storedCandidate.getMainMethod().getReturnValue();
+            Parameter returnValue = testCandidateMetadata.getMainMethod().getReturnValue();
             if (returnValue.isException()) {
                 thenParameter.setMethodExitType(MethodExitType.EXCEPTION);
             } else if (returnValue.getValue() == 0) {
@@ -962,22 +1010,24 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         );
         TestCaseService testCaseService = insidiousService.getTestCaseService();
 
-        for (TestCandidateMetadata testCandidateMetadata : selectedCandidates) {
+        for (TestCandidateMetadata testCandidateShell : selectedCandidates) {
 
             try {
 
-                Parameter testSubject = testCandidateMetadata.getTestSubject();
+                TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
+                        .getTestCandidateById(testCandidateShell.getEntryProbeIndex(), true);
+                Parameter testSubject = loadedTestCandidate.getTestSubject();
                 if (testSubject.isException()) {
                     continue;
                 }
-                MethodCallExpression callExpression = testCandidateMetadata.getMainMethod();
+                MethodCallExpression callExpression = loadedTestCandidate.getMainMethod();
                 logger.warn(
                         "Generating test case: " + testSubject.getType() + "." + callExpression.getMethodName() + "()");
                 generationConfiguration.getTestCandidateMetadataList().clear();
-                generationConfiguration.getTestCandidateMetadataList().add(testCandidateMetadata);
+                generationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
 
                 generationConfiguration.getCallExpressionList().clear();
-                generationConfiguration.getCallExpressionList().addAll(testCandidateMetadata.getCallsList());
+                generationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
 
                 TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
                 List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
@@ -986,9 +1036,9 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
                 insidiousService.getJUnitTestCaseWriter().saveTestSuite(testSuite);
 
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error("Failed to generate test case", e);
                 InsidiousNotification.notifyMessage(
-                        "Failed to generate test case for [" + testCandidateMetadata.getTestSubject()
+                        "Failed to generate test case for [" + testCandidateShell.getTestSubject()
                                 .getType() + "] " + e.getMessage(), NotificationType.ERROR);
             }
         }
@@ -1185,7 +1235,7 @@ public class StompComponent implements Consumer<TestCandidateMetadata>, TestCand
         } catch (SQLException e) {
             // failed to load candidates hmm
             e.printStackTrace();
-            throw new RuntimeException(e);
+            logger.error("Failed to load test candidates from session", e);
         }
 
     }

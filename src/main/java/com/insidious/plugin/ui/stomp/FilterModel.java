@@ -1,9 +1,16 @@
 package com.insidious.plugin.ui.stomp;
 
+import com.insidious.plugin.ui.methodscope.CandidateFilterType;
+
+import java.util.List;
+
 public class FilterModel {
     boolean followEditor;
-    String className;
-    String methodName;
+    CandidateFilterType candidateFilterType;
+    List<String> includedClassNames;
+    List<String> excludedClassNames;
+    List<String> includedMethodNames;
+    List<String> excludedMethodNames;
 
     public boolean isFollowEditor() {
         return followEditor;
@@ -13,19 +20,19 @@ public class FilterModel {
         this.followEditor = followEditor;
     }
 
-    public String getClassName() {
-        return className;
+    public List<String> getIncludedClassNames() {
+        return includedClassNames;
     }
 
-    public void setClassName(String className) {
-        this.className = className;
+    public List<String> getExcludedClassNames() {
+        return excludedClassNames;
     }
 
-    public String getMethodName() {
-        return methodName;
+    public List<String> getIncludedMethodNames() {
+        return includedMethodNames;
     }
 
-    public void setMethodName(String methodName) {
-        this.methodName = methodName;
+    public List<String> getExcludedMethodNames() {
+        return excludedMethodNames;
     }
 }

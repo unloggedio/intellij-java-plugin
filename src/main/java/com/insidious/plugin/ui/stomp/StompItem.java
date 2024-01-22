@@ -19,7 +19,6 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.Arrays;
 import java.util.Collections;
 
 public class StompItem {
@@ -28,6 +27,9 @@ public class StompItem {
     public static final JBColor TAG_LABEL_TEXT_GREY = new JBColor(new Color(113, 128, 150, 255),
             new Color(113, 128, 150, 255));
     public static final int MAX_METHOD_NAME_LABEL_LENGTH = 20;
+    public static final JBColor HOVER_HIGHLIGHT_COLOR = new JBColor(
+            new Color(157, 187, 184),
+            new Color(157, 187, 184));
     private static final Logger logger = LoggerUtil.getInstance(StompItem.class);
     private final TestCandidateLifeListener testCandidateLifeListener;
     private TestCandidateMetadata candidateMetadata;
@@ -57,48 +59,59 @@ public class StompItem {
         this.testCandidateLifeListener = testCandidateLifeListener;
         Color defaultPanelColor = mainPanel.getBackground();
 
-        titleLabelContainer.addMouseListener(new MouseAdapter() {
+        MouseAdapter methodNameClickListener = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
-                if (candidateMetadata.getLineNumbers().size() > 0) {
+                if (!candidateMetadata.getLineNumbers().isEmpty()) {
                     Integer firstLine = candidateMetadata.getLineNumbers().get(0);
-                    InsidiousUtils.focusProbeLocationInEditor(firstLine,
-                            candidateMetadata.getFullyQualifiedClassname(), insidiousService.getProject());
+                    ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                        InsidiousUtils.focusProbeLocationInEditor(firstLine,
+                                candidateMetadata.getFullyQualifiedClassname(), insidiousService.getProject());
+                    });
                 }
             }
-        });
+        };
+        titleLabelContainer.addMouseListener(methodNameClickListener);
 
-        candidateTitleLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (candidateMetadata.getLineNumbers().size() > 0) {
-                    Integer firstLine = candidateMetadata.getLineNumbers().get(0);
-                    InsidiousUtils.focusProbeLocationInEditor(firstLine,
-                            candidateMetadata.getFullyQualifiedClassname(), insidiousService.getProject());
-                }
-            }
-        });
+        candidateTitleLabel.addMouseListener(methodNameClickListener);
         mainPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (candidateMetadata.getLineNumbers().size() > 0) {
+                super.mouseClicked(e);
+                if (!candidateMetadata.getLineNumbers().isEmpty()) {
                     Integer firstLine = candidateMetadata.getLineNumbers().get(0);
-                    InsidiousUtils.focusProbeLocationInEditor(firstLine,
-                            candidateMetadata.getFullyQualifiedClassname(), insidiousService.getProject());
+                    ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                        InsidiousUtils.focusProbeLocationInEditor(firstLine,
+                                candidateMetadata.getFullyQualifiedClassname(), insidiousService.getProject());
+                    });
                 }
 
             }
 
             @Override
             public void mouseEntered(MouseEvent e) {
-//                mainPanel.setBackground(JBColor.ORANGE);
+                mainPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+                detailPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+                infoPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+                titleLabelContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
+                controlPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+                controlContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
+                selectCandidateCheckbox.setBackground(HOVER_HIGHLIGHT_COLOR);
+                metadataPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
                 super.mouseEntered(e);
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-//                mainPanel.setBackground(defaultPanelColor);
+                mainPanel.setBackground(defaultPanelColor);
+                detailPanel.setBackground(defaultPanelColor);
+                infoPanel.setBackground(defaultPanelColor);
+                titleLabelContainer.setBackground(defaultPanelColor);
+                controlPanel.setBackground(defaultPanelColor);
+                controlContainer.setBackground(defaultPanelColor);
+                selectCandidateCheckbox.setBackground(defaultPanelColor);
+                metadataPanel.setBackground(defaultPanelColor);
                 super.mouseExited(e);
             }
         });
@@ -174,7 +187,8 @@ public class StompItem {
             public void mouseClicked(MouseEvent e) {
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
                     testCandidateLifeListener.executeCandidate(Collections.singletonList(candidateMetadata),
-                            new ClassUnderTest(candidateMetadata.getFullyQualifiedClassname()), ExecutionRequestSourceType.Single,
+                            new ClassUnderTest(candidateMetadata.getFullyQualifiedClassname()),
+                            ExecutionRequestSourceType.Single,
                             (testCandidate, agentCommandResponse, diffResult) -> {
 
                             });
@@ -207,6 +221,7 @@ public class StompItem {
 
             @Override
             public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
                 testCandidateLifeListener.onCandidateSelected(candidateMetadata);
             }
         });
@@ -237,7 +252,10 @@ public class StompItem {
         ExecutionTimeCategory category = ExecutionTimeCategorizer.categorizeExecutionTime(timeTakenMs);
         String timeTakenMsString = ExecutionTimeCategorizer.formatTimePeriod(timeTakenMs);
 
-        candidateTitleLabel.setText(itemLabel);
+
+        TitledBorder detailPanelBorder = (TitledBorder) mainPanel.getBorder();
+        detailPanelBorder.setTitle(itemLabel);
+//        candidateTitleLabel.setText(itemLabel);
         candidateTitleLabel.setToolTipText(
                 className + "." + methodUnderTest.getName() + methodUnderTest.getSignature());
 

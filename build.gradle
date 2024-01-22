@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.jetbrains.intellij' version '1.16.0'
+    id 'org.jetbrains.intellij' version '1.17.0'
     id 'com.palantir.git-version' version '0.14.0'
 }
 
@@ -125,8 +125,6 @@ dependencies {
 
 runPluginVerifier {
     ideVersions = [
-            "IU-2019.3.5",
-            "IU-2020.3.4",
             "IU-2021.3.3",
             "IU-2022.3.3",
             "IU-2023.1.5",
@@ -138,7 +136,7 @@ runPluginVerifier {
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    version = '2023.3'
+    version = '2021.3.3'
     plugins = ['com.intellij.java', 'maven', 'gradle', 'org.jetbrains.kotlin']
     updateSinceUntilBuild = false
     sameSinceUntilBuild = true

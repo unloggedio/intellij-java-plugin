@@ -630,7 +630,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
             expandAllNodes(argumentValueTree);
             methodParameterContainer.add(argumentValueTree, BorderLayout.CENTER);
         } else {
-            JBLabel noParametersLabel = new JBLabel("Method " + methodName + "() has no parameters");
+            JBLabel noParametersLabel = new JBLabel("No method arguments");
             methodParameterContainer.add(noParametersLabel, BorderLayout.CENTER);
         }
 

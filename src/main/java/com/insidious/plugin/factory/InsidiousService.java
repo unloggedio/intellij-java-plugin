@@ -1418,18 +1418,18 @@ final public class InsidiousService implements
     public void showCandidateSaveForm(SaveForm saveForm) {
         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
         FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
+//        if (selectedEditor == null) {
+//            StoredCandidate candidate = saveForm.getStoredCandidate();
+//            selectedEditor = InsidiousUtils.focusProbeLocationInEditor(0,
+//                    candidate.getMethod().getClassName(), this.getProject());
         if (selectedEditor == null) {
-            StoredCandidate candidate = saveForm.getStoredCandidate();
-            selectedEditor = InsidiousUtils.focusProbeLocationInEditor(0,
-                    candidate.getMethod().getClassName(), this.getProject());
-            if (selectedEditor == null) {
-                InsidiousNotification.notifyMessage(
-                        "No editor tab is open, please open an editor tab",
-                        NotificationType.ERROR
-                );
-                return;
-            }
+            InsidiousNotification.notifyMessage(
+                    "No editor tab is open, please open an editor tab",
+                    NotificationType.ERROR
+            );
+            return;
         }
+//        }
         fileEditorManager.addTopComponent(selectedEditor, saveForm.getComponent());
         saveFormEditorMap.put(saveForm, selectedEditor);
     }
@@ -1450,16 +1450,16 @@ final public class InsidiousService implements
         fileEditorManager.openFile(designerLite.getLightVirtualFile(), true);
         FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
         if (selectedEditor == null) {
-            selectedEditor = InsidiousUtils.focusProbeLocationInEditor(0,
-                    methodAdapter.getContainingClass().getQualifiedName(), project);
-            if (selectedEditor == null) {
-                InsidiousNotification.notifyMessage(
-                        "No editor tab is open, please open an editor tab",
-                        NotificationType.ERROR
-                );
-                return;
-            }
+//            selectedEditor = InsidiousUtils.focusProbeLocationInEditor(0,
+//                    methodAdapter.getContainingClass().getQualifiedName(), project);
+//            if (selectedEditor == null) {
+            InsidiousNotification.notifyMessage(
+                    "No editor tab is open, please open an editor tab",
+                    NotificationType.ERROR
+            );
+//                return;
         }
+//        }
         fileEditorManager.addBottomComponent(selectedEditor, designerLite.getMainPanel());
         designerLite.setEditorReferences(fileEditorManager.getSelectedTextEditor(), selectedEditor);
     }
