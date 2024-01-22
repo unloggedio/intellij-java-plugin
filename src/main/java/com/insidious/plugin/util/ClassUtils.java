@@ -183,7 +183,7 @@ public class ClassUtils {
                         ApplicationManager.getApplication()
                                 .runReadAction((Computable<PsiField[]>) () -> resolvedClass.getAllFields());
 
-                dummyValue.append("{");
+				StringBuilder dummyInternalObjValue = new StringBuilder();
                 if (creationStack.size() < 3) {
                     boolean firstField = true;
                     for (PsiField psiField : parameterObjectFieldList) {
@@ -200,24 +200,33 @@ public class ClassUtils {
                             continue;
                         }
                         if (!firstField) {
-                            dummyValue.append(", ");
+                            dummyInternalObjValue.append(", ");
                         }
 
-                        dummyValue.append("\"");
+                        dummyInternalObjValue.append("\"");
                         String fieldName =
                                 ApplicationManager.getApplication()
                                         .runReadAction((Computable<String>) () -> psiField.getName());
-                        dummyValue.append(fieldName);
-                        dummyValue.append("\"");
-                        dummyValue.append(": ");
+						dummyInternalObjValue.append(fieldName);
+						dummyInternalObjValue.append("\"");
+                        dummyInternalObjValue.append(": ");
                         PsiType type =
                                 ApplicationManager.getApplication()
                                         .runReadAction((Computable<PsiType>) () -> psiField.getType());
-                        dummyValue.append(createDummyValue(type, creationStack, project));
+						dummyInternalObjValue.append(createDummyValue(type, creationStack, project));
                         firstField = false;
                     }
                 }
-                dummyValue.append("}");
+
+				// create dummyValue based on dummyInternalObjValue
+				if (dummyInternalObjValue.length() == 0) {
+					dummyValue.append("null");
+				}
+				else {
+					dummyValue.append("{");
+					dummyValue.append(dummyInternalObjValue);
+					dummyValue.append("}");
+				}
 
             } else if (parameterType instanceof PsiPrimitiveType) {
                 PsiPrimitiveType primitiveType = (PsiPrimitiveType) parameterType;
