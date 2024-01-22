@@ -151,11 +151,15 @@
         <!--        </action>-->
 
         <action class="com.insidious.plugin.actions.AutoExecutorMocked">
-            <keyboard-shortcut keymap="$default" first-keystroke="alt F9"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F7"/>
         </action>
 
         <action class="com.insidious.plugin.actions.AutoExecutorNonMock">
-            <keyboard-shortcut keymap="$default" first-keystroke="alt F8"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F8"/>
+        </action>
+
+        <action class="com.insidious.plugin.actions.EnableAutoExecutor">
+            <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F4"/>
         </action>
 
         <!--        <action icon="AllIcons.Actions.Back" text="Step Back" id="Debugger.ReverseResume"-->

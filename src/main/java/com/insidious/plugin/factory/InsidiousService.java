@@ -155,6 +155,8 @@ final public class InsidiousService implements
     private AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
     private GetProjectSessionsCallback sessionListener;
     private ReportingService reportingService = new ReportingService(this);
+    private boolean autoExecutorEnabled = false;
+    private int autoExecutorEnableCounter = 3;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -1716,10 +1718,20 @@ final public class InsidiousService implements
     }
 
     public void executeAllMethodsInCurrentClass(AutoExecutorRunOptions options) {
-        automaticExecutorService.executeAllJavaMethodsInProject(options);
+        if (autoExecutorEnabled) {
+            automaticExecutorService.executeAllJavaMethodsInProject(options);
+        }
     }
 
     public void loadDefaultSession() {
         setSession(sessionManager.loadDefaultSession());
+    }
+
+    public void autoExecutorEnableTrigger() {
+        autoExecutorEnableCounter--;
+        if (autoExecutorEnableCounter <= 0) {
+            this.autoExecutorEnabled = true;
+            InsidiousNotification.notifyMessage("AutoExecutor is enabled", NotificationType.INFORMATION);
+        }
     }
 }

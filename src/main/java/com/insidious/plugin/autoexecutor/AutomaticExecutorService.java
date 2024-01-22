@@ -65,6 +65,12 @@ public class AutomaticExecutorService {
         waitInterrupts = 0;
         writes = 0;
 
+        if (!insidiousService.getAgentStateProvider().isAgentRunning()) {
+            InsidiousNotification.notifyMessage("Can't start AutoExecutor when the project is not running with unlogged",
+                    NotificationType.ERROR);
+            return;
+        }
+
         List<VirtualFile> javaFiles = new ArrayList<>(ApplicationManager.getApplication()
                 .runReadAction((Computable<Collection<VirtualFile>>) () -> FileTypeIndex.
                         getFiles(JavaFileType.INSTANCE,
