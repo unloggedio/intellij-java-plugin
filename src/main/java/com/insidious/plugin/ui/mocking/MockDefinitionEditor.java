@@ -177,14 +177,19 @@ public class MockDefinitionEditor {
         }
         StringBuilder jvmClassName =
                 new StringBuilder(jvmClassName1);
-        int paramCount = classReferenceType.getParameterCount();
-        if (paramCount > 0) {
-            jvmClassName.append("<");
-            for (PsiType parameter : classReferenceType.getParameters()) {
-                jvmClassName.append(buildJvmClassName(parameter));
-            }
-            jvmClassName.append(">");
 
+		int paramCount = classReferenceType.getParameterCount();
+		if (paramCount > 0) {
+            jvmClassName.append("<");
+
+			PsiType[] parameterArray = classReferenceType.getParameters();
+			for (int i=0;i<=paramCount-1;i++) {
+				jvmClassName.append(buildJvmClassName(parameterArray[i]));
+				if (i != paramCount-1) {
+					jvmClassName.append(",");
+				}
+			}
+            jvmClassName.append(">");
         }
 
         return jvmClassName.toString();
