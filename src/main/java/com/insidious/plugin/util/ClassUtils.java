@@ -24,6 +24,7 @@ import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.search.GlobalSearchScope;
 
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -77,13 +78,15 @@ public class ClassUtils {
             if (parameterTypeCanonicalText.equals("java.util.Random")) {
                 return "{}";
             }
+            if (parameterTypeCanonicalText.equals("java.sql.Timestamp")) {
+                return String.valueOf(new Date().getTime());
+            }
             if (parameterTypeCanonicalText.equals("java.util.Date")) {
                 return String.valueOf(new Date().getTime());
             }
             if (parameterTypeCanonicalText.equals("java.time.Instant")) {
 //                Date date = new Date();
                 return String.valueOf(new Date().getTime() / 1000);
-
             }
 
             if (parameterType instanceof PsiClassType) {
