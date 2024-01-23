@@ -2,18 +2,26 @@ package com.insidious.plugin.util;
 
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
+import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.ui.methodscope.ClassChosenListener;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
+import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmModifier;
+import com.intellij.lang.jvm.JvmParameter;
+import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.IndexNotReadyException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.search.GlobalSearchScope;
 
 import java.util.*;
@@ -23,11 +31,8 @@ import static com.intellij.psi.PsiModifier.ABSTRACT;
 
 public class ClassUtils {
 
-//    private static final ObjectMapper objectMapper = new ObjectMapper();
-
-//    static {
-//        objectMapper.registerModule(new JavaTimeModule());
-//    }
+    private static final Logger logger = LoggerUtil.getInstance(ClassUtils.class);
+    private static final Map<String, Boolean> classNotFound = new HashMap<>();
 
     public static String createDummyValue(
             PsiType parameterType,
@@ -39,7 +44,7 @@ public class ClassUtils {
         }
         String parameterTypeCanonicalText =
                 ApplicationManager.getApplication()
-                        .runReadAction((Computable<String>) () -> parameterType.getCanonicalText());
+                        .runReadAction((Computable<String>) parameterType::getCanonicalText);
         if (creationStack.contains(parameterTypeCanonicalText)) {
             return "null";
         }
@@ -85,11 +90,11 @@ public class ClassUtils {
                 PsiClassType classReferenceType = (PsiClassType) parameterType;
                 PsiClassType psiClassRawType =
                         ApplicationManager.getApplication()
-                                .runReadAction((Computable<PsiClassType>) () -> classReferenceType.rawType());
+                                .runReadAction((Computable<PsiClassType>) classReferenceType::rawType);
 
                 String rawTypeCanonicalText =
                         ApplicationManager.getApplication()
-                                .runReadAction((Computable<String>) () -> psiClassRawType.getCanonicalText());
+                                .runReadAction((Computable<String>) psiClassRawType::getCanonicalText);
                 if (
                         rawTypeCanonicalText.equals("java.util.List") ||
                                 rawTypeCanonicalText.equals("java.util.ArrayList") ||
@@ -183,7 +188,7 @@ public class ClassUtils {
                         ApplicationManager.getApplication()
                                 .runReadAction((Computable<PsiField[]>) () -> resolvedClass.getAllFields());
 
-				StringBuilder dummyInternalObjValue = new StringBuilder();
+                StringBuilder dummyInternalObjValue = new StringBuilder();
                 if (creationStack.size() < 3) {
                     boolean firstField = true;
                     for (PsiField psiField : parameterObjectFieldList) {
@@ -207,26 +212,25 @@ public class ClassUtils {
                         String fieldName =
                                 ApplicationManager.getApplication()
                                         .runReadAction((Computable<String>) () -> psiField.getName());
-						dummyInternalObjValue.append(fieldName);
-						dummyInternalObjValue.append("\"");
+                        dummyInternalObjValue.append(fieldName);
+                        dummyInternalObjValue.append("\"");
                         dummyInternalObjValue.append(": ");
                         PsiType type =
                                 ApplicationManager.getApplication()
                                         .runReadAction((Computable<PsiType>) () -> psiField.getType());
-						dummyInternalObjValue.append(createDummyValue(type, creationStack, project));
+                        dummyInternalObjValue.append(createDummyValue(type, creationStack, project));
                         firstField = false;
                     }
                 }
 
-				// create dummyValue based on dummyInternalObjValue
-				if (dummyInternalObjValue.length() == 0) {
-					dummyValue.append("null");
-				}
-				else {
-					dummyValue.append("{");
-					dummyValue.append(dummyInternalObjValue);
-					dummyValue.append("}");
-				}
+                // create dummyValue based on dummyInternalObjValue
+                if (dummyInternalObjValue.length() == 0) {
+                    dummyValue.append("null");
+                } else {
+                    dummyValue.append("{");
+                    dummyValue.append(dummyInternalObjValue);
+                    dummyValue.append("}");
+                }
 
             } else if (parameterType instanceof PsiPrimitiveType) {
                 PsiPrimitiveType primitiveType = (PsiPrimitiveType) parameterType;
@@ -334,4 +338,216 @@ public class ClassUtils {
         }
         return className;
     }
+
+    public static void resolveTemplatesInCall(MethodCallExpression methodCallExpression, Project project) {
+        Parameter callSubject = methodCallExpression.getSubject();
+        String subjectType = callSubject.getType();
+        if (subjectType.length() == 1) {
+            return;
+        }
+        if (classNotFound.containsKey(subjectType)) {
+            return;
+        }
+
+        PsiClass classPsiInstance = null;
+
+        try {
+            classPsiInstance = JavaPsiFacade.getInstance(project)
+                    .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
+        } catch (IndexNotReadyException e) {
+//            e.printStackTrace();
+            InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
+                    NotificationType.ERROR);
+        }
+
+        if (classPsiInstance == null) {
+            // if a class by this name was not found, then either we have a different project loaded
+            // or the source code has been modified and the class have been renamed or deleted or moved
+            // cant do much here
+            classNotFound.put(subjectType, true);
+            logger.warn("Class not found in source code for resolving generic template: " + subjectType);
+            return;
+        }
+
+        JvmMethod[] methodPsiInstanceList =
+                classPsiInstance.findMethodsByName(methodCallExpression.getMethodName());
+        if (methodPsiInstanceList.length == 0) {
+            logger.warn(
+                    "[2] did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
+            return;
+        }
+
+        List<Parameter> methodArguments = methodCallExpression.getArguments();
+        int expectedArgumentCount = methodArguments
+                .size();
+        for (JvmMethod jvmMethod : methodPsiInstanceList) {
+
+            int parameterCount = jvmMethod.getParameters().length;
+            if (expectedArgumentCount != parameterCount) {
+                // this is not the method which we are looking for
+                // either this has been updated in the source code and so we wont find a matching method
+                // or this is an overridden method
+                continue;
+            }
+
+            JvmParameter[] parameters = jvmMethod.getParameters();
+            // to resolve generics
+            for (int i = 0; i < parameters.length; i++) {
+                JvmParameter parameterFromSourceCode = parameters[i];
+                Parameter parameterFromProbe = methodArguments.get(i);
+                JvmType typeFromSourceCode = parameterFromSourceCode.getType();
+                if (typeFromSourceCode instanceof PsiPrimitiveType) {
+                    PsiPrimitiveType primitiveType = (PsiPrimitiveType) typeFromSourceCode;
+                } else if (typeFromSourceCode instanceof PsiClassReferenceType) {
+                    PsiClassReferenceType classReferenceType = (PsiClassReferenceType) typeFromSourceCode;
+                    if (parameterFromProbe.getType() == null) {
+                        parameterFromProbe.setType(classReferenceType.getReference()
+                                .getQualifiedName());
+
+                    } else if (!classReferenceType.getReference()
+                            .getQualifiedName()
+                            .startsWith(parameterFromProbe.getType())) {
+                        logger.warn(
+                                "Call expected argument [" + i + "] [" + parameterFromProbe.getType() + "] did not " +
+                                        "match return type in  source: [" + classReferenceType.getCanonicalText()
+                                        + "] for call: " + methodCallExpression);
+
+                        break;
+                    }
+
+                    if (classReferenceType.hasParameters()) {
+                        parameterFromProbe.setContainer(true);
+                        List<Parameter> templateMap = parameterFromProbe.getTemplateMap();
+                        extractTemplateMap(classReferenceType, templateMap);
+                    }
+                }
+            }
+
+            Parameter returnParameter = methodCallExpression.getReturnValue();
+
+            JvmType returnParameterType = jvmMethod.getReturnType();
+            if (returnParameterType instanceof PsiPrimitiveType) {
+                PsiPrimitiveType primitiveType = (PsiPrimitiveType) returnParameterType;
+            } else if (returnParameterType instanceof PsiClassReferenceType) {
+                PsiClassReferenceType returnTypeClassReference = (PsiClassReferenceType) returnParameterType;
+                if (returnParameter != null &&
+                        returnParameter.getType() != null) {
+                    if (!returnTypeClassReference.getReference()
+                            .getQualifiedName()
+                            .equals(returnParameter.getType())) {
+                        // type name mismatch
+                        logger.warn(
+                                "Call expected return [" + returnParameter.getType() + "] did not match return type in " +
+                                        "source: [" + returnTypeClassReference.getCanonicalText()
+                                        + "] for call: " + methodCallExpression);
+                        continue;
+                    } else {
+                        // type matched, we can go ahead to identify template parameters
+                    }
+                }
+
+                if (returnTypeClassReference.hasParameters()) {
+                    PsiType[] typeTemplateParameters = returnTypeClassReference.getParameters();
+                    returnParameter.setContainer(true);
+                    List<Parameter> templateMap = returnParameter.getTemplateMap();
+                    char templateChar = 'D';
+                    boolean hasGenericTemplate = false;
+                    for (PsiType typeTemplateParameter : typeTemplateParameters) {
+                        templateChar++;
+                        Parameter value = new Parameter();
+                        String canonicalText = typeTemplateParameter.getCanonicalText();
+                        // <? super ClassName>
+                        if (canonicalText.contains(" super ")) {
+                            canonicalText = canonicalText.substring(
+                                    canonicalText.indexOf(" super ") + " super ".length());
+                        }
+
+                        // <? extends ClassName>
+                        if (canonicalText.contains(" extends ")) {
+                            canonicalText = "?";
+                            // todo: for ? extends ClassName, identify what typename can we use in the generated test
+                            //  case (its not ClassName)
+//                            canonicalText = canonicalText.substring(
+//                                    canonicalText.indexOf(" extends ") + " extends ".length());
+                        }
+
+                        if (canonicalText.length() == 1) {
+                            hasGenericTemplate = true;
+                            break;
+                        }
+                        value.setType(canonicalText);
+                        String templateKey = String.valueOf(templateChar);
+                        value.setName(templateKey);
+                        Optional<Parameter> exitingTemplateOptional = templateMap.stream()
+                                .filter(e -> e.getName()
+                                        .equals(templateKey))
+                                .findFirst();
+                        if (exitingTemplateOptional.isPresent()) {
+                            Parameter existingValue = exitingTemplateOptional.get();
+                            if (existingValue.getType()
+                                    .length() < 2) {
+                                templateMap.remove(exitingTemplateOptional.get());
+                                templateMap.add(value);
+                            }
+                        } else {
+                            templateMap.add(value);
+                        }
+                    }
+                    if (hasGenericTemplate) {
+                        templateMap.clear();
+                    }
+                }
+            }
+        }
+    }
+
+    public static void
+    extractTemplateMap(PsiClassReferenceType classReferenceType, List<Parameter> templateMap) {
+        char templateChar = 'D';
+        boolean hasGenericTemplate = false;
+        PsiType[] typeTemplateParameters = classReferenceType.getParameters();
+        for (PsiType typeTemplateParameter : typeTemplateParameters) {
+            templateChar++;
+            Parameter value = new Parameter();
+            String canonicalText = typeTemplateParameter.getCanonicalText();
+            // <? super ClassName>
+            if (canonicalText.contains(" super ")) {
+                canonicalText = canonicalText.substring(
+                        canonicalText.indexOf(" super ") + " super ".length());
+            }
+
+            // <? extends ClassName>
+            if (canonicalText.contains(" extends ")) {
+                canonicalText = canonicalText.substring(
+                        canonicalText.indexOf(" extends ") + " extends ".length());
+            }
+            if (canonicalText.length() == 1) {
+                hasGenericTemplate = true;
+                break;
+            }
+//            logger.warn("Setting template type for parameter[" + templateChar + "]: "
+//                    + canonicalText + " for parameter: [" + classReferenceType);
+            value.setType(canonicalText);
+            String templateKey = String.valueOf(templateChar);
+            value.setName(templateKey);
+            Optional<Parameter> existingTemplateOptional = templateMap.stream()
+                    .filter(e -> e.getName()
+                            .equals(templateKey))
+                    .findFirst();
+            if (existingTemplateOptional.isPresent()) {
+                Parameter existingValue = existingTemplateOptional.get();
+                if (existingValue.getType()
+                        .length() < 2) {
+                    templateMap.remove(existingTemplateOptional.get());
+                    templateMap.add(value);
+                }
+            } else {
+                templateMap.add(value);
+            }
+        }
+        if (hasGenericTemplate) {
+            templateMap.clear();
+        }
+    }
+
 }

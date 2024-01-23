@@ -1499,7 +1499,7 @@ public class DaoService {
                 .stream()
                 .map(e -> {
                     try {
-                        return convertTestCandidateMetadata(e, true);
+                        return convertTestCandidateMetadata(e, false);
                     } catch (Exception ex) {
                         throw new RuntimeException(ex);
                     }

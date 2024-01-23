@@ -38,10 +38,7 @@ import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
-import com.insidious.plugin.util.ClassTypeUtils;
-import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.StreamUtil;
-import com.insidious.plugin.util.StringUtils;
+import com.insidious.plugin.util.*;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmType;
@@ -224,55 +221,6 @@ public class SessionInstance implements Runnable {
         //         dataEvent.setSerializedValue(Base64.getEncoder().encodeToString(eventBlock.serializedData()).getBytes(
         //                StandardCharsets.UTF_8));
         return dataEvent;
-    }
-
-    public static void
-    extractTemplateMap(PsiClassReferenceType classReferenceType, List<Parameter> templateMap) {
-        char templateChar = 'D';
-        boolean hasGenericTemplate = false;
-        PsiType[] typeTemplateParameters = classReferenceType.getParameters();
-        for (PsiType typeTemplateParameter : typeTemplateParameters) {
-            templateChar++;
-            Parameter value = new Parameter();
-            String canonicalText = typeTemplateParameter.getCanonicalText();
-            // <? super ClassName>
-            if (canonicalText.contains(" super ")) {
-                canonicalText = canonicalText.substring(
-                        canonicalText.indexOf(" super ") + " super ".length());
-            }
-
-            // <? extends ClassName>
-            if (canonicalText.contains(" extends ")) {
-                canonicalText = canonicalText.substring(
-                        canonicalText.indexOf(" extends ") + " extends ".length());
-            }
-            if (canonicalText.length() == 1) {
-                hasGenericTemplate = true;
-                break;
-            }
-//            logger.warn("Setting template type for parameter[" + templateChar + "]: "
-//                    + canonicalText + " for parameter: [" + classReferenceType);
-            value.setType(canonicalText);
-            String templateKey = String.valueOf(templateChar);
-            value.setName(templateKey);
-            Optional<Parameter> existingTemplateOptional = templateMap.stream()
-                    .filter(e -> e.getName()
-                            .equals(templateKey))
-                    .findFirst();
-            if (existingTemplateOptional.isPresent()) {
-                Parameter existingValue = existingTemplateOptional.get();
-                if (existingValue.getType()
-                        .length() < 2) {
-                    templateMap.remove(existingTemplateOptional.get());
-                    templateMap.add(value);
-                }
-            } else {
-                templateMap.add(value);
-            }
-        }
-        if (hasGenericTemplate) {
-            templateMap.clear();
-        }
     }
 
 
@@ -975,6 +923,7 @@ public class SessionInstance implements Runnable {
             ConcurrentIndexedCollection<TypeInfoDocument> typeIndex = archiveIndex.getTypeInfoIndex();
             typeIndex.parallelStream().forEach(e -> typeInfoIndex.put(e.getTypeId(), e));
         } catch (Exception e) {
+            e.printStackTrace();
             logger.warn("failed to read archive for types index: " + e.getMessage()
                     + " from file [" + sessionFile + "]");
             throw new FailedToReadClassWeaveException("Failed to read " + INDEX_TYPE_DAT_FILE + " in "
@@ -3222,7 +3171,7 @@ public class SessionInstance implements Runnable {
 //                    }
 
                     if (threadState.candidateSize() < threadState.getCallStackSize()
-                     && threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
+                            && threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
 
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
@@ -3863,22 +3812,18 @@ public class SessionInstance implements Runnable {
         return daoService.getConstructorCandidate(parameter);
     }
 
-    public List<TestCandidateMetadata> getTestCandidatesUntil(long subjectId, long entryProbeIndex, long mainMethodId, boolean loadCalls) {
-        return daoService.getTestCandidates(subjectId, entryProbeIndex, mainMethodId, loadCalls);
-    }
-
     public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
         TestCandidateMetadata testCandidateMetadata = daoService.getTestCandidateById(testCandidateId, loadCalls);
         if (testCandidateMetadata == null) {
             return null;
         }
-        resolveTemplatesInCall(testCandidateMetadata.getMainMethod());
+        ClassUtils.resolveTemplatesInCall(testCandidateMetadata.getMainMethod(), project);
         // check if the param are ENUM
         createParamEnumPropertyTrueIfTheyAre(testCandidateMetadata.getMainMethod());
 
         if (loadCalls) {
             for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
-                resolveTemplatesInCall(methodCallExpression);
+                ClassUtils.resolveTemplatesInCall(methodCallExpression, project);
                 createParamEnumPropertyTrueIfTheyAre(methodCallExpression);
             }
         }
@@ -3938,167 +3883,6 @@ public class SessionInstance implements Runnable {
 //        }
     }
 
-    private void resolveTemplatesInCall(MethodCallExpression methodCallExpression) {
-        Parameter callSubject = methodCallExpression.getSubject();
-        String subjectType = callSubject.getType();
-        if (subjectType.length() == 1) {
-            return;
-        }
-        if (classNotFound.containsKey(subjectType)) {
-            return;
-        }
-
-        PsiClass classPsiInstance = null;
-
-        try {
-            classPsiInstance = JavaPsiFacade.getInstance(project)
-                    .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
-        } catch (IndexNotReadyException e) {
-//            e.printStackTrace();
-            InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
-                    NotificationType.ERROR);
-        }
-
-        if (classPsiInstance == null) {
-            // if a class by this name was not found, then either we have a different project loaded
-            // or the source code has been modified and the class have been renamed or deleted or moved
-            // cant do much here
-            classNotFound.put(subjectType, true);
-            logger.warn("Class not found in source code for resolving generic template: " + subjectType);
-            return;
-        }
-
-        JvmMethod[] methodPsiInstanceList =
-                classPsiInstance.findMethodsByName(methodCallExpression.getMethodName());
-        if (methodPsiInstanceList.length == 0) {
-            logger.warn(
-                    "[2] did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
-            return;
-        }
-
-        List<Parameter> methodArguments = methodCallExpression.getArguments();
-        int expectedArgumentCount = methodArguments
-                .size();
-        for (JvmMethod jvmMethod : methodPsiInstanceList) {
-
-            int parameterCount = jvmMethod.getParameters().length;
-            if (expectedArgumentCount != parameterCount) {
-                // this is not the method which we are looking for
-                // either this has been updated in the source code and so we wont find a matching method
-                // or this is an overridden method
-                continue;
-            }
-
-            JvmParameter[] parameters = jvmMethod.getParameters();
-            // to resolve generics
-            for (int i = 0; i < parameters.length; i++) {
-                JvmParameter parameterFromSourceCode = parameters[i];
-                Parameter parameterFromProbe = methodArguments.get(i);
-                JvmType typeFromSourceCode = parameterFromSourceCode.getType();
-                if (typeFromSourceCode instanceof PsiPrimitiveType) {
-                    PsiPrimitiveType primitiveType = (PsiPrimitiveType) typeFromSourceCode;
-                } else if (typeFromSourceCode instanceof PsiClassReferenceType) {
-                    PsiClassReferenceType classReferenceType = (PsiClassReferenceType) typeFromSourceCode;
-                    if (parameterFromProbe.getType() == null) {
-                        parameterFromProbe.setType(classReferenceType.getReference()
-                                .getQualifiedName());
-
-                    } else if (!classReferenceType.getReference()
-                            .getQualifiedName()
-                            .startsWith(parameterFromProbe.getType())) {
-                        logger.warn(
-                                "Call expected argument [" + i + "] [" + parameterFromProbe.getType() + "] did not " +
-                                        "match return type in  source: [" + classReferenceType.getCanonicalText()
-                                        + "] for call: " + methodCallExpression);
-
-                        break;
-                    }
-
-                    if (classReferenceType.hasParameters()) {
-                        parameterFromProbe.setContainer(true);
-                        List<Parameter> templateMap = parameterFromProbe.getTemplateMap();
-                        extractTemplateMap(classReferenceType, templateMap);
-                    }
-                }
-            }
-
-            Parameter returnParameter = methodCallExpression.getReturnValue();
-
-            JvmType returnParameterType = jvmMethod.getReturnType();
-            if (returnParameterType instanceof PsiPrimitiveType) {
-                PsiPrimitiveType primitiveType = (PsiPrimitiveType) returnParameterType;
-            } else if (returnParameterType instanceof PsiClassReferenceType) {
-                PsiClassReferenceType returnTypeClassReference = (PsiClassReferenceType) returnParameterType;
-                if (returnParameter != null &&
-                        returnParameter.getType() != null) {
-                    if (!returnTypeClassReference.getReference()
-                            .getQualifiedName()
-                            .equals(returnParameter.getType())) {
-                        // type name mismatch
-                        logger.warn(
-                                "Call expected return [" + returnParameter.getType() + "] did not match return type in " +
-                                        "source: [" + returnTypeClassReference.getCanonicalText()
-                                        + "] for call: " + methodCallExpression);
-                        continue;
-                    } else {
-                        // type matched, we can go ahead to identify template parameters
-                    }
-                }
-
-                if (returnTypeClassReference.hasParameters()) {
-                    PsiType[] typeTemplateParameters = returnTypeClassReference.getParameters();
-                    returnParameter.setContainer(true);
-                    List<Parameter> templateMap = returnParameter.getTemplateMap();
-                    char templateChar = 'D';
-                    boolean hasGenericTemplate = false;
-                    for (PsiType typeTemplateParameter : typeTemplateParameters) {
-                        templateChar++;
-                        Parameter value = new Parameter();
-                        String canonicalText = typeTemplateParameter.getCanonicalText();
-                        // <? super ClassName>
-                        if (canonicalText.contains(" super ")) {
-                            canonicalText = canonicalText.substring(
-                                    canonicalText.indexOf(" super ") + " super ".length());
-                        }
-
-                        // <? extends ClassName>
-                        if (canonicalText.contains(" extends ")) {
-                            canonicalText = "?";
-                            // todo: for ? extends ClassName, identify what typename can we use in the generated test
-                            //  case (its not ClassName)
-//                            canonicalText = canonicalText.substring(
-//                                    canonicalText.indexOf(" extends ") + " extends ".length());
-                        }
-
-                        if (canonicalText.length() == 1) {
-                            hasGenericTemplate = true;
-                            break;
-                        }
-                        value.setType(canonicalText);
-                        String templateKey = String.valueOf(templateChar);
-                        value.setName(templateKey);
-                        Optional<Parameter> exitingTemplateOptional = templateMap.stream()
-                                .filter(e -> e.getName()
-                                        .equals(templateKey))
-                                .findFirst();
-                        if (exitingTemplateOptional.isPresent()) {
-                            Parameter existingValue = exitingTemplateOptional.get();
-                            if (existingValue.getType()
-                                    .length() < 2) {
-                                templateMap.remove(exitingTemplateOptional.get());
-                                templateMap.add(value);
-                            }
-                        } else {
-                            templateMap.add(value);
-                        }
-                    }
-                    if (hasGenericTemplate) {
-                        templateMap.clear();
-                    }
-                }
-            }
-        }
-    }
 
     public synchronized void close() {
         if (shutdown) {
