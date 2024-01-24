@@ -113,7 +113,7 @@ public class ThenParameterInputPanel {
         }
 
         PsiClass locatedClass = JavaPsiFacade.getInstance(project)
-                .findClass(className, GlobalSearchScope.allScope(project));
+                .findClass(className.replace("$", "."), GlobalSearchScope.allScope(project));
         if (locatedClass == null) {
             returnTypeTextField.setBackground(UIUtils.WARNING_RED);
         } else {
