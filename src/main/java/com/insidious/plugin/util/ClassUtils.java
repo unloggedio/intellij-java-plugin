@@ -134,7 +134,12 @@ public class ClassUtils {
                         // key for a map is always string in json
                         // objectMapper cannot probably reconstruct this back
                         //
-                        dummyValue.append("\"keyFromClass" + classReferenceType.getName() + "\"");
+						if (classReferenceType.getParameters()[0].toString().equals("PsiType:Integer")) {
+							dummyValue.append("\"0\"");
+						}
+						else {
+							dummyValue.append("\"keyFromClass" + classReferenceType.getName() + "\"");
+						}
                         dummyValue.append(": ");
                         dummyValue.append(
                                 createDummyValue(classReferenceType.getParameters()[1], creationStack, project));
