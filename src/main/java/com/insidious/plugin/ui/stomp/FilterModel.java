@@ -2,15 +2,16 @@ package com.insidious.plugin.ui.stomp;
 
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
 
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 public class FilterModel {
+    private final Set<String> includedClassNames = new HashSet<>();
+    private final Set<String> excludedClassNames = new HashSet<>();
+    private final Set<String> includedMethodNames = new HashSet<>();
+    private final Set<String> excludedMethodNames = new HashSet<>();
     boolean followEditor;
     CandidateFilterType candidateFilterType;
-    List<String> includedClassNames;
-    List<String> excludedClassNames;
-    List<String> includedMethodNames;
-    List<String> excludedMethodNames;
 
     public boolean isFollowEditor() {
         return followEditor;
@@ -20,19 +21,19 @@ public class FilterModel {
         this.followEditor = followEditor;
     }
 
-    public List<String> getIncludedClassNames() {
+    public Set<String> getIncludedClassNames() {
         return includedClassNames;
     }
 
-    public List<String> getExcludedClassNames() {
+    public Set<String> getExcludedClassNames() {
         return excludedClassNames;
     }
 
-    public List<String> getIncludedMethodNames() {
+    public Set<String> getIncludedMethodNames() {
         return includedMethodNames;
     }
 
-    public List<String> getExcludedMethodNames() {
+    public Set<String> getExcludedMethodNames() {
         return excludedMethodNames;
     }
 }

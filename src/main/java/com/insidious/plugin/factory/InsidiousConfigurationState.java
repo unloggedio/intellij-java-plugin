@@ -1,10 +1,13 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.ui.stomp.FilterModel;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.xmlb.XmlSerializerUtil;
+import com.intellij.util.xmlb.annotations.OptionTag;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,17 +21,28 @@ import java.util.Map;
         name = "com.insidious.plugin.factory.InsidiousConfigurationState",
         storages = @Storage("InsidiousPlugin.xml")
 )
-public class InsidiousConfigurationState implements PersistentStateComponent<InsidiousConfigurationState> {
+public class InsidiousConfigurationState
+        implements PersistentStateComponent<InsidiousConfigurationState> {
 
+    private static final Logger logger = LoggerUtil.getInstance(InsidiousConfigurationState.class);
     private Map<String, Boolean> classFieldMockActiveStatus = new HashMap<>();
     private Map<String, Boolean> mockActiveStatus = new HashMap<>();
+    @OptionTag(converter = FilterModelConverter.class)
     private FilterModel filterModel = new FilterModel();
 
     public InsidiousConfigurationState() {
     }
 
+
     public FilterModel getFilterModel() {
+        if (filterModel == null) {
+            filterModel = new FilterModel();
+        }
         return filterModel;
+    }
+
+    public void setFilterModel(FilterModel filterModel) {
+        this.filterModel = filterModel;
     }
 
     @Override
@@ -40,7 +54,6 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
     public void loadState(InsidiousConfigurationState state) {
         XmlSerializerUtil.copyBean(state, this);
     }
-
 
     public void removeMock(String id) {
         mockActiveStatus.remove(id);
@@ -81,7 +94,6 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
     public boolean isFieldMockActive(String key) {
         return classFieldMockActiveStatus.containsKey(key);
     }
-
 
     public boolean hasShownFeatures() {
         return classFieldMockActiveStatus.containsKey("hasShownFeatures");

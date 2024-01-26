@@ -1,11 +1,11 @@
 package com.insidious.plugin.callbacks;
 
-import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 
 import java.awt.*;
+import java.awt.event.MouseEvent;
 import java.util.List;
 
 public interface TestCandidateLifeListener {
@@ -37,7 +37,7 @@ public interface TestCandidateLifeListener {
 
     void onGenerateJunitTestCaseRequest(TestCandidateMetadata storedCandidate);
 
-    void onCandidateSelected(TestCandidateMetadata testCandidateMetadata);
+    void onCandidateSelected(TestCandidateMetadata testCandidateMetadata, MouseEvent e);
 
     void onCancel();
 

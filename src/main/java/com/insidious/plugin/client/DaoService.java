@@ -252,7 +252,9 @@ public class DaoService {
                 }
                 com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata subTcm = getTestCandidateByMethodCallId(
                         methodCallExpressionById.getId(), true);
-                converted.getLineNumbers().addAll(subTcm.getLineNumbers());
+                if (subTcm != null) {
+                    converted.getLineNumbers().addAll(subTcm.getLineNumbers());
+                }
 //            logger.warn("Add call [" + methodCallExpressionById.getMethodName() + "] - " + methodCallExpressionById);
                 if (methodCallExpressionById.isMethodPublic()
                         || methodCallExpressionById.isMethodProtected()
@@ -975,10 +977,9 @@ public class DaoService {
     public void createOrUpdateTestCandidate(Collection<TestCandidateMetadata> candidatesToSave) {
         try {
 //            TestCandidateMetadata toSave;
-            for (TestCandidateMetadata testCandidateMetadata : candidatesToSave) {
-//                toSave = TestCandidateMetadata.FromTestCandidateMetadata(testCandidateMetadata);
-                testCandidateDao.create(testCandidateMetadata);
-            }
+            long time = new Date().getTime();
+            candidatesToSave.forEach(e -> e.setCreatedAt(time));
+            testCandidateDao.create(candidatesToSave);
         } catch (Exception e) {
             if (shutDown) {
                 return;
@@ -1591,7 +1592,7 @@ public class DaoService {
                 .stream()
                 .map(e -> {
                     try {
-                        return convertTestCandidateMetadata(e, true);
+                        return convertTestCandidateMetadata(e, false);
                     } catch (Exception ex) {
                         throw new RuntimeException(ex);
                     }

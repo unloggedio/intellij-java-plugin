@@ -517,7 +517,7 @@ public class TestCaseDesignerLite {
 
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
         testCandidateMetadata.setLines(List.of());
-
+        testCandidateMetadata.setCreatedAt(new Date().getTime());
         Parameter testSubjectParameter = new Parameter();
         testSubjectParameter.setType(currentClass.getQualifiedName());
         testSubjectParameter.setValue(random.nextLong());

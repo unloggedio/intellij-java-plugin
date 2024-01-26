@@ -1,6 +1,5 @@
 package com.insidious.plugin.inlay;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.MethodCallAggregate;
@@ -8,9 +7,10 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.highlighter.MethodMockGutterNavigationHandler;
+import com.insidious.plugin.ui.highlighter.MockItemClickListener;
 import com.insidious.plugin.ui.highlighter.MockMethodLineHighlighter;
+import com.insidious.plugin.ui.mocking.MockDefinitionListPanel;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.hints.FactoryInlayHintsCollector;
 import com.intellij.codeInsight.hints.InlayHintsSink;
@@ -19,13 +19,23 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.ex.util.EditorUtil;
+import com.intellij.openapi.ui.popup.ActiveIcon;
+import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
+import com.intellij.openapi.ui.popup.JBPopup;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiMethodImpl;
 import com.intellij.psi.javadoc.PsiDocComment;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.JBColor;
+import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.containers.JBIterable;
+import org.jetbrains.annotations.Nullable;
 
+import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
 import java.awt.*;
 import java.util.List;
 import java.util.*;
@@ -38,10 +48,10 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     public static final Integer UNLOGGED_RESPONSE_GROUP = 102;
     private static final Logger logger = LoggerUtil.getInstance(InsidiousInlayHintsCollector.class);
     private final InsidiousService insidiousService;
-    private final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final Editor editor;
     private PsiClass currentClass;
     private ClassMethodAggregates classMethodAggregates;
+
 
     public InsidiousInlayHintsCollector(Editor editor) {
         super(editor);
@@ -95,47 +105,14 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
             createInlinePresentationsForMethod((PsiMethod) element, editor, inlayHintsSink);
         } else if (element instanceof PsiMethodCallExpression) {
             PsiMethodCallExpression methodCallExpression = (PsiMethodCallExpression) element;
+            PsiMethodCallExpression hasParent = PsiTreeUtil.getParentOfType(
+                    methodCallExpression, PsiMethodCallExpression.class);
+            if (hasParent != null) {
+                // we only deal with top level calls
+                return true;
+            }
             createInlinePresentationsForCallExpression(methodCallExpression, editor, inlayHintsSink);
         }
-
-
-//            String executionPairKey = currentClass.getQualifiedName() + "#" + ((PsiMethod) element).getName();
-//            Pair<AgentCommandRequest, AgentCommandResponse> executionPairList = insidiousService.getExecutionPairs(
-//                    executionPairKey);
-//            if (executionPairList != null) {
-//                AgentCommandRequest agentRequest = executionPairList.getFirst();
-//                AgentCommandResponse agentResponse = executionPairList.getSecond();
-//
-//                BlockConstraints requestInlayConstraints = new BlockConstraints(false, 101, UNLOGGED_REQUEST_GROUP,
-//                        column);
-//                BlockConstraints responseInlayConstraints = new BlockConstraints(false, 102, UNLOGGED_RESPONSE_GROUP,
-//                        column);
-//                StringBuilder methodParameterText = new StringBuilder();
-//                List<String> methodParameters = agentRequest.getMethodParameters();
-//                for (int i = 0; i < methodParameters.size(); i++) {
-//                    JvmParameter parameter = methodElement.getParameters()[i];
-//                    String methodParameter = methodParameters.get(i);
-//                    if (i > 0) {
-//                        methodParameterText.append(", ");
-//                    }
-//                    methodParameterText.append(parameter.getName()).append(": ").append(methodParameter);
-//                }
-//
-//                String inputInlayText = String.format("Input: " + methodParameterText);
-//                InlayPresentation executionRequestInlay = createInlayPresentation(inputInlayText);
-//
-//                InlayPresentation executionResponseInlay = createInlayPresentation(
-//                        (Map) agentResponse.getMethodReturnValue());
-//
-//                RecursivelyUpdatingRootPresentation requestInlayRoot =
-//                        new RecursivelyUpdatingRootPresentation(executionRequestInlay);
-//                inlayHintsSink.addBlockElement(line, true, requestInlayRoot, requestInlayConstraints);
-//
-//                RecursivelyUpdatingRootPresentation responseInlayRoot =
-//                        new RecursivelyUpdatingRootPresentation(executionResponseInlay);
-//                inlayHintsSink.addBlockElement(line, true, responseInlayRoot, responseInlayConstraints);
-//
-//            }
 
         return true;
     }
@@ -178,8 +155,21 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
             }
         }
 
-        if (mockableCalls.size() == 0) {
+        int mockableCallCount = mockableCalls.size();
+        if (mockableCallCount == 0) {
             return;
+        }
+        if (mockableCallCount == 1) {
+            PsiMethodCallExpression theCall = mockableCalls.get(0);
+            @Nullable PsiExpression qualifierTextExpression = theCall.getMethodExpression()
+                    .getQualifierExpression();
+            if (qualifierTextExpression == null) {
+                return;
+            }
+            String qualifierText = qualifierTextExpression.getText();
+            if (qualifierText.equals("log") || qualifierText.equals("logger")) {
+                return;
+            }
         }
 
 
@@ -191,22 +181,15 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
         List<InlayPresentation> inlayPresentations = new ArrayList<>();
 
-        inlayPresentations.add(new SpacePresentation(column * columnWidth, 0));
-        inlayPresentations.add(new IconPresentation(UIUtils.GHOST_MOCK, editor.getComponent()));
-        inlayPresentations.add(createInlayPresentation(" "));
-        inlayPresentations.add(createInlayPresentation(mockableCalls.size() + " calls"));
+        inlayPresentations.add(new SpacePresentation(column * columnWidth - 2, 0));
+
+
+        inlayPresentations.add(getFactory().icon(UIUtils.GHOST_MOCK));
         if (savedMockCount > 0) {
-            inlayPresentations.add(createInlayPresentation(", "));
-            inlayPresentations.add(createInlayPresentation(savedMockCount + " saved mocks"));
-
+            inlayPresentations.add(createInlayPresentation(savedMockCount + " saved mocks", "click to browse"));
+        } else {
+            inlayPresentations.add(createMockInlayPresentation(mockableCalls));
         }
-
-        //        InlayPresentation inlayShowingCount = createInlayPresentation(5 + " calls");
-//        InlayPresentation inlayShowingAverage = createInlayPresentation(", ");
-//        InlayPresentation inlayShowingAverage = createInlayPresentation(String.format("avg: " + formatTimeDuration(4F)));
-//        InlayPresentation inlayShowingAverage = createInlayPresentation(", ");
-//        InlayPresentation inlayShowingStdDev = createInlayPresentation(String.format("stdDev: " + formatTimeDuration(5F)));
-
 
         SequencePresentation sequenceOfInlays = new SequencePresentation(inlayPresentations);
 
@@ -217,8 +200,6 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     private void createInlinePresentationsForMethod(PsiMethod methodPsiElement, Editor editor, InlayHintsSink inlayHintsSink) {
         MethodCallAggregate methodAggregate = classMethodAggregates.getMethodAggregate(methodPsiElement.getName());
         if (methodAggregate == null) {
-//                logger.warn(
-//                        "no aggregate found for method [" + currentClass.getQualifiedName() + "." + methodElement.getName() + "()]");
             return;
         }
 
@@ -228,11 +209,13 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         TextRange range = getTextRangeWithoutLeadingCommentsAndWhitespaces(methodPsiElement);
 
 
-        InlayPresentation inlayShowingCount = createInlayPresentation(methodAggregate.getCount() + " calls");
-        String avgStringText = String.format(", avg: " + formatTimeDuration(methodAggregate.getAverage()));
-        InlayPresentation inlayShowingAverage = createInlayPresentation(avgStringText);
-        String stdDevStringText = String.format(", stdDev: " + formatTimeDuration(methodAggregate.getStdDev()));
-        InlayPresentation inlayShowingStdDev = createInlayPresentation(stdDevStringText);
+        Integer count = methodAggregate.getCount();
+        InlayPresentation inlayShowingCount = createInlayPresentation(count + (count < 2 ? " call" : " calls"),
+                "click to filter in timeline");
+        String avgStringText = String.format(formatTimeDuration(methodAggregate.getAverage()));
+        InlayPresentation inlayShowingAverage = createInlayPresentation(avgStringText, "mean");
+        String stdDevStringText = String.format(formatTimeDuration(methodAggregate.getStdDev()));
+        InlayPresentation inlayShowingStdDev = createInlayPresentation(stdDevStringText, "stdDev");
 
 
         int line = editor.getDocument().getLineNumber(range.getStartOffset());
@@ -242,8 +225,15 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         int column = offset - startOffset;
 
         SequencePresentation sequenceOfInlays = new SequencePresentation(
-                Arrays.asList(new SpacePresentation(column * columnWidth, 0), inlayShowingCount,
-                        inlayShowingAverage, inlayShowingStdDev));
+                Arrays.asList(
+                        new SpacePresentation(column * columnWidth, 0),
+                        inlayShowingCount,
+                        getFactory().textSpacePlaceholder(1, false),
+                        inlayShowingAverage,
+                        getFactory().textSpacePlaceholder(1, false),
+                        inlayShowingStdDev
+                )
+        );
 
 //        logger.warn("PSIElement " +
 //                "[" + methodPsiElement.getClass().getSimpleName() + "]" +
@@ -265,13 +255,125 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         return TextRange.create(start.getTextRange().getStartOffset(), element.getTextRange().getEndOffset());
     }
 
+    private InlayPresentation createCommaInlayPresentation() {
 
-    private InlayPresentation createInlayPresentation(final String inlayText) {
+        PresentationFactory factory = getFactory();
+        InlayPresentation text;
+
+        text = factory.smallText(", ");
+        return text;
+    }
+
+
+    private InlayPresentation createMockInlayPresentation(List<PsiMethodCallExpression> mockableCallExpressions) {
+
+        PresentationFactory factory = getFactory();
+        InlayPresentation text;
+
+        text = factory.smallText("create mock");
+        text = factory.withReferenceAttributes(text);
+
+        text = new OnClickPresentation(text, (mouseEvent, point) -> {
+            logger.warn("inlay clicked create mock");
+            if (mockableCallExpressions.size() > 1) {
+                JPanel gutterMethodPanel = new JPanel();
+                gutterMethodPanel.setLayout(new GridLayout(0, 1));
+                gutterMethodPanel.setMinimumSize(new Dimension(400, 300));
+
+                for (PsiMethodCallExpression methodCallExpression : mockableCallExpressions) {
+                    PsiReferenceExpression methodExpression = methodCallExpression.getMethodExpression();
+                    String methodCallText = methodExpression.getText();
+                    JPanel methodItemPanel = new JPanel();
+                    methodItemPanel.setLayout(new BorderLayout());
+
+                    methodItemPanel.add(new JLabel(methodCallText), BorderLayout.CENTER);
+                    JLabel iconLabel = new JLabel(UIUtils.CHECK_GREEN_SMALL);
+                    Border border = iconLabel.getBorder();
+                    CompoundBorder borderWithMargin;
+                    borderWithMargin = BorderFactory.createCompoundBorder(border,
+                            BorderFactory.createEmptyBorder(0, 5, 0, 5));
+                    iconLabel.setBorder(borderWithMargin);
+                    methodItemPanel.add(iconLabel, BorderLayout.EAST);
+
+                    Border currentBorder = methodItemPanel.getBorder();
+                    borderWithMargin = BorderFactory.createCompoundBorder(currentBorder,
+                            BorderFactory.createEmptyBorder(5, 10, 5, 5));
+                    methodItemPanel.setBorder(borderWithMargin);
+                    methodItemPanel.addMouseListener(new MockItemClickListener(methodItemPanel, methodCallExpression));
+
+                    gutterMethodPanel.add(methodItemPanel);
+
+                }
+
+
+                ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+                        .createComponentPopupBuilder(gutterMethodPanel, null);
+
+                gutterMethodComponentPopup
+                        .setProject(insidiousService.getProject())
+                        .setShowBorder(true)
+                        .setShowShadow(true)
+                        .setFocusable(true)
+                        .setRequestFocus(true)
+                        .setCancelOnClickOutside(true)
+                        .setCancelOnOtherWindowOpen(true)
+                        .setCancelKeyEnabled(true)
+                        .setBelongsToGlobalPopupStack(false)
+                        .setTitle("Mock Method Calls")
+                        .setTitleIcon(new ActiveIcon(UIUtils.GHOST_MOCK))
+                        .createPopup()
+                        .show(new RelativePoint(mouseEvent));
+
+            } else if (mockableCallExpressions.size() == 1) {
+
+                // there is only a single mockable call on this line
+
+                PsiMethodCallExpression methodCallExpression = mockableCallExpressions.get(0);
+                MockDefinitionListPanel gutterMethodPanel = new MockDefinitionListPanel(methodCallExpression);
+
+                JComponent gutterMethodComponent = gutterMethodPanel.getComponent();
+
+                ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+                        .createComponentPopupBuilder(gutterMethodComponent, null);
+
+                JBPopup componentPopUp = gutterMethodComponentPopup
+                        .setProject(methodCallExpression.getProject())
+                        .setShowBorder(true)
+                        .setShowShadow(true)
+                        .setFocusable(true)
+                        .setMinSize(new Dimension(600, -1))
+                        .setRequestFocus(true)
+                        .setResizable(true)
+                        .setCancelOnClickOutside(true)
+                        .setCancelOnOtherWindowOpen(true)
+                        .setCancelKeyEnabled(true)
+                        .setBelongsToGlobalPopupStack(false)
+                        .setTitle("Manage Mocks")
+                        .setTitleIcon(new ActiveIcon(UIUtils.GHOST_MOCK))
+                        .createPopup();
+                componentPopUp.show(new RelativePoint(mouseEvent));
+                gutterMethodPanel.setPopupHandle(componentPopUp);
+
+
+            }
+
+        });
+
+        text = factory.withTooltip("<html>Click to browse mocks\n\nMultiline<br /> <b>bold</b></html>", text);
+
+        text = new WithCursorOnHoverPresentation(text);
+
+        return text;
+    }
+
+
+    private InlayPresentation createInlayPresentation(final String inlayText, String hoverText) {
 
         PresentationFactory factory = getFactory();
         InlayPresentation text;
 
         text = factory.smallText(inlayText);
+        text = factory.withReferenceAttributes(text);
 
         text = new OnClickPresentation(text, (mouseEvent, point) -> {
             logger.warn("inlay clicked: " + inlayText);
@@ -281,70 +383,12 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
         text = new ChangeOnHoverPresentation(text, () -> onHover, mouseEvent -> true);
 
-//        text = new OnHoverPresentation(text, new InlayPresentationFactory.HoverListener() {
-//            @Override
-//            public void onHover(MouseEvent mouseEvent, Point point) {
-//                logger.warn("inlay onHover: " + inlayText);
-//
-//                if (!(text instanceof StatefulPresentation)) return true;
-//                val previousState = text._state;
-//                var changedState = false
-//                if (previousState != _state) {
-//                    val previousMark = text.stateMark
-//                    if (stateMark == previousMark) {
-//                        val castedPrevious = stateMark.cast(previousState, previousMark)
-//                        if (castedPrevious != null) {
-//                            updateStateAndPresentation(castedPrevious)
-//                            changedState = true
-//                        }
-//                    }
-//                }
-//                val underlineChanged = currentPresentation.updateState(text.currentPresentation)
-//                return changedState || underlineChanged
-//
-//
-//                text.updateState(underlinedInlayPresentation);
-//            }
-//
-//            @Override
-//            public void onHoverFinished() {
-//                logger.warn("inlay onHoverFinithsh: " + inlayText);
-//
-//            }
-//        });
-        text = factory.withTooltip("<html>Click to browse mocks\n\nMultiline<br /> <b>bold</b></html>", text);
-//            new WithCursorOnHoverPresentation(text, Cursor.HAND_CURSOR, editor);
-//            factory.withCursorOnHover(text, Cursor.HAND_CURSOR)
-//        }
 
-//        return withIcon;
+        text = factory.withTooltip(hoverText, text);
 
-//        return factory.referenceOnHover(withIcon, (mouseEvent, point) -> {
-//            logger.warn("inlay on hover: " + mouseEvent.getPoint());
-//        });
+        text = new WithCursorOnHoverPresentation(text);
+
         return text;
-    }
-
-
-    private InlayPresentation createInlayPresentation(Map valueInMap) {
-
-        PresentationFactory factory = getFactory();
-        InlayPresentation text;
-        try {
-            String prettyJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(valueInMap);
-            text = factory.smallText(prettyJson);
-        } catch (Exception e) {
-            // not a json value
-            text = factory.smallText(String.valueOf(valueInMap));
-        }
-
-        InlayPresentation withIcon = text;
-
-        return withIcon;
-
-//        return factory.referenceOnHover(withIcon, (mouseEvent, point) -> {
-//            logger.warn("inlay on hover: " + mouseEvent.getPoint());
-//        });
     }
 
 

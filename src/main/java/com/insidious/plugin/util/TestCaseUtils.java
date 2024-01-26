@@ -4,6 +4,7 @@ import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
@@ -26,30 +27,35 @@ public class TestCaseUtils {
                 TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Gson, ResourceEmbedMode.IN_FILE
         );
 
-        sessionInstance.getAllTestCandidates(testCandidateMetadata -> {
-            try {
-                TestCaseUnit testCaseUnit;
-                Parameter testSubject = testCandidateMetadata.getTestSubject();
-                if (testSubject.isException()) {
-                    return;
+        sessionInstance.getTestCandidates(testCandidateMetadata -> {
+
+            for (TestCandidateMetadata testCandidateMetadatum : testCandidateMetadata) {
+                try {
+                    TestCaseUnit testCaseUnit;
+                    Parameter testSubject = testCandidateMetadatum.getTestSubject();
+                    if (testSubject.isException()) {
+                        return;
+                    }
+                    MethodCallExpression callExpression = testCandidateMetadatum.getMainMethod();
+                    logger.warn(
+                            "Generating test case: " + testSubject.getType() + "." + callExpression.getMethodName() + "()");
+                    generationConfiguration.getTestCandidateMetadataList().clear();
+                    generationConfiguration.getTestCandidateMetadataList().add(testCandidateMetadatum);
+
+                    generationConfiguration.getCallExpressionList().clear();
+                    generationConfiguration.getCallExpressionList().addAll(testCandidateMetadatum.getCallsList());
+
+                    testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+                    List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
+                    testCaseUnit1.add(testCaseUnit);
+                    TestSuite testSuite = new TestSuite(testCaseUnit1);
+                    insidiousService.getJUnitTestCaseWriter().saveTestSuite(testSuite);
+                } catch (Exception e) {
+                    logger.error("Failed to generate test case for [" + testCandidateMetadatum + "]", e);
                 }
-                MethodCallExpression callExpression = testCandidateMetadata.getMainMethod();
-                logger.warn(
-                        "Generating test case: " + testSubject.getType() + "." + callExpression.getMethodName() + "()");
-                generationConfiguration.getTestCandidateMetadataList().clear();
-                generationConfiguration.getTestCandidateMetadataList().add(testCandidateMetadata);
 
-                generationConfiguration.getCallExpressionList().clear();
-                generationConfiguration.getCallExpressionList().addAll(testCandidateMetadata.getCallsList());
-
-                testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-                List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
-                testCaseUnit1.add(testCaseUnit);
-                TestSuite testSuite = new TestSuite(testCaseUnit1);
-                insidiousService.getJUnitTestCaseWriter().saveTestSuite(testSuite);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
+
 
         }, 0);
     }

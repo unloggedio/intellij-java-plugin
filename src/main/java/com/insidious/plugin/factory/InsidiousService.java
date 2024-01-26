@@ -35,9 +35,13 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.record.AtomicRecordService;
-import com.insidious.plugin.ui.*;
+import com.insidious.plugin.ui.InsidiousCaretListener;
+import com.insidious.plugin.ui.IntroductionPanel;
+import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
+import com.insidious.plugin.ui.library.LibraryComponent;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
@@ -50,15 +54,11 @@ import com.intellij.debugger.DebuggerManagerEx;
 import com.intellij.debugger.impl.DebuggerSession;
 import com.intellij.debugger.ui.HotSwapStatusListener;
 import com.intellij.debugger.ui.HotSwapUIImpl;
-import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffManager;
-import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.compiler.CompileStatusNotification;
 import com.intellij.openapi.compiler.CompilerManager;
@@ -145,7 +145,6 @@ final public class InsidiousService implements
     private MethodDirectInvokeComponent methodDirectInvokeComponent;
     private CoverageReportComponent coverageReportComponent;
     private StompComponent stompWindow;
-    private AtomicTestComponent atomicTestComponentWindow;
     private Content testDesignerContent;
     private Content directMethodInvokeContent;
     private Content atomicTestContent;
@@ -971,6 +970,7 @@ final public class InsidiousService implements
         testCaseService = new TestCaseService(sessionInstance);
         if (stompWindow != null) {
             sessionInstance.addSessionScanEventListener(stompWindow.getScanEventListener());
+            stompWindow.setSession(executionSession);
             stompWindow.loadNewCandidates();
         }
     }
@@ -1055,13 +1055,6 @@ final public class InsidiousService implements
         );
     }
 
-
-    public CandidateSearchQuery createSearchQueryForMethod(MethodAdapter currentMethod, CandidateFilterType candidateFilterType) {
-        return CandidateSearchQuery.fromMethod(currentMethod,
-                getInterfacesWithSameSignature(currentMethod),
-                getMethodArgsDescriptor(currentMethod), candidateFilterType);
-    }
-
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
         if (currentState.getSessionInstance() == null) {
             setSession(sessionManager.loadDefaultSession());
@@ -1081,143 +1074,8 @@ final public class InsidiousService implements
 
     @Override
     public GutterState getGutterStateFor(MethodAdapter method) {
-        // agent exists but cannot connect with agent server
-        // so no process is running with the agent
         return GutterState.PROCESS_RUNNING;
-//        SessionInstance sessionInstance = currentState.getSessionInstance();
-//        if (!currentState.isAgentServerRunning() || sessionInstance == null) {
-//            return GutterState.PROCESS_NOT_RUNNING;
-//        }
-//
-//        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(method);
-//        final String methodHashKey = methodUnderTest.getMethodHashKey();
-//        if (cachedGutterState.containsKey(methodHashKey)) {
-//            return cachedGutterState.get(methodHashKey);
-//        }
-//
-//        CandidateSearchQuery query = createSearchQueryForMethod(method, CandidateFilterType.METHOD);
-//
-//        List<TestCandidateMetadata> candidates = getTestCandidatesFromSession(query);
-//        AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
-//
-//        //check for stored candidates here
-//        boolean hasStoredCandidates = atomicRecordService.hasStoredCandidateForMethod(methodUnderTest);
-//
-//
-//        GutterState gutterState = atomicRecordService.computeGutterState(methodUnderTest);
-//
-//        // process is running, but no test candidates for this method
-//        if (candidates.size() == 0 && !hasStoredCandidates) {
-//            cachedGutterState.put(methodHashKey, GutterState.PROCESS_RUNNING);
-//            return GutterState.PROCESS_RUNNING;
-//        }
-//
-//        // process is running, and there were test candidates for this method
-//        // so check if we have executed this before
-//
-//        //check for change
-//
-//        // we haven't checked anything for this method earlier
-//        // store method hash for diffs
-//        String methodText = method.getText();
-//        if (!this.methodHash.containsKey(methodHashKey)) {
-//            //register new hash
-//            this.methodHash.put(methodHashKey, methodText.hashCode());
-//        }
-//
-//        int lastHash = this.methodHash.get(methodHashKey);
-//        int currentHash = methodText.hashCode();
-//
-//        if (lastHash != currentHash) {
-//            //re-execute as there are hash diffs
-//            //update hash after execution is complete for this method,
-//            //to prevent state change before exec complete.
-//            classModifiedFlagMap.put(methodUnderTest.getClassName(), true);
-//            ApplicationManager.getApplication()
-//                    .invokeLater(() -> highlightLines(currentState.getCurrentHighlightedRequest()));
-//            cachedGutterState.put(methodHashKey, GutterState.EXECUTE);
-//            return GutterState.EXECUTE;
-//        }
-//
-//        if (!executionRecord.containsKey(methodHashKey) && hasStoredCandidates && gutterState != null) {
-//            cachedGutterState.put(methodHashKey, gutterState);
-//            return gutterState;
-//        } else {
-//            if (!executionRecord.containsKey(methodHashKey)) {
-//                cachedGutterState.put(methodHashKey, GutterState.DATA_AVAILABLE);
-//                return GutterState.DATA_AVAILABLE;
-//            }
-//        }
-//
-//        DifferenceResult differenceResult = executionRecord.get(methodHashKey);
-//
-//        if (this.candidateIndividualContextMap.get(methodHashKey) != null &&
-//                differenceResult.isUseIndividualContext()) {
-////            logger.info("Using flow ind : " + this.candidateIndividualContextMap.get(methodHashKey));
-//            switch (this.candidateIndividualContextMap.get(methodHashKey)) {
-//                case "Diff":
-//                    cachedGutterState.put(methodHashKey, GutterState.DIFF);
-//                    return GutterState.DIFF;
-//                case "NoRun":
-//                    cachedGutterState.put(methodHashKey, GutterState.EXECUTE);
-//                    return GutterState.EXECUTE;
-//                default:
-//                    cachedGutterState.put(methodHashKey, GutterState.NO_DIFF);
-//                    return GutterState.NO_DIFF;
-//            }
-//        }
-////        logger.info("Using flow normal : " + differenceResult.getDiffResultType());
-//        switch (differenceResult.getDiffResultType()) {
-//            case DIFF:
-//                cachedGutterState.put(methodHashKey, GutterState.DIFF);
-//                return GutterState.DIFF;
-//            case NO_ORIGINAL:
-//                cachedGutterState.put(methodHashKey, GutterState.NO_DIFF);
-//                return GutterState.NO_DIFF;
-//            case SAME:
-//                cachedGutterState.put(methodHashKey, GutterState.NO_DIFF);
-//                return GutterState.NO_DIFF;
-//            default:
-//                cachedGutterState.put(methodHashKey, GutterState.DIFF);
-//                return GutterState.DIFF;
-//        }
     }
-
-    private boolean shouldShowReExecute(MethodAdapter adapter, MethodUnderTest methodUnderTest) {
-        String methodText = adapter.getText();
-        if (!this.methodHash.containsKey(methodUnderTest.getMethodHashKey())) {
-            //register new hash
-            this.methodHash.put(methodUnderTest.getMethodHashKey(), methodText.hashCode());
-        }
-
-        int lastHash = this.methodHash.get(methodUnderTest.getMethodHashKey());
-        int currentHash = methodText.hashCode();
-
-        if (lastHash != currentHash) {
-            //re-execute as there are hash diffs
-            //update hash after execution is complete for this method,
-            //to prevent state change before exec complete.
-            classModifiedFlagMap.put(methodUnderTest.getClassName(), true);
-            ApplicationManager.getApplication()
-                    .invokeLater(() -> highlightLines(currentState.getCurrentHighlightedRequest()));
-            cachedGutterState.put(methodUnderTest.getMethodHashKey(), GutterState.EXECUTE);
-            return true;
-        }
-        return false;
-    }
-
-    public GutterState getGutterStateBasedOnAgentState() {
-//        if(!agentStateProvider.doesAgentExist())
-//        {
-//            return GutterState.NO_AGENT;
-//        }
-        if (currentState.isAgentServerRunning()) {
-            return GutterState.PROCESS_RUNNING;
-        } else {
-            return GutterState.PROCESS_NOT_RUNNING;
-        }
-    }
-
 
     public List<String> getInterfacesWithSameSignature(MethodAdapter method) {
         String methodName = method.getName();
@@ -1253,57 +1111,6 @@ final public class InsidiousService implements
         }
         return List.of();
 
-//
-//        List<TestCandidateMetadata> candidateMetadataList = getTestCandidatesFromSession(candidateSearchQuery);
-//        MethodUnderTest methodUnderTest = MethodUnderTest.fromCandidateSearchQuery(candidateSearchQuery);
-//        AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
-//
-//        List<StoredCandidate> candidates = atomicRecordService.getStoredCandidatesForMethod(methodUnderTest);
-//
-//        List<StoredCandidate> storedCandidates = new ArrayList<>(candidates);
-//
-//        candidateMetadataList.stream()
-//                .map(StoredCandidate::new)
-//                .peek(e -> e.setMethod(methodUnderTest))
-//                .forEach(storedCandidates::add);
-//
-////        logger.info("StoredCandidates pre filter for " + method.getName() + " -> " + storedCandidates);
-//        FilteredCandidateResponseList filterStoredCandidates = filterStoredCandidates(storedCandidates);
-//        List<String> updatedCandidateIds = filterStoredCandidates.getUpdatedCandidateIds();
-//        updateProbeIdsForSavedCandidatesWithOldProbeIndex(
-//                filterStoredCandidates.getCandidateList(),
-//                candidateMetadataList);
-//        if (updatedCandidateIds.size() > 0) {
-//            atomicRecordService.setUseNotifications(false);
-//            // because we are dealing with objects
-//            // and line numbers are changed in the objects originally returned
-//            // so they are changed in the cache map of the ARS
-//            // so updating just one record by this call will actually persist all the changes we have made
-//            atomicRecordService.saveCandidate(methodUnderTest, filterStoredCandidates.getCandidateList().get(0));
-////            filterStoredCandidates.getCandidateList().stream()
-////                    .filter(e -> updatedCandidateIds.contains(e.getCandidateId()))
-////                    .forEach(e -> atomicRecordService.saveCandidate(methodUnderTest, e));
-//            atomicRecordService.setUseNotifications(true);
-//        }
-//        return filterStoredCandidates.getCandidateList();
-    }
-
-    private void updateProbeIdsForSavedCandidatesWithOldProbeIndex(List<StoredCandidate> storedCandidates, List<TestCandidateMetadata> candidateMetadataList) {
-        List<StoredCandidate> savedCandidatesWithOldProbes = storedCandidates.stream()
-                .filter(e ->
-                        e.getCandidateId() != null &&
-                                currentState.getSessionInstance()
-                                        .getTestCandidateById(e.getEntryProbeIndex(), true) == null)
-                .collect(Collectors.toList());
-        savedCandidatesWithOldProbes.forEach(e -> {
-            for (TestCandidateMetadata candidateMetadata : candidateMetadataList) {
-                List<String> arguments = TestCandidateUtils.buildArgumentValuesFromTestCandidate(candidateMetadata);
-                if (arguments.toString().equals(e.getMethodArguments().toString())) {
-                    e.setEntryProbeIndex(candidateMetadata.getEntryProbeIndex());
-                    break;
-                }
-            }
-        });
 
     }
 
@@ -1360,20 +1167,6 @@ final public class InsidiousService implements
         DaemonCodeAnalyzer.getInstance(project).restart();
     }
 
-    public void updateScaffoldForState(GutterState state) {
-        if (this.atomicTestComponentWindow != null) {
-            atomicTestComponentWindow.loadComponentForState(state);
-            if (this.atomicTestContent != null) {
-                ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
-                toolWindow.getContentManager().setSelectedContent(this.atomicTestContent);
-            }
-        }
-    }
-
-    public MethodDirectInvokeComponent getDirectInvokeTab() {
-        return methodDirectInvokeComponent;
-    }
-
     public void focusDirectInvokeTab() {
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
         if (toolWindow == null || directMethodInvokeContent == null) {
@@ -1381,23 +1174,6 @@ final public class InsidiousService implements
         }
         ApplicationManager.getApplication().invokeLater(
                 () -> toolWindow.getContentManager().setSelectedContent(directMethodInvokeContent, false));
-    }
-
-    public void focusTestCaseDesignerTab() {
-        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
-        if (toolWindow == null || testDesignerContent == null) {
-            return;
-        }
-        ApplicationManager.getApplication().invokeLater(
-                () -> toolWindow.getContentManager().setSelectedContent(testDesignerContent, true));
-    }
-
-    public void generateCompareWindows(String before, String after) {
-        DocumentContent content1 = DiffContentFactory.getInstance().create(getPrettyJsonString(before));
-        DocumentContent content2 = DiffContentFactory.getInstance().create(getPrettyJsonString(after));
-        SimpleDiffRequest request = new SimpleDiffRequest(
-                "Comparing Before and After", content1, content2, "Before", "After");
-        showDiffEditor(request);
     }
 
     private String getPrettyJsonString(String input) {
@@ -1509,17 +1285,6 @@ final public class InsidiousService implements
 //        reportingService.addRecord(result);
     }
 
-    public void setAgentProcessState(GutterState newState) {
-        if (this.atomicTestComponentWindow != null) {
-            atomicTestComponentWindow.loadComponentForState(newState);
-        }
-    }
-
-    public void compileAndExecuteWithAgentForMethod(JavaMethodAdapter methodAdapter) {
-        atomicTestComponentWindow.triggerMethodExecutorRefresh(methodAdapter);
-        atomicTestComponentWindow.triggerCompileAndExecute();
-    }
-
 
     public void focusAtomicTestsWindow() {
         if (this.atomicTestContent != null) {
@@ -1531,24 +1296,6 @@ final public class InsidiousService implements
 
     public boolean isAgentConnected() {
         return currentState.isAgentServerRunning();
-    }
-
-
-    public void setAtomicWindowHeading(String name) {
-//        atomicTestContent.setDisplayName(name);
-//        if (name.startsWith("Get")) {
-//            atomicTestContent.setIcon(UIUtils.ONBOARDING_ICON_PINK);
-//        } else {
-//            atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
-//        }
-    }
-
-    public Map<String, String> getIndividualCandidateContextMap() {
-        return this.candidateIndividualContextMap;
-    }
-
-    public void toggleReportGeneration() {
-//        this.reportingService.toggleReportMode();
     }
 
     public MethodDefinition getMethodInformation(MethodUnderTest methodUnderTest) {
@@ -1644,6 +1391,11 @@ final public class InsidiousService implements
         }
     }
 
+    public void toggleReportGeneration() {
+        this.reportingService.toggleReportMode();
+    }
+
+
     public void setCodeCoverageHighlightEnabled(boolean state) {
         currentState.setCodeCoverageHighlightEnabled(state);
         highlightLines(currentState.getCurrentHighlightedRequest());
@@ -1665,6 +1417,11 @@ final public class InsidiousService implements
     public List<DeclaredMock> getDeclaredMocksOf(MethodUnderTest methodUnderTest) {
         AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         return atomicRecordService.getDeclaredMocksOf(methodUnderTest);
+    }
+
+
+    public void showLibraryComponent() {
+        LibraryComponent libraryComponent = new LibraryComponent();
     }
 
     public List<DeclaredMock> getDeclaredMocksFor(MethodUnderTest methodUnderTest) {
@@ -1751,23 +1508,24 @@ final public class InsidiousService implements
     }
 
     public void onAgentConnected(ServerMetadata serverMetadata) {
+        logger.info("unlogged agent connected - " + serverMetadata);
         currentState.setAgentServerRunning(true);
-        Collection<? extends AnAction> actions = Arrays.asList(
-                new AnAction("Direct Invoke") {
-                    @Override
-                    public void actionPerformed(AnActionEvent e) {
-                        focusDirectInvokeTab();
-                        openToolWindow();
-                    }
-                },
-                new AnAction("Replay List") {
-                    @Override
-                    public void actionPerformed(AnActionEvent e) {
-                        focusAtomicTestsWindow();
-                        openToolWindow();
-                    }
-                }
-        );
+//        Collection<? extends AnAction> actions = Arrays.asList(
+//                new AnAction("Direct Invoke") {
+//                    @Override
+//                    public void actionPerformed(AnActionEvent e) {
+//                        focusDirectInvokeTab();
+//                        openToolWindow();
+//                    }
+//                },
+//                new AnAction("Replay List") {
+//                    @Override
+//                    public void actionPerformed(AnActionEvent e) {
+//                        focusAtomicTestsWindow();
+//                        openToolWindow();
+//                    }
+//                }
+//        );
 //        InsidiousNotification.notifyMessage("Recording in progress package " +
 //                        serverMetadata.getIncludePackageName() + " " +
 //                        "Executed methods and saved replays will show up in the " +
@@ -1775,19 +1533,14 @@ final public class InsidiousService implements
 //                NotificationType.INFORMATION, actions);
 
         if (stompWindow != null) {
-            stompWindow.clear();
+            stompWindow.resetTimeline();
             stompWindow.setConnectedAndWaiting();
         }
 
         triggerGutterIconReload();
-        setAgentProcessState(GutterState.PROCESS_RUNNING);
-//        focusDirectInvokeTab();
     }
 
     public void onAgentDisconnected() {
-        if (atomicTestComponentWindow != null) {
-            atomicTestComponentWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
-        }
         AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         if (atomicRecordService != null) {
             atomicRecordService.writeAll();
@@ -1874,11 +1627,6 @@ final public class InsidiousService implements
                 });
     }
 
-    private String getKeyForCandidate(StoredCandidate testCandidateMetadata) {
-        return testCandidateMetadata.getCandidateId() == null ? String.valueOf(
-                testCandidateMetadata.getSessionIdentifier()) : testCandidateMetadata.getCandidateId();
-    }
-
     private StoredCandidateMetadata.CandidateStatus getStatusForState(DiffResultType type) {
         switch (type) {
             case SAME:
@@ -1888,38 +1636,5 @@ final public class InsidiousService implements
                 return StoredCandidateMetadata.CandidateStatus.FAILING;
         }
     }
-
-    private boolean showDifferentStatus(DiffResultType type) {
-        return type != DiffResultType.SAME;
-    }
-
-
-//    public String getExecutionStatusFromCandidates(String excludeKey, DiffResultType type) {
-//        if (showDifferentStatus(type)) {
-//            return "Diff";
-//        }
-//        boolean hasDiff = false;
-//        boolean hasNoRun = false;
-//        for (String key : candidateComponentMap.keySet()) {
-//            if (Objects.equals(key, excludeKey)) {
-//                continue;
-//            }
-//            TestCandidateListedItemComponent component = candidateComponentMap.get(key);
-//            String status = component.getExecutionStatus().trim();
-//            if (status.isEmpty() || status.isBlank()) {
-//                hasNoRun = true;
-//            }
-//            if (status.contains("Diff")) {
-//                hasDiff = true;
-//            }
-//        }
-//        if (hasDiff) {
-//            return "Diff";
-//        } else if (hasNoRun) {
-//            return "NoRun";
-//        }
-//        return "Same";
-//    }
-
 
 }

@@ -3,7 +3,9 @@ package com.insidious.plugin.ui.mocking;
 import com.insidious.plugin.mocking.ParameterMatcher;
 import com.insidious.plugin.mocking.ParameterMatcherType;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -81,8 +83,9 @@ public class WhenParameterInputPanel {
                 className = className.substring(0, className.indexOf("<"));
             }
 
-            PsiClass locatedClass = JavaPsiFacade.getInstance(
-                    project).findClass(className, GlobalSearchScope.allScope(project));
+            String finalClassName = className;
+            PsiClass locatedClass = ApplicationManager.getApplication().runReadAction((Computable<PsiClass>) () -> JavaPsiFacade.getInstance(
+                    project).findClass(finalClassName, GlobalSearchScope.allScope(project)));
             if (locatedClass == null) {
                 matcherValueTextField.setBackground(UIUtils.WARNING_RED);
             } else {

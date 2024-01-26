@@ -321,7 +321,6 @@ public class MethodExecutorComponent implements CandidateLifeListener {
 
         if (candidates.size() == 0) {
             candidateCountLabel.setText(gridPanel.getComponents().length + " recorded method executions");
-            insidiousService.getDirectInvokeTab().setCoveragePercent(0);
             return;
         }
 
@@ -404,7 +403,6 @@ public class MethodExecutorComponent implements CandidateLifeListener {
         int coveredUnsavedLineCount = unsavedLineCovered.size();
         int totalLineCount = methodInfo.getLineCount();
 
-        insidiousService.getDirectInvokeTab().setCoveragePercent(coveredUnsavedLineCount);
         coveragePanel.setCoverageData(totalLineCount, coveredSavedLineCount, coveredUnsavedLineCount);
 
         Set<Integer> linesToHighlight = new HashSet<>();

@@ -11,6 +11,7 @@ import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.TestCandidateLifeListener;
 import com.insidious.plugin.client.ScanProgress;
 import com.insidious.plugin.client.SessionScanEventListener;
+import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
@@ -39,6 +40,7 @@ import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ActiveIcon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
+import com.intellij.openapi.ui.popup.IPopupChooserBuilder;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
@@ -47,30 +49,30 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
+import com.intellij.ui.table.JBTable;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.List;
-import java.util.Queue;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 public class StompComponent implements
         Consumer<List<TestCandidateMetadata>>,
         TestCandidateLifeListener,
         OnCloseListener,
+        Runnable,
         OnExpandListener {
     public static final int component_height = 93;
     private static final Logger logger = LoggerUtil.getInstance(StompComponent.class);
@@ -82,7 +84,10 @@ public class StompComponent implements
     private final SessionScanEventListener scanEventListener;
     private final SimpleDateFormat dateFormat;
     private final Map<TestCandidateMetadata, Component> candidateMetadataStompItemMap = new HashMap<>();
-    Queue<TestCandidateMetadata> incomingQueue = new ArrayBlockingQueue<>(100);
+    private final InsidiousConfigurationState configurationState;
+    private final FilterModel filterModel;
+    private final ExecutorService consumerThreadPool = Executors.newFixedThreadPool(1);
+    BlockingQueue<TestCandidateMetadata> incomingQueue = new ArrayBlockingQueue<>(100);
     private JPanel mainPanel;
     private JPanel northPanelContainer;
     private JScrollPane historyStreamScrollPanel;
@@ -100,18 +105,28 @@ public class StompComponent implements
     private JLabel clearSelectionLabel;
     private JPanel welcomePanel;
     private JLabel manenDependencyIdentifierLabel;
+    private JPanel southPanel;
+    private JLabel clearFilterLabel;
+    private JLabel filterAppliedLabel;
+    private JLabel clearTimelineLabel;
     private long lastEventId = 0;
     private ConnectedAndWaiting connectedAndWaiting;
     private DisconnectedAnd disconnectedAnd;
     private MethodDirectInvokeComponent directInvokeComponent = null;
-    private JPanel directInvokeRow = null;
     private SaveForm saveFormReference;
     private SimpleDateFormat simpleDateFormat = new SimpleDateFormat();
     private boolean welcomePanelRemoved = false;
     private boolean isConsuming;
+    private AtomicInteger candidateQueryLatch;
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
+        configurationState = insidiousService.getProject()
+                .getService(InsidiousConfigurationState.class);
+
+        filterAppliedLabel.setVisible(false);
+        filterModel = configurationState.getFilterModel();
+
 
         itemPanel = new JPanel();
         GridBagLayout mgr = new GridBagLayout();
@@ -120,6 +135,7 @@ public class StompComponent implements
         itemPanel.setAlignmentX(0);
 
         setLabelsVisible(false);
+        clearTimelineLabel.setVisible(false);
 
         itemPanel.add(new JPanel(), createGBCForFakeComponent());
 
@@ -141,10 +157,18 @@ public class StompComponent implements
             }
         });
 
+        clearTimelineLabel.setToolTipText("Clear the timeline");
+        clearTimelineLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        clearTimelineLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                resetTimeline();
+            }
+        });
+
 
         clearSelectionLabel.setVisible(false);
-        selectAllLabel.setVisible(false);
-        selectAllLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         clearSelectionLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         clearSelectionLabel.addMouseListener(new MouseAdapter() {
@@ -157,6 +181,8 @@ public class StompComponent implements
             }
         });
 
+        selectAllLabel.setVisible(false);
+        selectAllLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         selectAllLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -164,6 +190,20 @@ public class StompComponent implements
                     stompItem.setSelected(true);
                     selectedCandidates.add(stompItem.getTestCandidate());
                 }
+            }
+        });
+
+        clearFilterLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        clearFilterLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                filterModel.getIncludedMethodNames().clear();
+                filterModel.getExcludedMethodNames().clear();
+                filterModel.getIncludedClassNames().clear();
+                filterModel.getExcludedClassNames().clear();
+
+                updateFilterLabel();
+
             }
         });
 
@@ -201,7 +241,9 @@ public class StompComponent implements
             @Override
             public void mouseClicked(MouseEvent e) {
                 {
-                    clear();
+                    resetTimeline();
+                    candidateQueryLatch.decrementAndGet();
+                    candidateQueryLatch = null;
                     loadNewCandidates();
                     itemPanel.revalidate();
                     itemPanel.repaint();
@@ -211,143 +253,140 @@ public class StompComponent implements
             }
         });
 
-        saveReplayButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (saveFormReference != null) {
-                    insidiousService.hideCandidateSaveForm(saveFormReference);
-                    saveFormReference = null;
-                }
-                AtomicRecordService atomicRecordService = insidiousService.getProject()
-                        .getService(AtomicRecordService.class);
-                StoredCandidate storedCandidate = new StoredCandidate(selectedCandidates.get(0));
-
-                for (TestCandidateMetadata testCandidate : selectedCandidates) {
-                    MethodUnderTest methodUnderTest = null;
-                    try {
-                        methodUnderTest = ApplicationManager.getApplication().executeOnPooledThread(
-                                        () -> ApplicationManager.getApplication().runReadAction(
-                                                (Computable<MethodUnderTest>) () -> MethodUnderTest.fromMethodAdapter(
-                                                        new JavaMethodAdapter(getPsiMethod(testCandidate)))))
-                                .get();
-                    } catch (InterruptedException | ExecutionException ex) {
-                        continue;
-//                        throw new RuntimeException(ex);
-                    }
-                    StoredCandidate candidate = atomicRecordService
-                            .getStoredCandidateFor(methodUnderTest, testCandidate);
-                    if (candidate.getCandidateId() == null) {
-                        candidate.setCandidateId(UUID.randomUUID().toString());
-                    }
-                    candidate.setName("saved on " + simpleDateFormat.format(new Date()));
-                    atomicRecordService.saveCandidate(methodUnderTest, candidate);
-
-                }
-
-                InsidiousNotification.notifyMessage("Saved " + selectedCandidates.size() + " tests",
-                        NotificationType.INFORMATION);
-
-
-                if (storedCandidate.getCandidateId() == null) {
-                    // new test case
-                    storedCandidate.setName(
-                            "test " + storedCandidate.getMethod().getName() + " returns expected value when");
-                    storedCandidate.setDescription("assert that the response value matches expected value");
-                }
-                try {
-                    saveFormReference = new SaveForm(storedCandidate, new CandidateLifeListener() {
-                        @Override
-                        public void executeCandidate(List<StoredCandidate> metadata, ClassUnderTest classUnderTest, ReplayAllExecutionContext context, AgentCommandResponseListener<TestCandidateMetadata, String> stringAgentCommandResponseListener) {
-
-                        }
-
-                        @Override
-                        public void displayResponse(Component responseComponent, boolean isExceptionFlow) {
-
-                        }
-
-                        @Override
-                        public void onSaved(StoredCandidate storedCandidate) {
-                            for (TestCandidateMetadata testCandidate : selectedCandidates) {
-                                MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
-                                        new JavaMethodAdapter(getPsiMethod(testCandidate)));
-                                StoredCandidate candidate = atomicRecordService.getStoredCandidateFor(methodUnderTest,
-                                        testCandidate);
-                                if (candidate.getCandidateId() == null) {
-                                    candidate.setCandidateId(UUID.randomUUID().toString());
-                                }
-                                candidate.setTestAssertions(storedCandidate.getTestAssertions());
-                                simpleDateFormat = new SimpleDateFormat();
-                                if (candidate.getName() == null) {
-                                    candidate.setName("saved on " + simpleDateFormat.format(new Date()));
-                                }
-                                atomicRecordService.saveCandidate(methodUnderTest, candidate);
-
-                            }
-
-                            insidiousService.hideCandidateSaveForm(saveFormReference);
-                            saveFormReference = null;
-
-
-                        }
-
-                        @Override
-                        public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
-
-                        }
-
-                        @Override
-                        public void onDeleteRequest(StoredCandidate storedCandidate) {
-
-                        }
-
-                        @Override
-                        public void onDeleted(StoredCandidate storedCandidate) {
-
-                        }
-
-                        @Override
-                        public void onUpdated(StoredCandidate storedCandidate) {
-
-                        }
-
-                        @Override
-                        public void onUpdateRequest(StoredCandidate storedCandidate) {
-
-                        }
-
-                        @Override
-                        public void onGenerateJunitTestCaseRequest(StoredCandidate storedCandidate) {
-
-                        }
-
-                        @Override
-                        public void onCandidateSelected(StoredCandidate testCandidateMetadata) {
-
-                        }
-
-                        @Override
-                        public boolean canGenerateUnitCase(StoredCandidate candidate) {
-                            return false;
-                        }
-
-                        @Override
-                        public void onCancel() {
-                            insidiousService.hideCandidateSaveForm(saveFormReference);
-                            saveFormReference = null;
-                        }
-
-                        @Override
-                        public Project getProject() {
-                            return insidiousService.getProject();
-                        }
-                    });
-                } catch (JsonProcessingException ex) {
-                    throw new RuntimeException(ex);
-                }
-
-                insidiousService.showCandidateSaveForm(saveFormReference);
+        saveReplayButton.addActionListener(e -> {
+            if (saveFormReference != null) {
+                insidiousService.hideCandidateSaveForm(saveFormReference);
+                saveFormReference = null;
             }
+            AtomicRecordService atomicRecordService = insidiousService.getProject()
+                    .getService(AtomicRecordService.class);
+            StoredCandidate storedCandidate = new StoredCandidate(selectedCandidates.get(0));
+
+            for (TestCandidateMetadata testCandidate : selectedCandidates) {
+                MethodUnderTest methodUnderTest = null;
+                try {
+                    methodUnderTest = ApplicationManager.getApplication().executeOnPooledThread(
+                                    () -> ApplicationManager.getApplication().runReadAction(
+                                            (Computable<MethodUnderTest>) () -> MethodUnderTest.fromMethodAdapter(
+                                                    new JavaMethodAdapter(getPsiMethod(testCandidate)))))
+                            .get();
+                } catch (InterruptedException | ExecutionException ex) {
+                    continue;
+//                        throw new RuntimeException(ex);
+                }
+                StoredCandidate candidate = atomicRecordService
+                        .getStoredCandidateFor(methodUnderTest, testCandidate);
+                if (candidate.getCandidateId() == null) {
+                    candidate.setCandidateId(UUID.randomUUID().toString());
+                }
+                candidate.setName("saved on " + simpleDateFormat.format(new Date()));
+                atomicRecordService.saveCandidate(methodUnderTest, candidate);
+
+            }
+
+            InsidiousNotification.notifyMessage("Saved " + selectedCandidates.size() + " tests",
+                    NotificationType.INFORMATION);
+
+
+            if (storedCandidate.getCandidateId() == null) {
+                // new test case
+                storedCandidate.setName(
+                        "test " + storedCandidate.getMethod().getName() + " returns expected value when");
+                storedCandidate.setDescription("assert that the response value matches expected value");
+            }
+            try {
+                saveFormReference = new SaveForm(storedCandidate, new CandidateLifeListener() {
+                    @Override
+                    public void executeCandidate(List<StoredCandidate> metadata, ClassUnderTest classUnderTest, ReplayAllExecutionContext context, AgentCommandResponseListener<TestCandidateMetadata, String> stringAgentCommandResponseListener) {
+
+                    }
+
+                    @Override
+                    public void displayResponse(Component responseComponent, boolean isExceptionFlow) {
+
+                    }
+
+                    @Override
+                    public void onSaved(StoredCandidate storedCandidate) {
+                        for (TestCandidateMetadata testCandidate : selectedCandidates) {
+                            MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
+                                    new JavaMethodAdapter(getPsiMethod(testCandidate)));
+                            StoredCandidate candidate = atomicRecordService.getStoredCandidateFor(methodUnderTest,
+                                    testCandidate);
+                            if (candidate.getCandidateId() == null) {
+                                candidate.setCandidateId(UUID.randomUUID().toString());
+                            }
+                            candidate.setTestAssertions(storedCandidate.getTestAssertions());
+                            simpleDateFormat = new SimpleDateFormat();
+                            if (candidate.getName() == null) {
+                                candidate.setName("saved on " + simpleDateFormat.format(new Date()));
+                            }
+                            atomicRecordService.saveCandidate(methodUnderTest, candidate);
+
+                        }
+
+                        insidiousService.hideCandidateSaveForm(saveFormReference);
+                        saveFormReference = null;
+
+
+                    }
+
+                    @Override
+                    public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
+
+                    }
+
+                    @Override
+                    public void onDeleteRequest(StoredCandidate storedCandidate) {
+
+                    }
+
+                    @Override
+                    public void onDeleted(StoredCandidate storedCandidate) {
+
+                    }
+
+                    @Override
+                    public void onUpdated(StoredCandidate storedCandidate) {
+
+                    }
+
+                    @Override
+                    public void onUpdateRequest(StoredCandidate storedCandidate) {
+
+                    }
+
+                    @Override
+                    public void onGenerateJunitTestCaseRequest(StoredCandidate storedCandidate) {
+
+                    }
+
+                    @Override
+                    public void onCandidateSelected(StoredCandidate testCandidateMetadata) {
+
+                    }
+
+                    @Override
+                    public boolean canGenerateUnitCase(StoredCandidate candidate) {
+                        return false;
+                    }
+
+                    @Override
+                    public void onCancel() {
+                        insidiousService.hideCandidateSaveForm(saveFormReference);
+                        saveFormReference = null;
+                    }
+
+                    @Override
+                    public Project getProject() {
+                        return insidiousService.getProject();
+                    }
+                });
+            } catch (JsonProcessingException ex) {
+                throw new RuntimeException(ex);
+            }
+
+            insidiousService.showCandidateSaveForm(saveFormReference);
         });
 
 
@@ -366,7 +405,7 @@ public class StompComponent implements
             @Override
             public void mouseClicked(MouseEvent e) {
 
-                StompFilter stompFilter = new StompFilter(new FilterModel());
+                StompFilter stompFilter = new StompFilter(filterModel);
                 ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
                         .createComponentPopupBuilder(stompFilter.getComponent(), null);
 
@@ -435,6 +474,8 @@ public class StompComponent implements
         mainPanel.add(stompStatusComponent.getComponent(), BorderLayout.SOUTH);
 
 
+        saveReplayButton.setEnabled(false);
+        replayButton.setEnabled(false);
         replayButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -451,6 +492,9 @@ public class StompComponent implements
                         NotificationType.INFORMATION);
             }
         });
+
+        updateFilterLabel();
+        consumerThreadPool.submit(this);
 
     }
 
@@ -509,6 +553,8 @@ public class StompComponent implements
 
     @Override
     synchronized public void accept(final List<TestCandidateMetadata> testCandidateMetadataList) {
+
+
         if (!welcomePanelRemoved) {
             welcomePanel.setVisible(false);
             historyStreamScrollPanel.setVisible(true);
@@ -516,75 +562,35 @@ public class StompComponent implements
         }
 
         for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
-            incomingQueue.offer(testCandidateMetadata);
+            if (isAcceptable(testCandidateMetadata)) {
+                incomingQueue.offer(testCandidateMetadata);
+            }
         }
 
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            if (isConsuming) {
-                return;
+    }
+
+    private boolean isAcceptable(TestCandidateMetadata testCandidateMetadata) {
+        if (filterModel.getIncludedClassNames().size() > 0) {
+            if (!filterModel.getIncludedClassNames().contains(testCandidateMetadata.getFullyQualifiedClassname())) {
+                return false;
             }
-            isConsuming = true;
-            int addedHeight = 0;
-            try {
-                for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
-
-                    if (testCandidateMetadata.getExitProbeIndex() > lastEventId) {
-                        lastEventId = testCandidateMetadata.getExitProbeIndex();
-                    }
-                    if (stompItems.size() > 0) {
-
-                        StompItem last = stompItems.get(stompItems.size() - 1);
-                        long gapStartIndex = last.getTestCandidate().getExitProbeIndex();
-                        long gapEndIndex = testCandidateMetadata.getEntryProbeIndex();
-                        int count = insidiousService.getMethodCallCountBetween(gapStartIndex, gapEndIndex);
-                        if (count > 0) {
-                            AFewCallsLater aFewCallsLater = new AFewCallsLater(gapStartIndex, gapEndIndex, count,
-                                    this);
-
-                            JScrollBar verticalScrollBar = historyStreamScrollPanel.getVerticalScrollBar();
-                            int scrollPosition = verticalScrollBar.getValue();
-
-                            JPanel labelPanel = aFewCallsLater.getComponent();
-
-                            JPanel rowPanel = new JPanel(new BorderLayout());
-                            rowPanel.add(labelPanel, BorderLayout.CENTER);
-                            rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
-                            GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent();
-                            if (directInvokeComponent == null) {
-                                makeSpace(0);
-                                itemPanel.add(rowPanel, gbcForLeftMainComponent, 0);
-                            } else {
-                                makeSpace(1);
-                                itemPanel.add(rowPanel, gbcForLeftMainComponent, 1);
-                            }
-
-                        }
-                    }
-
-                    if (directInvokeComponent == null) {
-                        addCandidateToUi(testCandidateMetadata, 0);
-                    } else {
-                        addCandidateToUi(testCandidateMetadata, 1);
-                    }
-
-                }
-
-                itemPanel.revalidate();
-
-//                SwingUtilities.invokeLater(() -> {
-//                    double newPanelSize = rowPanel.getSize().getHeight();
-//                    int newScrollPosition = (int) (scrollPosition + newPanelSize);
-//                    logger.warn("setting scroll position to " + scrollPosition + "+" + newPanelSize
-//                            + " => " + newScrollPosition);
-//                    verticalScrollBar.setValue(newScrollPosition);
-//                });
-            } finally {
-                isConsuming = false;
+        }
+        if (filterModel.getIncludedMethodNames().size() > 0) {
+            if (!filterModel.getIncludedMethodNames().contains(testCandidateMetadata.getMainMethod().getMethodName())) {
+                return false;
             }
-
-        });
-
-
+        }
+        if (filterModel.getExcludedClassNames().size() > 0) {
+            if (filterModel.getExcludedClassNames().contains(testCandidateMetadata.getFullyQualifiedClassname())) {
+                return false;
+            }
+        }
+        if (filterModel.getExcludedMethodNames().size() > 0) {
+            if (filterModel.getExcludedMethodNames().contains(testCandidateMetadata.getMainMethod().getMethodName())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private synchronized void addCandidateToUi(TestCandidateMetadata testCandidateMetadata, int index) {
@@ -628,12 +634,16 @@ public class StompComponent implements
         historyStreamScrollPanel.revalidate();
         historyStreamScrollPanel.repaint();
 
+        if (!clearTimelineLabel.isVisible()) {
+            clearTimelineLabel.setVisible(true);
+        }
+
         // Restore the scroll position after adding the component
-        double newPanelSize = component.getSize().getHeight();
-        int newScrollPosition = (int) (scrollPosition + newPanelSize);
-        logger.warn("setting scroll position to [1]" + scrollPosition + "+" + newPanelSize
-                + " => " + newScrollPosition);
-        verticalScrollBar.setValue(newScrollPosition);
+//        double newPanelSize = component.getSize().getHeight();
+//        int newScrollPosition = (int) (scrollPosition + newPanelSize);
+//        logger.warn("setting scroll position to [1]" + scrollPosition + "+" + newPanelSize
+//                + " => " + newScrollPosition);
+//        verticalScrollBar.setValue(newScrollPosition);
     }
 
     private GridBagConstraints createGBCForLeftMainComponent() {
@@ -654,25 +664,6 @@ public class StompComponent implements
         gbc.ipady = 0;
         return gbc;
     }
-
-//    private GridBagConstraints createGBCForLeftDirectInvokeComponent() {
-//        GridBagConstraints gbc = new GridBagConstraints();
-//
-//        gbc.gridx = 0;
-//        gbc.gridy = 0;
-//        gbc.gridwidth = 1;
-//        gbc.gridheight = 1;
-//
-//        gbc.weightx = 1;
-//        gbc.weighty = 1;
-//        gbc.anchor = GridBagConstraints.LINE_START;
-//        gbc.fill = GridBagConstraints.HORIZONTAL;
-//
-//        gbc.insets = JBUI.insetsBottom(8);
-//        gbc.ipadx = 0;
-//        gbc.ipady = 0;
-//        return gbc;
-//    }
 
 
     private GridBagConstraints createGBCForProcessStartedComponent() {
@@ -1047,7 +1038,96 @@ public class StompComponent implements
     }
 
     @Override
-    public void onCandidateSelected(TestCandidateMetadata testCandidateMetadata) {
+    public void onCandidateSelected(TestCandidateMetadata testCandidateMetadata, MouseEvent e) {
+        if (e.getButton() == MouseEvent.BUTTON3) {
+
+            DefaultTableModel dm = new DefaultTableModel();
+            dm.addColumn("col 1");
+            dm.addColumn("col 2");
+            dm.addRow(new Object[]{"row 1-1", "row 1-2"});
+            dm.addRow(new Object[]{"row 2-1", "row 2-2"});
+            JTable table = new JBTable(dm);
+            String fullyQualifiedClassname = testCandidateMetadata.getFullyQualifiedClassname();
+            String methodName = testCandidateMetadata.getMainMethod().getMethodName();
+            IPopupChooserBuilder<String> chooserPopUp = JBPopupFactory.getInstance()
+                    .createPopupChooserBuilder(Arrays.asList(
+                            "Include class " + fullyQualifiedClassname,
+                            "Exclude class " + fullyQualifiedClassname,
+                            "Include method " + methodName,
+                            "Exclude method " + methodName
+                    ));
+
+            chooserPopUp
+                    .setRequestFocus(true)
+                    .setItemChosenCallback(selection -> {
+
+                        logger.warn("selected filter [" + selection + "]");
+                        String[] parts = selection.split(" ");
+                        switch (parts[0]) {
+                            case "Include":
+
+                                switch (parts[1]) {
+                                    case "class":
+                                        filterModel.getIncludedClassNames().add(fullyQualifiedClassname);
+                                        filterModel.getExcludedClassNames().remove(fullyQualifiedClassname);
+                                        break;
+                                    case "method":
+                                        filterModel.getIncludedMethodNames().add(methodName);
+                                        filterModel.getExcludedMethodNames().remove(methodName);
+                                        break;
+                                }
+
+
+                                break;
+                            case "Exclude":
+
+                                switch (parts[1]) {
+                                    case "class":
+                                        filterModel.getIncludedClassNames().remove(fullyQualifiedClassname);
+                                        filterModel.getExcludedClassNames().add(fullyQualifiedClassname);
+                                        break;
+                                    case "method":
+                                        filterModel.getIncludedMethodNames().remove(methodName);
+                                        filterModel.getExcludedMethodNames().add(methodName);
+                                        break;
+                                }
+
+
+                                break;
+                        }
+                        updateFilterLabel();
+                        resetTimeline();
+                        loadNewCandidates();
+
+                    })
+                    .setCancelOnClickOutside(true)
+//                    .setCancelKeyEnabled(true)
+                    .createPopup()
+                    .show(new RelativePoint(e));
+
+        }
+    }
+
+    private void updateFilterLabel() {
+        StringBuilder tooltipText = new StringBuilder();
+        int total = filterModel.getIncludedClassNames().size()
+                + filterModel.getIncludedMethodNames().size()
+                + filterModel.getExcludedClassNames().size()
+                + filterModel.getExcludedMethodNames().size();
+        if (total == 0) {
+            clearFilterLabel.setVisible(false);
+            filterAppliedLabel.setVisible(false);
+        } else {
+            clearFilterLabel.setVisible(true);
+            filterAppliedLabel.setVisible(true);
+            filterAppliedLabel.setText(total + (total == 1 ? " filter" : " filters"));
+        }
+
+        itemPanel.revalidate();
+        itemPanel.repaint();
+        historyStreamScrollPanel.revalidate();
+        historyStreamScrollPanel.repaint();
+
 
     }
 
@@ -1079,7 +1159,43 @@ public class StompComponent implements
         }
     }
 
+    // removes the visible items on the timeline
     public void clear() {
+        List<Component> itemsToNotDelete = new ArrayList<>();
+        List<StompItem> pinnedStomps = new ArrayList<>();
+        for (StompItem stompItem : stompItems) {
+            if (stompItem.isPinned()) {
+                pinnedStomps.add(stompItem);
+                stompItem.setSelected(false);
+                itemsToNotDelete.add(stompItem.getComponent().getParent());
+            }
+        }
+        List<Component> allComponents = new ArrayList<>(Arrays.asList(itemPanel.getComponents()));
+        allComponents.removeAll(itemsToNotDelete);
+        for (Component component : allComponents) {
+            itemPanel.remove(component);
+        }
+        normalizeItemPanelComponents();
+
+
+        GridBagConstraints gbcForFakeComponent = createGBCForFakeComponent();
+        gbcForFakeComponent.gridy = itemPanel.getComponentCount();
+        itemPanel.add(new JPanel(), gbcForFakeComponent, itemPanel.getComponentCount());
+
+        selectedCandidates.clear();
+        updateControlPanel();
+        stompItems.clear();
+        stompItems.addAll(pinnedStomps);
+
+        itemPanel.revalidate();
+        itemPanel.repaint();
+        historyStreamScrollPanel.revalidate();
+        historyStreamScrollPanel.repaint();
+
+    }
+
+
+    public void resetTimeline() {
         lastEventId = 0;
 
         List<Component> itemsToNotDelete = new ArrayList<>();
@@ -1099,10 +1215,6 @@ public class StompComponent implements
         normalizeItemPanelComponents();
 
 
-        if (directInvokeRow != null) {
-            itemPanel.add(directInvokeRow, createGBCForLeftMainComponent(), 0);
-        }
-
         GridBagConstraints gbcForFakeComponent = createGBCForFakeComponent();
         gbcForFakeComponent.gridy = itemPanel.getComponentCount();
         itemPanel.add(new JPanel(), gbcForFakeComponent, itemPanel.getComponentCount());
@@ -1111,6 +1223,12 @@ public class StompComponent implements
         updateControlPanel();
         stompItems.clear();
         stompItems.addAll(pinnedStomps);
+
+        itemPanel.revalidate();
+        itemPanel.repaint();
+        historyStreamScrollPanel.revalidate();
+        historyStreamScrollPanel.repaint();
+
     }
 
     private void normalizeItemPanelComponents() {
@@ -1124,6 +1242,8 @@ public class StompComponent implements
     }
 
     public void disconnected() {
+        candidateQueryLatch.decrementAndGet();
+        candidateQueryLatch = null;
         stompStatusComponent.setDisconnected();
         scanEventListener.ended();
     }
@@ -1132,19 +1252,12 @@ public class StompComponent implements
         if (directInvokeComponent == null) {
             directInvokeComponent = new MethodDirectInvokeComponent(insidiousService, this);
             JComponent content = directInvokeComponent.getContent();
-            content.setMaximumSize(new Dimension(-1, 400));
-            content.setPreferredSize(new Dimension(-1, 250));
-//            content.setSize(new Dimension(-1, 500));
-
-            directInvokeRow = new JPanel();
-            directInvokeRow.setLayout(new BorderLayout());
-
-
-            directInvokeRow.add(content, BorderLayout.CENTER);
-            directInvokeRow.add(createDateAndTimePanel(createTimeLineComponent(),
-                    Date.from(Instant.now())), BorderLayout.EAST);
-            makeSpace(0);
-            itemPanel.add(directInvokeRow, createGBCForLeftMainComponent(), 0);
+            content.setMinimumSize(new Dimension(-1, 300));
+            content.setMaximumSize(new Dimension(-1, 300));
+            content.setPreferredSize(new Dimension(-1, 300));
+            southPanel.add(content, BorderLayout.CENTER);
+//            mainPanel.revalidate();
+//            mainPanel.repaint();
         }
         try {
             directInvokeComponent.renderForMethod(method, null);
@@ -1159,9 +1272,6 @@ public class StompComponent implements
     void makeSpace(int position) {
         Component[] components = itemPanel.getComponents();
         for (Component component : components) {
-            if (component == directInvokeRow) {
-                continue;
-            }
             GridBagConstraints gbc = ((GridBagLayout) itemPanel.getLayout()).getConstraints(component);
             if (gbc.gridy < position) {
                 continue;
@@ -1172,14 +1282,10 @@ public class StompComponent implements
     }
 
     public void removeDirectInvoke() {
-        itemPanel.remove(directInvokeRow);
-        directInvokeRow = null;
+        southPanel.remove(directInvokeComponent.getContent());
         directInvokeComponent = null;
-        itemPanel.revalidate();
-        itemPanel.repaint();
-        historyStreamScrollPanel.revalidate();
-        historyStreamScrollPanel.repaint();
-
+        southPanel.revalidate();
+        southPanel.repaint();
     }
 
     public void setConnectedAndWaiting() {
@@ -1212,32 +1318,15 @@ public class StompComponent implements
         makeSpace(0);
         rowPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
         itemPanel.add(rowPanel, createGBCForProcessStartedComponent());
-        if (directInvokeComponent != null) {
 
-            JPanel anotherRowPanel = new JPanel();
-            anotherRowPanel.setLayout(new BorderLayout());
-
-
-            anotherRowPanel.add(directInvokeComponent.getContent(), BorderLayout.CENTER);
-            anotherRowPanel.add(createDateAndTimePanel(createTimeLineComponent(),
-                    Date.from(Instant.now())), BorderLayout.EAST);
-
-
-            makeSpace(0);
-            itemPanel.add(anotherRowPanel, createGBCForLeftMainComponent(), 0);
-        }
         stompStatusComponent.setConnected();
     }
 
-    public void loadNewCandidates() {
-        try {
-            insidiousService.getSessionInstance().getTopLevelTestCandidates(this, lastEventId);
-        } catch (SQLException e) {
-            // failed to load candidates hmm
-            e.printStackTrace();
-            logger.error("Failed to load test candidates from session", e);
+    public synchronized void loadNewCandidates() {
+        if (candidateQueryLatch != null) {
+            return;
         }
-
+        candidateQueryLatch = insidiousService.getSessionInstance().getTestCandidates(this, lastEventId);
     }
 
     public SessionScanEventListener getScanEventListener() {
@@ -1269,5 +1358,68 @@ public class StompComponent implements
         }
         itemPanel.remove(parent);
 
+    }
+
+    @Override
+    public void run() {
+        isConsuming = true;
+        try {
+            while (true) {
+                final TestCandidateMetadata testCandidateMetadata = incomingQueue.take();
+                CountDownLatch pollerCDL = new CountDownLatch(1);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    acceptSingle(testCandidateMetadata);
+                    pollerCDL.countDown();
+                });
+
+                pollerCDL.await();
+            }
+
+
+        } catch (InterruptedException e) {
+            // just end
+        } finally {
+            isConsuming = false;
+        }
+
+    }
+
+    private void acceptSingle(TestCandidateMetadata testCandidateMetadata) {
+        if (testCandidateMetadata.getExitProbeIndex() > lastEventId) {
+            lastEventId = testCandidateMetadata.getExitProbeIndex();
+        }
+        if (stompItems.size() > 0) {
+
+            StompItem last = stompItems.get(stompItems.size() - 1);
+            long gapStartIndex = last.getTestCandidate().getExitProbeIndex();
+            long gapEndIndex = testCandidateMetadata.getEntryProbeIndex();
+            int count = insidiousService.getMethodCallCountBetween(gapStartIndex, gapEndIndex);
+            if (count > 0) {
+                AFewCallsLater aFewCallsLater = new AFewCallsLater(gapStartIndex, gapEndIndex, count,
+                        this);
+
+                JScrollBar verticalScrollBar = historyStreamScrollPanel.getVerticalScrollBar();
+                int scrollPosition = verticalScrollBar.getValue();
+
+                JPanel labelPanel = aFewCallsLater.getComponent();
+
+                JPanel rowPanel = new JPanel(new BorderLayout());
+                rowPanel.add(labelPanel, BorderLayout.CENTER);
+                rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
+                GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent();
+                makeSpace(0);
+                itemPanel.add(rowPanel, gbcForLeftMainComponent, 0);
+
+            }
+        }
+        addCandidateToUi(testCandidateMetadata, 0);
+        itemPanel.revalidate();
+    }
+
+    public void setSession(ExecutionSession executionSession) {
+        if (candidateQueryLatch != null) {
+            candidateQueryLatch.decrementAndGet();
+            candidateQueryLatch = null;
+        }
     }
 }

@@ -4207,24 +4207,8 @@ public class SessionInstance implements Runnable {
         return classInfoIndexByName;
     }
 
-    public void getAllTestCandidates(Consumer<TestCandidateMetadata> testCandidateReceiver, long afterEventId) throws SQLException {
 
-        int page = 0;
-        int limit = 100;
-        while (true) {
-            List<TestCandidateMetadata> testCandidateMetadataList = daoService
-                    .getTestCandidatePaginated(afterEventId, page, limit);
-            for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
-                testCandidateReceiver.accept(testCandidateMetadata);
-            }
-            page++;
-            if (testCandidateMetadataList.size() < limit) {
-                break;
-            }
-        }
-    }
-
-    public void getTopLevelTestCandidates(Consumer<List<TestCandidateMetadata>> testCandidateReceiver, long afterEventId) throws SQLException {
+    public void getTopLevelTestCandidates(Consumer<List<TestCandidateMetadata>> testCandidateReceiver, long afterEventId) {
 
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -4234,6 +4218,9 @@ public class SessionInstance implements Runnable {
                 int limit = 50;
                 int count = 0;
                 while (true) {
+                    if (shutdown) {
+                        return;
+                    }
                     List<TestCandidateMetadata> testCandidateMetadataList = daoService
                             .getTopLevelTestCandidatePaginated(afterEventId, page, limit);
                     testCandidateReceiver.accept(testCandidateMetadataList);
@@ -4251,6 +4238,55 @@ public class SessionInstance implements Runnable {
             }
         });
 
+
+    }
+
+    public AtomicInteger getTestCandidates(Consumer<List<TestCandidateMetadata>> testCandidateReceiver, long afterEventId) {
+
+        AtomicInteger cdl = new AtomicInteger(1);
+
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try {
+
+
+                int page = 0;
+                int limit = 50;
+                int count = 0;
+                int attempt = 0;
+                long currentAfterEventId = afterEventId;
+                while (true) {
+                    attempt++;
+                    if (shutdown || cdl.get() == 0) {
+                        logger.warn(
+                                "shutting down query started at [" + afterEventId + "] currently at item [" + count +
+                                        "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
+                        return;
+                    }
+                    List<TestCandidateMetadata> testCandidateMetadataList = daoService
+                            .getTestCandidatePaginated(currentAfterEventId, 0, limit);
+                    testCandidateReceiver.accept(testCandidateMetadataList);
+                    count += testCandidateMetadataList.size();
+                    if (testCandidateMetadataList.size() > 0) {
+                        currentAfterEventId =
+                                testCandidateMetadataList.get(testCandidateMetadataList.size() - 1).getEntryProbeIndex() + 1;
+                    }
+                    if (testCandidateMetadataList.size() < limit) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+
+            } catch (SQLException e) {
+                // failed to load candidates hmm
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        });
+
+        return cdl;
 
     }
 

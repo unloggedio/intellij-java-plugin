@@ -28,10 +28,11 @@ public class StompItem {
             new Color(113, 128, 150, 255));
     public static final int MAX_METHOD_NAME_LABEL_LENGTH = 20;
     public static final JBColor HOVER_HIGHLIGHT_COLOR = new JBColor(
-            new Color(157, 187, 184),
-            new Color(157, 187, 184));
+            new Color(242, 137, 100),
+            new Color(242, 137, 100));
     private static final Logger logger = LoggerUtil.getInstance(StompItem.class);
     private final TestCandidateLifeListener testCandidateLifeListener;
+    private final Color defaultPanelColor;
     private TestCandidateMetadata candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
@@ -57,7 +58,7 @@ public class StompItem {
             InsidiousService insidiousService) {
         this.candidateMetadata = testCandidateMetadata;
         this.testCandidateLifeListener = testCandidateLifeListener;
-        Color defaultPanelColor = mainPanel.getBackground();
+        defaultPanelColor = mainPanel.getBackground();
 
         MouseAdapter methodNameClickListener = new MouseAdapter() {
             @Override
@@ -75,10 +76,13 @@ public class StompItem {
         titleLabelContainer.addMouseListener(methodNameClickListener);
 
         candidateTitleLabel.addMouseListener(methodNameClickListener);
+
         mainPanel.addMouseListener(new MouseAdapter() {
+
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
+                testCandidateLifeListener.onCandidateSelected(candidateMetadata, e);
                 if (!candidateMetadata.getLineNumbers().isEmpty()) {
                     Integer firstLine = candidateMetadata.getLineNumbers().get(0);
                     ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -91,52 +95,19 @@ public class StompItem {
 
             @Override
             public void mouseEntered(MouseEvent e) {
-                mainPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-                detailPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-                infoPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-                titleLabelContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
-                controlPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-                controlContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
-                selectCandidateCheckbox.setBackground(HOVER_HIGHLIGHT_COLOR);
-                metadataPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+                hoverOn();
                 super.mouseEntered(e);
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                mainPanel.setBackground(defaultPanelColor);
-                detailPanel.setBackground(defaultPanelColor);
-                infoPanel.setBackground(defaultPanelColor);
-                titleLabelContainer.setBackground(defaultPanelColor);
-                controlPanel.setBackground(defaultPanelColor);
-                controlContainer.setBackground(defaultPanelColor);
-                selectCandidateCheckbox.setBackground(defaultPanelColor);
-                metadataPanel.setBackground(defaultPanelColor);
+                hoverOff();
                 super.mouseExited(e);
             }
         });
 
         mainPanel.revalidate();
 
-//        executeLabel.addMouseListener(
-//                new MouseAdapter() {
-//                    @Override
-//                    public void mouseClicked(MouseEvent e) {
-//                        insidiousService.chooseClassImplementation(testCandidateMetadata.getFullyQualifiedClassname(),
-//                                psiClass -> {
-//                                    JSONObject eventProperties = new JSONObject();
-//                                    eventProperties.put("className", psiClass.getQualifiedClassName());
-//                                    UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
-//                                    statusLabel.setText("Executing");
-//                                    testCandidateLifeListener.executeCandidate(
-//                                            Collections.singletonList(candidateMetadata), psiClass, "individual",
-//                                            (candidateMetadata, agentCommandResponse, diffResult) -> {
-//                                                testCandidateLifeListener.onCandidateSelected(candidateMetadata);
-//                                            }
-//                                    );
-//                                });
-//                    }
-//                });
         pinLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -149,36 +120,31 @@ public class StompItem {
                 }
                 testCandidateLifeListener.onGenerateJunitTestCaseRequest(candidateMetadata);
             }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                hoverOn();
+                if (isPinned) {
+                    pinLabel.setIcon(UIUtils.UNPIN_LINE);
+                } else {
+                    pinLabel.setIcon(UIUtils.PUSHPIN_2_LINE);
+                }
+                super.mouseEntered(e);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                hoverOff();
+                if (isPinned) {
+                    pinLabel.setIcon(UIUtils.PUSHPIN_2_FILL);
+                } else {
+                    pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
+                }
+                super.mouseExited(e);
+            }
         });
-//        saveReplayButton.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                AgentCommandResponse<String> agentCommandResponse = new AgentCommandResponse<>();
-//                Parameter returnValue = candidateMetadata.getMainMethod().getReturnValue();
-//                agentCommandResponse.setResponseClassName(returnValue.getType());
-//                agentCommandResponse.setMethodReturnValue(returnValue.getStringValue() != null ?
-//                        returnValue.getStringValue() : String.valueOf(returnValue.getValue()));
-//                agentCommandResponse.setResponseType(ResponseType.NORMAL);
-//
-//                testCandidateLifeListener.onSaveRequest(candidateMetadata, agentCommandResponse);
-//            }
-//        });
 
-//        statusLabel.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                if (!statusLabel.getText().trim().isEmpty()) {
-//                    testCandidateLifeListener.onCandidateSelected(candidateMetadata);
-//                }
-//            }
-//        });
-//        statusLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-//        executeLabel.setIcon(UIUtils.EXECUTE_ICON_OUTLINED_SVG);
-//        saveReplayButton.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
-
-//        executeLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        saveReplayButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
         pinLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         replaySingle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -194,41 +160,19 @@ public class StompItem {
                             });
                 });
             }
-        });
-        pinLabel.addMouseListener(new MouseAdapter() {
+
             @Override
             public void mouseEntered(MouseEvent e) {
-                if (isPinned) {
-                    pinLabel.setIcon(UIUtils.UNPIN_LINE);
-                } else {
-                    pinLabel.setIcon(UIUtils.PUSHPIN_2_LINE);
-                }
+                hoverOn();
                 super.mouseEntered(e);
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                if (isPinned) {
-                    pinLabel.setIcon(UIUtils.PUSHPIN_2_FILL);
-                } else {
-                    pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
-                }
+                hoverOff();
                 super.mouseExited(e);
             }
         });
-
-        mainPanel.addMouseListener(new MouseAdapter() {
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
-                testCandidateLifeListener.onCandidateSelected(candidateMetadata);
-            }
-        });
-
-//        mainPanel.setBackground(UIUtils.agentResponseBaseColor);
-//        detailPanel.setOpaque(false);
-//        controlPanel.setOpaque(false);
 
 
         MethodUnderTest methodUnderTest = new MethodUnderTest(
@@ -288,6 +232,20 @@ public class StompItem {
             }
         });
 
+        selectCandidateCheckbox.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                hoverOn();
+                super.mouseEntered(e);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                hoverOff();
+                super.mouseExited(e);
+            }
+        });
+
         selectCandidateCheckbox.addActionListener(e -> {
             if (selectCandidateCheckbox.isSelected()) {
                 testCandidateLifeListener.onSelected(candidateMetadata);
@@ -296,6 +254,28 @@ public class StompItem {
             }
         });
 
+    }
+
+    private void hoverOff() {
+        mainPanel.setBackground(defaultPanelColor);
+        detailPanel.setBackground(defaultPanelColor);
+        infoPanel.setBackground(defaultPanelColor);
+        titleLabelContainer.setBackground(defaultPanelColor);
+        controlPanel.setBackground(defaultPanelColor);
+        controlContainer.setBackground(defaultPanelColor);
+        selectCandidateCheckbox.setBackground(defaultPanelColor);
+        metadataPanel.setBackground(defaultPanelColor);
+    }
+
+    private void hoverOn() {
+        mainPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+        detailPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+        infoPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+        titleLabelContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
+        controlPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+        controlContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
+        selectCandidateCheckbox.setBackground(HOVER_HIGHLIGHT_COLOR);
+        metadataPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
     }
 
     private JLabel createTagLabel(String tagText, Object value, Color backgroundColor, Color foreground) {
@@ -315,6 +295,19 @@ public class StompItem {
                 BorderFactory.createEmptyBorder(0, 2, 0, 2)
         );
         label.setBorder(roundedBorder);
+        label.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                hoverOn();
+                super.mouseEntered(e);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                hoverOff();
+                super.mouseExited(e);
+            }
+        });
         return label;
     }
 
