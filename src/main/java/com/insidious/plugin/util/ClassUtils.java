@@ -197,7 +197,7 @@ public class ClassUtils {
                                 .runReadAction((Computable<PsiField[]>) () -> resolvedClass.getAllFields());
 
                 StringBuilder dummyInternalObjValue = new StringBuilder();
-                if (creationStack.size() < 3) {
+                if (creationStack.size() < 10) {
                     boolean firstField = true;
                     for (PsiField psiField : parameterObjectFieldList) {
                         String name =
