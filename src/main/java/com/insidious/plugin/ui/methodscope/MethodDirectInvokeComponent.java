@@ -11,7 +11,6 @@ import com.insidious.plugin.agent.*;
 import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.CandidateSearchQuery;
-import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -394,17 +393,17 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 @Override
                 public Component getTreeCellEditorComponent(JTree tree, Object value, boolean isSelected, boolean expanded, boolean leaf, int row) {
 
-                    JPanel editorPanel = new JPanel();
-                    editorPanel.setMinimumSize(new Dimension(100, 50));
-                    editorPanel.setLayout(new BorderLayout());
+//                    JPanel editorPanel = new JPanel();
+//                    editorPanel.setMinimumSize(new Dimension(100, 50));
+//                    editorPanel.setLayout(new BorderLayout());
 
                     editor = new JBTextField();
-                    editor.setBorder(BorderFactory.createCompoundBorder(
-                            BorderFactory.createEmptyBorder(5, 5, 5, 5),
-                            BorderFactory.createLineBorder(JBColor.BLACK)
-                    ));
-                    editor.setMinimumSize(new Dimension(100, 80));
-                    editor.setMaximumSize(new Dimension(100, 80));
+//                    editor.setBorder(BorderFactory.createCompoundBorder(
+//                            BorderFactory.createEmptyBorder(5, 5, 5, 5),
+//                            BorderFactory.createLineBorder(JBColor.BLACK)
+//                    ));
+//                    editor.setMinimumSize(new Dimension(100, 80));
+//                    editor.setMaximumSize(new Dimension(100, 80));
                     if (value instanceof DefaultMutableTreeNode) {
                         Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
                         String[] parts = userObject.toString().split(":");
@@ -420,7 +419,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
                             }
                         });
                     }
-                    editorPanel.add(editor, BorderLayout.CENTER);
+                    editor.setBorder(null);
+//                    editorPanel.add(editor, BorderLayout.CENTER);
                     return editor;
                 }
 
@@ -469,12 +469,25 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 }
             });
 
-            argumentValueTree.setCellRenderer(new DefaultTreeCellRenderer(){
-                @Override
-                public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
-                    return new JLabel(String.valueOf(value));
-                }
-            });
+//            argumentValueTree.setCellRenderer(new DefaultTreeCellRenderer() {
+////                @Override
+////                public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
+////                    JLabel jLabel = new JLabel("Hello - " + String.valueOf(value));
+////                    JPanel rowPanel = new JPanel();
+////                    rowPanel.setLayout(new BorderLayout());
+////                    rowPanel.add(jLabel, BorderLayout.CENTER);
+////                    Border border = jLabel.getBorder();
+////                    jLabel.setBorder(
+////                            BorderFactory.createCompoundBorder(
+////                                    BorderFactory.createEmptyBorder(5, 5, 5, 5),
+////                                    border
+////                            ));
+////                    rowPanel.setMinimumSize(new Dimension(200, 80));
+////                    rowPanel.setMaximumSize(new Dimension(200, 80));
+////                    rowPanel.setPreferredSize(new Dimension(200, 80));
+////                    return rowPanel;
+////                }
+//            });
             argumentValueTree.setCellEditor(cellEditor);
             expandAllNodes(argumentValueTree);
             methodParameterContainer.add(argumentValueTree, BorderLayout.CENTER);
