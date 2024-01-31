@@ -45,12 +45,6 @@ jobs:
       - name: Generate report from test
         run: ./gradlew test
 
-      - name: Archive verification report
-        uses: actions/upload-artifact@v3
-        with:
-          name: verification-report
-          path: verificationReport/**
-
   build-and-publish:
     runs-on: ubuntu-latest
     environment: intellij
