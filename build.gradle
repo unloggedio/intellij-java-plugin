@@ -15,7 +15,7 @@ def getGitHash = { ->
 
 
 group 'org.videobug'
-version '1.18.24-' + getGitHash()
+version '1.19.1-' + getGitHash()
 
 
 compileJava {
@@ -199,8 +199,8 @@ patchPluginXml {
 }
 
 publishPlugin {
-    token = "$System.env.JETBRAINS_PUBLISH_TOKEN"
-    channels = ["$System.env.JEBTRAINS_PUBLISH_CHANNEL"]
+    token = "perm:c2hhcmR1bGxhdmVrYXI=.OTItODk5Mg==.ZZ1bQHA4AD2K7XM3tR0j2PpqwhYool"
+    channels = ['stable']
 }
 
 test {

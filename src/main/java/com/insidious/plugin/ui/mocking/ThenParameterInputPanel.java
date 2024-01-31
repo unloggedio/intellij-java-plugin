@@ -117,7 +117,7 @@ public class ThenParameterInputPanel {
 
         String finalClassName = className;
         PsiClass locatedClass = ApplicationManager.getApplication().runReadAction((Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
-                .findClass(finalClassName, GlobalSearchScope.allScope(project)));
+                .findClass(finalClassName.replace("$", "."), GlobalSearchScope.allScope(project)));
         if (locatedClass == null) {
             returnTypeTextField.setBackground(UIUtils.WARNING_RED);
         } else {

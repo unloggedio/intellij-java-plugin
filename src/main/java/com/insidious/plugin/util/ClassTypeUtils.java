@@ -6,6 +6,10 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
+import com.intellij.psi.PsiClassType;
+import com.intellij.psi.PsiSubstitutor;
+import com.intellij.psi.PsiType;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -24,6 +28,27 @@ public class ClassTypeUtils {
         return methodName.substring(0, 1)
                 .toUpperCase() + methodName.substring(1);
     }
+
+    public static PsiType substituteClassRecursively(PsiType typeToBeSubstituted, PsiSubstitutor classSubstitutor) {
+        if (classSubstitutor == null) {
+            return typeToBeSubstituted;
+        }
+        PsiType fieldTypeSubstitutor = classSubstitutor.substitute(typeToBeSubstituted);
+        if (fieldTypeSubstitutor.getCanonicalText().equals(typeToBeSubstituted.getCanonicalText())) {
+            PsiClassType[] checkSuperTypes = ((PsiClassReferenceType) typeToBeSubstituted).resolve()
+                    .getExtendsListTypes();
+            for (PsiClassType checkSuperType : checkSuperTypes) {
+                PsiType possibleType = classSubstitutor.substitute(checkSuperType);
+                if (!possibleType.getCanonicalText().equals(typeToBeSubstituted.getCanonicalText())) {
+                    fieldTypeSubstitutor = possibleType;
+                    break;
+                }
+            }
+
+        }
+        return fieldTypeSubstitutor;
+    }
+
 
     public static String lowerInstanceName(String methodName) {
         return methodName.substring(0, 1)
