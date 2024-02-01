@@ -2,11 +2,19 @@ package com.insidious.plugin.pojo.atomic;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.factory.CandidateSearchQuery;
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.ClassTypeUtils;
+import com.intellij.openapi.util.NlsSafe;
+import com.intellij.psi.*;
+import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.TypeConversionUtil;
+import org.jetbrains.annotations.Nullable;
 
+import javax.swing.*;
 import java.util.Objects;
 
 public class MethodUnderTest {
@@ -58,6 +66,32 @@ public class MethodUnderTest {
     public static MethodUnderTest fromCandidateSearchQuery(CandidateSearchQuery candidateSearchQuery) {
         return new MethodUnderTest(candidateSearchQuery.getMethodName(),
                 candidateSearchQuery.getMethodSignature(), 0, candidateSearchQuery.getClassName());
+    }
+
+    public static MethodUnderTest fromCallExpression(PsiMethodCallExpression methodCallExpression) {
+        PsiExpression fieldExpression = methodCallExpression.getMethodExpression().getQualifierExpression();
+        PsiReferenceExpression qualifierExpression1 = (PsiReferenceExpression) fieldExpression;
+        PsiField fieldPsiInstance = (PsiField) qualifierExpression1.resolve();
+
+
+        PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
+        PsiSubstitutor classSubstitutor = TypeConversionUtil.getClassSubstitutor(fieldPsiInstance.getContainingClass(),
+                parentOfType, PsiSubstitutor.EMPTY);
+        PsiType fieldTypeSubstitutor = ClassTypeUtils.substituteClassRecursively(fieldPsiInstance.getType(),
+                classSubstitutor);
+
+
+        PsiMethod targetMethod = methodCallExpression.resolveMethod();
+        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethod));
+        if (fieldPsiInstance != null && fieldPsiInstance.getType() != null) {
+            methodUnderTest.setClassName(fieldPsiInstance.getType().getCanonicalText());
+        }
+
+        if (fieldTypeSubstitutor != null) {
+            String actualClass = fieldTypeSubstitutor.getCanonicalText();
+            methodUnderTest.setClassName(actualClass);
+        }
+        return methodUnderTest;
     }
 
 

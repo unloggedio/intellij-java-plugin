@@ -147,7 +147,7 @@
           </grid>
         </children>
       </grid>
-      <grid id="a92dc" binding="scrollContainer" layout-manager="GridLayoutManager" row-count="5" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+      <grid id="a92dc" binding="scrollContainer" layout-manager="GridLayoutManager" row-count="4" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
         <margin top="0" left="0" bottom="0" right="0"/>
         <constraints border-constraint="Center"/>
         <properties/>
@@ -155,11 +155,11 @@
         <children>
           <scrollpane id="848d" binding="historyStreamScrollPanel">
             <constraints>
-              <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties>
               <horizontalScrollBarPolicy value="31"/>
-              <verticalScrollBarPolicy value="20"/>
+              <verticalScrollBarPolicy value="22"/>
             </properties>
             <border type="empty">
               <size top="10" left="10" bottom="10" right="10"/>
@@ -235,192 +235,14 @@
               </component>
             </children>
           </grid>
-          <grid id="876e1" binding="welcomePanel" layout-manager="GridLayoutManager" row-count="4" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="5" left="5" bottom="5" right="5"/>
-            <constraints>
-              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
-            </constraints>
-            <properties/>
-            <border type="none"/>
-            <children>
-              <grid id="2fc08" layout-manager="BorderLayout" hgap="0" vgap="0">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties/>
-                <border type="empty"/>
-                <children>
-                  <component id="82ede" class="javax.swing.JLabel">
-                    <constraints border-constraint="West"/>
-                    <properties>
-                      <icon value="icons/png/number-1.png"/>
-                      <text value=""/>
-                    </properties>
-                  </component>
-                  <grid id="bd03e" layout-manager="GridLayoutManager" row-count="3" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                    <margin top="5" left="5" bottom="5" right="5"/>
-                    <constraints border-constraint="Center"/>
-                    <properties/>
-                    <border type="bevel-lowered"/>
-                    <children>
-                      <component id="67fd3" class="javax.swing.JLabel">
-                        <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                        <properties>
-                          <text value="Add dependency"/>
-                        </properties>
-                      </component>
-                      <hspacer id="af8dc">
-                        <constraints>
-                          <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                      </hspacer>
-                      <vspacer id="36064">
-                        <constraints>
-                          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                      </vspacer>
-                      <component id="d1a37" class="javax.swing.JLabel" binding="manenDependencyIdentifierLabel">
-                        <constraints>
-                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                        <properties>
-                          <font size="14" style="1"/>
-                          <icon value="icons/png/copy_icon_pink.png"/>
-                          <text value="&lt;html&gt;&lt;u&gt;video.bug:unlogged-sdk:0.1.39&lt;/u&gt;&lt;/html&gt;"/>
-                          <toolTipText value="Click to copy maven dependency block"/>
-                        </properties>
-                      </component>
-                    </children>
-                  </grid>
-                </children>
-              </grid>
-              <vspacer id="504f7">
-                <constraints>
-                  <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
-                </constraints>
-              </vspacer>
-              <grid id="1f213" layout-manager="BorderLayout" hgap="0" vgap="0">
-                <constraints>
-                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties/>
-                <border type="empty"/>
-                <children>
-                  <component id="b3e30" class="javax.swing.JLabel">
-                    <constraints border-constraint="West"/>
-                    <properties>
-                      <icon value="icons/png/number-2.png"/>
-                      <text value=""/>
-                    </properties>
-                  </component>
-                  <grid id="a0122" layout-manager="GridLayoutManager" row-count="4" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                    <margin top="5" left="5" bottom="5" right="5"/>
-                    <constraints border-constraint="Center"/>
-                    <properties/>
-                    <border type="bevel-lowered"/>
-                    <children>
-                      <component id="a0cf0" class="javax.swing.JLabel">
-                        <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                        <properties>
-                          <text value="Add annotation to application entrypoint"/>
-                        </properties>
-                      </component>
-                      <hspacer id="e44aa">
-                        <constraints>
-                          <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                      </hspacer>
-                      <vspacer id="6737f">
-                        <constraints>
-                          <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                      </vspacer>
-                      <component id="fabf8" class="javax.swing.JLabel">
-                        <constraints>
-                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                        <properties>
-                          <font size="14" style="1"/>
-                          <text value="&lt;html&gt;&lt;u&gt;@Unlogged&lt;/u&gt;&lt;/html&gt;"/>
-                        </properties>
-                      </component>
-                      <component id="cf53d" class="javax.swing.JLabel">
-                        <constraints>
-                          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                        <properties>
-                          <text value="public static void main(String[] args)"/>
-                        </properties>
-                      </component>
-                    </children>
-                  </grid>
-                </children>
-              </grid>
-              <grid id="a9e66" layout-manager="BorderLayout" hgap="0" vgap="0">
-                <constraints>
-                  <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties/>
-                <border type="empty"/>
-                <children>
-                  <component id="3b149" class="javax.swing.JLabel">
-                    <constraints border-constraint="West"/>
-                    <properties>
-                      <icon value="icons/png/number-3.png"/>
-                      <text value=""/>
-                    </properties>
-                  </component>
-                  <grid id="11783" layout-manager="GridLayoutManager" row-count="4" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                    <margin top="5" left="5" bottom="5" right="5"/>
-                    <constraints border-constraint="Center"/>
-                    <properties/>
-                    <border type="bevel-lowered"/>
-                    <children>
-                      <hspacer id="e5d27">
-                        <constraints>
-                          <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                      </hspacer>
-                      <vspacer id="17ef5">
-                        <constraints>
-                          <grid row="3" column="0" row-span="1" col-span="2" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                      </vspacer>
-                      <component id="77db0" class="javax.swing.JLabel">
-                        <constraints>
-                          <grid row="1" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                        <properties>
-                          <font size="14" style="1"/>
-                          <text value="&lt;html&gt;&lt;u&gt;Call your application endpoint&lt;/u&gt;&lt;/html&gt;"/>
-                        </properties>
-                      </component>
-                      <component id="f3719" class="javax.swing.JLabel">
-                        <constraints>
-                          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                        <properties>
-                          <text value="curl or browser or postman or DirectInvoke"/>
-                        </properties>
-                      </component>
-                    </children>
-                  </grid>
-                </children>
-              </grid>
-            </children>
-          </grid>
           <vspacer id="432a4">
             <constraints>
-              <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
+              <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
             </constraints>
           </vspacer>
           <grid id="43d28" binding="southPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
             <constraints>
-              <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+              <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties/>
             <border type="none"/>

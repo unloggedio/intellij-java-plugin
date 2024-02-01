@@ -1,11 +1,9 @@
 package com.insidious.plugin.ui.mocking;
 
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
-import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.Notification;
@@ -15,9 +13,11 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
-import com.intellij.psi.*;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiExpression;
+import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.psi.util.TypeConversionUtil;
 import com.intellij.ui.components.OnOffButton;
 import com.intellij.uiDesigner.core.GridConstraints;
 
@@ -36,8 +36,6 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     private final MethodUnderTest methodUnderTest;
     private final PsiMethodCallExpression methodCallExpression;
     private final JPanel itemListPanel = new JPanel();
-    private final String fieldName;
-    private final String parentClassName;
     private final OnOffButton fieldMockSwitch;
     private JPanel mockDefinitionTitlePanel;
     private JLabel mockedMethodText;
@@ -62,35 +60,19 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     public MockDefinitionListPanel(PsiMethodCallExpression methodCallExpression) {
         this.methodCallExpression = methodCallExpression;
 
-        PsiExpression fieldExpression = methodCallExpression.getMethodExpression().getQualifierExpression();
-        this.fieldName = fieldExpression.getText();
-        PsiReferenceExpression qualifierExpression1 = (PsiReferenceExpression) fieldExpression;
-        PsiField fieldPsiInstance = (PsiField) qualifierExpression1.resolve();
-
         savedItemScrollPanel.setViewportView(itemListPanel);
         itemListPanel.setBorder(BorderFactory.createEmptyBorder());
         itemListPanel.setAlignmentY(0);
 
         PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
-        PsiSubstitutor classSubstitutor = TypeConversionUtil.getClassSubstitutor(fieldPsiInstance.getContainingClass(),
-                parentOfType, PsiSubstitutor.EMPTY);
-        PsiType fieldTypeSubstitutor = ClassTypeUtils.substituteClassRecursively(fieldPsiInstance.getType(),
-                classSubstitutor);
-
-        parentClassName = parentOfType.getQualifiedName();
-
         insidiousService = methodCallExpression.getProject().getService(InsidiousService.class);
-
+        String parentClassName = parentOfType.getQualifiedName();
+        PsiExpression fieldExpression = methodCallExpression.getMethodExpression().getQualifierExpression();
+        String fieldName = fieldExpression.getText();
         PsiMethod targetMethod = methodCallExpression.resolveMethod();
-        methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethod));
-        if (fieldPsiInstance != null && fieldPsiInstance.getType() != null) {
-            methodUnderTest.setClassName(fieldPsiInstance.getType().getCanonicalText());
-        }
 
-        if (fieldTypeSubstitutor != null) {
-            String actualClass = fieldTypeSubstitutor.getCanonicalText();
-            methodUnderTest.setClassName(actualClass);
-        }
+        methodUnderTest = MethodUnderTest.fromCallExpression(methodCallExpression);
+
 
         boolean fieldMockIsActive = insidiousService.isFieldMockActive(parentClassName, fieldName);
 //        boolean fieldMockIsActive = insidiousService.isPermanentMocks();
@@ -142,6 +124,8 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
             });
         }
 
+        assert targetMethod != null;
+        targetMethod.getParameterList();
         int argumentCount = targetMethod.getParameterList().getParametersCount();
         mockedMethodText.setText(
                 methodCallExpression.getMethodExpression().getText()

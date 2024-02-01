@@ -1,6 +1,5 @@
 package com.insidious.plugin.inlay;
 
-import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.MethodCallAggregate;
 import com.insidious.plugin.factory.InsidiousService;
@@ -18,11 +17,11 @@ import com.intellij.codeInsight.hints.presentation.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.editor.ex.util.EditorUtil;
-import com.intellij.openapi.ui.popup.ActiveIcon;
-import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
-import com.intellij.openapi.ui.popup.JBPopup;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.editor.markup.EffectType;
+import com.intellij.openapi.editor.markup.TextAttributes;
+import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiMethodImpl;
@@ -31,7 +30,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.containers.JBIterable;
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -121,39 +120,22 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
             PsiMethodCallExpression methodCallExpression, Editor editor, InlayHintsSink inlayHintsSink) {
 
         Document document = editor.getDocument();
-        int elementLineNumber = document.getLineNumber(methodCallExpression.getTextOffset());
+
         TextRange range = getTextRangeWithoutLeadingCommentsAndWhitespaces(methodCallExpression);
 
 
-        List<PsiMethodCallExpression> mockableCalls = new ArrayList<>();
         int savedMockCount = 0;
-        Map<PsiMethodCallExpression, List<DeclaredMock>> declaredMockMap = new HashMap<>();
+        List<PsiMethodCallExpression> mockableCalls = getMockableCalls(methodCallExpression);
 
-        if (MockMethodLineHighlighter.isNonStaticDependencyCall(methodCallExpression)) {
-            mockableCalls.add(methodCallExpression);
-            MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
-                    new JavaMethodAdapter(methodCallExpression.resolveMethod()));
+        Map<PsiMethodCallExpression, List<DeclaredMock>> declaredMockMap
+                = new HashMap<>();
+        for (PsiMethodCallExpression mockableCall : mockableCalls) {
+            MethodUnderTest methodUnderTest = MethodUnderTest.fromCallExpression(mockableCall);
             List<DeclaredMock> declaredMocks = insidiousService.getDeclaredMocksOf(methodUnderTest);
             savedMockCount += declaredMocks.size();
-            declaredMockMap.put(methodCallExpression, declaredMocks);
+            declaredMockMap.put(mockableCall, declaredMocks);
         }
 
-        PsiMethodCallExpression[] allCalls = MethodMockGutterNavigationHandler.getChildrenOfTypeRecursive(
-                methodCallExpression,
-                PsiMethodCallExpression.class);
-
-        if (allCalls != null) {
-            for (PsiMethodCallExpression callExpression : allCalls) {
-                if (MockMethodLineHighlighter.isNonStaticDependencyCall(callExpression)) {
-                    mockableCalls.add(callExpression);
-                    MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
-                            new JavaMethodAdapter(callExpression.resolveMethod()));
-                    List<DeclaredMock> declaredMocks = insidiousService.getDeclaredMocksOf(methodUnderTest);
-                    savedMockCount += declaredMocks.size();
-                    declaredMockMap.put(callExpression, declaredMocks);
-                }
-            }
-        }
 
         int mockableCallCount = mockableCalls.size();
         if (mockableCallCount == 0) {
@@ -161,7 +143,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         }
         if (mockableCallCount == 1) {
             PsiMethodCallExpression theCall = mockableCalls.get(0);
-            @Nullable PsiExpression qualifierTextExpression = theCall.getMethodExpression()
+            PsiExpression qualifierTextExpression = theCall.getMethodExpression()
                     .getQualifierExpression();
             if (qualifierTextExpression == null) {
                 return;
@@ -184,17 +166,36 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         inlayPresentations.add(new SpacePresentation(column * columnWidth - 2, 0));
 
 
-        inlayPresentations.add(getFactory().icon(UIUtils.GHOST_MOCK));
-        if (savedMockCount > 0) {
-            inlayPresentations.add(createInlayPresentation(savedMockCount + " saved mocks", "click to browse"));
-        } else {
-            inlayPresentations.add(createMockInlayPresentation(mockableCalls));
-        }
+        inlayPresentations.add(createMockInlayPresentation(mockableCalls, savedMockCount,
+                declaredMockMap.keySet().size()));
 
         SequencePresentation sequenceOfInlays = new SequencePresentation(inlayPresentations);
 
 
         inlayHintsSink.addBlockElement(startOffset, true, true, UNLOGGED_APM_GROUP, sequenceOfInlays);
+    }
+
+    private List<PsiMethodCallExpression> getMockableCalls(PsiMethodCallExpression methodCallExpression) {
+        List<PsiMethodCallExpression> mockableCalls = new ArrayList<>();
+        int savedMockCount = 0;
+        Map<PsiMethodCallExpression, List<DeclaredMock>> declaredMockMap = new HashMap<>();
+
+        if (MockMethodLineHighlighter.isNonStaticDependencyCall(methodCallExpression)) {
+            mockableCalls.add(methodCallExpression);
+        }
+
+        PsiMethodCallExpression[] allCalls = MethodMockGutterNavigationHandler.getChildrenOfTypeRecursive(
+                methodCallExpression,
+                PsiMethodCallExpression.class);
+
+        if (allCalls != null) {
+            for (PsiMethodCallExpression callExpression : allCalls) {
+                if (MockMethodLineHighlighter.isNonStaticDependencyCall(callExpression)) {
+                    mockableCalls.add(callExpression);
+                }
+            }
+        }
+        return mockableCalls;
     }
 
     private void createInlinePresentationsForMethod(PsiMethod methodPsiElement, Editor editor, InlayHintsSink inlayHintsSink) {
@@ -265,13 +266,59 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     }
 
 
-    private InlayPresentation createMockInlayPresentation(List<PsiMethodCallExpression> mockableCallExpressions) {
+    private InlayPresentation createMockInlayPresentation(List<PsiMethodCallExpression> mockableCallExpressions,
+                                                          int savedMockCount, int callExpressionCount) {
 
         PresentationFactory factory = getFactory();
         InlayPresentation text;
 
-        text = factory.smallText("create mock");
-        text = factory.withReferenceAttributes(text);
+        boolean mockingEnabled = insidiousService.isMockingEnabled();
+
+        StringBuilder inlayTextBuilder = new StringBuilder();
+
+        TextAttributesKey inlayAttributes;
+        if (savedMockCount == 0) {
+            inlayTextBuilder.append("create mock");
+            inlayAttributes = TextAttributesKey
+                    .createTextAttributesKey("INSIDIOUS_CREATE_MOCK",
+                            new TextAttributes(new JBColor(
+                                    new Color(204, 154, 137),
+                                    new Color(204, 154, 137)
+                            ), new JBColor(
+                                    new Color(44, 161, 184),
+                                    new Color(44, 161, 184)
+                            ),
+                                    new JBColor(
+                                            new Color(0, 245, 31),
+                                            new Color(0, 245, 31)
+                                    ), EffectType.LINE_UNDERSCORE, Font.PLAIN));
+
+        } else {
+            inlayAttributes = TextAttributesKey
+                    .createTextAttributesKey("INSIDIOUS_BROWSE_MOCK",
+                            new TextAttributes(new JBColor(
+                                    new Color(0, 238, 74),
+                                    new Color(0, 238, 74)
+                            ), new JBColor(
+                                    new Color(44, 161, 184),
+                                    new Color(44, 161, 184)
+                            ),
+                                    new JBColor(
+                                            new Color(0, 245, 31),
+                                            new Color(0, 245, 31)
+                                    ), EffectType.LINE_UNDERSCORE, Font.PLAIN));
+
+            inlayTextBuilder.append(savedMockCount).append(" saved mocks");
+        }
+
+
+        text = factory.smallText(inlayTextBuilder.toString());
+
+
+        text = new WithAttributesPresentation(text, inlayAttributes, editor,
+                (new WithAttributesPresentation.AttributesFlags()).withSkipEffects(true));
+//        text = factory.withReferenceAttributes(text);
+
 
         text = new OnClickPresentation(text, (mouseEvent, point) -> {
             logger.warn("inlay clicked create mock");
@@ -350,6 +397,12 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
                         .setBelongsToGlobalPopupStack(false)
                         .setTitle("Manage Mocks")
                         .setTitleIcon(new ActiveIcon(UIUtils.GHOST_MOCK))
+                        .addListener(new JBPopupListener() {
+                            @Override
+                            public void onClosed(@NotNull LightweightWindowEvent event) {
+//                                finalText.updateState(finalText);
+                            }
+                        })
                         .createPopup();
                 componentPopUp.show(new RelativePoint(mouseEvent));
                 gutterMethodPanel.setPopupHandle(componentPopUp);
@@ -361,7 +414,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
         text = factory.withTooltip("<html>Click to browse mocks\n\nMultiline<br /> <b>bold</b></html>", text);
 
-        text = new WithCursorOnHoverPresentation(text);
+        text = new WithCursorOnHoverPresentation(text, Cursor.getPredefinedCursor(Cursor.HAND_CURSOR), editor);
 
         return text;
     }
@@ -386,7 +439,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
         text = factory.withTooltip(hoverText, text);
 
-        text = new WithCursorOnHoverPresentation(text);
+        text = new WithCursorOnHoverPresentation(text, Cursor.getPredefinedCursor(Cursor.HAND_CURSOR), editor);
 
         return text;
     }

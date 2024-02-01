@@ -64,7 +64,10 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -86,7 +89,6 @@ public class StompComponent implements
     private final Map<TestCandidateMetadata, Component> candidateMetadataStompItemMap = new HashMap<>();
     private final InsidiousConfigurationState configurationState;
     private final FilterModel filterModel;
-    private final ExecutorService consumerThreadPool = Executors.newFixedThreadPool(1);
     BlockingQueue<TestCandidateMetadata> incomingQueue = new ArrayBlockingQueue<>(100);
     private JPanel mainPanel;
     private JPanel northPanelContainer;
@@ -103,20 +105,15 @@ public class StompComponent implements
     private JLabel selectedCountLabel;
     private JLabel selectAllLabel;
     private JLabel clearSelectionLabel;
-    private JPanel welcomePanel;
-    private JLabel manenDependencyIdentifierLabel;
     private JPanel southPanel;
     private JLabel clearFilterLabel;
     private JLabel filterAppliedLabel;
     private JLabel clearTimelineLabel;
     private long lastEventId = 0;
-    private ConnectedAndWaiting connectedAndWaiting;
-    private DisconnectedAnd disconnectedAnd;
     private MethodDirectInvokeComponent directInvokeComponent = null;
     private SaveForm saveFormReference;
     private SimpleDateFormat simpleDateFormat = new SimpleDateFormat();
     private boolean welcomePanelRemoved = false;
-    private boolean isConsuming;
     private AtomicInteger candidateQueryLatch;
 
     public StompComponent(InsidiousService insidiousService) {
@@ -133,8 +130,6 @@ public class StompComponent implements
         itemPanel.setLayout(mgr);
         itemPanel.setAlignmentY(0);
         itemPanel.setAlignmentX(0);
-
-        setLabelsVisible(false);
         clearTimelineLabel.setVisible(false);
 
         itemPanel.add(new JPanel(), createGBCForFakeComponent());
@@ -144,18 +139,9 @@ public class StompComponent implements
 
         historyStreamScrollPanel.setViewportView(itemPanel);
         historyStreamScrollPanel.setBorder(BorderFactory.createEmptyBorder());
-        historyStreamScrollPanel.setVisible(false);
 
         scrollContainer.setBorder(BorderFactory.createEmptyBorder());
 
-
-        manenDependencyIdentifierLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        manenDependencyIdentifierLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
-            }
-        });
 
         clearTimelineLabel.setToolTipText("Clear the timeline");
         clearTimelineLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -494,14 +480,6 @@ public class StompComponent implements
         });
 
         updateFilterLabel();
-        consumerThreadPool.submit(this);
-
-    }
-
-    private void setLabelsVisible(boolean b) {
-//        mockLabel.setVisible(b);
-//        executeLabel.setVisible(b);
-//        convertToJunitLabel.setVisible(b);
     }
 
     private void executeSingleTestCandidate(TestCandidateMetadata selectedCandidate) {
@@ -556,7 +534,6 @@ public class StompComponent implements
 
 
         if (!welcomePanelRemoved) {
-            welcomePanel.setVisible(false);
             historyStreamScrollPanel.setVisible(true);
             welcomePanelRemoved = true;
         }
@@ -1290,7 +1267,6 @@ public class StompComponent implements
 
     public void setConnectedAndWaiting() {
         if (!welcomePanelRemoved) {
-            welcomePanel.setVisible(false);
             historyStreamScrollPanel.setVisible(true);
             welcomePanelRemoved = true;
         }
@@ -1362,7 +1338,6 @@ public class StompComponent implements
 
     @Override
     public void run() {
-        isConsuming = true;
         try {
             while (true) {
                 final TestCandidateMetadata testCandidateMetadata = incomingQueue.take();
@@ -1379,7 +1354,6 @@ public class StompComponent implements
         } catch (InterruptedException e) {
             // just end
         } finally {
-            isConsuming = false;
         }
 
     }

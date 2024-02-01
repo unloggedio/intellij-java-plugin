@@ -167,7 +167,7 @@ public class DaoService {
         this.parameterProvider = parameterProvider;
 
         // instantiate the DAO to handle Account with String id
-        testCandidateDao = DaoManager.createDao(connectionSource, TestCandidateMetadata.class);
+         testCandidateDao = DaoManager.createDao(connectionSource, TestCandidateMetadata.class);
         probeInfoDao = DaoManager.createDao(connectionSource, ProbeInfo.class);
 //        parameterDao = DaoManager.createDao(connectionSource, Parameter.class);
         logFilesDao = DaoManager.createDao(connectionSource, LogFile.class);
@@ -180,6 +180,12 @@ public class DaoService {
         methodDefinitionsDao = DaoManager.createDao(connectionSource, MethodDefinition.class);
         classDefinitionsDao = DaoManager.createDao(connectionSource, ClassDefinition.class);
 
+        TableUtils.createTableIfNotExists(connectionSource, ArchiveFile.class);
+        TableUtils.createTableIfNotExists(connectionSource, MethodCallExpression.class);
+        TableUtils.createTableIfNotExists(connectionSource, DataEventWithSessionId.class);
+        TableUtils.createTableIfNotExists(connectionSource, LogFile.class);
+        TableUtils.createTableIfNotExists(connectionSource, ProbeInfo.class);
+        TableUtils.createTableIfNotExists(connectionSource, TestCandidateMetadata.class);
         TableUtils.createTableIfNotExists(connectionSource, ThreadState.class);
         TableUtils.createTableIfNotExists(connectionSource, IncompleteMethodCallExpression.class);
         TableUtils.createTableIfNotExists(connectionSource, ClassDefinition.class);

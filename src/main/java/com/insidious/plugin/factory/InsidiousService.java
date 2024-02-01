@@ -36,9 +36,9 @@ import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.InsidiousCaretListener;
-import com.insidious.plugin.ui.IntroductionPanel;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.ui.UnloggedSDKOnboarding;
 import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.library.LibraryComponent;
@@ -120,7 +120,7 @@ final public class InsidiousService implements
         GutterStateProvider {
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
-    final static private int TOOL_WINDOW_WIDTH = 300;
+    final static private int TOOL_WINDOW_WIDTH = 400;
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
     private final UnloggedSdkApiAgent unloggedSdkApiAgent;
     private final SessionLoader sessionLoader;
@@ -152,6 +152,8 @@ final public class InsidiousService implements
     private Content introPanelContent = null;
     private AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
     private ReportingService reportingService = new ReportingService(this);
+    private Content onboardingWindowContent;
+    private UnloggedSDKOnboarding onboardingWindow;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -384,6 +386,7 @@ final public class InsidiousService implements
             initiateUI();
 
         } catch (Throwable e) {
+            e.printStackTrace();
             logger.error("exception in unlogged service init", e);
             JSONObject properties = new JSONObject();
             properties.put("message", e.getMessage());
@@ -487,8 +490,17 @@ final public class InsidiousService implements
         testDesignerContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
 //        contentManager.addContent(testDesignerContent);
 
+        onboardingWindow = new UnloggedSDKOnboarding(this);
+
+        onboardingWindowContent = contentFactory.createContent(
+                onboardingWindow.getComponent(), "Unlogged", false);
+        onboardingWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        onboardingWindowContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
+        contentManager.addContent(onboardingWindowContent);
+
         // stomp window
         stompWindow = new StompComponent(this);
+        threadPoolExecutor.submit(stompWindow);
         stompWindowContent =
                 contentFactory.createContent(stompWindow.getComponent(), "Stomp", false);
         stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
@@ -968,7 +980,8 @@ final public class InsidiousService implements
 
         client.setSessionInstance(sessionInstance);
         testCaseService = new TestCaseService(sessionInstance);
-        if (stompWindow != null) {
+        if (stompWindow != null && !executionSession.getSessionId().equals("na")) {
+            removeOnboardingTab();
             sessionInstance.addSessionScanEventListener(stompWindow.getScanEventListener());
             stompWindow.setSession(executionSession);
             stompWindow.loadNewCandidates();
@@ -1174,6 +1187,19 @@ final public class InsidiousService implements
         }
         ApplicationManager.getApplication().invokeLater(
                 () -> toolWindow.getContentManager().setSelectedContent(directMethodInvokeContent, false));
+    }
+
+    public void removeOnboardingTab() {
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
+        if (toolWindow == null) {
+            return;
+        }
+        ApplicationManager.getApplication().invokeLater(
+                () -> {
+                    toolWindow.getContentManager().removeContent(onboardingWindowContent, true);
+                    onboardingWindow = null;
+                    onboardingWindowContent = null;
+                });
     }
 
     private String getPrettyJsonString(String input) {
@@ -1484,21 +1510,6 @@ final public class InsidiousService implements
         return configurationState.isActiveMock(declaredMock.getId());
     }
 
-    public void showIntroductionPanel() {
-        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
-        ContentManager contentManager = toolWindow.getContentManager();
-        if (introPanelContent == null) {
-            ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
-            IntroductionPanel introPanel = new IntroductionPanel(this);
-            introPanelContent =
-                    contentFactory.createContent(introPanel.getContent(), "Unlogged Features", false);
-            introPanelContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-            introPanelContent.setIcon(UIUtils.ONBOARDING_ICON_PINK);
-            contentManager.addContent(introPanelContent);
-        }
-        contentManager.setSelectedContent(introPanelContent);
-    }
-
     public void executeAllMethodsInCurrentClass() {
         automaticExecutorService.executeAllJavaMethodsInProject();
     }
@@ -1637,4 +1648,7 @@ final public class InsidiousService implements
         }
     }
 
+    public boolean isMockingEnabled() {
+        return true;
+    }
 }

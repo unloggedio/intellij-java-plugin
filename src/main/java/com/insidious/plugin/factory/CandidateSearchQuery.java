@@ -39,19 +39,6 @@ public class CandidateSearchQuery {
         this.loadCalls = false;
     }
 
-    public static CandidateSearchQuery fromMethod(MethodAdapter focussedMethod,
-                                                  List<String> interfaceQualifiedNamesWithSameMethod,
-                                                  String argumentsDescriptor, CandidateFilterType filterType) {
-
-        return new CandidateSearchQuery(
-                MethodUnderTest.fromMethodAdapter(focussedMethod),
-                argumentsDescriptor,
-                interfaceQualifiedNamesWithSameMethod,
-                filterType,
-                false
-        );
-    }
-
     public static CandidateSearchQuery fromMethod(
             MethodAdapter focussedMethod,
             List<String> interfacesWithSameSignature,

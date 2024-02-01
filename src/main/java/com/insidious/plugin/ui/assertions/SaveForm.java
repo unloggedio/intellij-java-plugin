@@ -353,9 +353,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
             Project project = insidiousService.getProject();
             JBPopup editorPopup = null;
 
-            PsiMethod targetMethod = psiMethodCallExpression.resolveMethod();
-            MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
-                    new JavaMethodAdapter(targetMethod));
+            MethodUnderTest methodUnderTest = MethodUnderTest.fromCallExpression(psiMethodCallExpression);
             MockDefinitionEditor mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest,
                     psiMethodCallExpression, project, self);
             JComponent gutterMethodComponent = mockDefinitionEditor.getComponent();

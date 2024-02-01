@@ -2,23 +2,32 @@ package com.insidious.plugin.inlay;
 
 import com.intellij.codeInsight.hints.presentation.InlayPresentation;
 import com.intellij.codeInsight.hints.presentation.StaticDelegatePresentation;
-import org.jetbrains.annotations.NotNull;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.impl.EditorImpl;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
 
-public class WithCursorOnHoverPresentation extends StaticDelegatePresentation {
-    public WithCursorOnHoverPresentation(@NotNull InlayPresentation presentation) {
+class WithCursorOnHoverPresentation extends StaticDelegatePresentation {
+
+    private final InlayPresentation presentation;
+    private final Cursor cursor;
+    private final Editor editor;
+
+    public WithCursorOnHoverPresentation(InlayPresentation presentation, Cursor cursor, Editor editor) {
         super(presentation);
+        this.presentation = presentation;
+        this.cursor = cursor;
+        this.editor = editor;
     }
 
     public void mouseMoved(MouseEvent event, Point translated) {
-//        super.mouseMoved(event, translated);
-//        (editor as? EditorImpl)?.setCustomCursor(this::class, cursor)
+        super.mouseMoved(event, translated);
+        ((EditorImpl) editor).setCustomCursor(this.getClass(), cursor);
     }
 
     public void mouseExited() {
-//        super.mouseExited()
-//        (editor as? EditorImpl)?.setCustomCursor(this::class, null)
+        super.mouseExited();
+        ((EditorImpl) editor).setCustomCursor(this.getClass(), null);
     }
 }

@@ -193,7 +193,7 @@ public class SessionInstance implements Runnable {
             executorPool.submit(zipConsumer);
             executorPool.submit(() -> {
                 try {
-                    publishEvent(ScanEventType.START);
+//                    publishEvent(ScanEventType.START);
                     this.sessionArchives = refreshSessionArchivesList(false);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -2256,7 +2256,7 @@ public class SessionInstance implements Runnable {
                 checkProgressIndicator("Processing files for thread " + i + " / " + allThreads.size(), null);
                 List<LogFile> logFiles = logFilesByThreadMap.get(threadId);
                 ThreadProcessingState threadState = daoService.getThreadState(threadId);
-                publishProgressEvent(new ScanProgress(processedCount + logFiles.size(), logFileCount));
+//                publishProgressEvent(new ScanProgress(processedCount + logFiles.size(), logFileCount));
                 boolean newCandidateIdentifiedNew = processPendingThreadFiles(threadState, logFiles,
                         parameterContainer);
                 newCandidateIdentified = newCandidateIdentified | newCandidateIdentifiedNew;
@@ -3896,7 +3896,7 @@ public class SessionInstance implements Runnable {
         }
         shutdown = true;
         logger.warn("Closing session instance: " + executionSession.getPath());
-        publishEvent(ScanEventType.ENDED);
+//        publishEvent(ScanEventType.ENDED);
         try {
             if (zipConsumer != null) {
                 zipConsumer.close();
@@ -4056,7 +4056,7 @@ public class SessionInstance implements Runnable {
                 scanLock.take();
                 if (scanEnable && !isSessionCorrupted) {
                     scanDataAndBuildReplay();
-                    publishEvent(ScanEventType.WAITING);
+//                    publishEvent(ScanEventType.WAITING);
                 }
             } catch (InterruptedException ie) {
                 logger.warn("scan checker interrupted");
