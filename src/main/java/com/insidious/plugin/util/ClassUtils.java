@@ -78,16 +78,22 @@ public class ClassUtils {
             if (parameterTypeCanonicalText.equals("java.util.Random")) {
                 return "{}";
             }
-            if (parameterTypeCanonicalText.equals("java.sql.Timestamp")) {
+            if (parameterTypeCanonicalText.equals("java.util.Date")) {
                 return String.valueOf(new Date().getTime());
             }
-            if (parameterTypeCanonicalText.equals("java.util.Date")) {
+			if (parameterTypeCanonicalText.equals("java.sql.Timestamp")) {
                 return String.valueOf(new Date().getTime());
             }
             if (parameterTypeCanonicalText.equals("java.time.Instant")) {
 //                Date date = new Date();
                 return String.valueOf(new Date().getTime() / 1000);
             }
+			if (parameterTypeCanonicalText.equals("org.joda.time.Instant")) {
+				return String.valueOf(new Date().getTime());
+			}
+			if (parameterTypeCanonicalText.equals("org.joda.time.DateTime")) {
+				return String.valueOf(new Date().getTime());
+			}
 
             if (parameterType instanceof PsiClassType) {
                 PsiClassType classReferenceType = (PsiClassType) parameterType;
@@ -197,7 +203,7 @@ public class ClassUtils {
                                 .runReadAction((Computable<PsiField[]>) () -> resolvedClass.getAllFields());
 
                 StringBuilder dummyInternalObjValue = new StringBuilder();
-                if (creationStack.size() < 3) {
+                if (creationStack.size() < 10) {
                     boolean firstField = true;
                     for (PsiField psiField : parameterObjectFieldList) {
                         String name =

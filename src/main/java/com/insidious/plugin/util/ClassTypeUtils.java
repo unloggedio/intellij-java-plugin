@@ -6,11 +6,14 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
+import com.intellij.psi.PsiClassType;
+import com.intellij.psi.PsiSubstitutor;
+import com.intellij.psi.PsiType;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
-
 
 import java.util.LinkedList;
 import java.util.List;
@@ -25,6 +28,27 @@ public class ClassTypeUtils {
         return methodName.substring(0, 1)
                 .toUpperCase() + methodName.substring(1);
     }
+
+    public static PsiType substituteClassRecursively(PsiType typeToBeSubstituted, PsiSubstitutor classSubstitutor) {
+        if (classSubstitutor == null) {
+            return typeToBeSubstituted;
+        }
+        PsiType fieldTypeSubstitutor = classSubstitutor.substitute(typeToBeSubstituted);
+        if (fieldTypeSubstitutor.getCanonicalText().equals(typeToBeSubstituted.getCanonicalText())) {
+            PsiClassType[] checkSuperTypes = ((PsiClassReferenceType) typeToBeSubstituted).resolve()
+                    .getExtendsListTypes();
+            for (PsiClassType checkSuperType : checkSuperTypes) {
+                PsiType possibleType = classSubstitutor.substitute(checkSuperType);
+                if (!possibleType.getCanonicalText().equals(typeToBeSubstituted.getCanonicalText())) {
+                    fieldTypeSubstitutor = possibleType;
+                    break;
+                }
+            }
+
+        }
+        return fieldTypeSubstitutor;
+    }
+
 
     public static String lowerInstanceName(String methodName) {
         return methodName.substring(0, 1)
@@ -92,7 +116,6 @@ public class ClassTypeUtils {
     }
 
 
-    
     public static String getDescriptorName(String className) {
         if (className.contains("$")) {
             className = className.substring(0, className.indexOf('$'));
@@ -188,7 +211,7 @@ public class ClassTypeUtils {
             }
             try {
                 returnValueSquareClass = ClassName.bestGuess(typeName);
-            }catch (Exception exception) {
+            } catch (Exception exception) {
                 // java poet failed to create class name from string
                 String packageName = typeName.substring(0, typeName.lastIndexOf("."));
                 String simpleName = typeName.substring(typeName.lastIndexOf(".") + 1);
@@ -219,7 +242,8 @@ public class ClassTypeUtils {
             TypeName[] typeArgumentsArray = new TypeName[typeArguments.size()];
             for (int j = 0; j < typeArguments.size(); j++) {
                 Type typeArgument = typeArguments.get(j);
-                typeArgumentsArray[j] = createTypeFromTypeDeclaration(typeArgument.asClassOrInterfaceType().getNameWithScope());
+                typeArgumentsArray[j] = createTypeFromTypeDeclaration(
+                        typeArgument.asClassOrInterfaceType().getNameWithScope());
             }
 
 
