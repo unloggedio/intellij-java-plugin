@@ -9,6 +9,7 @@ public class ExecutionUnitConfiguration {
     private List<VirtualFile> payload;
     private long queueCapacity;
     private boolean useMocks;
+    private String includePackage;
 
     public String getExecutorId() {
         return executorId;
@@ -26,9 +27,14 @@ public class ExecutionUnitConfiguration {
         return useMocks;
     }
 
-    public ExecutionUnitConfiguration(String executorId, List<VirtualFile> payload,
+    public String getIncludePackage() {
+        return includePackage;
+    }
+
+    public ExecutionUnitConfiguration(String executorId, List<VirtualFile> payload, String includePackage,
                                       long queueCapacity, boolean useMocks) {
         this.executorId = executorId;
+        this.includePackage = includePackage;
         this.payload = payload;
         this.queueCapacity = queueCapacity;
         this.useMocks = useMocks;

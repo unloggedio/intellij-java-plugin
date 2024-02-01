@@ -33,7 +33,7 @@ public class AutomaticExecutorService {
      * Each ExecutionUnit (A producer and consumer pair) will write to one file.
      * Each ExecutionUnit will write to a different file based on their ID.
      */
-    private final int executorCount = 3;
+    private final int executorCount = 1;
     private List<ExecutionUnit> executors;
 
     public AutomaticExecutorService(InsidiousService insidiousService) {
@@ -71,6 +71,11 @@ public class AutomaticExecutorService {
             return;
         }
 
+        String includedPackageName = insidiousService.getAgentStateProvider().getIncludedPackageName();
+        if (includedPackageName.equals("*")) {
+            //handle this situation by calculating base package yourself, or enter it somehow
+            includedPackageName = "";
+        }
         List<VirtualFile> javaFiles = new ArrayList<>(ApplicationManager.getApplication()
                 .runReadAction((Computable<Collection<VirtualFile>>) () -> FileTypeIndex.
                         getFiles(JavaFileType.INSTANCE,
@@ -95,7 +100,7 @@ public class AutomaticExecutorService {
                 batch = javaFiles.subList(startIndex, javaFiles.size());
             }
             ExecutionUnitConfiguration executionUnitConfiguration =
-                    new ExecutionUnitConfiguration("Executor_" + i, batch,
+                    new ExecutionUnitConfiguration("Executor_" + i, batch, includedPackageName,
                             8000, this.enableMocks);
             ExecutionUnit executionUnit = new ExecutionUnit(this, executionUnitConfiguration);
             executors.add(executionUnit);

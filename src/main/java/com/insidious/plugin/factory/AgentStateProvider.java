@@ -7,4 +7,6 @@ public interface AgentStateProvider
     String fetchVersionFromLibName(String name, String lib);
 
     boolean isAgentRunning();
+
+    String getIncludedPackageName();
 }

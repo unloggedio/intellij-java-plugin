@@ -91,17 +91,20 @@ public class ExecutionUnit implements Runnable {
                                             .findFile(virtualFile));
                     if (psiFile instanceof PsiJavaFile) {
                         PsiJavaFile psiJavaFile = (PsiJavaFile) psiFile;
+                        String packageName = ApplicationManager.getApplication()
+                                .runReadAction((Computable<String>) () -> psiJavaFile.getPackageName());
+                        if (!packageName.toLowerCase().contains(configuration.getIncludePackage().toLowerCase())) {
+                            continue;
+                        }
                         PsiClass[] javaFileClasses =
                                 ApplicationManager.getApplication()
                                         .runReadAction((Computable<PsiClass[]>) () -> psiJavaFile.getClasses());
                         for (PsiClass javaFileClass : javaFileClasses) {
-                            String currentClassname =
-                                    ApplicationManager.getApplication()
-                                            .runReadAction((Computable<String>) () -> javaFileClass.getName());
+                            ClassAdapter javaClassAdapter = new JavaClassAdapter(javaFileClass);
 //                            AutomaticExecutorService.incrementClassCount();
-                            checkProgressIndicator("[Executor Unit " + configuration.getExecutorId() + "] Executing methods in class : " + currentClassname + " " +
+                            checkProgressIndicator("[Executor Unit " + configuration.getExecutorId() + "] Executing methods in class : " + javaClassAdapter.getName() + " " +
                                     "| Executions : " + responses, null);
-                            executeAllMethodsForClass(new JavaClassAdapter(javaFileClass));
+                            executeAllMethodsForClass(javaClassAdapter);
                         }
                     }
                 }
@@ -161,9 +164,8 @@ public class ExecutionUnit implements Runnable {
             }
             try {
                 List<PsiClass> listOfImplementations = ClassUtils.getListOfImplementationOptions(methodAdapter.getContainingClass(), false);
-                if(listOfImplementations==null)
-                {
-                    logger.info("Found nothing to execute with for method : "+methodAdapter.getName());
+                if (listOfImplementations == null) {
+                    logger.info("Found nothing to execute with for method : " + methodAdapter.getName());
                     continue;
                 }
                 for (PsiClass implementationOption : listOfImplementations) {

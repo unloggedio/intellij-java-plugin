@@ -74,7 +74,8 @@ public class JavaMethodAdapter implements MethodAdapter {
 
     @Override
     public boolean isConstructor() {
-        return psiMethod.isConstructor();
+        return ApplicationManager.getApplication()
+                .runReadAction((Computable<Boolean>) psiMethod::isConstructor);
     }
 
     @Override

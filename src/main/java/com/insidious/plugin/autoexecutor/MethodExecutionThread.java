@@ -75,8 +75,6 @@ public class MethodExecutionThread implements Runnable {
                     String cannonText = ApplicationManager.getApplication()
                             .runReadAction((Computable<String>) () -> methodAdapter.getReturnType().getCanonicalText());
                     record.setMethodReturnTypeCannonicalText(cannonText);
-                    record.setMethodReturnTypeCannonicalText(
-                            methodAdapter.getReturnType().getCanonicalText());
                     record.setImplementationSource(classUnderTest.getQualifiedClassName());
                     parentUnit.getReportingQueue().add(record);
                 });
