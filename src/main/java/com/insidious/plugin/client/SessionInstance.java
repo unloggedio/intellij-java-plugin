@@ -39,21 +39,11 @@ import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.util.*;
-import com.intellij.lang.jvm.JvmMethod;
-import com.intellij.lang.jvm.JvmParameter;
-import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
-import com.intellij.openapi.project.IndexNotReadyException;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiPrimitiveType;
-import com.intellij.psi.PsiType;
-import com.intellij.psi.impl.source.PsiClassReferenceType;
-import com.intellij.psi.search.GlobalSearchScope;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import io.kaitai.struct.ByteBufferKaitaiStream;
@@ -126,6 +116,43 @@ public class SessionInstance implements Runnable {
     private BlockingQueue<Integer> scanLock;
     private boolean shutdown = false;
 
+    private void publishEvent(ScanEventType scanEventType) {
+        switch (scanEventType) {
+
+            case START:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::started);
+                break;
+            case PAUSED:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::paused);
+                break;
+            case WAITING:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::waiting);
+                break;
+            case ENDED:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::ended);
+                break;
+            case PROGRESS:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::started);
+                break;
+        }
+    }
+
+    private void publishProgressEvent(ScanProgress scanProgress) {
+        sessionScanEventListeners.
+                parallelStream()
+                .forEach(e -> e.progress(scanProgress));
+    }
+
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
         this.sessionDirectory = FileSystems.getDefault().getPath(executionSession.getPath()).toFile();
@@ -166,22 +193,6 @@ public class SessionInstance implements Runnable {
         ParameterProvider parameterProvider = value -> parameterContainer.getParameterByValue(value);
         daoService = new DaoService(connectionSource, parameterProvider, ObjectMapperInstance.getInstance());
 
-        if (!dbFileExists && scanEnable) {
-            try {
-                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
-                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.MethodCallExpression.class);
-                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.Parameter.class);
-                TableUtils.createTable(connectionSource, ProbeInfo.class);
-                TableUtils.createTable(connectionSource, DataEventWithSessionId.class);
-                TableUtils.createTable(connectionSource, LogFile.class);
-                TableUtils.createTable(connectionSource, ArchiveFile.class);
-            } catch (SQLException sqlException) {
-                sqlException.printStackTrace();
-                logger.warn("probably table already exists: " + sqlException);
-            }
-        }
-
-//        databasePipe = new DatabasePipe(new LinkedTransferQueue<>(), daoService);
 
         checkProgressIndicator("Opening Zip Files", null);
         if (scanEnable) {
@@ -193,7 +204,7 @@ public class SessionInstance implements Runnable {
             executorPool.submit(zipConsumer);
             executorPool.submit(() -> {
                 try {
-//                    publishEvent(ScanEventType.START);
+                    publishEvent(ScanEventType.START);
                     this.sessionArchives = refreshSessionArchivesList(false);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -3896,7 +3907,7 @@ public class SessionInstance implements Runnable {
         }
         shutdown = true;
         logger.warn("Closing session instance: " + executionSession.getPath());
-//        publishEvent(ScanEventType.ENDED);
+        publishEvent(ScanEventType.ENDED);
         try {
             if (zipConsumer != null) {
                 zipConsumer.close();
@@ -4019,7 +4030,8 @@ public class SessionInstance implements Runnable {
                     count += testCandidateMetadataList.size();
                     if (testCandidateMetadataList.size() > 0) {
                         currentAfterEventId =
-                                testCandidateMetadataList.get(testCandidateMetadataList.size() - 1).getEntryProbeIndex() + 1;
+                                testCandidateMetadataList.get(testCandidateMetadataList.size() - 1)
+                                        .getEntryProbeIndex() + 1;
                     }
                     if (testCandidateMetadataList.size() < limit) {
                         try {
@@ -4056,7 +4068,7 @@ public class SessionInstance implements Runnable {
                 scanLock.take();
                 if (scanEnable && !isSessionCorrupted) {
                     scanDataAndBuildReplay();
-//                    publishEvent(ScanEventType.WAITING);
+                    publishEvent(ScanEventType.WAITING);
                 }
             } catch (InterruptedException ie) {
                 logger.warn("scan checker interrupted");

@@ -154,6 +154,7 @@ final public class InsidiousService implements
     private ReportingService reportingService = new ReportingService(this);
     private Content onboardingWindowContent;
     private UnloggedSDKOnboarding onboardingWindow;
+    private boolean addedStompWindow;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -478,12 +479,12 @@ final public class InsidiousService implements
         contentManager.addContent(onboardingWindowContent);
 
         // stomp window
-        stompWindow = new StompComponent(this);
-        threadPoolExecutor.submit(stompWindow);
-        stompWindowContent =
-                contentFactory.createContent(stompWindow.getComponent(), "Stomp", false);
-        stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
+//        stompWindow = new StompComponent(this);
+//        threadPoolExecutor.submit(stompWindow);
+//        stompWindowContent =
+//                contentFactory.createContent(stompWindow.getComponent(), "Stomp", false);
+//        stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+//        stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
 //        contentManager.addContent(stompWindowContent);
 
         // method executor window
@@ -939,11 +940,11 @@ final public class InsidiousService implements
 
     public synchronized void setSession(ExecutionSession executionSession) {
 
-        SessionInstance sessionInstance = currentState.getSessionInstance();
-        if (sessionInstance != null) {
+        SessionInstance currentSession = currentState.getSessionInstance();
+        if (currentSession != null) {
             try {
-                logger.info("Closing existing session: " + sessionInstance.getExecutionSession().getSessionId());
-                sessionInstance.close();
+                logger.info("Closing existing session: " + currentSession.getExecutionSession().getSessionId());
+                currentSession.close();
             } catch (Exception e) {
                 logger.error("Failed to close existing session before opening new session: " + e.getMessage());
                 throw new RuntimeException(e);
@@ -953,17 +954,40 @@ final public class InsidiousService implements
         this.methodHash.clear();
         this.classModifiedFlagMap.clear();
         logger.info("Loading new session: " + executionSession.getSessionId() + " => " + project.getName());
-        sessionInstance = sessionManager.createSessionInstance(executionSession, project);
+        final SessionInstance sessionInstance = sessionManager.createSessionInstance(executionSession, project);
         currentState.setSessionInstance(sessionInstance);
         sessionInstance.addTestCandidateListener(this);
 
         client.setSessionInstance(sessionInstance);
         testCaseService = new TestCaseService(sessionInstance);
-        if (stompWindow != null && !executionSession.getSessionId().equals("na")) {
+        if (!executionSession.getSessionId().equals("na")) {
             removeOnboardingTab();
-            sessionInstance.addSessionScanEventListener(stompWindow.getScanEventListener());
-            stompWindow.setSession(executionSession);
-            stompWindow.loadNewCandidates();
+
+            if (stompWindow != null) {
+                stompWindow.disconnected();
+            }
+
+            ApplicationManager.getApplication().invokeLater(() -> {
+                ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
+                ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
+                ContentManager contentManager = toolWindow.getContentManager();
+
+                contentManager.removeAllContents(true);
+                stompWindow = new StompComponent(this);
+                threadPoolExecutor.submit(stompWindow);
+                stompWindowContent =
+                        contentFactory.createContent(stompWindow.getComponent(), "Stomp", false);
+                stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+                stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
+                contentManager.addContent(stompWindowContent);
+                contentManager.setSelectedContent(stompWindowContent);
+                sessionInstance.addSessionScanEventListener(stompWindow.getScanEventListener());
+                stompWindow.setSession(executionSession);
+                stompWindow.loadNewCandidates();
+
+
+            });
+
         }
     }
 
@@ -1170,7 +1194,7 @@ final public class InsidiousService implements
 
     public void removeOnboardingTab() {
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
-        if (toolWindow == null) {
+        if (toolWindow == null || onboardingWindow == null) {
             return;
         }
         ApplicationManager.getApplication().invokeLater(

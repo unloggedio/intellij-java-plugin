@@ -180,12 +180,16 @@ public class DaoService {
         methodDefinitionsDao = DaoManager.createDao(connectionSource, MethodDefinition.class);
         classDefinitionsDao = DaoManager.createDao(connectionSource, ClassDefinition.class);
 
+        TableUtils.createTableIfNotExists(connectionSource, com.insidious.plugin.pojo.dao.Parameter.class);
         TableUtils.createTableIfNotExists(connectionSource, ArchiveFile.class);
-        TableUtils.createTableIfNotExists(connectionSource, MethodCallExpression.class);
+
+        TableUtils.createTableIfNotExists(connectionSource,
+                com.insidious.plugin.pojo.dao.MethodCallExpression.class);
         TableUtils.createTableIfNotExists(connectionSource, DataEventWithSessionId.class);
         TableUtils.createTableIfNotExists(connectionSource, LogFile.class);
         TableUtils.createTableIfNotExists(connectionSource, ProbeInfo.class);
-        TableUtils.createTableIfNotExists(connectionSource, TestCandidateMetadata.class);
+        TableUtils.createTableIfNotExists(connectionSource,
+                com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
         TableUtils.createTableIfNotExists(connectionSource, ThreadState.class);
         TableUtils.createTableIfNotExists(connectionSource, IncompleteMethodCallExpression.class);
         TableUtils.createTableIfNotExists(connectionSource, ClassDefinition.class);
