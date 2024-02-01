@@ -116,7 +116,7 @@ public class ReportingService {
 
         List<String> input = getInputs(result.getCommand());
         cell = row.createCell(4);
-        cell.setCellValue(input.toString());
+        cell.setCellValue(wrapLargeStrings(input.toString()));
 
         String output;
         if (result.getResponse() == null || result.getResponse().getMethodReturnValue() == null) {

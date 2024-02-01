@@ -78,6 +78,5 @@ public class MethodExecutionThread implements Runnable {
                     record.setImplementationSource(classUnderTest.getQualifiedClassName());
                     parentUnit.getReportingQueue().add(record);
                 });
-        AutomaticExecutorService.incrementResponses();
     }
 }
