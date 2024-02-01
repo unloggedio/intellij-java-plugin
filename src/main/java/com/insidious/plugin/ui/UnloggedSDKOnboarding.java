@@ -12,9 +12,7 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.ItemEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 
 public class UnloggedSDKOnboarding {
     private final String UNLOGGED_SDK_VERSION = "0.1.48";
@@ -74,11 +72,15 @@ public class UnloggedSDKOnboarding {
     private JPanel step4ContainerPanel;
     private JLabel emailButton;
     private JLabel githubButton;
+    private JButton doneButton;
     private InsidiousService insidiousService;
     private String currentJDK = "JDK 1.8";
 
     public UnloggedSDKOnboarding(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
+        doneButton.setOpaque(true);
+        doneButton.setBackground(JBColor.BLUE);
+        doneButton.setBorderPainted(false);
         copyCodeButtonMaven.addActionListener(e -> copyCode(PROJECT_TYPE.MAVEN));
         discordButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         discordButton.addMouseListener(new MouseAdapter() {
@@ -216,6 +218,12 @@ public class UnloggedSDKOnboarding {
                 )
         );
         step4ContainerPanel.add(step4Label, new GridConstraints());
+
+        doneButton.addActionListener(e -> {
+            mainPanel.removeAll();
+            mainPanel.add(new JLabel("Start calling your application"), new GridConstraints());
+//            insidiousService.showS
+        });
 
     }
 

@@ -441,19 +441,9 @@ final public class InsidiousService implements
         showDesignerLiteForm(methodElement, generationConfiguration, generateOnlyBoilerPlate);
     }
 
-    private synchronized void initiateUI() throws IOException, FontFormatException {
+    private synchronized void initiateUI() {
         logger.info("initiate ui");
-//        if (atomicTestContainerWindow != null) {
-//            return;
-//        }
-
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
-        ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
-        if (toolWindow == null) {
-            UsageInsightTracker.getInstance().RecordEvent("ToolWindowNull", new JSONObject());
-            logger.warn("tool window is null");
-            return;
-        }
         toolWindow.setIcon(UIUtils.UNLOGGED_ICON_DARK_SVG);
         try {
             ToolWindowEx ex = (ToolWindowEx) toolWindow;
@@ -461,22 +451,11 @@ final public class InsidiousService implements
         } catch (NullPointerException npe) {
             // ignored
         }
-        ContentManager contentManager = toolWindow.getContentManager();
 
-//        if (!configurationState.hasShownFeatures()) {
-//            configurationState.setShownFeatures();
-//            IntroductionPanel introPanel = new IntroductionPanel(this);
-//            introPanelContent =
-//                    contentFactory.createContent(introPanel.getContent(), "Unlogged Features", false);
-//            introPanelContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-//            introPanelContent.setIcon(UIUtils.ONBOARDING_ICON_PINK);
-//            contentManager.addContent(introPanelContent);
-//        } else {
         addAllTabs();
-//        }
     }
 
-    public void addAllTabs() throws IOException, FontFormatException {
+    public void addAllTabs() {
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
         ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
         ContentManager contentManager = toolWindow.getContentManager();
@@ -505,7 +484,7 @@ final public class InsidiousService implements
                 contentFactory.createContent(stompWindow.getComponent(), "Stomp", false);
         stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
-        contentManager.addContent(stompWindowContent);
+//        contentManager.addContent(stompWindowContent);
 
         // method executor window
 //        atomicTestComponentWindow = new AtomicTestComponent(this);
