@@ -412,7 +412,13 @@ final public class InsidiousService implements
         if (testCaseService == null) {
             return null;
         }
-        return testCaseService.buildTestCaseUnit(new TestCaseGenerationConfiguration(generationConfiguration));
+        return (TestCaseUnit) ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try {
+                testCaseService.buildTestCaseUnit(new TestCaseGenerationConfiguration(generationConfiguration));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }).get();
     }
 
 //    public void generateAndSaveTestCase(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
@@ -982,7 +988,6 @@ final public class InsidiousService implements
                 contentManager.addContent(stompWindowContent);
                 contentManager.setSelectedContent(stompWindowContent);
                 sessionInstance.addSessionScanEventListener(stompWindow.getScanEventListener());
-                stompWindow.setSession(executionSession);
                 stompWindow.loadNewCandidates();
 
 
@@ -1524,27 +1529,6 @@ final public class InsidiousService implements
     public void onAgentConnected(ServerMetadata serverMetadata) {
         logger.info("unlogged agent connected - " + serverMetadata);
         currentState.setAgentServerRunning(true);
-//        Collection<? extends AnAction> actions = Arrays.asList(
-//                new AnAction("Direct Invoke") {
-//                    @Override
-//                    public void actionPerformed(AnActionEvent e) {
-//                        focusDirectInvokeTab();
-//                        openToolWindow();
-//                    }
-//                },
-//                new AnAction("Replay List") {
-//                    @Override
-//                    public void actionPerformed(AnActionEvent e) {
-//                        focusAtomicTestsWindow();
-//                        openToolWindow();
-//                    }
-//                }
-//        );
-//        InsidiousNotification.notifyMessage("Recording in progress package " +
-//                        serverMetadata.getIncludePackageName() + " " +
-//                        "Executed methods and saved replays will show up in the " +
-//                        "Replay tab. Use DirectInvoke to execute methods from here.",
-//                NotificationType.INFORMATION, actions);
 
         if (stompWindow != null) {
             stompWindow.resetTimeline();

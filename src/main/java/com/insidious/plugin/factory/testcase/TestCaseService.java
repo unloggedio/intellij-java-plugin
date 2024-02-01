@@ -26,9 +26,11 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.IndexNotReadyException;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiField;
@@ -194,7 +196,8 @@ public class TestCaseService {
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
 
-        List<TestCandidateMetadata> mockCreatorCandidates = createFieldMocks(objectRoutineContainer);
+        List<TestCandidateMetadata> mockCreatorCandidates = ApplicationManager.getApplication().runReadAction(
+                (Computable<List<TestCandidateMetadata>>) () -> createFieldMocks(objectRoutineContainer));
 
         ObjectRoutine constructorRoutine = objectRoutineContainer.getConstructor();
         for (TestCandidateMetadata mockCreatorCandidate : mockCreatorCandidates) {

@@ -1229,9 +1229,9 @@ public class StompComponent implements
         if (directInvokeComponent == null) {
             directInvokeComponent = new MethodDirectInvokeComponent(insidiousService, this);
             JComponent content = directInvokeComponent.getContent();
-            content.setMinimumSize(new Dimension(-1, 300));
-            content.setMaximumSize(new Dimension(-1, 300));
-            content.setPreferredSize(new Dimension(-1, 300));
+            content.setMinimumSize(new Dimension(-1, 600));
+            content.setMaximumSize(new Dimension(-1, 600));
+            content.setPreferredSize(new Dimension(-1, 600));
             southPanel.add(content, BorderLayout.CENTER);
 //            mainPanel.revalidate();
 //            mainPanel.repaint();
