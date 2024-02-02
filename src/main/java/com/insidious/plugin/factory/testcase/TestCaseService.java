@@ -9,7 +9,6 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.mock.MockFactory;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutine;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
-import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
@@ -22,6 +21,8 @@ import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.ui.stomp.StompComponent;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
@@ -31,19 +32,18 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.IndexNotReadyException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
-import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiField;
-import com.intellij.psi.PsiType;
+import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
+import com.intellij.psi.impl.source.tree.java.PsiMethodCallExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.TypeConversionUtil;
 import com.squareup.javapoet.*;
-
-
 import org.json.JSONObject;
 
 import javax.lang.model.element.Modifier;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
 public class TestCaseService {
@@ -56,7 +56,7 @@ public class TestCaseService {
         this.project = sessionInstance.getProject();
     }
 
-    
+
     private static TestCaseUnit
     buildTestUnitFromScript(ObjectRoutineContainer objectRoutineContainer, ObjectRoutineScriptContainer testCaseScript) {
         String generatedTestClassName = "Test" + testCaseScript.getName() + "V";
@@ -174,7 +174,7 @@ public class TestCaseService {
         );
     }
 
-    
+
     public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
 
 
@@ -192,7 +192,12 @@ public class TestCaseService {
             generationConfiguration.getTestCandidateMetadataList().add(0, constructorCandidate);
         }
 
-        normalizeTypeInformationUsingProject(generationConfiguration);
+        CountDownLatch cdl = new CountDownLatch(1);
+        ApplicationManager.getApplication().runReadAction(() -> {
+            normalizeTypeInformationUsingProject(generationConfiguration);
+            cdl.countDown();
+        });
+        cdl.await();
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
 
@@ -234,50 +239,40 @@ public class TestCaseService {
     private void normalizeTypeInformationUsingProject(TestCaseGenerationConfiguration generationConfiguration) {
 
         for (TestCandidateMetadata testCandidateMetadata : generationConfiguration.getTestCandidateMetadataList()) {
-            normalizeMethodTypes(testCandidateMetadata.getMainMethod());
-            for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
-                normalizeMethodTypes(methodCallExpression);
+
+            MethodCallExpression mainMethod = testCandidateMetadata.getMainMethod();
+
+            PsiMethod targetMethodPsi = StompComponent.getPsiMethod(testCandidateMetadata, project);
+            if (targetMethodPsi != null) {
+                normalizeMethodTypes(mainMethod, targetMethodPsi);
             }
 
-        }
+            Collection<PsiCallExpression> childCallExpressions = PsiTreeUtil.findChildrenOfType(
+                    targetMethodPsi, PsiCallExpression.class);
 
+            for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
 
-    }
-
-    private void normalizeMethodTypes(MethodCallExpression mainMethod) {
-        String className = mainMethod.getSubject().getType();
-        String methodName = mainMethod.getMethodName();
-
-        JavaPsiFacade javaPsiFacade = JavaPsiFacade.getInstance(project);
-        PsiClass psiClassInstance = javaPsiFacade.findClass(className, GlobalSearchScope.allScope(project));
-        if (psiClassInstance == null) {
-            // failed to find class in project
-            return;
-        }
-
-        JvmMethod[] psiMethodByName;
-        if (methodName.equals("<init>")) {
-            psiMethodByName = psiClassInstance.getConstructors();
-        } else {
-            psiMethodByName = psiClassInstance.findMethodsByName(methodName);
-        }
-
-        if (psiMethodByName.length == 0) {
-            // method not found
-            return;
-        }
-        JvmMethod selectedPsiMethod = psiMethodByName[0];
-        if (psiMethodByName.length > 1) {
-            // need to select correctMethod
-            for (JvmMethod jvmMethod : psiMethodByName) {
-                if (jvmMethod.getParameters().length == mainMethod.getArguments().size()) {
-                    // potential match
-                    // would still fail for overridden methods with same argument count
-                    selectedPsiMethod = jvmMethod;
-                    break;
+                PsiCallExpression callExpress = null;
+                for (PsiCallExpression childCallExpression : childCallExpressions) {
+                    String callExpressionText = childCallExpression.getText();
+                    if (callExpressionText.contains(methodCallExpression.getMethodName())
+                            && callExpressionText.contains(methodCallExpression.getSubject().getName())) {
+                        callExpress = childCallExpression;
+                        break;
+                    }
+                }
+                if (callExpress == null) {
+                    normalizeMethodTypes(methodCallExpression, targetMethodPsi);
+                } else {
+                    normalizeMethodTypes(methodCallExpression, callExpress.resolveMethod(), callExpress);
                 }
             }
         }
+
+    }
+
+    private void normalizeMethodTypes(MethodCallExpression mainMethod, PsiMethod targetMethodPsi) {
+        JvmMethod selectedPsiMethod = targetMethodPsi;
 
         // fix argument types
         JvmParameter[] methodParameters = selectedPsiMethod.getParameters();
@@ -293,8 +288,44 @@ public class TestCaseService {
             TestCaseWriter.setParameterTypeFromPsiType(mainMethod.getReturnValue(),
                     (PsiType) selectedPsiMethod.getReturnType(), true);
         }
+    }
 
+    private void normalizeMethodTypes(MethodCallExpression mainMethod, PsiMethod targetMethodPsi,
+                                      PsiCallExpression psiCallExpression) {
 
+        PsiClass classContainingTheCallExpression = PsiTreeUtil.getParentOfType(psiCallExpression,
+                PsiClass.class);
+
+        PsiType fieldType = ((PsiMethodCallExpressionImpl) psiCallExpression).getMethodExpression()
+                .getQualifierExpression().getType();
+
+        PsiClass fieldTypeClassPsi = JavaPsiFacade.getInstance(project)
+                .findClass(fieldType.getCanonicalText(),
+                        GlobalSearchScope.allScope(project));
+        PsiSubstitutor classSubstitutor = null;
+        if (fieldTypeClassPsi != null) {
+            classSubstitutor = TypeConversionUtil.getClassSubstitutor(
+                    targetMethodPsi.getContainingClass(),
+                    fieldTypeClassPsi, PsiSubstitutor.EMPTY);
+        }
+
+        // fix argument types
+        JvmParameter[] methodParameters = ((JvmMethod) targetMethodPsi).getParameters();
+        List<Parameter> methodArguments = mainMethod.getArguments();
+        for (int i = 0; i < methodParameters.length; i++) {
+            JvmParameter parameter = methodParameters[i];
+            Parameter ourParam = methodArguments.get(i);
+            ourParam.addName(parameter.getName());
+            PsiType type = ClassTypeUtils.substituteClassRecursively((PsiType) parameter.getType(), classSubstitutor);
+            TestCaseWriter.setParameterTypeFromPsiType(ourParam, type, false);
+        }
+
+        if (((JvmMethod) targetMethodPsi).getReturnType() != null) {
+            PsiType returnType = (PsiType) ((JvmMethod) targetMethodPsi).getReturnType();
+            PsiType ungenericType = ClassTypeUtils.substituteClassRecursively(returnType, classSubstitutor);
+            TestCaseWriter.setParameterTypeFromPsiType(mainMethod.getReturnValue(),
+                    ungenericType, true);
+        }
     }
 
     public List<TestCandidateMetadata> createFieldMocks(ObjectRoutineContainer objectRoutineContainer) {
@@ -306,7 +337,7 @@ public class TestCaseService {
         Set<? extends Parameter> fields = objectRoutineContainer.collectFieldsFromRoutines();
 
 
-         PsiClass classPsiInstance = null;
+        PsiClass classPsiInstance = null;
         try {
             classPsiInstance = JavaPsiFacade.getInstance(project)
                     .findClass(ClassTypeUtils.getJavaClassName(target.getType()), GlobalSearchScope.allScope(project));

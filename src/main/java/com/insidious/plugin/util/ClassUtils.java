@@ -26,6 +26,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
+import com.intellij.psi.impl.source.PsiImmediateClassType;
 import com.intellij.psi.impl.source.tree.java.*;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -608,7 +609,7 @@ public class ClassUtils {
     }
 
     public static void
-    extractTemplateMap(PsiClassReferenceType classReferenceType, List<Parameter> templateMap) {
+    extractTemplateMap(PsiClassType classReferenceType, List<Parameter> templateMap) {
         char templateChar = 'D';
         boolean hasGenericTemplate = false;
         PsiType[] typeTemplateParameters = classReferenceType.getParameters();
@@ -656,7 +657,7 @@ public class ClassUtils {
         }
     }
 
-    private static PsiType identifyReturnType(PsiExpression methodCallExpression) {
+    public static PsiType identifyReturnType(PsiExpression methodCallExpression) {
         PsiType returnType = null;
 
         if (methodCallExpression.getParent() instanceof PsiConditionalExpressionImpl) {

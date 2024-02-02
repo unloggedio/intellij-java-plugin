@@ -412,9 +412,9 @@ final public class InsidiousService implements
         if (testCaseService == null) {
             return null;
         }
-        return (TestCaseUnit) ApplicationManager.getApplication().executeOnPooledThread(() -> {
+        return ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
-                testCaseService.buildTestCaseUnit(new TestCaseGenerationConfiguration(generationConfiguration));
+                return testCaseService.buildTestCaseUnit(new TestCaseGenerationConfiguration(generationConfiguration));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -547,7 +547,7 @@ final public class InsidiousService implements
             client.close();
             client = null;
         }
-        unloggedSdkApiAgent.close();
+//        unloggedSdkApiAgent.close();
         if (currentState.getSessionInstance() != null) {
             try {
                 currentState.getSessionInstance().close();

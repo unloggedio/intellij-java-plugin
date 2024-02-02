@@ -3,56 +3,14 @@
   <grid id="27dc6" binding="mainContainer" layout-manager="GridLayoutManager" row-count="3" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="0" left="0" bottom="0" right="0"/>
     <constraints>
-      <xy x="20" y="20" width="458" height="318"/>
+      <xy x="20" y="20" width="489" height="318"/>
     </constraints>
     <properties/>
-    <border type="bevel-lowered" title="Live Execute"/>
+    <border type="bevel-raised" title="Execute method"/>
     <children>
-      <grid id="72ab9" binding="actionControlPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-        <margin top="0" left="0" bottom="0" right="0"/>
-        <constraints>
-          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
-        </constraints>
-        <properties/>
-        <border type="empty"/>
-        <children>
-          <grid id="ae184" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="0" bottom="0" right="0"/>
-            <constraints>
-              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-            </constraints>
-            <properties/>
-            <border type="none"/>
-            <children>
-              <hspacer id="276c7">
-                <constraints>
-                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                </constraints>
-              </hspacer>
-              <component id="24941" class="javax.swing.JButton" binding="modifyArgumentsButton" default-binding="true">
-                <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <icon value="icons/png/edit-line.png"/>
-                  <text value="Modify arguments"/>
-                </properties>
-              </component>
-              <component id="9275e" class="javax.swing.JButton" binding="executeButton">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <text value="Execute"/>
-                </properties>
-              </component>
-            </children>
-          </grid>
-        </children>
-      </grid>
       <grid id="eb563" binding="methodParameterScrollContainer" layout-manager="BorderLayout" hgap="0" vgap="0">
         <constraints>
-          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false">
+          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false">
             <minimum-size width="-1" height="100"/>
           </grid>
         </constraints>
@@ -62,7 +20,7 @@
         </border>
         <children/>
       </grid>
-      <grid id="1b012" layout-manager="GridLayoutManager" row-count="1" column-count="4" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+      <grid id="1b012" layout-manager="GridLayoutManager" row-count="2" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
         <margin top="0" left="0" bottom="0" right="3"/>
         <constraints>
           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
@@ -72,34 +30,75 @@
         <children>
           <hspacer id="5aa2d">
             <constraints>
-              <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
             </constraints>
           </hspacer>
           <component id="7912d" class="javax.swing.JLabel" binding="closeButton">
             <constraints>
-              <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+              <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties>
               <icon value="icons/png/close-line-black.png"/>
               <text value=""/>
             </properties>
           </component>
-          <component id="dccc5" class="javax.swing.JLabel" binding="editValueLabel">
+          <component id="aa3a0" class="javax.swing.JLabel" binding="methodNameLabel">
             <constraints>
               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties>
-              <icon value="icons/png/edit-line-black.png"/>
-              <text value=""/>
+              <font size="14" style="1"/>
+              <text value="methodName()"/>
             </properties>
           </component>
-          <component id="8a31a" class="javax.swing.JLabel" binding="createBoilerPlate">
+          <component id="dd290" class="javax.swing.JLabel" binding="classNameLabel">
             <constraints>
-              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value="ClassName"/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+      <grid id="3108d" layout-manager="GridLayoutManager" row-count="1" column-count="4" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="0" left="0" bottom="0" right="0"/>
+        <constraints>
+          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="35bf6" class="javax.swing.JButton" binding="createBoilerplateButton">
+            <constraints>
+              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties>
               <icon value="icons/png/braces-line.png"/>
-              <text value=""/>
+              <text value="JUnit Boilerplate"/>
+            </properties>
+          </component>
+          <hspacer id="27bca">
+            <constraints>
+              <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+            </constraints>
+          </hspacer>
+          <component id="3c26" class="javax.swing.JButton" binding="executeButton">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <icon value="icons/png/play-fill.png"/>
+              <text value="Execute"/>
+            </properties>
+          </component>
+          <component id="d89e4" class="javax.swing.JButton" binding="modifyArgumentsButton" default-binding="true">
+            <constraints>
+              <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <icon value="icons/png/edit-line.png"/>
+              <text value="Modify arguments"/>
             </properties>
           </component>
         </children>

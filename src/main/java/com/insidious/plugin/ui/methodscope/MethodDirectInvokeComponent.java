@@ -56,14 +56,15 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private final ObjectMapper objectMapper;
     private JPanel mainContainer;
-    private JPanel actionControlPanel;
     private Editor returnValueTextArea;
     private JPanel methodParameterScrollContainer;
     private JButton executeButton;
     private JButton modifyArgumentsButton;
     private JLabel closeButton;
-    private JLabel editValueLabel;
-    private JLabel createBoilerPlate;
+//    private JLabel editValueLabel;
+    private JButton createBoilerplateButton;
+    private JLabel methodNameLabel;
+    private JLabel classNameLabel;
     private MethodAdapter methodElement;
     private Tree argumentValueTree = null;
     private TreeModel argumentsValueTreeNode;
@@ -106,64 +107,41 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
     private void configureEditButton() {
 
-        editValueLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        final Border closeButtonOriginalBorder = editValueLabel.getBorder();
-        final Border actuallyOriginalBorder = BorderFactory.createCompoundBorder(
-                BorderFactory.createEmptyBorder(2, 2, 2, 2),
-                closeButtonOriginalBorder);
-        editValueLabel.setBorder(actuallyOriginalBorder);
-        editValueLabel.setToolTipText("Hide direct invoke");
-        editValueLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                super.mouseEntered(e);
-                editValueLabel.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createRaisedBevelBorder(),
-                        closeButtonOriginalBorder));
-//                editValueLabel.setIcon(UIUtils.CLOSE_LINE_BLACK_PNG);
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                super.mouseExited(e);
-                editValueLabel.setBorder(actuallyOriginalBorder);
-//                editValueLabel.setIcon(UIUtils.CLOSE_LINE_PNG);
-            }
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
-                insidiousService.previewTestCase(methodElement, null, true);
-            }
-        });
+//        editValueLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        final Border closeButtonOriginalBorder = editValueLabel.getBorder();
+//        final Border actuallyOriginalBorder = BorderFactory.createCompoundBorder(
+//                BorderFactory.createEmptyBorder(2, 2, 2, 2),
+//                closeButtonOriginalBorder);
+//        editValueLabel.setBorder(actuallyOriginalBorder);
+//        editValueLabel.setToolTipText("Hide direct invoke");
+//        editValueLabel.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseEntered(MouseEvent e) {
+//                super.mouseEntered(e);
+//                editValueLabel.setBorder(BorderFactory.createCompoundBorder(
+//                        BorderFactory.createRaisedBevelBorder(),
+//                        closeButtonOriginalBorder));
+////                editValueLabel.setIcon(UIUtils.CLOSE_LINE_BLACK_PNG);
+//            }
+//
+//            @Override
+//            public void mouseExited(MouseEvent e) {
+//                super.mouseExited(e);
+//                editValueLabel.setBorder(actuallyOriginalBorder);
+////                editValueLabel.setIcon(UIUtils.CLOSE_LINE_PNG);
+//            }
+//
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                super.mouseClicked(e);
+//                insidiousService.previewTestCase(methodElement, null, true);
+//            }
+//        });
     }
 
     private void configureCreateBoilerplateButton(InsidiousService insidiousService) {
 
-        createBoilerPlate.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        final Border closeButtonOriginalBorder = createBoilerPlate.getBorder();
-        final Border actuallyOriginalBorder = BorderFactory.createCompoundBorder(
-                BorderFactory.createEmptyBorder(2, 2, 2, 2),
-                closeButtonOriginalBorder);
-        createBoilerPlate.setBorder(actuallyOriginalBorder);
-        createBoilerPlate.setToolTipText("Hide direct invoke");
-        createBoilerPlate.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                super.mouseEntered(e);
-                createBoilerPlate.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createRaisedBevelBorder(),
-                        closeButtonOriginalBorder));
-//                createBoilerPlate.setIcon(UIUtils.CLOSE_LINE_BLACK_PNG);
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                super.mouseExited(e);
-                createBoilerPlate.setBorder(actuallyOriginalBorder);
-//                createBoilerPlate.setIcon(UIUtils.CLOSE_LINE_PNG);
-            }
-
+        createBoilerplateButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
@@ -242,8 +220,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
         }
         executeButton.setText("Executing...");
         executeButton.setEnabled(false);
-        createBoilerPlate.setVisible(false);
-
         ApplicationManager.getApplication().executeOnPooledThread(this::chooseClassAndDirectInvoke);
     }
 
@@ -255,11 +231,13 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
         this.methodElement = methodElement1;
         String methodName = methodElement.getName();
-        ((TitledBorder) mainContainer.getBorder()).setTitle(methodName);
+//        ((TitledBorder) mainContainer.getBorder()).setTitle(methodName);
         ClassAdapter containingClass = methodElement.getContainingClass();
 
+        methodNameLabel.setText(methodName);
+        classNameLabel.setText(ApplicationManager.getApplication().runReadAction(
+                (Computable<String>) () -> containingClass.getName()));
         modifyArgumentsButton.setVisible(false);
-        createBoilerPlate.setVisible(true);
         executeButton.setText("Execute");
 
         logger.warn("render method executor for: " + methodName);
@@ -437,13 +415,13 @@ public class MethodDirectInvokeComponent implements ActionListener {
         methodParameterScrollContainer.removeAll();
 
         parameterScrollPanel = new JBScrollPane(methodParameterContainer);
-        parameterScrollPanel.setMinimumSize(new Dimension(-1, 600));
-        parameterScrollPanel.setPreferredSize(new Dimension(-1, 600));
-        parameterScrollPanel.setMaximumSize(new Dimension(-1, 600));
+//        parameterScrollPanel.setMinimumSize(new Dimension(-1, 100));
+//        parameterScrollPanel.setPreferredSize(new Dimension(-1, 150));
+//        parameterScrollPanel.setMaximumSize(new Dimension(-1, 500));
         parameterScrollPanel.setBorder(BorderFactory.createEmptyBorder());
 
 
-        methodParameterScrollContainer.setMinimumSize(new Dimension(-1, Math.min(methodParameters.length * 100, 100)));
+//        methodParameterScrollContainer.setMinimumSize(new Dimension(-1, Math.min(methodParameters.length * 100, 100)));
         methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
 
 

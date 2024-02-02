@@ -149,7 +149,14 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
                 return;
             }
             String qualifierText = qualifierTextExpression.getText();
+            String typeCanonicalName = qualifierTextExpression.getType()
+                    .getCanonicalText();
             if (qualifierText.equals("log") || qualifierText.equals("logger")) {
+                return;
+            }
+            if (
+                    typeCanonicalName.startsWith("com.fasterxml.jackson")
+            ) {
                 return;
             }
         }

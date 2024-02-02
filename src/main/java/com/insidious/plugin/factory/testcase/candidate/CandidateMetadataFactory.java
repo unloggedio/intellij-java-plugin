@@ -36,7 +36,7 @@ public class CandidateMetadataFactory {
                 .getTestSubject();
 
 
-        Collection<MethodCallExpression> callToMock = new ArrayList<>();
+        Collection<MethodCallExpression> callsToMock = new ArrayList<>();
         Set<MethodCallExpression> staticCallsList = new HashSet<>();
 
 //        Map<String, Boolean> mockedStaticTypes = new HashMap<>();
@@ -97,13 +97,13 @@ public class CandidateMetadataFactory {
             }
 
             // finally add this call in the list of calls that will be actually mocked
-            callToMock.add(e);
+            callsToMock.add(e);
 
         }
 
-        if (callToMock.size() > 0) {
+        if (callsToMock.size() > 0) {
 
-            Map<String, List<MethodCallExpression>> grouped = callToMock.stream()
+            Map<String, List<MethodCallExpression>> grouped = callsToMock.stream()
                     .collect(Collectors.groupingBy(e -> e.getSubject()
                                     .getValue() + e.getMethodName() + buildCallSignature(e),
                             Collectors.toList()));
@@ -205,8 +205,7 @@ public class CandidateMetadataFactory {
                     childParameter.setType(staticCallSubjectMockInstance.getType());
                     subjectStaticFieldMock.setType("org.mockito.MockedStatic");
                     childParameter.setName("E");
-                    subjectStaticFieldMock.getTemplateMap()
-                            .add(childParameter);
+                    subjectStaticFieldMock.getTemplateMap().add(childParameter);
 
                     // set the name for this parameter forced.
                     nameFactory.setNameForParameter(subjectStaticFieldMock, staticCallSubjectMockInstance.getName());

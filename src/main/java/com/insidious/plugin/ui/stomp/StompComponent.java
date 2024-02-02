@@ -33,6 +33,8 @@ import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.lang.jvm.JvmMethod;
+import com.intellij.lang.jvm.JvmParameter;
+import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -46,6 +48,7 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiType;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
@@ -254,7 +257,8 @@ public class StompComponent implements
                     methodUnderTest = ApplicationManager.getApplication().executeOnPooledThread(
                                     () -> ApplicationManager.getApplication().runReadAction(
                                             (Computable<MethodUnderTest>) () -> MethodUnderTest.fromMethodAdapter(
-                                                    new JavaMethodAdapter(getPsiMethod(testCandidate)))))
+                                                    new JavaMethodAdapter(getPsiMethod(testCandidate,
+                                                            insidiousService.getProject())))))
                             .get();
                 } catch (InterruptedException | ExecutionException ex) {
                     continue;
@@ -296,7 +300,8 @@ public class StompComponent implements
                     public void onSaved(StoredCandidate storedCandidate) {
                         for (TestCandidateMetadata testCandidate : selectedCandidates) {
                             MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
-                                    new JavaMethodAdapter(getPsiMethod(testCandidate)));
+                                    new JavaMethodAdapter(getPsiMethod(testCandidate,
+                                            StompComponent.this.insidiousService.getProject())));
                             StoredCandidate candidate = atomicRecordService.getStoredCandidateFor(methodUnderTest,
                                     testCandidate);
                             if (candidate.getCandidateId() == null) {
@@ -482,10 +487,52 @@ public class StompComponent implements
         updateFilterLabel();
     }
 
+    @Nullable
+    public static PsiMethod getPsiMethod(TestCandidateMetadata selectedCandidate, Project project) {
+        PsiClass classPsiElement = JavaPsiFacade
+                .getInstance(project)
+                .findClass(selectedCandidate.getFullyQualifiedClassname(),
+                        GlobalSearchScope.allScope(project));
+        MethodCallExpression mainMethod = selectedCandidate.getMainMethod();
+
+        JvmMethod[] methodsByName = classPsiElement.findMethodsByName(mainMethod.getMethodName());
+
+        for (JvmMethod jvmMethod : methodsByName) {
+
+            List<Parameter> expectedArguments = mainMethod.getArguments();
+            JvmParameter[] actualArguments = jvmMethod.getParameters();
+            if (expectedArguments.size() == actualArguments.length) {
+
+                boolean mismatch = false;
+                for (int i = 0; i < expectedArguments.size(); i++) {
+                    Parameter expectedArgument = expectedArguments.get(i);
+                    JvmParameter actualArgument = actualArguments[i];
+                    JvmType type = actualArgument.getType();
+                    if (type instanceof PsiType) {
+                        if (!((PsiType) type).getCanonicalText().contains(expectedArgument.getType())) {
+                            mismatch = true;
+                            break;
+                        }
+                    }
+
+                }
+                if (mismatch) {
+                    continue;
+                }
+
+                return (PsiMethod) jvmMethod.getSourceElement();
+
+
+            }
+
+        }
+        return null;
+    }
+
     private void executeSingleTestCandidate(TestCandidateMetadata selectedCandidate) {
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             PsiMethod methodPsiElement = ApplicationManager.getApplication().runReadAction(
-                    (Computable<PsiMethod>) () -> getPsiMethod(selectedCandidate));
+                    (Computable<PsiMethod>) () -> getPsiMethod(selectedCandidate, insidiousService.getProject()));
             long batchTime = System.currentTimeMillis();
 
             insidiousService.executeSingleCandidate(
@@ -501,24 +548,6 @@ public class StompComponent implements
                     new JavaMethodAdapter(methodPsiElement)
             );
         });
-    }
-
-    @Nullable
-    private PsiMethod getPsiMethod(TestCandidateMetadata selectedCandidate) {
-        PsiClass classPsiElement = JavaPsiFacade
-                .getInstance(insidiousService.getProject())
-                .findClass(selectedCandidate.getFullyQualifiedClassname(),
-                        GlobalSearchScope.projectScope(insidiousService.getProject()));
-        PsiMethod methodPsiElement = null;
-        JvmMethod[] methodsByName = classPsiElement.findMethodsByName(
-                selectedCandidate.getMainMethod().getMethodName());
-        for (JvmMethod jvmMethod : methodsByName) {
-            if (selectedCandidate.getMainMethod().getArguments().size() == jvmMethod.getParameters().length) {
-                methodPsiElement = (PsiMethod) jvmMethod.getSourceElement();
-            }
-
-        }
-        return methodPsiElement;
     }
 
     public String simpleTime(Date currentDate) {
@@ -834,7 +863,8 @@ public class StompComponent implements
         if (source == ExecutionRequestSourceType.Single) {
             TestCandidateMetadata selectedCandidate = metadata.get(0);
             PsiMethod methodPsiElement = ApplicationManager.getApplication()
-                    .runReadAction((Computable<PsiMethod>) () -> getPsiMethod(selectedCandidate));
+                    .runReadAction((Computable<PsiMethod>) () -> getPsiMethod(selectedCandidate,
+                            insidiousService.getProject()));
             showDirectInvoke(new JavaMethodAdapter(methodPsiElement));
             directInvokeComponent.triggerExecute();
         }
@@ -904,7 +934,7 @@ public class StompComponent implements
     public void onSaveAsMockRequest(TestCandidateMetadata testCandidateMetadata) {
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            PsiMethod targetMethodPsi = getPsiMethod(testCandidateMetadata);
+            PsiMethod targetMethodPsi = getPsiMethod(testCandidateMetadata, insidiousService.getProject());
             MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethodPsi));
             DeclaredMock declaredMock = new DeclaredMock();
             declaredMock.setMethodName(methodUnderTest.getName());
@@ -1229,9 +1259,9 @@ public class StompComponent implements
         if (directInvokeComponent == null) {
             directInvokeComponent = new MethodDirectInvokeComponent(insidiousService, this);
             JComponent content = directInvokeComponent.getContent();
-            content.setMinimumSize(new Dimension(-1, 600));
-            content.setMaximumSize(new Dimension(-1, 600));
-            content.setPreferredSize(new Dimension(-1, 600));
+            content.setMinimumSize(new Dimension(-1, 400));
+            content.setMaximumSize(new Dimension(-1, 400));
+//            content.setPreferredSize(new Dimension(-1, 600));
             southPanel.add(content, BorderLayout.CENTER);
 //            mainPanel.revalidate();
 //            mainPanel.repaint();

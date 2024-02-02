@@ -12,8 +12,6 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class UnloggedSdkApiAgent {
     public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
@@ -27,17 +25,12 @@ public class UnloggedSdkApiAgent {
             .readTimeout(Duration.of(5, ChronoUnit.MINUTES))
             .connectTimeout(Duration.of(500, ChronoUnit.MILLIS)).build();
     private final Request pingRequest;
-    private final ExecutorService threadPool = Executors.newFixedThreadPool(1);
 
     public UnloggedSdkApiAgent(String baseUrl) {
         this.agentUrl = baseUrl;
         pingRequest = new Request.Builder()
                 .url(agentUrl + "/ping")
                 .build();
-    }
-
-    public void close() {
-        threadPool.shutdownNow();
     }
 
     public AgentCommandResponse<String> executeCommand(AgentCommandRequest agentCommandRequest) throws IOException {
