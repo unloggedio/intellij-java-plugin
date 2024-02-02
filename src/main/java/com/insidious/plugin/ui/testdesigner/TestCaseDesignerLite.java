@@ -519,10 +519,6 @@ public class TestCaseDesignerLite {
 
             PsiType fieldType = field.getType();
 
-            PsiClassType fieldUngenericType = GenericsUtil.getExpectedGenericType(
-                    field.getPsiField(), parentOfType,
-                    (PsiClassType) fieldType);
-
             String canonicalText = ApplicationManager.getApplication().runReadAction(
                     (Computable<String>) () -> {
                         TestCaseWriter.setParameterTypeFromPsiType(fieldParameter, fieldType, false);

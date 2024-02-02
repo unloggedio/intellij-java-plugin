@@ -45,6 +45,32 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     public static final Integer UNLOGGED_APM_GROUP = -500;
     public static final Integer UNLOGGED_REQUEST_GROUP = 101;
     public static final Integer UNLOGGED_RESPONSE_GROUP = 102;
+    public static final @NotNull TextAttributesKey INSIDIOUS_CREATE_MOCK_ATTRIBUTES = TextAttributesKey
+            .createTextAttributesKey("INSIDIOUS_CREATE_MOCK",
+                    new TextAttributes(new JBColor(
+                            new Color(204, 154, 137),
+                            new Color(204, 154, 137)
+                    ), new JBColor(
+                            new Color(44, 161, 184),
+                            new Color(44, 161, 184)
+                    ),
+                            new JBColor(
+                                    new Color(0, 245, 31),
+                                    new Color(0, 245, 31)
+                            ), EffectType.LINE_UNDERSCORE, Font.PLAIN));
+    public static final @NotNull TextAttributesKey INSIDIOUS_BROWSE_MOCK_ATTRIBUTES = TextAttributesKey
+            .createTextAttributesKey("INSIDIOUS_BROWSE_MOCK",
+                    new TextAttributes(new JBColor(
+                            new Color(0, 238, 74),
+                            new Color(0, 238, 74)
+                    ), new JBColor(
+                            new Color(44, 161, 184),
+                            new Color(44, 161, 184)
+                    ),
+                            new JBColor(
+                                    new Color(0, 245, 31),
+                                    new Color(0, 245, 31)
+                            ), EffectType.LINE_UNDERSCORE, Font.PLAIN));
     private static final Logger logger = LoggerUtil.getInstance(InsidiousInlayHintsCollector.class);
     private final InsidiousService insidiousService;
     private final Editor editor;
@@ -286,35 +312,9 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         TextAttributesKey inlayAttributes;
         if (savedMockCount == 0) {
             inlayTextBuilder.append("create mock");
-            inlayAttributes = TextAttributesKey
-                    .createTextAttributesKey("INSIDIOUS_CREATE_MOCK",
-                            new TextAttributes(new JBColor(
-                                    new Color(204, 154, 137),
-                                    new Color(204, 154, 137)
-                            ), new JBColor(
-                                    new Color(44, 161, 184),
-                                    new Color(44, 161, 184)
-                            ),
-                                    new JBColor(
-                                            new Color(0, 245, 31),
-                                            new Color(0, 245, 31)
-                                    ), EffectType.LINE_UNDERSCORE, Font.PLAIN));
-
+            inlayAttributes = INSIDIOUS_CREATE_MOCK_ATTRIBUTES;
         } else {
-            inlayAttributes = TextAttributesKey
-                    .createTextAttributesKey("INSIDIOUS_BROWSE_MOCK",
-                            new TextAttributes(new JBColor(
-                                    new Color(0, 238, 74),
-                                    new Color(0, 238, 74)
-                            ), new JBColor(
-                                    new Color(44, 161, 184),
-                                    new Color(44, 161, 184)
-                            ),
-                                    new JBColor(
-                                            new Color(0, 245, 31),
-                                            new Color(0, 245, 31)
-                                    ), EffectType.LINE_UNDERSCORE, Font.PLAIN));
-
+            inlayAttributes = INSIDIOUS_BROWSE_MOCK_ATTRIBUTES;
             inlayTextBuilder.append(savedMockCount).append(" saved mocks");
         }
 

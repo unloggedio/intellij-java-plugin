@@ -220,6 +220,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         }
         executeButton.setText("Executing...");
         executeButton.setEnabled(false);
+        createBoilerplateButton.setVisible(false);
         ApplicationManager.getApplication().executeOnPooledThread(this::chooseClassAndDirectInvoke);
     }
 
@@ -231,12 +232,12 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
         this.methodElement = methodElement1;
         String methodName = methodElement.getName();
-//        ((TitledBorder) mainContainer.getBorder()).setTitle(methodName);
+        createBoilerplateButton.setVisible(true);
         ClassAdapter containingClass = methodElement.getContainingClass();
 
         methodNameLabel.setText(methodName);
         classNameLabel.setText(ApplicationManager.getApplication().runReadAction(
-                (Computable<String>) () -> containingClass.getName()));
+                (Computable<String>) containingClass::getName));
         modifyArgumentsButton.setVisible(false);
         executeButton.setText("Execute");
 
