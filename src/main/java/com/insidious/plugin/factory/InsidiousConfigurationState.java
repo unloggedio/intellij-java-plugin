@@ -1,6 +1,7 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.ui.stomp.FilterModel;
+import com.insidious.plugin.ui.stomp.LibraryFilterState;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
@@ -25,24 +26,26 @@ public class InsidiousConfigurationState
         implements PersistentStateComponent<InsidiousConfigurationState> {
 
     private static final Logger logger = LoggerUtil.getInstance(InsidiousConfigurationState.class);
-    private Map<String, Boolean> classFieldMockActiveStatus = new HashMap<>();
-    private Map<String, Boolean> mockActiveStatus = new HashMap<>();
+    private final Map<String, Boolean> classFieldMockActiveStatus = new HashMap<>();
+    private final Map<String, Boolean> mockActiveStatus = new HashMap<>();
     @OptionTag(converter = FilterModelConverter.class)
     private FilterModel filterModel = new FilterModel();
+    @OptionTag(converter = LibraryFilterModelConverter.class)
+    private final LibraryFilterState libraryFilterModel = new LibraryFilterState();
+
 
     public InsidiousConfigurationState() {
     }
 
+    public LibraryFilterState getLibraryFilterModel() {
+        return libraryFilterModel;
+    }
 
     public FilterModel getFilterModel() {
         if (filterModel == null) {
             filterModel = new FilterModel();
         }
         return filterModel;
-    }
-
-    public void setFilterModel(FilterModel filterModel) {
-        this.filterModel = filterModel;
     }
 
     @Override
@@ -73,22 +76,6 @@ public class InsidiousConfigurationState
 
     public void addFieldMock(String key) {
         classFieldMockActiveStatus.put(key, true);
-    }
-
-    public Map<String, Boolean> getClassFieldMockActiveStatus() {
-        return classFieldMockActiveStatus;
-    }
-
-    public void setClassFieldMockActiveStatus(Map<String, Boolean> classFieldMockActiveStatus) {
-        this.classFieldMockActiveStatus = classFieldMockActiveStatus;
-    }
-
-    public Map<String, Boolean> getMockActiveStatus() {
-        return mockActiveStatus;
-    }
-
-    public void setMockActiveStatus(Map<String, Boolean> mockActiveStatus) {
-        this.mockActiveStatus = mockActiveStatus;
     }
 
     public boolean isFieldMockActive(String key) {

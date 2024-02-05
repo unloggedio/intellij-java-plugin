@@ -12,6 +12,7 @@ import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.JBColor;
+import org.apache.xmlbeans.impl.store.Cur;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -26,7 +27,7 @@ public class StompItem {
             new Color(235, 235, 238));
     public static final JBColor TAG_LABEL_TEXT_GREY = new JBColor(new Color(113, 128, 150, 255),
             new Color(113, 128, 150, 255));
-    public static final int MAX_METHOD_NAME_LABEL_LENGTH = 20;
+    public static final int MAX_METHOD_NAME_LABEL_LENGTH = 25;
     public static final JBColor HOVER_HIGHLIGHT_COLOR = new JBColor(
             new Color(242, 137, 100),
             new Color(242, 137, 100));
@@ -187,7 +188,7 @@ public class StompItem {
 //        setTitledBorder("[" + candidateMetadata.getEntryProbeIndex() + "] " + className);
         long timeTakenMs = (candidateMetadata.getMainMethod().getReturnValue().getProb().getRecordedAt() -
                 candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt()) / (1000 * 1000);
-        String itemLabel = String.format("%s()", methodUnderTest.getName());
+        String itemLabel = String.format("%s", className);
         if (itemLabel.length() > MAX_METHOD_NAME_LABEL_LENGTH) {
             itemLabel = itemLabel.substring(0, MAX_METHOD_NAME_LABEL_LENGTH - 3) + "...";
         }
@@ -199,27 +200,43 @@ public class StompItem {
 
         TitledBorder detailPanelBorder = (TitledBorder) mainPanel.getBorder();
         detailPanelBorder.setTitle(itemLabel);
-//        candidateTitleLabel.setText(itemLabel);
-        candidateTitleLabel.setToolTipText(
-                className + "." + methodUnderTest.getName() + methodUnderTest.getSignature());
+        candidateTitleLabel.setText(methodUnderTest.getName() + "()");
+        candidateTitleLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        timeTakenMsLabel = createTagLabel("%s", timeTakenMsString, Color.decode(category.getColorHex()), JBColor.WHITE);
+        MouseAdapter labelMouseAdapter = new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                hoverOn();
+                super.mouseEntered(e);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                hoverOff();
+                super.mouseExited(e);
+            }
+        };
+
+        timeTakenMsLabel = createTagLabel("%s", new Object[]{timeTakenMsString}, Color.decode(category.getColorHex()),
+                JBColor.WHITE,
+                labelMouseAdapter);
         metadataPanel.add(timeTakenMsLabel);
 
         if (candidateMetadata.getLineNumbers().size() > 1) {
-            lineCoverageLabel = createTagLabel("+%d lines", candidateMetadata.getLineNumbers().size(),
-                    TAG_LABEL_BACKGROUND_GREY, Color.decode(ExecutionTimeCategory.INSTANTANEOUS.getColorHex()));
+            lineCoverageLabel = createTagLabel("+%d lines", new Object[]{candidateMetadata.getLineNumbers().size()},
+                    TAG_LABEL_BACKGROUND_GREY, Color.decode(ExecutionTimeCategory.INSTANTANEOUS.getColorHex()),
+                    labelMouseAdapter);
             metadataPanel.add(lineCoverageLabel);
         }
 
         parameterCountLabel = createTagLabel("%d Argument" + (
                         candidateMetadata.getMainMethod().getArgumentProbes().size() > 1 ? "s" : ""
-                ), candidateMetadata.getMainMethod().getArgumentProbes().size(), TAG_LABEL_BACKGROUND_GREY,
-                TAG_LABEL_TEXT_GREY);
+                ), new Object[]{candidateMetadata.getMainMethod().getArgumentProbes().size()}, TAG_LABEL_BACKGROUND_GREY,
+                TAG_LABEL_TEXT_GREY, labelMouseAdapter);
         metadataPanel.add(parameterCountLabel);
 
-        callsCountLabel = createTagLabel("%d Downstream", candidateMetadata.getCallsList().size(),
-                TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY);
+        callsCountLabel = createTagLabel("%d Downstream", new Object[]{candidateMetadata.getCallsList().size()},
+                TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, labelMouseAdapter);
         metadataPanel.add(callsCountLabel);
 
         callsCountLabel.setToolTipText("Click to show downstream calls");
@@ -232,19 +249,7 @@ public class StompItem {
             }
         });
 
-        selectCandidateCheckbox.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                hoverOn();
-                super.mouseEntered(e);
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                hoverOff();
-                super.mouseExited(e);
-            }
-        });
+        selectCandidateCheckbox.addMouseListener(labelMouseAdapter);
 
         selectCandidateCheckbox.addActionListener(e -> {
             if (selectCandidateCheckbox.isSelected()) {
@@ -254,6 +259,28 @@ public class StompItem {
             }
         });
 
+    }
+
+    public static JLabel createTagLabel(String tagText, Object[] value, Color backgroundColor, Color foreground,
+                                        MouseAdapter mouseAdapter) {
+        JLabel label = new JLabel();
+        label.setText(String.format("<html><small>" + tagText + "</small></html>", value));
+
+        label.setOpaque(true);
+        JPopupMenu jPopupMenu = new JPopupMenu("Yay");
+        jPopupMenu.add(new JMenuItem("item 1", UIUtils.GHOST_MOCK));
+        label.setComponentPopupMenu(jPopupMenu);
+        label.setBackground(backgroundColor);
+        label.setForeground(foreground);
+
+        // Creating a rounded border
+        Border roundedBorder = BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(backgroundColor, 3, true),
+                BorderFactory.createEmptyBorder(0, 2, 0, 2)
+        );
+        label.setBorder(roundedBorder);
+        label.addMouseListener(mouseAdapter);
+        return label;
     }
 
     private void hoverOff() {
@@ -276,39 +303,6 @@ public class StompItem {
         controlContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
         selectCandidateCheckbox.setBackground(HOVER_HIGHLIGHT_COLOR);
         metadataPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-    }
-
-    private JLabel createTagLabel(String tagText, Object value, Color backgroundColor, Color foreground) {
-        JLabel label = new JLabel();
-        label.setText(String.format("<html><small>" + tagText + "</small></html>", value));
-
-        label.setOpaque(true);
-        JPopupMenu jPopupMenu = new JPopupMenu("Yay");
-        jPopupMenu.add(new JMenuItem("item 1", UIUtils.GHOST_MOCK));
-        label.setComponentPopupMenu(jPopupMenu);
-        label.setBackground(backgroundColor);
-        label.setForeground(foreground);
-
-        // Creating a rounded border
-        Border roundedBorder = BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(backgroundColor, 3, true),
-                BorderFactory.createEmptyBorder(0, 2, 0, 2)
-        );
-        label.setBorder(roundedBorder);
-        label.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                hoverOn();
-                super.mouseEntered(e);
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                hoverOff();
-                super.mouseExited(e);
-            }
-        });
-        return label;
     }
 
     public JPanel getComponent() {

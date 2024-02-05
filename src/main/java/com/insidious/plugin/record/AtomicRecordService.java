@@ -1,6 +1,7 @@
 package com.insidious.plugin.record;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
@@ -13,7 +14,6 @@ import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.MockIntersection;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -65,52 +65,6 @@ public class AtomicRecordService {
 
     public GutterState computeGutterState(MethodUnderTest method) {
         return GutterState.EXECUTE;
-
-//        try {
-//            String methodKey = method.getMethodHashKey();
-//            AtomicRecord record = classAtomicRecordMap.get(method.getClassName());
-//            if (record == null) {
-//                return null;
-//            }
-//            List<StoredCandidate> candidates;
-//            if (record.getStoredCandidateMap().get(methodKey) != null) {
-//                candidates = new ArrayList<>(record.getStoredCandidateMap().get(methodKey));
-//            } else {
-//                return null;
-//            }
-//            boolean hashChange = false;
-//            StoredCandidateMetadata.CandidateStatus status = null;
-//            for (StoredCandidate candidate : candidates) {
-//                MethodUnderTest candidateMethodUnderTest = candidate.getMethod();
-//                if (candidateMethodUnderTest.getMethodHash() != method.getMethodHash()) {
-//                    hashChange = true;
-//                }
-//                if (status == null) {
-//                    status = candidate.getMetadata().getCandidateStatus();
-//                } else {
-//                    if (candidate.getMetadata()
-//                            .getCandidateStatus().equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
-//                        status = StoredCandidateMetadata.CandidateStatus.FAILING;
-//                    }
-//                }
-//            }
-//            if (hashChange) {
-//                return GutterState.EXECUTE;
-//            }
-//            if (status == null || status == StoredCandidateMetadata.CandidateStatus.NA) {
-//                return GutterState.DATA_AVAILABLE;
-//            }
-//            if (status.equals(StoredCandidateMetadata.CandidateStatus.FAILING)) {
-//                return GutterState.DIFF;
-//            } else if (status.equals(StoredCandidateMetadata.CandidateStatus.PASSING)) {
-//                return GutterState.NO_DIFF;
-//            } else {
-//                return GutterState.DATA_AVAILABLE;
-//            }
-//        } catch (Exception e) {
-//            logger.info("Exception computing gutter state." + e);
-//            return null;
-//        }
     }
 
 
@@ -476,8 +430,11 @@ public class AtomicRecordService {
             }
             InputStream inputStream = new FileInputStream(file);
             return objectMapper.readValue(inputStream, AtomicRecord.class);
+        } catch (MismatchedInputException e) {
+            logger.warn("file is empty: " + file.getAbsolutePath());
+            return null;
         } catch (IOException e) {
-            logger.error("Exception getting atomic record from file", e);
+            logger.warn("Exception getting atomic record from file", e);
             return null;
         }
     }
@@ -619,6 +576,15 @@ public class AtomicRecordService {
     public List<DeclaredMock> getAllDeclaredMocks() {
         return classAtomicRecordMap.values()
                 .stream().map(e -> e.getDeclaredMockMap().values())
+                .flatMap(Collection::stream)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+
+    }
+
+    public List<StoredCandidate> getAllTestCandidates() {
+        return classAtomicRecordMap.values()
+                .stream().map(e -> e.getStoredCandidateMap().values())
                 .flatMap(Collection::stream)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());

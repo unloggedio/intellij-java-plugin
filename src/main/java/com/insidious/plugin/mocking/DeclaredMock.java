@@ -1,11 +1,13 @@
 package com.insidious.plugin.mocking;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class DeclaredMock {
+public class DeclaredMock implements Comparable<DeclaredMock> {
 
 
     private String id = UUID.randomUUID().toString();
@@ -124,4 +126,11 @@ public class DeclaredMock {
     public void setThenParameter(List<ThenParameter> thenParameter) {
         this.thenParameter = thenParameter;
     }
+
+    @Override
+    public int compareTo(@NotNull DeclaredMock o) {
+        return this.name.compareTo(o.name);
+    }
+
+
 }

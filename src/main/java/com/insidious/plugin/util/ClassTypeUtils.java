@@ -7,6 +7,7 @@ import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
 import com.intellij.psi.PsiClassType;
+import com.intellij.psi.PsiPrimitiveType;
 import com.intellij.psi.PsiSubstitutor;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
@@ -30,7 +31,7 @@ public class ClassTypeUtils {
     }
 
     public static PsiType substituteClassRecursively(PsiType typeToBeSubstituted, PsiSubstitutor classSubstitutor) {
-        if (classSubstitutor == null) {
+        if (classSubstitutor == null || typeToBeSubstituted instanceof PsiPrimitiveType) {
             return typeToBeSubstituted;
         }
         PsiType fieldTypeSubstitutor = classSubstitutor.substitute(typeToBeSubstituted);

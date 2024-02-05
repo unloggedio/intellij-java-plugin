@@ -155,6 +155,7 @@ final public class InsidiousService implements
     private Content onboardingWindowContent;
     private UnloggedSDKOnboarding onboardingWindow;
     private boolean addedStompWindow;
+    private Content libraryWindowContent;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -479,10 +480,11 @@ final public class InsidiousService implements
         onboardingWindow = new UnloggedSDKOnboarding(this);
 
         onboardingWindowContent = contentFactory.createContent(
-                onboardingWindow.getComponent(), "Unlogged", false);
+                onboardingWindow.getComponent(), "Setup", false);
         onboardingWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         onboardingWindowContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
         contentManager.addContent(onboardingWindowContent);
+
 
         // stomp window
 //        stompWindow = new StompComponent(this);
@@ -982,11 +984,22 @@ final public class InsidiousService implements
                 stompWindow = new StompComponent(this);
                 threadPoolExecutor.submit(stompWindow);
                 stompWindowContent =
-                        contentFactory.createContent(stompWindow.getComponent(), "Stomp", false);
+                        contentFactory.createContent(stompWindow.getComponent(), "Live", false);
                 stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
                 stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
                 contentManager.addContent(stompWindowContent);
-                contentManager.setSelectedContent(stompWindowContent);
+
+                if (libraryWindowContent == null) {
+                    LibraryComponent libraryToolWindow = new LibraryComponent(project);
+
+                    libraryWindowContent = contentFactory.createContent(
+                            libraryToolWindow.getComponent(), "Library", false);
+                    libraryWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+                    libraryWindowContent.setIcon(UIUtils.LINK);
+                    contentManager.addContent(libraryWindowContent);
+                    contentManager.setSelectedContent(stompWindowContent);
+                }
+
                 sessionInstance.addSessionScanEventListener(stompWindow.getScanEventListener());
                 stompWindow.loadNewCandidates();
 
@@ -1451,11 +1464,6 @@ final public class InsidiousService implements
     public List<DeclaredMock> getDeclaredMocksOf(MethodUnderTest methodUnderTest) {
         AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         return atomicRecordService.getDeclaredMocksOf(methodUnderTest);
-    }
-
-
-    public void showLibraryComponent() {
-        LibraryComponent libraryComponent = new LibraryComponent();
     }
 
     public List<DeclaredMock> getDeclaredMocksFor(MethodUnderTest methodUnderTest) {

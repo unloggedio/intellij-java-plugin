@@ -80,7 +80,7 @@ public class StompComponent implements
         OnCloseListener,
         Runnable,
         OnExpandListener {
-    public static final int component_height = 93;
+    public static final int COMPONENT_HEIGHT = 93;
     private static final Logger logger = LoggerUtil.getInstance(StompComponent.class);
     private final InsidiousService insidiousService;
     private final JPanel itemPanel;
@@ -231,7 +231,9 @@ public class StompComponent implements
             public void mouseClicked(MouseEvent e) {
                 {
                     resetTimeline();
-                    candidateQueryLatch.decrementAndGet();
+                    if (candidateQueryLatch != null) {
+                        candidateQueryLatch.decrementAndGet();
+                    }
                     candidateQueryLatch = null;
                     loadNewCandidates();
                     itemPanel.revalidate();
@@ -620,8 +622,8 @@ public class StompComponent implements
             }
         });
         candidateMetadataStompItemMap.put(testCandidateMetadata, component);
-        component.setMaximumSize(new Dimension(500, component_height));
-        component.setMinimumSize(new Dimension(300, component_height));
+        component.setMaximumSize(new Dimension(500, COMPONENT_HEIGHT));
+        component.setMinimumSize(new Dimension(300, COMPONENT_HEIGHT));
 
 
         rowPanel.add(component, BorderLayout.CENTER);
@@ -847,7 +849,7 @@ public class StompComponent implements
     @NotNull
     private JSeparator createSeparator() {
         JSeparator separator = new JSeparator(SwingConstants.VERTICAL);
-        Dimension size = new Dimension(2, (component_height / 4) - 2); // Set preferred size for the separator
+        Dimension size = new Dimension(2, (COMPONENT_HEIGHT / 4) - 2); // Set preferred size for the separator
         separator.setForeground(Color.decode("#D9D9D9"));
         separator.setPreferredSize(size);
         separator.setMaximumSize(size);
