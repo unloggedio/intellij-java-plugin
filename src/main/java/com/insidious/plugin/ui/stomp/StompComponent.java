@@ -1254,8 +1254,10 @@ public class StompComponent implements
     }
 
     public void disconnected() {
-        candidateQueryLatch.decrementAndGet();
-        candidateQueryLatch = null;
+        if (candidateQueryLatch != null) {
+            candidateQueryLatch.decrementAndGet();
+            candidateQueryLatch = null;
+        }
         stompStatusComponent.setDisconnected();
         scanEventListener.ended();
     }

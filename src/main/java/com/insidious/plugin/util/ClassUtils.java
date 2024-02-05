@@ -177,6 +177,10 @@ public class ClassUtils {
             if (parameterTypeCanonicalText.equals("org.joda.time.DateTime")) {
                 return String.valueOf(new Date().getTime());
             }
+            if (parameterTypeCanonicalText.equals("org.springframework.security.core.GrantedAuthority")) {
+                // SimpleGrantedAuthority
+                return "\"USER\"";
+            }
 
             if (parameterType instanceof PsiClassType) {
                 PsiClassType classReferenceType = (PsiClassType) parameterType;

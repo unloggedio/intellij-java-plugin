@@ -797,35 +797,36 @@ final public class InsidiousService implements
         }
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            ApplicationManager.getApplication().runReadAction(() -> {
-                try {
-                    AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(
-                            agentCommandRequest);
-                    logger.warn("agent command response - " + agentCommandResponse);
-                    if (executionResponseListener != null) {
-                        cachedGutterState.remove(methodUnderTest.getMethodHashKey());
+            try {
+                AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(
+                        agentCommandRequest);
+                logger.warn("agent command response - " + agentCommandResponse);
+                if (executionResponseListener != null) {
+                    cachedGutterState.remove(methodUnderTest.getMethodHashKey());
 
-                        // TODO: search by signature and remove loop
-                        PsiMethod[] methodPsiList = JavaPsiFacade.getInstance(project)
-                                .findClass(agentCommandRequest.getClassName(),
-                                        GlobalSearchScope.projectScope(project))
-                                .findMethodsByName(agentCommandRequest.getMethodName(), true);
-                        for (PsiMethod psiMethod : methodPsiList) {
-                            if (psiMethod.getName().equals(agentCommandRequest.getMethodName())) {
-                                updateMethodHashForExecutedMethod(new JavaMethodAdapter(psiMethod));
-                            }
-                        }
-                        triggerGutterIconReload();
-
-                        executionResponseListener.onExecutionComplete(agentCommandRequest, agentCommandResponse);
-                    } else {
-                        logger.warn("no body listening for the response");
-                    }
-                } catch (IOException e) {
-                    logger.warn("failed to execute command - " + e.getMessage(), e);
+                    // TODO: search by signature and remove loop
+                    PsiMethod[] methodPsiList = ApplicationManager.getApplication().runReadAction(
+                            (Computable<PsiMethod[]>) () -> {
+                                PsiMethod[] list = JavaPsiFacade.getInstance(
+                                                project)
+                                        .findClass(agentCommandRequest.getClassName(),
+                                                GlobalSearchScope.projectScope(project))
+                                        .findMethodsByName(agentCommandRequest.getMethodName(), true);
+                                for (PsiMethod psiMethod : list) {
+                                    if (psiMethod.getName().equals(agentCommandRequest.getMethodName())) {
+                                        updateMethodHashForExecutedMethod(new JavaMethodAdapter(psiMethod));
+                                    }
+                                }
+                                return list;
+                            });
+//                    triggerGutterIconReload();
+                    executionResponseListener.onExecutionComplete(agentCommandRequest, agentCommandResponse);
+                } else {
+                    logger.warn("no body listening for the response");
                 }
-
-            });
+            } catch (IOException e) {
+                logger.warn("failed to execute command - " + e.getMessage(), e);
+            }
 
         });
     }
@@ -968,6 +969,8 @@ final public class InsidiousService implements
 
         client.setSessionInstance(sessionInstance);
         testCaseService = new TestCaseService(sessionInstance);
+
+
         if (!executionSession.getSessionId().equals("na")) {
             removeOnboardingTab();
 
@@ -980,14 +983,20 @@ final public class InsidiousService implements
                 ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
                 ContentManager contentManager = toolWindow.getContentManager();
 
-                contentManager.removeAllContents(true);
+
+
                 stompWindow = new StompComponent(this);
                 threadPoolExecutor.submit(stompWindow);
+                if (stompWindowContent != null) {
+                    contentManager.removeContent(stompWindowContent, true);
+                }
                 stompWindowContent =
                         contentFactory.createContent(stompWindow.getComponent(), "Live", false);
                 stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
                 stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
-                contentManager.addContent(stompWindowContent);
+                contentManager.addContent(stompWindowContent, 0);
+                contentManager.setSelectedContent(stompWindowContent);
+
 
                 if (libraryWindowContent == null) {
                     LibraryComponent libraryToolWindow = new LibraryComponent(project);
@@ -997,8 +1006,8 @@ final public class InsidiousService implements
                     libraryWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
                     libraryWindowContent.setIcon(UIUtils.LINK);
                     contentManager.addContent(libraryWindowContent);
-                    contentManager.setSelectedContent(stompWindowContent);
                 }
+
 
                 sessionInstance.addSessionScanEventListener(stompWindow.getScanEventListener());
                 stompWindow.loadNewCandidates();

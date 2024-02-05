@@ -22,6 +22,9 @@ public class AtomicAssertionUtils {
     }
 
     public static int countAssertions(AtomicAssertion testAssertions) {
+        if (testAssertions == null) {
+            return 0;
+        }
 
         if (testAssertions.getSubAssertions() == null || testAssertions.getSubAssertions().size() == 0) {
             return 1;

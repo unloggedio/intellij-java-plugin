@@ -3,7 +3,6 @@ package com.insidious.plugin.ui.library;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.stomp.StompItem;
 import com.insidious.plugin.util.AtomicAssertionUtils;
-import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -14,7 +13,7 @@ import java.awt.event.MouseEvent;
 import static com.insidious.plugin.ui.stomp.StompItem.TAG_LABEL_BACKGROUND_GREY;
 import static com.insidious.plugin.ui.stomp.StompItem.TAG_LABEL_TEXT_GREY;
 
-public class SavedTestCandidateItemPanel {
+public class StoredCandidateItemPanel {
     private final StoredCandidate storedCandidate;
     private JLabel nameLabel;
     private JPanel mainPanel;
@@ -24,8 +23,8 @@ public class SavedTestCandidateItemPanel {
     private JCheckBox selectCandidateCheckbox;
     private JLabel deleteButton;
 
-    public SavedTestCandidateItemPanel(StoredCandidate storedCandidate,
-                                       ItemLifeCycleListener<StoredCandidate> itemLifeCycleListener) {
+    public StoredCandidateItemPanel(StoredCandidate storedCandidate,
+                                    ItemLifeCycleListener<StoredCandidate> itemLifeCycleListener) {
         this.storedCandidate = storedCandidate;
         this.nameLabel.setText(storedCandidate.getMethod().getName());
         TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
@@ -114,7 +113,16 @@ public class SavedTestCandidateItemPanel {
 
     }
 
+    public void setSelected(boolean b) {
+        selectCandidateCheckbox.setSelected(b);
+    }
+
+
     public JComponent getComponent() {
         return mainPanel;
+    }
+
+    public StoredCandidate getStoredCandidate() {
+        return storedCandidate;
     }
 }

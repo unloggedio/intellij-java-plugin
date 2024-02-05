@@ -108,7 +108,17 @@ public class DeclaredMockItemPanel {
 
     }
 
+    public void setSelected(boolean b) {
+        selectCandidateCheckbox.setSelected(b);
+    }
+
+
     public JComponent getComponent() {
         return mainPanel;
     }
+
+    public DeclaredMock getDeclaredMock() {
+        return declaredMock;
+    }
+
 }

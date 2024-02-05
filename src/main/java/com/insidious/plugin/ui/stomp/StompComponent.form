@@ -210,19 +210,9 @@
               </component>
               <hspacer id="f59a1">
                 <constraints>
-                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                 </constraints>
               </hspacer>
-              <component id="e0079" class="javax.swing.JLabel" binding="clearFilterLabel">
-                <constraints>
-                  <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <font size="11"/>
-                  <foreground color="-15718465"/>
-                  <text value="&lt;html&gt;&lt;u&gt;&lt;small&gt;Clear filters&lt;/small&gt;&lt;/u&gt;&lt;/html&gt;"/>
-                </properties>
-              </component>
               <component id="cca36" class="javax.swing.JLabel" binding="filterAppliedLabel">
                 <constraints>
                   <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
@@ -231,6 +221,16 @@
                   <font size="11"/>
                   <foreground color="-10395295"/>
                   <text value="0 filters applied"/>
+                </properties>
+              </component>
+              <component id="43aa5" class="javax.swing.JLabel" binding="clearFilterLabel">
+                <constraints>
+                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                </constraints>
+                <properties>
+                  <font size="11"/>
+                  <foreground color="-15718465"/>
+                  <text value="&lt;html&gt;&lt;u&gt;&lt;small&gt;Clear filters&lt;/small&gt;&lt;/u&gt;&lt;/html&gt;"/>
                 </properties>
               </component>
             </children>
