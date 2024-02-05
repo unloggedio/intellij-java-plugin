@@ -1,8 +1,7 @@
 package com.insidious.plugin.factory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.insidious.plugin.ui.stomp.FilterModel;
-import com.insidious.plugin.ui.stomp.LibraryFilterState;
+import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.util.xmlb.Converter;
 import org.jetbrains.annotations.NonNls;

@@ -111,7 +111,7 @@ public class MockDefinitionEditor {
         });
 
         saveButton.addActionListener(e -> {
-            onSaveListener.onSaveDeclaredMock(declaredMock, methodUnderTest);
+            onSaveListener.onSaveDeclaredMock(declaredMock);
             editorPopup.cancel();
         });
     }

@@ -2,7 +2,6 @@ package com.insidious.plugin.util;
 
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
-import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.adapter.java.JavaParameterAdapter;
 import com.insidious.plugin.mocking.*;
 import com.insidious.plugin.pojo.MethodCallExpression;
@@ -26,7 +25,6 @@ import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
-import com.intellij.psi.impl.source.PsiImmediateClassType;
 import com.intellij.psi.impl.source.tree.java.*;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -47,7 +45,7 @@ public class ClassUtils {
 
         PsiMethod destinationMethod = methodCallExpression.resolveMethod();
 
-        MethodUnderTest methodUnderTest = MethodUnderTest.fromCallExpression(methodCallExpression);
+        MethodUnderTest mut = MethodUnderTest.fromCallExpression(methodCallExpression);
 
         PsiType returnType = identifyReturnType(methodCallExpression);
         String returnDummyValue;
@@ -109,13 +107,10 @@ public class ClassUtils {
         if (callerQualifierChildren.length > 1) {
             fieldName = callerQualifierChildren[callerQualifierChildren.length - 1].getText();
         }
-        DeclaredMock defaultMock = new DeclaredMock(
-                "mock response " + expressionText,
-                methodUnderTest.getClassName(), parentClass.getQualifiedName(),
-                fieldName,
-                methodUnderTest.getName(), parameterList, thenParameterList
+        return new DeclaredMock(
+                "mock response " + expressionText, mut.getClassName(), parentClass.getQualifiedName(),
+                fieldName, mut.getName(), mut.getMethodHashKey(), parameterList, thenParameterList
         );
-        return defaultMock;
     }
 
     public static ThenParameter createDummyThenParameter(String returnDummyValue1, String methodReturnTypeName1) {

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.assertions.*;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
@@ -24,7 +23,6 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.*;
-import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
@@ -548,8 +546,8 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
     }
 
     @Override
-    public void onSaveDeclaredMock(DeclaredMock declaredMock, MethodUnderTest methodUnderTest) {
-        insidiousService.saveMockDefinition(declaredMock, methodUnderTest);
+    public void onSaveDeclaredMock(DeclaredMock declaredMock) {
+        insidiousService.saveMockDefinition(declaredMock);
 
         this.mockPanel.removeAll();
         addDataMockPanel();

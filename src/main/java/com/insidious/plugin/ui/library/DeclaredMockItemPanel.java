@@ -1,13 +1,11 @@
 package com.insidious.plugin.ui.library;
 
 import com.insidious.plugin.mocking.DeclaredMock;
-import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.stomp.StompItem;
-import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
-
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -22,6 +20,7 @@ public class DeclaredMockItemPanel {
     private JPanel controlPanel;
     private JPanel controlContainer;
     private JCheckBox selectCandidateCheckbox;
+    private JLabel deleteButton;
 
     public DeclaredMockItemPanel(DeclaredMock declaredMock, ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener) {
         this.declaredMock = declaredMock;
@@ -33,8 +32,9 @@ public class DeclaredMockItemPanel {
         }
         titledBorder.setTitle("Declared mock definition");
 
-        JLabel preConditionsTag = StompItem.createTagLabel("%s pre conditions",
-                new Object[]{declaredMock.getWhenParameter().size()},
+        int whenParametersSize = declaredMock.getWhenParameter().size();
+        JLabel preConditionsTag = StompItem.createTagLabel("%s pre condition" + (whenParametersSize == 1 ? "" : "s"),
+                new Object[]{whenParametersSize},
                 TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
@@ -45,8 +45,17 @@ public class DeclaredMockItemPanel {
 
         tagsContainerPanel.add(preConditionsTag);
 
-        JLabel returnsTag = StompItem.createTagLabel("%s returns",
-                new Object[]{declaredMock.getThenParameter().size()},
+        deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        deleteButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                itemLifeCycleListener.onDelete(declaredMock);
+            }
+        });
+
+        int thenParameterSize = declaredMock.getThenParameter().size();
+        JLabel returnsTag = StompItem.createTagLabel("%s return" + (thenParameterSize == 1 ? "" : "s"),
+                new Object[]{thenParameterSize},
                 TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
@@ -56,6 +65,15 @@ public class DeclaredMockItemPanel {
 
 
         tagsContainerPanel.add(returnsTag);
+
+
+        selectCandidateCheckbox.addActionListener(e -> {
+            if (selectCandidateCheckbox.isSelected()) {
+                itemLifeCycleListener.onSelect(declaredMock);
+            } else {
+                itemLifeCycleListener.onUnSelect(declaredMock);
+            }
+        });
 
         // Timer to update the border title
         String finalSimpleClassName = simpleClassName;
@@ -82,7 +100,7 @@ public class DeclaredMockItemPanel {
                 titledBorder.setTitle(newTitle.toString());
                 mainPanel.repaint();
             } else {
-                ((Timer)e.getSource()).stop(); // Stop the timer when animation is complete
+                ((Timer) e.getSource()).stop(); // Stop the timer when animation is complete
             }
         });
 

@@ -1,7 +1,5 @@
 package com.insidious.plugin.mocking;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -18,6 +16,7 @@ public class DeclaredMock implements Comparable<DeclaredMock> {
     private String methodName;
     private List<ParameterMatcher> whenParameter;
     private List<ThenParameter> thenParameter;
+    private String methodHashKey;
 
     public DeclaredMock(DeclaredMock declaredMock) {
         this.id = declaredMock.id;
@@ -26,6 +25,7 @@ public class DeclaredMock implements Comparable<DeclaredMock> {
         this.fieldTypeName = declaredMock.fieldTypeName;
         this.fieldName = declaredMock.fieldName;
         this.methodName = declaredMock.methodName;
+        this.methodHashKey = declaredMock.methodHashKey;
         this.whenParameter = declaredMock.whenParameter.stream().map(ParameterMatcher::new)
                 .collect(Collectors.toList());
         this.thenParameter = declaredMock.thenParameter.stream().map(ThenParameter::new).collect(Collectors.toList());
@@ -33,7 +33,7 @@ public class DeclaredMock implements Comparable<DeclaredMock> {
     }
 
     public DeclaredMock(String name, String fieldTypeName, String sourceClassName,
-                        String fieldName, String methodName,
+                        String fieldName, String methodName, String methodHashKey,
                         List<ParameterMatcher> whenParameterLists,
                         List<ThenParameter> thenParameterList
     ) {
@@ -44,10 +44,12 @@ public class DeclaredMock implements Comparable<DeclaredMock> {
         this.methodName = methodName;
         this.whenParameter = whenParameterLists;
         this.thenParameter = thenParameterList;
+        this.methodHashKey = methodHashKey;
     }
 
     public DeclaredMock() {
     }
+
 
     public String getSourceClassName() {
         return sourceClassName;
@@ -128,9 +130,15 @@ public class DeclaredMock implements Comparable<DeclaredMock> {
     }
 
     @Override
-    public int compareTo(@NotNull DeclaredMock o) {
-        return this.name.compareTo(o.name);
+    public int compareTo(DeclaredMock o) {
+        return this.id.compareTo(o.id);
     }
 
+    public String getMethodHashKey() {
+        return methodHashKey;
+    }
 
+    public void setMethodHashKey(String methodHashKey) {
+        this.methodHashKey = methodHashKey;
+    }
 }

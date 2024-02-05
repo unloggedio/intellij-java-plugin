@@ -1,14 +1,9 @@
 package com.insidious.plugin.pojo.atomic;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.insidious.plugin.agent.AgentCommandResponse;
-import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.assertions.AtomicAssertion;
-import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.util.TestCandidateUtils;
-
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -91,19 +86,19 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         return candidate;
     }
 
-    public void setCreatedAt(long createdAt) {
-        this.createdAt = createdAt;
-    }
-
     private long getCreatedAt() {
         return createdAt;
+    }
+
+    public void setCreatedAt(long createdAt) {
+        this.createdAt = createdAt;
     }
 
     public HashSet<String> getMockIds() {
         return mockIds;
     }
 
-    public void setMockIds (HashSet<String> enabledMockDefinition) {
+    public void setMockIds(HashSet<String> enabledMockDefinition) {
         this.mockIds = enabledMockDefinition;
     }
 
@@ -151,7 +146,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
 
     @Override
     public int compareTo(StoredCandidate o) {
-        return Long.compare(this.metadata.getTimestamp(), o.metadata.getTimestamp());
+        return this.candidateId.compareTo(o.candidateId);
     }
 
     public String getCandidateId() {

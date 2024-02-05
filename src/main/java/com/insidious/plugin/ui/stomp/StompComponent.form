@@ -185,7 +185,7 @@
                 <properties>
                   <font size="11"/>
                   <foreground color="-10395295"/>
-                  <text value="None selected"/>
+                  <text value="0 selected"/>
                 </properties>
               </component>
               <component id="bff30" class="javax.swing.JLabel" binding="selectAllLabel">

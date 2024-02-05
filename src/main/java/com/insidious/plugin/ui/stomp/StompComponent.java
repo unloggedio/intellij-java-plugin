@@ -192,6 +192,7 @@ public class StompComponent implements
                 filterModel.getExcludedClassNames().clear();
 
                 updateFilterLabel();
+                resetAndReload();
 
             }
         });
@@ -230,16 +231,7 @@ public class StompComponent implements
             @Override
             public void mouseClicked(MouseEvent e) {
                 {
-                    resetTimeline();
-                    if (candidateQueryLatch != null) {
-                        candidateQueryLatch.decrementAndGet();
-                    }
-                    candidateQueryLatch = null;
-                    loadNewCandidates();
-                    itemPanel.revalidate();
-                    itemPanel.repaint();
-                    historyStreamScrollPanel.revalidate();
-                    historyStreamScrollPanel.repaint();
+                    resetAndReload();
                 }
             }
         });
@@ -531,6 +523,19 @@ public class StompComponent implements
         return null;
     }
 
+    private void resetAndReload() {
+        resetTimeline();
+        if (candidateQueryLatch != null) {
+            candidateQueryLatch.decrementAndGet();
+        }
+        candidateQueryLatch = null;
+        loadNewCandidates();
+        itemPanel.revalidate();
+        itemPanel.repaint();
+        historyStreamScrollPanel.revalidate();
+        historyStreamScrollPanel.repaint();
+    }
+
     private void executeSingleTestCandidate(TestCandidateMetadata selectedCandidate) {
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             PsiMethod methodPsiElement = ApplicationManager.getApplication().runReadAction(
@@ -622,9 +627,6 @@ public class StompComponent implements
             }
         });
         candidateMetadataStompItemMap.put(testCandidateMetadata, component);
-        component.setMaximumSize(new Dimension(500, COMPONENT_HEIGHT));
-        component.setMinimumSize(new Dimension(300, COMPONENT_HEIGHT));
-
 
         rowPanel.add(component, BorderLayout.CENTER);
 
@@ -942,6 +944,7 @@ public class StompComponent implements
             declaredMock.setMethodName(methodUnderTest.getName());
             declaredMock.setName("mock recorded on " + testCandidateMetadata.getCreatedAt());
             declaredMock.setFieldName("*");
+            declaredMock.setMethodHashKey(methodUnderTest.getMethodHashKey());
             declaredMock.setId(UUID.randomUUID().toString());
             declaredMock.setFieldTypeName(methodUnderTest.getClassName());
             declaredMock.setSourceClassName("*");
@@ -977,7 +980,7 @@ public class StompComponent implements
             List<ThenParameter> thenParameter1 = new ArrayList<>();
             thenParameter1.add(thenParameter);
             declaredMock.setThenParameter(thenParameter1);
-            insidiousService.saveMockDefinition(declaredMock, methodUnderTest);
+            insidiousService.saveMockDefinition(declaredMock);
         });
 
     }

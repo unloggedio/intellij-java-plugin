@@ -261,7 +261,7 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
 
     @Override
     public void onDeleteRequest(DeclaredMock declaredMock) {
-        insidiousService.deleteMockDefinition(methodUnderTest, declaredMock);
+        insidiousService.deleteMockDefinition(declaredMock);
         ApplicationManager.getApplication().invokeLater(() -> {
             loadDefinitions(false);
         });
@@ -285,8 +285,8 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     }
 
     @Override
-    public void onSaveDeclaredMock(DeclaredMock declaredMock, MethodUnderTest methodUnderTest) {
-        insidiousService.saveMockDefinition(declaredMock, this.methodUnderTest);
+    public void onSaveDeclaredMock(DeclaredMock declaredMock) {
+        insidiousService.saveMockDefinition(declaredMock);
         insidiousService.enableMock(declaredMock);
 //        insidiousService.enableFieldMock(parentClassName, fieldName);
 //        fieldMockSwitch.setSelected(true);

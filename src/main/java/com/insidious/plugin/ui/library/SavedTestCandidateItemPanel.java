@@ -7,6 +7,7 @@ import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -21,6 +22,7 @@ public class SavedTestCandidateItemPanel {
     private JPanel controlPanel;
     private JPanel controlContainer;
     private JCheckBox selectCandidateCheckbox;
+    private JLabel deleteButton;
 
     public SavedTestCandidateItemPanel(StoredCandidate storedCandidate,
                                        ItemLifeCycleListener<StoredCandidate> itemLifeCycleListener) {
@@ -34,9 +36,9 @@ public class SavedTestCandidateItemPanel {
         titledBorder.setTitle("Saved replay test");
 
 
-
-        JLabel preConditionsTag = StompItem.createTagLabel("%s lines",
-                new Object[]{storedCandidate.getLineNumbers().size()},
+        int lineCount = storedCandidate.getLineNumbers().size();
+        JLabel preConditionsTag = StompItem.createTagLabel("%s line" + (lineCount == 1 ? "" : "s"),
+                new Object[]{lineCount},
                 TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
@@ -47,8 +49,9 @@ public class SavedTestCandidateItemPanel {
 
         tagsContainerPanel.add(preConditionsTag);
 
-        JLabel returnsTag = StompItem.createTagLabel("%s assertions",
-                new Object[]{AtomicAssertionUtils.countAssertions(storedCandidate.getTestAssertions())},
+        int assertionCount = AtomicAssertionUtils.countAssertions(storedCandidate.getTestAssertions());
+        JLabel returnsTag = StompItem.createTagLabel("%s assertion" + (assertionCount == 1 ? "" : "s"),
+                new Object[]{assertionCount},
                 TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
@@ -58,6 +61,25 @@ public class SavedTestCandidateItemPanel {
 
 
         tagsContainerPanel.add(returnsTag);
+
+
+        selectCandidateCheckbox.addActionListener(e -> {
+            if (selectCandidateCheckbox.isSelected()) {
+                itemLifeCycleListener.onSelect(storedCandidate);
+            } else {
+                itemLifeCycleListener.onUnSelect(storedCandidate);
+            }
+        });
+        deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        deleteButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                itemLifeCycleListener.onDelete(storedCandidate);
+            }
+        });
+
+
+
 
         // Timer to update the border title
         String finalSimpleClassName = simpleClassName;

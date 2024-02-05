@@ -1,4 +1,4 @@
-package com.insidious.plugin.ui.stomp;
+package com.insidious.plugin.ui.library;
 
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
 
@@ -12,8 +12,8 @@ public class LibraryFilterState {
     private final Set<String> excludedMethodNames = new HashSet<>();
     boolean followEditor;
     CandidateFilterType candidateFilterType;
-    boolean showTests;
-    boolean showMocks;
+    boolean showTests = true;
+    boolean showMocks = false;
 
     public CandidateFilterType getCandidateFilterType() {
         return candidateFilterType;

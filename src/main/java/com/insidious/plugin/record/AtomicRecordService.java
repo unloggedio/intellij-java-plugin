@@ -3,7 +3,6 @@ package com.insidious.plugin.record;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -62,11 +61,6 @@ public class AtomicRecordService {
             dumbService.runWhenSmart(this::checkPreRequisites);
         }
     }
-
-    public GutterState computeGutterState(MethodUnderTest method) {
-        return GutterState.EXECUTE;
-    }
-
 
     public void saveCandidate(MethodUnderTest methodUnderTest, StoredCandidate candidate) {
         try {
@@ -404,6 +398,22 @@ public class AtomicRecordService {
                 recordsMap.put(classname, record);
             }
         }
+        for (Map.Entry<String, AtomicRecord> stringAtomicRecordEntry : recordsMap.entrySet()) {
+            AtomicRecord record = stringAtomicRecordEntry.getValue();
+            for (Map.Entry<String, List<DeclaredMock>> stringListEntry : record.getDeclaredMockMap().entrySet()) {
+                String methodHashKey = stringListEntry.getKey();
+
+                List<DeclaredMock> mockList = stringListEntry.getValue();
+                for (DeclaredMock declaredMock : mockList) {
+                    if (declaredMock.getMethodHashKey() == null) {
+                        declaredMock.setMethodHashKey(methodHashKey);
+                    }
+                }
+
+            }
+
+        }
+
         return recordsMap;
     }
 
@@ -451,16 +461,17 @@ public class AtomicRecordService {
         return record.getStoredCandidateMap().getOrDefault(methodUnderTest.getMethodHashKey(), List.of());
     }
 
-    public void deleteStoredCandidate(String className, String methodKey, String candidateId) {
-        if (className == null || methodKey == null) {
+    public void deleteStoredCandidate(MethodUnderTest methodUnderTest, String candidateId) {
+        if (methodUnderTest.getClassName() == null || methodUnderTest.getMethodHashKey() == null) {
             return;
         }
-        AtomicRecord record = classAtomicRecordMap.get(className);
-        if (record == null || record.getStoredCandidateMap().get(methodKey).size() == 0) {
+        AtomicRecord record = classAtomicRecordMap.get(methodUnderTest.getClassName());
+        if (record == null || record.getStoredCandidateMap().get(methodUnderTest.getMethodHashKey()).size() == 0) {
             return;
         }
         StoredCandidate candidateToRemove = null;
-        List<StoredCandidate> existingStoredCandidates = record.getStoredCandidateMap().get(methodKey);
+        List<StoredCandidate> existingStoredCandidates = record.getStoredCandidateMap()
+                .get(methodUnderTest.getMethodHashKey());
 
         for (StoredCandidate candidate : existingStoredCandidates) {
             if (candidate.getCandidateId() != null &&
@@ -472,7 +483,8 @@ public class AtomicRecordService {
         if (candidateToRemove != null) {
             existingStoredCandidates.remove(candidateToRemove);
         }
-        writeToFile(new File(getFilenameForClass(className)), record, FileUpdateType.DELETE_CANDIDATE,
+        writeToFile(new File(getFilenameForClass(methodUnderTest.getClassName())), record,
+                FileUpdateType.DELETE_CANDIDATE,
                 useNotifications);
         UsageInsightTracker.getInstance().RecordEvent("Candidate_Deleted", null);
         insidiousService.triggerGutterIconReload();
@@ -591,14 +603,14 @@ public class AtomicRecordService {
 
     }
 
-    public void saveMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {
+    public void saveMockDefinition(DeclaredMock declaredMock) {
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("classname", methodUnderTest.getClassName());
-        jsonObject.put("methodname", methodUnderTest.getName());
-        jsonObject.put("signature", methodUnderTest.getSignature());
+        jsonObject.put("className", declaredMock.getFieldTypeName());
+        jsonObject.put("methodName", declaredMock.getMethodName());
+        jsonObject.put("signature", declaredMock.getMethodHashKey());
 
         AtomicRecord record;
-        String className = methodUnderTest.getClassName();
+        String className = declaredMock.getFieldTypeName();
         if (!classAtomicRecordMap.containsKey(className)) {
             record = new AtomicRecord(className);
             classAtomicRecordMap.put(className, record);
@@ -608,7 +620,7 @@ public class AtomicRecordService {
 
         List<DeclaredMock> existingMocks;
         Map<String, List<DeclaredMock>> declaredMockMap = record.getDeclaredMockMap();
-        String methodHashKey = methodUnderTest.getMethodHashKey();
+        String methodHashKey = declaredMock.getMethodHashKey();
 
         if (!declaredMockMap.containsKey(methodHashKey)) {
             existingMocks = new ArrayList<>();
@@ -638,14 +650,14 @@ public class AtomicRecordService {
                 updated ? FileUpdateType.UPDATE_MOCK : FileUpdateType.ADD_MOCK, true);
     }
 
-    public void deleteMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {
+    public void deleteMockDefinition(DeclaredMock declaredMock) {
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("classname", methodUnderTest.getClassName());
-        jsonObject.put("methodname", methodUnderTest.getName());
-        jsonObject.put("signature", methodUnderTest.getSignature());
+        jsonObject.put("className", declaredMock.getFieldTypeName());
+        jsonObject.put("methodName", declaredMock.getMethodName());
+        jsonObject.put("signature", declaredMock.getMethodHashKey());
 
         AtomicRecord record;
-        String className = methodUnderTest.getClassName();
+        String className = declaredMock.getFieldTypeName();
         if (!classAtomicRecordMap.containsKey(className)) {
             return;
         } else {
@@ -654,7 +666,7 @@ public class AtomicRecordService {
 
         List<DeclaredMock> existingMocks;
         Map<String, List<DeclaredMock>> declaredMockMap = record.getDeclaredMockMap();
-        String methodHashKey = methodUnderTest.getMethodHashKey();
+        String methodHashKey = declaredMock.getMethodHashKey();
 
         if (!declaredMockMap.containsKey(methodHashKey)) {
             return;

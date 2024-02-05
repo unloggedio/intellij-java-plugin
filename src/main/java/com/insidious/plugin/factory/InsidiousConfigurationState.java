@@ -1,7 +1,7 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.ui.stomp.FilterModel;
-import com.insidious.plugin.ui.stomp.LibraryFilterState;
+import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;

@@ -1476,9 +1476,9 @@ final public class InsidiousService implements
         return atomicRecordService.getAllDeclaredMocks();
     }
 
-    public void saveMockDefinition(DeclaredMock declaredMock, MethodUnderTest methodUnderTest) {
+    public void saveMockDefinition(DeclaredMock declaredMock) {
         AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
-        atomicRecordService.saveMockDefinition(methodUnderTest, declaredMock);
+        atomicRecordService.saveMockDefinition(declaredMock);
         if (!isMockEnabled(declaredMock)) {
             enableMock(declaredMock);
         } else if (isFieldMockActive(declaredMock.getSourceClassName(), declaredMock.getFieldName())) {
@@ -1486,10 +1486,10 @@ final public class InsidiousService implements
         }
     }
 
-    public void deleteMockDefinition(MethodUnderTest methodUnderTest, DeclaredMock declaredMock) {
+    public void deleteMockDefinition(DeclaredMock declaredMock) {
         disableMock(declaredMock);
         AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
-        atomicRecordService.deleteMockDefinition(methodUnderTest, declaredMock);
+        atomicRecordService.deleteMockDefinition(declaredMock);
         if (isFieldMockActive(declaredMock.getSourceClassName(), declaredMock.getFieldName())) {
             removeMocksInRunningProcess(List.of(declaredMock));
         }
