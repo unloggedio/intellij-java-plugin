@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  verify:
+  AutoExecute:
     runs-on: ubuntu-latest
     steps:
 
@@ -29,5 +29,14 @@ jobs:
             docker compose -f unlogged-spring-maven-demo/conf/docker-compose.yml up -d
 
       - name: Gradle Test
-        run: gradle test --tests com.insidious.plugin.auto.AutoExecutorCITest
+        run: gradle test --tests com.insidious.plugin.auto.AutoExecutorCITest --scan --info
+
+      - name: Store reports
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: reports
+          path: |
+            **/build/reports/
+            **/build/test-results/
 
