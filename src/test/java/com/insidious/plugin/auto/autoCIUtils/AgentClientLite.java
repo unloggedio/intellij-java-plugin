@@ -40,25 +40,8 @@ public class AgentClientLite {
             AgentCommandResponse<String> agentCommandResponse = objectMapper.readValue(responseBody,
                     new TypeReference<AgentCommandResponse<String>>() {
                     });
-            JSONObject eventProperties = new JSONObject();
-            if (
-                    agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION) ||
-                            agentCommandResponse.getResponseType().equals(ResponseType.FAILED)
-
-            ) {
-                eventProperties.put("response", agentCommandResponse.getMethodReturnValue());
-                eventProperties.put("responseClass", agentCommandResponse.getResponseClassName());
-            }
-            UsageInsightTracker.getInstance().RecordEvent(
-                    agentCommandRequest.getCommand() + "_AGENT_RESPONSE_" + agentCommandResponse.getResponseType(),
-                    eventProperties);
             return agentCommandResponse;
         } catch (Throwable e) {
-            JSONObject properties = new JSONObject();
-            properties.put("exception", e.getClass());
-            properties.put("message", e.getMessage());
-            UsageInsightTracker.getInstance().RecordEvent("AGENT_RESPONSE_THROW", properties);
-
             AgentCommandResponse<String> agentCommandResponse = new AgentCommandResponse<String>(ResponseType.FAILED);
             agentCommandResponse.setMessage(NO_SERVER_CONNECT_ERROR_MESSAGE + e.getMessage());
             return agentCommandResponse;
