@@ -41,8 +41,11 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.UnloggedSDKOnboarding;
 import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
+import com.insidious.plugin.ui.highlighter.MockItemClickListener;
 import com.insidious.plugin.ui.library.LibraryComponent;
+import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
+import com.insidious.plugin.ui.mocking.MockDefinitionListPanel;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
@@ -76,8 +79,7 @@ import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.popup.JBPopup;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -86,17 +88,24 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
+import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
+import javax.tools.Tool;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
+import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -156,6 +165,8 @@ final public class InsidiousService implements
     private UnloggedSDKOnboarding onboardingWindow;
     private boolean addedStompWindow;
     private Content libraryWindowContent;
+    private LibraryComponent libraryToolWindow;
+    private ToolWindow toolWindow;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -451,7 +462,7 @@ final public class InsidiousService implements
 
     private synchronized void initiateUI() {
         logger.info("initiate ui");
-        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
+        toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
         toolWindow.setIcon(UIUtils.UNLOGGED_ICON_DARK_SVG);
         try {
             ToolWindowEx ex = (ToolWindowEx) toolWindow;
@@ -464,7 +475,6 @@ final public class InsidiousService implements
     }
 
     public void addAllTabs() {
-        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
         ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
         ContentManager contentManager = toolWindow.getContentManager();
 
@@ -594,7 +604,6 @@ final public class InsidiousService implements
         if (rawViewAdded) {
             return;
         }
-        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
         ContentManager contentManager = toolWindow.getContentManager();
         contentManager.addContent(singleWindowContent);
         rawViewAdded = true;
@@ -625,7 +634,6 @@ final public class InsidiousService implements
 //        }
 
 
-//        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
 //        if (!toolWindow.isVisible()) {
 //            logger.warn("test case designer window is not ready to create test case");
 //            return;
@@ -979,10 +987,8 @@ final public class InsidiousService implements
             }
 
             ApplicationManager.getApplication().invokeLater(() -> {
-                ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
                 ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
                 ContentManager contentManager = toolWindow.getContentManager();
-
 
 
                 stompWindow = new StompComponent(this);
@@ -998,8 +1004,8 @@ final public class InsidiousService implements
                 contentManager.setSelectedContent(stompWindowContent);
 
 
-                if (libraryWindowContent == null) {
-                    LibraryComponent libraryToolWindow = new LibraryComponent(project);
+                if (libraryToolWindow == null) {
+                    libraryToolWindow = new LibraryComponent(project);
 
                     libraryWindowContent = contentFactory.createContent(
                             libraryToolWindow.getComponent(), "Library", false);
@@ -1019,8 +1025,7 @@ final public class InsidiousService implements
     }
 
     public void openToolWindow() {
-        ToolWindowManager.getInstance(project).getToolWindow("Unlogged")
-                .show(null);
+        toolWindow.show(null);
     }
 
 
@@ -1211,7 +1216,6 @@ final public class InsidiousService implements
     }
 
     public void focusDirectInvokeTab() {
-        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
         if (toolWindow == null || directMethodInvokeContent == null) {
             return;
         }
@@ -1220,7 +1224,6 @@ final public class InsidiousService implements
     }
 
     public void removeOnboardingTab() {
-        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
         if (toolWindow == null || onboardingWindow == null) {
             return;
         }
@@ -1344,7 +1347,6 @@ final public class InsidiousService implements
 
     public void focusAtomicTestsWindow() {
         if (this.atomicTestContent != null) {
-            ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
             toolWindow.getContentManager().setSelectedContent(this.atomicTestContent);
             toolWindow.show(null);
         }
@@ -1376,7 +1378,6 @@ final public class InsidiousService implements
 
 
         // no new highlight if disabled or tool window is hidden
-        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
         if (!currentState.isCodeCoverageHighlightEnabled() || (toolWindow == null || !toolWindow.isVisible()) || !currentState.isAgentServerRunning()) {
             currentState.setCurrentHighlightedRequest(highlightRequest);
             removeCurrentActiveHighlights();
@@ -1654,5 +1655,122 @@ final public class InsidiousService implements
 
     public boolean isMockingEnabled() {
         return true;
+    }
+
+    public void onMethodCallExpressionInlayClick(List<PsiMethodCallExpression> mockableCallExpressions, MouseEvent mouseEvent, Point point) {
+
+        logger.warn("inlay clicked create mock");
+
+        LibraryFilterState libraryFilerModel = configurationState.getLibraryFilterModel();
+
+        libraryFilerModel.getExcludedMethodNames().clear();
+        libraryFilerModel.getExcludedClassNames().clear();
+
+        libraryFilerModel.getIncludedMethodNames().clear();
+        libraryFilerModel.getIncludedClassNames().clear();
+
+        for (PsiMethodCallExpression mockableCallExpression : mockableCallExpressions) {
+            MethodUnderTest mut = MethodUnderTest.fromCallExpression(mockableCallExpression);
+            libraryFilerModel.getIncludedMethodNames().add(mut.getName());
+            libraryFilerModel.getIncludedClassNames().add(mut.getClassName());
+        }
+
+        libraryFilerModel.setShowMocks(true);
+        libraryFilerModel.setShowTests(false);
+
+        libraryToolWindow.updateFilterLabel();
+        libraryToolWindow.reloadItems();
+        toolWindow.getContentManager().setSelectedContent(libraryWindowContent);
+
+
+//        if (mockableCallExpressions.size() > 1) {
+//
+//            JPanel gutterMethodPanel = new JPanel();
+//            gutterMethodPanel.setLayout(new GridLayout(0, 1));
+//            gutterMethodPanel.setMinimumSize(new Dimension(400, 300));
+//
+//            for (PsiMethodCallExpression methodCallExpression : mockableCallExpressions) {
+//                PsiReferenceExpression methodExpression = methodCallExpression.getMethodExpression();
+//                String methodCallText = methodExpression.getText();
+//                JPanel methodItemPanel = new JPanel();
+//                methodItemPanel.setLayout(new BorderLayout());
+//
+//                methodItemPanel.add(new JLabel(methodCallText), BorderLayout.CENTER);
+//                JLabel iconLabel = new JLabel(UIUtils.CHECK_GREEN_SMALL);
+//                Border border = iconLabel.getBorder();
+//                CompoundBorder borderWithMargin;
+//                borderWithMargin = BorderFactory.createCompoundBorder(border,
+//                        BorderFactory.createEmptyBorder(0, 5, 0, 5));
+//                iconLabel.setBorder(borderWithMargin);
+//                methodItemPanel.add(iconLabel, BorderLayout.EAST);
+//
+//                Border currentBorder = methodItemPanel.getBorder();
+//                borderWithMargin = BorderFactory.createCompoundBorder(currentBorder,
+//                        BorderFactory.createEmptyBorder(5, 10, 5, 5));
+//                methodItemPanel.setBorder(borderWithMargin);
+//                methodItemPanel.addMouseListener(new MockItemClickListener(methodItemPanel, methodCallExpression));
+//
+//                gutterMethodPanel.add(methodItemPanel);
+//
+//            }
+//
+//
+//            ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+//                    .createComponentPopupBuilder(gutterMethodPanel, null);
+//
+//            gutterMethodComponentPopup
+//                    .setProject(project)
+//                    .setShowBorder(true)
+//                    .setShowShadow(true)
+//                    .setFocusable(true)
+//                    .setRequestFocus(true)
+//                    .setCancelOnClickOutside(true)
+//                    .setCancelOnOtherWindowOpen(true)
+//                    .setCancelKeyEnabled(true)
+//                    .setBelongsToGlobalPopupStack(false)
+//                    .setTitle("Mock Method Calls")
+//                    .setTitleIcon(new ActiveIcon(UIUtils.GHOST_MOCK))
+//                    .createPopup()
+//                    .show(new RelativePoint(mouseEvent));
+//
+//        } else if (mockableCallExpressions.size() == 1) {
+//
+//            // there is only a single mockable call on this line
+//
+//            PsiMethodCallExpression methodCallExpression = mockableCallExpressions.get(0);
+//            MockDefinitionListPanel gutterMethodPanel = new MockDefinitionListPanel(methodCallExpression);
+//
+//            JComponent gutterMethodComponent = gutterMethodPanel.getComponent();
+//
+//            ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+//                    .createComponentPopupBuilder(gutterMethodComponent, null);
+//
+//            JBPopup componentPopUp = gutterMethodComponentPopup
+//                    .setProject(methodCallExpression.getProject())
+//                    .setShowBorder(true)
+//                    .setShowShadow(true)
+//                    .setFocusable(true)
+//                    .setMinSize(new Dimension(600, -1))
+//                    .setRequestFocus(true)
+//                    .setResizable(true)
+//                    .setCancelOnClickOutside(true)
+//                    .setCancelOnOtherWindowOpen(true)
+//                    .setCancelKeyEnabled(true)
+//                    .setBelongsToGlobalPopupStack(false)
+//                    .setTitle("Manage Mocks")
+//                    .setTitleIcon(new ActiveIcon(UIUtils.GHOST_MOCK))
+//                    .addListener(new JBPopupListener() {
+//                        @Override
+//                        public void onClosed(@NotNull LightweightWindowEvent event) {
+////                                finalText.updateState(finalText);
+//                        }
+//                    })
+//                    .createPopup();
+//            componentPopUp.show(new RelativePoint(mouseEvent));
+//            gutterMethodPanel.setPopupHandle(componentPopUp);
+//
+//
+//        }
+
     }
 }

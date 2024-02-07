@@ -7,10 +7,10 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import org.objectweb.asm.Opcodes;
@@ -44,15 +44,6 @@ public class MethodCallExpression implements Expression, Serializable {
     public MethodCallExpression() {
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof MethodCallExpression)) {
-            return false;
-        }
-        MethodCallExpression mceObject = (MethodCallExpression) obj;
-        return mceObject.id == this.id;
-    }
-
     public MethodCallExpression(
             String methodName,
             Parameter subject,
@@ -83,6 +74,16 @@ public class MethodCallExpression implements Expression, Serializable {
         methodDefinitionId = original.methodDefinitionId;
         usesFields = original.usesFields;
         argumentProbes = original.argumentProbes;
+    }
+
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof MethodCallExpression)) {
+            return false;
+        }
+        MethodCallExpression mceObject = (MethodCallExpression) obj;
+        return mceObject.id == this.id;
     }
 
     public int getThreadId() {

@@ -6,12 +6,16 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.record.AtomicRecordService;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -20,6 +24,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class LibraryComponent {
+    private static final Logger logger = LoggerUtil.getInstance(LibraryComponent.class);
     public final ItemLifeCycleListener<DeclaredMock> MOCK_ITEM_LIFE_CYCLE_LISTENER;
     public final ItemLifeCycleListener<StoredCandidate> STORED_CANDIDATE_ITEM_LIFE_CYCLE_LISTENER;
     private final InsidiousService insidiousService;
@@ -27,6 +32,8 @@ public class LibraryComponent {
     private final LibraryFilterState filterModel;
     private final Set<DeclaredMock> selectedMocks = new HashSet<>();
     private final Set<StoredCandidate> selectedCandidates = new HashSet<>();
+    private final List<DeclaredMockItemPanel> listedMockItems = new ArrayList<>();
+    private final List<StoredCandidateItemPanel> listedCandidateItems = new ArrayList<>();
     private JPanel mainPanel;
     private JPanel northPanelContainer;
     private JPanel controlPanel;
@@ -44,13 +51,61 @@ public class LibraryComponent {
     private JPanel southPanel;
     private JRadioButton includeMocksCheckBox;
     private JRadioButton includeTestsCheckBox;
-    private List<DeclaredMockItemPanel> listedMockItems = new ArrayList<>();
-    private List<StoredCandidateItemPanel> storedCandidateItemPanels = new ArrayList<>();
 
     public LibraryComponent(Project project) {
         insidiousService = project.getService(InsidiousService.class);
         atomicRecordService = project.getService(AtomicRecordService.class);
 
+
+        clearSelectionLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        clearSelectionLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                selectedMocks.clear();
+                selectedCandidates.clear();
+
+                for (DeclaredMockItemPanel listedMockItem : listedMockItems) {
+                    listedMockItem.setSelected(false);
+                }
+                for (StoredCandidateItemPanel listedMockItem : listedCandidateItems) {
+                    listedMockItem.setSelected(false);
+                }
+                updateSelectionLabel();
+                reloadItems();
+            }
+        });
+
+
+        selectAllLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        selectAllLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                for (DeclaredMockItemPanel listedMockItem : listedMockItems) {
+                    selectedMocks.add(listedMockItem.getDeclaredMock());
+                    listedMockItem.setSelected(true);
+                }
+                for (StoredCandidateItemPanel listedMockItem : listedCandidateItems) {
+                    selectedCandidates.add(listedMockItem.getStoredCandidate());
+                    listedMockItem.setSelected(true);
+                }
+                updateSelectionLabel();
+            }
+        });
+
+
+        clearFilterLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        clearFilterLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                filterModel.getExcludedMethodNames().clear();
+                filterModel.getExcludedClassNames().clear();
+                filterModel.getIncludedMethodNames().clear();
+                filterModel.getIncludedClassNames().clear();
+                updateFilterLabel();
+                reloadItems();
+            }
+        });
 
         deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -105,6 +160,7 @@ public class LibraryComponent {
             @Override
             public void onSelect(DeclaredMock item) {
                 selectedMocks.add(item);
+                updateSelectionLabel();
             }
 
             @Override
@@ -137,6 +193,7 @@ public class LibraryComponent {
             @Override
             public void onSelect(StoredCandidate item) {
                 selectedCandidates.add(item);
+                updateSelectionLabel();
             }
 
             @Override
@@ -181,28 +238,41 @@ public class LibraryComponent {
         });
         reloadItems();
 
-        includeMocksCheckBox.addActionListener(e -> {
-            if (includeMocksCheckBox.isSelected()) {
-                filterModel.setShowMocks(true);
-                filterModel.setShowTests(false);
-            } else {
-                filterModel.setShowMocks(false);
-                filterModel.setShowTests(true);
+        includeMocksCheckBox.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                logger.warn("filter type checkbox change: " + e);
             }
-            updateFilterLabel();
-            reloadItems();
+        });
+
+        includeMocksCheckBox.addActionListener(e -> {
+            boolean reload = false;
+            if (includeMocksCheckBox.isSelected()) {
+                if (filterModel.isShowTests()) {
+                    filterModel.setShowMocks(true);
+                    filterModel.setShowTests(false);
+                    reload = true;
+                }
+            }
+            if (reload) {
+                updateFilterLabel();
+                reloadItems();
+            }
         });
 
         includeTestsCheckBox.addActionListener(e -> {
-            if (includeMocksCheckBox.isSelected()) {
-                filterModel.setShowMocks(true);
-                filterModel.setShowTests(false);
-            } else {
-                filterModel.setShowMocks(false);
-                filterModel.setShowTests(true);
+            boolean reload = false;
+            if (includeTestsCheckBox.isSelected()) {
+                if (filterModel.isShowMocks()) {
+                    filterModel.setShowMocks(false);
+                    filterModel.setShowTests(true);
+                    reload = true;
+                }
             }
-            updateFilterLabel();
-            reloadItems();
+            if (reload) {
+                updateFilterLabel();
+                reloadItems();
+            }
         });
 
         if (filterModel.isShowMocks()) {
@@ -217,13 +287,13 @@ public class LibraryComponent {
         selectAllLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                for (StoredCandidateItemPanel storedCandidateItemPanel : storedCandidateItemPanels) {
+                for (StoredCandidateItemPanel storedCandidateItemPanel : listedCandidateItems) {
                     selectedCandidates.add(storedCandidateItemPanel.getStoredCandidate());
                 }
                 for (DeclaredMockItemPanel listedMockItem : listedMockItems) {
                     selectedMocks.add(listedMockItem.getDeclaredMock());
                 }
-                for (StoredCandidateItemPanel storedCandidateItemPanel : storedCandidateItemPanels) {
+                for (StoredCandidateItemPanel storedCandidateItemPanel : listedCandidateItems) {
                     storedCandidateItemPanel.setSelected(true);
                 }
                 for (DeclaredMockItemPanel listedMockItem : listedMockItems) {
@@ -237,7 +307,7 @@ public class LibraryComponent {
             public void mouseClicked(MouseEvent e) {
                 selectedCandidates.clear();
                 selectedMocks.clear();
-                for (StoredCandidateItemPanel storedCandidateItemPanel : storedCandidateItemPanels) {
+                for (StoredCandidateItemPanel storedCandidateItemPanel : listedCandidateItems) {
                     storedCandidateItemPanel.setSelected(false);
                 }
                 for (DeclaredMockItemPanel listedMockItem : listedMockItems) {
@@ -248,6 +318,18 @@ public class LibraryComponent {
             }
         });
 
+        updateFilterLabel();
+
+    }
+
+    private void updateSelectionLabel() {
+        if (filterModel.isShowMocks()) {
+            int selectedMocksCount = selectedMocks.size();
+            selectAllLabel.setText(selectedMocksCount + " selected");
+        } else {
+            int selectedMocksCount = selectedCandidates.size();
+            selectAllLabel.setText(selectedMocksCount + " selected");
+        }
     }
 
     private GridBagConstraints createGBCForFakeComponent(int yIndex) {
@@ -270,7 +352,7 @@ public class LibraryComponent {
     }
 
 
-    private void updateFilterLabel() {
+    public void updateFilterLabel() {
         int total = filterModel.getIncludedClassNames().size()
                 + filterModel.getIncludedMethodNames().size()
                 + filterModel.getExcludedClassNames().size()
@@ -287,10 +369,54 @@ public class LibraryComponent {
     }
 
     private boolean isAcceptable(DeclaredMock declaredMock) {
+        String className = declaredMock.getFieldTypeName();
+        if (filterModel.getIncludedClassNames().size() > 0) {
+            if (!filterModel.getIncludedClassNames().contains(className)) {
+                return false;
+            }
+        }
+        String methodName = declaredMock.getMethodName();
+        if (filterModel.getIncludedMethodNames().size() > 0) {
+            if (!filterModel.getIncludedMethodNames().contains(methodName)) {
+                return false;
+            }
+        }
+        if (filterModel.getExcludedClassNames().size() > 0) {
+            if (filterModel.getExcludedClassNames().contains(className)) {
+                return false;
+            }
+        }
+        if (filterModel.getExcludedMethodNames().size() > 0) {
+            if (filterModel.getExcludedMethodNames().contains(methodName)) {
+                return false;
+            }
+        }
         return true;
     }
 
-    private boolean isAcceptable(StoredCandidate storedCandidate) {
+    private boolean isAcceptable(StoredCandidate testCandidateMetadata) {
+        String className = testCandidateMetadata.getMethod().getClassName();
+        if (filterModel.getIncludedClassNames().size() > 0) {
+            if (!filterModel.getIncludedClassNames().contains(className)) {
+                return false;
+            }
+        }
+        String methodName = testCandidateMetadata.getMethod().getName();
+        if (filterModel.getIncludedMethodNames().size() > 0) {
+            if (!filterModel.getIncludedMethodNames().contains(methodName)) {
+                return false;
+            }
+        }
+        if (filterModel.getExcludedClassNames().size() > 0) {
+            if (filterModel.getExcludedClassNames().contains(className)) {
+                return false;
+            }
+        }
+        if (filterModel.getExcludedMethodNames().size() > 0) {
+            if (filterModel.getExcludedMethodNames().contains(methodName)) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -314,7 +440,7 @@ public class LibraryComponent {
     }
 
 
-    private void reloadItems() {
+    public void reloadItems() {
 
         JPanel itemsContainer = new JPanel();
         itemsContainer.setLayout(new GridLayout(0, 1));
@@ -324,7 +450,7 @@ public class LibraryComponent {
         itemsContainer.setAlignmentX(0);
 
         listedMockItems.clear();
-        storedCandidateItemPanels.clear();
+        listedCandidateItems.clear();
 
         itemScrollPanel.setViewportView(itemsContainer);
 
@@ -373,7 +499,7 @@ public class LibraryComponent {
 
                     StoredCandidateItemPanel candidatePanel = new StoredCandidateItemPanel(candidate,
                             STORED_CANDIDATE_ITEM_LIFE_CYCLE_LISTENER);
-                    storedCandidateItemPanels.add(candidatePanel);
+                    listedCandidateItems.add(candidatePanel);
                     JComponent component = candidatePanel.getComponent();
                     itemsContainer.add(component, createGBCForLeftMainComponent(count++));
 
