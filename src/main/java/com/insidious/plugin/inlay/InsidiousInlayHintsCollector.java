@@ -148,7 +148,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         Map<PsiMethodCallExpression, List<DeclaredMock>> declaredMockMap
                 = new HashMap<>();
         for (PsiMethodCallExpression mockableCall : mockableCalls) {
-            MethodUnderTest methodUnderTest = MethodUnderTest.fromCallExpression(mockableCall);
+            MethodUnderTest methodUnderTest = MethodUnderTest.fromPsiCallExpression(mockableCall);
             List<DeclaredMock> declaredMocks = insidiousService.getDeclaredMocksOf(methodUnderTest);
             savedMockCount += declaredMocks.size();
             declaredMockMap.put(mockableCall, declaredMocks);

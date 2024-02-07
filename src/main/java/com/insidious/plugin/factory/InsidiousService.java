@@ -41,11 +41,9 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.UnloggedSDKOnboarding;
 import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
-import com.insidious.plugin.ui.highlighter.MockItemClickListener;
 import com.insidious.plugin.ui.library.LibraryComponent;
 import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
-import com.insidious.plugin.ui.mocking.MockDefinitionListPanel;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
@@ -79,7 +77,8 @@ import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.popup.*;
+import com.intellij.openapi.ui.popup.JBPopup;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -88,20 +87,14 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
-import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
-import javax.swing.*;
-import javax.swing.border.Border;
-import javax.swing.border.CompoundBorder;
-import javax.tools.Tool;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -777,8 +770,12 @@ final public class InsidiousService implements
         methodArgumentValueCache.addArgumentSet(agentCommandRequest);
         agentCommandRequest.setRequestAuthentication(getRequestAuthentication());
 
+        String methodName = agentCommandRequest.getMethodName();
+        if (methodName.startsWith("lambda$")) {
+            methodName = methodName.split("\\$")[1];
+        }
         MethodUnderTest methodUnderTest = new MethodUnderTest(
-                agentCommandRequest.getMethodName(), agentCommandRequest.getMethodSignature(),
+                methodName, agentCommandRequest.getMethodSignature(),
                 0, agentCommandRequest.getClassName()
         );
         AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
@@ -804,6 +801,7 @@ final public class InsidiousService implements
             agentCommandRequest.setDeclaredMocks(setMock);
         }
 
+        String finalMethodName = methodName;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
                 AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(
@@ -819,9 +817,9 @@ final public class InsidiousService implements
                                                 project)
                                         .findClass(agentCommandRequest.getClassName(),
                                                 GlobalSearchScope.projectScope(project))
-                                        .findMethodsByName(agentCommandRequest.getMethodName(), true);
+                                        .findMethodsByName(finalMethodName, true);
                                 for (PsiMethod psiMethod : list) {
-                                    if (psiMethod.getName().equals(agentCommandRequest.getMethodName())) {
+                                    if (psiMethod.getName().equals(finalMethodName)) {
                                         updateMethodHashForExecutedMethod(new JavaMethodAdapter(psiMethod));
                                     }
                                 }
@@ -990,12 +988,14 @@ final public class InsidiousService implements
                 ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
                 ContentManager contentManager = toolWindow.getContentManager();
 
-
-                stompWindow = new StompComponent(this);
-                threadPoolExecutor.submit(stompWindow);
                 if (stompWindowContent != null) {
                     contentManager.removeContent(stompWindowContent, true);
                 }
+
+
+                stompWindow = new StompComponent(this);
+                threadPoolExecutor.submit(stompWindow);
+
                 stompWindowContent =
                         contentFactory.createContent(stompWindow.getComponent(), "Live", false);
                 stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
@@ -1582,6 +1582,10 @@ final public class InsidiousService implements
         return getSessionInstance().getTestCandidateBetween(eventId, eventId1);
     }
 
+    public TestCandidateMetadata getTestCandidateById(long eventId, boolean loadCalls) {
+        return getSessionInstance().getTestCandidateById(eventId, loadCalls);
+    }
+
     public void executeSingleCandidate(
             StoredCandidate testCandidate,
             ClassUnderTest classUnderTest,
@@ -1670,7 +1674,7 @@ final public class InsidiousService implements
         libraryFilerModel.getIncludedClassNames().clear();
 
         for (PsiMethodCallExpression mockableCallExpression : mockableCallExpressions) {
-            MethodUnderTest mut = MethodUnderTest.fromCallExpression(mockableCallExpression);
+            MethodUnderTest mut = MethodUnderTest.fromPsiCallExpression(mockableCallExpression);
             libraryFilerModel.getIncludedMethodNames().add(mut.getName());
             libraryFilerModel.getIncludedClassNames().add(mut.getClassName());
         }

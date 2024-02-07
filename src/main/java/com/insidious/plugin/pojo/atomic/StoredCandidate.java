@@ -5,10 +5,7 @@ import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.util.TestCandidateUtils;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static com.insidious.plugin.Constants.HOSTNAME;
 
@@ -29,7 +26,7 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
     private long sessionIdentifier;
     private byte[] probSerializedValue;
     private MethodUnderTest methodUnderTest;
-    private HashSet<String> mockIds = new HashSet<String>();
+    private Set<String> mockIds = new HashSet<String>();
     private long createdAt;
 
     private StoredCandidate() {
@@ -94,11 +91,11 @@ public class StoredCandidate implements Comparable<StoredCandidate> {
         this.createdAt = createdAt;
     }
 
-    public HashSet<String> getMockIds() {
+    public Set<String> getMockIds() {
         return mockIds;
     }
 
-    public void setMockIds(HashSet<String> enabledMockDefinition) {
+    public void setMockIds(Set<String> enabledMockDefinition) {
         this.mockIds = enabledMockDefinition;
     }
 

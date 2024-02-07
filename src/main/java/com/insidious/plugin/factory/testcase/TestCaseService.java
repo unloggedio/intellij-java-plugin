@@ -21,7 +21,6 @@ import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.lang.jvm.JvmMethod;
@@ -242,7 +241,7 @@ public class TestCaseService {
 
             MethodCallExpression mainMethod = testCandidateMetadata.getMainMethod();
 
-            PsiMethod targetMethodPsi = StompComponent.getPsiMethod(testCandidateMetadata, project);
+            PsiMethod targetMethodPsi = ClassTypeUtils.getPsiMethod(testCandidateMetadata.getMainMethod(), project);
             if (targetMethodPsi != null) {
                 normalizeMethodTypes(mainMethod, targetMethodPsi);
             }

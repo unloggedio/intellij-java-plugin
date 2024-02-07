@@ -1636,17 +1636,24 @@ public class DaoService {
     }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-    getTestCandidateBetween(long afterEventId, long beforeEventId) throws SQLException {
+    getTestCandidateBetween(long afterEventId, long beforeEventId) {
 
-        List<TestCandidateMetadata> dbCandidateList = testCandidateDao.queryRaw("select t.*\n" +
-                        "from test_candidate t\n" +
-                        "         join method_call mc on mc.id = t.mainMethod_id\n" +
-                        "where t.entryProbeIndex > ?\n" +
-                        "and t.exitProbeIndex < ?\n" +
-                        "and mc.parentId == 0\n" +
-                        "order by t.entryProbeIndex\n" +
-                        "; ", testCandidateDao.getRawRowMapper(),
-                String.valueOf(afterEventId), String.valueOf(beforeEventId)).getResults();
+        List<TestCandidateMetadata> dbCandidateList = null;
+        try {
+            dbCandidateList = testCandidateDao.queryRaw("select t.*\n" +
+                            "from test_candidate t\n" +
+                            "         join method_call mc on mc.id = t.mainMethod_id\n" +
+                            "where t.entryProbeIndex > ?\n" +
+                            "and t.exitProbeIndex < ?\n" +
+                            "and mc.parentId == 0\n" +
+                            "order by t.entryProbeIndex\n" +
+                            "; ", testCandidateDao.getRawRowMapper(),
+                    String.valueOf(afterEventId), String.valueOf(beforeEventId)).getResults();
+        } catch (SQLException e) {
+            // should never happen
+            logger.error("Failed to query db for test candidates", e);
+            return new ArrayList<>();
+        }
 
         return dbCandidateList
                 .stream()

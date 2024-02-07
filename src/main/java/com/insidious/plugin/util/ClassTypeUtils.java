@@ -6,11 +6,17 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
-import com.intellij.psi.PsiClassType;
-import com.intellij.psi.PsiPrimitiveType;
-import com.intellij.psi.PsiSubstitutor;
-import com.intellij.psi.PsiType;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.Parameter;
+import com.intellij.lang.jvm.JvmMethod;
+import com.intellij.lang.jvm.JvmParameter;
+import com.intellij.lang.jvm.types.JvmType;
+import com.intellij.openapi.project.Project;
+import com.intellij.psi.*;
+import com.intellij.psi.impl.InheritanceImplUtil;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -371,4 +377,79 @@ public class ClassTypeUtils {
 
     }
 
+    public static PsiMethod getPsiMethod(MethodCallExpression methodCallExpression, Project project) {
+        MethodCallExpression mainMethod = methodCallExpression;
+        PsiClass classPsiElement = JavaPsiFacade
+                .getInstance(project)
+                .findClass(mainMethod.getSubject().getType(),
+                        GlobalSearchScope.allScope(project));
+
+        String methodName = mainMethod.getMethodName();
+        boolean isLambda = false;
+        if (methodName.startsWith("lambda$")) {
+            methodName = methodName.split("\\$")[1];
+            isLambda = true;
+        }
+        JvmMethod[] methodsByName = classPsiElement.findMethodsByName(methodName, true);
+
+        if (methodsByName.length == 1 && isLambda) {
+            // should we verify parameters ?
+            return (PsiMethod) methodsByName[0].getSourceElement();
+        }
+
+        for (JvmMethod jvmMethod : methodsByName) {
+
+            List<Parameter> expectedArguments = mainMethod.getArguments();
+            JvmParameter[] actualArguments = jvmMethod.getParameters();
+
+            if (expectedArguments.size() == actualArguments.length) {
+
+                boolean mismatch = false;
+                for (int i = 0; i < expectedArguments.size(); i++) {
+                    Parameter expectedArgument = expectedArguments.get(i);
+                    JvmParameter actualArgument = actualArguments[i];
+                    JvmType type = actualArgument.getType();
+                    if (type instanceof PsiType) {
+                        if (!((PsiType) type).getCanonicalText().contains(expectedArgument.getType())) {
+
+                            PsiClass expectedClassPsi = JavaPsiFacade.getInstance(project)
+                                    .findClass(expectedArgument.getType(), GlobalSearchScope.allScope(project));
+
+                            if (expectedClassPsi != null) {
+                                if (type instanceof PsiClassReferenceType) {
+                                    boolean ok = InheritanceImplUtil.isInheritor(
+                                            ((PsiClassReferenceType) type).resolve(),
+                                            expectedClassPsi, true);
+                                    if (ok) {
+                                        return (PsiMethod) jvmMethod.getSourceElement();
+                                    }
+                                } else if (type instanceof PsiClass) {
+                                    boolean ok = InheritanceImplUtil.isInheritor(((PsiClass) type),
+                                            expectedClassPsi, true);
+                                    if (ok) {
+                                        return (PsiMethod) jvmMethod.getSourceElement();
+                                    }
+                                }
+
+                            }
+
+
+                            mismatch = true;
+                            break;
+                        }
+                    }
+
+                }
+                if (mismatch) {
+                    continue;
+                }
+
+                return (PsiMethod) jvmMethod.getSourceElement();
+
+
+            }
+
+        }
+        return null;
+    }
 }

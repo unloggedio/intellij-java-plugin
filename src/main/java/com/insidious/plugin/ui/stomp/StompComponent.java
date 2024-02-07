@@ -30,32 +30,26 @@ import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
+import com.insidious.plugin.util.ClassTypeUtils;
+import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
-import com.intellij.lang.jvm.JvmMethod;
-import com.intellij.lang.jvm.JvmParameter;
-import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ActiveIcon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.IPopupChooserBuilder;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
-import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiMethod;
-import com.intellij.psi.PsiType;
-import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.*;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.table.JBTable;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -73,6 +67,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class StompComponent implements
         Consumer<List<TestCandidateMetadata>>,
@@ -197,8 +192,7 @@ public class StompComponent implements
             }
         });
 
-        replayButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        saveAsMockButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        saveAsMockButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         generateJUnitButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         filterButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -213,18 +207,20 @@ public class StompComponent implements
             }
         });
 
-        saveAsMockButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
-                for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
-                    onSaveAsMockRequest(selectedCandidate);
-                }
-                InsidiousNotification.notifyMessage(selectedCandidates.size() + " new mock definitions saved are " +
-                        "available now", NotificationType.INFORMATION);
+        saveAsMockButton.setVisible(false);
 
-            }
-        });
+//        saveAsMockButton.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                super.mouseClicked(e);
+//                for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
+//                    onSaveAsMockRequest(selectedCandidate);
+//                }
+//                InsidiousNotification.notifyMessage(selectedCandidates.size() + " new mock definitions saved are " +
+//                        "available now", NotificationType.INFORMATION);
+//
+//            }
+//        });
 
 
         reloadButton.addMouseListener(new MouseAdapter() {
@@ -245,30 +241,107 @@ public class StompComponent implements
                     .getService(AtomicRecordService.class);
             StoredCandidate storedCandidate = new StoredCandidate(selectedCandidates.get(0));
 
+            int mockCount = 0;
             for (TestCandidateMetadata testCandidate : selectedCandidates) {
                 MethodUnderTest methodUnderTest = null;
                 try {
                     methodUnderTest = ApplicationManager.getApplication().executeOnPooledThread(
                                     () -> ApplicationManager.getApplication().runReadAction(
                                             (Computable<MethodUnderTest>) () -> MethodUnderTest.fromMethodAdapter(
-                                                    new JavaMethodAdapter(getPsiMethod(testCandidate,
-                                                            insidiousService.getProject())))))
+                                                    new JavaMethodAdapter(
+                                                            ClassTypeUtils.getPsiMethod(testCandidate.getMainMethod(),
+                                                                    insidiousService.getProject())))))
                             .get();
                 } catch (InterruptedException | ExecutionException ex) {
                     continue;
-//                        throw new RuntimeException(ex);
                 }
+                if (methodUnderTest == null) {
+                    logger.warn("Failed to resolve target method for test candidate: " + testCandidate);
+                    continue;
+                }
+
+                TestCandidateMetadata loadedTestCandidate = insidiousService.getTestCandidateById(
+                        testCandidate.getEntryProbeIndex(), true);
+
                 StoredCandidate candidate = atomicRecordService
-                        .getStoredCandidateFor(methodUnderTest, testCandidate);
+                        .getStoredCandidateFor(methodUnderTest, loadedTestCandidate);
                 if (candidate.getCandidateId() == null) {
                     candidate.setCandidateId(UUID.randomUUID().toString());
                 }
                 candidate.setName("saved on " + simpleDateFormat.format(new Date()));
                 atomicRecordService.saveCandidate(methodUnderTest, candidate);
 
+                PsiMethod targetMethod = ClassTypeUtils.getPsiMethod(loadedTestCandidate.getMainMethod(),
+                        insidiousService.getProject());
+
+                Collection<PsiMethodCallExpression> allCallExpressions = PsiTreeUtil.findChildrenOfType(
+                        targetMethod, PsiMethodCallExpression.class);
+
+                Map<String, List<PsiMethodCallExpression>> expressionsBySignatureMap = allCallExpressions.stream()
+                        .collect(Collectors.groupingBy(e1 -> {
+                            PsiMethod method = e1.resolveMethod();
+                            return MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(method)).getMethodHashKey();
+                        }));
+
+
+                Map<String, DeclaredMock> mocks = new HashMap<>();
+
+                for (MethodCallExpression methodCallExpression : loadedTestCandidate.getCallsList()) {
+
+                    PsiMethod psiMethod = ClassTypeUtils.getPsiMethod(methodCallExpression,
+                            insidiousService.getProject());
+                    if (psiMethod == null) {
+                        logger.warn("Failed to resolve method: " + methodCallExpression + ", call will not be mocked");
+                        continue;
+                    }
+                    MethodUnderTest mockMethodTarget = MethodUnderTest.fromMethodAdapter(
+                            new JavaMethodAdapter(psiMethod));
+
+                    List<PsiMethodCallExpression> expressionsBySignature = expressionsBySignatureMap.get(
+                            mockMethodTarget.getMethodHashKey());
+
+                    PsiMethodCallExpression methodCallExpression1 = expressionsBySignature.get(0);
+//                    methodCallExpression1.getMethodExpression()
+
+                    PsiReferenceExpression methodExpression = methodCallExpression1.getMethodExpression();
+                    PsiExpression qualifierExpression1 = methodExpression.getQualifierExpression();
+                    if (!(qualifierExpression1 instanceof PsiReferenceExpression)) {
+                        // what is this ? TODO: add support for chain mocking
+                        continue;
+                    }
+                    PsiReferenceExpression qualifierExpression = (PsiReferenceExpression) qualifierExpression1;
+                    if (qualifierExpression == null) {
+                        // call to another method in the same class :)
+                        continue;
+                    }
+                    PsiElement qualifierField = qualifierExpression.resolve();
+                    if (!(qualifierField instanceof PsiField)) {
+                        // call is not on a field
+                        continue;
+                    }
+                    DeclaredMock declaredMock = ClassUtils.createDefaultMock(methodCallExpression1);
+
+                    DeclaredMock existingMock = mocks.get(mockMethodTarget.getMethodHashKey());
+                    if (existingMock == null) {
+                        mocks.put(mockMethodTarget.getMethodHashKey(), declaredMock);
+                    } else {
+                        existingMock.getThenParameter().addAll(declaredMock.getThenParameter());
+                    }
+
+
+                }
+
+                Collection<DeclaredMock> values = mocks.values();
+
+                for (DeclaredMock value : values) {
+                    atomicRecordService.saveMockDefinition(value);
+                    mockCount++;
+                }
+
+
             }
 
-            InsidiousNotification.notifyMessage("Saved " + selectedCandidates.size() + " tests",
+            InsidiousNotification.notifyMessage("Saved "+ selectedCandidates.size() +" replay test and " + mockCount + " mock definitions",
                     NotificationType.INFORMATION);
 
 
@@ -294,7 +367,7 @@ public class StompComponent implements
                     public void onSaved(StoredCandidate storedCandidate) {
                         for (TestCandidateMetadata testCandidate : selectedCandidates) {
                             MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
-                                    new JavaMethodAdapter(getPsiMethod(testCandidate,
+                                    new JavaMethodAdapter(ClassTypeUtils.getPsiMethod(testCandidate.getMainMethod(),
                                             StompComponent.this.insidiousService.getProject())));
                             StoredCandidate candidate = atomicRecordService.getStoredCandidateFor(methodUnderTest,
                                     testCandidate);
@@ -464,63 +537,20 @@ public class StompComponent implements
         replayButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (DumbService.getInstance(insidiousService.getProject()).isDumb()) {
-                    InsidiousNotification.notifyMessage("Please try after indexing is complete",
-                            NotificationType.WARNING);
+                if (!replayButton.isEnabled()) {
+                    InsidiousNotification.notifyMessage("Select records to replay", NotificationType.INFORMATION);
                     return;
                 }
-
+                InsidiousNotification.notifyMessage("Replayed " + selectedCandidates.size() + " records",
+                        NotificationType.INFORMATION);
                 for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
                     executeSingleTestCandidate(selectedCandidate);
                 }
-                InsidiousNotification.notifyMessage("Re-executed " + selectedCandidates.size() + " records",
-                        NotificationType.INFORMATION);
             }
         });
+        replayButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         updateFilterLabel();
-    }
-
-    @Nullable
-    public static PsiMethod getPsiMethod(TestCandidateMetadata selectedCandidate, Project project) {
-        PsiClass classPsiElement = JavaPsiFacade
-                .getInstance(project)
-                .findClass(selectedCandidate.getFullyQualifiedClassname(),
-                        GlobalSearchScope.allScope(project));
-        MethodCallExpression mainMethod = selectedCandidate.getMainMethod();
-
-        JvmMethod[] methodsByName = classPsiElement.findMethodsByName(mainMethod.getMethodName());
-
-        for (JvmMethod jvmMethod : methodsByName) {
-
-            List<Parameter> expectedArguments = mainMethod.getArguments();
-            JvmParameter[] actualArguments = jvmMethod.getParameters();
-            if (expectedArguments.size() == actualArguments.length) {
-
-                boolean mismatch = false;
-                for (int i = 0; i < expectedArguments.size(); i++) {
-                    Parameter expectedArgument = expectedArguments.get(i);
-                    JvmParameter actualArgument = actualArguments[i];
-                    JvmType type = actualArgument.getType();
-                    if (type instanceof PsiType) {
-                        if (!((PsiType) type).getCanonicalText().contains(expectedArgument.getType())) {
-                            mismatch = true;
-                            break;
-                        }
-                    }
-
-                }
-                if (mismatch) {
-                    continue;
-                }
-
-                return (PsiMethod) jvmMethod.getSourceElement();
-
-
-            }
-
-        }
-        return null;
     }
 
     private void resetAndReload() {
@@ -539,7 +569,8 @@ public class StompComponent implements
     private void executeSingleTestCandidate(TestCandidateMetadata selectedCandidate) {
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             PsiMethod methodPsiElement = ApplicationManager.getApplication().runReadAction(
-                    (Computable<PsiMethod>) () -> getPsiMethod(selectedCandidate, insidiousService.getProject()));
+                    (Computable<PsiMethod>) () -> ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
+                            insidiousService.getProject()));
             long batchTime = System.currentTimeMillis();
 
             insidiousService.executeSingleCandidate(
@@ -867,8 +898,9 @@ public class StompComponent implements
         if (source == ExecutionRequestSourceType.Single) {
             TestCandidateMetadata selectedCandidate = metadata.get(0);
             PsiMethod methodPsiElement = ApplicationManager.getApplication()
-                    .runReadAction((Computable<PsiMethod>) () -> getPsiMethod(selectedCandidate,
-                            insidiousService.getProject()));
+                    .runReadAction(
+                            (Computable<PsiMethod>) () -> ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
+                                    insidiousService.getProject()));
             showDirectInvoke(new JavaMethodAdapter(methodPsiElement));
             directInvokeComponent.triggerExecute();
         }
@@ -902,20 +934,20 @@ public class StompComponent implements
 
 
             generateJUnitButton.setEnabled(true);
-            saveAsMockButton.setEnabled(true);
+//            saveAsMockButton.setEnabled(true);
             replayButton.setEnabled(true);
             saveReplayButton.setEnabled(true);
             controlPanel.setEnabled(true);
 //            setLabelsVisible(true);
         } else if (selectedCandidates.size() == 0 && controlPanel.isEnabled()) {
-            selectedCountLabel.setText("None selected");
+            selectedCountLabel.setText("0 selected");
             clearSelectionLabel.setVisible(false);
             selectAllLabel.setVisible(false);
 
 
 //            reloadButton.setEnabled(false);
             generateJUnitButton.setEnabled(false);
-            saveAsMockButton.setEnabled(false);
+//            saveAsMockButton.setEnabled(false);
             replayButton.setEnabled(false);
             saveReplayButton.setEnabled(false);
             controlPanel.setEnabled(false);
@@ -938,7 +970,8 @@ public class StompComponent implements
     public void onSaveAsMockRequest(TestCandidateMetadata testCandidateMetadata) {
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            PsiMethod targetMethodPsi = getPsiMethod(testCandidateMetadata, insidiousService.getProject());
+            PsiMethod targetMethodPsi = ClassTypeUtils.getPsiMethod(testCandidateMetadata.getMainMethod(),
+                    insidiousService.getProject());
             MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethodPsi));
             DeclaredMock declaredMock = new DeclaredMock();
             declaredMock.setMethodName(methodUnderTest.getName());

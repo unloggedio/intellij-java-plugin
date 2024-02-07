@@ -71,7 +71,7 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
         String fieldName = fieldExpression.getText();
         PsiMethod targetMethod = methodCallExpression.resolveMethod();
 
-        methodUnderTest = MethodUnderTest.fromCallExpression(methodCallExpression);
+        methodUnderTest = MethodUnderTest.fromPsiCallExpression(methodCallExpression);
 
 
         boolean fieldMockIsActive = insidiousService.isFieldMockActive(parentClassName, fieldName);

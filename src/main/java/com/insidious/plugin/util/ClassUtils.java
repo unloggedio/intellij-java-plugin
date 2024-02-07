@@ -45,7 +45,7 @@ public class ClassUtils {
 
         PsiMethod destinationMethod = methodCallExpression.resolveMethod();
 
-        MethodUnderTest mut = MethodUnderTest.fromCallExpression(methodCallExpression);
+        MethodUnderTest mut = MethodUnderTest.fromPsiCallExpression(methodCallExpression);
 
         PsiType returnType = identifyReturnType(methodCallExpression);
         String returnDummyValue;
@@ -475,11 +475,16 @@ public class ClassUtils {
             return;
         }
 
+        String methodName = methodCallExpression.getMethodName();
+        if (methodName.startsWith("lambda$")) {
+            methodName = methodName.split("\\$")[1];
+        }
+
         JvmMethod[] methodPsiInstanceList =
-                classPsiInstance.findMethodsByName(methodCallExpression.getMethodName());
+                classPsiInstance.findMethodsByName(methodName, true);
         if (methodPsiInstanceList.length == 0) {
             logger.warn(
-                    "[2] did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
+                    "[2] did not find a matching method in source code: " + subjectType + "." + methodName);
             return;
         }
 

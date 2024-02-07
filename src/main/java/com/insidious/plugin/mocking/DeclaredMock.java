@@ -1,5 +1,8 @@
 package com.insidious.plugin.mocking;
 
+import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;

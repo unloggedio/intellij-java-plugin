@@ -14,8 +14,6 @@ import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -109,8 +107,7 @@ public class LibraryComponent {
                         return;
                     }
                     DialogBuilder builder = new DialogBuilder(project);
-                    builder.addOkAction();
-                    builder.addCancelAction();
+                    builder.okActionEnabled(true);
                     builder.setTitle("Confirm Delete");
 
                     builder.setCenterPanel(new JLabel(
@@ -124,8 +121,10 @@ public class LibraryComponent {
                         InsidiousNotification.notifyMessage(
                                 "Deleted " + selectedCount + " mock definition" + (selectedCount == 1 ? "s" : ""),
                                 NotificationType.INFORMATION);
+                        builder.dispose();
+
                     });
-                    builder.show();
+                    builder.showModal(true);
 
                 } else if (filterModel.isShowTests()) {
                     int selectedCount = selectedCandidates.size();
@@ -146,8 +145,9 @@ public class LibraryComponent {
                         InsidiousNotification.notifyMessage("Deleted " + selectedCount + " relay test"
                                         + (selectedCount == 1 ? "s" : ""),
                                 NotificationType.INFORMATION);
+                        builder.dispose();
                     });
-                    builder.show();
+                    builder.showModal(true);
 
                 }
 
@@ -182,8 +182,9 @@ public class LibraryComponent {
                     InsidiousNotification.notifyMessage(
                             "Deleted " + "mock definition",
                             NotificationType.INFORMATION);
+                    builder.dispose();
                 });
-                builder.show();
+                builder.showModal(true);
             }
 
             @Override
@@ -214,13 +215,12 @@ public class LibraryComponent {
                 builder.setCenterPanel(new JLabel("Are you sure you want to delete " + "replay test"));
                 builder.setOkOperation(() -> {
                     atomicRecordService.deleteStoredCandidate(item.getMethod(), item.getCandidateId());
-                    reloadItems();
                     InsidiousNotification.notifyMessage(
-                            "Deleted " + "replay test",
-                            NotificationType.INFORMATION);
+                            "Deleted " + "replay test", NotificationType.INFORMATION);
                     reloadItems();
+                    builder.dispose();
                 });
-                builder.show();
+                builder.showModal(true);
             }
 
             @Override
@@ -301,21 +301,6 @@ public class LibraryComponent {
 
             }
         });
-        clearSelectionLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                selectedCandidates.clear();
-                selectedMocks.clear();
-                for (StoredCandidateItemPanel storedCandidateItemPanel : listedCandidateItems) {
-                    storedCandidateItemPanel.setSelected(false);
-                }
-                for (DeclaredMockItemPanel listedMockItem : listedMockItems) {
-                    listedMockItem.setSelected(false);
-                }
-
-
-            }
-        });
 
         updateFilterLabel();
 
@@ -338,12 +323,13 @@ public class LibraryComponent {
         int count;
         if (filterModel.isShowMocks()) {
             count = selectedMocks.size();
-            selectAllLabel.setText(count + " selected");
+            selectedCountLabel.setText(count + " selected");
         } else {
             count = selectedCandidates.size();
-            selectAllLabel.setText(count + " selected");
+            selectedCountLabel.setText(count + " selected");
         }
         deleteButton.setVisible(count > 0);
+        clearSelectionLabel.setVisible(count > 0);
         deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 

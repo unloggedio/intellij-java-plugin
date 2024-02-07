@@ -69,6 +69,7 @@ public class StoredCandidateItemPanel {
                 itemLifeCycleListener.onUnSelect(storedCandidate);
             }
         });
+        deleteButton.setVisible(false);
         deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         deleteButton.addMouseListener(new MouseAdapter() {
             @Override
