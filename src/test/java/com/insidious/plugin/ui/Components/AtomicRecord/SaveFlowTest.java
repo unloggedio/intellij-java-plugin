@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.Components.AtomicRecord;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
@@ -77,7 +78,7 @@ public class SaveFlowTest {
     }
 
     //    @Test
-    public void testComponentManagement() {
+    public void testComponentManagement() throws JsonProcessingException {
         SaveForm saveForm = new SaveForm(candidate, storedCandidateLifeListener);
 
         AssertionBlock ruleEditor = saveForm.getRuleEditor();
@@ -134,7 +135,7 @@ public class SaveFlowTest {
     }
 
     //    @Test
-    public void testColorCodes() {
+    public void testColorCodes() throws JsonProcessingException {
         SaveForm saveForm = new SaveForm(candidate, storedCandidateLifeListener);
         AssertionRule rootRule = saveForm.getRuleEditor().getAssertionRules().get(0);
 

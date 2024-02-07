@@ -1,0 +1,33 @@
+name: AutoExecutor Pipeline
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: checkout commit
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 19
+        uses: actions/setup-java@v3
+        with:
+          java-version: '19'
+          distribution: 'temurin'
+
+      - name: Setup Gradle 8.5
+        uses: gradle/gradle-build-action@v2
+        with:
+            gradle-version: 8.5
+
+      - name: clone and run target project
+        run: |
+            git clone -b docker_tsfr https://github.com/unloggedio/unlogged-spring-maven-demo.git
+            docker compose -f unlogged-spring-maven-demo/conf/docker-compose.yml up -d
+
+      - name: Gradle Test
+        run: gradle test --tests com.insidious.plugin.auto.AutoExecutorCITest
+

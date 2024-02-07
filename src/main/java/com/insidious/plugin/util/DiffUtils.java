@@ -391,4 +391,47 @@ public class DiffUtils {
         }
         return true;
     }
+
+    public static DifferenceResult compareTexts(String original, String actual) {
+        try {
+            JsonNode m1;
+            if (original == null || original.isEmpty()) {
+                m1 = objectMapper.createObjectNode();
+            } else {
+                m1 = objectMapper.readTree(original);
+            }
+            JsonNode m2 = objectMapper.readTree(original);
+            if (m2 == null) {
+                m2 = objectMapper.createObjectNode();
+            }
+
+            Map<String, Map<String, ?>> objectMapDifference = compareObjectNodes(m1, m2);
+            Map<String, Object> leftOnly = (Map<String, Object>) objectMapDifference.get("left");
+            Map<String, Object> rightOnly = (Map<String, Object>) objectMapDifference.get("right");
+            Map<String, ValueDifference> differences = (Map<String, ValueDifference>) objectMapDifference.get(
+                    "differences");
+            List<DifferenceInstance> differenceInstances = getDifferenceModel(leftOnly, rightOnly, differences);
+            if (differenceInstances.size() == 0) {
+                //no differences
+                return new DifferenceResult(differenceInstances, DiffResultType.SAME, leftOnly, rightOnly);
+            } else if (original == null || original.isEmpty()) {
+                return new DifferenceResult(differenceInstances, DiffResultType.NO_ORIGINAL, leftOnly, rightOnly);
+            } else {
+//                merge left and right differences
+//                or iterate and create a new pojo that works with 1 table model
+                return new DifferenceResult(differenceInstances, DiffResultType.DIFF, leftOnly, rightOnly);
+            }
+        } catch (Exception e) {
+            if ((original == null && actual == null) || Objects.equals(original, actual)) {
+                return new DifferenceResult(new LinkedList<>(), DiffResultType.SAME, null, null);
+            }
+            //this.statusLabel.setText("Differences Found.");
+            //happens for malformed jsons or primitives.
+            DifferenceInstance instance = new DifferenceInstance("Return Value", original, actual,
+                    DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE);
+            ArrayList<DifferenceInstance> differenceInstances = new ArrayList<>();
+            differenceInstances.add(instance);
+            return new DifferenceResult(differenceInstances, DiffResultType.DIFF, null, null);
+        }
+    }
 }
