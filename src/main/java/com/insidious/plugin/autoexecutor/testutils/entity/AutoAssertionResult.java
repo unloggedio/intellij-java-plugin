@@ -1,4 +1,4 @@
-package com.insidious.plugin.auto.entity;
+package com.insidious.plugin.autoexecutor.testutils.entity;
 
 public class AutoAssertionResult {
     private boolean passing;

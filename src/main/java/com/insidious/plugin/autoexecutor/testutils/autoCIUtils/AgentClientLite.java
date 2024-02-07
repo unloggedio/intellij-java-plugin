@@ -1,4 +1,4 @@
-package com.insidious.plugin.auto.autoCIUtils;
+package com.insidious.plugin.autoexecutor.testutils.autoCIUtils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -6,9 +6,7 @@ import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
-import com.insidious.plugin.factory.UsageInsightTracker;
 import okhttp3.*;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.time.Duration;

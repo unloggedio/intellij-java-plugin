@@ -1,4 +1,4 @@
-package com.insidious.plugin.auto.autoCIUtils;
+package com.insidious.plugin.autoexecutor.testutils.autoCIUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,9 +24,7 @@ public class ParseUtils {
         types.set(types.size() - 1, cleanLast(types.get(types.size() - 1)));
         parameters.set(types.size() - 1, cleanLast(parameters.get(parameters.size() - 1)));
         typesAndParams.put("types", types);
-        System.out.println("Types : " + types);
         typesAndParams.put("parameters", parameters);
-        System.out.println("Parameters : " + parameters);
         return typesAndParams;
     }
 

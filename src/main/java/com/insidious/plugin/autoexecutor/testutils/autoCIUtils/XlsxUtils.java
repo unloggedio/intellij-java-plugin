@@ -1,4 +1,4 @@
-package com.insidious.plugin.auto.autoCIUtils;
+package com.insidious.plugin.autoexecutor.testutils.autoCIUtils;
 
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 

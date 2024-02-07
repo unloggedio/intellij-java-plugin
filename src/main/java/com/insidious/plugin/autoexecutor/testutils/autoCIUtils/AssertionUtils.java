@@ -1,9 +1,9 @@
-package com.insidious.plugin.auto.autoCIUtils;
+package com.insidious.plugin.autoexecutor.testutils.autoCIUtils;
 
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
-import com.insidious.plugin.auto.entity.AutoAssertionResult;
-import com.insidious.plugin.auto.entity.TestUnit;
+import com.insidious.plugin.autoexecutor.testutils.entity.AutoAssertionResult;
+import com.insidious.plugin.autoexecutor.testutils.entity.TestUnit;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.insidious.plugin.util.DiffUtils;
 

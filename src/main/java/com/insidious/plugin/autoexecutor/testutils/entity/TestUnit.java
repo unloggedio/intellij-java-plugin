@@ -1,4 +1,4 @@
-package com.insidious.plugin.auto.entity;
+package com.insidious.plugin.autoexecutor.testutils.entity;
 
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;

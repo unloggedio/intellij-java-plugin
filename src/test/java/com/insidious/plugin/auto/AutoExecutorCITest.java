@@ -4,12 +4,12 @@ import com.insidious.plugin.agent.AgentCommand;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.AgentCommandResponse;
-import com.insidious.plugin.auto.autoCIUtils.AgentClientLite;
-import com.insidious.plugin.auto.autoCIUtils.AssertionUtils;
-import com.insidious.plugin.auto.autoCIUtils.ParseUtils;
-import com.insidious.plugin.auto.autoCIUtils.XlsxUtils;
-import com.insidious.plugin.auto.entity.AutoAssertionResult;
-import com.insidious.plugin.auto.entity.TestUnit;
+import com.insidious.plugin.autoexecutor.testutils.autoCIUtils.AgentClientLite;
+import com.insidious.plugin.autoexecutor.testutils.autoCIUtils.AssertionUtils;
+import com.insidious.plugin.autoexecutor.testutils.autoCIUtils.ParseUtils;
+import com.insidious.plugin.autoexecutor.testutils.autoCIUtils.XlsxUtils;
+import com.insidious.plugin.autoexecutor.testutils.entity.AutoAssertionResult;
+import com.insidious.plugin.autoexecutor.testutils.entity.TestUnit;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -100,26 +100,16 @@ public class AutoExecutorCITest {
                 agentCommandRequest.setMethodParameters(parameters);
                 agentCommandRequest.setDeclaredMocks(new ArrayList<>());
 
-                System.out.println("Agent cmd request : ");
-                System.out.println(agentCommandRequest.toString());
+                if (count == 215) {
+                    System.out.println("Start debug here");
+                }
 
                 boolean shouldPrint = true;
-//                if (count == 65) {
-//                    shouldPrint = true;
-//                    System.out.println("Method Input : " + methodInput);
-//                    System.out.println("Agent cmd request : " + agentCommandRequest.toString());
-//                    System.out.println("Types : " + agentCommandRequest.getParameterTypes());
-//                    System.out.println("Parameters : " + agentCommandRequest.getMethodParameters());
-//                }
                 try {
                     AgentCommandResponse<String> agentCommandResponse = agentClientLite.executeCommand(agentCommandRequest);
                     TestUnit testUnit = new TestUnit(targetClassname, methodName, methodSignature,
                             methodInput, methodAssertionType, methodOutput, responseType, agentCommandRequest,
                             agentCommandResponse);
-//                    if (shouldPrint) {
-//                        System.out.println("Raw response : ");
-//                        System.out.println(agentCommandResponse);
-//                    }
                     AutoAssertionResult result = AssertionUtils.assertCase(testUnit);
                     if (!result.isPassing()) {
                         overallStatus = false;
