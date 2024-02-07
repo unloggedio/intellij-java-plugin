@@ -1,7 +1,10 @@
 package com.insidious.plugin.ui.library;
 
 import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.ui.stomp.StompItem;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.project.Project;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -22,9 +25,20 @@ public class DeclaredMockItemPanel {
     private JCheckBox selectCandidateCheckbox;
     private JLabel deleteButton;
 
-    public DeclaredMockItemPanel(DeclaredMock declaredMock, ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener) {
+    public DeclaredMockItemPanel(DeclaredMock declaredMock, ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener, Project project) {
         this.declaredMock = declaredMock;
         this.nameLabel.setText(declaredMock.getMethodName());
+        nameLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        nameLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    InsidiousUtils.focusInEditor(declaredMock.getFieldTypeName(),
+                            declaredMock.getMethodName(), project);
+                });
+            }
+        });
         TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
         String simpleClassName = declaredMock.getFieldTypeName();
         if (simpleClassName.contains(".")) {

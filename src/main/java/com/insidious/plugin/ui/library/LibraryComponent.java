@@ -472,7 +472,7 @@ public class LibraryComponent {
                         continue;
                     }
                     DeclaredMockItemPanel mockPanel = new DeclaredMockItemPanel(declaredMock,
-                            MOCK_ITEM_LIFE_CYCLE_LISTENER);
+                            MOCK_ITEM_LIFE_CYCLE_LISTENER, insidiousService.getProject());
                     listedMockItems.add(mockPanel);
                     JComponent component = mockPanel.getComponent();
                     itemsContainer.add(component, createGBCForLeftMainComponent(count++));
@@ -500,7 +500,7 @@ public class LibraryComponent {
                     }
 
                     StoredCandidateItemPanel candidatePanel = new StoredCandidateItemPanel(candidate,
-                            STORED_CANDIDATE_ITEM_LIFE_CYCLE_LISTENER);
+                            STORED_CANDIDATE_ITEM_LIFE_CYCLE_LISTENER, insidiousService.getProject());
                     listedCandidateItems.add(candidatePanel);
                     JComponent component = candidatePanel.getComponent();
                     itemsContainer.add(component, createGBCForLeftMainComponent(count++));

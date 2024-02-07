@@ -1,8 +1,11 @@
 package com.insidious.plugin.ui.library;
 
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.ui.stomp.StompItem;
 import com.insidious.plugin.util.AtomicAssertionUtils;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.project.Project;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -24,9 +27,27 @@ public class StoredCandidateItemPanel {
     private JLabel deleteButton;
 
     public StoredCandidateItemPanel(StoredCandidate storedCandidate,
-                                    ItemLifeCycleListener<StoredCandidate> itemLifeCycleListener) {
+                                    ItemLifeCycleListener<StoredCandidate> itemLifeCycleListener, Project project) {
         this.storedCandidate = storedCandidate;
         this.nameLabel.setText(storedCandidate.getMethod().getName());
+        nameLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        nameLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (!storedCandidate.getLineNumbers().isEmpty()) {
+                    Integer firstLine = storedCandidate.getLineNumbers().get(0);
+                    ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                        InsidiousUtils.focusProbeLocationInEditor(firstLine,
+                                storedCandidate.getMethod().getClassName(), project);
+                    });
+                } else {
+                    ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                        InsidiousUtils.focusInEditor(storedCandidate.getMethod().getClassName(),
+                                storedCandidate.getMethod().getName(), project);
+                    });
+                }
+            }
+        });
         TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
         String simpleClassName = storedCandidate.getMethod().getClassName();
         if (simpleClassName.contains(".")) {
@@ -79,8 +100,6 @@ public class StoredCandidateItemPanel {
         });
 
 
-
-
         // Timer to update the border title
         String finalSimpleClassName = simpleClassName;
         Timer timer = new Timer(100, e -> {
@@ -106,7 +125,7 @@ public class StoredCandidateItemPanel {
                 titledBorder.setTitle(newTitle.toString());
                 mainPanel.repaint();
             } else {
-                ((Timer)e.getSource()).stop(); // Stop the timer when animation is complete
+                ((Timer) e.getSource()).stop(); // Stop the timer when animation is complete
             }
         });
 
