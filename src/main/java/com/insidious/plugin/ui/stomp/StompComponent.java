@@ -181,6 +181,7 @@ public class StompComponent implements
                 for (StompItem stompItem : stompItems) {
                     stompItem.setSelected(false);
                 }
+                updateControlPanel();
             }
         });
 
@@ -193,6 +194,8 @@ public class StompComponent implements
                     stompItem.setSelected(true);
                     selectedCandidates.add(stompItem.getTestCandidate());
                 }
+                updateControlPanel();
+
             }
         });
 
