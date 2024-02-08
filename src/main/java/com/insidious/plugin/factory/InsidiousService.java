@@ -292,6 +292,11 @@ final public class InsidiousService implements
         EditorEventMulticaster multicaster = EditorFactory.getInstance().getEventMulticaster();
         InsidiousCaretListener listener = new InsidiousCaretListener();
         multicaster.addEditorMouseListener(listener, this);
+        multicaster.addCaretListener(listener, this);
+        multicaster.addDocumentListener(listener, this);
+        multicaster.addVisibleAreaListener(listener, this);
+
+
         unloggedSdkApiAgent = new UnloggedSdkApiAgent("http://localhost:12100");
         ConnectionCheckerService connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgent);
         threadPoolExecutor.submit(connectionCheckerService);
