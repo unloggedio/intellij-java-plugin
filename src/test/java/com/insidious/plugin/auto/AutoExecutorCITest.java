@@ -9,7 +9,10 @@ import com.insidious.plugin.autoexecutor.testutils.autoCIUtils.AssertionUtils;
 import com.insidious.plugin.autoexecutor.testutils.autoCIUtils.ParseUtils;
 import com.insidious.plugin.autoexecutor.testutils.autoCIUtils.XlsxUtils;
 import com.insidious.plugin.autoexecutor.testutils.entity.AutoAssertionResult;
+import com.insidious.plugin.autoexecutor.testutils.entity.TestResultSummary;
 import com.insidious.plugin.autoexecutor.testutils.entity.TestUnit;
+import com.insidious.plugin.mocking.DeclaredMock;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -29,20 +32,39 @@ public class AutoExecutorCITest {
     final private boolean printOnlyFailing = false;
 
     @Test
-    public void runAutoExecutorCI() {
-
-        //create an agent client
+    public void runTests() {
         AgentClientLite agentClientLite = new AgentClientLite();
         if (!agentClientLite.isConnected()) {
             System.out.println("Stopping AutoExecutor test as agent is not connected");
             return;
         }
+        URL pathToIntegrationResources = Thread.currentThread().getContextClassLoader()
+                .getResource(testResourcesPath + "maven-demo-integration-resources.xlsx");
+        URL pathToMockResources = Thread.currentThread().getContextClassLoader()
+                .getResource(testResourcesPath + "maven-demo-mocked-resources.xlsx");
 
-        //fetch and parse test resources.
-        URL urlToFile = Thread.currentThread().getContextClassLoader()
-                .getResource(testResourcesPath + "maven-demo-ground-truth-integration-mode.xlsx");
+        System.out.println("\n-----Integration mode testing-----\n");
+        TestResultSummary integrationResult = runAutoExecutorCI(pathToIntegrationResources, agentClientLite);
+        System.out.println("\n-----Unit mode testing-----\n");
+        TestResultSummary unitResult = runAutoExecutorCI(pathToMockResources, agentClientLite);
 
-        XSSFWorkbook workbook = XlsxUtils.getWorkbook(urlToFile);
+        System.out.println("\n-----Test Summary-----\n");
+        System.out.println("    Integration Mode ->");
+        System.out.println("    Total number of cases run : " + integrationResult.getNumberOfCases());
+        System.out.println("    Number of Passing cases : " + integrationResult.getPassingCasesCount());
+        System.out.println("    Number of Failing cases : " + integrationResult.getFailingCasesCount());
+
+        System.out.println("\n    Unit Mode ->");
+        System.out.println("    Total number of cases run : " + unitResult.getNumberOfCases());
+        System.out.println("    Number of Passing cases : " + unitResult.getPassingCasesCount());
+        System.out.println("    Number of Failing cases : " + unitResult.getFailingCasesCount());
+
+        boolean overallStatus = (integrationResult.getFailingCasesCount() + unitResult.getFailingCasesCount()) == 0;
+        Assertions.assertTrue(overallStatus);
+    }
+
+    public TestResultSummary runAutoExecutorCI(URL pathToUrl, AgentClientLite agentClientLite) {
+        XSSFWorkbook workbook = XlsxUtils.getWorkbook(pathToUrl);
         assert workbook != null;
 
         XSSFSheet sheet = workbook.getSheetAt(0);
@@ -50,9 +72,6 @@ public class AutoExecutorCITest {
         int count = 0;
         int passing = 0;
         int failing = 0;
-
-        System.out.println("\n");
-        boolean overallStatus = true;
 
         while (rowIterator.hasNext()) {
             if (count == 0) {
@@ -73,7 +92,13 @@ public class AutoExecutorCITest {
                 String responseType = row.getCell(3).getStringCellValue();
                 String methodInput = row.getCell(4).getStringCellValue();
                 String methodAssertionType = row.getCell(5).getStringCellValue();
-                String methodOutput = row.getCell(6).getStringCellValue();
+                Cell outputCell = row.getCell(6);
+                String methodOutput = "";
+                if (outputCell != null) {
+                    //can be null when an empty value is present in cell
+                    methodOutput = row.getCell(6).getStringCellValue();
+                }
+                String declaredMocks = row.getCell(9).getStringCellValue();
 
                 String[] methodParts = targetMethodInfo.split("\\n");
                 assert methodParts.length == 2;
@@ -98,11 +123,9 @@ public class AutoExecutorCITest {
                 agentCommandRequest.setMethodName(methodName);
                 agentCommandRequest.setParameterTypes(types);
                 agentCommandRequest.setMethodParameters(parameters);
-                agentCommandRequest.setDeclaredMocks(new ArrayList<>());
 
-                if (count == 215) {
-                    System.out.println("Start debug here");
-                }
+                List<DeclaredMock> declaredMocksList = ParseUtils.getDeclaredMocksFrom(declaredMocks);
+                agentCommandRequest.setDeclaredMocks(declaredMocksList);
 
                 boolean shouldPrint = true;
                 try {
@@ -112,7 +135,6 @@ public class AutoExecutorCITest {
                             agentCommandResponse);
                     AutoAssertionResult result = AssertionUtils.assertCase(testUnit);
                     if (!result.isPassing()) {
-                        overallStatus = false;
                         failing++;
                     } else {
                         passing++;
@@ -121,25 +143,22 @@ public class AutoExecutorCITest {
                         shouldPrint = false;
                     }
                     if (shouldPrint) {
-                        System.out.println("[Case " + count + " (Row)] is [" + ((result.isPassing()) ? "Passing]]" : "Failing]]"));
-                        System.out.println("Classname : " + targetClassname);
-                        System.out.println("MethodName : " + methodName);
-                        System.out.println("Implementation : " + selectedImplementation);
-                        System.out.println("Assertion type : " + result.getAssertionType());
-                        System.out.println("Message : " + result.getMessage());
+                        System.out.println(">   [Case " + count + " (Row)] is [" + ((result.isPassing()) ? "Passing]]" : "Failing]]"));
+                        System.out.println("    Classname : " + targetClassname);
+                        System.out.println("    MethodName : " + methodName);
+                        System.out.println("    Implementation : " + selectedImplementation);
+                        System.out.println("    Assertion type : " + result.getAssertionType());
+                        System.out.println("    Message : " + result.getMessage());
                         if (!result.isPassing()) {
-                            System.out.println("Raw Response : " + agentCommandResponse.getMethodReturnValue());
+                            System.out.println("    Raw Response : " + agentCommandResponse.getMethodReturnValue());
                         }
-                        System.out.println("---------------------\n");
+                        System.out.println("\n");
                     }
                 } catch (IOException e) {
                     System.out.println("Execution failed " + e);
                 }
             }
         }
-        System.out.println("Total tests run : " + (count - 2));
-        System.out.println("Total Passing : " + passing);
-        System.out.println("Total Failing : " + failing);
-        Assertions.assertEquals(true, overallStatus);
+        return new TestResultSummary(count - 2, passing, failing);
     }
 }

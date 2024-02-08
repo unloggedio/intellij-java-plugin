@@ -1,5 +1,9 @@
 package com.insidious.plugin.autoexecutor.testutils.autoCIUtils;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.plugin.mocking.DeclaredMock;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,5 +47,17 @@ public class ParseUtils {
             text = text.substring(0, text.length() - 1).trim();
         }
         return text;
+    }
+
+    public static List<DeclaredMock> getDeclaredMocksFrom(String jsonStringInput) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            TypeReference<List<DeclaredMock>> typeReference = new TypeReference<List<DeclaredMock>>() {
+            };
+            return objectMapper.readValue(jsonStringInput, typeReference);
+        } catch (Exception e) {
+            System.out.println("Unable to convert input to List of declared mocks " + e);
+            return new ArrayList<>();
+        }
     }
 }

@@ -52,8 +52,6 @@ public class AgentClientLite {
                 .build();
         try {
             Response response = client.newCall(pingRequest).execute();
-            String responseBody = response.body().string();
-            System.out.println("Ping response : " + responseBody);
             response.close();
             return true;
         } catch (Throwable e) {
