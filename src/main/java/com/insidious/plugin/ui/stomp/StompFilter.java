@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.stomp;
 
+import com.insidious.plugin.adapter.MethodAdapter;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.uiDesigner.core.GridConstraints;
 import org.jetbrains.annotations.Nullable;
@@ -50,7 +51,7 @@ public class StompFilter {
     private JPanel performanceFiltersPanel;
     private JPanel mainPanelFilters;
 
-    public StompFilter(FilterModel filterModel) {
+    public StompFilter(FilterModel filterModel, MethodAdapter lastMethodFocussed) {
         this.filterModel = filterModel;
 
         DefaultListModel<String> modelIncludedClasses = new DefaultListModel<>();
@@ -97,6 +98,7 @@ public class StompFilter {
                     filterModel.getExcludedClassNames().add(line);
                 }
             }
+
             @Override
             public void mouseEntered(MouseEvent e) {
                 excludedClassesFromClipboard.setBorder(BorderFactory.createRaisedBevelBorder());
@@ -124,6 +126,7 @@ public class StompFilter {
                     filterModel.getIncludedClassNames().add(line);
                 }
             }
+
             @Override
             public void mouseEntered(MouseEvent e) {
                 includedClassesFromClipboard.setBorder(BorderFactory.createRaisedBevelBorder());
@@ -151,6 +154,7 @@ public class StompFilter {
                     filterModel.getExcludedMethodNames().add(line);
                 }
             }
+
             @Override
             public void mouseEntered(MouseEvent e) {
                 excludedMethodsFromClipboard.setBorder(BorderFactory.createRaisedBevelBorder());
@@ -198,6 +202,13 @@ public class StompFilter {
                 JPanel centerPanel = new JPanel();
                 centerPanel.setLayout(new BorderLayout());
                 JTextField newNameTextField = new JTextField();
+
+                if (lastMethodFocussed != null) {
+                    String name = lastMethodFocussed.getContainingClass().getQualifiedName();
+                    newNameTextField.setText(name);
+                }
+
+
                 Dimension current = newNameTextField.getMinimumSize();
                 newNameTextField.setMinimumSize(new Dimension(300, (int) current.getHeight()));
                 centerPanel.add(newNameTextField, BorderLayout.CENTER);
@@ -242,11 +253,14 @@ public class StompFilter {
                     }
                 });
 
-                ApplicationManager.getApplication().invokeLater(newNameTextField::requestFocus);
-
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    newNameTextField.requestFocus();
+                    newNameTextField.select(0, newNameTextField.getText().length());
+                });
 
 
             }
+
             @Override
             public void mouseEntered(MouseEvent e) {
                 addExcludedClassLabel.setBorder(BorderFactory.createRaisedBevelBorder());
@@ -268,6 +282,13 @@ public class StompFilter {
                 JPanel centerPanel = new JPanel();
                 centerPanel.setLayout(new BorderLayout());
                 JTextField newNameTextField = new JTextField();
+
+                if (lastMethodFocussed != null) {
+                    String name = lastMethodFocussed.getContainingClass().getQualifiedName();
+                    newNameTextField.setText(name);
+                }
+
+
                 Dimension current = newNameTextField.getMinimumSize();
                 newNameTextField.setMinimumSize(new Dimension(300, (int) current.getHeight()));
                 centerPanel.add(newNameTextField, BorderLayout.CENTER);
@@ -312,11 +333,14 @@ public class StompFilter {
                     }
                 });
 
-                ApplicationManager.getApplication().invokeLater(newNameTextField::requestFocus);
-
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    newNameTextField.requestFocus();
+                    newNameTextField.select(0, newNameTextField.getText().length());
+                });
 
 
             }
+
             @Override
             public void mouseEntered(MouseEvent e) {
                 addIncludedClassLabel.setBorder(BorderFactory.createRaisedBevelBorder());
@@ -330,7 +354,6 @@ public class StompFilter {
         });
 
 
-
         addIncludedMethodLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         addIncludedMethodLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
         addIncludedMethodLabel.addMouseListener(new MouseAdapter() {
@@ -339,6 +362,13 @@ public class StompFilter {
                 JPanel centerPanel = new JPanel();
                 centerPanel.setLayout(new BorderLayout());
                 JTextField newNameTextField = new JTextField();
+
+                if (lastMethodFocussed != null) {
+                    String name = lastMethodFocussed.getName();
+                    newNameTextField.setText(name);
+                }
+
+
                 Dimension current = newNameTextField.getMinimumSize();
                 newNameTextField.setMinimumSize(new Dimension(300, (int) current.getHeight()));
                 centerPanel.add(newNameTextField, BorderLayout.CENTER);
@@ -383,11 +413,14 @@ public class StompFilter {
                     }
                 });
 
-                ApplicationManager.getApplication().invokeLater(newNameTextField::requestFocus);
-
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    newNameTextField.requestFocus();
+                    newNameTextField.select(0, newNameTextField.getText().length());
+                });
 
 
             }
+
             @Override
             public void mouseEntered(MouseEvent e) {
                 addIncludedMethodLabel.setBorder(BorderFactory.createRaisedBevelBorder());
@@ -401,7 +434,6 @@ public class StompFilter {
         });
 
 
-
         addExcludedMethodLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         addExcludedMethodLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
         addExcludedMethodLabel.addMouseListener(new MouseAdapter() {
@@ -410,6 +442,15 @@ public class StompFilter {
                 JPanel centerPanel = new JPanel();
                 centerPanel.setLayout(new BorderLayout());
                 JTextField newNameTextField = new JTextField();
+
+                if (lastMethodFocussed != null) {
+                    String name = lastMethodFocussed.getName();
+                    newNameTextField.setText(name);
+                    newNameTextField.setSelectionEnd(0);
+                    newNameTextField.setSelectionEnd(name.length());
+                }
+
+
                 Dimension current = newNameTextField.getMinimumSize();
                 newNameTextField.setMinimumSize(new Dimension(300, (int) current.getHeight()));
                 centerPanel.add(newNameTextField, BorderLayout.CENTER);
@@ -454,11 +495,14 @@ public class StompFilter {
                     }
                 });
 
-                ApplicationManager.getApplication().invokeLater(newNameTextField::requestFocus);
-
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    newNameTextField.requestFocus();
+                    newNameTextField.select(0, newNameTextField.getText().length());
+                });
 
 
             }
+
             @Override
             public void mouseEntered(MouseEvent e) {
                 addExcludedMethodLabel.setBorder(BorderFactory.createRaisedBevelBorder());
@@ -483,6 +527,7 @@ public class StompFilter {
                     modelExcludedClasses.removeElement(selectedValue);
                 }
             }
+
             @Override
             public void mouseEntered(MouseEvent e) {
                 removeExcludedClassLabel.setBorder(BorderFactory.createRaisedBevelBorder());
@@ -506,6 +551,7 @@ public class StompFilter {
                     modelIncludedClasses.removeElement(selectedValue);
                 }
             }
+
             @Override
             public void mouseEntered(MouseEvent e) {
                 removeIncludedClassLabel.setBorder(BorderFactory.createRaisedBevelBorder());
@@ -530,6 +576,7 @@ public class StompFilter {
                     modelExcludedMethods.removeElement(selectedValue);
                 }
             }
+
             @Override
             public void mouseEntered(MouseEvent e) {
                 removeExcludedMethodLabel.setBorder(BorderFactory.createRaisedBevelBorder());
@@ -553,6 +600,7 @@ public class StompFilter {
                     modelIncludedMethods.removeElement(selectedValue);
                 }
             }
+
             @Override
             public void mouseEntered(MouseEvent e) {
                 removeIncludedMethodLabel.setBorder(BorderFactory.createRaisedBevelBorder());

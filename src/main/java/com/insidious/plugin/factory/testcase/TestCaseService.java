@@ -39,6 +39,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.TypeConversionUtil;
 import com.squareup.javapoet.*;
 import org.json.JSONObject;
+import org.objectweb.asm.Opcodes;
 
 import javax.lang.model.element.Modifier;
 import java.util.*;
@@ -254,14 +255,20 @@ public class TestCaseService {
                 PsiCallExpression callExpress = null;
                 for (PsiCallExpression childCallExpression : childCallExpressions) {
                     String callExpressionText = childCallExpression.getText();
+                    String expectedSubjectName = methodCallExpression.getSubject().getName();
                     if (callExpressionText.contains(methodCallExpression.getMethodName())
-                            && callExpressionText.contains(methodCallExpression.getSubject().getName())) {
+                            && (expectedSubjectName != null && callExpressionText.contains(expectedSubjectName))) {
                         callExpress = childCallExpression;
                         break;
                     }
                 }
-                if (callExpress == null) {
-                    normalizeMethodTypes(methodCallExpression, targetMethodPsi);
+                if (callExpress == null
+                ) {
+                    if (targetMethodPsi.getName().equals(methodCallExpression.getMethodName())
+                            && targetMethodPsi.getContainingClass().getQualifiedName()
+                            .equals(methodCallExpression.getSubject().getType())) {
+                        normalizeMethodTypes(methodCallExpression, targetMethodPsi);
+                    }
                 } else {
                     normalizeMethodTypes(methodCallExpression, callExpress.resolveMethod(), callExpress);
                 }
@@ -381,7 +388,7 @@ public class TestCaseService {
                 if (fieldMatchingParameterType.size() > 0) {
 
                     List<PsiField> fieldMatchingNameAndType = fieldMatchingParameterType.stream()
-                            .filter(e -> fieldParameter.hasName(e.getName()))
+                            .filter(e -> fieldParameter.getName() == null || fieldParameter.hasName(e.getName()))
                             .collect(Collectors.toList());
 
                     boolean nameChosen = false;
@@ -417,14 +424,26 @@ public class TestCaseService {
         }
 
         for (Parameter fieldParameter : fields) {
-            TestCandidateMetadata metadata = MockFactory.createParameterMock(fieldParameter,
-                    objectRoutineContainer.getGenerationConfiguration());
-            if (metadata == null) {
-                logger.warn(
-                        "unable to create a initializer for field: " + fieldParameter.getType() + " - " + fieldParameter.getName());
-                continue;
+            if (fieldParameter.isPrimitiveType()) {
+                TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
+                testCandidateMetadata.setTestSubject(fieldParameter);
+                MethodCallExpression mainMethod = new MethodCallExpression(
+                        "<init>", fieldParameter, new ArrayList<>(), fieldParameter, 0
+                );
+                mainMethod.setMethodAccess(Opcodes.ACC_PUBLIC);
+                testCandidateMetadata.setMainMethod(mainMethod);
+                mockCreatorCandidates.add(testCandidateMetadata);
+            } else {
+                TestCandidateMetadata metadata = MockFactory.createParameterMock(fieldParameter,
+                        objectRoutineContainer.getGenerationConfiguration());
+                if (metadata == null) {
+                    logger.warn(
+                            "unable to create a initializer for field: " + fieldParameter.getType() + " - " + fieldParameter.getName());
+                    continue;
+                }
+                mockCreatorCandidates.add(metadata);
+
             }
-            mockCreatorCandidates.add(metadata);
         }
 
 

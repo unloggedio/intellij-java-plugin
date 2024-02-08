@@ -232,6 +232,9 @@ public class DaoService {
     private com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata
     convertTestCandidateMetadata(TestCandidateMetadata testCandidateMetadata, Boolean loadCalls) throws Exception {
 //        logger.warn("Build test candidate - " + testCandidateMetadata.getEntryProbeIndex());
+        if (testCandidateMetadata == null) {
+            return null;
+        }
         com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
                 TestCandidateMetadata.toTestCandidate(testCandidateMetadata);
 

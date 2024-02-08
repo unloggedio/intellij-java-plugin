@@ -604,40 +604,10 @@ final public class InsidiousService implements
 
 
     public void methodFocussedHandler(final MethodAdapter method) {
-
-//        if (method == null) {
-//            return;
-//        }
-//        DumbService dumbService = project.getService(DumbService.class);
-//        if (dumbService.isDumb()) {
-//            return;
-//        }
-
         currentState.setCurrentMethod(method);
-//        final ClassAdapter psiClass;
-//        try {
-//            psiClass = method.getContainingClass();
-//        } catch (Exception e) {
-//            // not a focusable element. return silently
-//            return;
-//        }
-
-//        if (psiClass.getName() == null) {
-//            return;
-//        }
-
-
-//        if (!toolWindow.isVisible()) {
-//            logger.warn("test case designer window is not ready to create test case");
-//            return;
-//        }
-//        if (methodDirectInvokeComponent == null) {
-//            return;
-//        }
-
-//        methodDirectInvokeComponent.renderForMethod(method);
-//        atomicTestComponentWindow.triggerMethodExecutorRefresh(method);
-
+        if (stompWindow != null) {
+            stompWindow.onMethodFocussed(method);
+        }
     }
 
     public void showDirectInvoke(MethodAdapter method) {

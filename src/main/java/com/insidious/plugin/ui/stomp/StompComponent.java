@@ -113,6 +113,7 @@ public class StompComponent implements
     private SimpleDateFormat simpleDateFormat = new SimpleDateFormat();
     private boolean welcomePanelRemoved = false;
     private AtomicInteger candidateQueryLatch;
+    private MethodAdapter lastMethodFocussed;
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -128,7 +129,6 @@ public class StompComponent implements
         itemPanel.setLayout(mgr);
         itemPanel.setAlignmentY(0);
         itemPanel.setAlignmentX(0);
-        clearTimelineLabel.setVisible(false);
 
         itemPanel.add(new JPanel(), createGBCForFakeComponent());
 
@@ -143,18 +143,37 @@ public class StompComponent implements
 
         clearTimelineLabel.setToolTipText("Clear the timeline");
         clearTimelineLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        clearTimelineLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         clearTimelineLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
                 resetTimeline();
             }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+//                clearTimelineLabel.setBorder(
+//                        BorderFactory.createCompoundBorder(
+//                                BorderFactory.createRaisedBevelBorder(),
+//                                BorderFactory.createEmptyBorder(5, 5, 5, 5)
+//                        )
+//                );
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+//                clearTimelineLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+            }
+
+
         });
 
 
         clearSelectionLabel.setVisible(false);
         clearSelectionLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
+        clearSelectionLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
         clearSelectionLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -178,25 +197,31 @@ public class StompComponent implements
         });
 
         clearFilterLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        clearFilterLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
         clearFilterLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                filterModel.getIncludedMethodNames().clear();
-                filterModel.getExcludedMethodNames().clear();
-                filterModel.getIncludedClassNames().clear();
-                filterModel.getExcludedClassNames().clear();
+                clearFilter();
 
                 updateFilterLabel();
                 resetAndReload();
 
             }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                clearFilterLabel.setBorder(BorderFactory.createRaisedBevelBorder());
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                clearFilterLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+            }
         });
 
 
         generateJUnitButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        filterButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
+//        generateJUnitButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         generateJUnitButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -205,8 +230,19 @@ public class StompComponent implements
                 }
 
             }
+//            @Override
+//            public void mouseEntered(MouseEvent e) {
+//                generateJUnitButton.setBorder(BorderFactory.createRaisedBevelBorder());
+//            }
+//
+//            @Override
+//            public void mouseExited(MouseEvent e) {
+//                generateJUnitButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+//            }
         });
 
+        reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        reloadButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         reloadButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -214,6 +250,17 @@ public class StompComponent implements
                     resetAndReload();
                 }
             }
+
+//            @Override
+//            public void mouseEntered(MouseEvent e) {
+//                reloadButton.setBorder(BorderFactory.createRaisedBevelBorder());
+//            }
+//
+//            @Override
+//            public void mouseExited(MouseEvent e) {
+//                reloadButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+//            }
+
         });
 
         saveReplayButton.addActionListener(e -> {
@@ -221,22 +268,23 @@ public class StompComponent implements
         });
 
 
-//        filterButton.setSize(new Dimension(98, 32));
-//        filterButton.setPreferredSize(new Dimension(98, 32));
-//        filterButton.setMinimumSize(new Dimension(98, 32));
-//        filterButton.setMaximumSize(new Dimension(98, 32));
-//        filterButton.setBorder(new RoundBtnBorder(15));
-//        Font font = filterButton.getFont();
-//        Font boldFont = font.deriveFont(Font.BOLD);
-//        filterButton.setFont(boldFont);
-
-
         filterButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        filterButton.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
         filterButton.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseEntered(MouseEvent e) {
+//                filterButton.setBorder(BorderFactory.createRaisedBevelBorder());
+//            }
+//
+//            @Override
+//            public void mouseExited(MouseEvent e) {
+//                filterButton.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
+//            }
+
             @Override
             public void mouseClicked(MouseEvent e) {
 
-                StompFilter stompFilter = new StompFilter(filterModel);
+                StompFilter stompFilter = new StompFilter(filterModel, lastMethodFocussed);
                 JComponent component = stompFilter.getComponent();
                 component.setMaximumSize(new Dimension(500, 800));
                 ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
@@ -309,6 +357,7 @@ public class StompComponent implements
 
         saveReplayButton.setEnabled(false);
         replayButton.setEnabled(false);
+//        replayButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         replayButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -322,10 +371,26 @@ public class StompComponent implements
                     executeSingleTestCandidate(selectedCandidate);
                 }
             }
+//            @Override
+//            public void mouseEntered(MouseEvent e) {
+//                replayButton.setBorder(BorderFactory.createRaisedBevelBorder());
+//            }
+//
+//            @Override
+//            public void mouseExited(MouseEvent e) {
+//                replayButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+//            }
         });
         replayButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         updateFilterLabel();
+    }
+
+    private void clearFilter() {
+        filterModel.getIncludedMethodNames().clear();
+        filterModel.getExcludedMethodNames().clear();
+        filterModel.getIncludedClassNames().clear();
+        filterModel.getExcludedClassNames().clear();
     }
 
     private void saveSelected() {
@@ -1075,14 +1140,17 @@ public class StompComponent implements
                     continue;
                 }
                 MethodCallExpression callExpression = loadedTestCandidate.getMainMethod();
+                String methodName = callExpression.getMethodName();
                 logger.warn(
-                        "Generating test case: " + testSubject.getType() + "." + callExpression.getMethodName() + "()");
+                        "Generating test case: " + testSubject.getType() + "." + methodName + "()");
                 generationConfiguration.getTestCandidateMetadataList().clear();
                 generationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
 
                 generationConfiguration.getCallExpressionList().clear();
                 generationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
 
+                generationConfiguration.setTestMethodName(
+                        "test" + methodName.substring(0, 1).toUpperCase(Locale.ROOT) + methodName.substring(1));
                 TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
                 List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
                 testCaseUnit1.add(testCaseUnit);
@@ -1482,6 +1550,17 @@ public class StompComponent implements
         if (candidateQueryLatch != null) {
             candidateQueryLatch.decrementAndGet();
             candidateQueryLatch = null;
+        }
+    }
+
+    public void onMethodFocussed(MethodAdapter method) {
+        lastMethodFocussed = method;
+        if (filterModel.isFollowEditor()) {
+            clearFilter();
+            filterModel.getIncludedMethodNames().add(method.getName());
+            filterModel.getIncludedClassNames().add(method.getContainingClass().getQualifiedName());
+            updateFilterLabel();
+            resetAndReload();
         }
     }
 }
