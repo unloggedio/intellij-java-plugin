@@ -294,7 +294,6 @@ final public class InsidiousService implements
         multicaster.addEditorMouseListener(listener, this);
         multicaster.addCaretListener(listener, this);
         multicaster.addDocumentListener(listener, this);
-        multicaster.addVisibleAreaListener(listener, this);
 
 
         unloggedSdkApiAgent = new UnloggedSdkApiAgent("http://localhost:12100");
