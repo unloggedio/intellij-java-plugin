@@ -1220,8 +1220,7 @@ public class StompComponent implements
                                 break;
                         }
                         updateFilterLabel();
-                        resetTimeline();
-                        loadNewCandidates();
+                        resetAndReload();
 
                     })
                     .setCancelOnClickOutside(true)
