@@ -24,6 +24,9 @@ public class DeclaredMockItemPanel {
     private JPanel controlContainer;
     private JCheckBox selectCandidateCheckbox;
     private JLabel deleteButton;
+    private JPanel mainPanelSub;
+    private JPanel topContainerPanel;
+    private JPanel nameContainerPanel;
 
     public DeclaredMockItemPanel(DeclaredMock declaredMock, ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener, Project project) {
         this.declaredMock = declaredMock;
@@ -120,6 +123,26 @@ public class DeclaredMockItemPanel {
         });
 
         timer.start();
+
+        MouseAdapter showDeleteButtonListener = new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                deleteButton.setVisible(true);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                deleteButton.setVisible(false);
+            }
+        };
+        mainPanel.addMouseListener(showDeleteButtonListener);
+        mainPanelSub.addMouseListener(showDeleteButtonListener);
+        nameContainerPanel.addMouseListener(showDeleteButtonListener);
+        nameLabel.addMouseListener(showDeleteButtonListener);
+        controlPanel.addMouseListener(showDeleteButtonListener);
+        controlContainer.addMouseListener(showDeleteButtonListener);
+        selectCandidateCheckbox.addMouseListener(showDeleteButtonListener);
+        deleteButton.addMouseListener(showDeleteButtonListener);
 
     }
 

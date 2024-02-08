@@ -44,6 +44,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import io.kaitai.struct.ByteBufferKaitaiStream;
@@ -3833,7 +3834,11 @@ public class SessionInstance implements Runnable {
         if (testCandidateMetadata == null) {
             return null;
         }
-        ClassUtils.resolveTemplatesInCall(testCandidateMetadata.getMainMethod(), project);
+        TestCandidateMetadata tm = ApplicationManager.getApplication()
+                .runReadAction((Computable<TestCandidateMetadata>) () -> {
+                    ClassUtils.resolveTemplatesInCall(testCandidateMetadata.getMainMethod(), project);
+                    return testCandidateMetadata;
+                });
         // check if the param are ENUM
         createParamEnumPropertyTrueIfTheyAre(testCandidateMetadata.getMainMethod());
 

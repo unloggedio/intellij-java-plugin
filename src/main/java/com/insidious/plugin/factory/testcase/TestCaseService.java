@@ -425,11 +425,23 @@ public class TestCaseService {
 
         for (Parameter fieldParameter : fields) {
             if (fieldParameter.isPrimitiveType()) {
+
+                switch (fieldParameter.getType()) {
+                    case "I": fieldParameter.setTypeForced("java.lang.Integer"); break;
+                    case "L": fieldParameter.setTypeForced("java.lang.Long"); break;
+                    case "F": fieldParameter.setTypeForced("java.lang.Float"); break;
+                    case "D": fieldParameter.setTypeForced("java.lang.Double"); break;
+                    case "B": fieldParameter.setTypeForced("java.lang.Byte"); break;
+                    case "Z": fieldParameter.setTypeForced("java.lang.Boolean"); break;
+                    case "C": fieldParameter.setTypeForced("java.lang.Character"); break;
+                    case "V": fieldParameter.setTypeForced("java.lang.Void"); break;
+                }
                 TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
                 testCandidateMetadata.setTestSubject(fieldParameter);
                 MethodCallExpression mainMethod = new MethodCallExpression(
                         "<init>", fieldParameter, new ArrayList<>(), fieldParameter, 0
                 );
+
                 mainMethod.setMethodAccess(Opcodes.ACC_PUBLIC);
                 testCandidateMetadata.setMainMethod(mainMethod);
                 mockCreatorCandidates.add(testCandidateMetadata);

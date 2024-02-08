@@ -12,7 +12,6 @@ import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.JBColor;
-import org.apache.xmlbeans.impl.store.Cur;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -29,8 +28,8 @@ public class StompItem {
             new Color(113, 128, 150, 255));
     public static final int MAX_METHOD_NAME_LABEL_LENGTH = 25;
     public static final JBColor HOVER_HIGHLIGHT_COLOR = new JBColor(
-            new Color(242, 137, 100),
-            new Color(242, 137, 100));
+            new Color(221, 245, 238),
+            new Color(221, 245, 238));
     private static final Logger logger = LoggerUtil.getInstance(StompItem.class);
     private final TestCandidateLifeListener testCandidateLifeListener;
     private final Color defaultPanelColor;
@@ -119,7 +118,6 @@ public class StompItem {
                     isPinned = true;
                     pinLabel.setIcon(UIUtils.PUSHPIN_2_FILL);
                 }
-                testCandidateLifeListener.onGenerateJunitTestCaseRequest(candidateMetadata);
             }
 
             @Override
@@ -258,6 +256,8 @@ public class StompItem {
                 testCandidateLifeListener.unSelected(candidateMetadata);
             }
         });
+        selectCandidateCheckbox.setVisible(false);
+        pinLabel.setVisible(false);
 
     }
 
@@ -292,6 +292,13 @@ public class StompItem {
         controlContainer.setBackground(defaultPanelColor);
         selectCandidateCheckbox.setBackground(defaultPanelColor);
         metadataPanel.setBackground(defaultPanelColor);
+
+        if (!selectCandidateCheckbox.isSelected()) {
+            selectCandidateCheckbox.setVisible(false);
+        }
+        if (!isPinned) {
+            pinLabel.setVisible(false);
+        }
     }
 
     private void hoverOn() {
@@ -303,6 +310,8 @@ public class StompItem {
         controlContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
         selectCandidateCheckbox.setBackground(HOVER_HIGHLIGHT_COLOR);
         metadataPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+        selectCandidateCheckbox.setVisible(true);
+        pinLabel.setVisible(true);
     }
 
     public JPanel getComponent() {
@@ -325,6 +334,7 @@ public class StompItem {
 
     public void setSelected(boolean b) {
         selectCandidateCheckbox.setSelected(b);
+        selectCandidateCheckbox.setVisible(b);
     }
 
     public boolean isPinned() {

@@ -197,26 +197,16 @@ public class StompComponent implements
         });
 
         clearFilterLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        clearFilterLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
+//        clearFilterLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
         clearFilterLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 clearFilter();
-
                 updateFilterLabel();
                 resetAndReload();
 
             }
 
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                clearFilterLabel.setBorder(BorderFactory.createRaisedBevelBorder());
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                clearFilterLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-            }
         });
 
 
