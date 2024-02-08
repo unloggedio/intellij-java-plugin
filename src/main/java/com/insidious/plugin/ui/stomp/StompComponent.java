@@ -34,6 +34,7 @@ import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -50,6 +51,7 @@ import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.table.JBTable;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -64,7 +66,6 @@ import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -96,7 +97,6 @@ public class StompComponent implements
     private JLabel filterButton;
     private JButton saveReplayButton;
     private JLabel replayButton;
-    private JLabel saveAsMockButton;
     private JLabel generateJUnitButton;
     private JPanel controlPanel;
     private JPanel infoPanel;
@@ -192,7 +192,7 @@ public class StompComponent implements
             }
         });
 
-//        saveAsMockButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
         generateJUnitButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         filterButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -207,22 +207,6 @@ public class StompComponent implements
             }
         });
 
-        saveAsMockButton.setVisible(false);
-
-//        saveAsMockButton.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                super.mouseClicked(e);
-//                for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
-//                    onSaveAsMockRequest(selectedCandidate);
-//                }
-//                InsidiousNotification.notifyMessage(selectedCandidates.size() + " new mock definitions saved are " +
-//                        "available now", NotificationType.INFORMATION);
-//
-//            }
-//        });
-
-
         reloadButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -233,218 +217,7 @@ public class StompComponent implements
         });
 
         saveReplayButton.addActionListener(e -> {
-            if (saveFormReference != null) {
-                insidiousService.hideCandidateSaveForm(saveFormReference);
-                saveFormReference = null;
-            }
-            AtomicRecordService atomicRecordService = insidiousService.getProject()
-                    .getService(AtomicRecordService.class);
-            StoredCandidate storedCandidate = new StoredCandidate(selectedCandidates.get(0));
-
-            int mockCount = 0;
-            for (TestCandidateMetadata testCandidate : selectedCandidates) {
-                MethodUnderTest methodUnderTest = null;
-                try {
-                    methodUnderTest = ApplicationManager.getApplication().executeOnPooledThread(
-                                    () -> ApplicationManager.getApplication().runReadAction(
-                                            (Computable<MethodUnderTest>) () -> MethodUnderTest.fromMethodAdapter(
-                                                    new JavaMethodAdapter(
-                                                            ClassTypeUtils.getPsiMethod(testCandidate.getMainMethod(),
-                                                                    insidiousService.getProject())))))
-                            .get();
-                } catch (InterruptedException | ExecutionException ex) {
-                    continue;
-                }
-                if (methodUnderTest == null) {
-                    logger.warn("Failed to resolve target method for test candidate: " + testCandidate);
-                    continue;
-                }
-
-                TestCandidateMetadata loadedTestCandidate = insidiousService.getTestCandidateById(
-                        testCandidate.getEntryProbeIndex(), true);
-
-                StoredCandidate candidate = atomicRecordService
-                        .getStoredCandidateFor(methodUnderTest, loadedTestCandidate);
-                if (candidate.getCandidateId() == null) {
-                    candidate.setCandidateId(UUID.randomUUID().toString());
-                }
-                candidate.setName("saved on " + simpleDateFormat.format(new Date()));
-                atomicRecordService.saveCandidate(methodUnderTest, candidate);
-
-                PsiMethod targetMethod = ClassTypeUtils.getPsiMethod(loadedTestCandidate.getMainMethod(),
-                        insidiousService.getProject());
-
-                Collection<PsiMethodCallExpression> allCallExpressions = PsiTreeUtil.findChildrenOfType(
-                        targetMethod, PsiMethodCallExpression.class);
-
-                Map<String, List<PsiMethodCallExpression>> expressionsBySignatureMap = allCallExpressions.stream()
-                        .collect(Collectors.groupingBy(e1 -> {
-                            PsiMethod method = e1.resolveMethod();
-                            return MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(method)).getMethodHashKey();
-                        }));
-
-
-                Map<String, DeclaredMock> mocks = new HashMap<>();
-
-                for (MethodCallExpression methodCallExpression : loadedTestCandidate.getCallsList()) {
-
-                    PsiMethod psiMethod = ClassTypeUtils.getPsiMethod(methodCallExpression,
-                            insidiousService.getProject());
-                    if (psiMethod == null) {
-                        logger.warn("Failed to resolve method: " + methodCallExpression + ", call will not be mocked");
-                        continue;
-                    }
-                    MethodUnderTest mockMethodTarget = MethodUnderTest.fromMethodAdapter(
-                            new JavaMethodAdapter(psiMethod));
-
-                    List<PsiMethodCallExpression> expressionsBySignature = expressionsBySignatureMap.get(
-                            mockMethodTarget.getMethodHashKey());
-
-                    PsiMethodCallExpression methodCallExpression1 = expressionsBySignature.get(0);
-//                    methodCallExpression1.getMethodExpression()
-
-                    PsiReferenceExpression methodExpression = methodCallExpression1.getMethodExpression();
-                    PsiExpression qualifierExpression1 = methodExpression.getQualifierExpression();
-                    if (!(qualifierExpression1 instanceof PsiReferenceExpression)) {
-                        // what is this ? TODO: add support for chain mocking
-                        continue;
-                    }
-                    PsiReferenceExpression qualifierExpression = (PsiReferenceExpression) qualifierExpression1;
-                    if (qualifierExpression == null) {
-                        // call to another method in the same class :)
-                        continue;
-                    }
-                    PsiElement qualifierField = qualifierExpression.resolve();
-                    if (!(qualifierField instanceof PsiField)) {
-                        // call is not on a field
-                        continue;
-                    }
-                    DeclaredMock declaredMock = ClassUtils.createDefaultMock(methodCallExpression1);
-
-                    DeclaredMock existingMock = mocks.get(mockMethodTarget.getMethodHashKey());
-                    if (existingMock == null) {
-                        mocks.put(mockMethodTarget.getMethodHashKey(), declaredMock);
-                    } else {
-                        existingMock.getThenParameter().addAll(declaredMock.getThenParameter());
-                    }
-
-
-                }
-
-                Collection<DeclaredMock> values = mocks.values();
-
-                for (DeclaredMock value : values) {
-                    atomicRecordService.saveMockDefinition(value);
-                    mockCount++;
-                }
-
-
-            }
-
-            InsidiousNotification.notifyMessage("Saved "+ selectedCandidates.size() +" replay test and " + mockCount + " mock definitions",
-                    NotificationType.INFORMATION);
-
-
-            if (storedCandidate.getCandidateId() == null) {
-                // new test case
-                storedCandidate.setName(
-                        "test " + storedCandidate.getMethod().getName() + " returns expected value when");
-                storedCandidate.setDescription("assert that the response value matches expected value");
-            }
-            try {
-                saveFormReference = new SaveForm(storedCandidate, new CandidateLifeListener() {
-                    @Override
-                    public void executeCandidate(List<StoredCandidate> metadata, ClassUnderTest classUnderTest, ReplayAllExecutionContext context, AgentCommandResponseListener<TestCandidateMetadata, String> stringAgentCommandResponseListener) {
-
-                    }
-
-                    @Override
-                    public void displayResponse(Component responseComponent, boolean isExceptionFlow) {
-
-                    }
-
-                    @Override
-                    public void onSaved(StoredCandidate storedCandidate) {
-                        for (TestCandidateMetadata testCandidate : selectedCandidates) {
-                            MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
-                                    new JavaMethodAdapter(ClassTypeUtils.getPsiMethod(testCandidate.getMainMethod(),
-                                            StompComponent.this.insidiousService.getProject())));
-                            StoredCandidate candidate = atomicRecordService.getStoredCandidateFor(methodUnderTest,
-                                    testCandidate);
-                            if (candidate.getCandidateId() == null) {
-                                candidate.setCandidateId(UUID.randomUUID().toString());
-                            }
-                            candidate.setTestAssertions(storedCandidate.getTestAssertions());
-                            simpleDateFormat = new SimpleDateFormat();
-                            if (candidate.getName() == null) {
-                                candidate.setName("saved on " + simpleDateFormat.format(new Date()));
-                            }
-                            atomicRecordService.saveCandidate(methodUnderTest, candidate);
-
-                        }
-
-                        insidiousService.hideCandidateSaveForm(saveFormReference);
-                        saveFormReference = null;
-
-
-                    }
-
-                    @Override
-                    public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
-
-                    }
-
-                    @Override
-                    public void onDeleteRequest(StoredCandidate storedCandidate) {
-
-                    }
-
-                    @Override
-                    public void onDeleted(StoredCandidate storedCandidate) {
-
-                    }
-
-                    @Override
-                    public void onUpdated(StoredCandidate storedCandidate) {
-
-                    }
-
-                    @Override
-                    public void onUpdateRequest(StoredCandidate storedCandidate) {
-
-                    }
-
-                    @Override
-                    public void onGenerateJunitTestCaseRequest(StoredCandidate storedCandidate) {
-
-                    }
-
-                    @Override
-                    public void onCandidateSelected(StoredCandidate testCandidateMetadata) {
-
-                    }
-
-                    @Override
-                    public boolean canGenerateUnitCase(StoredCandidate candidate) {
-                        return false;
-                    }
-
-                    @Override
-                    public void onCancel() {
-                        insidiousService.hideCandidateSaveForm(saveFormReference);
-                        saveFormReference = null;
-                    }
-
-                    @Override
-                    public Project getProject() {
-                        return insidiousService.getProject();
-                    }
-                });
-            } catch (JsonProcessingException ex) {
-                throw new RuntimeException(ex);
-            }
-
-            insidiousService.showCandidateSaveForm(saveFormReference);
+            ApplicationManager.getApplication().invokeLater(this::saveSelected);
         });
 
 
@@ -464,8 +237,10 @@ public class StompComponent implements
             public void mouseClicked(MouseEvent e) {
 
                 StompFilter stompFilter = new StompFilter(filterModel);
+                JComponent component = stompFilter.getComponent();
+                component.setMaximumSize(new Dimension(500, 800));
                 ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
-                        .createComponentPopupBuilder(stompFilter.getComponent(), null);
+                        .createComponentPopupBuilder(component, null);
 
                 gutterMethodComponentPopup
                         .setProject(insidiousService.getProject())
@@ -477,8 +252,8 @@ public class StompComponent implements
                         .setCancelOnOtherWindowOpen(true)
                         .setCancelKeyEnabled(true)
                         .setBelongsToGlobalPopupStack(false)
-                        .setTitle("Filter")
-                        .setTitleIcon(new ActiveIcon(UIUtils.FILTER_LINE))
+                        .setTitle("Unlogged Preferences")
+                        .setTitleIcon(new ActiveIcon(UIUtils.UNLOGGED_ICON_DARK))
                         .createPopup()
                         .show(new RelativePoint(e));
 
@@ -551,6 +326,249 @@ public class StompComponent implements
         replayButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         updateFilterLabel();
+    }
+
+    private void saveSelected() {
+        if (saveFormReference != null) {
+            insidiousService.hideCandidateSaveForm(saveFormReference);
+            saveFormReference = null;
+        }
+        AtomicRecordService atomicRecordService = insidiousService.getProject()
+                .getService(AtomicRecordService.class);
+        StoredCandidate storedCandidate = new StoredCandidate(selectedCandidates.get(0));
+
+        int mockCount = 0;
+        for (TestCandidateMetadata testCandidate : selectedCandidates) {
+            MethodUnderTest methodUnderTest = null;
+            methodUnderTest = ApplicationManager.getApplication().runReadAction(
+                    (Computable<MethodUnderTest>) () -> MethodUnderTest.fromMethodAdapter(
+                            new JavaMethodAdapter(
+                                    ClassTypeUtils.getPsiMethod(testCandidate.getMainMethod(),
+                                            insidiousService.getProject()))));
+            if (methodUnderTest == null) {
+                logger.warn("Failed to resolve target method for test candidate: " + testCandidate);
+                continue;
+            }
+
+            TestCandidateMetadata loadedTestCandidate = insidiousService.getTestCandidateById(
+                    testCandidate.getEntryProbeIndex(), true);
+
+            StoredCandidate candidate = atomicRecordService
+                    .getStoredCandidateFor(methodUnderTest, loadedTestCandidate);
+            if (candidate.getCandidateId() == null) {
+                candidate.setCandidateId(UUID.randomUUID().toString());
+            }
+            candidate.setName("saved on " + simpleDateFormat.format(new Date()));
+            atomicRecordService.saveCandidate(methodUnderTest, candidate);
+
+            PsiMethod targetMethod = ClassTypeUtils.getPsiMethod(loadedTestCandidate.getMainMethod(),
+                    insidiousService.getProject());
+
+            List<PsiMethodCallExpression> allCallExpressions = getAllCallExpressions(targetMethod);
+
+
+            Map<String, List<PsiMethodCallExpression>> expressionsBySignatureMap = allCallExpressions.stream()
+                    .collect(Collectors.groupingBy(e1 -> {
+                        PsiMethod method = e1.resolveMethod();
+                        return MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(method)).getMethodHashKey();
+                    }));
+
+
+            Map<String, DeclaredMock> mocks = new HashMap<>();
+
+            List<MethodCallExpression> callsList = loadedTestCandidate.getCallsList();
+            List<MethodCallExpression> callListCopy = new ArrayList<>(callsList);
+            while (callListCopy.size() > 0) {
+                MethodCallExpression methodCallExpression = callListCopy.remove(0);
+
+                PsiMethod psiMethod = ClassTypeUtils.getPsiMethod(methodCallExpression,
+                        insidiousService.getProject());
+                if (psiMethod == null) {
+                    logger.warn("Failed to resolve method: " + methodCallExpression + ", call will not be mocked");
+                    continue;
+                }
+                MethodUnderTest mockMethodTarget = MethodUnderTest.fromMethodAdapter(
+                        new JavaMethodAdapter(psiMethod));
+
+                List<PsiMethodCallExpression> expressionsBySignature = expressionsBySignatureMap.get(
+                        mockMethodTarget.getMethodHashKey());
+
+                PsiMethodCallExpression methodCallExpression1 = expressionsBySignature.get(0);
+//                    methodCallExpression1.getMethodExpression()
+
+                PsiReferenceExpression methodExpression = methodCallExpression1.getMethodExpression();
+                PsiExpression qualifierExpression1 = methodExpression.getQualifierExpression();
+                if (!(qualifierExpression1 instanceof PsiReferenceExpression)) {
+                    // what is this ? TODO: add support for chain mocking
+                    continue;
+                }
+                PsiReferenceExpression qualifierExpression = (PsiReferenceExpression) qualifierExpression1;
+                if (qualifierExpression == null) {
+                    // call to another method in the same class :)
+                    // should never happen
+                    continue;
+                }
+                PsiElement qualifierField = qualifierExpression.resolve();
+                if (!(qualifierField instanceof PsiField)) {
+                    // call is not on a field
+                    continue;
+                }
+                DeclaredMock declaredMock = ClassUtils.createDefaultMock(methodCallExpression1);
+
+                DeclaredMock existingMock = mocks.get(mockMethodTarget.getMethodHashKey());
+                if (existingMock == null) {
+                    mocks.put(mockMethodTarget.getMethodHashKey(), declaredMock);
+                } else {
+                    existingMock.getThenParameter().addAll(declaredMock.getThenParameter());
+                }
+
+
+            }
+
+            Collection<DeclaredMock> values = mocks.values();
+
+            for (DeclaredMock value : values) {
+                atomicRecordService.saveMockDefinition(value);
+                mockCount++;
+            }
+
+
+        }
+
+        InsidiousNotification.notifyMessage(
+                "Saved " + selectedCandidates.size() + " replay test and " + mockCount + " mock definitions",
+                NotificationType.INFORMATION);
+
+
+        if (storedCandidate.getCandidateId() == null) {
+            // new test case
+            storedCandidate.setName(
+                    "test " + storedCandidate.getMethod().getName() + " returns expected value when");
+            storedCandidate.setDescription("assert that the response value matches expected value");
+        }
+        try {
+            saveFormReference = new SaveForm(storedCandidate, new CandidateLifeListener() {
+                @Override
+                public void executeCandidate(List<StoredCandidate> metadata, ClassUnderTest classUnderTest, ReplayAllExecutionContext context, AgentCommandResponseListener<TestCandidateMetadata, String> stringAgentCommandResponseListener) {
+
+                }
+
+                @Override
+                public void displayResponse(Component responseComponent, boolean isExceptionFlow) {
+
+                }
+
+                @Override
+                public void onSaved(StoredCandidate storedCandidate) {
+                    for (TestCandidateMetadata testCandidate : selectedCandidates) {
+                        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
+                                new JavaMethodAdapter(ClassTypeUtils.getPsiMethod(testCandidate.getMainMethod(),
+                                        StompComponent.this.insidiousService.getProject())));
+                        StoredCandidate candidate = atomicRecordService.getStoredCandidateFor(methodUnderTest,
+                                testCandidate);
+                        if (candidate.getCandidateId() == null) {
+                            candidate.setCandidateId(UUID.randomUUID().toString());
+                        }
+                        candidate.setTestAssertions(storedCandidate.getTestAssertions());
+                        simpleDateFormat = new SimpleDateFormat();
+                        if (candidate.getName() == null) {
+                            candidate.setName("saved on " + simpleDateFormat.format(new Date()));
+                        }
+                        atomicRecordService.saveCandidate(methodUnderTest, candidate);
+
+                    }
+
+                    insidiousService.hideCandidateSaveForm(saveFormReference);
+                    saveFormReference = null;
+
+
+                }
+
+                @Override
+                public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
+
+                }
+
+                @Override
+                public void onDeleteRequest(StoredCandidate storedCandidate) {
+
+                }
+
+                @Override
+                public void onDeleted(StoredCandidate storedCandidate) {
+
+                }
+
+                @Override
+                public void onUpdated(StoredCandidate storedCandidate) {
+
+                }
+
+                @Override
+                public void onUpdateRequest(StoredCandidate storedCandidate) {
+
+                }
+
+                @Override
+                public void onGenerateJunitTestCaseRequest(StoredCandidate storedCandidate) {
+
+                }
+
+                @Override
+                public void onCandidateSelected(StoredCandidate testCandidateMetadata) {
+
+                }
+
+                @Override
+                public boolean canGenerateUnitCase(StoredCandidate candidate) {
+                    return false;
+                }
+
+                @Override
+                public void onCancel() {
+                    insidiousService.hideCandidateSaveForm(saveFormReference);
+                    saveFormReference = null;
+                }
+
+                @Override
+                public Project getProject() {
+                    return insidiousService.getProject();
+                }
+            });
+        } catch (JsonProcessingException ex) {
+            throw new RuntimeException(ex);
+        }
+
+        insidiousService.showCandidateSaveForm(saveFormReference);
+    }
+
+    private List<PsiMethodCallExpression> getAllCallExpressions(PsiMethod targetMethod) {
+        @Nullable PsiClass containingClass = targetMethod.getContainingClass();
+        List<PsiMethodCallExpression> psiMethodCallExpressions = new ArrayList<>(PsiTreeUtil.findChildrenOfType(
+                targetMethod, PsiMethodCallExpression.class));
+
+        List<PsiMethodCallExpression> collectedCalls = new ArrayList<>();
+
+        for (PsiMethodCallExpression psiMethodCallExpression : psiMethodCallExpressions) {
+            PsiExpression qualifierExpression = psiMethodCallExpression.getMethodExpression()
+                    .getQualifierExpression();
+            if (qualifierExpression == null) {
+                // this call needs to be scanned
+                PsiMethod subTargetMethod = (PsiMethod) psiMethodCallExpression.getMethodExpression().resolve();
+                if (subTargetMethod.hasModifier(JvmModifier.STATIC)) {
+                    // static methods to be added as it is for now
+                    // but lets scan them also for down stream calls from their fields
+                    // for possible support of injection in future
+                    collectedCalls.add(psiMethodCallExpression);
+                }
+                List<PsiMethodCallExpression> subCalls = getAllCallExpressions(subTargetMethod);
+                collectedCalls.addAll(subCalls);
+            } else {
+                collectedCalls.add(psiMethodCallExpression);
+            }
+        }
+
+        return collectedCalls;
     }
 
     private void resetAndReload() {
