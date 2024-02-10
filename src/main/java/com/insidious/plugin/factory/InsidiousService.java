@@ -616,7 +616,7 @@ final public class InsidiousService implements
 
     public void showDirectInvoke(MethodAdapter method) {
         stompWindow.showDirectInvoke(method);
-
+        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
     }
 
     public void compile(ClassAdapter psiClass, CompileStatusNotification compileStatusNotification) {
@@ -1750,5 +1750,12 @@ final public class InsidiousService implements
 //
 //        }
 
+    }
+
+    public void showMockCreator(JavaMethodAdapter method, PsiMethodCallExpression callExpression) {
+        stompWindow.showNewDeclaredMockCreator(method, callExpression);
+        ApplicationManager.getApplication().invokeLater(() -> {
+            toolWindow.getContentManager().setSelectedContent(stompWindowContent, true, true);
+        });
     }
 }

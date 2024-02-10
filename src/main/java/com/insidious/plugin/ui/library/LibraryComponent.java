@@ -1,16 +1,24 @@
 package com.insidious.plugin.ui.library;
 
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.record.AtomicRecordService;
+import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
+import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
+import com.intellij.java.JavaBundle;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
+import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
@@ -49,6 +57,7 @@ public class LibraryComponent {
     private JPanel southPanel;
     private JRadioButton includeMocksCheckBox;
     private JRadioButton includeTestsCheckBox;
+    private MethodAdapter lastFocussedMethod;
 
     public LibraryComponent(Project project) {
         insidiousService = project.getService(InsidiousService.class);
@@ -170,6 +179,23 @@ public class LibraryComponent {
             @Override
             public void onDelete(DeclaredMock item) {
 
+                DialogWrapper dialogWrapper = new DialogWrapper(project) {
+                    {
+                        init();
+                        setTitle(JavaBundle.message("dialog.title.configure.annotations"));
+                    }
+
+                    @Override
+                    protected JComponent createCenterPanel() {
+                        final JPanel panel = new JPanel(new GridBagLayout());
+                        return panel;
+                    }
+
+                    @Override
+                    protected void doOKAction() {
+                        super.doOKAction();
+                    }
+                };
                 DialogBuilder builder = new DialogBuilder(project);
                 builder.addOkAction();
                 builder.addCancelAction();
@@ -524,4 +550,26 @@ public class LibraryComponent {
     }
 
 
+    public void showMockCreator(MethodUnderTest method, PsiMethodCallExpression callExpression) {
+        MockDefinitionEditor mockEditor = new MockDefinitionEditor(method, callExpression,
+                insidiousService.getProject(), new OnSaveListener() {
+            @Override
+            public void onSaveDeclaredMock(DeclaredMock declaredMock) {
+                atomicRecordService.saveMockDefinition(declaredMock);
+                InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
+                southPanel.removeAll();
+                scrollContainer.revalidate();
+                scrollContainer.repaint();
+            }
+        });
+        JComponent content = mockEditor.getComponent();
+        content.setMinimumSize(new Dimension(-1, 400));
+        content.setMaximumSize(new Dimension(-1, 400));
+        southPanel.add(content, BorderLayout.CENTER);
+
+    }
+
+    public void onMethodFocussed(MethodAdapter method) {
+        this.lastFocussedMethod = method;
+    }
 }

@@ -245,9 +245,6 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
             finalEditorPopup.showUnderneathOf(addNewMockButton);
         });
 
-        mockDefinitionEditor.setPopupHandle(editorPopup);
-
-
     }
 
     public JComponent getComponent() {

@@ -33,8 +33,6 @@ public class MockDefinitionEditor {
     private JPanel mainPanel;
     private JPanel namePanel;
     private JTextField nameTextField;
-    private JRadioButton passThruRadioButton;
-    private JRadioButton returnNullByDefaultRadioButton;
     private JPanel titlePanel;
     private JPanel nameAndSettingPanel;
     private JPanel whenThenParentPanel;
@@ -51,7 +49,7 @@ public class MockDefinitionEditor {
     private JPanel mockTypeParentPanel;
     private String returnDummyValue;
     private String methodReturnTypeName;
-    private JBPopup editorPopup;
+    private JBPopup yeditorPopup;
 
     public MockDefinitionEditor(
             MethodUnderTest methodUnderTest,
@@ -112,7 +110,6 @@ public class MockDefinitionEditor {
 
         saveButton.addActionListener(e -> {
             onSaveListener.onSaveDeclaredMock(declaredMock);
-            editorPopup.cancel();
         });
     }
 
@@ -171,9 +168,5 @@ public class MockDefinitionEditor {
 
     public JComponent getComponent() {
         return mainPanel;
-    }
-
-    public void setPopupHandle(JBPopup editorPopup) {
-        this.editorPopup = editorPopup;
     }
 }

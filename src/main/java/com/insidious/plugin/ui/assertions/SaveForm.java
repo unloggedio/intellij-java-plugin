@@ -130,7 +130,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
             }
         }, true);
 
-        JPanel ruleEditor = this.ruleEditor.getMainPanel();
+        JPanel ruleEditorPanel = ruleEditor.getMainPanel();
         // define topPanel
         JPanel topPanel = new JPanel();
         GridLayout topPanelLayout = new GridLayout(1, 2);
@@ -186,8 +186,8 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         mainPanel.setPreferredSize(new Dimension(-1,
                 (int) (screenSize.getHeight() - (0.3 * screenSize.getHeight()))));
         candidateExplorerTree.setSize(new Dimension(400, CandidateExplorerTreeHeight));
-        JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
-        treePanel.add(treeParent, BorderLayout.CENTER);
+//        JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
+//        treePanel.add(treeParent, BorderLayout.CENTER);
 
         // define the metadataPanel
         metadataForm = new SaveFormMetadataPanel(new MetadataViewPayload(storedCandidate.getName(),
@@ -203,7 +203,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         GridLayout assertionPanelLayout = new GridLayout(1, 1);
         assertionPanel.setLayout(assertionPanelLayout);
 
-        JScrollPane assertionScrollPanel = new JBScrollPane(ruleEditor);
+        JScrollPane assertionScrollPanel = new JBScrollPane(ruleEditorPanel);
         assertionPanel.add(assertionScrollPanel);
 
         // mock panel
@@ -378,8 +378,6 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
                     .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
                     .createPopup();
             editorPopup.showUnderneathOf(addMockButton);
-
-            mockDefinitionEditor.setPopupHandle(editorPopup);
         });
         return addMockButton;
     }

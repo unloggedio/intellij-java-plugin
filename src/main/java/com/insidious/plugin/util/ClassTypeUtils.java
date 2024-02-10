@@ -6,30 +6,37 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmType;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.InheritanceImplUtil;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.util.ArrayUtil;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ClassTypeUtils {
 
     private static final JavaParser javaParser = new JavaParser(new ParserConfiguration());
+    private static final Logger logger = LoggerUtil.getInstance(ClassTypeUtils.class);
 
     public static String upperInstanceName(String methodName) {
         return methodName.substring(0, 1)
@@ -412,8 +419,9 @@ public class ClassTypeUtils {
                     if (type instanceof PsiType) {
                         if (!((PsiType) type).getCanonicalText().contains(expectedArgument.getType())) {
 
-                            PsiClass expectedClassPsi = JavaPsiFacade.getInstance(project)
-                                    .findClass(expectedArgument.getType(), GlobalSearchScope.allScope(project));
+                            PsiClass expectedClassPsi = ApplicationManager.getApplication().runReadAction(
+                                    (Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
+                                            .findClass(expectedArgument.getType(), GlobalSearchScope.allScope(project)));
 
                             if (expectedClassPsi != null) {
                                 if (type instanceof PsiClassReferenceType) {
@@ -451,5 +459,138 @@ public class ClassTypeUtils {
 
         }
         return null;
+    }
+
+    // method call expressions are in the form
+    // <optional qualifier>.<method reference name>( < arguments list > )
+    public static boolean isNonStaticDependencyCall(PsiMethodCallExpression methodCall) {
+        final PsiExpression qualifier = methodCall.getMethodExpression().getQualifierExpression();
+        if (!(qualifier instanceof PsiReferenceExpression) ||
+                !(((PsiReferenceExpression) qualifier).resolve() instanceof PsiField)) {
+            return false;
+        }
+
+        PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCall, PsiClass.class);
+        if (parentClass == null) {
+            logger.warn("parent class is null [" + methodCall.getText() + " ]");
+            return false;
+        }
+        String expressionParentClass = parentClass.getQualifiedName();
+
+        PsiClass fieldParentPsiClass = (PsiClass) ((PsiReferenceExpression) qualifier).resolve()
+                .getParent();
+        String fieldParentClass = fieldParentPsiClass.getQualifiedName();
+        if (!Objects.equals(fieldParentClass, expressionParentClass) &&
+                !IsImplementedBy(fieldParentPsiClass, parentClass)) {
+            // this field belongs to some other class
+            return false;
+        }
+
+        // not mocking static calls for now
+        PsiMethod targetMethod = (PsiMethod) methodCall.getMethodExpression().getReference().resolve();
+        if (targetMethod == null) {
+            logger.warn("Failed to resolve target method call: " + methodCall.getText());
+            return false;
+        }
+        PsiModifierList modifierList = targetMethod.getModifierList();
+        if (modifierList.hasModifierProperty(PsiModifier.STATIC)) {
+            return false;
+        }
+
+        return true;
+
+    }
+
+    // method call expressions are in the form
+    // <optional qualifier>.<method reference name>( < arguments list > )
+    public static boolean isNonStaticDependencyCall(PsiMethod targetMethod) {
+
+        // not mocking static calls for now
+        if (targetMethod == null) {
+            logger.warn("Failed to resolve target method call: " + targetMethod.getText());
+            return false;
+        }
+        PsiModifierList modifierList = targetMethod.getModifierList();
+        if (modifierList.hasModifierProperty(PsiModifier.STATIC)) {
+            return false;
+        }
+
+        return true;
+
+    }
+
+    public static boolean isNonStaticDependencyCall(PsiMethodReferenceExpression methodCall) {
+        final PsiExpression qualifier = methodCall.getQualifierExpression();
+        if (!(qualifier instanceof PsiReferenceExpression) ||
+                !(((PsiReferenceExpression) qualifier).resolve() instanceof PsiField)) {
+            return false;
+        }
+
+        PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCall, PsiClass.class);
+        if (parentClass == null) {
+            logger.warn("parent class is null [" + methodCall.getText() + " ]");
+            return false;
+        }
+        String expressionParentClass = parentClass.getQualifiedName();
+
+        PsiClass fieldParentPsiClass = (PsiClass) ((PsiReferenceExpression) qualifier).resolve()
+                .getParent();
+        String fieldParentClass = fieldParentPsiClass.getQualifiedName();
+        if (!Objects.equals(fieldParentClass, expressionParentClass) &&
+                !IsImplementedBy(fieldParentPsiClass, parentClass)) {
+            // this field belongs to some other class
+            return false;
+        }
+
+        // not mocking static calls for now
+        PsiMethod targetMethod = (PsiMethod) methodCall.getReference().resolve();
+        if (targetMethod == null) {
+            logger.warn("Failed to resolve target method call: " + methodCall.getText());
+            return false;
+        }
+        PsiModifierList modifierList = targetMethod.getModifierList();
+        if (modifierList.hasModifierProperty(PsiModifier.STATIC)) {
+            return false;
+        }
+
+        return true;
+
+    }
+
+    private static boolean IsImplementedBy(PsiClass topClass, PsiClass bottomClass) {
+        if (bottomClass == null || bottomClass.getQualifiedName() == null) {
+            return false;
+        }
+        if (bottomClass.getQualifiedName().equals(topClass.getQualifiedName())) {
+            return true;
+        }
+        if (bottomClass.getImplementsList() != null) {
+            for (PsiClassType referencedType : bottomClass.getImplementsList().getReferencedTypes()) {
+                if (IsImplementedBy(topClass, referencedType.resolve())) {
+                    return true;
+                }
+            }
+        }
+
+        return IsImplementedBy(topClass, bottomClass.getSuperClass());
+    }
+
+    public static <T extends PsiElement> T[] getChildrenOfTypeRecursive(PsiElement element, Class<T> aClass) {
+        if (element == null) return null;
+        List<T> result = getChildrenOfTypeAsListRecursive(element, aClass);
+        return result.isEmpty() ? null : ArrayUtil.toObjectArray(result, aClass);
+    }
+
+    public static <T extends PsiElement> List<T> getChildrenOfTypeAsListRecursive(PsiElement element, Class<? extends T> aClass) {
+        List<T> result = new ArrayList<>();
+        if (element != null) {
+            for (PsiElement child = element.getFirstChild(); child != null; child = child.getNextSibling()) {
+                if (aClass.isInstance(child)) {
+                    result.add(aClass.cast(child));
+                }
+                result.addAll(getChildrenOfTypeAsListRecursive(child, aClass));
+            }
+        }
+        return result;
     }
 }

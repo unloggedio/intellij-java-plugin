@@ -1,13 +1,15 @@
 package com.insidious.plugin.inlay;
 
+import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.MethodCallAggregate;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
-import com.insidious.plugin.ui.highlighter.MethodMockGutterNavigationHandler;
-import com.insidious.plugin.ui.highlighter.MockMethodLineHighlighter;
+import com.insidious.plugin.ui.highlighter.MockItemClickListener;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.hints.FactoryInlayHintsCollector;
 import com.intellij.codeInsight.hints.InlayHintsSink;
 import com.intellij.codeInsight.hints.presentation.*;
@@ -18,15 +20,22 @@ import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.editor.ex.util.EditorUtil;
 import com.intellij.openapi.editor.markup.EffectType;
 import com.intellij.openapi.editor.markup.TextAttributes;
+import com.intellij.openapi.ui.popup.ActiveIcon;
+import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiMethodImpl;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.JBColor;
+import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.containers.JBIterable;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
 import java.awt.*;
 import java.util.List;
 import java.util.*;
@@ -205,17 +214,17 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         int savedMockCount = 0;
         Map<PsiMethodCallExpression, List<DeclaredMock>> declaredMockMap = new HashMap<>();
 
-        if (MockMethodLineHighlighter.isNonStaticDependencyCall(methodCallExpression)) {
+        if (ClassTypeUtils.isNonStaticDependencyCall(methodCallExpression)) {
             mockableCalls.add(methodCallExpression);
         }
 
-        PsiMethodCallExpression[] allCalls = MethodMockGutterNavigationHandler.getChildrenOfTypeRecursive(
+        PsiMethodCallExpression[] allCalls = ClassTypeUtils.getChildrenOfTypeRecursive(
                 methodCallExpression,
                 PsiMethodCallExpression.class);
 
         if (allCalls != null) {
             for (PsiMethodCallExpression callExpression : allCalls) {
-                if (MockMethodLineHighlighter.isNonStaticDependencyCall(callExpression)) {
+                if (ClassTypeUtils.isNonStaticDependencyCall(callExpression)) {
                     mockableCalls.add(callExpression);
                 }
             }
@@ -321,6 +330,64 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
         text = new OnClickPresentation(text, (mouseEvent, point) -> {
             insidiousService.onMethodCallExpressionInlayClick(mockableCallExpressions, mouseEvent, point);
+            if (savedMockCount == 0) {
+                if (mockableCallExpressions.size() > 1) {
+
+                    JPanel gutterMethodPanel = new JPanel();
+                    gutterMethodPanel.setLayout(new GridLayout(0, 1));
+                    gutterMethodPanel.setMinimumSize(new Dimension(400, 300));
+
+                    for (PsiMethodCallExpression methodCallExpression : mockableCallExpressions) {
+                        PsiReferenceExpression methodExpression = methodCallExpression.getMethodExpression();
+                        String methodCallText = methodExpression.getText();
+                        JPanel methodItemPanel = new JPanel();
+                        methodItemPanel.setLayout(new BorderLayout());
+
+                        methodItemPanel.add(new JLabel(methodCallText), BorderLayout.CENTER);
+                        JLabel iconLabel = new JLabel(UIUtils.CHECK_GREEN_SMALL);
+                        Border border = iconLabel.getBorder();
+                        CompoundBorder borderWithMargin;
+                        borderWithMargin = BorderFactory.createCompoundBorder(border,
+                                BorderFactory.createEmptyBorder(0, 5, 0, 5));
+                        iconLabel.setBorder(borderWithMargin);
+                        methodItemPanel.add(iconLabel, BorderLayout.EAST);
+
+                        Border currentBorder = methodItemPanel.getBorder();
+                        borderWithMargin = BorderFactory.createCompoundBorder(currentBorder,
+                                BorderFactory.createEmptyBorder(5, 10, 5, 5));
+                        methodItemPanel.setBorder(borderWithMargin);
+                        methodItemPanel.addMouseListener(new MockItemClickListener(methodItemPanel, methodCallExpression));
+
+                        gutterMethodPanel.add(methodItemPanel);
+
+                    }
+
+
+                    ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+                            .createComponentPopupBuilder(gutterMethodPanel, null);
+
+                    gutterMethodComponentPopup
+                            .setProject(insidiousService.getProject())
+                            .setShowBorder(true)
+                            .setShowShadow(true)
+                            .setFocusable(true)
+                            .setRequestFocus(true)
+                            .setCancelOnClickOutside(true)
+                            .setCancelOnOtherWindowOpen(true)
+                            .setCancelKeyEnabled(true)
+                            .setBelongsToGlobalPopupStack(false)
+                            .setTitle("Select Call Expression")
+                            .setTitleIcon(new ActiveIcon(UIUtils.GHOST_MOCK))
+                            .createPopup()
+                            .show(new RelativePoint(mouseEvent));
+
+                } else {
+                    PsiMethodCallExpression methodCallExpression = mockableCallExpressions.get(0);
+                    PsiMethod psiMethod = (PsiMethod) methodCallExpression.getMethodExpression()
+                            .resolve();
+                    insidiousService.showMockCreator(new JavaMethodAdapter(psiMethod), methodCallExpression);
+                }
+            }
         });
 
         text = factory.withTooltip("<html>Click to browse mocks\n\nMultiline<br /> <b>bold</b></html>", text);

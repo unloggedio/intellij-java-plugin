@@ -30,6 +30,8 @@ import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
+import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
+import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
@@ -88,6 +90,7 @@ public class StompComponent implements
     private final Map<TestCandidateMetadata, Component> candidateMetadataStompItemMap = new HashMap<>();
     private final InsidiousConfigurationState configurationState;
     private final FilterModel filterModel;
+    private final AtomicRecordService atomicRecordService;
     BlockingQueue<TestCandidateMetadata> incomingQueue = new ArrayBlockingQueue<>(100);
     private JPanel mainPanel;
     private JPanel northPanelContainer;
@@ -117,8 +120,9 @@ public class StompComponent implements
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
-        configurationState = insidiousService.getProject()
-                .getService(InsidiousConfigurationState.class);
+        Project project = insidiousService.getProject();
+        atomicRecordService = project.getService(AtomicRecordService.class);
+        configurationState = project.getService(InsidiousConfigurationState.class);
 
         filterAppliedLabel.setVisible(false);
         filterModel = configurationState.getFilterModel();
@@ -284,7 +288,7 @@ public class StompComponent implements
                         .createComponentPopupBuilder(component, null);
 
                 gutterMethodComponentPopup
-                        .setProject(insidiousService.getProject())
+                        .setProject(project)
                         .setShowBorder(true)
                         .setShowShadow(true)
                         .setFocusable(true)
@@ -343,7 +347,7 @@ public class StompComponent implements
         };
 
         dateFormat = new SimpleDateFormat("HH:mm:ss");
-        stompStatusComponent = new StompStatusComponent(insidiousService.getProject()
+        stompStatusComponent = new StompStatusComponent(project
                 .getService(InsidiousConfigurationState.class).getFilterModel());
         mainPanel.add(stompStatusComponent.getComponent(), BorderLayout.SOUTH);
 
@@ -596,8 +600,7 @@ public class StompComponent implements
         } catch (JsonProcessingException ex) {
             throw new RuntimeException(ex);
         }
-
-        insidiousService.showCandidateSaveForm(saveFormReference);
+        mainPanel.add(saveFormReference.getComponent(), BorderLayout.CENTER);
     }
 
     private List<PsiMethodCallExpression> getAllCallExpressions(PsiMethod targetMethod) {
@@ -1379,10 +1382,7 @@ public class StompComponent implements
             JComponent content = directInvokeComponent.getContent();
             content.setMinimumSize(new Dimension(-1, 400));
             content.setMaximumSize(new Dimension(-1, 400));
-//            content.setPreferredSize(new Dimension(-1, 600));
             southPanel.add(content, BorderLayout.CENTER);
-//            mainPanel.revalidate();
-//            mainPanel.repaint();
         }
         try {
             directInvokeComponent.renderForMethod(method, null);
@@ -1392,6 +1392,39 @@ public class StompComponent implements
 
         historyStreamScrollPanel.revalidate();
         historyStreamScrollPanel.repaint();
+    }
+
+    public void showNewDeclaredMockCreator(JavaMethodAdapter javaMethodAdapter,
+                                           PsiMethodCallExpression psiMethodCallExpression) {
+        onMethodFocussed(javaMethodAdapter);
+        MockDefinitionEditor mockEditor = new MockDefinitionEditor(MethodUnderTest.fromMethodAdapter(javaMethodAdapter),
+                psiMethodCallExpression, insidiousService.getProject(), declaredMock -> {
+            atomicRecordService.saveMockDefinition(declaredMock);
+            InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
+            southPanel.removeAll();
+            mainPanel.revalidate();
+            mainPanel.repaint();
+        });
+        JComponent content = mockEditor.getComponent();
+        content.setMinimumSize(new Dimension(-1, 400));
+        content.setMaximumSize(new Dimension(-1, 400));
+        southPanel.add(content, BorderLayout.CENTER);
+    }
+
+    public void showNewTestCandidateCreator(MethodUnderTest methodUnderTest,
+                                            PsiMethodCallExpression psiMethodCallExpression) {
+        MockDefinitionEditor mockEditor = new MockDefinitionEditor(methodUnderTest, psiMethodCallExpression,
+                insidiousService.getProject(), new OnSaveListener() {
+            @Override
+            public void onSaveDeclaredMock(DeclaredMock declaredMock) {
+                atomicRecordService.saveMockDefinition(declaredMock);
+                InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
+            }
+        });
+        JComponent content = mockEditor.getComponent();
+        content.setMinimumSize(new Dimension(-1, 400));
+        content.setMaximumSize(new Dimension(-1, 400));
+        southPanel.add(content, BorderLayout.CENTER);
     }
 
     void makeSpace(int position) {
@@ -1555,4 +1588,5 @@ public class StompComponent implements
             resetAndReload();
         }
     }
+
 }
