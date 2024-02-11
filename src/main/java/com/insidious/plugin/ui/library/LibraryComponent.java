@@ -128,11 +128,13 @@ public class LibraryComponent {
                         for (DeclaredMock selectedMock : selectedMocks) {
                             atomicRecordService.deleteMockDefinition(selectedMock);
                         }
-                        selectedMocks.clear();
+                        clearSelection();
                         InsidiousNotification.notifyMessage(
                                 "Deleted " + selectedCount + " mock definition" + (selectedCount == 1 ? "s" : ""),
                                 NotificationType.INFORMATION);
+                        builder.getDialogWrapper().close(0);
                         builder.dispose();
+                        reloadItems();
 
                     });
                     builder.showModal(true);

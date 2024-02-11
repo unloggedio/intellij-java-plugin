@@ -58,7 +58,6 @@ import com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl;
 import com.intellij.psi.impl.source.tree.java.PsiThisExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.psi.util.TypeConversionUtil;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.util.FileContentUtil;
 import org.json.JSONObject;
@@ -77,7 +76,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class TestCaseDesignerLite {
-    private static final Logger logger = LoggerUtil.getInstance(TestCaseDesigner.class);
+    private static final Logger logger = LoggerUtil.getInstance(TestCaseDesignerLite.class);
+    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     Random random = new Random(new Date().getTime());
     private JPanel mainPanel;
     private JPanel configurationPanel;
@@ -95,25 +95,24 @@ public class TestCaseDesignerLite {
     private JPanel mockitoOptions;
     private JPanel testFrameWorkPanel;
     private JLabel testFrameworkLabel;
-    private JComboBox testFrameworkComboBox;
+    private JComboBox<TestFramework> testFrameworkComboBox;
     private JPanel mockFrameworkPanel;
     private JLabel mockFrameworkLabel;
-    private JComboBox mockFrameworkComboBox;
+    private JComboBox<MockFramework> mockFrameworkComboBox;
     private JPanel jsonFrameworkChoicePanel;
-    private JComboBox jsonFrameworkComboBox;
+    private JComboBox<JsonFramework> jsonFrameworkComboBox;
     private JPanel resourceEmbedModeChoicePanel;
-    private JComboBox resourceEmberModeComboBox;
+    private JComboBox<ResourceEmbedMode> resourceEmberModeComboBox;
     private JPanel testOptions;
-    private LightVirtualFile testCaseScriptFile;
-    private MethodAdapter methodAdapter;
+    private final LightVirtualFile testCaseScriptFile;
+    private final MethodAdapter methodAdapter;
     private TestCaseGenerationConfiguration currentTestGenerationConfiguration;
     private TestCaseUnit testCaseScript;
     private List<String> methodChecked;
     private Map<String, Parameter> fieldMapByName;
     private Editor editorReference;
     private FileEditor fileEditorReference;
-    private Project project;
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final Project project;
 
     public TestCaseDesignerLite(MethodAdapter currentMethod,
                                 TestCaseGenerationConfiguration configuration,
@@ -738,7 +737,8 @@ public class TestCaseDesignerLite {
                             }
                         }
 
-                        PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(psiMethodCallExpression);
+                        PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(
+                                psiMethodCallExpression);
                         PsiType fieldType = ClassTypeUtils.substituteClassRecursively(callOnField.getType(),
                                 classSubstitutor);
 

@@ -613,11 +613,7 @@ public class StompFilter {
         });
 
         followEditorCheckBox.addActionListener(e -> {
-            if (followEditorCheckBox.isSelected()) {
-                filterModel.setFollowEditor(true);
-            } else {
-                filterModel.setFollowEditor(true);
-            }
+            filterModel.setFollowEditor(followEditorCheckBox.isSelected());
         });
 
 

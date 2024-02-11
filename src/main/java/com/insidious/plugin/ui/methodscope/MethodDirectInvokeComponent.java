@@ -7,7 +7,9 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
-import com.insidious.plugin.agent.*;
+import com.insidious.plugin.agent.AgentCommandRequest;
+import com.insidious.plugin.agent.AgentCommandRequestType;
+import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.CandidateSearchQuery;
@@ -38,7 +40,6 @@ import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.Border;
-import javax.swing.border.TitledBorder;
 import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.*;
@@ -61,15 +62,16 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JButton executeButton;
     private JButton modifyArgumentsButton;
     private JLabel closeButton;
-//    private JLabel editValueLabel;
+    //    private JLabel editValueLabel;
     private JButton createBoilerplateButton;
     private JLabel methodNameLabel;
-    private JLabel classNameLabel;
+    private JPanel directInvokeContainerPanel;
+    private JPanel junitBoilerplaceContainerPanel;
     private MethodAdapter methodElement;
     private Tree argumentValueTree = null;
     private TreeModel argumentsValueTreeNode;
     private JsonNode argumentsValueJsonNode;
-    private JBScrollPane parameterScrollPanel;
+    private JBScrollPane parameterScrollPanel = null;
     private DefaultTreeCellEditor cellEditor;
 
 
@@ -235,9 +237,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
         createBoilerplateButton.setVisible(true);
         ClassAdapter containingClass = methodElement.getContainingClass();
 
-        methodNameLabel.setText(methodName);
-        classNameLabel.setText(ApplicationManager.getApplication().runReadAction(
-                (Computable<String>) containingClass::getName));
+        String className = ApplicationManager.getApplication().runReadAction(
+                (Computable<String>) containingClass::getName);
+
+        methodNameLabel.setText(className + "." + methodName);
         modifyArgumentsButton.setVisible(false);
         executeButton.setText("Execute");
 
@@ -411,18 +414,13 @@ public class MethodDirectInvokeComponent implements ActionListener {
             methodParameterContainer.add(noParametersLabel, BorderLayout.CENTER);
         }
 
-//        Spacer spacer = new Spacer();
-//        methodParameterContainer.add(spacer);
-        methodParameterScrollContainer.removeAll();
+        if (parameterScrollPanel != null) {
+            methodParameterScrollContainer.remove(parameterScrollPanel);
+        }
 
         parameterScrollPanel = new JBScrollPane(methodParameterContainer);
-//        parameterScrollPanel.setMinimumSize(new Dimension(-1, 100));
-//        parameterScrollPanel.setPreferredSize(new Dimension(-1, 150));
-//        parameterScrollPanel.setMaximumSize(new Dimension(-1, 500));
         parameterScrollPanel.setBorder(BorderFactory.createEmptyBorder());
 
-
-//        methodParameterScrollContainer.setMinimumSize(new Dimension(-1, Math.min(methodParameters.length * 100, 100)));
         methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
 
 
@@ -530,7 +528,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                         ResponseType responseType = agentCommandResponse.getResponseType();
                         String responseMessage = agentCommandResponse.getMessage() == null ? "" :
                                 agentCommandResponse.getMessage() + "\n";
-    //                        TitledBorder panelTitledBoarder = (TitledBorder) scrollerContainer.getBorder();
+                        //                        TitledBorder panelTitledBoarder = (TitledBorder) scrollerContainer.getBorder();
                         String responseObjectClassName = agentCommandResponse.getResponseClassName();
                         Object methodReturnValue = agentCommandResponse.getMethodReturnValue();
                         modifyArgumentsButton.setVisible(true);
@@ -630,7 +628,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
                                 returnValueTextArea = EditorFactory.getInstance().createEditor(document);
                                 parameterScrollPanel.setViewportView(returnValueTextArea.getComponent());
                             } else {
-                                String editorText = ExceptionUtils.prettyPrintException(agentCommandResponse.getMessage());
+                                String editorText = ExceptionUtils.prettyPrintException(
+                                        agentCommandResponse.getMessage());
                                 Document document = EditorFactory.getInstance().createDocument(editorText);
                                 returnValueTextArea = EditorFactory.getInstance().createEditor(document);
                                 parameterScrollPanel.setViewportView(returnValueTextArea.getComponent());

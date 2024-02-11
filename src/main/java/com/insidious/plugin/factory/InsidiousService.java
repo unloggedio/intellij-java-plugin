@@ -46,7 +46,6 @@ import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
-import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
@@ -80,7 +79,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
-import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
@@ -143,7 +141,6 @@ final public class InsidiousService implements
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
     private TestCaseService testCaseService;
-    private TestCaseDesigner testCaseDesignerWindow;
     private MethodDirectInvokeComponent methodDirectInvokeComponent;
     private CoverageReportComponent coverageReportComponent;
     private StompComponent stompWindow;
@@ -476,12 +473,12 @@ final public class InsidiousService implements
         ContentManager contentManager = toolWindow.getContentManager();
 
         // test case designer form
-        testCaseDesignerWindow = new TestCaseDesigner();
-        Disposer.register(this, testCaseDesignerWindow);
-        testDesignerContent =
-                contentFactory.createContent(testCaseDesignerWindow.getContent(), "JUnit Test Preview", false);
-        testDesignerContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        testDesignerContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
+//        testCaseDesignerWindow = new TestCaseDesigner();
+//        Disposer.register(this, testCaseDesignerWindow);
+//        testDesignerContent =
+//                contentFactory.createContent(testCaseDesignerWindow.getContent(), "JUnit Test Preview", false);
+//        testDesignerContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+//        testDesignerContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
 //        contentManager.addContent(testDesignerContent);
 
         onboardingWindow = new UnloggedSDKOnboarding(this);
@@ -968,6 +965,9 @@ final public class InsidiousService implements
 
 
                 stompWindow = new StompComponent(this);
+                if (isAgentConnected()) {
+                    stompWindow.setConnectedAndWaiting();
+                }
                 threadPoolExecutor.submit(stompWindow);
 
                 stompWindowContent =
@@ -1253,21 +1253,17 @@ final public class InsidiousService implements
         }
         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
         TestCaseDesignerLite designerLite = new TestCaseDesignerLite(methodAdapter,
-                configuration,
-                generateOnlyBoilerPlate,
-                project);
+                configuration, generateOnlyBoilerPlate, project);
+
         fileEditorManager.openFile(designerLite.getLightVirtualFile(), true);
         FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
-        if (selectedEditor == null) {
-//            selectedEditor = InsidiousUtils.focusProbeLocationInEditor(0,
-//                    methodAdapter.getContainingClass().getQualifiedName(), project);
-//            if (selectedEditor == null) {
-            InsidiousNotification.notifyMessage(
-                    "No editor tab is open, please open an editor tab",
-                    NotificationType.ERROR
-            );
-//                return;
-        }
+
+        // this shouldn't be null since we just asked the ide to create a new editor ?
+//        if (selectedEditor == null) {
+//            InsidiousNotification.notifyMessage(
+//                    "No editor tab is open, please open an editor tab",
+//                    NotificationType.ERROR
+//            );
 //        }
         fileEditorManager.addBottomComponent(selectedEditor, designerLite.getMainPanel());
         designerLite.setEditorReferences(fileEditorManager.getSelectedTextEditor(), selectedEditor);

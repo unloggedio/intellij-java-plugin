@@ -49,8 +49,13 @@ public class ClassTypeUtils {
         }
         PsiType fieldTypeSubstitutor = classSubstitutor.substitute(typeToBeSubstituted);
         if (fieldTypeSubstitutor.getCanonicalText().equals(typeToBeSubstituted.getCanonicalText())) {
-            PsiClassType[] checkSuperTypes = ((PsiClassReferenceType) typeToBeSubstituted).resolve()
-                    .getExtendsListTypes();
+
+            if (!(typeToBeSubstituted instanceof PsiClassReferenceType)) {
+
+            }
+            PsiClassReferenceType typeToBeSubstituted1 = (PsiClassReferenceType) typeToBeSubstituted;
+
+            PsiClassType[] checkSuperTypes = typeToBeSubstituted1.resolve().getExtendsListTypes();
             for (PsiClassType checkSuperType : checkSuperTypes) {
                 PsiType possibleType = classSubstitutor.substitute(checkSuperType);
                 if (!possibleType.getCanonicalText().equals(typeToBeSubstituted.getCanonicalText())) {
@@ -386,10 +391,8 @@ public class ClassTypeUtils {
 
     public static PsiMethod getPsiMethod(MethodCallExpression methodCallExpression, Project project) {
         MethodCallExpression mainMethod = methodCallExpression;
-        PsiClass classPsiElement = JavaPsiFacade
-                .getInstance(project)
-                .findClass(mainMethod.getSubject().getType(),
-                        GlobalSearchScope.allScope(project));
+        PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(mainMethod.getSubject().getType(),
+                GlobalSearchScope.allScope(project));
 
         String methodName = mainMethod.getMethodName();
         boolean isLambda = false;
@@ -421,7 +424,8 @@ public class ClassTypeUtils {
 
                             PsiClass expectedClassPsi = ApplicationManager.getApplication().runReadAction(
                                     (Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
-                                            .findClass(expectedArgument.getType(), GlobalSearchScope.allScope(project)));
+                                            .findClass(expectedArgument.getType(),
+                                                    GlobalSearchScope.allScope(project)));
 
                             if (expectedClassPsi != null) {
                                 if (type instanceof PsiClassReferenceType) {

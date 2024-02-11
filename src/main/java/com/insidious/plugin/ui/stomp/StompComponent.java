@@ -261,7 +261,11 @@ public class StompComponent implements
         });
 
         saveReplayButton.addActionListener(e -> {
-            ApplicationManager.getApplication().invokeLater(this::saveSelected);
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                ApplicationManager.getApplication().runReadAction(() -> {
+                    saveSelected();
+                });
+            });
         });
 
 
@@ -1382,6 +1386,7 @@ public class StompComponent implements
             JComponent content = directInvokeComponent.getContent();
             content.setMinimumSize(new Dimension(-1, 400));
             content.setMaximumSize(new Dimension(-1, 400));
+            southPanel.removeAll();
             southPanel.add(content, BorderLayout.CENTER);
         }
         try {
@@ -1486,6 +1491,10 @@ public class StompComponent implements
         rowPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
         itemPanel.add(rowPanel, createGBCForProcessStartedComponent());
 
+        setConnected();
+    }
+
+    public void setConnected() {
         stompStatusComponent.setConnected();
     }
 

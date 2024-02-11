@@ -5,15 +5,16 @@ import com.insidious.plugin.mocking.ParameterMatcherType;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -45,6 +46,9 @@ public class WhenParameterInputPanel {
     private JLabel parameterNameTextField;
     private JLabel matcherValueTextField;
     private JLabel matcherTypeComboBox;
+    private JPanel valueContainer;
+    private JPanel typeContainer;
+    private JPanel nameContainer;
 
     public WhenParameterInputPanel(ParameterMatcher parameterMatcher, Project project) {
         this.project = project;
@@ -53,19 +57,90 @@ public class WhenParameterInputPanel {
 
         setParameterName(parameterMatcher.getName());
         setParameterValue(parameterMatcher.getValue());
-        setParameterType(ParameterMatcherType.ANY_OF_TYPE.toString());
-//        matcherTypeComboBox.setModel(new DefaultComboBoxModel<>(ParameterMatcherType.values()));
-//        matcherTypeComboBox.setSelectedItem(parameterMatcher.getType());
-//        matcherTypeComboBox.addActionListener(e -> {
-//            ParameterMatcherType newSelection = (ParameterMatcherType) matcherTypeComboBox.getSelectedItem();
-//            parameterMatcher.setType(newSelection);
-//            checkMatcherValueValid();
-//        });
-        matcherValueTextField.addKeyListener(new KeyAdapter() {
+        setParameterType(parameterMatcher.getType());
+
+        matcherTypeComboBox.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        matcherTypeComboBox.addMouseListener(new MouseAdapter() {
             @Override
-            public void keyReleased(KeyEvent e) {
-                parameterMatcher.setValue(matcherValueTextField.getText());
-                checkMatcherValueValid();
+            public void mouseClicked(MouseEvent e) {
+
+                matcherTypeComboBox.setVisible(false);
+                ComboBoxModel<ParameterMatcherType> model = new DefaultComboBoxModel<>(ParameterMatcherType.values());
+                model.setSelectedItem(parameterMatcher.getType());
+                final ComboBox<ParameterMatcherType> valueField = new ComboBox<>(model);
+                typeContainer.add(valueField, new GridConstraints());
+
+                valueField.addFocusListener(new FocusAdapter() {
+                    @Override
+                    public void focusLost(FocusEvent e) {
+                        typeContainer.remove(valueField);
+                        matcherTypeComboBox.setVisible(true);
+                    }
+                });
+                valueField.addKeyListener(new KeyAdapter() {
+                    @Override
+                    public void keyPressed(KeyEvent e) {
+                        if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                            typeContainer.remove(valueField);
+                            matcherTypeComboBox.setVisible(true);
+                        }
+                    }
+                });
+                valueField.addActionListener(e1 -> {
+                    ParameterMatcherType selected = (ParameterMatcherType) valueField.getSelectedItem();
+                    parameterMatcher.setType(selected);
+                    setParameterType(parameterMatcher.getType());
+                    typeContainer.remove(valueField);
+                    matcherTypeComboBox.setVisible(true);
+
+                });
+
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    valueField.requestFocus();
+                    valueField.setPopupVisible(true);
+                });
+
+            }
+        });
+
+
+        matcherValueTextField.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        matcherValueTextField.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                matcherValueTextField.setVisible(false);
+                final JTextField valueField = new JTextField(parameterMatcher.getValue());
+                Dimension newDim = valueField.getMinimumSize();
+
+                valueField.setMinimumSize(new Dimension(100, (int) newDim.getHeight()));
+                valueContainer.add(valueField, new GridConstraints());
+                valueField.addFocusListener(new FocusAdapter() {
+                    @Override
+                    public void focusLost(FocusEvent e) {
+                        valueContainer.remove(valueField);
+                        matcherValueTextField.setVisible(true);
+                    }
+                });
+                valueField.addKeyListener(new KeyAdapter() {
+                    @Override
+                    public void keyPressed(KeyEvent e) {
+                        if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                            parameterMatcher.setValue(valueField.getText().trim());
+                            setParameterValue(parameterMatcher.getValue());
+                            valueContainer.remove(valueField);
+                            matcherValueTextField.setVisible(true);
+                        } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                            valueContainer.remove(valueField);
+                            matcherValueTextField.setVisible(true);
+                        }
+                    }
+                });
+
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    valueField.requestFocus();
+                    valueField.select(0, valueField.getText().length());
+
+                });
             }
         });
         checkMatcherValueValid();
@@ -78,11 +153,17 @@ public class WhenParameterInputPanel {
         parameterNameTextField.setText(name);
     }
 
-    private void setParameterType(String typeName) {
-        matcherTypeComboBox.setText("<html><u>" + typeName + "</u></html>");
+    private void setParameterType(ParameterMatcherType typeValue) {
+        matcherTypeComboBox.setText("<html><u>" + typeValue.toString() + "</u></html>");
     }
 
     private void setParameterValue(String value) {
+        if (parameterMatcher.getType() == ParameterMatcherType.ANY_OF_TYPE) {
+            if (value.contains(".")) {
+                // show simple class name
+                value = value.substring(value.lastIndexOf(".") + 1);
+            }
+        }
         matcherValueTextField.setText("<html><u>" + value + "</u></html>");
     }
 

@@ -198,7 +198,11 @@ public class StompItem {
 
         TitledBorder detailPanelBorder = (TitledBorder) mainPanel.getBorder();
         detailPanelBorder.setTitle(itemLabel);
-        candidateTitleLabel.setText(methodUnderTest.getName() + "()");
+        String methodNameText = methodUnderTest.getName() + "()";
+        if (methodNameText.length() > 20) {
+            methodNameText = methodNameText.substring(0, 17) + "...()";
+        }
+        candidateTitleLabel.setText(methodNameText);
         candidateTitleLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         MouseAdapter labelMouseAdapter = new MouseAdapter() {
