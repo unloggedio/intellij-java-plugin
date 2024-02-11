@@ -32,6 +32,7 @@ import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
+import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
@@ -1608,4 +1609,8 @@ public class StompComponent implements
         }
     }
 
+    public void showJUnitDesigner(TestCaseDesignerLite designerLite) {
+        southPanel.removeAll();
+        southPanel.add(designerLite.getComponent(), BorderLayout.CENTER);
+    }
 }

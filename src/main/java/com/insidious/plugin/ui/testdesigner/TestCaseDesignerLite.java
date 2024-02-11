@@ -308,7 +308,7 @@ public class TestCaseDesignerLite {
         return methodAccess;
     }
 
-    public JPanel getMainPanel() {
+    public JComponent getComponent() {
         return mainPanel;
     }
 

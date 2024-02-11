@@ -329,7 +329,6 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
 
         text = new OnClickPresentation(text, (mouseEvent, point) -> {
-            insidiousService.onMethodCallExpressionInlayClick(mockableCallExpressions, mouseEvent, point);
             if (savedMockCount == 0) {
                 if (mockableCallExpressions.size() > 1) {
 
@@ -356,7 +355,8 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
                         borderWithMargin = BorderFactory.createCompoundBorder(currentBorder,
                                 BorderFactory.createEmptyBorder(5, 10, 5, 5));
                         methodItemPanel.setBorder(borderWithMargin);
-                        methodItemPanel.addMouseListener(new MockItemClickListener(methodItemPanel, methodCallExpression));
+                        methodItemPanel.addMouseListener(
+                                new MockItemClickListener(methodItemPanel, methodCallExpression));
 
                         gutterMethodPanel.add(methodItemPanel);
 
@@ -387,6 +387,8 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
                             .resolve();
                     insidiousService.showMockCreator(new JavaMethodAdapter(psiMethod), methodCallExpression);
                 }
+            } else {
+                insidiousService.onMethodCallExpressionInlayClick(mockableCallExpressions, mouseEvent, point);
             }
         });
 

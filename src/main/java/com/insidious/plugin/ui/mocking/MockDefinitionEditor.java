@@ -123,6 +123,7 @@ public class MockDefinitionEditor {
 
 
         nameTextField.setText(declaredMock.getName());
+        nameTextField.setSelectionStart(0);
 
         nameTextField.addKeyListener(new KeyAdapter() {
             @Override

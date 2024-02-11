@@ -420,11 +420,14 @@ public class ClassTypeUtils {
                     JvmParameter actualArgument = actualArguments[i];
                     JvmType type = actualArgument.getType();
                     if (type instanceof PsiType) {
-                        if (!((PsiType) type).getCanonicalText().contains(expectedArgument.getType())) {
+                        String argumentType = expectedArgument.getType();
+                        TypeName typeInstance = ClassTypeUtils.createTypeFromNameString(argumentType);
+                        if (!((PsiType) type).getCanonicalText().contains(argumentType)) {
 
+                            // TODO FIXME RIGHTNOW
                             PsiClass expectedClassPsi = ApplicationManager.getApplication().runReadAction(
                                     (Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
-                                            .findClass(expectedArgument.getType(),
+                                            .findClass(typeInstance.toString(),
                                                     GlobalSearchScope.allScope(project)));
 
                             if (expectedClassPsi != null) {

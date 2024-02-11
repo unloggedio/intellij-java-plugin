@@ -199,8 +199,8 @@ public class StompItem {
         TitledBorder detailPanelBorder = (TitledBorder) mainPanel.getBorder();
         detailPanelBorder.setTitle(itemLabel);
         String methodNameText = methodUnderTest.getName() + "()";
-        if (methodNameText.length() > 20) {
-            methodNameText = methodNameText.substring(0, 17) + "...()";
+        if (methodNameText.length() > 21) {
+            methodNameText = methodNameText.substring(0, 17) + "..()";
         }
         candidateTitleLabel.setText(methodNameText);
         candidateTitleLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));

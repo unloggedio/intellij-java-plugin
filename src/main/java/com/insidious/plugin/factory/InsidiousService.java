@@ -1257,16 +1257,11 @@ final public class InsidiousService implements
 
         fileEditorManager.openFile(designerLite.getLightVirtualFile(), true);
         FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
-
-        // this shouldn't be null since we just asked the ide to create a new editor ?
-//        if (selectedEditor == null) {
-//            InsidiousNotification.notifyMessage(
-//                    "No editor tab is open, please open an editor tab",
-//                    NotificationType.ERROR
-//            );
-//        }
-        fileEditorManager.addBottomComponent(selectedEditor, designerLite.getMainPanel());
         designerLite.setEditorReferences(fileEditorManager.getSelectedTextEditor(), selectedEditor);
+
+        stompWindow.showJUnitDesigner(designerLite);
+
+//        fileEditorManager.addBottomComponent(selectedEditor, designerLite.getMainPanel());
     }
 
     public void hideCandidateSaveForm(SaveForm saveFormReference) {
