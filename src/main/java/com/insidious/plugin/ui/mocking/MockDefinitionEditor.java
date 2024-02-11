@@ -6,9 +6,11 @@ import com.insidious.plugin.mocking.ThenParameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
+import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.uiDesigner.core.GridConstraints;
 
@@ -31,22 +33,21 @@ public class MockDefinitionEditor {
     private final OnSaveListener onSaveListener;
     //    private final CancelOrOkListener<DeclaredMock> cancelOrOkListener;
     private JPanel mainPanel;
-    private JPanel namePanel;
     private JTextField nameTextField;
-    private JPanel titlePanel;
+    private JPanel parameterListContainerPanel;
+    private JButton chainAnotherReturnButton;
+    private JPanel returnItemList;
+    private JButton saveButton;
+    private JLabel callExpressionLabel;
     private JPanel nameAndSettingPanel;
+    private JPanel bottomControlPanel;
+    private JPanel nameContainerPanel;
     private JPanel whenThenParentPanel;
     private JPanel whenPanel;
     private JPanel whenTitlePanel;
-    private JPanel parameterListContainerPanel;
     private JPanel thenPanel;
     private JPanel thenTitlePanel;
-    private JButton chainAnotherReturnButton;
-    private JPanel returnItemList;
-    private JPanel bottomControlPanel;
-    private JButton saveButton;
-    private JLabel callExpressionLabel;
-    private JPanel mockTypeParentPanel;
+    //    private JPanel mockTypeParentPanel;
     private String returnDummyValue;
     private String methodReturnTypeName;
     private JBPopup yeditorPopup;
@@ -58,16 +59,18 @@ public class MockDefinitionEditor {
         this.onSaveListener = onSaveListener;
         this.methodUnderTest = methodUnderTest;
         this.project = project;
-        mockTypeParentPanel.setVisible(false);
+//        mockTypeParentPanel.setVisible(false);
 
-        String expressionText = methodCallExpression.getMethodExpression().getText();
+        String expressionText = ApplicationManager.getApplication().runReadAction(
+                (Computable<String>) () -> methodCallExpression.getMethodExpression().getText());
         callExpressionLabel.setText(expressionText);
 
 
-        DeclaredMock defaultMock = ClassUtils.createDefaultMock(methodCallExpression);
+        DeclaredMock defaultMock = ApplicationManager.getApplication().runReadAction(
+                (Computable<DeclaredMock>) () -> ClassUtils.createDefaultMock(methodCallExpression));
         this.declaredMock = defaultMock;
         updateUiValues();
-        addListeners(methodUnderTest);
+        addListeners();
     }
 
     public MockDefinitionEditor(
@@ -83,10 +86,10 @@ public class MockDefinitionEditor {
         callExpressionLabel.setText(declaredMock.getSourceClassName() + "." + declaredMock.getMethodName() + "()");
 
         updateUiValues();
-        addListeners(methodUnderTest);
+        addListeners();
     }
 
-    private void addListeners(MethodUnderTest methodUnderTest) {
+    private void addListeners() {
         chainAnotherReturnButton.setVisible(false);
         chainAnotherReturnButton.addActionListener(e -> {
             ThenParameter newThenParameter = ClassUtils.createDummyThenParameter(returnDummyValue,

@@ -41,9 +41,9 @@ public class ThenParameterInputPanel {
     private final Project project;
     private final Color originalBackgroundColor;
     private JPanel mainPanel;
-    private JTextField returnTypeTextField;
+    private JLabel returnTypeTextField;
     private JTextArea returnValueTextArea;
-    private JComboBox<MethodExitType> returnType;
+    private JLabel returnType;
     private JScrollPane textAreaScrollPanel;
     private JPanel textAreaScrollParent;
 
@@ -51,9 +51,11 @@ public class ThenParameterInputPanel {
         this.project = project;
         this.thenParameter = thenParameter;
         this.originalBackgroundColor = returnValueTextArea.getBackground();
-        returnType.setModel(new DefaultComboBoxModel<>(MethodExitType.values()));
-        returnType.setSelectedItem(thenParameter.getMethodExitType());
-        returnTypeTextField.setText(thenParameter.getReturnParameter().getClassName());
+        String simpleClassName = thenParameter.getReturnParameter().getClassName();
+        if (simpleClassName.contains(".")) {
+            simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
+        }
+        returnTypeTextField.setText(simpleClassName);
         String thenParamValue = thenParameter.getReturnParameter().getValue();
         textAreaScrollPanel.setBorder(BorderFactory.createEmptyBorder());
         try {
@@ -73,11 +75,15 @@ public class ThenParameterInputPanel {
             }
         });
 
-        returnType.addActionListener(e -> {
-            MethodExitType selectedItem = (MethodExitType) returnType.getSelectedItem();
-            thenParameter.setMethodExitType(selectedItem);
-            updateVisibleControls();
-        });
+        returnType.setText(MethodExitType.NORMAL.toString());
+
+//        returnType.setModel(new DefaultComboBoxModel<>(MethodExitType.values()));
+//        returnType.setSelectedItem(thenParameter.getMethodExitType());
+//        returnType.addActionListener(e -> {
+//            MethodExitType selectedItem = (MethodExitType) returnType.getSelectedItem();
+//            thenParameter.setMethodExitType(selectedItem);
+//            updateVisibleControls();
+//        });
 
         returnTypeTextField.addKeyListener(new KeyAdapter() {
             @Override

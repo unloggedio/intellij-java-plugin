@@ -2,19 +2,13 @@ package com.insidious.plugin.ui.highlighter;
 
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.pojo.atomic.MethodUnderTest;
-import com.insidious.plugin.ui.mocking.MockDefinitionListPanel;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.UIUtils;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.ui.popup.ActiveIcon;
-import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
-import com.intellij.openapi.ui.popup.JBPopup;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.ui.JBColor;
-import com.intellij.ui.awt.RelativePoint;
 
 import javax.swing.*;
 import java.awt.*;
@@ -38,15 +32,14 @@ public class MockItemClickListener extends MouseAdapter {
     public void mouseClicked(MouseEvent mouseEvent) {
         logger.warn("Clicked item: " + methodItemPanel);
 
-        MockDefinitionListPanel gutterMethodPanel =
-                new MockDefinitionListPanel(methodCallExpression);
-
-
-        methodCallExpression.getProject().getService(InsidiousService.class)
-                .showMockCreator(
-                        new JavaMethodAdapter((PsiMethod) methodCallExpression.getMethodExpression().resolve()),
-                        methodCallExpression
-                );
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            methodCallExpression.getProject().getService(InsidiousService.class)
+                    .showMockCreator(
+                            new JavaMethodAdapter(ApplicationManager.getApplication().runReadAction(
+                                    (Computable<PsiMethod>) () -> (PsiMethod) methodCallExpression.getMethodExpression().resolve())),
+                            methodCallExpression
+                    );
+        });
 
     }
 

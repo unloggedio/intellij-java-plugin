@@ -738,15 +738,7 @@ public class TestCaseDesignerLite {
                             }
                         }
 
-                        PsiSubstitutor classSubstitutor = null;
-
-
-                        if (callOnField.getType() instanceof PsiClassReferenceType) {
-                            classSubstitutor = TypeConversionUtil.getClassSubstitutor(
-                                    (PsiClass) matchedMethod.getContainingClass().getSource(),
-                                    ((PsiClassReferenceType) callOnField.getType()).resolve(), PsiSubstitutor.EMPTY);
-                        }
-
+                        PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(psiMethodCallExpression);
                         PsiType fieldType = ClassTypeUtils.substituteClassRecursively(callOnField.getType(),
                                 classSubstitutor);
 

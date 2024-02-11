@@ -20,9 +20,11 @@ import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.util.ui.JBUI;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
@@ -188,12 +190,23 @@ public class LibraryComponent {
                     @Override
                     protected JComponent createCenterPanel() {
                         final JPanel panel = new JPanel(new GridBagLayout());
+                        panel.add(new JTextField("this is a message"));
                         return panel;
                     }
 
                     @Override
                     protected void doOKAction() {
                         super.doOKAction();
+                    }
+
+                    @Override
+                    protected @NotNull Action getOKAction() {
+                        return new AbstractAction() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+
+                            }
+                        };
                     }
                 };
                 DialogBuilder builder = new DialogBuilder(project);
@@ -208,7 +221,7 @@ public class LibraryComponent {
                     InsidiousNotification.notifyMessage(
                             "Deleted " + "mock definition",
                             NotificationType.INFORMATION);
-                    builder.dispose();
+                    builder.getDialogWrapper().close(0);
                 });
                 builder.showModal(true);
             }
@@ -550,24 +563,22 @@ public class LibraryComponent {
     }
 
 
-    public void showMockCreator(MethodUnderTest method, PsiMethodCallExpression callExpression) {
-        MockDefinitionEditor mockEditor = new MockDefinitionEditor(method, callExpression,
-                insidiousService.getProject(), new OnSaveListener() {
-            @Override
-            public void onSaveDeclaredMock(DeclaredMock declaredMock) {
-                atomicRecordService.saveMockDefinition(declaredMock);
-                InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
-                southPanel.removeAll();
-                scrollContainer.revalidate();
-                scrollContainer.repaint();
-            }
-        });
-        JComponent content = mockEditor.getComponent();
-        content.setMinimumSize(new Dimension(-1, 400));
-        content.setMaximumSize(new Dimension(-1, 400));
-        southPanel.add(content, BorderLayout.CENTER);
-
-    }
+//    public void showMockCreator(MethodUnderTest method, PsiMethodCallExpression callExpression) {
+//        MockDefinitionEditor mockEditor = new MockDefinitionEditor(method, callExpression,
+//                insidiousService.getProject(), declaredMock -> {
+//                    atomicRecordService.saveMockDefinition(declaredMock);
+//                    InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
+//                    southPanel.removeAll();
+//                    scrollContainer.revalidate();
+//                    scrollContainer.repaint();
+//                });
+//        JComponent content = mockEditor.getComponent();
+//        content.setMinimumSize(new Dimension(-1, 400));
+//        content.setMaximumSize(new Dimension(-1, 400));
+//        southPanel.removeAll();
+//        southPanel.add(content, BorderLayout.CENTER);
+//
+//    }
 
     public void onMethodFocussed(MethodAdapter method) {
         this.lastFocussedMethod = method;

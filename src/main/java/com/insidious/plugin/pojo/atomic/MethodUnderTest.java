@@ -8,6 +8,7 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.ClassTypeUtils;
+import com.insidious.plugin.util.ClassUtils;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.TypeConversionUtil;
@@ -70,10 +71,7 @@ public class MethodUnderTest {
         PsiReferenceExpression qualifierExpression1 = (PsiReferenceExpression) fieldExpression;
         PsiField fieldPsiInstance = (PsiField) qualifierExpression1.resolve();
 
-
-        PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
-        PsiSubstitutor classSubstitutor = TypeConversionUtil.getClassSubstitutor(fieldPsiInstance.getContainingClass(),
-                parentOfType, PsiSubstitutor.EMPTY);
+        PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(methodCallExpression);
         PsiType fieldTypeSubstitutor = ClassTypeUtils.substituteClassRecursively(fieldPsiInstance.getType(),
                 classSubstitutor);
 

@@ -42,24 +42,25 @@ public class WhenParameterInputPanel {
     private final Project project;
     private final Color originalValueTextFieldColor;
     private JPanel mainPanel;
-    private JTextField parameterNameTextField;
-    private JTextField matcherValueTextField;
-    private JComboBox<ParameterMatcherType> matcherTypeComboBox;
+    private JLabel parameterNameTextField;
+    private JLabel matcherValueTextField;
+    private JLabel matcherTypeComboBox;
 
     public WhenParameterInputPanel(ParameterMatcher parameterMatcher, Project project) {
         this.project = project;
         this.parameterMatcher = parameterMatcher;
         originalValueTextFieldColor = matcherValueTextField.getBackground();
-        matcherTypeComboBox.setModel(new DefaultComboBoxModel<>(ParameterMatcherType.values()));
-        parameterNameTextField.setText(parameterMatcher.getName());
-        matcherTypeComboBox.setSelectedItem(parameterMatcher.getType());
-        matcherValueTextField.setText(parameterMatcher.getValue());
 
-        matcherTypeComboBox.addActionListener(e -> {
-            ParameterMatcherType newSelection = (ParameterMatcherType) matcherTypeComboBox.getSelectedItem();
-            parameterMatcher.setType(newSelection);
-            checkMatcherValueValid();
-        });
+        setParameterName(parameterMatcher.getName());
+        setParameterValue(parameterMatcher.getValue());
+        setParameterType(ParameterMatcherType.ANY_OF_TYPE.toString());
+//        matcherTypeComboBox.setModel(new DefaultComboBoxModel<>(ParameterMatcherType.values()));
+//        matcherTypeComboBox.setSelectedItem(parameterMatcher.getType());
+//        matcherTypeComboBox.addActionListener(e -> {
+//            ParameterMatcherType newSelection = (ParameterMatcherType) matcherTypeComboBox.getSelectedItem();
+//            parameterMatcher.setType(newSelection);
+//            checkMatcherValueValid();
+//        });
         matcherValueTextField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
@@ -68,6 +69,21 @@ public class WhenParameterInputPanel {
             }
         });
         checkMatcherValueValid();
+    }
+
+    private void setParameterName(String name) {
+        if (name.length() > 12) {
+            name = name.substring(0, 12) + "...";
+        }
+        parameterNameTextField.setText(name);
+    }
+
+    private void setParameterType(String typeName) {
+        matcherTypeComboBox.setText("<html><u>" + typeName + "</u></html>");
+    }
+
+    private void setParameterValue(String value) {
+        matcherValueTextField.setText("<html><u>" + value + "</u></html>");
     }
 
     public void checkMatcherValueValid() {
@@ -84,8 +100,9 @@ public class WhenParameterInputPanel {
             }
 
             String finalClassName = className;
-            PsiClass locatedClass = ApplicationManager.getApplication().runReadAction((Computable<PsiClass>) () -> JavaPsiFacade.getInstance(
-                    project).findClass(finalClassName, GlobalSearchScope.allScope(project)));
+            PsiClass locatedClass = ApplicationManager.getApplication()
+                    .runReadAction((Computable<PsiClass>) () -> JavaPsiFacade.getInstance(
+                            project).findClass(finalClassName, GlobalSearchScope.allScope(project)));
             if (locatedClass == null) {
                 matcherValueTextField.setBackground(UIUtils.WARNING_RED);
             } else {

@@ -9,10 +9,8 @@ import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.mocking.DeclaredMock;
-import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.TestType;
-import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.LoggerUtil;
@@ -21,8 +19,6 @@ import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.popup.*;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
@@ -343,43 +339,44 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
     }
 
     private JButton getAddMockButton(PsiMethodCallExpression psiMethodCallExpression) {
-        JButton addMockButton = new JButton();
-        addMockButton.setText("Add Mock");
-        addMockButton.setIcon(UIUtils.MOCK_ADD);
-        addMockButton.setPreferredSize(new Dimension(100, 25));
-        addMockButton.addActionListener(e -> {
-            Project project = insidiousService.getProject();
-            JBPopup editorPopup = null;
-
-            MethodUnderTest methodUnderTest = MethodUnderTest.fromPsiCallExpression(psiMethodCallExpression);
-            MockDefinitionEditor mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest,
-                    psiMethodCallExpression, project, self);
-            JComponent gutterMethodComponent = mockDefinitionEditor.getComponent();
-            ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
-                    .createComponentPopupBuilder(gutterMethodComponent, null);
-            editorPopup = gutterMethodComponentPopup
-                    .setProject(psiMethodCallExpression.getProject())
-                    .setShowBorder(true)
-                    .setShowShadow(true)
-                    .setFocusable(true)
-                    .setRequestFocus(true)
-                    .setResizable(true)
-                    .setCancelOnClickOutside(true)
-                    .setCancelOnOtherWindowOpen(true)
-                    .setCancelKeyEnabled(true)
-                    .setBelongsToGlobalPopupStack(false)
-                    .setTitle("Mock Editor")
-                    .addListener(new JBPopupListener() {
-                        @Override
-                        public void onClosed(LightweightWindowEvent event) {
-                            JBPopupListener.super.onClosed(event);
-                        }
-                    })
-                    .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
-                    .createPopup();
-            editorPopup.showUnderneathOf(addMockButton);
-        });
-        return addMockButton;
+//        JButton addMockButton = new JButton();
+//        addMockButton.setText("Add Mock");
+//        addMockButton.setIcon(UIUtils.MOCK_ADD);
+//        addMockButton.setPreferredSize(new Dimension(100, 25));
+//        addMockButton.addActionListener(e -> {
+//            Project project = insidiousService.getProject();
+//            JBPopup editorPopup = null;
+//
+//            MethodUnderTest methodUnderTest = MethodUnderTest.fromPsiCallExpression(psiMethodCallExpression);
+//            MockDefinitionEditor mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest,
+//                    psiMethodCallExpression, project, self);
+//            JComponent gutterMethodComponent = mockDefinitionEditor.getComponent();
+//            ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+//                    .createComponentPopupBuilder(gutterMethodComponent, null);
+//            editorPopup = gutterMethodComponentPopup
+//                    .setProject(psiMethodCallExpression.getProject())
+//                    .setShowBorder(true)
+//                    .setShowShadow(true)
+//                    .setFocusable(true)
+//                    .setRequestFocus(true)
+//                    .setResizable(true)
+//                    .setCancelOnClickOutside(true)
+//                    .setCancelOnOtherWindowOpen(true)
+//                    .setCancelKeyEnabled(true)
+//                    .setBelongsToGlobalPopupStack(false)
+//                    .setTitle("Mock Editor")
+//                    .addListener(new JBPopupListener() {
+//                        @Override
+//                        public void onClosed(LightweightWindowEvent event) {
+//                            JBPopupListener.super.onClosed(event);
+//                        }
+//                    })
+//                    .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
+//                    .createPopup();
+//            editorPopup.showUnderneathOf(addMockButton);
+//        });
+//        return addMockButton;
+        return null;
     }
 
     public JPanel getMockMethodDependencyPanel(JCheckBox mockButtonMain, String mockDataId) {

@@ -22,6 +22,7 @@ import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.ClassTypeUtils;
+import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
@@ -36,7 +37,6 @@ import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.impl.source.tree.java.PsiMethodCallExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.psi.util.TypeConversionUtil;
 import com.squareup.javapoet.*;
 import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
@@ -247,13 +247,13 @@ public class TestCaseService {
                 normalizeMethodTypes(mainMethod, targetMethodPsi);
             }
 
-            Collection<PsiCallExpression> childCallExpressions = PsiTreeUtil.findChildrenOfType(
-                    targetMethodPsi, PsiCallExpression.class);
+            Collection<PsiMethodCallExpression> childCallExpressions = PsiTreeUtil.findChildrenOfType(
+                    targetMethodPsi, PsiMethodCallExpression.class);
 
             for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
 
-                PsiCallExpression callExpress = null;
-                for (PsiCallExpression childCallExpression : childCallExpressions) {
+                PsiMethodCallExpression callExpress = null;
+                for (PsiMethodCallExpression childCallExpression : childCallExpressions) {
                     String callExpressionText = childCallExpression.getText();
                     String expectedSubjectName = methodCallExpression.getSubject().getName();
                     if (callExpressionText.contains(methodCallExpression.getMethodName())
@@ -297,23 +297,15 @@ public class TestCaseService {
     }
 
     private void normalizeMethodTypes(MethodCallExpression mainMethod, PsiMethod targetMethodPsi,
-                                      PsiCallExpression psiCallExpression) {
+                                      PsiMethodCallExpression psiCallExpression) {
 
-        PsiClass classContainingTheCallExpression = PsiTreeUtil.getParentOfType(psiCallExpression,
-                PsiClass.class);
-
-        PsiType fieldType = ((PsiMethodCallExpressionImpl) psiCallExpression).getMethodExpression()
+        PsiType fieldType = psiCallExpression.getMethodExpression()
                 .getQualifierExpression().getType();
 
         PsiClass fieldTypeClassPsi = JavaPsiFacade.getInstance(project)
                 .findClass(fieldType.getCanonicalText(),
                         GlobalSearchScope.allScope(project));
-        PsiSubstitutor classSubstitutor = null;
-        if (fieldTypeClassPsi != null) {
-            classSubstitutor = TypeConversionUtil.getClassSubstitutor(
-                    targetMethodPsi.getContainingClass(),
-                    fieldTypeClassPsi, PsiSubstitutor.EMPTY);
-        }
+        PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(psiCallExpression);
 
         // fix argument types
         JvmParameter[] methodParameters = ((JvmMethod) targetMethodPsi).getParameters();
