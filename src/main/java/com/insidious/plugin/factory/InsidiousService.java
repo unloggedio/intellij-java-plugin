@@ -46,7 +46,6 @@ import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
-import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
@@ -85,12 +84,12 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
-import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import java.awt.*;
@@ -443,15 +442,14 @@ final public class InsidiousService implements
 //        return testCaseDesignerWindow.generateTestCaseBoilerPlace(methodAdapter);
 //    }
 
-    public synchronized void previewTestCase(MethodAdapter methodElement,
-                                             TestCaseGenerationConfiguration generationConfiguration,
-                                             boolean generateOnlyBoilerPlate) {
+    public synchronized FileEditorManager previewTestCase(LightVirtualFile lightVirtualFile) {
 
         UsageInsightTracker.getInstance().RecordEvent(
                 "CREATE_BOILERPLATE",
                 null
         );
-        showDesignerLiteForm(methodElement, generationConfiguration, generateOnlyBoilerPlate);
+        return showDesignerLiteForm(lightVirtualFile);
+
     }
 
     private synchronized void initiateUI() {
@@ -908,7 +906,8 @@ final public class InsidiousService implements
             requestAuthentication.setPrincipalClassName(userAuthClassName);
             PsiClassType typeInstance = PsiClassType.getTypeByName(userAuthClassName, project,
                     GlobalSearchScope.projectScope(project));
-            String dummyValue = ClassUtils.createDummyValue(typeInstance, new ArrayList<>(), project);
+            String dummyValue = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> ClassUtils.createDummyValue(typeInstance, new ArrayList<>(), project));
 
             requestAuthentication.setPrincipal(dummyValue);
         }
@@ -1246,25 +1245,12 @@ final public class InsidiousService implements
         saveFormEditorMap.put(saveForm, selectedEditor);
     }
 
-    public void showDesignerLiteForm(MethodAdapter methodAdapter,
-                                     @Nullable TestCaseGenerationConfiguration configuration,
-                                     boolean generateOnlyBoilerPlate) {
-        if (methodAdapter == null) {
-            InsidiousNotification.notifyMessage("Please select a method to generate a Junit test case.",
-                    NotificationType.INFORMATION);
-            return;
-        }
+    public FileEditorManager showDesignerLiteForm(VirtualFile lightVirtualFile) {
+
         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-        TestCaseDesignerLite designerLite = new TestCaseDesignerLite(methodAdapter,
-                configuration, generateOnlyBoilerPlate, project);
+        fileEditorManager.openFile(lightVirtualFile, true);
 
-        fileEditorManager.openFile(designerLite.getLightVirtualFile(), true);
-        FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
-        designerLite.setEditorReferences(fileEditorManager.getSelectedTextEditor(), selectedEditor);
-
-        stompWindow.showJUnitDesigner(designerLite);
-
-//        fileEditorManager.addBottomComponent(selectedEditor, designerLite.getMainPanel());
+        return fileEditorManager;
     }
 
     public void hideCandidateSaveForm(SaveForm saveFormReference) {

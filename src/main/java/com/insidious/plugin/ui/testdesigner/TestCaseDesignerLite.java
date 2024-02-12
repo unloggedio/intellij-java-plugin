@@ -65,8 +65,6 @@ import org.objectweb.asm.Opcodes;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -78,41 +76,41 @@ import java.util.stream.Collectors;
 public class TestCaseDesignerLite {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseDesignerLite.class);
     private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
+    private final LightVirtualFile testCaseScriptFile;
+    private final MethodAdapter methodAdapter;
+    private final Project project;
     Random random = new Random(new Date().getTime());
     private JPanel mainPanel;
     private JPanel configurationPanel;
-    private JPanel saveDetailsPanel;
-    private JPanel leftOptions;
-    private JPanel rightOptions;
     private JPanel bottomControlPanel;
     private JTextField saveLocationTextField;
-    private JButton closeButton;
     private JButton saveTestCaseButton;
-    private JPanel addFieldMocksConfigPanel;
     private JCheckBox addFieldMocksCheckBox;
-    private JPanel useMockitoConfigPanel;
     private JCheckBox useMockitoAnnotationsMockCheckBox;
-    private JPanel mockitoOptions;
+    private JComboBox<TestFramework> testFrameworkComboBox;
+    private JComboBox<MockFramework> mockFrameworkComboBox;
+    private JComboBox<JsonFramework> jsonFrameworkComboBox;
+    private JComboBox<ResourceEmbedMode> resourceEmberModeComboBox;
+    private JButton createButton;
+    private JPanel saveDetailsPanel;
     private JPanel testFrameWorkPanel;
     private JLabel testFrameworkLabel;
-    private JComboBox<TestFramework> testFrameworkComboBox;
     private JPanel mockFrameworkPanel;
     private JLabel mockFrameworkLabel;
-    private JComboBox<MockFramework> mockFrameworkComboBox;
     private JPanel jsonFrameworkChoicePanel;
-    private JComboBox<JsonFramework> jsonFrameworkComboBox;
     private JPanel resourceEmbedModeChoicePanel;
-    private JComboBox<ResourceEmbedMode> resourceEmberModeComboBox;
-    private JPanel testOptions;
-    private final LightVirtualFile testCaseScriptFile;
-    private final MethodAdapter methodAdapter;
+    private JPanel useMockitoConfigPanel;
+    private JPanel mockDownstreamContainerPanel;
     private TestCaseGenerationConfiguration currentTestGenerationConfiguration;
     private TestCaseUnit testCaseScript;
     private List<String> methodChecked;
     private Map<String, Parameter> fieldMapByName;
     private Editor editorReference;
     private FileEditor fileEditorReference;
-    private final Project project;
+
+    public JButton getCreateButton() {
+        return createButton;
+    }
 
     public TestCaseDesignerLite(MethodAdapter currentMethod,
                                 TestCaseGenerationConfiguration configuration,
@@ -126,10 +124,11 @@ public class TestCaseDesignerLite {
 
         saveTestCaseButton.setEnabled(false);
         saveTestCaseButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        closeButton.setIcon(UIUtils.CLOSE_FILE_RED_SVG);
 
-        closeButton.setForeground(UIUtils.defaultForeground);
+//        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        closeButton.setIcon(UIUtils.CLOSE_FILE_RED_SVG);
+//        closeButton.setForeground(UIUtils.defaultForeground);
+
         saveTestCaseButton.setForeground(UIUtils.defaultForeground);
 
         testFrameworkComboBox.setModel(new DefaultComboBoxModel<>(TestFramework.values()));
@@ -270,12 +269,12 @@ public class TestCaseDesignerLite {
                     NotificationType.WARNING);
         });
 
-        this.closeButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                closeEditorWindow();
-            }
-        });
+//        this.closeButton.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent e) {
+//                closeEditorWindow();
+//            }
+//        });
 
         generateAndPreviewTestCase(currentTestGenerationConfiguration);
     }
@@ -380,16 +379,15 @@ public class TestCaseDesignerLite {
         List<TestCandidateMetadata> testCandidateMetadataList =
                 null;
         try {
-            testCandidateMetadataList = (List<TestCandidateMetadata>) ApplicationManager.getApplication()
-                    .executeOnPooledThread(
-                            () -> {
-                                try {
-                                    return createTestCandidate();
-                                } catch (ExecutionException | InterruptedException e) {
-                                    logger.error("Failed to create test candidate", e);
-                                    return new ArrayList<>();
-                                }
-                            }).get();
+            testCandidateMetadataList = ApplicationManager.getApplication()
+                    .executeOnPooledThread(() -> ApplicationManager.getApplication().runReadAction(
+                                    (Computable<List<TestCandidateMetadata>>) () -> {
+                                        try {
+                                            return createTestCandidate();
+                                        } catch (ExecutionException | InterruptedException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    })).get();
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
@@ -489,6 +487,7 @@ public class TestCaseDesignerLite {
     private void updateFileContents() {
         ApplicationManager.getApplication().runWriteAction(() -> {
             if (this.editorReference != null) {
+
                 Document document = editorReference.getDocument();
                 document.setText(testCaseScript.getCode());
             }
@@ -1094,5 +1093,8 @@ public class TestCaseDesignerLite {
     public void setEditorReferences(Editor viewerFileEditor, FileEditor fileEditor) {
         this.editorReference = viewerFileEditor;
         this.fileEditorReference = fileEditor;
+        fileEditorReference.addPropertyChangeListener(evt -> {
+            logger.warn("editor property changed" + evt);
+        });
     }
 }

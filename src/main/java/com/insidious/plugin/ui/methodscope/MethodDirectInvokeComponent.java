@@ -17,6 +17,7 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
+import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.util.*;
 import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
@@ -25,6 +26,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.fileEditor.FileEditor;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
@@ -60,7 +63,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private Editor returnValueTextArea;
     private JPanel methodParameterScrollContainer;
     private JButton executeButton;
-//    private JButton modifyArgumentsButton;
+    //    private JButton modifyArgumentsButton;
     private JLabel closeButton;
     //    private JLabel editValueLabel;
     private JButton createBoilerplateButton;
@@ -68,19 +71,21 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JPanel directInvokeContainerPanel;
     private JPanel junitBoilerplaceContainerPanel;
     private JButton modifyArgumentsButton;
+    private JPanel boilerplateCustomizerContainer;
     private MethodAdapter methodElement;
     private Tree argumentValueTree = null;
     private TreeModel argumentsValueTreeNode;
     private JsonNode argumentsValueJsonNode;
     private JBScrollPane parameterScrollPanel = null;
     private DefaultTreeCellEditor cellEditor;
+    private TestCaseDesignerLite designerLite;
 
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService, OnCloseListener onCloseListener) {
         this.insidiousService = insidiousService;
         this.objectMapper = this.insidiousService.getObjectMapper();
 
-        configureCreateBoilerplateButton(insidiousService);
+//        configureCreateBoilerplateButton(insidiousService);
         configureEditButton();
         configureCloseButton(onCloseListener);
 
@@ -142,13 +147,21 @@ public class MethodDirectInvokeComponent implements ActionListener {
 //        });
     }
 
-    private void configureCreateBoilerplateButton(InsidiousService insidiousService) {
+    private void configureCreateBoilerplateButton() {
 
-        createBoilerplateButton.addMouseListener(new MouseAdapter() {
+        designerLite = new TestCaseDesignerLite(methodElement,
+                null, true, insidiousService.getProject());
+
+        boilerplateCustomizerContainer.add(designerLite.getComponent(), BorderLayout.CENTER);
+        designerLite.getCreateButton().addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
-                insidiousService.previewTestCase(methodElement, null, true);
+                FileEditorManager fileEditorManager = insidiousService.previewTestCase(
+                        designerLite.getLightVirtualFile());
+                Editor selectedTextEditor = fileEditorManager.getSelectedTextEditor();
+                FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
+                designerLite.setEditorReferences(selectedTextEditor, selectedEditor);
             }
         });
     }
@@ -223,7 +236,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         }
         executeButton.setText("Executing...");
         executeButton.setEnabled(false);
-        createBoilerplateButton.setVisible(false);
+//        createBoilerplateButton.setVisible(false);
         ApplicationManager.getApplication().executeOnPooledThread(this::chooseClassAndDirectInvoke);
     }
 
@@ -232,10 +245,9 @@ public class MethodDirectInvokeComponent implements ActionListener {
             logger.info("DirectInvoke got null method");
             return;
         }
-
         this.methodElement = methodElement1;
         String methodName = methodElement.getName();
-        createBoilerplateButton.setVisible(true);
+//        createBoilerplateButton.setVisible(true);
         ClassAdapter containingClass = methodElement.getContainingClass();
 
         String className = ApplicationManager.getApplication().runReadAction(
@@ -406,7 +418,15 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 }
             });
 
+            argumentValueTree.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    argumentValueTree.startEditingAtPath(argumentValueTree.getSelectionPath());
+                }
+            });
 
+
+            argumentValueTree.setBackground(JBColor.WHITE);
             argumentValueTree.setCellEditor(cellEditor);
             expandAllNodes(argumentValueTree);
             methodParameterContainer.add(argumentValueTree, BorderLayout.CENTER);
@@ -418,11 +438,17 @@ public class MethodDirectInvokeComponent implements ActionListener {
         if (parameterScrollPanel != null) {
             methodParameterScrollContainer.remove(parameterScrollPanel);
         }
+        configureCreateBoilerplateButton();
+
 
         parameterScrollPanel = new JBScrollPane(methodParameterContainer);
         parameterScrollPanel.setBorder(BorderFactory.createEmptyBorder());
 
-        methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
+        JPanel scrollContainer = new JPanel();
+        scrollContainer.setLayout(new BorderLayout());
+        scrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
+
+        methodParameterScrollContainer.add(scrollContainer, BorderLayout.NORTH);
 
 
         mainContainer.revalidate();

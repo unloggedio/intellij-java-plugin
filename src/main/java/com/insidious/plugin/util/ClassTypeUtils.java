@@ -8,7 +8,6 @@ import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
-import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -26,7 +25,6 @@ import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -422,15 +420,21 @@ public class ClassTypeUtils {
                 for (int i = 0; i < expectedArguments.size(); i++) {
                     Parameter expectedArgument = expectedArguments.get(i);
                     JvmParameter actualArgument = actualArguments[i];
-                    JvmType type = actualArgument.getType();
-                    if (type instanceof PsiType) {
+                    JvmType actualArgumentType = actualArgument.getType();
+                    if (actualArgumentType instanceof PsiType) {
                         String expectedArgumentType = expectedArgument.getType();
                         TypeName typeInstance = ClassTypeUtils.createTypeFromNameString(expectedArgumentType);
-                        String canonicalText = ((PsiType) type).getCanonicalText();
-                        if (canonicalText.contains("...")) {
-                            canonicalText =  canonicalText.replace("...", "[]");
+                        String actualTypeCanonicalName = ((PsiType) actualArgumentType).getCanonicalText();
+                        if (actualTypeCanonicalName.contains("...")) {
+                            actualTypeCanonicalName = actualTypeCanonicalName.replace("...", "[]");
                         }
-                        if (!canonicalText.contains(expectedArgumentType)) {
+                        TypeName expectedTypeName = constructClassName(expectedArgumentType);
+                        PsiClass expectedTypePsiClass = JavaPsiFacade.getInstance(
+                                project).findClass(expectedTypeName.toString(),
+                                GlobalSearchScope.allScope(project));
+//                        expectedTypePsiClass.is;
+                        boolean isClassName = !actualTypeCanonicalName.contains(expectedTypeName.toString());
+                        if (isClassName) {
 
                             // TODO FIXME RIGHTNOW
                             PsiClass expectedClassPsi = ApplicationManager.getApplication().runReadAction(
@@ -439,15 +443,15 @@ public class ClassTypeUtils {
                                                     GlobalSearchScope.allScope(project)));
 
                             if (expectedClassPsi != null) {
-                                if (type instanceof PsiClassReferenceType) {
+                                if (actualArgumentType instanceof PsiClassReferenceType) {
                                     boolean ok = InheritanceImplUtil.isInheritor(
-                                            ((PsiClassReferenceType) type).resolve(),
+                                            ((PsiClassReferenceType) actualArgumentType).resolve(),
                                             expectedClassPsi, true);
                                     if (ok) {
                                         return (PsiMethod) jvmMethod.getSourceElement();
                                     }
-                                } else if (type instanceof PsiClass) {
-                                    boolean ok = InheritanceImplUtil.isInheritor(((PsiClass) type),
+                                } else if (actualArgumentType instanceof PsiClass) {
+                                    boolean ok = InheritanceImplUtil.isInheritor(((PsiClass) actualArgumentType),
                                             expectedClassPsi, true);
                                     if (ok) {
                                         return (PsiMethod) jvmMethod.getSourceElement();
