@@ -999,6 +999,9 @@ final public class InsidiousService implements
     }
 
     public void openToolWindow() {
+        if (toolWindow == null) {
+            return;
+        }
         toolWindow.show(null);
     }
 

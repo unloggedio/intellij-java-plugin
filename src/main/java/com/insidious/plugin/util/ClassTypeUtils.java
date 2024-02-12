@@ -15,6 +15,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.util.Pair;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.InheritanceImplUtil;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
@@ -25,6 +26,7 @@ import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -400,16 +402,18 @@ public class ClassTypeUtils {
             methodName = methodName.split("\\$")[1];
             isLambda = true;
         }
-        JvmMethod[] methodsByName = classPsiElement.findMethodsByName(methodName, true);
+        List<Pair<PsiMethod, PsiSubstitutor>> methodsByNameList = classPsiElement.findMethodsAndTheirSubstitutorsByName(
+                methodName, true);
 
-        if (methodsByName.length == 1 && isLambda) {
+        if (methodsByNameList.size() == 1 && isLambda) {
             // should we verify parameters ?
-            return (PsiMethod) methodsByName[0].getSourceElement();
+            return methodsByNameList.get(0).getFirst();
         }
 
-        for (JvmMethod jvmMethod : methodsByName) {
+        for (Pair<PsiMethod, PsiSubstitutor> jvmMethodPair : methodsByNameList) {
 
             List<Parameter> expectedArguments = mainMethod.getArguments();
+            PsiMethod jvmMethod = jvmMethodPair.getFirst();
             JvmParameter[] actualArguments = jvmMethod.getParameters();
 
             if (expectedArguments.size() == actualArguments.length) {
@@ -420,9 +424,13 @@ public class ClassTypeUtils {
                     JvmParameter actualArgument = actualArguments[i];
                     JvmType type = actualArgument.getType();
                     if (type instanceof PsiType) {
-                        String argumentType = expectedArgument.getType();
-                        TypeName typeInstance = ClassTypeUtils.createTypeFromNameString(argumentType);
-                        if (!((PsiType) type).getCanonicalText().contains(argumentType)) {
+                        String expectedArgumentType = expectedArgument.getType();
+                        TypeName typeInstance = ClassTypeUtils.createTypeFromNameString(expectedArgumentType);
+                        String canonicalText = ((PsiType) type).getCanonicalText();
+                        if (canonicalText.contains("...")) {
+                            canonicalText =  canonicalText.replace("...", "[]");
+                        }
+                        if (!canonicalText.contains(expectedArgumentType)) {
 
                             // TODO FIXME RIGHTNOW
                             PsiClass expectedClassPsi = ApplicationManager.getApplication().runReadAction(

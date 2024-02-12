@@ -460,6 +460,13 @@ public class StompComponent implements
                 List<PsiMethodCallExpression> expressionsBySignature = expressionsBySignatureMap.get(
                         mockMethodTarget.getMethodHashKey());
 
+                if (expressionsBySignature == null) {
+                    // this call is not on a field. it is probably a call to a method in the same class
+                    // not mocking this
+                    logger.warn("Skipping call for mocking: " + mockMethodTarget);
+                    continue;
+                }
+
                 PsiMethodCallExpression methodCallExpression1 = expressionsBySignature.get(0);
 //                    methodCallExpression1.getMethodExpression()
 
