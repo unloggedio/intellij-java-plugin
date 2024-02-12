@@ -75,6 +75,23 @@ public class AssertionUtils {
                     message = "Received Exception is different from expected Exception";
                 }
                 break;
+            case "NOT NULL":
+                //the response shouldn't be null
+                if (!actualResponse.equals("null - from agent")) {
+                    result = true;
+                    message = "Received a non-null response";
+                } else {
+                    message = "Received a null response";
+                }
+                break;
+            case "NOT EQUAL":
+                //the response shouldn't be equal to reference output
+                if (!actualResponse.equals(refOut)) {
+                    result = true;
+                    message = "Response is not equal to reference, as expected";
+                } else {
+                    message = "Response is equal to reference, this was not expected";
+                }
         }
         assertionResult.setPassing(result);
         assertionResult.setMessage(message);

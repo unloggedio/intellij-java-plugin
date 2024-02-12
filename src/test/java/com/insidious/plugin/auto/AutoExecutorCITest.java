@@ -96,9 +96,19 @@ public class AutoExecutorCITest {
                 String methodOutput = "";
                 if (outputCell != null) {
                     //can be null when an empty value is present in cell
-                    methodOutput = row.getCell(6).getStringCellValue();
+                    try {
+                        methodOutput = row.getCell(6).getStringCellValue();
+                    } catch (IllegalStateException illegalStateException) {
+                        //get numeric value
+                        methodOutput = String.valueOf(row.getCell(6).getNumericCellValue());
+                    }
                 }
                 String declaredMocks = row.getCell(9).getStringCellValue();
+                Cell commentCell = row.getCell(11);
+                String caseComment = null;
+                if (commentCell != null) {
+                    caseComment = commentCell.getStringCellValue();
+                }
 
                 String[] methodParts = targetMethodInfo.split("\\n");
                 assert methodParts.length == 2;
@@ -149,6 +159,9 @@ public class AutoExecutorCITest {
                         System.out.println("    Implementation : " + selectedImplementation);
                         System.out.println("    Assertion type : " + result.getAssertionType());
                         System.out.println("    Message : " + result.getMessage());
+                        if (caseComment != null) {
+                            System.out.println("    Case Comment : " + caseComment);
+                        }
                         if (!result.isPassing()) {
                             System.out.println("    Raw Response : " + agentCommandResponse.getMethodReturnValue());
                         }
