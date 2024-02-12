@@ -1,5 +1,5 @@
 package com.insidious.plugin.ui.methodscope;
 
-public interface OnCloseListener {
-    void onClose(MethodDirectInvokeComponent methodDirectInvokeComponent);
+public interface OnCloseListener<T> {
+    void onClose(T component);
 }

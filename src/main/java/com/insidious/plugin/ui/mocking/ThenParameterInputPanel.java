@@ -73,13 +73,11 @@ public class ThenParameterInputPanel {
 
 
         try {
-            TreeModel tree = JsonTreeUtils.jsonToTreeModel(objectMapper.readTree(thenParamValue),
-                    simpleClassName);
+            TreeModel tree = JsonTreeUtils.jsonToTreeModel(objectMapper.readTree(thenParamValue), simpleClassName);
             Tree comp = new Tree(tree);
 //            comp.setToolTipText(toolTipText);
             comp.setBackground(JBColor.WHITE);
-            comp.setBorder(
-                    BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
+//            comp.setBorder(BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
             int totalNodeCount = expandAllNodes(comp);
 
             valueScrollPanel.setViewportView(comp);

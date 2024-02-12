@@ -1,7 +1,7 @@
 package com.insidious.plugin.factory;
 
-import com.insidious.plugin.ui.stomp.FilterModel;
 import com.insidious.plugin.ui.library.LibraryFilterState;
+import com.insidious.plugin.ui.stomp.FilterModel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
@@ -28,10 +28,10 @@ public class InsidiousConfigurationState
     private static final Logger logger = LoggerUtil.getInstance(InsidiousConfigurationState.class);
     private final Map<String, Boolean> classFieldMockActiveStatus = new HashMap<>();
     private final Map<String, Boolean> mockActiveStatus = new HashMap<>();
-    @OptionTag(converter = FilterModelConverter.class)
-    private FilterModel filterModel = new FilterModel();
     @OptionTag(converter = LibraryFilterModelConverter.class)
     private final LibraryFilterState libraryFilterModel = new LibraryFilterState();
+    @OptionTag(converter = FilterModelConverter.class)
+    private FilterModel filterModel = new FilterModel();
 
 
     public InsidiousConfigurationState() {

@@ -97,12 +97,15 @@ public class MockDefinitionEditor {
             declaredMock.getThenParameter().add(newThenParameter);
             returnItemList.setLayout(new GridLayout(declaredMock.getThenParameter().size(), 1));
             ThenParameterInputPanel thenParameterInputPanel = new ThenParameterInputPanel(newThenParameter, project);
+
+            Dimension thenParameterInputPanelDimension = new Dimension(-1, 200);
+
             GridConstraints constraints = new GridConstraints(
                     declaredMock.getThenParameter().size() - 1, 0, 1, 1, ANCHOR_NORTH,
                     FILL_HORIZONTAL, SIZEPOLICY_CAN_GROW | SIZEPOLICY_CAN_SHRINK, SIZEPOLICY_FIXED,
-                    new Dimension(-1, 75),
-                    new Dimension(-1, 75),
-                    new Dimension(-1, 75)
+                    thenParameterInputPanelDimension,
+                    thenParameterInputPanelDimension,
+                    thenParameterInputPanelDimension
             );
 
             returnItemList.add(thenParameterInputPanel.getComponent(), constraints);
@@ -155,12 +158,13 @@ public class MockDefinitionEditor {
         for (int i = 0; i < thenParameters.size(); i++) {
             ThenParameter thenParameter = thenParameters.get(i);
             ThenParameterInputPanel thenParameterInputPanel = new ThenParameterInputPanel(thenParameter, project);
+            Dimension thenParameterInputPanelDimension = new Dimension(-1, 200);
             GridConstraints constraints = new GridConstraints(
                     i, 0, 1, 1, ANCHOR_NORTH,
                     FILL_HORIZONTAL, SIZEPOLICY_CAN_GROW | SIZEPOLICY_CAN_SHRINK, SIZEPOLICY_FIXED,
-                    new Dimension(-1, 75),
-                    new Dimension(-1, 75),
-                    new Dimension(-1, 75)
+                    thenParameterInputPanelDimension,
+                    thenParameterInputPanelDimension,
+                    thenParameterInputPanelDimension
             );
 
             returnItemList.add(thenParameterInputPanel.getComponent(), constraints);

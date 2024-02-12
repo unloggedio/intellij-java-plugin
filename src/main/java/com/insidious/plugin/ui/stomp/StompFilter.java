@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.stomp;
 
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.uiDesigner.core.GridConstraints;
 import org.jetbrains.annotations.Nullable;
@@ -17,7 +18,8 @@ import static com.intellij.uiDesigner.core.GridConstraints.ALIGN_FILL;
 import static com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL;
 
 public class StompFilter {
-    private final FilterModel filterModel;
+    private final FilterModel originalFilterModel;
+    private FilterModel filterModel;
     private JTabbedPane mainPanel;
     private JCheckBox followEditorCheckBox;
     private JList<String> includedClassesList;
@@ -47,39 +49,65 @@ public class StompFilter {
     private JPanel includedMethodsButtonPanel;
     private JPanel excludedMethodsButtonPanel;
     private JPanel sourcePreferencesPanel;
-    private JPanel filtersPanel;
+    private JPanel classFiltersPanel;
     private JPanel performanceFiltersPanel;
     private JPanel mainPanelFilters;
+    private JButton applyButton;
+    private JButton cancelButton;
+    private JButton resetToDefaultButton;
+    private OnCloseListener<StompFilter> onCloseListener;
+    private DefaultListModel<String> modelIncludedClasses;
+    private DefaultListModel<String> modelExcludedClasses;
+    private DefaultListModel<String> modelIncludedMethods;
+    private DefaultListModel<String> modelExcludedMethods;
 
     public StompFilter(FilterModel filterModel, MethodAdapter lastMethodFocussed) {
-        this.filterModel = filterModel;
+        originalFilterModel = new FilterModel(filterModel);
+        this.filterModel = new FilterModel(originalFilterModel);
 
-        DefaultListModel<String> modelIncludedClasses = new DefaultListModel<>();
-        modelIncludedClasses.addAll(filterModel.getIncludedClassNames());
-        includedClassesList.setModel(modelIncludedClasses);
-        includedClassesList.setBorder(BorderFactory.createEmptyBorder());
 
+        cancelButton.addActionListener(e -> {
+            if (onCloseListener != null) {
+                onCloseListener.onClose(StompFilter.this);
+            }
+        });
+        applyButton.addActionListener(e -> {
+            originalFilterModel.setFollowEditor(filterModel.followEditor);
+
+            originalFilterModel.getIncludedClassNames().clear();
+            originalFilterModel.getIncludedClassNames().addAll(filterModel.getIncludedClassNames());
+
+
+            originalFilterModel.getIncludedMethodNames().clear();
+            originalFilterModel.getIncludedMethodNames().addAll(filterModel.getIncludedMethodNames());
+
+
+            originalFilterModel.getExcludedMethodNames().clear();
+            originalFilterModel.getExcludedMethodNames().addAll(filterModel.getExcludedMethodNames());
+
+
+            originalFilterModel.getExcludedClassNames().clear();
+            originalFilterModel.getExcludedClassNames().addAll(filterModel.getExcludedClassNames());
+
+            originalFilterModel.getExcludedClassNames().clear();
+            originalFilterModel.getExcludedClassNames().addAll(filterModel.getExcludedClassNames());
+
+            originalFilterModel.candidateFilterType = filterModel.candidateFilterType;
+            onCloseListener.onClose(StompFilter.this);
+
+        });
         includedClassesList.setFixedCellWidth(300);
-
-        DefaultListModel<String> modelExcludedClasses = new DefaultListModel<>();
-        modelExcludedClasses.addAll(filterModel.getExcludedClassNames());
-        excludedClassesList.setModel(modelExcludedClasses);
         excludedClassesList.setFixedCellWidth(300);
-
-        DefaultListModel<String> modelIncludedMethods = new DefaultListModel<>();
-        modelIncludedMethods.addAll(filterModel.getIncludedMethodNames());
-        includedMethodsList.setModel(modelIncludedMethods);
         includedMethodsList.setFixedCellWidth(300);
-
-
-        DefaultListModel<String> modelExcludedMethods = new DefaultListModel<>();
-        modelExcludedMethods.addAll(filterModel.getExcludedMethodNames());
-        excludedMethodsList.setModel(modelExcludedMethods);
         excludedMethodsList.setFixedCellWidth(300);
 
-        if (filterModel.isFollowEditor()) {
-            followEditorCheckBox.setSelected(true);
-        }
+        setUiModels(filterModel);
+        resetToDefaultButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                filterModel.setFrom(originalFilterModel);
+            }
+        });
 
 
         excludedClassesFromClipboard.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -368,10 +396,28 @@ public class StompFilter {
                     newNameTextField.setText(name);
                 }
 
+                ActionListener saveAction = new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        String newName = newNameTextField.getText().trim();
+                        modelIncludedMethods.addElement(newName);
+                        filterModel.getIncludedMethodNames().add(newName);
+                        includedMethodsControlPanel.remove(centerPanel);
+                        includedMethodsButtonPanel.setVisible(true);
+                    }
+                };
+
 
                 Dimension current = newNameTextField.getMinimumSize();
-                newNameTextField.setMinimumSize(new Dimension(300, (int) current.getHeight()));
+                newNameTextField.setMinimumSize(new Dimension(200, (int) current.getHeight()));
                 centerPanel.add(newNameTextField, BorderLayout.CENTER);
+                JButton addButton = new JButton();
+                addButton.setText("Add (↵)");
+                addButton.setMinimumSize(new Dimension(100, 30));
+                addButton.setMaximumSize(new Dimension(100, 30));
+                addButton.setPreferredSize(new Dimension(100, 30));
+                addButton.addActionListener(saveAction);
+                centerPanel.add(addButton, BorderLayout.EAST);
 
 
                 includedMethodsButtonPanel.setVisible(false);
@@ -382,16 +428,8 @@ public class StompFilter {
                 includedMethodsControlPanel.add(centerPanel, constraints);
                 includedMethodsControlPanel.setToolTipText("Press enter to submit, escape to cancel");
 
-                newNameTextField.registerKeyboardAction(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        String newName = newNameTextField.getText().trim();
-                        modelIncludedMethods.addElement(newName);
-                        filterModel.getIncludedMethodNames().add(newName);
-                        includedMethodsControlPanel.remove(centerPanel);
-                        includedMethodsButtonPanel.setVisible(true);
-                    }
-                }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
+                newNameTextField.registerKeyboardAction(saveAction, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0),
+                        JComponent.WHEN_FOCUSED);
 
                 newNameTextField.registerKeyboardAction(new ActionListener() {
                     @Override
@@ -619,6 +657,32 @@ public class StompFilter {
 
     }
 
+    private void setUiModels(FilterModel filterModel) {
+        modelIncludedClasses = new DefaultListModel<>();
+        modelIncludedClasses.addAll(filterModel.getIncludedClassNames());
+
+        includedClassesList.setModel(modelIncludedClasses);
+        includedClassesList.setBorder(BorderFactory.createEmptyBorder());
+
+        modelExcludedClasses = new DefaultListModel<>();
+        modelExcludedClasses.addAll(filterModel.getExcludedClassNames());
+        excludedClassesList.setModel(modelExcludedClasses);
+
+        modelIncludedMethods = new DefaultListModel<>();
+        modelIncludedMethods.addAll(filterModel.getIncludedMethodNames());
+        includedMethodsList.setModel(modelIncludedMethods);
+
+
+        modelExcludedMethods = new DefaultListModel<>();
+        modelExcludedMethods.addAll(filterModel.getExcludedMethodNames());
+        excludedMethodsList.setModel(modelExcludedMethods);
+
+        if (filterModel.isFollowEditor()) {
+            followEditorCheckBox.setSelected(true);
+        }
+
+    }
+
     @Nullable
     private String getFromClipboard() {
         String fromClipboard = null;
@@ -635,5 +699,9 @@ public class StompFilter {
 
     public JComponent getComponent() {
         return mainPanel;
+    }
+
+    public void setOnCloseListener(OnCloseListener<StompFilter> onCloseListener) {
+        this.onCloseListener = onCloseListener;
     }
 }

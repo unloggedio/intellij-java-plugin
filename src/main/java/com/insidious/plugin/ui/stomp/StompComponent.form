@@ -189,7 +189,7 @@
                   <font style="1"/>
                   <foreground color="-10395295"/>
                   <icon value="icons/png/equalizer-line.png"/>
-                  <text value="Options"/>
+                  <text value="Filters"/>
                 </properties>
               </component>
             </children>

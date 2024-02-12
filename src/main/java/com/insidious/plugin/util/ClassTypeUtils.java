@@ -432,9 +432,11 @@ public class ClassTypeUtils {
                         PsiClass expectedTypePsiClass = JavaPsiFacade.getInstance(
                                 project).findClass(expectedTypeName.toString(),
                                 GlobalSearchScope.allScope(project));
-//                        expectedTypePsiClass.is;
-                        boolean isClassName = !actualTypeCanonicalName.contains(expectedTypeName.toString());
-                        if (isClassName) {
+                        PsiClassType expectedType = PsiType.getTypeByName(expectedArgumentType,
+                                project, GlobalSearchScope.allScope(project));
+                        boolean isNotOkay = !actualTypeCanonicalName.contains(expectedTypeName.toString())
+                                && !((PsiType) actualArgumentType).isAssignableFrom(expectedType);
+                        if (isNotOkay) {
 
                             // TODO FIXME RIGHTNOW
                             PsiClass expectedClassPsi = ApplicationManager.getApplication().runReadAction(

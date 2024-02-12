@@ -13,6 +13,18 @@ public class FilterModel {
     boolean followEditor;
     CandidateFilterType candidateFilterType;
 
+    public FilterModel(FilterModel filterModel) {
+        this.includedMethodNames.addAll(filterModel.includedMethodNames);
+        this.includedClassNames.addAll(filterModel.includedClassNames);
+        this.excludedMethodNames.addAll(filterModel.excludedMethodNames);
+        this.excludedClassNames.addAll(filterModel.excludedClassNames);
+        this.followEditor = filterModel.followEditor;
+        this.candidateFilterType = filterModel.candidateFilterType;
+    }
+
+    public FilterModel() {
+    }
+
     public boolean isFollowEditor() {
         return followEditor;
     }
@@ -35,5 +47,22 @@ public class FilterModel {
 
     public Set<String> getExcludedMethodNames() {
         return excludedMethodNames;
+    }
+
+    public void setFrom(FilterModel filterModel) {
+        this.includedMethodNames.clear();
+        this.includedClassNames.clear();
+
+        this.excludedMethodNames.clear();
+        this.excludedClassNames.clear();
+
+
+        this.includedMethodNames.addAll(filterModel.includedMethodNames);
+        this.includedClassNames.addAll(filterModel.includedClassNames);
+        this.excludedMethodNames.addAll(filterModel.excludedMethodNames);
+        this.excludedClassNames.addAll(filterModel.excludedClassNames);
+        this.followEditor = filterModel.followEditor;
+        this.candidateFilterType = filterModel.candidateFilterType;
+
     }
 }

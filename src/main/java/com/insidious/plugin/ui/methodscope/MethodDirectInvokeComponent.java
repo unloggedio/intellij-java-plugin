@@ -247,7 +247,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         }
         this.methodElement = methodElement1;
         String methodName = methodElement.getName();
-//        createBoilerplateButton.setVisible(true);
+
         ClassAdapter containingClass = methodElement.getContainingClass();
 
         String className = ApplicationManager.getApplication().runReadAction(
@@ -435,21 +435,15 @@ public class MethodDirectInvokeComponent implements ActionListener {
             methodParameterContainer.add(noParametersLabel, BorderLayout.CENTER);
         }
 
-        if (parameterScrollPanel != null) {
-            methodParameterScrollContainer.remove(parameterScrollPanel);
+        if (parameterScrollPanel == null) {
+            parameterScrollPanel = new JBScrollPane(methodParameterContainer);
+            methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.NORTH);
+        } else {
+            parameterScrollPanel.setViewportView(methodParameterContainer);
         }
+
         configureCreateBoilerplateButton();
-
-
-        parameterScrollPanel = new JBScrollPane(methodParameterContainer);
         parameterScrollPanel.setBorder(BorderFactory.createEmptyBorder());
-
-        JPanel scrollContainer = new JPanel();
-        scrollContainer.setLayout(new BorderLayout());
-        scrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
-
-        methodParameterScrollContainer.add(scrollContainer, BorderLayout.NORTH);
-
 
         mainContainer.revalidate();
         mainContainer.repaint();
@@ -617,9 +611,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
                                 Tree comp = new Tree(responseObjectTree);
                                 comp.setToolTipText(toolTipText);
                                 comp.setBackground(JBColor.WHITE);
-                                comp.setBorder(
-                                        BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
-                                int totalNodeCount = MethodDirectInvokeComponent.this.expandAllNodes(comp);
+//                                comp.setBorder(BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
+                                int totalNodeCount = expandAllNodes(comp);
 
                                 parameterScrollPanel.setViewportView(comp);
 

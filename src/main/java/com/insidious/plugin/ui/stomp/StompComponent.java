@@ -42,10 +42,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.popup.ActiveIcon;
-import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
-import com.intellij.openapi.ui.popup.IPopupChooserBuilder;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -76,7 +73,7 @@ import java.util.stream.Collectors;
 public class StompComponent implements
         Consumer<List<TestCandidateMetadata>>,
         TestCandidateLifeListener,
-        OnCloseListener,
+        OnCloseListener<MethodDirectInvokeComponent>,
         Runnable,
         OnExpandListener {
     public static final int COMPONENT_HEIGHT = 93;
@@ -271,41 +268,39 @@ public class StompComponent implements
 
 
         filterButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        filterButton.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
         filterButton.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseEntered(MouseEvent e) {
-//                filterButton.setBorder(BorderFactory.createRaisedBevelBorder());
-//            }
-//
-//            @Override
-//            public void mouseExited(MouseEvent e) {
-//                filterButton.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
-//            }
+
 
             @Override
             public void mouseClicked(MouseEvent e) {
 
                 StompFilter stompFilter = new StompFilter(filterModel, lastMethodFocussed);
                 JComponent component = stompFilter.getComponent();
-                component.setMaximumSize(new Dimension(500, 800));
+
                 ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
                         .createComponentPopupBuilder(component, null);
 
-                gutterMethodComponentPopup
+                JBPopup unloggedPreferencesPopup = gutterMethodComponentPopup
                         .setProject(project)
                         .setShowBorder(true)
                         .setShowShadow(true)
                         .setFocusable(true)
                         .setRequestFocus(true)
-                        .setCancelOnClickOutside(true)
-                        .setCancelOnOtherWindowOpen(true)
-                        .setCancelKeyEnabled(true)
+                        .setCancelOnClickOutside(false)
+                        .setCancelOnOtherWindowOpen(false)
+                        .setCancelKeyEnabled(false)
                         .setBelongsToGlobalPopupStack(false)
                         .setTitle("Unlogged Preferences")
                         .setTitleIcon(new ActiveIcon(UIUtils.UNLOGGED_ICON_DARK))
-                        .createPopup()
-                        .show(new RelativePoint(e));
+                        .createPopup();
+
+                component.setMaximumSize(new Dimension(500, 800));
+
+                OnCloseListener<StompFilter> onCloseListener = component1 -> unloggedPreferencesPopup.cancel();
+
+                stompFilter.setOnCloseListener(onCloseListener);
+
+                unloggedPreferencesPopup.showCenteredInCurrentWindow(project);
 
 
             }
@@ -1606,11 +1601,35 @@ public class StompComponent implements
     }
 
     public void onMethodFocussed(MethodAdapter method) {
+        String newMethodName = method.getName();
+        String newClassName = method.getContainingClass().getQualifiedName();
+        if (lastMethodFocussed != null) {
+            if (lastMethodFocussed.getName().equals(newMethodName) &&
+                    lastMethodFocussed.getContainingClass().getQualifiedName()
+                            .equals(newClassName)) {
+                // same method focussed again
+                return;
+            }
+        }
+
         lastMethodFocussed = method;
         if (filterModel.isFollowEditor()) {
+
+            if (filterModel.getIncludedMethodNames().size() == 1 && filterModel.getIncludedMethodNames()
+                    .contains(newMethodName)) {
+                if (filterModel.getIncludedClassNames().size() == 1 && filterModel.getIncludedClassNames()
+                        .contains(newClassName)) {
+                    if (filterModel.getExcludedClassNames().size() == 0 && filterModel.getExcludedMethodNames()
+                            .size() == 0) {
+                        // already set
+                        return;
+                    }
+                }
+            }
+
             clearFilter();
-            filterModel.getIncludedMethodNames().add(method.getName());
-            filterModel.getIncludedClassNames().add(method.getContainingClass().getQualifiedName());
+            filterModel.getIncludedMethodNames().add(newMethodName);
+            filterModel.getIncludedClassNames().add(newClassName);
             updateFilterLabel();
             resetAndReload();
         }
