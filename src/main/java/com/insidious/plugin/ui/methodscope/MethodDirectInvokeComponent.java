@@ -60,13 +60,14 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private Editor returnValueTextArea;
     private JPanel methodParameterScrollContainer;
     private JButton executeButton;
-    private JButton modifyArgumentsButton;
+//    private JButton modifyArgumentsButton;
     private JLabel closeButton;
     //    private JLabel editValueLabel;
     private JButton createBoilerplateButton;
     private JLabel methodNameLabel;
     private JPanel directInvokeContainerPanel;
     private JPanel junitBoilerplaceContainerPanel;
+    private JButton modifyArgumentsButton;
     private MethodAdapter methodElement;
     private Tree argumentValueTree = null;
     private TreeModel argumentsValueTreeNode;
@@ -78,7 +79,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
     public MethodDirectInvokeComponent(InsidiousService insidiousService, OnCloseListener onCloseListener) {
         this.insidiousService = insidiousService;
         this.objectMapper = this.insidiousService.getObjectMapper();
-        modifyArgumentsButton.setVisible(false);
 
         configureCreateBoilerplateButton(insidiousService);
         configureEditButton();
@@ -98,6 +98,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         executeButton.addActionListener(e -> executeMethodWithParameters());
         executeButton.setIcon(UIUtils.DIRECT_INVOKE_EXECUTE);
 
+        modifyArgumentsButton.setVisible(false);
         modifyArgumentsButton.addActionListener(e -> {
             try {
                 renderForMethod(methodElement, null);
