@@ -18,6 +18,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,7 +49,8 @@ public class MockDefinitionEditor {
     private JPanel whenTitlePanel;
     private JPanel thenPanel;
     private JPanel thenTitlePanel;
-    //    private JPanel mockTypeParentPanel;
+    private JLabel thenReturnLabel;
+    private JLabel changeThenType;
     private String returnDummyValue;
     private String methodReturnTypeName;
     private JBPopup yeditorPopup;
@@ -65,10 +68,15 @@ public class MockDefinitionEditor {
                 (Computable<String>) () -> methodCallExpression.getMethodExpression().getText());
         callExpressionLabel.setText(expressionText);
 
+        changeThenType.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+            }
+        });
 
-        DeclaredMock defaultMock = ApplicationManager.getApplication().runReadAction(
+        this.declaredMock = ApplicationManager.getApplication().runReadAction(
                 (Computable<DeclaredMock>) () -> ClassUtils.createDefaultMock(methodCallExpression));
-        this.declaredMock = defaultMock;
         updateUiValues();
         addListeners();
     }

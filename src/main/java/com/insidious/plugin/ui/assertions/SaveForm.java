@@ -11,13 +11,11 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.TestType;
-import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.ui.JBColor;
@@ -35,7 +33,7 @@ import java.awt.*;
 import java.util.List;
 import java.util.*;
 
-public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
+public class SaveForm implements OnTestTypeChangeListener {
 
     private static final Logger logger = LoggerUtil.getInstance(SaveForm.class);
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
@@ -45,7 +43,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
     private final SaveFormMetadataPanel metadataForm;
     private final JPanel mainPanel;
     private final JTabbedPane bottomTabPanel;
-    private JPanel mockPanel;
+    //    private JPanel mockPanel;
     private HashSet<String> enabledMockList;
     private JsonNode responseNode;
     private JButton saveButton;
@@ -172,9 +170,9 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         treePanelHeading.setVerticalAlignment(SwingConstants.TOP);
         treePanelHeading.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
         // define treePanel
-        JPanel treePanel = new JPanel();
-        treePanel.setLayout(new BorderLayout());
-        treePanel.add(treePanelHeading, BorderLayout.NORTH);
+//        JPanel treePanel = new JPanel();
+//        treePanel.setLayout(new BorderLayout());
+//        treePanel.add(treePanelHeading, BorderLayout.NORTH);
 
         int CandidateExplorerTreeHeight = 300;
 
@@ -192,7 +190,7 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         JPanel metadataFormPanel = metadataForm.getMainPanel();
 
         midPanel.add(metadataFormPanel);
-        midPanel.add(treePanel);
+//        midPanel.add(treePanel);
 
         // assertion panel
         JPanel assertionPanel = new JPanel();
@@ -203,13 +201,13 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         assertionPanel.add(assertionScrollPanel);
 
         // mock panel
-        this.mockPanel = new JPanel();
-        ApplicationManager.getApplication().executeOnPooledThread(this::addDataMockPanel);
+//        this.mockPanel = new JPanel();
+//        ApplicationManager.getApplication().executeOnPooledThread(this::addDataMockPanel);
 
         // define lowerPanel
         bottomTabPanel = new JBTabbedPane();
         bottomTabPanel.addTab("Assertion", assertionPanel);
-        bottomTabPanel.addTab("Mock Data", this.mockPanel);
+//        bottomTabPanel.addTab("Mock Data", this.mockPanel);
 
         bottomTabPanel.addChangeListener(e -> {
             JSONObject panelChanged = new JSONObject();
@@ -232,8 +230,8 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
 
     private void addDataMockPanel() {
 
-        GridLayout mockPanelLayout = new GridLayout(1, 1);
-        mockPanel.setLayout(mockPanelLayout);
+//        GridLayout mockPanelLayout = new GridLayout(1, 1);
+//        mockPanel.setLayout(mockPanelLayout);
 
         // define mockDataPanelContent
         JPanel mockDataPanelContent = new JPanel();
@@ -255,15 +253,15 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         JPanel mockMethodPanel = new JPanel();
         mockMethodPanel.setLayout(new BoxLayout(mockMethodPanel, BoxLayout.Y_AXIS));
 
-        for (String localKey : this.mockValueMap.getDependencyMockMap().keySet()) {
-            mockMethodPanel.add(this.genMockMethodPanelSingle(localKey));
-            mockMethodPanel.add(Box.createRigidArea(new Dimension(1, 10)));
-        }
+//        for (String localKey : this.mockValueMap.getDependencyMockMap().keySet()) {
+//            mockMethodPanel.add(this.genMockMethodPanelSingle(localKey));
+//            mockMethodPanel.add(Box.createRigidArea(new Dimension(1, 10)));
+//        }
 
         mockDataPanelContent.add(mockMethodPanel);
         JScrollPane mockScrollPanel = new JBScrollPane(mockDataPanelContent);
         mockScrollPanel.setBorder(BorderFactory.createEmptyBorder());
-        mockPanel.add(mockScrollPanel);
+//        mockPanel.add(mockScrollPanel);
     }
 
     public JPanel genMockMethodPanelSingle(String localKey) {
@@ -520,10 +518,6 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         return this.ruleEditor;
     }
 
-    public JTree getCandidateExplorerTree() {
-        return candidateExplorerTree;
-    }
-
     public StoredCandidate getStoredCandidate() {
         return storedCandidate;
     }
@@ -538,13 +532,5 @@ public class SaveForm implements OnTestTypeChangeListener, OnSaveListener {
         }
 
         enabledMockList.clear();
-    }
-
-    @Override
-    public void onSaveDeclaredMock(DeclaredMock declaredMock) {
-        insidiousService.saveMockDefinition(declaredMock);
-
-        this.mockPanel.removeAll();
-        addDataMockPanel();
     }
 }

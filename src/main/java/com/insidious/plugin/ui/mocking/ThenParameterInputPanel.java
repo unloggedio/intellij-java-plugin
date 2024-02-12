@@ -61,7 +61,8 @@ public class ThenParameterInputPanel {
         if (simpleClassName.contains(".")) {
             simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
         }
-        returnTypeTextField.setText(simpleClassName);
+//        returnTypeTextField.setText(simpleClassName);
+        returnTypeTextField.setVisible(false);
         String thenParamValue = thenParameter.getReturnParameter().getValue();
         valueScrollPanel.setBorder(BorderFactory.createEmptyBorder());
         try {

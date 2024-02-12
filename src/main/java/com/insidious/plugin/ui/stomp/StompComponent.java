@@ -1414,8 +1414,8 @@ public class StompComponent implements
             mainPanel.repaint();
         });
         JComponent content = mockEditor.getComponent();
-        content.setMinimumSize(new Dimension(-1, 400));
-        content.setMaximumSize(new Dimension(-1, 400));
+        content.setMinimumSize(new Dimension(-1, 500));
+        content.setMaximumSize(new Dimension(-1, 600));
         southPanel.removeAll();
         southPanel.add(content, BorderLayout.CENTER);
 
@@ -1440,8 +1440,8 @@ public class StompComponent implements
             }
         });
         JComponent content = mockEditor.getComponent();
-        content.setMinimumSize(new Dimension(-1, 400));
-        content.setMaximumSize(new Dimension(-1, 400));
+        content.setMinimumSize(new Dimension(-1, 500));
+        content.setMaximumSize(new Dimension(-1, 600));
         southPanel.add(content, BorderLayout.CENTER);
     }
 
