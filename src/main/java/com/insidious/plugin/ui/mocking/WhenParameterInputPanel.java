@@ -49,6 +49,8 @@ public class WhenParameterInputPanel {
     private JPanel valueContainer;
     private JPanel typeContainer;
     private JPanel nameContainer;
+    private JLabel editIconLabel;
+    private JPanel editIconContainer;
 
     public WhenParameterInputPanel(ParameterMatcher parameterMatcher, Project project) {
         this.project = project;
@@ -163,6 +165,9 @@ public class WhenParameterInputPanel {
                 // show simple class name
                 value = value.substring(value.lastIndexOf(".") + 1);
             }
+        }
+        if (value.length() > 30) {
+            value = value.substring(0, 27) + "...";
         }
         matcherValueTextField.setText("<html><u>" + value + "</u></html>");
     }

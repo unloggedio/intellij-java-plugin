@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.mocking.MethodExitType;
 import com.insidious.plugin.mocking.ThenParameter;
+import com.insidious.plugin.ui.methodscope.InsidiousCellEditor;
+import com.insidious.plugin.ui.methodscope.InsidiousTreeListener;
 import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
@@ -22,8 +24,8 @@ import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -48,8 +50,8 @@ public class ThenParameterInputPanel {
     private final Project project;
     private final Color originalBackgroundColor;
     private JPanel mainPanel;
-    private JLabel returnTypeTextField;
-    private JLabel returnType;
+    //    private JLabel returnTypeTextField;
+//    private JLabel returnType;
     private JScrollPane valueScrollPanel;
     private JPanel textAreaScrollParent;
 
@@ -62,7 +64,7 @@ public class ThenParameterInputPanel {
             simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
         }
 //        returnTypeTextField.setText(simpleClassName);
-        returnTypeTextField.setVisible(false);
+//        returnTypeTextField.setVisible(false);
         String thenParamValue = thenParameter.getReturnParameter().getValue();
         valueScrollPanel.setBorder(BorderFactory.createEmptyBorder());
         try {
@@ -75,13 +77,26 @@ public class ThenParameterInputPanel {
 
         try {
             TreeModel tree = JsonTreeUtils.jsonToTreeModel(objectMapper.readTree(thenParamValue), simpleClassName);
-            Tree comp = new Tree(tree);
-//            comp.setToolTipText(toolTipText);
-            comp.setBackground(JBColor.WHITE);
-//            comp.setBorder(BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
-            int totalNodeCount = expandAllNodes(comp);
+            Tree valueTree = new Tree(tree);
 
-            valueScrollPanel.setViewportView(comp);
+
+            valueTree.setCellEditor(new InsidiousCellEditor(valueTree, null));
+            valueTree.getModel().addTreeModelListener(new InsidiousTreeListener());
+
+            valueTree.setBackground(JBColor.WHITE);
+//            valueTree.setBorder(BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
+            valueTree.setEditable(true);
+
+
+            int totalNodeCount = expandAllNodes(valueTree);
+            valueTree.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    valueTree.startEditingAtPath(valueTree.getSelectionPath());
+                }
+            });
+
+            valueScrollPanel.setViewportView(valueTree);
 
 
         } catch (JsonProcessingException e) {
@@ -98,7 +113,7 @@ public class ThenParameterInputPanel {
 //            }
 //        });
 
-        returnType.setText(MethodExitType.NORMAL.toString());
+//        returnType.setText(MethodExitType.NORMAL.toString());
 
 //        returnType.setModel(new DefaultComboBoxModel<>(MethodExitType.values()));
 //        returnType.setSelectedItem(thenParameter.getMethodExitType());
@@ -108,14 +123,14 @@ public class ThenParameterInputPanel {
 //            updateVisibleControls();
 //        });
 
-        returnTypeTextField.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyReleased(KeyEvent e) {
-                String text = returnTypeTextField.getText();
-                thenParameter.getReturnParameter().setClassName(text);
-                validateTypeValid();
-            }
-        });
+//        returnTypeTextField.addKeyListener(new KeyAdapter() {
+//            @Override
+//            public void keyReleased(KeyEvent e) {
+//                String text = returnTypeTextField.getText();
+//                thenParameter.getReturnParameter().setClassName(text);
+//                validateTypeValid();
+//            }
+//        });
         updateVisibleControls();
         validateTypeValid();
     }
@@ -141,10 +156,10 @@ public class ThenParameterInputPanel {
 
     public void updateVisibleControls() {
         if (thenParameter.getMethodExitType() == MethodExitType.NULL) {
-            returnTypeTextField.setEnabled(false);
+//            returnTypeTextField.setEnabled(false);
             valueScrollPanel.setEnabled(false);
         } else {
-            returnTypeTextField.setEnabled(true);
+//            returnTypeTextField.setEnabled(true);
             valueScrollPanel.setEnabled(true);
         }
 
@@ -153,7 +168,7 @@ public class ThenParameterInputPanel {
     public void validateTypeValid() {
         String className = thenParameter.getReturnParameter().getClassName();
         if (baseClassNames.contains(className)) {
-            returnTypeTextField.setBackground(originalBackgroundColor);
+//            returnTypeTextField.setBackground(originalBackgroundColor);
             return;
         }
         if (className.contains("<")) {
@@ -168,9 +183,9 @@ public class ThenParameterInputPanel {
                 .runReadAction((Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
                         .findClass(finalClassName.replace("$", "."), GlobalSearchScope.allScope(project)));
         if (locatedClass == null) {
-            returnTypeTextField.setBackground(UIUtils.WARNING_RED);
+//            returnTypeTextField.setBackground(UIUtils.WARNING_RED);
         } else {
-            returnTypeTextField.setBackground(originalBackgroundColor);
+//            returnTypeTextField.setBackground(originalBackgroundColor);
         }
 
     }
