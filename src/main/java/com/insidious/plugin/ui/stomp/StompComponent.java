@@ -404,9 +404,15 @@ public class StompComponent implements
 //                .collect(Collectors.toList());
         SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
 //            saveFormReference = new SaveForm(candidateList, candidateLifeListener);
-        saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener);
+        saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener,
+                new OnCloseListener<TestCandidateSaveForm>() {
+                    @Override
+                    public void onClose(TestCandidateSaveForm component) {
+                        southPanel.removeAll();
+                    }
+                });
         JPanel component = saveFormReference.getComponent();
-        component.setMinimumSize(new Dimension(0, 600));
+//        component.setMinimumSize(new Dimension(0, 600));
 //        component.setMaximumSize(new Dimension(600, 800));
         southPanel.add(component, BorderLayout.SOUTH);
 

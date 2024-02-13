@@ -10,14 +10,22 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.ui.library.ItemLifeCycleListener;
+import com.insidious.plugin.ui.library.StoredCandidateItemPanel;
+import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.util.AtomicAssertionUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.ui.components.JBScrollPane;
+import com.intellij.uiDesigner.core.GridConstraints;
+import org.json.JSONArray;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
@@ -30,6 +38,7 @@ public class TestCandidateSaveForm {
     private final SaveFormListener saveFormListener;
     private final List<StoredCandidate> candidateList;
     private final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
+    private final Map<StoredCandidate, StoredCandidateItemPanel> candidatePanelMap = new HashMap<>();
     private JPanel mainPanel;
     private JLabel assertionCountLabel;
     private JLabel linesCountLabel;
@@ -47,7 +56,8 @@ public class TestCandidateSaveForm {
     private JRadioButton integrationRadioButton;
     private JRadioButton unitRadioButton;
 
-    public TestCandidateSaveForm(List<TestCandidateMetadata> candidateMetadataList, SaveFormListener saveFormListener) {
+    public TestCandidateSaveForm(List<TestCandidateMetadata> candidateMetadataList,
+                                 SaveFormListener saveFormListener, OnCloseListener<TestCandidateSaveForm> onCloseListener) {
         this.candidateMetadataList = candidateMetadataList;
         this.saveFormListener = saveFormListener;
         selectedReplayCountLabel.setText(candidateMetadataList.size() + " replay selected");
@@ -55,13 +65,58 @@ public class TestCandidateSaveForm {
         long downstreamCallCount = candidateMetadataList.stream().mapToLong(e -> e.getCallsList().size()).sum();
         mockCallCountLabel.setText(downstreamCallCount + " downstream call mocks");
 
+
+        confirmButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                for (StoredCandidate storedCandidate : candidateList) {
+                    saveFormListener.onSaved(storedCandidate);
+                }
+                onCloseListener.onClose(TestCandidateSaveForm.this);
+            }
+        });
+
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                onCloseListener.onClose(TestCandidateSaveForm.this);
+            }
+        });
+
         replaySummaryLine.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         replayExpandIcon.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         selectedReplayCountLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         replayLineContainer.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
+        ItemLifeCycleListener<StoredCandidate> listener = new ItemLifeCycleListener<StoredCandidate>() {
+            @Override
+            public void onSelect(StoredCandidate item) {
 
-        candidateListContainer.add(new JButton(), BorderLayout.CENTER);
+            }
+
+            @Override
+            public void onUnSelect(StoredCandidate item) {
+
+            }
+
+            @Override
+            public void onDelete(StoredCandidate item) {
+
+            }
+
+            @Override
+            public void onEdit(StoredCandidate item) {
+
+            }
+        };
+
+        JPanel itemContainer = new JPanel();
+        itemContainer.setLayout(new GridLayout(0, 1));
+        JBScrollPane itemScroller = new JBScrollPane(itemContainer);
+        itemScroller.setMaximumSize(new Dimension(500, 400));
+        candidateListContainer.add(itemScroller, BorderLayout.CENTER);
+
+
         MouseAdapter showCandidatesAdapter = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -123,6 +178,12 @@ public class TestCandidateSaveForm {
         int classCount = classNames.size();
         linesCountLabel.setText(lineCoverageMap.size() + " unique lines covered in " + classCount + " class"
                 + (classCount == 1 ? "" : "es"));
+        for (StoredCandidate storedCandidate : candidateList) {
+            StoredCandidateItemPanel storedCandidateItemPanel = new StoredCandidateItemPanel(storedCandidate, listener,
+                    saveFormListener.getProject());
+            candidatePanelMap.put(storedCandidate,  storedCandidateItemPanel);
+            itemContainer.add(storedCandidateItemPanel.getComponent(), new GridConstraints());
+        }
 
 
     }

@@ -23,7 +23,6 @@ public interface CandidateLifeListener {
 
     int onSaved(StoredCandidate storedCandidate);
 
-    void onSaved(List<TestCandidateMetadata> selectedCandidates);
 
     void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse);
 

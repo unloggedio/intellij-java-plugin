@@ -155,31 +155,6 @@ public class SaveFormListener implements CandidateLifeListener {
     }
 
     @Override
-    public void onSaved(List<TestCandidateMetadata> selectedCandidates) {
-
-
-        ProgressIndicator globalProgressIndicator = ProgressIndicatorProvider.getGlobalProgressIndicator();
-        globalProgressIndicator.start();
-        globalProgressIndicator.setFraction(0);
-
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            ProgressManager.getInstance().executeProcessUnderProgress(new Runnable() {
-                @Override
-                public void run() {
-
-
-                }
-            }, globalProgressIndicator);
-
-        });
-
-
-//        insidiousService.hideCandidateSaveForm(saveFormReference);
-
-
-    }
-
-    @Override
     public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
 
     }
