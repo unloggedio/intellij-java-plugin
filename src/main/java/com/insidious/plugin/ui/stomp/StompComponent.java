@@ -179,7 +179,7 @@ public class StompComponent implements
             }
         });
 
-        selectAllLabel.setVisible(false);
+//        selectAllLabel.setVisible(false);
         selectAllLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         selectAllLabel.addMouseListener(new MouseAdapter() {
             @Override
@@ -847,7 +847,7 @@ public class StompComponent implements
 //            reloadButton.setEnabled(true);
 
             clearSelectionLabel.setVisible(true);
-            selectAllLabel.setVisible(true);
+//            selectAllLabel.setVisible(true);
 
 
             generateJUnitButton.setEnabled(true);
@@ -859,7 +859,7 @@ public class StompComponent implements
         } else if (selectedCandidates.size() == 0 && controlPanel.isEnabled()) {
             selectedCountLabel.setText("0 selected");
             clearSelectionLabel.setVisible(false);
-            selectAllLabel.setVisible(false);
+//            selectAllLabel.setVisible(false);
 
 
 //            reloadButton.setEnabled(false);
