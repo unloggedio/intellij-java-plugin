@@ -7,9 +7,11 @@ import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.Expression;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.ui.library.DeclaredMockItemPanel;
 import com.insidious.plugin.ui.library.ItemLifeCycleListener;
 import com.insidious.plugin.ui.library.StoredCandidateItemPanel;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
@@ -18,9 +20,9 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.uiDesigner.core.GridConstraints;
-import org.json.JSONArray;
 
 import javax.swing.*;
 import java.awt.*;
@@ -39,6 +41,8 @@ public class TestCandidateSaveForm {
     private final List<StoredCandidate> candidateList;
     private final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final Map<StoredCandidate, StoredCandidateItemPanel> candidatePanelMap = new HashMap<>();
+    private final Map<MethodCallExpression, DeclaredMockItemPanel> declaredMockPanelMap = new HashMap<>();
+    private final Map<AtomicAssertion, AtomicAssertionItemPanel> atomicAssertionPanelMap = new HashMap<>();
     private JPanel mainPanel;
     private JLabel assertionCountLabel;
     private JLabel linesCountLabel;
@@ -46,15 +50,24 @@ public class TestCandidateSaveForm {
     private JLabel mockCallCountLabel;
     private JSeparator replaySummaryLine;
     private JLabel replayExpandIcon;
-    private JPanel replayLineContainer;
+    private JPanel replayLabelContainer;
     private JPanel hiddenCandidateListContainer;
-    private JPanel candidateListContainer;
     private JButton confirmButton;
     private JButton cancelButton;
-    private JCheckBox checkBox1;
-    private JCheckBox checkBox2;
     private JRadioButton integrationRadioButton;
     private JRadioButton unitRadioButton;
+    private JCheckBox checkBox1;
+    private JPanel replayScrollParentPanel;
+    private JSeparator mockSummaryExpandLine;
+    private JLabel mockCallsExpandIcon;
+    private JPanel mockScrollParentPanel;
+    private JPanel hiddenMockListContainer;
+    private JSeparator assertionLine;
+    private JLabel assertionExpandIcon;
+    private JSeparator linesCoveredLine;
+    private JLabel linesCoveredExpandIcon;
+    private JPanel assertionsScrollParentPanel;
+    private JPanel hiddenAssertionsListContainer;
 
     public TestCandidateSaveForm(List<TestCandidateMetadata> candidateMetadataList,
                                  SaveFormListener saveFormListener, OnCloseListener<TestCandidateSaveForm> onCloseListener) {
@@ -62,8 +75,13 @@ public class TestCandidateSaveForm {
         this.saveFormListener = saveFormListener;
         selectedReplayCountLabel.setText(candidateMetadataList.size() + " replay selected");
 
-        long downstreamCallCount = candidateMetadataList.stream().mapToLong(e -> e.getCallsList().size()).sum();
-        mockCallCountLabel.setText(downstreamCallCount + " downstream call mocks");
+        List<MethodCallExpression> downstreamCallList = candidateMetadataList
+                .stream()
+                .flatMap(e -> e.getCallsList()
+                        .stream()
+                        .filter(e1 -> (e1.getSubject() != null && e1.getSubject().getValue() != 0))
+                ).collect(Collectors.toList());
+        mockCallCountLabel.setText(downstreamCallList.size() + " downstream call mocks");
 
 
         confirmButton.addActionListener(new ActionListener() {
@@ -83,12 +101,107 @@ public class TestCandidateSaveForm {
             }
         });
 
+
+        JPanel candiateItemContainer = new JPanel();
+        candiateItemContainer.setLayout(new GridLayout(0, 1));
+        JBScrollPane itemScroller = new JBScrollPane(candiateItemContainer);
+        replayScrollParentPanel.add(itemScroller, BorderLayout.CENTER);
+
+
+        candidateList = candidateMetadataList.stream()
+                .map(candidateMetadata -> {
+
+                    JsonNode returnValue;
+                    MethodCallExpression mainMethod = candidateMetadata.getMainMethod();
+                    if (mainMethod.getReturnValue().getValue() == 0 || mainMethod.getReturnValue().getType() == null) {
+                        return null;
+                    }
+                    Parameter returnValue1 = mainMethod.getReturnValue();
+                    if (returnValue1.getProb().getSerializedValue().length == 0) {
+                        return null;
+                    }
+                    String stringValue = new String(returnValue1.getProb().getSerializedValue());
+                    if (stringValue.length() == 0) {
+                        return null;
+                    }
+                    try {
+                        returnValue = objectMapper.readTree(stringValue);
+                    } catch (JsonProcessingException e) {
+                        logger.warn("Failed to parse response value as a json object: " + e.getMessage());
+                        returnValue =
+                                objectMapper.getNodeFactory().textNode(stringValue);
+                    }
+                    StoredCandidate storedCandidate = new StoredCandidate(candidateMetadata);
+
+
+                    AtomicAssertion assertion;
+                    if (!returnValue1.isException()) {
+                        assertion = createAssertions(returnValue);
+                    } else {
+                        JsonNode message = returnValue.get("message");
+                        String expectedValue = message == null ? "" : message.toString();
+                        assertion = new AtomicAssertion(Expression.SELF, AssertionType.EQUAL, "/message",
+                                expectedValue);
+                    }
+                    storedCandidate.setTestAssertions(assertion);
+                    return storedCandidate;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+
+        List<AtomicAssertion> allAssertions = candidateList.stream()
+                .flatMap(e -> AtomicAssertionUtils.flattenAssertionMap(e.getTestAssertions()).stream())
+                .collect(Collectors.toList());
+
+        long assertionCount = allAssertions.size();
+
+        assertionCountLabel.setText(assertionCount + " assertions");
+
+        Set<String> lineCoverageMap = new HashSet<>();
+        Set<String> classNames = new HashSet<>();
+        for (StoredCandidate storedCandidate : candidateList) {
+            List<Integer> lines = storedCandidate.getLineNumbers();
+            String hashKey = storedCandidate.getMethod().getMethodHashKey() + "#" + lines;
+
+            classNames.add(storedCandidate.getMethod().getClassName());
+            lineCoverageMap.add(hashKey);
+        }
+
+        int classCount = classNames.size();
+        linesCountLabel.setText(lineCoverageMap.size() + " unique lines covered in " + classCount + " class"
+                + (classCount == 1 ? "" : "es"));
+
+
+        MouseAdapter showCandidatesAdapter = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (hiddenCandidateListContainer.isVisible()) {
+                    replayExpandIcon.setIcon(UIUtils.EXPAND_UP_DOWN_ICON);
+                    hiddenCandidateListContainer.setVisible(false);
+                } else {
+                    replayExpandIcon.setIcon(UIUtils.COTRACT_UP_DOWN_ICON);
+                    hiddenCandidateListContainer.setVisible(true);
+
+                    mockCallsExpandIcon.setIcon(UIUtils.EXPAND_UP_DOWN_ICON);
+                    hiddenMockListContainer.setVisible(false);
+
+                    assertionExpandIcon.setIcon(UIUtils.EXPAND_UP_DOWN_ICON);
+                    hiddenAssertionsListContainer.setVisible(false);
+
+                }
+            }
+        };
+        replaySummaryLine.addMouseListener(showCandidatesAdapter);
+        replayExpandIcon.addMouseListener(showCandidatesAdapter);
+        selectedReplayCountLabel.addMouseListener(showCandidatesAdapter);
+        replayLabelContainer.addMouseListener(showCandidatesAdapter);
         replaySummaryLine.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         replayExpandIcon.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         selectedReplayCountLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        replayLineContainer.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        replayLabelContainer.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        ItemLifeCycleListener<StoredCandidate> listener = new ItemLifeCycleListener<StoredCandidate>() {
+        ItemLifeCycleListener<StoredCandidate> listener = new ItemLifeCycleListener<>() {
             @Override
             public void onSelect(StoredCandidate item) {
 
@@ -110,81 +223,144 @@ public class TestCandidateSaveForm {
             }
         };
 
-        JPanel itemContainer = new JPanel();
-        itemContainer.setLayout(new GridLayout(0, 1));
-        JBScrollPane itemScroller = new JBScrollPane(itemContainer);
-        itemScroller.setMaximumSize(new Dimension(500, 400));
-        candidateListContainer.add(itemScroller, BorderLayout.CENTER);
+
+        Project project = saveFormListener.getProject();
+        for (StoredCandidate storedCandidate : candidateList) {
+            StoredCandidateItemPanel storedCandidateItemPanel = new StoredCandidateItemPanel(storedCandidate, listener,
+                    project);
+            storedCandidateItemPanel.setIsSelectable(false);
+            candidatePanelMap.put(storedCandidate, storedCandidateItemPanel);
+            candiateItemContainer.add(storedCandidateItemPanel.getComponent(), new GridConstraints());
+        }
 
 
-        MouseAdapter showCandidatesAdapter = new MouseAdapter() {
+        ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener = new ItemLifeCycleListener<>() {
+            @Override
+            public void onSelect(DeclaredMock item) {
+
+            }
+
+            @Override
+            public void onUnSelect(DeclaredMock item) {
+
+            }
+
+            @Override
+            public void onDelete(DeclaredMock item) {
+
+            }
+
+            @Override
+            public void onEdit(DeclaredMock item) {
+
+            }
+        };
+
+
+        JPanel mockItemContainer = new JPanel();
+        mockItemContainer.setLayout(new GridLayout(0, 1));
+        JBScrollPane mockItemScroller = new JBScrollPane(mockItemContainer);
+        mockScrollParentPanel.add(mockItemScroller, BorderLayout.CENTER);
+
+        for (MethodCallExpression methodCallExpression : downstreamCallList) {
+            DeclaredMock declaredMock = StompComponent.createDeclaredMockFromCallExpression(methodCallExpression,
+                    project);
+            DeclaredMockItemPanel declaredMockItemPanel = new DeclaredMockItemPanel(declaredMock,
+                    itemLifeCycleListener, project);
+            declaredMockItemPanel.setIsSelectable(false);
+            declaredMockPanelMap.put(methodCallExpression, declaredMockItemPanel);
+            mockItemContainer.add(declaredMockItemPanel.getComponent(), new GridConstraints());
+        }
+
+
+        MouseAdapter showMocksAdapter = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (hiddenCandidateListContainer.isVisible()) {
-                    replayExpandIcon.setIcon(UIUtils.COTRACT_UP_DOWN_ICON);
-                    hiddenCandidateListContainer.setVisible(false);
+                if (hiddenMockListContainer.isVisible()) {
+                    mockCallsExpandIcon.setIcon(UIUtils.EXPAND_UP_DOWN_ICON);
+                    hiddenMockListContainer.setVisible(false);
                 } else {
-                    replayExpandIcon.setIcon(UIUtils.COTRACT_UP_DOWN_ICON);
-                    hiddenCandidateListContainer.setVisible(true);
+                    mockCallsExpandIcon.setIcon(UIUtils.COTRACT_UP_DOWN_ICON);
+                    hiddenMockListContainer.setVisible(true);
+
+                    replayExpandIcon.setIcon(UIUtils.EXPAND_UP_DOWN_ICON);
+                    hiddenCandidateListContainer.setVisible(false);
+
+                    assertionExpandIcon.setIcon(UIUtils.EXPAND_UP_DOWN_ICON);
+                    hiddenAssertionsListContainer.setVisible(false);
+
                 }
             }
         };
-        replaySummaryLine.addMouseListener(showCandidatesAdapter);
-        replayExpandIcon.addMouseListener(showCandidatesAdapter);
-        selectedReplayCountLabel.addMouseListener(showCandidatesAdapter);
-        replayLineContainer.addMouseListener(showCandidatesAdapter);
+        mockSummaryExpandLine.addMouseListener(showMocksAdapter);
+        mockCallsExpandIcon.addMouseListener(showMocksAdapter);
+        mockCallCountLabel.addMouseListener(showMocksAdapter);
+        mockSummaryExpandLine.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        mockCallsExpandIcon.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        mockCallCountLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
+        ItemLifeCycleListener<AtomicAssertion> atomicAssertionLifeListener = new ItemLifeCycleListener<>() {
+            @Override
+            public void onSelect(AtomicAssertion item) {
 
-        candidateList = candidateMetadataList.stream()
-                .map(candidateMetadata -> {
+            }
 
-                    JsonNode returnValue;
-                    MethodCallExpression mainMethod = candidateMetadata.getMainMethod();
-                    Parameter returnValue1 = mainMethod.getReturnValue();
-                    String stringValue = returnValue1.getStringValue();
-                    String nonNullReturnValue = stringValue == null ? "null" : stringValue;
-                    try {
-                        returnValue = objectMapper.readTree(nonNullReturnValue);
-                    } catch (JsonProcessingException e) {
-                        logger.warn("Failed to parse response value as a json object: " + e.getMessage());
-                        returnValue =
-                                objectMapper.getNodeFactory().textNode(nonNullReturnValue);
-                    }
-                    StoredCandidate storedCandidate = new StoredCandidate(candidateMetadata);
+            @Override
+            public void onUnSelect(AtomicAssertion item) {
 
+            }
 
-                    AtomicAssertion assertion = createAssertions(returnValue);
-                    storedCandidate.setTestAssertions(assertion);
-                    return storedCandidate;
-                })
-                .collect(Collectors.toList());
+            @Override
+            public void onDelete(AtomicAssertion item) {
 
-        long assertionCount = candidateList.stream()
-                .map(e -> AtomicAssertionUtils.countAssertions(e.getTestAssertions()))
-                .collect(Collectors.summarizingInt(e -> e)).getCount();
+            }
 
-        assertionCountLabel.setText(assertionCount + " assertions");
+            @Override
+            public void onEdit(AtomicAssertion item) {
 
-        Set<String> lineCoverageMap = new HashSet<>();
-        Set<String> classNames = new HashSet<>();
-        for (StoredCandidate storedCandidate : candidateList) {
-            List<Integer> lines = storedCandidate.getLineNumbers();
-            String hashKey = storedCandidate.getMethod().getMethodHashKey() + "#" + lines;
+            }
+        };
 
-            classNames.add(storedCandidate.getMethod().getClassName());
-            lineCoverageMap.add(hashKey);
+        JPanel assertionItemContainer = new JPanel();
+        assertionItemContainer.setLayout(new GridLayout(0, 1));
+        JBScrollPane assertionItemScroller = new JBScrollPane(assertionItemContainer);
+        assertionsScrollParentPanel.add(assertionItemScroller, BorderLayout.CENTER);
+
+        for (AtomicAssertion atomicAssertion : allAssertions) {
+            AtomicAssertionItemPanel atomicAssertionItemPanel = new AtomicAssertionItemPanel(atomicAssertion,
+                    atomicAssertionLifeListener,
+                    project);
+
+            atomicAssertionPanelMap.put(atomicAssertion, atomicAssertionItemPanel);
+            assertionItemContainer.add(atomicAssertionItemPanel.getComponent(), new GridConstraints());
         }
 
-        int classCount = classNames.size();
-        linesCountLabel.setText(lineCoverageMap.size() + " unique lines covered in " + classCount + " class"
-                + (classCount == 1 ? "" : "es"));
-        for (StoredCandidate storedCandidate : candidateList) {
-            StoredCandidateItemPanel storedCandidateItemPanel = new StoredCandidateItemPanel(storedCandidate, listener,
-                    saveFormListener.getProject());
-            candidatePanelMap.put(storedCandidate,  storedCandidateItemPanel);
-            itemContainer.add(storedCandidateItemPanel.getComponent(), new GridConstraints());
-        }
 
+        MouseAdapter showAssertionsAdapter = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (hiddenAssertionsListContainer.isVisible()) {
+                    assertionExpandIcon.setIcon(UIUtils.EXPAND_UP_DOWN_ICON);
+                    hiddenAssertionsListContainer.setVisible(false);
+                } else {
+                    assertionExpandIcon.setIcon(UIUtils.COTRACT_UP_DOWN_ICON);
+                    hiddenAssertionsListContainer.setVisible(true);
+
+                    replayExpandIcon.setIcon(UIUtils.EXPAND_UP_DOWN_ICON);
+                    hiddenCandidateListContainer.setVisible(false);
+
+                    mockCallsExpandIcon.setIcon(UIUtils.EXPAND_UP_DOWN_ICON);
+                    hiddenMockListContainer.setVisible(false);
+
+                }
+            }
+        };
+        assertionLine.addMouseListener(showAssertionsAdapter);
+        assertionExpandIcon.addMouseListener(showAssertionsAdapter);
+        assertionCountLabel.addMouseListener(showAssertionsAdapter);
+        assertionLine.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        assertionExpandIcon.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        assertionCountLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
     }
 

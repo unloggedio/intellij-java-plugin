@@ -145,4 +145,8 @@ public class StoredCandidateItemPanel {
     public StoredCandidate getStoredCandidate() {
         return storedCandidate;
     }
+
+    public void setIsSelectable(boolean b) {
+        controlContainer.setVisible(b);
+    }
 }

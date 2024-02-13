@@ -38,7 +38,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
-import com.intellij.psi.*;
+import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.table.JBTable;
@@ -60,7 +61,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class StompComponent implements
         Consumer<List<TestCandidateMetadata>>,
@@ -373,6 +373,52 @@ public class StompComponent implements
         updateFilterLabel();
     }
 
+    public static DeclaredMock createDeclaredMockFromCallExpression(MethodCallExpression mainMethod, Project project) {
+        PsiMethod targetMethodPsi = ClassTypeUtils.getPsiMethod(mainMethod, project);
+        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethodPsi));
+        DeclaredMock declaredMock = new DeclaredMock();
+        declaredMock.setMethodName(methodUnderTest.getName());
+        declaredMock.setName("mock recorded on " + new Date());
+        declaredMock.setFieldName("*");
+        declaredMock.setMethodHashKey(methodUnderTest.getMethodHashKey());
+        declaredMock.setId(UUID.randomUUID().toString());
+        declaredMock.setFieldTypeName(methodUnderTest.getClassName());
+        declaredMock.setSourceClassName("*");
+
+        List<ParameterMatcher> whenParameter = new ArrayList<>();
+        for (Parameter argument : mainMethod.getArguments()) {
+            ParameterMatcher parameterMatcher = new ParameterMatcher();
+            parameterMatcher.setType(ParameterMatcherType.EQUAL);
+            parameterMatcher.setName(argument.getName());
+            parameterMatcher.setValue(argument.getStringValue());
+            whenParameter.add(parameterMatcher);
+        }
+
+
+        declaredMock.setWhenParameter(whenParameter);
+        ThenParameter thenParameter = new ThenParameter();
+
+        Parameter returnValue = mainMethod.getReturnValue();
+        if (returnValue.isException()) {
+            thenParameter.setMethodExitType(MethodExitType.EXCEPTION);
+        } else if (returnValue.getValue() == 0) {
+            thenParameter.setMethodExitType(MethodExitType.NULL);
+        } else {
+            thenParameter.setMethodExitType(MethodExitType.NORMAL);
+        }
+        ReturnValue returnParameter = new ReturnValue();
+        returnParameter.setClassName(returnValue.getType());
+        returnParameter.setReturnValueType(ReturnValueType.REAL);
+        returnParameter.setValue(returnValue.getStringValue());
+        thenParameter.setReturnParameter(returnParameter);
+
+
+        List<ThenParameter> thenParameter1 = new ArrayList<>();
+        thenParameter1.add(thenParameter);
+        declaredMock.setThenParameter(thenParameter1);
+        return declaredMock;
+    }
+
     private void clearFilter() {
         filterModel.getIncludedMethodNames().clear();
         filterModel.getExcludedMethodNames().clear();
@@ -415,6 +461,12 @@ public class StompComponent implements
 //        component.setMinimumSize(new Dimension(0, 600));
 //        component.setMaximumSize(new Dimension(600, 800));
         southPanel.add(component, BorderLayout.SOUTH);
+        ApplicationManager.getApplication().invokeLater(() -> {
+            southPanel.revalidate();
+            southPanel.repaint();
+            southPanel.getParent().revalidate();
+            southPanel.getParent().repaint();
+        });
 
 
     }
@@ -572,7 +624,6 @@ public class StompComponent implements
         return gbc;
     }
 
-
     private GridBagConstraints createGBCForProcessStartedComponent() {
         GridBagConstraints gbc = new GridBagConstraints();
 
@@ -587,25 +638,6 @@ public class StompComponent implements
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         gbc.insets = JBUI.insetsBottom(0);
-        gbc.ipadx = 0;
-        gbc.ipady = 0;
-        return gbc;
-    }
-
-    private GridBagConstraints createGBCForFakeComponent() {
-        GridBagConstraints gbc = new GridBagConstraints();
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 1;
-        gbc.gridheight = 1;
-
-        gbc.weightx = 1;
-        gbc.weighty = 1;
-        gbc.anchor = GridBagConstraints.LINE_START;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        gbc.insets = JBUI.insetsBottom(8);
         gbc.ipadx = 0;
         gbc.ipady = 0;
         return gbc;
@@ -648,6 +680,25 @@ public class StompComponent implements
 //        gbc1.ipady = 0;
 //        return gbc1;
 //    }
+
+    private GridBagConstraints createGBCForFakeComponent() {
+        GridBagConstraints gbc = new GridBagConstraints();
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 1;
+        gbc.gridheight = 1;
+
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.insets = JBUI.insetsBottom(8);
+        gbc.ipadx = 0;
+        gbc.ipady = 0;
+        return gbc;
+    }
 
     private JPanel createDateAndTimePanel(JPanel lineContainer, Date date) {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
@@ -836,49 +887,8 @@ public class StompComponent implements
     public void onSaveAsMockRequest(TestCandidateMetadata testCandidateMetadata) {
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            PsiMethod targetMethodPsi = ClassTypeUtils.getPsiMethod(testCandidateMetadata.getMainMethod(),
-                    insidiousService.getProject());
-            MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethodPsi));
-            DeclaredMock declaredMock = new DeclaredMock();
-            declaredMock.setMethodName(methodUnderTest.getName());
-            declaredMock.setName("mock recorded on " + testCandidateMetadata.getCreatedAt());
-            declaredMock.setFieldName("*");
-            declaredMock.setMethodHashKey(methodUnderTest.getMethodHashKey());
-            declaredMock.setId(UUID.randomUUID().toString());
-            declaredMock.setFieldTypeName(methodUnderTest.getClassName());
-            declaredMock.setSourceClassName("*");
-
-            List<ParameterMatcher> whenParameter = new ArrayList<>();
-            for (Parameter argument : testCandidateMetadata.getMainMethod().getArguments()) {
-                ParameterMatcher parameterMatcher = new ParameterMatcher();
-                parameterMatcher.setType(ParameterMatcherType.EQUAL);
-                parameterMatcher.setName(argument.getName());
-                parameterMatcher.setValue(argument.getStringValue());
-                whenParameter.add(parameterMatcher);
-            }
-
-
-            declaredMock.setWhenParameter(whenParameter);
-            ThenParameter thenParameter = new ThenParameter();
-
-            Parameter returnValue = testCandidateMetadata.getMainMethod().getReturnValue();
-            if (returnValue.isException()) {
-                thenParameter.setMethodExitType(MethodExitType.EXCEPTION);
-            } else if (returnValue.getValue() == 0) {
-                thenParameter.setMethodExitType(MethodExitType.NULL);
-            } else {
-                thenParameter.setMethodExitType(MethodExitType.NORMAL);
-            }
-            ReturnValue returnParameter = new ReturnValue();
-            returnParameter.setClassName(returnValue.getType());
-            returnParameter.setReturnValueType(ReturnValueType.REAL);
-            returnParameter.setValue(returnValue.getStringValue());
-            thenParameter.setReturnParameter(returnParameter);
-
-
-            List<ThenParameter> thenParameter1 = new ArrayList<>();
-            thenParameter1.add(thenParameter);
-            declaredMock.setThenParameter(thenParameter1);
+            MethodCallExpression mainMethod = testCandidateMetadata.getMainMethod();
+            DeclaredMock declaredMock = createDeclaredMockFromCallExpression(mainMethod, insidiousService.getProject());
             insidiousService.saveMockDefinition(declaredMock);
         });
 

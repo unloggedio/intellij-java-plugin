@@ -186,4 +186,7 @@ public class DeclaredMockItemPanel {
         return declaredMock;
     }
 
+    public void setIsSelectable(boolean b) {
+        controlContainer.setVisible(b);
+    }
 }
