@@ -110,19 +110,20 @@ public class TestCandidateSaveForm {
 
         candidateList = candidateMetadataList.stream()
                 .map(candidateMetadata -> {
+                    StoredCandidate storedCandidate = new StoredCandidate(candidateMetadata);
 
                     JsonNode returnValue;
                     MethodCallExpression mainMethod = candidateMetadata.getMainMethod();
                     if (mainMethod.getReturnValue().getValue() == 0 || mainMethod.getReturnValue().getType() == null) {
-                        return null;
+                        return storedCandidate;
                     }
                     Parameter returnValue1 = mainMethod.getReturnValue();
                     if (returnValue1.getProb().getSerializedValue().length == 0) {
-                        return null;
+                        return storedCandidate;
                     }
                     String stringValue = new String(returnValue1.getProb().getSerializedValue());
                     if (stringValue.length() == 0) {
-                        return null;
+                        return storedCandidate;
                     }
                     try {
                         returnValue = objectMapper.readTree(stringValue);
@@ -131,7 +132,6 @@ public class TestCandidateSaveForm {
                         returnValue =
                                 objectMapper.getNodeFactory().textNode(stringValue);
                     }
-                    StoredCandidate storedCandidate = new StoredCandidate(candidateMetadata);
 
 
                     AtomicAssertion assertion;
@@ -145,9 +145,7 @@ public class TestCandidateSaveForm {
                     }
                     storedCandidate.setTestAssertions(assertion);
                     return storedCandidate;
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                }).collect(Collectors.toList());
 
 
         List<AtomicAssertion> allAssertions = candidateList.stream()

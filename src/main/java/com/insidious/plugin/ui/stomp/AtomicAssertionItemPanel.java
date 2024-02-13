@@ -25,7 +25,11 @@ public class AtomicAssertionItemPanel {
         titleLabel.setText(atomicAssertion.getKey());
         keyName.setText(String.valueOf(atomicAssertion.getExpression()));
         operationName.setText(String.valueOf(atomicAssertion.getAssertionType()));
-        valueName.setText(atomicAssertion.getExpectedValue());
+        String expectedValue = atomicAssertion.getExpectedValue();
+        if (expectedValue.length() > 20) {
+            expectedValue = expectedValue.substring(0, 17) + "...";
+        }
+        valueName.setText(expectedValue);
     }
 
     public JPanel getComponent() {
