@@ -53,7 +53,7 @@ public class UIUtils {
             new Color(1, 204, 245, 100),
             new Color(1, 204, 245, 50)
     );
-    public static final JBColor ASSERTION_PASSING_COLOR = new JBColor(new Color(37, 133, 90), new Color(37, 133, 90));
+    public static final JBColor ASSERTION_PASSING_COLOR = new JBColor(new Color(171, 232, 206), new Color(171, 232, 206));
     public static final JBColor ASSERTION_FAILING_COLOR = new JBColor(new Color(197, 48, 48), new Color(197, 48, 48));
     public static Color teal = new JBColor(new Color(1, 204, 245), new Color(1, 204, 245));  // 01CCF5
     public static Color tealdark = new JBColor(new Color(1, 172, 245), new Color(1, 172, 245));  // 01CCF5

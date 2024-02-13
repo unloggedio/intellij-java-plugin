@@ -1,8 +1,12 @@
 package com.insidious.plugin.ui.library;
 
 import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.mocking.ParameterMatcher;
+import com.insidious.plugin.mocking.ParameterMatcherType;
+import com.insidious.plugin.mocking.ThenParameter;
 import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.ui.stomp.StompItem;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 
@@ -11,6 +15,8 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.insidious.plugin.ui.stomp.StompItem.TAG_LABEL_BACKGROUND_GREY;
 import static com.insidious.plugin.ui.stomp.StompItem.TAG_LABEL_TEXT_GREY;
@@ -49,18 +55,33 @@ public class DeclaredMockItemPanel {
         }
         titledBorder.setTitle("Declared mock definition");
 
+
+        Map<ParameterMatcherType, java.util.List<ParameterMatcher>> countByType = declaredMock.getWhenParameter()
+                .stream().collect(Collectors.groupingBy(ParameterMatcher::getType));
         int whenParametersSize = declaredMock.getWhenParameter().size();
-        JLabel preConditionsTag = StompItem.createTagLabel("%s pre condition" + (whenParametersSize == 1 ? "" : "s"),
-                new Object[]{whenParametersSize},
-                TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, new MouseAdapter() {
-                    @Override
-                    public void mouseClicked(MouseEvent e) {
-                        super.mouseClicked(e);
-                    }
-                });
+
+        for (Map.Entry<ParameterMatcherType, java.util.List<ParameterMatcher>> parameterMatcherTypeListEntry : countByType.entrySet()) {
+
+            ParameterMatcherType type = parameterMatcherTypeListEntry.getKey();
+            java.util.List<ParameterMatcher> value = parameterMatcherTypeListEntry.getValue();
+            int count = value.size();
+
+            JLabel preConditionsTag = StompItem.createTagLabel(type.toString() + " " + value.get(0).getName(),
+                    new Object[]{whenParametersSize},
+                    TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, new MouseAdapter() {
+                        @Override
+                        public void mouseClicked(MouseEvent e) {
+                            super.mouseClicked(e);
+                        }
+                    });
+            tagsContainerPanel.add(preConditionsTag);
 
 
-        tagsContainerPanel.add(preConditionsTag);
+        }
+
+
+
+
 
         deleteButton.setVisible(false);
         deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -72,7 +93,13 @@ public class DeclaredMockItemPanel {
         });
 
         int thenParameterSize = declaredMock.getThenParameter().size();
-        JLabel returnsTag = StompItem.createTagLabel("%s return" + (thenParameterSize == 1 ? "" : "s"),
+        ThenParameter thenParameter = declaredMock.getThenParameter().get(0);
+        String className = thenParameter.getReturnParameter().getClassName();
+        if(className.contains(".")) {
+            className = className.substring(className.lastIndexOf(".") + 1);
+        }
+        JLabel returnsTag =
+                StompItem.createTagLabel(thenParameter.getMethodExitType() + " " + className,
                 new Object[]{thenParameterSize},
                 TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, new MouseAdapter() {
                     @Override

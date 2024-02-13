@@ -7,12 +7,13 @@ import com.insidious.plugin.assertions.Expression;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.ui.DocumentAdapter;
-
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import java.awt.event.*;
+import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 public class AssertionRule {
     private static final Logger logger = LoggerUtil.getInstance(AssertionRule.class);
@@ -23,7 +24,7 @@ public class AssertionRule {
     private JLabel nameSelector;
     private JLabel operationSelector;
     private JLabel valueField;
-    private JButton trashButton;
+    private JLabel trashButton;
 
     public AssertionRule(AssertionBlock assertionBlock, AtomicAssertion atomicAssertion) {
         this.assertion = atomicAssertion;
@@ -54,7 +55,12 @@ public class AssertionRule {
             }
         });
 
-        this.valueField.setText(atomicAssertion.getExpectedValue() != null ? atomicAssertion.getExpectedValue() : "");
+        String expectedValue = atomicAssertion.getExpectedValue();
+        String text = expectedValue != null ? expectedValue : "";
+        if (text.length() > 40) {
+            text = text.substring(0, 37) + "...";
+        }
+        this.valueField.setText(text);
 
         setupOptions();
         if (atomicAssertion.getAssertionType() == null) {
@@ -305,7 +311,13 @@ public class AssertionRule {
 //            }
 //        });
 
-        trashButton.addActionListener(e -> deleteRule());
+        trashButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        trashButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                deleteRule();
+            }
+        });
         updateResult();
     }
 
@@ -313,14 +325,9 @@ public class AssertionRule {
         AssertionResult thisResult = manager.executeAssertion(assertion);
         Boolean result = thisResult.getResults().get(assertion.getId());
         if (result) {
-//            topAligner.setBorder(new LineBorder(AtomicAssertionConstants.PASSING_COLOR));
             topAligner.setBackground(UIUtils.ASSERTION_PASSING_COLOR);
-//            mainPanel.setBackground(AtomicAssertionConstants.PASSING_COLOR);
-//            leftAligner.setBackground(AtomicAssertionConstants.PASSING_COLOR);
         } else {
-//            topAligner.setBorder(new LineBorder(AtomicAssertionConstants.FAILING_COLOR));
             topAligner.setBackground(UIUtils.ASSERTION_FAILING_COLOR);
-//            leftAligner.setBackground(AtomicAssertionConstants.FAILING_COLOR);
         }
     }
 

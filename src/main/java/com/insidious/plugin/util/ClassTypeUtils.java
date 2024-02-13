@@ -390,11 +390,11 @@ public class ClassTypeUtils {
     }
 
     public static PsiMethod getPsiMethod(MethodCallExpression methodCallExpression, Project project) {
-        MethodCallExpression mainMethod = methodCallExpression;
-        PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(mainMethod.getSubject().getType(),
+        String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
+        PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
                 GlobalSearchScope.allScope(project));
 
-        String methodName = mainMethod.getMethodName();
+        String methodName = methodCallExpression.getMethodName();
         boolean isLambda = false;
         if (methodName.startsWith("lambda$")) {
             methodName = methodName.split("\\$")[1];
@@ -410,7 +410,7 @@ public class ClassTypeUtils {
 
         for (Pair<PsiMethod, PsiSubstitutor> jvmMethodPair : methodsByNameList) {
 
-            List<Parameter> expectedArguments = mainMethod.getArguments();
+            List<Parameter> expectedArguments = methodCallExpression.getArguments();
             PsiMethod jvmMethod = jvmMethodPair.getFirst();
             JvmParameter[] actualArguments = jvmMethod.getParameters();
 

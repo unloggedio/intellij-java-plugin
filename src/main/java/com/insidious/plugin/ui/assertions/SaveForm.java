@@ -1,34 +1,27 @@
 package com.insidious.plugin.ui.assertions;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.assertions.*;
+import com.insidious.plugin.assertions.AssertionType;
+import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.TestType;
-import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.psi.PsiMethodCallExpression;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
-import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreeModel;
-import javax.swing.tree.TreeNode;
 import java.awt.*;
 import java.util.List;
 import java.util.*;
@@ -38,91 +31,49 @@ public class SaveForm implements OnTestTypeChangeListener {
     private static final Logger logger = LoggerUtil.getInstance(SaveForm.class);
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final CandidateLifeListener candidateLifeListener;
-    private final StoredCandidate storedCandidate;
+    private final List<StoredCandidate> storedCandidateList;
     private final AssertionBlock ruleEditor;
-    private final SaveFormMetadataPanel metadataForm;
+    //    private final SaveFormMetadataPanel metadataForm;
     private final JPanel mainPanel;
     private final JTabbedPane bottomTabPanel;
     //    private JPanel mockPanel;
-    private HashSet<String> enabledMockList;
-    private JsonNode responseNode;
+//    private HashSet<String> enabledMockList;
+    //    private JsonNode responseNode;
     private JButton saveButton;
     // private JButton cancelButton;
-    private JTree candidateExplorerTree;
+//    private JTree candidateExplorerTree;
     private InsidiousService insidiousService;
     //AgentCommandResponse is necessary for update flow and Assertions as well
     private HashMap<JCheckBox, ArrayList<JCheckBox>> buttonMap = new HashMap<JCheckBox, ArrayList<JCheckBox>>();
-    private MockValueMap mockValueMap;
-    private SaveForm self = this;
+    //    private MockValueMap mockValueMap;
 
     public SaveForm(
-            StoredCandidate storedCandidate,
-            CandidateLifeListener candidateLifeListener
+            List<StoredCandidate> storedCandidate,
+            CandidateLifeListener clf
     ) throws JsonProcessingException {
-        this.storedCandidate = storedCandidate;
-        this.candidateLifeListener = candidateLifeListener;
-        this.enabledMockList = new HashSet<>(this.storedCandidate.getMockIds());
+        this.storedCandidateList = storedCandidate;
+        this.candidateLifeListener = clf;
+//        this.enabledMockList = new HashSet<>(storedCandidateList.getMockIds());
 
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
-        candidateExplorerTree = new Tree(getTree());
+//        candidateExplorerTree = new Tree(getTree());
 
-        String methodReturnValue = storedCandidate.getReturnValue();
+//        String methodReturnValue = storedCandidate.getReturnValue();
 
-        responseNode = getResponseNode(methodReturnValue, storedCandidate.getReturnValueClassname());
+//        responseNode = getResponseNode(methodReturnValue, storedCandidate.getReturnValueClassname());
 
 
         // clone the assertions
-        AtomicAssertion existingAssertion = new AtomicAssertion(storedCandidate.getTestAssertions());
+        AtomicAssertion existingAssertion = new AtomicAssertion();
 
         if (existingAssertion.getSubAssertions() == null || existingAssertion.getSubAssertions().size() == 0) {
             List<AtomicAssertion> subAssertions = new ArrayList<>();
             subAssertions.add(
-                    new AtomicAssertion(AssertionType.EQUAL, "/", methodReturnValue));
+                    new AtomicAssertion(AssertionType.EQUAL, "/", "methodReturnValue"));
             existingAssertion = new AtomicAssertion(AssertionType.ALLOF, subAssertions);
         }
-        ruleEditor = new AssertionBlock(existingAssertion, new AssertionBlockManager() {
-            @Override
-            public void addNewRule() {
-
-            }
-
-            @Override
-            public void addNewGroup() {
-
-            }
-
-            @Override
-            public AssertionResult executeAssertion(AtomicAssertion atomicAssertion) {
-                return AssertionEngine.executeAssertions(atomicAssertion, responseNode);
-            }
-
-            @Override
-            public void deleteAssertionRule(AssertionRule element) {
-
-            }
-
-            @Override
-            public void removeAssertionGroup() {
-                InsidiousNotification.notifyMessage("Cannot delete this group.", NotificationType.ERROR);
-            }
-
-            @Override
-            public KeyValue getCurrentTreeKey() {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) candidateExplorerTree.getLastSelectedPathComponent();
-                String methodReturnValue = storedCandidate.getReturnValue();
-                if (node == null) return new KeyValue("/", methodReturnValue);
-                TreeNode[] nodes = node.getPath();
-                String selectedKey = JsonTreeUtils.getFlatMap(nodes);
-                Object valueFromJsonNode = JsonTreeUtils.getValueFromJsonNode(responseNode, selectedKey);
-                return new KeyValue(selectedKey, valueFromJsonNode);
-            }
-
-            @Override
-            public void removeAssertionGroup(AssertionBlock block) {
-
-            }
-        }, true);
+        ruleEditor = new AssertionBlock(existingAssertion, new AssertionBlockManagerListener("value"), true);
 
         JPanel ruleEditorPanel = ruleEditor.getMainPanel();
         // define topPanel
@@ -161,8 +112,8 @@ public class SaveForm implements OnTestTypeChangeListener {
         buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
         topPanel.add(buttonPanel);
 
-        JPanel midPanel = new JPanel();
-        midPanel.setLayout(new GridLayout(1, 2));
+//        JPanel midPanel = new JPanel();
+//        midPanel.setLayout(new GridLayout(1, 2));
 
         // define treePanelHeading
         JLabel treePanelHeading = new JLabel();
@@ -170,27 +121,12 @@ public class SaveForm implements OnTestTypeChangeListener {
         treePanelHeading.setVerticalAlignment(SwingConstants.TOP);
         treePanelHeading.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
         // define treePanel
-//        JPanel treePanel = new JPanel();
-//        treePanel.setLayout(new BorderLayout());
-//        treePanel.add(treePanelHeading, BorderLayout.NORTH);
 
-        int CandidateExplorerTreeHeight = 300;
 
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         mainPanel.setPreferredSize(new Dimension(-1,
                 (int) (screenSize.getHeight() - (0.3 * screenSize.getHeight()))));
-        candidateExplorerTree.setSize(new Dimension(400, CandidateExplorerTreeHeight));
-//        JScrollPane treeParent = new JBScrollPane(candidateExplorerTree);
-//        treePanel.add(treeParent, BorderLayout.CENTER);
 
-        // define the metadataPanel
-        metadataForm = new SaveFormMetadataPanel(new MetadataViewPayload(storedCandidate.getName(),
-                storedCandidate.getDescription(), TestType.UNIT, storedCandidate.getMetadata()), this);
-
-        JPanel metadataFormPanel = metadataForm.getMainPanel();
-
-        midPanel.add(metadataFormPanel);
-//        midPanel.add(treePanel);
 
         // assertion panel
         JPanel assertionPanel = new JPanel();
@@ -199,10 +135,6 @@ public class SaveForm implements OnTestTypeChangeListener {
 
         JScrollPane assertionScrollPanel = new JBScrollPane(ruleEditorPanel);
         assertionPanel.add(assertionScrollPanel);
-
-        // mock panel
-//        this.mockPanel = new JPanel();
-//        ApplicationManager.getApplication().executeOnPooledThread(this::addDataMockPanel);
 
         // define lowerPanel
         bottomTabPanel = new JBTabbedPane();
@@ -218,242 +150,13 @@ public class SaveForm implements OnTestTypeChangeListener {
         BoxLayout boxLayout = new BoxLayout(primaryContentPanel, BoxLayout.Y_AXIS);
         primaryContentPanel.setLayout(boxLayout);
 
-        midPanel.setPreferredSize(new Dimension(-1, 320));
         bottomTabPanel.setPreferredSize(new Dimension(-1, 360));
-
-        primaryContentPanel.add(midPanel);
         primaryContentPanel.add(bottomTabPanel);
 
         mainPanel.add(topPanel, BorderLayout.NORTH);
         mainPanel.add(primaryContentPanel, BorderLayout.CENTER);
     }
 
-    private void addDataMockPanel() {
-
-//        GridLayout mockPanelLayout = new GridLayout(1, 1);
-//        mockPanel.setLayout(mockPanelLayout);
-
-        // define mockDataPanelContent
-        JPanel mockDataPanelContent = new JPanel();
-        mockDataPanelContent.setLayout(new BoxLayout(mockDataPanelContent, BoxLayout.Y_AXIS));
-
-        // define applyMockLabel
-        JLabel applyMockLabel = new JLabel();
-        applyMockLabel.setText("<html><b>Apply Mock</b></html>");
-        JPanel applyMockPanel = new JPanel();
-        applyMockPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-        applyMockPanel.add(applyMockLabel);
-        applyMockPanel.setMaximumSize(new Dimension(3999, 30));
-        mockDataPanelContent.add(applyMockPanel);
-
-        this.insidiousService = this.candidateLifeListener.getProject().getService(InsidiousService.class);
-        this.mockValueMap = new MockValueMap(insidiousService.getProject(), storedCandidate.getMethod());
-
-        // define mockMethodPanel
-        JPanel mockMethodPanel = new JPanel();
-        mockMethodPanel.setLayout(new BoxLayout(mockMethodPanel, BoxLayout.Y_AXIS));
-
-//        for (String localKey : this.mockValueMap.getDependencyMockMap().keySet()) {
-//            mockMethodPanel.add(this.genMockMethodPanelSingle(localKey));
-//            mockMethodPanel.add(Box.createRigidArea(new Dimension(1, 10)));
-//        }
-
-        mockDataPanelContent.add(mockMethodPanel);
-        JScrollPane mockScrollPanel = new JBScrollPane(mockDataPanelContent);
-        mockScrollPanel.setBorder(BorderFactory.createEmptyBorder());
-//        mockPanel.add(mockScrollPanel);
-    }
-
-    public JPanel genMockMethodPanelSingle(String localKey) {
-        ArrayList<String> localKeyData = this.mockValueMap.getDependencyMockMap().get(localKey);
-        PsiMethodCallExpression psiMethodCallExpression = this.mockValueMap.getReferenceToPsiMethodCallExpression()
-                .get(localKey);
-        JPanel mockMethodPanelSingle = new JPanel();
-        mockMethodPanelSingle.setLayout(new BoxLayout(mockMethodPanelSingle, BoxLayout.Y_AXIS));
-
-        // define mockMethodNamePanel
-        JPanel mockMethodNamePanel = new JPanel();
-        GridLayout namePanelLayout = new GridLayout(1, 2);
-        mockMethodNamePanel.setLayout(namePanelLayout);
-
-        // define mockMethodNamePanelLeft
-        JLabel mockMethodNamePanelLeft = new JLabel();
-        mockMethodNamePanelLeft.setText(localKey);
-        mockMethodNamePanelLeft.setIcon(UIUtils.MOCK_DATA);
-        mockMethodNamePanelLeft.setBorder(JBUI.Borders.empty(4, 8, 4, 0));
-        mockMethodNamePanel.add(mockMethodNamePanelLeft);
-
-        // define mockMethodNamePanelRight
-        JPanel mockMethodNamePanelRight = new JPanel();
-        mockMethodNamePanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
-
-        JCheckBox mockButtonMain = new JCheckBox();
-        this.buttonMap.put(mockButtonMain, new ArrayList<>());
-        mockButtonMain.setSelected(
-                !localKeyData.isEmpty() && this.storedCandidate.getMockIds().containsAll(localKeyData));
-        ArrayList<JCheckBox> mockButtonMainPart = this.buttonMap.get(mockButtonMain);
-
-        mockButtonMain.addActionListener(e -> {
-            if (mockButtonMain.isSelected()) {
-                this.stateInvertAllMocks(this.mockValueMap.getDependencyMockMap().get(localKey), true);
-                for (int i = 0; i <= mockButtonMainPart.size() - 1; i++) {
-                    mockButtonMainPart.get(i).setSelected(true);
-                }
-            } else {
-                this.stateInvertAllMocks(this.mockValueMap.getDependencyMockMap().get(localKey), false);
-                for (int i = 0; i <= mockButtonMainPart.size() - 1; i++) {
-                    mockButtonMainPart.get(i).setSelected(false);
-                }
-            }
-        });
-
-        mockMethodNamePanelRight.add(mockButtonMain);
-        JLabel selectAllText = new JLabel();
-        selectAllText.setText("<html><b>Select all</b></html>");
-        mockMethodNamePanelRight.add(selectAllText);
-        mockMethodNamePanel.add(mockMethodNamePanelRight);
-
-        mockMethodNamePanel.setMaximumSize(new Dimension(3999, 30));
-        mockMethodPanelSingle.add(mockMethodNamePanel);
-
-        for (int i = 0; i <= localKeyData.size() - 1; i++) {
-            mockMethodPanelSingle.add(this.getMockMethodDependencyPanel(mockButtonMain, localKeyData.get(i)));
-        }
-
-        // configure new mock panel
-        JPanel addMockPanel = new JPanel();
-        addMockPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-        JButton addMockButton = getAddMockButton(psiMethodCallExpression);
-        addMockPanel.add(addMockButton);
-
-        addMockPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.BLACK));
-        addMockPanel.setMaximumSize(new Dimension(3999, 50));
-        mockMethodPanelSingle.add(addMockPanel);
-
-        mockMethodPanelSingle.setBorder(BorderFactory.createLineBorder(JBColor.BLACK));
-        mockMethodPanelSingle.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, JBColor.BLACK));
-
-        return mockMethodPanelSingle;
-    }
-
-    private JButton getAddMockButton(PsiMethodCallExpression psiMethodCallExpression) {
-//        JButton addMockButton = new JButton();
-//        addMockButton.setText("Add Mock");
-//        addMockButton.setIcon(UIUtils.MOCK_ADD);
-//        addMockButton.setPreferredSize(new Dimension(100, 25));
-//        addMockButton.addActionListener(e -> {
-//            Project project = insidiousService.getProject();
-//            JBPopup editorPopup = null;
-//
-//            MethodUnderTest methodUnderTest = MethodUnderTest.fromPsiCallExpression(psiMethodCallExpression);
-//            MockDefinitionEditor mockDefinitionEditor = new MockDefinitionEditor(methodUnderTest,
-//                    psiMethodCallExpression, project, self);
-//            JComponent gutterMethodComponent = mockDefinitionEditor.getComponent();
-//            ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
-//                    .createComponentPopupBuilder(gutterMethodComponent, null);
-//            editorPopup = gutterMethodComponentPopup
-//                    .setProject(psiMethodCallExpression.getProject())
-//                    .setShowBorder(true)
-//                    .setShowShadow(true)
-//                    .setFocusable(true)
-//                    .setRequestFocus(true)
-//                    .setResizable(true)
-//                    .setCancelOnClickOutside(true)
-//                    .setCancelOnOtherWindowOpen(true)
-//                    .setCancelKeyEnabled(true)
-//                    .setBelongsToGlobalPopupStack(false)
-//                    .setTitle("Mock Editor")
-//                    .addListener(new JBPopupListener() {
-//                        @Override
-//                        public void onClosed(LightweightWindowEvent event) {
-//                            JBPopupListener.super.onClosed(event);
-//                        }
-//                    })
-//                    .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
-//                    .createPopup();
-//            editorPopup.showUnderneathOf(addMockButton);
-//        });
-//        return addMockButton;
-        return null;
-    }
-
-    public JPanel getMockMethodDependencyPanel(JCheckBox mockButtonMain, String mockDataId) {
-
-        // define mockMethodDependencyPanel
-        JPanel mockMethodDependencyPanel = new JPanel();
-        GridLayout dependencyGrid = new GridLayout(1, 2);
-        dependencyGrid.setHgap(8);
-        dependencyGrid.setVgap(4);
-        mockMethodDependencyPanel.setLayout(dependencyGrid);
-
-        // define mockMethodDependencyPanelLeft
-        JPanel mockMethodDependencyPanelLeft = new JPanel();
-
-        JLabel leftText = new JLabel();
-        leftText.setText(this.mockValueMap.getMockNameIdMap().get(mockDataId));
-
-        mockMethodDependencyPanelLeft.setLayout(new FlowLayout(FlowLayout.LEFT));
-        mockMethodDependencyPanelLeft.add(leftText);
-        mockMethodDependencyPanel.add(mockMethodDependencyPanelLeft);
-
-        // define mockMethodDependencyPanelRight
-        JPanel mockMethodDependencyPanelRight = new JPanel();
-        mockMethodDependencyPanelRight.setLayout(new FlowLayout(FlowLayout.RIGHT));
-        JCheckBox mockButton = new JCheckBox();
-        mockButton.setSelected(this.storedCandidate.getMockIds().contains(mockDataId));
-        mockButton.addActionListener(e -> {
-            if (mockButton.isSelected()) {
-                this.stateInvertSingleMock(mockDataId, true);
-            } else {
-                this.stateInvertSingleMock(mockDataId, false);
-            }
-        });
-        mockMethodDependencyPanelRight.add(mockButton);
-        this.buttonMap.get(mockButtonMain).add(mockButton);
-        mockMethodDependencyPanel.add(mockMethodDependencyPanelRight);
-
-        mockMethodDependencyPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.BLACK));
-        mockMethodDependencyPanel.setMaximumSize(new Dimension(3999, 50));
-
-        return mockMethodDependencyPanel;
-    }
-
-    private void stateInvertAllMocks(List<String> allDeclaredMocks, boolean state) {
-        for (int i = 0; i <= allDeclaredMocks.size() - 1; i++) {
-            if (state) {
-                this.enabledMockList.add(allDeclaredMocks.get(i));
-            } else {
-                this.enabledMockList.remove(allDeclaredMocks.get(i));
-            }
-        }
-    }
-
-    private void stateInvertSingleMock(String localMock, boolean state) {
-        if (state) {
-            this.enabledMockList.add(localMock);
-        } else {
-            this.enabledMockList.remove(localMock);
-        }
-    }
-
-    private JsonNode getResponseNode(String methodReturnValue, String responseClassName) {
-        try {
-            return objectMapper.readTree(methodReturnValue);
-        } catch (JsonProcessingException e) {
-            // this shouldn't happen
-            if ("java.lang.String".equals(responseClassName)
-                    && !methodReturnValue.startsWith("\"")
-                    && !methodReturnValue.endsWith("\"")) {
-                try {
-                    return objectMapper.readTree("\"" + methodReturnValue + "\"");
-                } catch (JsonProcessingException e1) {
-                    // failed to read as a json node
-                    throw new RuntimeException(e1);
-                }
-            }
-        }
-        return null;
-    }
 
     public JPanel getComponent() {
         return mainPanel;
@@ -462,35 +165,46 @@ public class SaveForm implements OnTestTypeChangeListener {
     private void triggerSave() {
         AtomicAssertion atomicAssertion = ruleEditor.getAssertion();
 
-        MetadataViewPayload payload = metadataForm.getPayload();
-        String assertionName = prepareString(payload.getName());
-        String assertionDescription = prepareString(payload.getDescription());
+        int mockCount = 0;
+        for (StoredCandidate storedCandidate : storedCandidateList) {
+            MetadataViewPayload metadataViewPayload = new MetadataViewPayload(storedCandidate.getName(),
+                    storedCandidate.getDescription(), TestType.UNIT, storedCandidate.getMetadata());
 
-        // set mocks
-        if (payload.getType() == TestType.UNIT) {
-            // unit test
-            HashSet<String> enabledMockUnDeleted = new HashSet<String>();
-            for (DeclaredMock localMock : insidiousService.getDeclaredMocksFor(this.storedCandidate.getMethod())) {
-                if (this.enabledMockList.contains(localMock.getId())) {
+            String assertionName = prepareString(metadataViewPayload.getName());
+            String assertionDescription = prepareString(metadataViewPayload.getDescription());
+
+            // set mocks
+            if (metadataViewPayload.getType() == TestType.UNIT) {
+                // unit test
+                HashSet<String> enabledMockUnDeleted = new HashSet<>();
+                for (DeclaredMock localMock : insidiousService.getDeclaredMocksFor(storedCandidate.getMethod())) {
+//                    if (this.enabledMockList.contains(localMock.getId())) {
                     enabledMockUnDeleted.add(localMock.getId());
+//                    }
                 }
-            }
 
 //            enabledMockUnDeleted = MockIntersection.enabledStoredMock(insidiousService, enabledMockUnDeleted);
-            this.storedCandidate.setMockIds(enabledMockUnDeleted);
-        } else {
-            // integration test
-            this.storedCandidate.setMockIds(new HashSet<String>());
+                storedCandidate.setMockIds(enabledMockUnDeleted);
+            } else {
+                // integration test
+                storedCandidate.setMockIds(new HashSet<String>());
+            }
+
+//            enabledMockList.clear();
+            StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate);
+            candidate.setMetadata(metadataViewPayload.getStoredCandidateMetadata());
+            candidate.setName(assertionName);
+            candidate.setDescription(assertionDescription);
+            candidate.setTestAssertions(atomicAssertion);
+
+            mockCount += candidateLifeListener.onSaved(candidate);
         }
 
-        this.enabledMockList.clear();
-        StoredCandidate candidate = StoredCandidate.createCandidateFor(storedCandidate);
-        candidate.setMetadata(payload.getStoredCandidateMetadata());
-        candidate.setName(assertionName);
-        candidate.setDescription(assertionDescription);
-        candidate.setTestAssertions(atomicAssertion);
+        InsidiousNotification.notifyMessage(
+                "Saved " + storedCandidateList.size() + " replay test and " + mockCount + " mock definitions",
+                NotificationType.INFORMATION);
 
-        candidateLifeListener.onSaved(candidate);
+
     }
 
     private String prepareString(String source) {
@@ -501,25 +215,12 @@ public class SaveForm implements OnTestTypeChangeListener {
         }
     }
 
-    public TreeModel getTree() throws JsonProcessingException {
-        return JsonTreeUtils.jsonToTreeModel(objectMapper.readTree(storedCandidate.getReturnValue()),
-                getSimpleName(storedCandidate.getReturnValueClassname()));
-    }
-
-    private String getSimpleName(String qualifiedName) {
-        if (qualifiedName == null) {
-            return "";
-        }
-        String[] parts = qualifiedName.split("\\.");
-        return parts.length > 0 ? parts[parts.length - 1] : qualifiedName;
-    }
-
     public AssertionBlock getRuleEditor() {
         return this.ruleEditor;
     }
 
-    public StoredCandidate getStoredCandidate() {
-        return storedCandidate;
+    public List<StoredCandidate> getStoredCandidateList() {
+        return storedCandidateList;
     }
 
     @Override
@@ -531,6 +232,6 @@ public class SaveForm implements OnTestTypeChangeListener {
             bottomTabPanel.setSelectedIndex(0);
         }
 
-        enabledMockList.clear();
+//        enabledMockList.clear();
     }
 }

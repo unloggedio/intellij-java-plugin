@@ -7,6 +7,7 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.mocking.ParameterMatcher;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
@@ -411,6 +412,16 @@ public class AtomicRecordService {
                 }
 
             }
+            for (Map.Entry<String, List<StoredCandidate>> stringListEntry : record.getStoredCandidateMap().entrySet()) {
+                String methodHashKey = stringListEntry.getKey();
+                String[] keyParts = methodHashKey.split("#");
+
+                List<StoredCandidate> mockList = stringListEntry.getValue();
+                for (StoredCandidate storedCandidate : mockList) {
+                    storedCandidate.setMethod(new MethodUnderTest(keyParts[1], keyParts[2], 0, keyParts[0]));
+                }
+
+            }
 
         }
 
@@ -466,11 +477,17 @@ public class AtomicRecordService {
             return;
         }
         AtomicRecord record = classAtomicRecordMap.get(methodUnderTest.getClassName());
-        if (record == null || record.getStoredCandidateMap().get(methodUnderTest.getMethodHashKey()).size() == 0) {
+        Map<String, List<StoredCandidate>> storedCandidateMap = record.getStoredCandidateMap();
+        if(!storedCandidateMap.containsKey(methodUnderTest.getMethodHashKey())) {
+            // this shouldnt have happened
+            return;
+        }
+        List<StoredCandidate> storedCandidates = storedCandidateMap.get(methodUnderTest.getMethodHashKey());
+        if (record == null || storedCandidates.size() == 0) {
             return;
         }
         StoredCandidate candidateToRemove = null;
-        List<StoredCandidate> existingStoredCandidates = record.getStoredCandidateMap()
+        List<StoredCandidate> existingStoredCandidates = storedCandidateMap
                 .get(methodUnderTest.getMethodHashKey());
 
         for (StoredCandidate candidate : existingStoredCandidates) {
@@ -636,6 +653,12 @@ public class AtomicRecordService {
                 existingMocks.remove(existingMock);
                 break;
             }
+            if (isSameMatcher(existingMock.getWhenParameter(), declaredMock.getWhenParameter())) {
+                updated = true;
+                existingMocks.remove(existingMock);
+                declaredMock.setId(existingMock.getId());
+                break;
+            }
         }
 
         existingMocks.add(declaredMock);
@@ -648,6 +671,23 @@ public class AtomicRecordService {
                 new File(getFilenameForClass(className, guessModuleForClassName(declaredMock.getSourceClassName()))),
                 record,
                 updated ? FileUpdateType.UPDATE_MOCK : FileUpdateType.ADD_MOCK, true);
+    }
+
+    private boolean isSameMatcher(List<ParameterMatcher> whenParameter, List<ParameterMatcher> whenParameter1) {
+        if (whenParameter.size() != whenParameter1.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < whenParameter.size(); i++) {
+            ParameterMatcher left = whenParameter.get(i);
+            ParameterMatcher right = whenParameter1.get(i);
+            if (!left.equals(right)) {
+                return false;
+            }
+
+        }
+        return true;
+
     }
 
     public void deleteMockDefinition(DeclaredMock declaredMock) {

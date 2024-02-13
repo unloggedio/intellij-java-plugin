@@ -2,22 +2,19 @@ package com.insidious.plugin.ui.mocking;
 
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.mocking.ParameterMatcher;
-import com.insidious.plugin.mocking.ReturnValueType;
 import com.insidious.plugin.mocking.ThenParameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
+import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.popup.ActiveIcon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiMethodCallExpression;
-import com.intellij.ui.awt.RelativePoint;
 import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
@@ -58,17 +55,21 @@ public class MockDefinitionEditor {
     private JLabel thenReturnLabel;
     private JLabel changeThenType;
     private JPanel thenReturnLabelContainer;
+    private JButton cancelButton;
     private String returnDummyValue;
     private String methodReturnTypeName;
     private JBPopup yeditorPopup;
+    private OnCloseListener<Void> onCloseListener;
 
     public MockDefinitionEditor(
             MethodUnderTest methodUnderTest,
             PsiMethodCallExpression methodCallExpression,
-            Project project, OnSaveListener onSaveListener) {
+            Project project, OnSaveListener onSaveListener, OnCloseListener<Void> onCloseListener) {
         this.onSaveListener = onSaveListener;
+        this.onCloseListener = onCloseListener;
         this.methodUnderTest = methodUnderTest;
         this.project = project;
+        cancelButton.addActionListener(e -> onCloseListener.onClose(null));
 //        mockTypeParentPanel.setVisible(false);
 
         String expressionText = ApplicationManager.getApplication().runReadAction(
@@ -157,6 +158,7 @@ public class MockDefinitionEditor {
 
         saveButton.addActionListener(e -> {
             onSaveListener.onSaveDeclaredMock(declaredMock);
+            onCloseListener.onClose(null);
         });
     }
 

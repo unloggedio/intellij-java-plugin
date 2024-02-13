@@ -21,7 +21,9 @@ public interface CandidateLifeListener {
 
     void displayResponse(Component responseComponent, boolean isExceptionFlow);
 
-    void onSaved(StoredCandidate storedCandidate);
+    int onSaved(StoredCandidate storedCandidate);
+
+    void onSaved(List<TestCandidateMetadata> selectedCandidates);
 
     void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse);
 

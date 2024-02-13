@@ -113,12 +113,8 @@ public class AssertionBlock implements AssertionBlockManager {
 
         if (result) {
             topAligner.setBackground(UIUtils.ASSERTION_PASSING_COLOR);
-//            topAligner.setBorder(new LineBorder(AtomicAssertionConstants.PASSING_COLOR));
-//            mainPanel.setBackground(AtomicAssertionConstants.PASSING_COLOR);
         } else {
-//            topAligner.setBorder(new LineBorder(AtomicAssertionConstants.FAILING_COLOR));
             topAligner.setBackground(UIUtils.ASSERTION_FAILING_COLOR);
-//            mainPanel.setBackground(AtomicAssertionConstants.FAILING_COLOR);
         }
 
         return thisResult;

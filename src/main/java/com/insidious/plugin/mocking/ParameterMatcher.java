@@ -1,5 +1,7 @@
 package com.insidious.plugin.mocking;
 
+import java.util.Objects;
+
 public class ParameterMatcher {
     private String name;
     private ParameterMatcherType type;
@@ -50,5 +52,18 @@ public class ParameterMatcher {
                 "name='" + name + '\'' +
                 ", value='" + value + '\'' +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ParameterMatcher that = (ParameterMatcher) o;
+        return name.equals(that.name) && type == that.type && value.equals(that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, type, value);
     }
 }

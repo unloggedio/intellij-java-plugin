@@ -158,6 +158,7 @@ public class LibraryComponent {
                         InsidiousNotification.notifyMessage("Deleted " + selectedCount + " relay test"
                                         + (selectedCount == 1 ? "s" : ""),
                                 NotificationType.INFORMATION);
+                        builder.getDialogWrapper().close(0);
                         builder.dispose();
                     });
                     builder.showModal(true);

@@ -4,9 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
-import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
-import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.TestCandidateLifeListener;
 import com.insidious.plugin.client.ScanProgress;
@@ -31,7 +29,6 @@ import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
-import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.ClassUtils;
@@ -41,6 +38,9 @@ import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressIndicatorProvider;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
@@ -260,9 +260,7 @@ public class StompComponent implements
 
         saveReplayButton.addActionListener(e -> {
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                ApplicationManager.getApplication().runReadAction(() -> {
-                    saveSelected();
-                });
+                ApplicationManager.getApplication().runReadAction(this::saveSelected);
             });
         });
 
@@ -397,246 +395,30 @@ public class StompComponent implements
         }
         AtomicRecordService atomicRecordService = insidiousService.getProject()
                 .getService(AtomicRecordService.class);
-        StoredCandidate storedCandidate = new StoredCandidate(selectedCandidates.get(0));
+//        StoredCandidate storedCandidate = new StoredCandidate(selectedCandidates.get(0));
 
-        int mockCount = 0;
-        for (TestCandidateMetadata testCandidate : selectedCandidates) {
-            MethodUnderTest methodUnderTest = null;
-            methodUnderTest = ApplicationManager.getApplication().runReadAction(
-                    (Computable<MethodUnderTest>) () -> MethodUnderTest.fromMethodAdapter(
-                            new JavaMethodAdapter(
-                                    ClassTypeUtils.getPsiMethod(testCandidate.getMainMethod(),
-                                            insidiousService.getProject()))));
-            if (methodUnderTest == null) {
-                logger.warn("Failed to resolve target method for test candidate: " + testCandidate);
-                continue;
-            }
-
-            TestCandidateMetadata loadedTestCandidate = insidiousService.getTestCandidateById(
-                    testCandidate.getEntryProbeIndex(), true);
-
-            StoredCandidate candidate = atomicRecordService
-                    .getStoredCandidateFor(methodUnderTest, loadedTestCandidate);
-            if (candidate.getCandidateId() == null) {
-                candidate.setCandidateId(UUID.randomUUID().toString());
-            }
-            candidate.setName("saved on " + simpleDateFormat.format(new Date()));
-            atomicRecordService.saveCandidate(methodUnderTest, candidate);
-
-            PsiMethod targetMethod = ClassTypeUtils.getPsiMethod(loadedTestCandidate.getMainMethod(),
-                    insidiousService.getProject());
-
-            List<PsiMethodCallExpression> allCallExpressions = getAllCallExpressions(targetMethod);
-
-
-            Map<String, List<PsiMethodCallExpression>> expressionsBySignatureMap = allCallExpressions.stream()
-                    .collect(Collectors.groupingBy(e1 -> {
-                        PsiMethod method = e1.resolveMethod();
-                        return MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(method)).getMethodHashKey();
-                    }));
-
-
-            Map<String, DeclaredMock> mocks = new HashMap<>();
-
-            List<MethodCallExpression> callsList = loadedTestCandidate.getCallsList();
-            List<MethodCallExpression> callListCopy = new ArrayList<>(callsList);
-            while (callListCopy.size() > 0) {
-                MethodCallExpression methodCallExpression = callListCopy.remove(0);
-
-                PsiMethod psiMethod = ClassTypeUtils.getPsiMethod(methodCallExpression,
-                        insidiousService.getProject());
-                if (psiMethod == null) {
-                    logger.warn("Failed to resolve method: " + methodCallExpression + ", call will not be mocked");
-                    continue;
-                }
-                MethodUnderTest mockMethodTarget = MethodUnderTest.fromMethodAdapter(
-                        new JavaMethodAdapter(psiMethod));
-
-                List<PsiMethodCallExpression> expressionsBySignature = expressionsBySignatureMap.get(
-                        mockMethodTarget.getMethodHashKey());
-
-                if (expressionsBySignature == null) {
-                    // this call is not on a field. it is probably a call to a method in the same class
-                    // not mocking this
-                    logger.warn("Skipping call for mocking: " + mockMethodTarget);
-                    continue;
-                }
-
-                PsiMethodCallExpression methodCallExpression1 = expressionsBySignature.get(0);
-//                    methodCallExpression1.getMethodExpression()
-
-                PsiReferenceExpression methodExpression = methodCallExpression1.getMethodExpression();
-                PsiExpression qualifierExpression1 = methodExpression.getQualifierExpression();
-                if (!(qualifierExpression1 instanceof PsiReferenceExpression)) {
-                    // what is this ? TODO: add support for chain mocking
-                    continue;
-                }
-                PsiReferenceExpression qualifierExpression = (PsiReferenceExpression) qualifierExpression1;
-                if (qualifierExpression == null) {
-                    // call to another method in the same class :)
-                    // should never happen
-                    continue;
-                }
-                PsiElement qualifierField = qualifierExpression.resolve();
-                if (!(qualifierField instanceof PsiField)) {
-                    // call is not on a field
-                    continue;
-                }
-                DeclaredMock declaredMock = ClassUtils.createDefaultMock(methodCallExpression1);
-
-                DeclaredMock existingMock = mocks.get(mockMethodTarget.getMethodHashKey());
-                if (existingMock == null) {
-                    mocks.put(mockMethodTarget.getMethodHashKey(), declaredMock);
-                } else {
-                    existingMock.getThenParameter().addAll(declaredMock.getThenParameter());
-                }
-
-
-            }
-
-            Collection<DeclaredMock> values = mocks.values();
-
-            for (DeclaredMock value : values) {
-                atomicRecordService.saveMockDefinition(value);
-                mockCount++;
-            }
-
-
-        }
-
-        InsidiousNotification.notifyMessage(
-                "Saved " + selectedCandidates.size() + " replay test and " + mockCount + " mock definitions",
-                NotificationType.INFORMATION);
-
-
-        if (storedCandidate.getCandidateId() == null) {
-            // new test case
-            storedCandidate.setName(
-                    "test " + storedCandidate.getMethod().getName() + " returns expected value when");
-            storedCandidate.setDescription("assert that the response value matches expected value");
-        }
-        try {
-            saveFormReference = new SaveForm(storedCandidate, new CandidateLifeListener() {
-                @Override
-                public void executeCandidate(List<StoredCandidate> metadata, ClassUnderTest classUnderTest, ReplayAllExecutionContext context, AgentCommandResponseListener<TestCandidateMetadata, String> stringAgentCommandResponseListener) {
-
-                }
-
-                @Override
-                public void displayResponse(Component responseComponent, boolean isExceptionFlow) {
-
-                }
-
-                @Override
-                public void onSaved(StoredCandidate storedCandidate) {
-                    for (TestCandidateMetadata testCandidate : selectedCandidates) {
-                        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
-                                new JavaMethodAdapter(ClassTypeUtils.getPsiMethod(testCandidate.getMainMethod(),
-                                        StompComponent.this.insidiousService.getProject())));
-                        StoredCandidate candidate = atomicRecordService.getStoredCandidateFor(methodUnderTest,
-                                testCandidate);
-                        if (candidate.getCandidateId() == null) {
-                            candidate.setCandidateId(UUID.randomUUID().toString());
-                        }
-                        candidate.setTestAssertions(storedCandidate.getTestAssertions());
-                        simpleDateFormat = new SimpleDateFormat();
-                        if (candidate.getName() == null) {
-                            candidate.setName("saved on " + simpleDateFormat.format(new Date()));
-                        }
-                        atomicRecordService.saveCandidate(methodUnderTest, candidate);
-
+        List<StoredCandidate> candidateList = selectedCandidates.stream()
+                .map(StoredCandidate::new)
+                .peek(storedCandidate -> {
+                    if (storedCandidate.getCandidateId() == null) {
+                        // new test case
+                        storedCandidate.setName(
+                                "test " + storedCandidate.getMethod()
+                                        .getName() + " returns expected value when");
+                        storedCandidate.setDescription(
+                                "assert that the response value matches expected value");
                     }
-
-                    insidiousService.hideCandidateSaveForm(saveFormReference);
-                    saveFormReference = null;
-
-
-                }
-
-                @Override
-                public void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse) {
-
-                }
-
-                @Override
-                public void onDeleteRequest(StoredCandidate storedCandidate) {
-
-                }
-
-                @Override
-                public void onDeleted(StoredCandidate storedCandidate) {
-
-                }
-
-                @Override
-                public void onUpdated(StoredCandidate storedCandidate) {
-
-                }
-
-                @Override
-                public void onUpdateRequest(StoredCandidate storedCandidate) {
-
-                }
-
-                @Override
-                public void onGenerateJunitTestCaseRequest(StoredCandidate storedCandidate) {
-
-                }
-
-                @Override
-                public void onCandidateSelected(StoredCandidate testCandidateMetadata) {
-
-                }
-
-                @Override
-                public boolean canGenerateUnitCase(StoredCandidate candidate) {
-                    return false;
-                }
-
-                @Override
-                public void onCancel() {
-                    insidiousService.hideCandidateSaveForm(saveFormReference);
-                    saveFormReference = null;
-                }
-
-                @Override
-                public Project getProject() {
-                    return insidiousService.getProject();
-                }
-            });
+                })
+                .collect(Collectors.toList());
+        try {
+            SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
+            saveFormReference = new SaveForm(candidateList, candidateLifeListener);
         } catch (JsonProcessingException ex) {
             throw new RuntimeException(ex);
         }
-        mainPanel.add(saveFormReference.getComponent(), BorderLayout.CENTER);
-    }
+        southPanel.add(saveFormReference.getComponent(), BorderLayout.SOUTH);
 
-    private List<PsiMethodCallExpression> getAllCallExpressions(PsiMethod targetMethod) {
-        @Nullable PsiClass containingClass = targetMethod.getContainingClass();
-        List<PsiMethodCallExpression> psiMethodCallExpressions = new ArrayList<>(PsiTreeUtil.findChildrenOfType(
-                targetMethod, PsiMethodCallExpression.class));
 
-        List<PsiMethodCallExpression> collectedCalls = new ArrayList<>();
-
-        for (PsiMethodCallExpression psiMethodCallExpression : psiMethodCallExpressions) {
-            PsiExpression qualifierExpression = psiMethodCallExpression.getMethodExpression()
-                    .getQualifierExpression();
-            if (qualifierExpression == null) {
-                // this call needs to be scanned
-                PsiMethod subTargetMethod = (PsiMethod) psiMethodCallExpression.getMethodExpression().resolve();
-                if (subTargetMethod.hasModifier(JvmModifier.STATIC)) {
-                    // static methods to be added as it is for now
-                    // but lets scan them also for down stream calls from their fields
-                    // for possible support of injection in future
-                    collectedCalls.add(psiMethodCallExpression);
-                }
-                List<PsiMethodCallExpression> subCalls = getAllCallExpressions(subTargetMethod);
-                collectedCalls.addAll(subCalls);
-            } else {
-                collectedCalls.add(psiMethodCallExpression);
-            }
-        }
-
-        return collectedCalls;
     }
 
     private void resetAndReload() {
@@ -1409,9 +1191,13 @@ public class StompComponent implements
                 psiMethodCallExpression, insidiousService.getProject(), declaredMock -> {
             atomicRecordService.saveMockDefinition(declaredMock);
             InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
-            southPanel.removeAll();
             mainPanel.revalidate();
             mainPanel.repaint();
+        }, new OnCloseListener<Void>() {
+            @Override
+            public void onClose(Void component) {
+                southPanel.removeAll();
+            }
         });
         JComponent content = mockEditor.getComponent();
         content.setMinimumSize(new Dimension(-1, 500));
@@ -1429,21 +1215,26 @@ public class StompComponent implements
         });
     }
 
-    public void showNewTestCandidateCreator(MethodUnderTest methodUnderTest,
-                                            PsiMethodCallExpression psiMethodCallExpression) {
-        MockDefinitionEditor mockEditor = new MockDefinitionEditor(methodUnderTest, psiMethodCallExpression,
-                insidiousService.getProject(), new OnSaveListener() {
-            @Override
-            public void onSaveDeclaredMock(DeclaredMock declaredMock) {
-                atomicRecordService.saveMockDefinition(declaredMock);
-                InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
-            }
-        });
-        JComponent content = mockEditor.getComponent();
-        content.setMinimumSize(new Dimension(-1, 500));
-        content.setMaximumSize(new Dimension(-1, 600));
-        southPanel.add(content, BorderLayout.CENTER);
-    }
+//    public void showNewTestCandidateCreator(MethodUnderTest methodUnderTest,
+//                                            PsiMethodCallExpression psiMethodCallExpression) {
+//        MockDefinitionEditor mockEditor = new MockDefinitionEditor(methodUnderTest, psiMethodCallExpression,
+//                insidiousService.getProject(), new OnSaveListener() {
+//            @Override
+//            public void onSaveDeclaredMock(DeclaredMock declaredMock) {
+//                atomicRecordService.saveMockDefinition(declaredMock);
+//                InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
+//            }
+//        }, new OnCloseListener<Void>() {
+//            @Override
+//            public void onClose(Void component) {
+//                southPanel.removeAll();
+//            }
+//        });
+//        JComponent content = mockEditor.getComponent();
+//        content.setMinimumSize(new Dimension(-1, 500));
+//        content.setMaximumSize(new Dimension(-1, 600));
+//        southPanel.add(content, BorderLayout.CENTER);
+//    }
 
     void makeSpace(int position) {
         Component[] components = itemPanel.getComponents();
