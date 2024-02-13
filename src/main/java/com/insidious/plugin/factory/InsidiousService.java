@@ -39,7 +39,6 @@ import com.insidious.plugin.ui.InsidiousCaretListener;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.UnloggedSDKOnboarding;
-import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.library.LibraryComponent;
 import com.insidious.plugin.ui.library.LibraryFilterState;
@@ -71,7 +70,6 @@ import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
-import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
@@ -129,7 +127,6 @@ final public class InsidiousService implements
     private final Map<String, String> candidateIndividualContextMap = new TreeMap<>();
     private final JUnitTestCaseWriter junitTestCaseWriter;
     private final Map<String, Boolean> classModifiedFlagMap = new HashMap<>();
-    private final Map<SaveForm, FileEditor> saveFormEditorMap = new HashMap<>();
     private final InsidiousConfigurationState configurationState;
     private final Project project;
     private final Map<String, GutterState> cachedGutterState = new HashMap<>();
@@ -1226,25 +1223,6 @@ final public class InsidiousService implements
         DiffManager.getInstance().showDiff(project, request);
     }
 
-    public void showCandidateSaveForm(SaveForm saveForm) {
-        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-        FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
-//        if (selectedEditor == null) {
-//            StoredCandidate candidate = saveForm.getStoredCandidate();
-//            selectedEditor = InsidiousUtils.focusProbeLocationInEditor(0,
-//                    candidate.getMethod().getClassName(), this.getProject());
-        if (selectedEditor == null) {
-            InsidiousNotification.notifyMessage(
-                    "No editor tab is open, please open an editor tab",
-                    NotificationType.ERROR
-            );
-            return;
-        }
-//        }
-        fileEditorManager.addTopComponent(selectedEditor, saveForm.getComponent());
-        saveFormEditorMap.put(saveForm, selectedEditor);
-    }
-
     public FileEditorManager showDesignerLiteForm(VirtualFile lightVirtualFile) {
 
         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
@@ -1253,13 +1231,6 @@ final public class InsidiousService implements
         return fileEditorManager;
     }
 
-    public void hideCandidateSaveForm(SaveForm saveFormReference) {
-        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-        FileEditor selectedEditor = saveFormEditorMap.get(saveFormReference);
-        if (selectedEditor != null) {
-            fileEditorManager.removeTopComponent(selectedEditor, saveFormReference.getComponent());
-        }
-    }
 
     public void addDiffRecord(DifferenceResult newDiffRecord) {
         if (newDiffRecord == null) {
@@ -1292,10 +1263,6 @@ final public class InsidiousService implements
 
     public void addExecutionRecord(AutoExecutorReportRecord result) {
         reportingService.addRecord(result);
-    }
-
-    public void addExecutionRecord(DifferenceResult result) {
-//        reportingService.addRecord(result);
     }
 
 

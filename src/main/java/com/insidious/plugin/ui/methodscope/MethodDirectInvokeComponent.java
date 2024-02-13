@@ -71,6 +71,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JPanel junitBoilerplaceContainerPanel;
     private JButton modifyArgumentsButton;
     private JPanel boilerplateCustomizerContainer;
+    private JPanel centerPanel;
     private MethodAdapter methodElement;
     private Tree argumentValueTree = null;
     private TreeModel argumentsValueTreeNode;
@@ -359,7 +360,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
         if (parameterScrollPanel == null) {
             parameterScrollPanel = new JBScrollPane(methodParameterContainer);
-            methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.NORTH);
+            centerPanel.add(parameterScrollPanel, BorderLayout.CENTER);
         } else {
             parameterScrollPanel.setViewportView(methodParameterContainer);
         }

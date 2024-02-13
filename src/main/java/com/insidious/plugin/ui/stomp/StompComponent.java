@@ -24,34 +24,26 @@ import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.util.ClassTypeUtils;
-import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
-import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressIndicatorProvider;
-import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
-import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.table.JBTable;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -110,7 +102,7 @@ public class StompComponent implements
     private JLabel clearTimelineLabel;
     private long lastEventId = 0;
     private MethodDirectInvokeComponent directInvokeComponent = null;
-    private SaveForm saveFormReference;
+    private TestCandidateSaveForm saveFormReference;
     private SimpleDateFormat simpleDateFormat = new SimpleDateFormat();
     private boolean welcomePanelRemoved = false;
     private AtomicInteger candidateQueryLatch;
@@ -389,34 +381,34 @@ public class StompComponent implements
     }
 
     private void saveSelected() {
-        if (saveFormReference != null) {
-            insidiousService.hideCandidateSaveForm(saveFormReference);
-            saveFormReference = null;
-        }
+//        if (saveFormReference != null) {
+//            insidiousService.hideCandidateSaveForm(saveFormReference);
+//            saveFormReference = null;
+//        }
         AtomicRecordService atomicRecordService = insidiousService.getProject()
                 .getService(AtomicRecordService.class);
 //        StoredCandidate storedCandidate = new StoredCandidate(selectedCandidates.get(0));
 
-        List<StoredCandidate> candidateList = selectedCandidates.stream()
-                .map(StoredCandidate::new)
-                .peek(storedCandidate -> {
-                    if (storedCandidate.getCandidateId() == null) {
-                        // new test case
-                        storedCandidate.setName(
-                                "test " + storedCandidate.getMethod()
-                                        .getName() + " returns expected value when");
-                        storedCandidate.setDescription(
-                                "assert that the response value matches expected value");
-                    }
-                })
-                .collect(Collectors.toList());
-        try {
-            SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
-            saveFormReference = new SaveForm(candidateList, candidateLifeListener);
-        } catch (JsonProcessingException ex) {
-            throw new RuntimeException(ex);
-        }
-        southPanel.add(saveFormReference.getComponent(), BorderLayout.SOUTH);
+//        List<StoredCandidate> candidateList = selectedCandidates.stream()
+//                .map(StoredCandidate::new)
+//                .peek(storedCandidate -> {
+//                    if (storedCandidate.getCandidateId() == null) {
+//                        // new test case
+//                        storedCandidate.setName(
+//                                "test " + storedCandidate.getMethod()
+//                                        .getName() + " returns expected value when");
+//                        storedCandidate.setDescription(
+//                                "assert that the response value matches expected value");
+//                    }
+//                })
+//                .collect(Collectors.toList());
+        SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
+//            saveFormReference = new SaveForm(candidateList, candidateLifeListener);
+        saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener);
+        JPanel component = saveFormReference.getComponent();
+//        component.setMinimumSize(new Dimension(0, 600));
+//        component.setMaximumSize(new Dimension(600, 800));
+        southPanel.add(component, BorderLayout.SOUTH);
 
 
     }

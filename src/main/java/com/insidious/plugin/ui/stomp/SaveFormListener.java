@@ -12,7 +12,6 @@ import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.record.AtomicRecordService;
-import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.ClassUtils;
@@ -38,7 +37,7 @@ public class SaveFormListener implements CandidateLifeListener {
     private static final Logger logger = LoggerUtil.getInstance(SaveFormListener.class);
     private AtomicRecordService atomicRecordService;
     private InsidiousService insidiousService;
-    private SaveForm saveFormReference;
+    private TestCandidateSaveForm saveFormReference;
 
     public SaveFormListener(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -175,7 +174,7 @@ public class SaveFormListener implements CandidateLifeListener {
         });
 
 
-        insidiousService.hideCandidateSaveForm(saveFormReference);
+//        insidiousService.hideCandidateSaveForm(saveFormReference);
 
 
     }
@@ -222,7 +221,7 @@ public class SaveFormListener implements CandidateLifeListener {
 
     @Override
     public void onCancel() {
-        insidiousService.hideCandidateSaveForm(saveFormReference);
+//        insidiousService.hideCandidateSaveForm(saveFormReference);
     }
 
     @Override

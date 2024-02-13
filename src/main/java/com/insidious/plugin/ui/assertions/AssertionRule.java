@@ -322,13 +322,13 @@ public class AssertionRule {
     }
 
     public void updateResult() {
-        AssertionResult thisResult = manager.executeAssertion(assertion);
-        Boolean result = thisResult.getResults().get(assertion.getId());
-        if (result) {
-            topAligner.setBackground(UIUtils.ASSERTION_PASSING_COLOR);
-        } else {
-            topAligner.setBackground(UIUtils.ASSERTION_FAILING_COLOR);
-        }
+//        AssertionResult thisResult = manager.executeAssertion(assertion);
+//        Boolean result = thisResult.getResults().get(assertion.getId());
+//        if (result) {
+//            topAligner.setBackground(UIUtils.ASSERTION_PASSING_COLOR);
+//        } else {
+//            topAligner.setBackground(UIUtils.ASSERTION_FAILING_COLOR);
+//        }
     }
 
     public AssertionBlock getBlock() {

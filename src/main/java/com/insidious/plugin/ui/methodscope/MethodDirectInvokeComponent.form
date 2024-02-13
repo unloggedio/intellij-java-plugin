@@ -14,8 +14,7 @@
         <properties/>
         <border type="none"/>
         <children>
-          <grid id="de644" binding="directInvokeContainerPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="0" bottom="0" right="0"/>
+          <grid id="de644" binding="directInvokeContainerPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
             <constraints>
               <tabbedpane title="Direct Invoke" icon="icons/png/play-fill.png"/>
             </constraints>
@@ -23,11 +22,7 @@
             <border type="none"/>
             <children>
               <grid id="eb563" binding="methodParameterScrollContainer" layout-manager="BorderLayout" hgap="0" vgap="0">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                    <minimum-size width="-1" height="100"/>
-                  </grid>
-                </constraints>
+                <constraints border-constraint="Center"/>
                 <properties/>
                 <border type="empty">
                   <size top="4" left="4" bottom="4" right="4"/>
@@ -62,6 +57,12 @@
                         </properties>
                       </component>
                     </children>
+                  </grid>
+                  <grid id="32146" binding="centerPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
+                    <constraints border-constraint="Center"/>
+                    <properties/>
+                    <border type="none"/>
+                    <children/>
                   </grid>
                 </children>
               </grid>
