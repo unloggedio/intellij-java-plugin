@@ -55,6 +55,9 @@ public class UIUtils {
     );
     public static final JBColor ASSERTION_PASSING_COLOR = new JBColor(new Color(171, 232, 206), new Color(171, 232, 206));
     public static final JBColor ASSERTION_FAILING_COLOR = new JBColor(new Color(197, 48, 48), new Color(197, 48, 48));
+    public static final Icon COTRACT_UP_DOWN_ICON = IconLoader.getIcon("/icons/png/contract-up-down-line-black.png", UIUtils.class);
+    public static final Icon EXPAND_UP_DOWN_ICON = IconLoader.getIcon("/icons/png/expand-up-down-line-black.png",
+            UIUtils.class);
     public static Color teal = new JBColor(new Color(1, 204, 245), new Color(1, 204, 245));  // 01CCF5
     public static Color tealdark = new JBColor(new Color(1, 172, 245), new Color(1, 172, 245));  // 01CCF5
     public static Color pink = new JBColor(new Color(254, 100, 216), new Color(254, 100, 216));  // FE64D8

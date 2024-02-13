@@ -13,15 +13,15 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.util.AtomicAssertionUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
-import org.apache.xmlbeans.impl.store.Cur;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class TestCandidateSaveForm {
@@ -31,17 +31,21 @@ public class TestCandidateSaveForm {
     private final List<StoredCandidate> candidateList;
     private final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private JPanel mainPanel;
-    private JButton saveButton;
-    private JButton cancelButton;
     private JLabel assertionCountLabel;
     private JLabel linesCountLabel;
     private JLabel selectedReplayCountLabel;
     private JLabel mockCallCountLabel;
-    private JRadioButton integrationRadioButton;
-    private JRadioButton unitRadioButton;
     private JSeparator replaySummaryLine;
     private JLabel replayExpandIcon;
     private JPanel replayLineContainer;
+    private JPanel hiddenCandidateListContainer;
+    private JPanel candidateListContainer;
+    private JButton confirmButton;
+    private JButton cancelButton;
+    private JCheckBox checkBox1;
+    private JCheckBox checkBox2;
+    private JRadioButton integrationRadioButton;
+    private JRadioButton unitRadioButton;
 
     public TestCandidateSaveForm(List<TestCandidateMetadata> candidateMetadataList, SaveFormListener saveFormListener) {
         this.candidateMetadataList = candidateMetadataList;
@@ -56,12 +60,25 @@ public class TestCandidateSaveForm {
         selectedReplayCountLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         replayLineContainer.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        replaySummaryLine.addMouseListener(new MouseAdapter() {
+
+        candidateListContainer.add(new JButton(), BorderLayout.CENTER);
+        MouseAdapter showCandidatesAdapter = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
+                if (hiddenCandidateListContainer.isVisible()) {
+                    replayExpandIcon.setIcon(UIUtils.COTRACT_UP_DOWN_ICON);
+                    hiddenCandidateListContainer.setVisible(false);
+                } else {
+                    replayExpandIcon.setIcon(UIUtils.COTRACT_UP_DOWN_ICON);
+                    hiddenCandidateListContainer.setVisible(true);
+                }
             }
-        });
+        };
+        replaySummaryLine.addMouseListener(showCandidatesAdapter);
+        replayExpandIcon.addMouseListener(showCandidatesAdapter);
+        selectedReplayCountLabel.addMouseListener(showCandidatesAdapter);
+        replayLineContainer.addMouseListener(showCandidatesAdapter);
+
 
         candidateList = candidateMetadataList.stream()
                 .map(candidateMetadata -> {
@@ -105,7 +122,7 @@ public class TestCandidateSaveForm {
 
         int classCount = classNames.size();
         linesCountLabel.setText(lineCoverageMap.size() + " unique lines covered in " + classCount + " class"
-        + (classCount == 1 ? "" : "es"));
+                + (classCount == 1 ? "" : "es"));
 
 
     }

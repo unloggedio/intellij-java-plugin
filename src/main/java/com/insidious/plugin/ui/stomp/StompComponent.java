@@ -406,7 +406,7 @@ public class StompComponent implements
 //            saveFormReference = new SaveForm(candidateList, candidateLifeListener);
         saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener);
         JPanel component = saveFormReference.getComponent();
-//        component.setMinimumSize(new Dimension(0, 600));
+        component.setMinimumSize(new Dimension(0, 600));
 //        component.setMaximumSize(new Dimension(600, 800));
         southPanel.add(component, BorderLayout.SOUTH);
 
