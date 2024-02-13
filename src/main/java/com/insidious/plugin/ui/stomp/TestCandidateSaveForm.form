@@ -396,7 +396,7 @@
                               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="2" use-parent-layout="false">
                                 <minimum-size width="-1" height="400"/>
                                 <preferred-size width="-1" height="400"/>
-                                <maximum-size width="300" height="400"/>
+                                <maximum-size width="-1" height="400"/>
                               </grid>
                             </constraints>
                             <properties/>
@@ -469,6 +469,7 @@
                                 <properties>
                                   <icon value="icons/png/expand-up-down-line-black.png"/>
                                   <text value=""/>
+                                  <visible value="false"/>
                                 </properties>
                               </component>
                             </children>

@@ -22,7 +22,7 @@ import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBScrollPane;
-import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import java.awt.*;
@@ -103,9 +103,12 @@ public class TestCandidateSaveForm {
 
 
         JPanel candiateItemContainer = new JPanel();
-        candiateItemContainer.setLayout(new GridLayout(0, 1));
+        candiateItemContainer.setLayout(new GridBagLayout());
         JBScrollPane itemScroller = new JBScrollPane(candiateItemContainer);
         replayScrollParentPanel.add(itemScroller, BorderLayout.CENTER);
+
+        candiateItemContainer.setAlignmentY(0);
+        candiateItemContainer.setAlignmentX(0);
 
 
         candidateList = candidateMetadataList.stream()
@@ -223,13 +226,15 @@ public class TestCandidateSaveForm {
 
 
         Project project = saveFormListener.getProject();
-        for (StoredCandidate storedCandidate : candidateList) {
+        for (int i = 0; i < candidateList.size(); i++) {
+            StoredCandidate storedCandidate = candidateList.get(i);
             StoredCandidateItemPanel storedCandidateItemPanel = new StoredCandidateItemPanel(storedCandidate, listener,
                     project);
             storedCandidateItemPanel.setIsSelectable(false);
             candidatePanelMap.put(storedCandidate, storedCandidateItemPanel);
-            candiateItemContainer.add(storedCandidateItemPanel.getComponent(), new GridConstraints());
+            candiateItemContainer.add(storedCandidateItemPanel.getComponent(), createGBCForLeftMainComponent(i));
         }
+        candiateItemContainer.add(new JPanel(), createGBCForFakeComponent(candidateList.size()));
 
 
         ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener = new ItemLifeCycleListener<>() {
@@ -256,19 +261,27 @@ public class TestCandidateSaveForm {
 
 
         JPanel mockItemContainer = new JPanel();
-        mockItemContainer.setLayout(new GridLayout(0, 1));
+        mockItemContainer.setLayout(new GridBagLayout());
         JBScrollPane mockItemScroller = new JBScrollPane(mockItemContainer);
         mockScrollParentPanel.add(mockItemScroller, BorderLayout.CENTER);
 
-        for (MethodCallExpression methodCallExpression : downstreamCallList) {
+        mockItemContainer.setAlignmentY(0);
+        mockItemContainer.setAlignmentX(0);
+
+
+        int i = 0;
+        while (i < downstreamCallList.size()) {
+            MethodCallExpression methodCallExpression = downstreamCallList.get(i);
             DeclaredMock declaredMock = StompComponent.createDeclaredMockFromCallExpression(methodCallExpression,
                     project);
             DeclaredMockItemPanel declaredMockItemPanel = new DeclaredMockItemPanel(declaredMock,
                     itemLifeCycleListener, project);
             declaredMockItemPanel.setIsSelectable(false);
             declaredMockPanelMap.put(methodCallExpression, declaredMockItemPanel);
-            mockItemContainer.add(declaredMockItemPanel.getComponent(), new GridConstraints());
+            mockItemContainer.add(declaredMockItemPanel.getComponent(), createGBCForLeftMainComponent(i));
+            i++;
         }
+        mockItemContainer.add(new JPanel(), createGBCForFakeComponent(downstreamCallList.size()));
 
 
         MouseAdapter showMocksAdapter = new MouseAdapter() {
@@ -320,18 +333,22 @@ public class TestCandidateSaveForm {
         };
 
         JPanel assertionItemContainer = new JPanel();
-        assertionItemContainer.setLayout(new GridLayout(0, 1));
+        assertionItemContainer.setLayout(new GridBagLayout());
         JBScrollPane assertionItemScroller = new JBScrollPane(assertionItemContainer);
         assertionsScrollParentPanel.add(assertionItemScroller, BorderLayout.CENTER);
 
+        assertionItemContainer.setAlignmentY(0);
+        assertionItemContainer.setAlignmentX(0);
+
+
         for (AtomicAssertion atomicAssertion : allAssertions) {
-            AtomicAssertionItemPanel atomicAssertionItemPanel = new AtomicAssertionItemPanel(atomicAssertion,
-                    atomicAssertionLifeListener,
-                    project);
+            AtomicAssertionItemPanel atomicAssertionItemPanel = new AtomicAssertionItemPanel(
+                    atomicAssertion, atomicAssertionLifeListener, project);
 
             atomicAssertionPanelMap.put(atomicAssertion, atomicAssertionItemPanel);
-            assertionItemContainer.add(atomicAssertionItemPanel.getComponent(), new GridConstraints());
+            assertionItemContainer.add(atomicAssertionItemPanel.getComponent(), createGBCForLeftMainComponent(i));
         }
+        assertionItemContainer.add(new JPanel(), createGBCForFakeComponent(allAssertions.size()));
 
 
         MouseAdapter showAssertionsAdapter = new MouseAdapter() {
@@ -353,6 +370,10 @@ public class TestCandidateSaveForm {
                 }
             }
         };
+
+        assertionExpandIcon.setIcon(UIUtils.COTRACT_UP_DOWN_ICON);
+        hiddenAssertionsListContainer.setVisible(true);
+
         assertionLine.addMouseListener(showAssertionsAdapter);
         assertionExpandIcon.addMouseListener(showAssertionsAdapter);
         assertionCountLabel.addMouseListener(showAssertionsAdapter);
@@ -402,4 +423,45 @@ public class TestCandidateSaveForm {
     public JPanel getComponent() {
         return mainPanel;
     }
+
+
+    private GridBagConstraints createGBCForLeftMainComponent(int i) {
+        GridBagConstraints gbc = new GridBagConstraints();
+
+        gbc.gridx = 0;
+        gbc.gridy = i;
+        gbc.gridwidth = 1;
+        gbc.gridheight = 1;
+
+        gbc.weightx = 1;
+        gbc.weighty = 0;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.insets = JBUI.insetsBottom(0);
+        gbc.ipadx = 0;
+        gbc.ipady = 0;
+        return gbc;
+    }
+
+
+    private GridBagConstraints createGBCForFakeComponent(int i) {
+        GridBagConstraints gbc = new GridBagConstraints();
+
+        gbc.gridx = 0;
+        gbc.gridy = i;
+        gbc.gridwidth = 1;
+        gbc.gridheight = 1;
+
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.insets = JBUI.insetsBottom(8);
+        gbc.ipadx = 0;
+        gbc.ipady = 0;
+        return gbc;
+    }
+
 }

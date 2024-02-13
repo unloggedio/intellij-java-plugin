@@ -1,59 +1,73 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="com.insidious.plugin.ui.stomp.AtomicAssertionItemPanel">
-  <grid id="27dc6" binding="mainPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
+  <grid id="83a8" binding="mainPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+    <margin top="0" left="4" bottom="4" right="4"/>
     <constraints>
-      <xy x="20" y="20" width="383" height="118"/>
+      <xy x="20" y="20" width="399" height="92"/>
     </constraints>
     <properties/>
     <border type="none"/>
     <children>
-      <grid id="5c0c2" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-        <margin top="5" left="5" bottom="5" right="5"/>
-        <constraints border-constraint="North"/>
+      <grid id="27dc6" layout-manager="BorderLayout" hgap="0" vgap="0">
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false">
+            <minimum-size width="-1" height="84"/>
+            <preferred-size width="-1" height="84"/>
+            <maximum-size width="-1" height="84"/>
+          </grid>
+        </constraints>
         <properties/>
-        <border type="none"/>
+        <border type="none" title="Atomic Assertion"/>
         <children>
-          <component id="2e378" class="javax.swing.JLabel" binding="titleLabel">
-            <constraints>
-              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-            </constraints>
-            <properties>
-              <text value="Atomic Assertion"/>
-            </properties>
-          </component>
-        </children>
-      </grid>
-      <grid id="b211" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-        <margin top="5" left="5" bottom="5" right="5"/>
-        <constraints border-constraint="South"/>
-        <properties/>
-        <border type="none"/>
-        <children>
-          <grid id="a2d69" layout-manager="FlowLayout" hgap="5" vgap="5" flow-align="1">
-            <constraints>
-              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false"/>
-            </constraints>
+          <grid id="5c0c2" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+            <margin top="5" left="5" bottom="5" right="5"/>
+            <constraints border-constraint="North"/>
             <properties/>
             <border type="none"/>
             <children>
-              <component id="8cb57" class="javax.swing.JLabel" binding="keyName">
-                <constraints/>
+              <component id="2e378" class="javax.swing.JLabel" binding="titleLabel">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                </constraints>
                 <properties>
-                  <text value="Label"/>
+                  <text value="Atomic Assertion"/>
                 </properties>
               </component>
-              <component id="eeb93" class="javax.swing.JLabel" binding="operationName">
-                <constraints/>
-                <properties>
-                  <text value="Label"/>
-                </properties>
-              </component>
-              <component id="32971" class="javax.swing.JLabel" binding="valueName">
-                <constraints/>
-                <properties>
-                  <text value="Label"/>
-                </properties>
-              </component>
+            </children>
+          </grid>
+          <grid id="b211" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+            <margin top="5" left="5" bottom="5" right="5"/>
+            <constraints border-constraint="South"/>
+            <properties/>
+            <border type="none"/>
+            <children>
+              <grid id="a2d69" layout-manager="FlowLayout" hgap="5" vgap="5" flow-align="1">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false"/>
+                </constraints>
+                <properties/>
+                <border type="none"/>
+                <children>
+                  <component id="8cb57" class="javax.swing.JLabel" binding="keyName">
+                    <constraints/>
+                    <properties>
+                      <text value="Label"/>
+                    </properties>
+                  </component>
+                  <component id="eeb93" class="javax.swing.JLabel" binding="operationName">
+                    <constraints/>
+                    <properties>
+                      <text value="Label"/>
+                    </properties>
+                  </component>
+                  <component id="32971" class="javax.swing.JLabel" binding="valueName">
+                    <constraints/>
+                    <properties>
+                      <text value="Label"/>
+                    </properties>
+                  </component>
+                </children>
+              </grid>
             </children>
           </grid>
         </children>
