@@ -5,6 +5,7 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ReplayAllExecutionContext;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.ui.library.DeclaredMockItemPanel;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.intellij.openapi.project.Project;
 
@@ -21,7 +22,7 @@ public interface CandidateLifeListener {
 
     void displayResponse(Component responseComponent, boolean isExceptionFlow);
 
-    int onSaved(StoredCandidate storedCandidate);
+    void onSaved(StoredCandidate storedCandidate);
 
 
     void onSaveRequest(StoredCandidate storedCandidate, AgentCommandResponse<String> agentCommandResponse);
@@ -43,4 +44,6 @@ public interface CandidateLifeListener {
     void onCancel();
 
     Project getProject();
+
+    void onSaved(DeclaredMockItemPanel value);
 }

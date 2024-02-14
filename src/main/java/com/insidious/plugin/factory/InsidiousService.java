@@ -607,6 +607,12 @@ final public class InsidiousService implements
     }
 
     public void showDirectInvoke(MethodAdapter method) {
+        if (stompWindow == null) {
+            InsidiousNotification.notifyMessage(
+                    "Please start the application with unlogged-sdk to use", NotificationType.WARNING
+            );
+            return;
+        }
         stompWindow.showDirectInvoke(method);
         toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
     }

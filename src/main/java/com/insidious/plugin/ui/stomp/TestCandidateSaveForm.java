@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.stomp;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.Expression;
@@ -10,17 +11,19 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.ui.library.DeclaredMockItemPanel;
 import com.insidious.plugin.ui.library.ItemLifeCycleListener;
 import com.insidious.plugin.ui.library.StoredCandidateItemPanel;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
-import com.insidious.plugin.util.AtomicAssertionUtils;
-import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.ObjectMapperInstance;
-import com.insidious.plugin.util.UIUtils;
+import com.insidious.plugin.util.*;
+import com.intellij.lang.jvm.JvmModifier;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.psi.*;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
 
@@ -41,7 +44,7 @@ public class TestCandidateSaveForm {
     private final List<StoredCandidate> candidateList;
     private final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final Map<StoredCandidate, StoredCandidateItemPanel> candidatePanelMap = new HashMap<>();
-    private final Map<MethodCallExpression, DeclaredMockItemPanel> declaredMockPanelMap = new HashMap<>();
+    private final Map<DeclaredMock, DeclaredMockItemPanel> declaredMockPanelMap = new HashMap<>();
     private final Map<AtomicAssertion, AtomicAssertionItemPanel> atomicAssertionPanelMap = new HashMap<>();
     private JPanel mainPanel;
     private JLabel assertionCountLabel;
@@ -75,22 +78,26 @@ public class TestCandidateSaveForm {
         this.saveFormListener = saveFormListener;
         selectedReplayCountLabel.setText(candidateMetadataList.size() + " replay selected");
 
-        List<MethodCallExpression> downstreamCallList = candidateMetadataList
-                .stream()
-                .flatMap(e -> e.getCallsList()
-                        .stream()
-                        .filter(e1 -> (e1.getSubject() != null && e1.getSubject().getValue() != 0))
-                ).collect(Collectors.toList());
-        mockCallCountLabel.setText(downstreamCallList.size() + " downstream call mocks");
+
+        List<DeclaredMock> mocksList = collectDownstreamMockCalls(candidateMetadataList);
+
+        mockCallCountLabel.setText(mocksList.size() + " downstream call mocks");
 
 
         confirmButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                for (StoredCandidate storedCandidate : candidateList) {
-                    saveFormListener.onSaved(storedCandidate);
-                }
-                onCloseListener.onClose(TestCandidateSaveForm.this);
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    for (StoredCandidate storedCandidate : candidateList) {
+                        saveFormListener.onSaved(storedCandidate);
+                    }
+
+                    for (DeclaredMockItemPanel value : declaredMockPanelMap.values()) {
+                        saveFormListener.onSaved(value);
+                    }
+
+                    onCloseListener.onClose(TestCandidateSaveForm.this);
+                });
             }
         });
 
@@ -270,18 +277,17 @@ public class TestCandidateSaveForm {
 
 
         int i = 0;
-        while (i < downstreamCallList.size()) {
-            MethodCallExpression methodCallExpression = downstreamCallList.get(i);
-            DeclaredMock declaredMock = StompComponent.createDeclaredMockFromCallExpression(methodCallExpression,
-                    project);
+        while (i < mocksList.size()) {
+            DeclaredMock declaredMock = mocksList.get(i);
+//            DeclaredMock declaredMock = StompComponent.createDeclaredMockFromCallExpression(methodCallExpression, project);
             DeclaredMockItemPanel declaredMockItemPanel = new DeclaredMockItemPanel(declaredMock,
                     itemLifeCycleListener, project);
             declaredMockItemPanel.setIsSelectable(false);
-            declaredMockPanelMap.put(methodCallExpression, declaredMockItemPanel);
+            declaredMockPanelMap.put(declaredMock, declaredMockItemPanel);
             mockItemContainer.add(declaredMockItemPanel.getComponent(), createGBCForLeftMainComponent(i));
             i++;
         }
-        mockItemContainer.add(new JPanel(), createGBCForFakeComponent(downstreamCallList.size()));
+        mockItemContainer.add(new JPanel(), createGBCForFakeComponent(mocksList.size()));
 
 
         MouseAdapter showMocksAdapter = new MouseAdapter() {
@@ -380,6 +386,122 @@ public class TestCandidateSaveForm {
         assertionLine.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         assertionExpandIcon.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         assertionCountLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+    }
+
+    private List<PsiMethodCallExpression> getAllCallExpressions(PsiMethod targetMethod) {
+//        @Nullable PsiClass containingClass = targetMethod.getContainingClass();
+        List<PsiMethodCallExpression> psiMethodCallExpressions = new ArrayList<>(PsiTreeUtil.findChildrenOfType(
+                targetMethod, PsiMethodCallExpression.class));
+
+        List<PsiMethodCallExpression> collectedCalls = new ArrayList<>();
+
+        for (PsiMethodCallExpression psiMethodCallExpression : psiMethodCallExpressions) {
+            PsiExpression qualifierExpression = psiMethodCallExpression.getMethodExpression()
+                    .getQualifierExpression();
+            if (qualifierExpression == null) {
+                // this call needs to be scanned
+                PsiMethod subTargetMethod = (PsiMethod) psiMethodCallExpression.getMethodExpression().resolve();
+                if (subTargetMethod.hasModifier(JvmModifier.STATIC)) {
+                    // static methods to be added as it is for now
+                    // but lets scan them also for down stream calls from their fields
+                    // for possible support of injection in future
+                    collectedCalls.add(psiMethodCallExpression);
+                }
+                List<PsiMethodCallExpression> subCalls = getAllCallExpressions(subTargetMethod);
+                collectedCalls.addAll(subCalls);
+            } else {
+                collectedCalls.add(psiMethodCallExpression);
+            }
+        }
+
+        return collectedCalls;
+    }
+
+    private List<DeclaredMock> collectDownstreamMockCalls(List<TestCandidateMetadata> candidateMetadataList) {
+
+        Map<String, DeclaredMock> mocks = new HashMap<>();
+        for (TestCandidateMetadata testCandidateMetadata : candidateMetadataList) {
+
+
+            PsiMethod targetMethod = ClassTypeUtils.getPsiMethod(testCandidateMetadata.getMainMethod(),
+                    saveFormListener.getProject());
+
+            List<PsiMethodCallExpression> allCallExpressions = getAllCallExpressions(targetMethod);
+
+
+            Map<String, List<PsiMethodCallExpression>> expressionsBySignatureMap = allCallExpressions.stream()
+                    .collect(Collectors.groupingBy(e1 -> {
+                        PsiMethod method = e1.resolveMethod();
+                        return MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(method))
+                                .getMethodHashKey();
+                    }));
+
+
+            mocks = new HashMap<>();
+
+            List<MethodCallExpression> callsList = testCandidateMetadata.getCallsList();
+            List<MethodCallExpression> callListCopy = new ArrayList<>(callsList);
+            while (callListCopy.size() > 0) {
+                MethodCallExpression methodCallExpression = callListCopy.remove(0);
+
+                PsiMethod psiMethod = ClassTypeUtils.getPsiMethod(methodCallExpression, saveFormListener.getProject());
+                if (psiMethod == null) {
+                    logger.warn(
+                            "Failed to resolve method: " + methodCallExpression + ", call will not be mocked");
+                    continue;
+                }
+                MethodUnderTest mockMethodTarget = MethodUnderTest.fromMethodAdapter(
+                        new JavaMethodAdapter(psiMethod));
+
+                List<PsiMethodCallExpression> expressionsBySignature = expressionsBySignatureMap.get(
+                        mockMethodTarget.getMethodHashKey());
+
+                if (expressionsBySignature == null) {
+                    // this call is not on a field. it is probably a call to a method in the same class
+                    // not mocking this
+                    logger.warn("Skipping call for mocking: " + mockMethodTarget);
+                    continue;
+                }
+
+                PsiMethodCallExpression methodCallExpression1 = expressionsBySignature.get(0);
+//                    methodCallExpression1.getMethodExpression()
+
+                PsiReferenceExpression methodExpression = methodCallExpression1.getMethodExpression();
+                PsiExpression qualifierExpression1 = methodExpression.getQualifierExpression();
+                if (qualifierExpression1 == null) {
+                    // call to another method in the same class :)
+                    // should never happen
+                    continue;
+                }
+
+                if (!(qualifierExpression1 instanceof PsiReferenceExpression)) {
+                    // what is this ? TODO: add support for chain mocking
+                    continue;
+                }
+                PsiReferenceExpression qualifierExpression = (PsiReferenceExpression) qualifierExpression1;
+                PsiElement qualifierField = qualifierExpression.resolve();
+                if (!(qualifierField instanceof PsiField)) {
+                    // call is not on a field
+                    continue;
+                }
+                DeclaredMock declaredMock = ClassUtils.createDefaultMock(methodCallExpression1);
+
+                DeclaredMock existingMock = mocks.get(mockMethodTarget.getMethodHashKey());
+                if (existingMock == null) {
+                    mocks.put(mockMethodTarget.getMethodHashKey(), declaredMock);
+                } else {
+                    existingMock.getThenParameter().addAll(declaredMock.getThenParameter());
+                }
+
+
+            }
+
+
+        }
+
+
+        return new ArrayList<>(mocks.values());
 
     }
 

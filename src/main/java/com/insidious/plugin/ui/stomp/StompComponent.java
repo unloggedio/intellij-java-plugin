@@ -14,7 +14,6 @@ import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.mocking.*;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
@@ -33,8 +32,10 @@ import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.impl.ContextMenuPopupHandler;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
@@ -42,12 +43,11 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
-import com.intellij.ui.table.JBTable;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -103,7 +103,6 @@ public class StompComponent implements
     private long lastEventId = 0;
     private MethodDirectInvokeComponent directInvokeComponent = null;
     private TestCandidateSaveForm saveFormReference;
-    private SimpleDateFormat simpleDateFormat = new SimpleDateFormat();
     private boolean welcomePanelRemoved = false;
     private AtomicInteger candidateQueryLatch;
     private MethodAdapter lastMethodFocussed;
@@ -373,52 +372,6 @@ public class StompComponent implements
         updateFilterLabel();
     }
 
-    public static DeclaredMock createDeclaredMockFromCallExpression(MethodCallExpression mainMethod, Project project) {
-        PsiMethod targetMethodPsi = ClassTypeUtils.getPsiMethod(mainMethod, project);
-        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethodPsi));
-        DeclaredMock declaredMock = new DeclaredMock();
-        declaredMock.setMethodName(methodUnderTest.getName());
-        declaredMock.setName("mock recorded on " + new Date());
-        declaredMock.setFieldName("*");
-        declaredMock.setMethodHashKey(methodUnderTest.getMethodHashKey());
-        declaredMock.setId(UUID.randomUUID().toString());
-        declaredMock.setFieldTypeName(methodUnderTest.getClassName());
-        declaredMock.setSourceClassName("*");
-
-        List<ParameterMatcher> whenParameter = new ArrayList<>();
-        for (Parameter argument : mainMethod.getArguments()) {
-            ParameterMatcher parameterMatcher = new ParameterMatcher();
-            parameterMatcher.setType(ParameterMatcherType.EQUAL);
-            parameterMatcher.setName(argument.getName());
-            parameterMatcher.setValue(argument.getStringValue());
-            whenParameter.add(parameterMatcher);
-        }
-
-
-        declaredMock.setWhenParameter(whenParameter);
-        ThenParameter thenParameter = new ThenParameter();
-
-        Parameter returnValue = mainMethod.getReturnValue();
-        if (returnValue.isException()) {
-            thenParameter.setMethodExitType(MethodExitType.EXCEPTION);
-        } else if (returnValue.getValue() == 0) {
-            thenParameter.setMethodExitType(MethodExitType.NULL);
-        } else {
-            thenParameter.setMethodExitType(MethodExitType.NORMAL);
-        }
-        ReturnValue returnParameter = new ReturnValue();
-        returnParameter.setClassName(returnValue.getType());
-        returnParameter.setReturnValueType(ReturnValueType.REAL);
-        returnParameter.setValue(returnValue.getStringValue());
-        thenParameter.setReturnParameter(returnParameter);
-
-
-        List<ThenParameter> thenParameter1 = new ArrayList<>();
-        thenParameter1.add(thenParameter);
-        declaredMock.setThenParameter(thenParameter1);
-        return declaredMock;
-    }
-
     private void clearFilter() {
         filterModel.getIncludedMethodNames().clear();
         filterModel.getExcludedMethodNames().clear();
@@ -427,39 +380,12 @@ public class StompComponent implements
     }
 
     private void saveSelected() {
-//        if (saveFormReference != null) {
-//            insidiousService.hideCandidateSaveForm(saveFormReference);
-//            saveFormReference = null;
-//        }
-        AtomicRecordService atomicRecordService = insidiousService.getProject()
-                .getService(AtomicRecordService.class);
-//        StoredCandidate storedCandidate = new StoredCandidate(selectedCandidates.get(0));
 
-//        List<StoredCandidate> candidateList = selectedCandidates.stream()
-//                .map(StoredCandidate::new)
-//                .peek(storedCandidate -> {
-//                    if (storedCandidate.getCandidateId() == null) {
-//                        // new test case
-//                        storedCandidate.setName(
-//                                "test " + storedCandidate.getMethod()
-//                                        .getName() + " returns expected value when");
-//                        storedCandidate.setDescription(
-//                                "assert that the response value matches expected value");
-//                    }
-//                })
-//                .collect(Collectors.toList());
         SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
-//            saveFormReference = new SaveForm(candidateList, candidateLifeListener);
         saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener,
-                new OnCloseListener<TestCandidateSaveForm>() {
-                    @Override
-                    public void onClose(TestCandidateSaveForm component) {
-                        southPanel.removeAll();
-                    }
-                });
+                component -> southPanel.removeAll());
         JPanel component = saveFormReference.getComponent();
-//        component.setMinimumSize(new Dimension(0, 600));
-//        component.setMaximumSize(new Dimension(600, 800));
+        southPanel.removeAll();
         southPanel.add(component, BorderLayout.SOUTH);
         ApplicationManager.getApplication().invokeLater(() -> {
             southPanel.revalidate();
@@ -879,22 +805,6 @@ public class StompComponent implements
     }
 
     @Override
-    public void onSaveAsTestRequest(TestCandidateMetadata storedCandidate) {
-
-    }
-
-    @Override
-    public void onSaveAsMockRequest(TestCandidateMetadata testCandidateMetadata) {
-
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            MethodCallExpression mainMethod = testCandidateMetadata.getMainMethod();
-            DeclaredMock declaredMock = createDeclaredMockFromCallExpression(mainMethod, insidiousService.getProject());
-            insidiousService.saveMockDefinition(declaredMock);
-        });
-
-    }
-
-    @Override
     public void onDeleteRequest(TestCandidateMetadata storedCandidate) {
 
     }
@@ -965,12 +875,11 @@ public class StompComponent implements
     public void onCandidateSelected(TestCandidateMetadata testCandidateMetadata, MouseEvent e) {
         if (e.getButton() == MouseEvent.BUTTON3) {
 
-            DefaultTableModel dm = new DefaultTableModel();
-            dm.addColumn("col 1");
-            dm.addColumn("col 2");
-            dm.addRow(new Object[]{"row 1-1", "row 1-2"});
-            dm.addRow(new Object[]{"row 2-1", "row 2-2"});
-            JTable table = new JBTable(dm);
+
+//            ContextMenuPopupHandler.Simple group = new ContextMenuPopupHandler.Simple("io.unlogged");
+
+//            ActionGroup actionGroup = group.getActionGroup(e);
+
             String fullyQualifiedClassname = testCandidateMetadata.getFullyQualifiedClassname();
             String methodName = testCandidateMetadata.getMainMethod().getMethodName();
             IPopupChooserBuilder<String> chooserPopUp = JBPopupFactory.getInstance()

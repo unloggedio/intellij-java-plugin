@@ -26,6 +26,9 @@ public class AtomicAssertionItemPanel {
         keyName.setText(String.valueOf(atomicAssertion.getExpression()));
         operationName.setText(String.valueOf(atomicAssertion.getAssertionType()));
         String expectedValue = atomicAssertion.getExpectedValue();
+        if (expectedValue == null) {
+            expectedValue = "null";
+        }
         if (expectedValue.length() > 20) {
             expectedValue = expectedValue.substring(0, 17) + "...";
         }

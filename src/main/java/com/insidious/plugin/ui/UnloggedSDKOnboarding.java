@@ -12,9 +12,12 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ItemEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 public class UnloggedSDKOnboarding {
+    public static final Color CIRCLE_BLUE_FILL_COLOR = new Color(53, 116, 240);
     private final String UNLOGGED_SDK_VERSION = "0.1.48";
     private final String maven_default =
             "<dependency>\n" +
@@ -168,10 +171,8 @@ public class UnloggedSDKOnboarding {
 
 
 //        CircleBorderJLabel step1label = new CircleBorderJLabel("1");
-        CircularBorder circleBorder = new CircularBorder(new JBColor(
-                new Color(16, 39, 191),
-                new Color(16, 39, 191)
-        ), 2, 10);
+        JBColor CIRCLE_BLUE_JB_COLOR = new JBColor(CIRCLE_BLUE_FILL_COLOR, CIRCLE_BLUE_FILL_COLOR);
+        CircularBorder circleBorder = new CircularBorder(CIRCLE_BLUE_JB_COLOR, 2, 10);
         step1Label.setBorder(
                 BorderFactory.createCompoundBorder(
                         circleBorder,
@@ -181,10 +182,7 @@ public class UnloggedSDKOnboarding {
         step1TitlePanel.add(step1Label, new GridConstraints());
 
 
-        CircularBorder circleBorder2 = new CircularBorder(new JBColor(
-                new Color(16, 39, 191),
-                new Color(16, 39, 191)
-        ), 2, 10);
+        CircularBorder circleBorder2 = new CircularBorder(CIRCLE_BLUE_JB_COLOR, 2, 10);
         step2Label.setBorder(
                 BorderFactory.createCompoundBorder(
                         circleBorder2,
@@ -194,10 +192,7 @@ public class UnloggedSDKOnboarding {
         step2ContainerPanel.add(step2Label, new GridConstraints());
 
 
-        CircularBorder circleBorder3 = new CircularBorder(new JBColor(
-                new Color(16, 39, 191),
-                new Color(16, 39, 191)
-        ), 2, 10);
+        CircularBorder circleBorder3 = new CircularBorder(CIRCLE_BLUE_JB_COLOR, 2, 10);
         step3Label.setBorder(
                 BorderFactory.createCompoundBorder(
                         circleBorder3,

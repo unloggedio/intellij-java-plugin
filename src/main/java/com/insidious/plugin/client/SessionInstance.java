@@ -537,11 +537,16 @@ public class SessionInstance implements Runnable {
                 .getPath(executionSession.getPath(), "index.type.dat")
                 .toFile();
 
+        int entries = 20000;
+        if (executionSession.getSessionId().equals("na")) {
+            entries = 200;
+        }
+
         ChronicleMapBuilder<Integer, TypeInfoDocument> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
                         TypeInfoDocument.class)
                 .name("type-info-map")
                 .averageValue(new TypeInfoDocument(1, "Type-name-class", new byte[100]))
-                .entries(20_000);
+                .entries(entries);
         return probeInfoMapBuilder.createPersistedTo(typeIndexFile);
 
     }
@@ -553,11 +558,16 @@ public class SessionInstance implements Runnable {
                 .getPath(executionSession.getPath(), "index.object.dat")
                 .toFile();
 
+        int entries = 1_000_000;
+        if (executionSession.getSessionId().equals("na")) {
+            entries = 500;
+        }
+
         ChronicleMapBuilder<Long, ObjectInfoDocument> probeInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
                         ObjectInfoDocument.class)
                 .name("object-info-map")
                 .averageValue(new ObjectInfoDocument(1, 1))
-                .entries(1_000_000);
+                .entries(entries);
         return probeInfoMapBuilder.createPersistedTo(objectIndexFile);
 
     }
@@ -598,11 +608,15 @@ public class SessionInstance implements Runnable {
 
         averageValue.setTemplateMap(transformedTemplateMap);
 
+        int entries = 1_500_000;
+        if (executionSession.getSessionId().equals("na")) {
+            entries = 500;
+        }
         ChronicleMapBuilder<Long, Parameter> parameterInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
                         Parameter.class)
                 .name("parameter-info-map")
                 .averageValue(averageValue)
-                .entries(1_500_000);
+                .entries(entries);
         return parameterInfoMapBuilder.createPersistedTo(parameterIndexFile);
 
     }
@@ -613,13 +627,17 @@ public class SessionInstance implements Runnable {
         File methodIndexFile = FileSystems.getDefault()
                 .getPath(executionSession.getPath(), "index.method.dat")
                 .toFile();
+        int entries = 100_000;
+        if (executionSession.getSessionId().equals("na")) {
+            entries = 10;
+        }
         ChronicleMapBuilder<Integer, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
                         MethodInfo.class)
                 .name("method-info-map")
                 .averageValue(
                         new MethodInfo(1, 2, "class-name", "method-name", "methoddesc", 5, "source-file-name",
                                 "method-hash"))
-                .entries(100_000);
+                .entries(entries);
         return probeInfoMapBuilder.createPersistedTo(methodIndexFile);
 
     }

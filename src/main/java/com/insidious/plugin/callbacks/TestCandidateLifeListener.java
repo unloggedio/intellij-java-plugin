@@ -24,9 +24,6 @@ public interface TestCandidateLifeListener {
 
     void unSelected(TestCandidateMetadata storedCandidate);
 
-    void onSaveAsTestRequest(TestCandidateMetadata storedCandidate);
-    void onSaveAsMockRequest(TestCandidateMetadata storedCandidate);
-
     void onDeleteRequest(TestCandidateMetadata storedCandidate);
 
     void onDeleted(TestCandidateMetadata storedCandidate);
