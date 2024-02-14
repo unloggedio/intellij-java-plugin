@@ -1166,9 +1166,12 @@ final public class InsidiousService implements
                 methodArgumentsClassnames.append(",");
             }
             String canonicalText;
-            canonicalText = methodParam.getType().getCanonicalText();
-            if (methodParam.getType() instanceof PsiPrimitiveType) {
-                canonicalText = ((PsiPrimitiveType) methodParam.getType()).getKind().getBinaryName();
+            PsiType paramType = methodParam.getType();
+            canonicalText = paramType.getCanonicalText();
+            if (paramType instanceof PsiPrimitiveType) {
+                canonicalText = ApplicationManager.getApplication()
+                        .runReadAction(
+                                (Computable<String>) () -> ((PsiPrimitiveType) paramType).getKind().getBinaryName());
             }
             if (canonicalText.contains("<")) {
                 canonicalText = canonicalText.substring(0, canonicalText.indexOf("<"));

@@ -299,12 +299,14 @@ public class TestCaseService {
     private void normalizeMethodTypes(MethodCallExpression mainMethod, PsiMethod targetMethodPsi,
                                       PsiMethodCallExpression psiCallExpression) {
 
-        PsiType fieldType = psiCallExpression.getMethodExpression()
-                .getQualifierExpression().getType();
+        PsiReferenceExpression methodExpression = psiCallExpression.getMethodExpression();
+        PsiType fieldType = methodExpression.getQualifierExpression().getType();
+        if (fieldType == null) {
+            return;
+        }
 
         PsiClass fieldTypeClassPsi = JavaPsiFacade.getInstance(project)
-                .findClass(fieldType.getCanonicalText(),
-                        GlobalSearchScope.allScope(project));
+                .findClass(fieldType.getCanonicalText(), GlobalSearchScope.allScope(project));
         PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(psiCallExpression);
 
         // fix argument types

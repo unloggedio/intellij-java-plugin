@@ -1,11 +1,9 @@
 package com.insidious.plugin.ui.assertions;
 
-import com.insidious.plugin.assertions.AssertionResult;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.Expression;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.diagnostic.Logger;
 
 import javax.swing.*;
@@ -30,7 +28,9 @@ public class AssertionRule {
         this.assertion = atomicAssertion;
         this.manager = assertionBlock;
 
-        this.nameSelector.setText(atomicAssertion.getKey() != null ? atomicAssertion.getKey() : "Nothing selected");
+        this.nameSelector.setText(
+                "<html><pre>" + atomicAssertion.getKey() + "</pre></html>"
+        );
 
 //        Color currentBackgroundColor = nameSelector.getBackground();
 //        nameSelector.setEditable(false);
@@ -60,7 +60,7 @@ public class AssertionRule {
         if (text.length() > 40) {
             text = text.substring(0, 37) + "...";
         }
-        this.valueField.setText(text);
+        this.valueField.setText("<html><pre>" + text + "</pre></html>");
 
         setupOptions();
         if (atomicAssertion.getAssertionType() == null) {
@@ -84,86 +84,86 @@ public class AssertionRule {
             case EQUAL:
                 switch (atomicAssertion.getExpression()) {
                     case SELF:
-                        operationSelector.setText("is");
+                        setOperatorText("is");
                         break;
                     case SIZE:
-                        operationSelector.setText("size is");
+                        setOperatorText("size is");
                         break;
                     case LENGTH:
-                        operationSelector.setText("length is");
+                        setOperatorText("length is");
                         break;
                 }
                 break;
             case EQUAL_IGNORE_CASE:
-                operationSelector.setText("equals ignore case");
+                setOperatorText("equals ignore case");
                 break;
             case NOT_EQUAL:
                 switch (atomicAssertion.getExpression()) {
                     case SELF:
-                        operationSelector.setText("is not");
+                        setOperatorText("is not");
                         break;
                     case SIZE:
-                        operationSelector.setText("size is not");
+                        setOperatorText("size is not");
                         break;
                     case LENGTH:
-                        operationSelector.setText("length is not");
+                        setOperatorText("length is not");
                         break;
                 }
 
                 break;
             case FALSE:
-                operationSelector.setText("is false");
+                setOperatorText("is false");
                 break;
             case MATCHES_REGEX:
-                operationSelector.setText("matches regex");
+                setOperatorText("matches regex");
                 break;
             case NOT_MATCHES_REGEX:
-                operationSelector.setText("not matches regex");
+                setOperatorText("not matches regex");
                 break;
             case TRUE:
-                operationSelector.setText("is true");
+                setOperatorText("is true");
                 break;
             case LESS_THAN:
-                operationSelector.setText("<");
+                setOperatorText("<");
                 break;
             case LESS_THAN_OR_EQUAL:
-                operationSelector.setText("<=");
+                setOperatorText("<=");
                 break;
             case GREATER_THAN:
-                operationSelector.setText(">");
+                setOperatorText(">");
                 break;
             case GREATER_THAN_OR_EQUAL:
-                operationSelector.setText(">=");
+                setOperatorText(">=");
                 break;
             case NOT_NULL:
-                operationSelector.setText("is not null");
+                setOperatorText("is not null");
                 break;
             case NULL:
-                operationSelector.setText("is null");
+                setOperatorText("is null");
                 break;
             case EMPTY:
-                operationSelector.setText("is empty");
+                setOperatorText("is empty");
                 break;
             case NOT_EMPTY:
-                operationSelector.setText("is not empty");
+                setOperatorText("is not empty");
                 break;
             case CONTAINS_KEY:
-                operationSelector.setText("contains key in object");
+                setOperatorText("contains key in object");
                 break;
             case CONTAINS_ITEM:
-                operationSelector.setText("contains item in array");
+                setOperatorText("contains item in array");
                 break;
             case NOT_CONTAINS_ITEM:
-                operationSelector.setText("not contains item in array");
+                setOperatorText("not contains item in array");
                 break;
             case CONTAINS_STRING:
-                operationSelector.setText("contains substring");
+                setOperatorText("contains substring");
                 break;
             case NOT_CONTAINS_KEY:
-                operationSelector.setText("not contains key in object");
+                setOperatorText("not contains key in object");
                 break;
             case NOT_CONTAINS_STRING:
-                operationSelector.setText("not contains substring");
+                setOperatorText("not contains substring");
                 break;
         }
 
@@ -319,6 +319,10 @@ public class AssertionRule {
             }
         });
         updateResult();
+    }
+
+    private void setOperatorText(String not_contains_substring) {
+        operationSelector.setText(not_contains_substring);
     }
 
     public void updateResult() {

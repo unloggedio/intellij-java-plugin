@@ -1,6 +1,6 @@
 package com.insidious.plugin.ui.stomp;
 
-import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.uiDesigner.core.GridConstraints;
@@ -61,7 +61,7 @@ public class StompFilter {
     private DefaultListModel<String> modelIncludedMethods;
     private DefaultListModel<String> modelExcludedMethods;
 
-    public StompFilter(FilterModel filterModel, MethodAdapter lastMethodFocussed) {
+    public StompFilter(FilterModel filterModel, MethodUnderTest lastMethodFocussed) {
         originalFilterModel = new FilterModel(filterModel);
         this.filterModel = new FilterModel(originalFilterModel);
 
@@ -232,7 +232,7 @@ public class StompFilter {
                 JTextField newNameTextField = new JTextField();
 
                 if (lastMethodFocussed != null) {
-                    String name = lastMethodFocussed.getContainingClass().getQualifiedName();
+                    String name = lastMethodFocussed.getClassName();
                     newNameTextField.setText(name);
                 }
 
@@ -312,7 +312,7 @@ public class StompFilter {
                 JTextField newNameTextField = new JTextField();
 
                 if (lastMethodFocussed != null) {
-                    String name = lastMethodFocussed.getContainingClass().getQualifiedName();
+                    String name = lastMethodFocussed.getClassName();
                     newNameTextField.setText(name);
                 }
 
@@ -330,23 +330,17 @@ public class StompFilter {
                 includedClassesControlPanel.add(centerPanel, constraints);
                 includedClassesControlPanel.setToolTipText("Press enter to submit, escape to cancel");
 
-                newNameTextField.registerKeyboardAction(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        String newName = newNameTextField.getText().trim();
-                        modelIncludedClasses.addElement(newName);
-                        filterModel.getIncludedClassNames().add(newName);
-                        includedClassesControlPanel.remove(centerPanel);
-                        includedClassesButtonPanel.setVisible(true);
-                    }
+                newNameTextField.registerKeyboardAction(e1 -> {
+                    String newName = newNameTextField.getText().trim();
+                    modelIncludedClasses.addElement(newName);
+                    filterModel.getIncludedClassNames().add(newName);
+                    includedClassesControlPanel.remove(centerPanel);
+                    includedClassesButtonPanel.setVisible(true);
                 }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
 
-                newNameTextField.registerKeyboardAction(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        includedClassesControlPanel.remove(centerPanel);
-                        includedClassesButtonPanel.setVisible(true);
-                    }
+                newNameTextField.registerKeyboardAction(e12 -> {
+                    includedClassesControlPanel.remove(centerPanel);
+                    includedClassesButtonPanel.setVisible(true);
                 }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
                 newNameTextField.addFocusListener(new FocusListener() {
                     @Override
@@ -396,15 +390,12 @@ public class StompFilter {
                     newNameTextField.setText(name);
                 }
 
-                ActionListener saveAction = new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        String newName = newNameTextField.getText().trim();
-                        modelIncludedMethods.addElement(newName);
-                        filterModel.getIncludedMethodNames().add(newName);
-                        includedMethodsControlPanel.remove(centerPanel);
-                        includedMethodsButtonPanel.setVisible(true);
-                    }
+                ActionListener saveAction = e13 -> {
+                    String newName = newNameTextField.getText().trim();
+                    modelIncludedMethods.addElement(newName);
+                    filterModel.getIncludedMethodNames().add(newName);
+                    includedMethodsControlPanel.remove(centerPanel);
+                    includedMethodsButtonPanel.setVisible(true);
                 };
 
 
@@ -431,12 +422,9 @@ public class StompFilter {
                 newNameTextField.registerKeyboardAction(saveAction, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0),
                         JComponent.WHEN_FOCUSED);
 
-                newNameTextField.registerKeyboardAction(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        includedMethodsControlPanel.remove(centerPanel);
-                        includedMethodsButtonPanel.setVisible(true);
-                    }
+                newNameTextField.registerKeyboardAction(e14 -> {
+                    includedMethodsControlPanel.remove(centerPanel);
+                    includedMethodsButtonPanel.setVisible(true);
                 }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
                 newNameTextField.addFocusListener(new FocusListener() {
                     @Override
@@ -502,23 +490,17 @@ public class StompFilter {
                 excludedMethodsControlPanel.add(centerPanel, constraints);
                 excludedMethodsControlPanel.setToolTipText("Press enter to submit, escape to cancel");
 
-                newNameTextField.registerKeyboardAction(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        String newName = newNameTextField.getText().trim();
-                        modelExcludedMethods.addElement(newName);
-                        filterModel.getExcludedMethodNames().add(newName);
-                        excludedMethodsControlPanel.remove(centerPanel);
-                        excludedMethodsButtonPanel.setVisible(true);
-                    }
+                newNameTextField.registerKeyboardAction(e15 -> {
+                    String newName = newNameTextField.getText().trim();
+                    modelExcludedMethods.addElement(newName);
+                    filterModel.getExcludedMethodNames().add(newName);
+                    excludedMethodsControlPanel.remove(centerPanel);
+                    excludedMethodsButtonPanel.setVisible(true);
                 }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
 
-                newNameTextField.registerKeyboardAction(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        excludedMethodsControlPanel.remove(centerPanel);
-                        excludedMethodsButtonPanel.setVisible(true);
-                    }
+                newNameTextField.registerKeyboardAction(e16 -> {
+                    excludedMethodsControlPanel.remove(centerPanel);
+                    excludedMethodsButtonPanel.setVisible(true);
                 }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
                 newNameTextField.addFocusListener(new FocusListener() {
                     @Override
@@ -650,9 +632,7 @@ public class StompFilter {
             }
         });
 
-        followEditorCheckBox.addActionListener(e -> {
-            filterModel.setFollowEditor(followEditorCheckBox.isSelected());
-        });
+        followEditorCheckBox.addActionListener(e -> filterModel.setFollowEditor(followEditorCheckBox.isSelected()));
 
 
     }
@@ -685,7 +665,7 @@ public class StompFilter {
 
     @Nullable
     private String getFromClipboard() {
-        String fromClipboard = null;
+        String fromClipboard;
         try {
             fromClipboard = (String) Toolkit.getDefaultToolkit().getSystemClipboard()
                     .getData(DataFlavor.stringFlavor);

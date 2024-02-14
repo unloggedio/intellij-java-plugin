@@ -27,7 +27,6 @@ import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
-import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
@@ -78,6 +77,7 @@ public class StompComponent implements
     private final InsidiousConfigurationState configurationState;
     private final FilterModel filterModel;
     private final AtomicRecordService atomicRecordService;
+    private final Set<Long> pinnedItems = new HashSet<>();
     BlockingQueue<TestCandidateMetadata> incomingQueue = new ArrayBlockingQueue<>(100);
     private JPanel mainPanel;
     private JPanel northPanelContainer;
@@ -102,7 +102,7 @@ public class StompComponent implements
     private TestCandidateSaveForm saveFormReference;
     private boolean welcomePanelRemoved = false;
     private AtomicInteger candidateQueryLatch;
-    private MethodAdapter lastMethodFocussed;
+    private MethodUnderTest lastMethodFocussed;
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -384,6 +384,8 @@ public class StompComponent implements
                     component -> {
                         ApplicationManager.getApplication().invokeLater(() -> {
                             southPanel.removeAll();
+                            scrollContainer.revalidate();
+                            scrollContainer.repaint();
                         });
                     });
             ApplicationManager.getApplication().invokeLater(() -> {
@@ -394,6 +396,8 @@ public class StompComponent implements
                 southPanel.repaint();
                 southPanel.getParent().revalidate();
                 southPanel.getParent().repaint();
+                scrollContainer.revalidate();
+                scrollContainer.repaint();
             });
 
 
@@ -555,25 +559,6 @@ public class StompComponent implements
         return gbc;
     }
 
-    private GridBagConstraints createGBCForProcessStartedComponent() {
-        GridBagConstraints gbc = new GridBagConstraints();
-
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 1;
-        gbc.gridheight = 1;
-
-        gbc.weightx = 1;
-        gbc.weighty = 0;
-        gbc.anchor = GridBagConstraints.LINE_START;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        gbc.insets = JBUI.insetsBottom(0);
-        gbc.ipadx = 0;
-        gbc.ipady = 0;
-        return gbc;
-    }
-
 //    private GridBagConstraints createGBCForDateAndTimePanel() {
 //        GridBagConstraints gbc1 = new GridBagConstraints();
 //
@@ -611,6 +596,25 @@ public class StompComponent implements
 //        gbc1.ipady = 0;
 //        return gbc1;
 //    }
+
+    private GridBagConstraints createGBCForProcessStartedComponent() {
+        GridBagConstraints gbc = new GridBagConstraints();
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 1;
+        gbc.gridheight = 1;
+
+        gbc.weightx = 1;
+        gbc.weighty = 0;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.insets = JBUI.insetsBottom(0);
+        gbc.ipadx = 0;
+        gbc.ipady = 0;
+        return gbc;
+    }
 
     private GridBagConstraints createGBCForFakeComponent() {
         GridBagConstraints gbc = new GridBagConstraints();
@@ -841,8 +845,9 @@ public class StompComponent implements
 
             try {
 
-                TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
-                        .getTestCandidateById(testCandidateShell.getEntryProbeIndex(), true);
+                TestCandidateMetadata loadedTestCandidate = ApplicationManager.getApplication().executeOnPooledThread(
+                        () -> insidiousService.getSessionInstance()
+                                .getTestCandidateById(testCandidateShell.getEntryProbeIndex(), true)).get();
                 Parameter testSubject = loadedTestCandidate.getTestSubject();
                 if (testSubject.isException()) {
                     continue;
@@ -1119,6 +1124,8 @@ public class StompComponent implements
             @Override
             public void onClose(Void component) {
                 southPanel.removeAll();
+                scrollContainer.revalidate();
+                scrollContainer.repaint();
             }
         });
         JComponent content = mockEditor.getComponent();
@@ -1175,6 +1182,8 @@ public class StompComponent implements
         directInvokeComponent = null;
         southPanel.revalidate();
         southPanel.repaint();
+        scrollContainer.revalidate();
+        scrollContainer.repaint();
     }
 
     public void setConnectedAndWaiting() {
@@ -1304,6 +1313,8 @@ public class StompComponent implements
         }
         addCandidateToUi(testCandidateMetadata, 0);
         itemPanel.revalidate();
+        scrollContainer.revalidate();
+        scrollContainer.repaint();
     }
 
     public void setSession(ExecutionSession executionSession) {
@@ -1317,15 +1328,14 @@ public class StompComponent implements
         String newMethodName = method.getName();
         String newClassName = method.getContainingClass().getQualifiedName();
         if (lastMethodFocussed != null) {
-            if (lastMethodFocussed.getName().equals(newMethodName) &&
-                    lastMethodFocussed.getContainingClass() != null &&
-                    lastMethodFocussed.getContainingClass().getQualifiedName().equals(newClassName)) {
+            if (lastMethodFocussed.getMethodHashKey().equals(
+                            MethodUnderTest.fromMethodAdapter(method).getMethodHashKey())) {
                 // same method focussed again
                 return;
             }
         }
 
-        lastMethodFocussed = method;
+        lastMethodFocussed = MethodUnderTest.fromMethodAdapter(method);
         if (filterModel.isFollowEditor()) {
 
             if (filterModel.getIncludedMethodNames().size() == 1 && filterModel.getIncludedMethodNames()
@@ -1348,8 +1358,4 @@ public class StompComponent implements
         }
     }
 
-    public void showJUnitDesigner(TestCaseDesignerLite designerLite) {
-        southPanel.removeAll();
-        southPanel.add(designerLite.getComponent(), BorderLayout.CENTER);
-    }
 }
