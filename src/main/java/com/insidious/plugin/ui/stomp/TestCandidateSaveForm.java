@@ -194,16 +194,6 @@ public class TestCandidateSaveForm {
         });
 
 
-        JPanel candidateItemContainer = new JPanel();
-        candidateItemContainer.setLayout(new GridBagLayout());
-        JBScrollPane itemScroller = new JBScrollPane(candidateItemContainer);
-        itemScroller.setBorder(BorderFactory.createEmptyBorder());
-
-        replayScrollParentPanel.add(itemScroller, BorderLayout.CENTER);
-
-        candidateItemContainer.setAlignmentY(0);
-        candidateItemContainer.setAlignmentX(0);
-
 
         candidateList = candidateMetadataList.stream()
                 .map(candidateMetadata -> {
@@ -317,6 +307,18 @@ public class TestCandidateSaveForm {
 
             }
         };
+
+
+        JPanel candidateItemContainer = new JPanel();
+        candidateItemContainer.setLayout(new GridBagLayout());
+        JBScrollPane itemScroller = new JBScrollPane(candidateItemContainer);
+        itemScroller.setBorder(BorderFactory.createEmptyBorder());
+
+        replayScrollParentPanel.add(itemScroller, BorderLayout.CENTER);
+
+        candidateItemContainer.setAlignmentY(0);
+        candidateItemContainer.setAlignmentX(0);
+
 
 
         Project project = saveFormListener.getProject();

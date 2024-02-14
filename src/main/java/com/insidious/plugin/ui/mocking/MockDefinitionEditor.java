@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.mocking;
 
 import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.mocking.MethodExitType;
 import com.insidious.plugin.mocking.ParameterMatcher;
 import com.insidious.plugin.mocking.ThenParameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
@@ -24,6 +25,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
@@ -52,10 +54,11 @@ public class MockDefinitionEditor {
     private JPanel whenTitlePanel;
     private JPanel thenPanel;
     private JPanel thenTitlePanel;
-    private JLabel thenReturnLabel;
     private JLabel changeThenType;
     private JPanel thenReturnLabelContainer;
     private JButton cancelButton;
+    private JLabel thenTextLabel;
+    private JLabel returnValueLabel;
     private String returnDummyValue;
     private String methodReturnTypeName;
     private JBPopup yeditorPopup;
@@ -77,15 +80,27 @@ public class MockDefinitionEditor {
         callExpressionLabel.setText(expressionText);
 
         changeThenType.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        thenReturnLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        returnValueLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         MouseAdapter returnTypeSelectorAdapter = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
-                ReturnTypeSelectorPanel selectorPanel = new ReturnTypeSelectorPanel(
+                SelectorPanel<MethodExitType> selectorPanel = new SelectorPanel<>(
+                        Arrays.asList(MethodExitType.NORMAL, MethodExitType.NULL, MethodExitType.EXCEPTION),
                         o -> {
                             logger.warn("selected response: " + o);
+                            switch (o) {
+                                case NORMAL:
+                                    returnValueLabel.setText("Return");
+                                    break;
+                                case EXCEPTION:
+                                    returnValueLabel.setText("Throw");
+                                    break;
+                                case NULL:
+                                    returnValueLabel.setText("Return NULL");
+                                    break;
+                            }
                         });
 
                 ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
@@ -102,12 +117,12 @@ public class MockDefinitionEditor {
                         .setCancelKeyEnabled(true)
                         .setBelongsToGlobalPopupStack(false)
                         .createPopup()
-                        .showUnderneathOf(thenReturnLabel);
+                        .showUnderneathOf(returnValueLabel);
 
             }
         };
         changeThenType.addMouseListener(returnTypeSelectorAdapter);
-        thenReturnLabel.addMouseListener(returnTypeSelectorAdapter);
+        returnValueLabel.addMouseListener(returnTypeSelectorAdapter);
 
         this.declaredMock = ApplicationManager.getApplication().runReadAction(
                 (Computable<DeclaredMock>) () -> ClassUtils.createDefaultMock(methodCallExpression));

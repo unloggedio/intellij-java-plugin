@@ -24,20 +24,17 @@ public class AssertionRule {
     private JLabel valueField;
     private JLabel trashButton;
 
-    public AssertionRule(AssertionBlock assertionBlock, AtomicAssertion atomicAssertion) {
-        this.assertion = atomicAssertion;
+    public AssertionRule(AssertionBlock assertionBlock, AtomicAssertion atomicAssertion1) {
+        this.assertion = atomicAssertion1;
+        if (assertion.getAssertionType() == null) {
+            assertion.setAssertionType(AssertionType.EQUAL);
+        }
+
+
         this.manager = assertionBlock;
 
-        this.nameSelector.setText(
-                "<html><pre>" + atomicAssertion.getKey() + "</pre></html>"
-        );
 
-//        Color currentBackgroundColor = nameSelector.getBackground();
-//        nameSelector.setEditable(false);
-//        nameSelector.setBackground(currentBackgroundColor);
-//        nameSelector.setBackground(JBColor.BLACK);
-//        nameSelector.setOpaque(true);
-//        nameSelector.repaint();
+
         nameSelector.addKeyListener(new KeyListener() {
             @Override
             public void keyTyped(KeyEvent e) {
@@ -55,117 +52,21 @@ public class AssertionRule {
             }
         });
 
-        String expectedValue = atomicAssertion.getExpectedValue();
+        String expectedValue = assertion.getExpectedValue();
         String text = expectedValue != null ? expectedValue : "";
         if (text.length() > 40) {
             text = text.substring(0, 37) + "...";
         }
-        this.valueField.setText("<html><pre>" + text + "</pre></html>");
 
         setupOptions();
-        if (atomicAssertion.getAssertionType() == null) {
-            atomicAssertion.setAssertionType(AssertionType.EQUAL);
-        }
 
-        switch (atomicAssertion.getAssertionType()) {
+        String operationText = getOperationText(assertion);
 
-            case ALLOF:
-                // cant happen in rule
-                break;
-            case ANYOF:
-                // cant happen in rule
-                break;
-            case NOTALLOF:
-                // cant happen in rule
-                break;
-            case NOTANYOF:
-                // cant happen in rule
-                break;
-            case EQUAL:
-                switch (atomicAssertion.getExpression()) {
-                    case SELF:
-                        setOperatorText("is");
-                        break;
-                    case SIZE:
-                        setOperatorText("size is");
-                        break;
-                    case LENGTH:
-                        setOperatorText("length is");
-                        break;
-                }
-                break;
-            case EQUAL_IGNORE_CASE:
-                setOperatorText("equals ignore case");
-                break;
-            case NOT_EQUAL:
-                switch (atomicAssertion.getExpression()) {
-                    case SELF:
-                        setOperatorText("is not");
-                        break;
-                    case SIZE:
-                        setOperatorText("size is not");
-                        break;
-                    case LENGTH:
-                        setOperatorText("length is not");
-                        break;
-                }
+        this.nameSelector.setText("<html><pre>" + assertion.getKey() + " "+ operationText + " " + text + "" + "</pre" +
+                "></html>");
+//        this.valueField.setText("<html><pre>" + text + "</pre></html>");
 
-                break;
-            case FALSE:
-                setOperatorText("is false");
-                break;
-            case MATCHES_REGEX:
-                setOperatorText("matches regex");
-                break;
-            case NOT_MATCHES_REGEX:
-                setOperatorText("not matches regex");
-                break;
-            case TRUE:
-                setOperatorText("is true");
-                break;
-            case LESS_THAN:
-                setOperatorText("<");
-                break;
-            case LESS_THAN_OR_EQUAL:
-                setOperatorText("<=");
-                break;
-            case GREATER_THAN:
-                setOperatorText(">");
-                break;
-            case GREATER_THAN_OR_EQUAL:
-                setOperatorText(">=");
-                break;
-            case NOT_NULL:
-                setOperatorText("is not null");
-                break;
-            case NULL:
-                setOperatorText("is null");
-                break;
-            case EMPTY:
-                setOperatorText("is empty");
-                break;
-            case NOT_EMPTY:
-                setOperatorText("is not empty");
-                break;
-            case CONTAINS_KEY:
-                setOperatorText("contains key in object");
-                break;
-            case CONTAINS_ITEM:
-                setOperatorText("contains item in array");
-                break;
-            case NOT_CONTAINS_ITEM:
-                setOperatorText("not contains item in array");
-                break;
-            case CONTAINS_STRING:
-                setOperatorText("contains substring");
-                break;
-            case NOT_CONTAINS_KEY:
-                setOperatorText("not contains key in object");
-                break;
-            case NOT_CONTAINS_STRING:
-                setOperatorText("not contains substring");
-                break;
-        }
+
 
         operationSelector.addMouseListener(new MouseAdapter() {
             @Override
@@ -296,20 +197,9 @@ public class AssertionRule {
                         break;
 
                 }
-                updateResult();
+//                updateResult();
             }
         });
-
-
-//        valueField.setCaretPosition(0);
-//        valueField.getDocument().addDocumentListener(new DocumentAdapter() {
-//            @Override
-//            protected void textChanged( DocumentEvent e) {
-//                logger.warn("Value field updated: " + valueField.getText().trim());
-//                assertion.setExpectedValue(valueField.getText().trim());
-//                updateResult();
-//            }
-//        });
 
         trashButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         trashButton.addMouseListener(new MouseAdapter() {
@@ -318,21 +208,121 @@ public class AssertionRule {
                 deleteRule();
             }
         });
-        updateResult();
+//        updateResult();
+    }
+
+    private String getOperationText(AtomicAssertion atomicAssertion) {
+        String text;
+        text = "";
+        switch (atomicAssertion.getAssertionType()) {
+
+            case ALLOF:
+                // cant happen in rule
+                break;
+            case ANYOF:
+                // cant happen in rule
+                break;
+            case NOTALLOF:
+                // cant happen in rule
+                break;
+            case NOTANYOF:
+                // cant happen in rule
+                break;
+            case EQUAL:
+                switch (atomicAssertion.getExpression()) {
+                    case SELF:
+                        String operatorText = "is";
+                        text = getOperatorText(operatorText);
+                        break;
+                    case SIZE:
+                        text = getOperatorText("size is");
+                        break;
+                    case LENGTH:
+                        text = getOperatorText("length is");
+                        break;
+                }
+                break;
+            case EQUAL_IGNORE_CASE:
+                text = getOperatorText("equals ignore case");
+                break;
+            case NOT_EQUAL:
+                switch (atomicAssertion.getExpression()) {
+                    case SELF:
+                        text = getOperatorText("is not");
+                        break;
+                    case SIZE:
+                        text = getOperatorText("size is not");
+                        break;
+                    case LENGTH:
+                        text = getOperatorText("length is not");
+                        break;
+                }
+
+                break;
+            case FALSE:
+                text = getOperatorText("is false");
+                break;
+            case MATCHES_REGEX:
+                text = getOperatorText("matches regex");
+                break;
+            case NOT_MATCHES_REGEX:
+                text = getOperatorText("not matches regex");
+                break;
+            case TRUE:
+                text = getOperatorText("is true");
+                break;
+            case LESS_THAN:
+                text = getOperatorText("<");
+                break;
+            case LESS_THAN_OR_EQUAL:
+                text = getOperatorText("<=");
+                break;
+            case GREATER_THAN:
+                text = getOperatorText(">");
+                break;
+            case GREATER_THAN_OR_EQUAL:
+                text = getOperatorText(">=");
+                break;
+            case NOT_NULL:
+                text = getOperatorText("is not null");
+                break;
+            case NULL:
+                text = getOperatorText("is null");
+                break;
+            case EMPTY:
+                text = getOperatorText("is empty");
+                break;
+            case NOT_EMPTY:
+                text = getOperatorText("is not empty");
+                break;
+            case CONTAINS_KEY:
+                text = getOperatorText("contains key in object");
+                break;
+            case CONTAINS_ITEM:
+                text = getOperatorText("contains item in array");
+                break;
+            case NOT_CONTAINS_ITEM:
+                text = getOperatorText("not contains item in array");
+                break;
+            case CONTAINS_STRING:
+                text = getOperatorText("contains substring");
+                break;
+            case NOT_CONTAINS_KEY:
+                text = getOperatorText("not contains key in object");
+                break;
+            case NOT_CONTAINS_STRING:
+                text = getOperatorText("not contains substring");
+                break;
+        }
+        return text;
+    }
+
+    private String getOperatorText(String operatorText) {
+        return operatorText;
     }
 
     private void setOperatorText(String not_contains_substring) {
         operationSelector.setText(not_contains_substring);
-    }
-
-    public void updateResult() {
-//        AssertionResult thisResult = manager.executeAssertion(assertion);
-//        Boolean result = thisResult.getResults().get(assertion.getId());
-//        if (result) {
-//            topAligner.setBackground(UIUtils.ASSERTION_PASSING_COLOR);
-//        } else {
-//            topAligner.setBackground(UIUtils.ASSERTION_FAILING_COLOR);
-//        }
     }
 
     public AssertionBlock getBlock() {

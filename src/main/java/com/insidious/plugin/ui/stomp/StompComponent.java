@@ -1327,15 +1327,16 @@ public class StompComponent implements
     public void onMethodFocussed(MethodAdapter method) {
         String newMethodName = method.getName();
         String newClassName = method.getContainingClass().getQualifiedName();
+        MethodUnderTest newMethodAdapter = ApplicationManager.getApplication().runReadAction(
+                (Computable<MethodUnderTest>) () -> MethodUnderTest.fromMethodAdapter(method));
         if (lastMethodFocussed != null) {
-            if (lastMethodFocussed.getMethodHashKey().equals(
-                            MethodUnderTest.fromMethodAdapter(method).getMethodHashKey())) {
+            if (lastMethodFocussed.getMethodHashKey().equals(newMethodAdapter.getMethodHashKey())) {
                 // same method focussed again
                 return;
             }
         }
 
-        lastMethodFocussed = MethodUnderTest.fromMethodAdapter(method);
+        lastMethodFocussed = newMethodAdapter;
         if (filterModel.isFollowEditor()) {
 
             if (filterModel.getIncludedMethodNames().size() == 1 && filterModel.getIncludedMethodNames()

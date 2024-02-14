@@ -2,6 +2,7 @@ package com.insidious.plugin.factory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+//import com.github.javafaker.App;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
@@ -608,7 +609,9 @@ final public class InsidiousService implements
     public void methodFocussedHandler(final MethodAdapter method) {
         currentState.setCurrentMethod(method);
         if (stompWindow != null) {
-            stompWindow.onMethodFocussed(method);
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                stompWindow.onMethodFocussed(method);
+            });
         }
     }
 

@@ -499,28 +499,6 @@
                           </grid>
                         </children>
                       </grid>
-                      <grid id="2b538" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                        <margin top="5" left="5" bottom="5" right="5"/>
-                        <constraints border-constraint="Center"/>
-                        <properties>
-                          <visible value="false"/>
-                        </properties>
-                        <border type="none"/>
-                        <children>
-                          <grid id="97ba0" layout-manager="BorderLayout" hgap="0" vgap="0">
-                            <constraints>
-                              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="2" use-parent-layout="false">
-                                <minimum-size width="-1" height="100"/>
-                                <preferred-size width="-1" height="200"/>
-                                <maximum-size width="-1" height="400"/>
-                              </grid>
-                            </constraints>
-                            <properties/>
-                            <border type="none"/>
-                            <children/>
-                          </grid>
-                        </children>
-                      </grid>
                     </children>
                   </grid>
                 </children>
