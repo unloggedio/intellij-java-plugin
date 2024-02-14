@@ -381,18 +381,23 @@ public class StompComponent implements
 
     private void saveSelected() {
 
-        SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
-        saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener,
-                component -> southPanel.removeAll());
-        JPanel component = saveFormReference.getComponent();
-        southPanel.removeAll();
-        southPanel.add(component, BorderLayout.SOUTH);
-        ApplicationManager.getApplication().invokeLater(() -> {
-            southPanel.revalidate();
-            southPanel.repaint();
-            southPanel.getParent().revalidate();
-            southPanel.getParent().repaint();
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
+            saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener,
+                    component -> southPanel.removeAll());
+            JPanel component = saveFormReference.getComponent();
+            southPanel.removeAll();
+            southPanel.add(component, BorderLayout.SOUTH);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                southPanel.revalidate();
+                southPanel.repaint();
+                southPanel.getParent().revalidate();
+                southPanel.getParent().repaint();
+            });
+
+
         });
+
 
 
     }

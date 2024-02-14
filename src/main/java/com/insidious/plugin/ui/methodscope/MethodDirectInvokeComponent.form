@@ -9,7 +9,7 @@
       <font size="14" style="1"/>
     </border>
     <children>
-      <tabbedpane id="bf4bb">
+      <tabbedpane id="bf4bb" binding="tabbedPane">
         <constraints border-constraint="Center"/>
         <properties/>
         <border type="none"/>

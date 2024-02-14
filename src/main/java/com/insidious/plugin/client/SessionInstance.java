@@ -3862,7 +3862,10 @@ public class SessionInstance implements Runnable {
 
         if (loadCalls) {
             for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
-                ClassUtils.resolveTemplatesInCall(methodCallExpression, project);
+                MethodCallExpression finalMethodCallExpression = methodCallExpression;
+                methodCallExpression = ApplicationManager.getApplication().runReadAction(
+                        (Computable<MethodCallExpression>) () -> ClassUtils.resolveTemplatesInCall(
+                                finalMethodCallExpression, project));
                 createParamEnumPropertyTrueIfTheyAre(methodCallExpression);
             }
         }
@@ -3872,8 +3875,7 @@ public class SessionInstance implements Runnable {
     private void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
         List<Parameter> methodArguments = methodCallExpression.getArguments();
 
-        for (int i = 0; i < methodArguments.size(); i++) {
-            Parameter methodArgument = methodArguments.get(i);
+        for (Parameter methodArgument : methodArguments) {
             //param is enum then we set it to enum type
             checkAndSetParameterEnumIfYesMakeNameCamelCase(methodArgument);
         }
@@ -3899,27 +3901,6 @@ public class SessionInstance implements Runnable {
                 names.add(0, modifiedName);
             }
         }
-        // todo : Optimise this enum type search in classInfoIndex
-//        for (ChronicleMap.Entry<Integer, ClassInfo> entry : this.classInfoIndex.entrySet()) {
-//            String currParamType = param.getType()
-//                    .replace('.', '/');
-//            ClassInfo currClassInfo = entry.getValue();
-//            if (currClassInfo.getClassName()
-//                    .equals(currParamType)) {
-//                // curr class info is present and is enum set param as enum
-//                if (currClassInfo.isEnum()) {
-//                    param.setIsEnum(true);
-//
-//                    //change Name Of Param to use a camelCase and lowercase
-////                    List<String> names = param.getNamesList();
-////                    if (names != null && names.size() > 0) {
-////                        String modifiedName = StringUtils.convertSnakeCaseToCamelCase(names.get(0));
-////                        names.remove(0);
-////                        names.add(0, modifiedName);
-////                    }
-//                }
-//            }
-//        }
     }
 
 

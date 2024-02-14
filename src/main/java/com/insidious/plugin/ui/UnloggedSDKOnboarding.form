@@ -3,7 +3,7 @@
   <grid id="55b90" binding="mainPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="0" left="0" bottom="0" right="0"/>
     <constraints>
-      <xy x="2" y="2" width="554" height="999"/>
+      <xy x="2" y="2" width="402" height="1091"/>
     </constraints>
     <properties/>
     <border type="none"/>
@@ -11,7 +11,7 @@
       <grid id="9aede" binding="topAligner" layout-manager="GridLayoutManager" row-count="4" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
         <margin top="0" left="0" bottom="0" right="0"/>
         <constraints>
-          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties/>
         <border type="none"/>
@@ -76,27 +76,20 @@
                 </constraints>
                 <properties/>
               </component>
-              <grid id="96d33" binding="bottomPanelContainer" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+              <grid id="96d33" binding="bottomPanelContainer" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                 <margin top="5" left="5" bottom="5" right="5"/>
                 <constraints>
                   <grid row="11" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties/>
-                <border type="bevel-lowered"/>
+                <border type="line" title="Facing an issue? Reach out to us...">
+                  <color color="-8365355"/>
+                </border>
                 <children>
-                  <component id="f7b4d" class="javax.swing.JLabel">
-                    <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                    </constraints>
-                    <properties>
-                      <foreground color="-7237231"/>
-                      <text value="Facing an issue? Reach out to us..."/>
-                    </properties>
-                  </component>
                   <grid id="f7454" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                     <margin top="0" left="0" bottom="0" right="0"/>
                     <constraints>
-                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                     </constraints>
                     <properties/>
                     <border type="none"/>
@@ -149,9 +142,8 @@
                 <children>
                   <tabbedpane id="e3ee3" binding="primaryTabbedPane">
                     <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false">
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
                         <preferred-size width="200" height="200"/>
-                        <maximum-size width="400" height="-1"/>
                       </grid>
                     </constraints>
                     <properties/>
@@ -160,7 +152,7 @@
                       <color color="-4473925"/>
                     </border>
                     <children>
-                      <grid id="bced4" binding="mavenPanel" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                      <grid id="bced4" binding="mavenPanel" layout-manager="GridLayoutManager" row-count="3" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                         <margin top="6" left="5" bottom="5" right="5"/>
                         <constraints>
                           <tabbedpane title="Maven"/>
@@ -168,10 +160,10 @@
                         <properties/>
                         <border type="none"/>
                         <children>
-                          <grid id="6516a" binding="dependencyContents" layout-manager="GridLayoutManager" row-count="3" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                          <grid id="6516a" binding="dependencyContents" layout-manager="GridLayoutManager" row-count="3" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                             <margin top="2" left="4" bottom="4" right="0"/>
                             <constraints>
-                              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                              <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                             </constraints>
                             <properties/>
                             <border type="empty">
@@ -180,71 +172,69 @@
                               <color color="-4473925"/>
                             </border>
                             <children>
-                              <grid id="ce7f9" binding="bottomControls" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                                <margin top="0" left="0" bottom="0" right="0"/>
+                              <component id="b0726" class="javax.swing.JTextArea" binding="mavenDependencyArea">
                                 <constraints>
-                                  <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false"/>
+                                  <grid row="0" column="0" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                                    <minimum-size width="150" height="-1"/>
+                                    <preferred-size width="-1" height="50"/>
+                                  </grid>
+                                </constraints>
+                                <properties>
+                                  <alignmentX value="0.0"/>
+                                  <alignmentY value="0.0"/>
+                                  <autoscrolls value="true"/>
+                                  <editable value="false"/>
+                                  <lineWrap value="false"/>
+                                  <margin top="4" left="4" bottom="4" right="4"/>
+                                  <text value="&lt;dependency&gt;&#10;  &lt;artifactId&gt;unlogged-sdk&lt;/artifactId&gt;&#10;  &lt;groupId&gt;video.bug&lt;/groupId&gt;&#10;  &lt;version&gt;0.0.11&lt;/version&gt;&#10;&lt;/dependency&gt;"/>
+                                  <wrapStyleWord value="false"/>
+                                </properties>
+                              </component>
+                              <scrollpane id="c199" binding="extraMavenTextAreaScrollPanel">
+                                <constraints>
+                                  <grid row="1" column="0" row-span="1" col-span="2" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                                    <minimum-size width="-1" height="200"/>
+                                    <preferred-size width="-1" height="200"/>
+                                    <maximum-size width="-1" height="200"/>
+                                  </grid>
                                 </constraints>
                                 <properties/>
                                 <border type="none"/>
                                 <children>
-                                  <component id="db703" class="javax.swing.JButton" binding="copyCodeButtonMaven">
-                                    <constraints>
-                                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                                    </constraints>
+                                  <component id="816b7" class="javax.swing.JTextArea" binding="mavenDependencyAreaAnnotation">
+                                    <constraints/>
                                     <properties>
-                                      <borderPainted value="true"/>
-                                      <contentAreaFilled value="true"/>
-                                      <icon value="icons/png/copy_icon_pink.png"/>
-                                      <margin top="0" left="0" bottom="0" right="0"/>
-                                      <opaque value="true"/>
-                                      <text value="Copy Code"/>
-                                    </properties>
-                                  </component>
-                                  <component id="57006" class="javax.swing.JComboBox" binding="jdkSelector">
-                                    <constraints>
-                                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="2" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
-                                    </constraints>
-                                    <properties>
-                                      <model>
-                                        <item value="JDK 1.8"/>
-                                        <item value="JDK 11"/>
-                                        <item value="JDK 17"/>
-                                        <item value="JDK 18"/>
-                                      </model>
+                                      <alignmentX value="0.0"/>
+                                      <alignmentY value="0.0"/>
+                                      <autoscrolls value="true"/>
+                                      <editable value="false"/>
+                                      <lineWrap value="false"/>
+                                      <margin top="4" left="4" bottom="4" right="4"/>
+                                      <text value="&lt;dependency&gt;&#10;  &lt;artifactId&gt;unlogged-sdk&lt;/artifactId&gt;&#10;  &lt;groupId&gt;video.bug&lt;/groupId&gt;&#10;  &lt;version&gt;0.0.11&lt;/version&gt;&#10;&lt;/dependency&gt;"/>
+                                      <wrapStyleWord value="false"/>
                                     </properties>
                                   </component>
                                 </children>
+                              </scrollpane>
+                              <grid id="5ad82" layout-manager="BorderLayout" hgap="0" vgap="0">
+                                <constraints>
+                                  <grid row="2" column="0" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                                </constraints>
+                                <properties/>
+                                <border type="none"/>
+                                <children>
+                                  <grid id="ce7f9" binding="bottomControls" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                                    <margin top="0" left="0" bottom="0" right="0"/>
+                                    <constraints border-constraint="West"/>
+                                    <properties/>
+                                    <border type="none"/>
+                                    <children/>
+                                  </grid>
+                                </children>
                               </grid>
-                              <component id="b0726" class="javax.swing.JTextArea" binding="mavenDependencyArea">
-                                <constraints>
-                                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false">
-                                    <preferred-size width="150" height="50"/>
-                                  </grid>
-                                </constraints>
-                                <properties>
-                                  <autoscrolls value="false"/>
-                                  <editable value="false"/>
-                                  <margin top="4" left="4" bottom="4" right="4"/>
-                                  <text value="&lt;dependency&gt;&#10;  &lt;artifactId&gt;unlogged-sdk&lt;/artifactId&gt;&#10;  &lt;groupId&gt;video.bug&lt;/groupId&gt;&#10;  &lt;version&gt;0.0.11&lt;/version&gt;&#10;&lt;/dependency&gt;"/>
-                                </properties>
-                              </component>
-                              <component id="816b7" class="javax.swing.JTextArea" binding="mavenDependencyAreaAnnotation">
-                                <constraints>
-                                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false">
-                                    <preferred-size width="150" height="50"/>
-                                  </grid>
-                                </constraints>
-                                <properties>
-                                  <autoscrolls value="false"/>
-                                  <editable value="false"/>
-                                  <margin top="4" left="4" bottom="4" right="4"/>
-                                  <text value="&lt;dependency&gt;&#10;  &lt;artifactId&gt;unlogged-sdk&lt;/artifactId&gt;&#10;  &lt;groupId&gt;video.bug&lt;/groupId&gt;&#10;  &lt;version&gt;0.0.11&lt;/version&gt;&#10;&lt;/dependency&gt;"/>
-                                </properties>
-                              </component>
                             </children>
                           </grid>
-                          <grid id="ddab8" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                          <grid id="ddab8" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                             <margin top="2" left="4" bottom="2" right="4"/>
                             <constraints>
                               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
@@ -260,45 +250,13 @@
                                   <text value="&lt;html&gt;Add &lt;b&gt;Unlogged SDK&lt;/b&gt; to &lt;b&gt;pom.xml&lt;/b&gt;&lt;/html&gt;"/>
                                 </properties>
                               </component>
-                            </children>
-                          </grid>
-                        </children>
-                      </grid>
-                      <grid id="1436" binding="gradlePanel" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                        <margin top="6" left="5" bottom="5" right="5"/>
-                        <constraints>
-                          <tabbedpane title="Gradle"/>
-                        </constraints>
-                        <properties/>
-                        <border type="none"/>
-                        <children>
-                          <grid id="bc0f" binding="gradleDependencyContents" layout-manager="GridLayoutManager" row-count="3" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                            <margin top="2" left="4" bottom="4" right="0"/>
-                            <constraints>
-                              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-                            </constraints>
-                            <properties/>
-                            <border type="empty">
-                              <font/>
-                              <title-color color="-4473925"/>
-                              <color color="-4473925"/>
-                            </border>
-                            <children>
-                              <component id="79b21" class="javax.swing.JTextArea" binding="gradleTextArea">
+                              <component id="60244" class="javax.swing.JButton" binding="copyCodeButtonMaven">
                                 <constraints>
-                                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false">
-                                    <preferred-size width="150" height="50"/>
+                                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false">
+                                    <minimum-size width="30" height="30"/>
+                                    <preferred-size width="30" height="30"/>
+                                    <maximum-size width="30" height="30"/>
                                   </grid>
-                                </constraints>
-                                <properties>
-                                  <editable value="false"/>
-                                  <margin top="4" left="4" bottom="4" right="4"/>
-                                  <text value="dependencies {&#10;    implementation 'video.bug:unlogged-sdk:0.0.11'&#10;    annotationProcessor 'video.bug:unlogged-sdk:0.0.11'&#10;}"/>
-                                </properties>
-                              </component>
-                              <component id="88664" class="javax.swing.JButton" binding="gradleCopyButton">
-                                <constraints>
-                                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
                                 </constraints>
                                 <properties>
                                   <borderPainted value="true"/>
@@ -306,15 +264,43 @@
                                   <icon value="icons/png/copy_icon_pink.png"/>
                                   <margin top="0" left="0" bottom="0" right="0"/>
                                   <opaque value="true"/>
-                                  <text value="Copy Code"/>
+                                  <text value=""/>
                                 </properties>
                               </component>
                             </children>
                           </grid>
-                          <grid id="cde88" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                          <grid id="c0450" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                            <margin top="0" left="0" bottom="0" right="0"/>
+                            <constraints>
+                              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                            </constraints>
+                            <properties/>
+                            <border type="none"/>
+                            <children>
+                              <component id="903df" class="javax.swing.JCheckBox" binding="usingMavenCompilerPluginCheckBox" default-binding="true">
+                                <constraints>
+                                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                                </constraints>
+                                <properties>
+                                  <text value="Using maven-compiler-plugin"/>
+                                </properties>
+                              </component>
+                            </children>
+                          </grid>
+                        </children>
+                      </grid>
+                      <grid id="1436" binding="gradlePanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                        <margin top="6" left="5" bottom="5" right="5"/>
+                        <constraints>
+                          <tabbedpane title="Gradle"/>
+                        </constraints>
+                        <properties/>
+                        <border type="none"/>
+                        <children>
+                          <grid id="cde88" layout-manager="GridLayoutManager" row-count="3" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                             <margin top="2" left="4" bottom="2" right="4"/>
                             <constraints>
-                              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
                             </constraints>
                             <properties/>
                             <border type="none"/>
@@ -325,6 +311,53 @@
                                 </constraints>
                                 <properties>
                                   <text value="&lt;html&gt;Add &lt;b&gt;Unlogged SDK&lt;/b&gt; to &lt;b&gt;build.gradle&lt;/b&gt;&lt;/html&gt;"/>
+                                </properties>
+                              </component>
+                              <component id="17581" class="javax.swing.JTextArea" binding="gradleTextArea">
+                                <constraints>
+                                  <grid row="1" column="0" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                                    <minimum-size width="150" height="-1"/>
+                                    <preferred-size width="150" height="50"/>
+                                  </grid>
+                                </constraints>
+                                <properties>
+                                  <alignmentX value="0.0"/>
+                                  <alignmentY value="0.0"/>
+                                  <editable value="false"/>
+                                  <lineWrap value="false"/>
+                                  <margin top="4" left="4" bottom="4" right="4"/>
+                                  <text value="dependencies {&#10;    implementation 'video.bug:unlogged-sdk:0.0.11'&#10;    annotationProcessor 'video.bug:unlogged-sdk:0.0.11'&#10;}"/>
+                                  <wrapStyleWord value="true"/>
+                                </properties>
+                              </component>
+                              <grid id="3e6e8" binding="gradleDependencyContents" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                                <margin top="2" left="4" bottom="4" right="0"/>
+                                <constraints>
+                                  <grid row="2" column="0" row-span="1" col-span="2" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                                </constraints>
+                                <properties/>
+                                <border type="empty">
+                                  <font/>
+                                  <title-color color="-4473925"/>
+                                  <color color="-4473925"/>
+                                </border>
+                                <children/>
+                              </grid>
+                              <component id="695b4" class="javax.swing.JButton" binding="gradleCopyButton">
+                                <constraints>
+                                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false">
+                                    <minimum-size width="30" height="30"/>
+                                    <preferred-size width="30" height="30"/>
+                                    <maximum-size width="30" height="30"/>
+                                  </grid>
+                                </constraints>
+                                <properties>
+                                  <borderPainted value="true"/>
+                                  <contentAreaFilled value="true"/>
+                                  <icon value="icons/png/copy_icon_pink.png"/>
+                                  <margin top="0" left="0" bottom="0" right="0"/>
+                                  <opaque value="true"/>
+                                  <text value=""/>
                                 </properties>
                               </component>
                             </children>
@@ -386,7 +419,7 @@
                     </constraints>
                     <properties>
                       <font size="14"/>
-                      <text value="&lt;html&gt;Add &lt;b&gt;@Unlogged&lt;/b&gt; just above your project’s main method&lt;/b&gt;&lt;/html&gt;"/>
+                      <text value="&lt;html&gt;Add &lt;b&gt;@Unlogged&lt;/b&gt; at main method&lt;/b&gt;&lt;/html&gt;"/>
                       <toolTipText value="&lt;html&gt;&#10;&lt;pre&gt;&#10;    @Unlogged&#10;    public static void main(String[] args) {&#10;     ...&#10;    &lt;/pre&gt;&#10;&lt;/html&gt;"/>
                     </properties>
                   </component>

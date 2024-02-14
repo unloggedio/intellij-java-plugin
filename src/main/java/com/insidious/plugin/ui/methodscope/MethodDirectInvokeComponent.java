@@ -41,6 +41,8 @@ import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.Border;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.tree.DefaultTreeCellEditor;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreeNode;
@@ -72,6 +74,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JButton modifyArgumentsButton;
     private JPanel boilerplateCustomizerContainer;
     private JPanel centerPanel;
+    private JTabbedPane tabbedPane;
     private MethodAdapter methodElement;
     private Tree argumentValueTree = null;
     private TreeModel argumentsValueTreeNode;
@@ -81,12 +84,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private TestCaseDesignerLite designerLite;
 
 
-    public MethodDirectInvokeComponent(InsidiousService insidiousService, OnCloseListener onCloseListener) {
+    public MethodDirectInvokeComponent(InsidiousService insidiousService, OnCloseListener<MethodDirectInvokeComponent> onCloseListener) {
         this.insidiousService = insidiousService;
         this.objectMapper = this.insidiousService.getObjectMapper();
 
-//        configureCreateBoilerplateButton(insidiousService);
-        configureEditButton();
         configureCloseButton(onCloseListener);
 
 
@@ -113,60 +114,36 @@ public class MethodDirectInvokeComponent implements ActionListener {
         });
     }
 
-    private void configureEditButton() {
-
-//        editValueLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        final Border closeButtonOriginalBorder = editValueLabel.getBorder();
-//        final Border actuallyOriginalBorder = BorderFactory.createCompoundBorder(
-//                BorderFactory.createEmptyBorder(2, 2, 2, 2),
-//                closeButtonOriginalBorder);
-//        editValueLabel.setBorder(actuallyOriginalBorder);
-//        editValueLabel.setToolTipText("Hide direct invoke");
-//        editValueLabel.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseEntered(MouseEvent e) {
-//                super.mouseEntered(e);
-//                editValueLabel.setBorder(BorderFactory.createCompoundBorder(
-//                        BorderFactory.createRaisedBevelBorder(),
-//                        closeButtonOriginalBorder));
-////                editValueLabel.setIcon(UIUtils.CLOSE_LINE_BLACK_PNG);
-//            }
-//
-//            @Override
-//            public void mouseExited(MouseEvent e) {
-//                super.mouseExited(e);
-//                editValueLabel.setBorder(actuallyOriginalBorder);
-////                editValueLabel.setIcon(UIUtils.CLOSE_LINE_PNG);
-//            }
-//
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                super.mouseClicked(e);
-//                insidiousService.previewTestCase(methodElement, null, true);
-//            }
-//        });
-    }
-
     private void configureCreateBoilerplateButton() {
 
-        designerLite = new TestCaseDesignerLite(methodElement,
-                null, true, insidiousService.getProject());
-
-        boilerplateCustomizerContainer.add(designerLite.getComponent(), BorderLayout.CENTER);
-        designerLite.getCreateButton().addMouseListener(new MouseAdapter() {
+        tabbedPane.addChangeListener(new ChangeListener() {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
-                FileEditorManager fileEditorManager = insidiousService.previewTestCase(
-                        designerLite.getLightVirtualFile());
-                Editor selectedTextEditor = fileEditorManager.getSelectedTextEditor();
-                FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
-                designerLite.setEditorReferences(selectedTextEditor, selectedEditor);
+            public void stateChanged(ChangeEvent e) {
+                if (designerLite != null) {
+                    return;
+                }
+                designerLite = new TestCaseDesignerLite(methodElement,
+                        null, true, insidiousService.getProject());
+
+                boilerplateCustomizerContainer.add(designerLite.getComponent(), BorderLayout.CENTER);
+                designerLite.getCreateButton().addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        super.mouseClicked(e);
+                        FileEditorManager fileEditorManager = insidiousService.previewTestCase(
+                                designerLite.getLightVirtualFile());
+                        Editor selectedTextEditor = fileEditorManager.getSelectedTextEditor();
+                        FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
+                        designerLite.setEditorReferences(selectedTextEditor, selectedEditor);
+                    }
+                });
+
             }
         });
+
     }
 
-    private void configureCloseButton(OnCloseListener onCloseListener) {
+    private void configureCloseButton(OnCloseListener<MethodDirectInvokeComponent> onCloseListener) {
         closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         final Border closeButtonOriginalBorder = closeButton.getBorder();
         final Border actuallyOriginalBorder = BorderFactory.createCompoundBorder(
@@ -202,7 +179,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private int expandAll(JTree tree, TreePath parent) {
         TreeNode node = (TreeNode) parent.getLastPathComponent();
         if (node.getChildCount() >= 0) {
-            for (Enumeration e = node.children(); e.hasMoreElements(); ) {
+            for (Enumeration<? extends TreeNode> e = node.children(); e.hasMoreElements(); ) {
                 TreeNode n = (TreeNode) e.nextElement();
                 TreePath path = parent.pathByAddingChild(n);
                 expandAll(tree, path);

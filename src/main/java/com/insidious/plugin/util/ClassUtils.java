@@ -451,14 +451,14 @@ public class ClassUtils {
         return className;
     }
 
-    public static void resolveTemplatesInCall(MethodCallExpression methodCallExpression, Project project) {
+    public static MethodCallExpression resolveTemplatesInCall(MethodCallExpression methodCallExpression, Project project) {
         Parameter callSubject = methodCallExpression.getSubject();
         String subjectType = callSubject.getType();
         if (subjectType.length() == 1) {
-            return;
+            return methodCallExpression;
         }
         if (classNotFound.containsKey(subjectType)) {
-            return;
+            return methodCallExpression;
         }
 
         PsiClass classPsiInstance = null;
@@ -478,7 +478,7 @@ public class ClassUtils {
             // cant do much here
             classNotFound.put(subjectType, true);
             logger.warn("Class not found in source code for resolving generic template: " + subjectType);
-            return;
+            return methodCallExpression;
         }
 
         String methodName = methodCallExpression.getMethodName();
@@ -491,7 +491,7 @@ public class ClassUtils {
         if (methodPsiInstanceList.length == 0) {
             logger.warn(
                     "[2] did not find a matching method in source code: " + subjectType + "." + methodName);
-            return;
+            return methodCallExpression;
         }
 
         List<Parameter> methodArguments = methodCallExpression.getArguments();
@@ -616,6 +616,7 @@ public class ClassUtils {
                 }
             }
         }
+        return methodCallExpression;
     }
 
     public static void

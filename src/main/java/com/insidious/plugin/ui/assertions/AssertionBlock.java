@@ -60,10 +60,11 @@ public class AssertionBlock implements AssertionBlockManager {
                 }
             }
         }
+        controlPanel.setVisible(false);
 
     }
 
-    public JPanel getMainPanel() {
+    public JPanel getContent() {
         return this.mainPanel;
     }
 
@@ -102,7 +103,7 @@ public class AssertionBlock implements AssertionBlockManager {
     private void addGroup(AtomicAssertion newSubGroup) {
         AssertionBlock newBlock = new AssertionBlock(newSubGroup, this, false);
         assertionGroups.add(newBlock);
-        contentPanel.add(newBlock.getMainPanel());
+        contentPanel.add(newBlock.getContent());
         contentPanel.revalidate();
     }
 
@@ -150,7 +151,7 @@ public class AssertionBlock implements AssertionBlockManager {
             if (assertionBlock.equals(block)) {
                 assertionGroups.remove(block);
                 assertion.getSubAssertions().remove(block.getAssertion());
-                contentPanel.remove(block.getMainPanel());
+                contentPanel.remove(block.getContent());
                 contentPanel.revalidate();
                 executeAssertion(assertion);
                 break;

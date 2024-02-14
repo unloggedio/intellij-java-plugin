@@ -25,6 +25,7 @@ import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -50,13 +51,17 @@ public class ClassTypeUtils {
         PsiType fieldTypeSubstitutor = classSubstitutor.substitute(typeToBeSubstituted);
         if (fieldTypeSubstitutor.getCanonicalText().equals(typeToBeSubstituted.getCanonicalText())) {
 
-            if (!(typeToBeSubstituted instanceof PsiClassReferenceType)) {
-
+            PsiType[] checkSuperTypes = typeToBeSubstituted.getSuperTypes();
+            if (typeToBeSubstituted instanceof PsiClassReferenceType) {
+                PsiClassReferenceType typeToBeSubstituted1 = (PsiClassReferenceType) typeToBeSubstituted;
+                checkSuperTypes = typeToBeSubstituted1.resolve().getExtendsListTypes();
             }
-            PsiClassReferenceType typeToBeSubstituted1 = (PsiClassReferenceType) typeToBeSubstituted;
+            if (typeToBeSubstituted instanceof PsiClassType) {
+                checkSuperTypes = ((PsiClassType) typeToBeSubstituted).resolve().getExtendsListTypes();
+            }
 
-            PsiClassType[] checkSuperTypes = typeToBeSubstituted1.resolve().getExtendsListTypes();
-            for (PsiClassType checkSuperType : checkSuperTypes) {
+
+            for (PsiType checkSuperType : checkSuperTypes) {
                 PsiType possibleType = classSubstitutor.substitute(checkSuperType);
                 if (!possibleType.getCanonicalText().equals(typeToBeSubstituted.getCanonicalText())) {
                     fieldTypeSubstitutor = possibleType;
@@ -111,7 +116,7 @@ public class ClassTypeUtils {
             return null;
         }
         String lastPart = ClassTypeUtils.getDottedClassName(typeNameRaw);
-        lastPart = lastPart.substring(lastPart.lastIndexOf(".") + 1);
+        lastPart = getSimpleClassName(lastPart);
         if (lastPart.length() < 2) {
             return lastPart.toLowerCase();
         }
@@ -236,7 +241,7 @@ public class ClassTypeUtils {
             } catch (Exception exception) {
                 // java poet failed to create class name from string
                 String packageName = typeName.substring(0, typeName.lastIndexOf("."));
-                String simpleName = typeName.substring(typeName.lastIndexOf(".") + 1);
+                String simpleName = getSimpleClassName(typeName);
                 return ClassName.get(packageName, simpleName);
             }
             return returnValueSquareClass;
@@ -249,6 +254,13 @@ public class ClassTypeUtils {
         }
 
         return returnParamType;
+    }
+
+    public static String getSimpleClassName(String typeName) {
+        if (!typeName.contains(".")) {
+            return typeName;
+        }
+        return typeName.substring(typeName.lastIndexOf(".") + 1);
     }
 
     public static TypeName createTypeFromTypeDeclaration(String templateParameterType) {

@@ -12,11 +12,8 @@ import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.library.DeclaredMockItemPanel;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.*;
-import com.intellij.psi.util.PsiTreeUtil;
 
 import java.awt.*;
 import java.time.format.DateTimeFormatter;
@@ -50,10 +47,10 @@ public class SaveFormListener implements CandidateLifeListener {
         MethodUnderTest methodUnderTest = storedCandidate.getMethod();
 
         TestCandidateMetadata loadedTestCandidate = insidiousService.getTestCandidateById(
-                storedCandidate.getEntryProbeIndex(), true);
+                storedCandidate.getEntryProbeIndex(), false);
 
         StoredCandidate existingMatchingStoredCandidate = atomicRecordService
-                .getStoredCandidateFor(methodUnderTest, loadedTestCandidate);
+                .getStoredCandidateFor(loadedTestCandidate);
         if (existingMatchingStoredCandidate.getCandidateId() == null) {
             existingMatchingStoredCandidate.setCandidateId(UUID.randomUUID().toString());
             existingMatchingStoredCandidate.setName("saved on " + simpleDateFormat.format(new Date().toInstant()));

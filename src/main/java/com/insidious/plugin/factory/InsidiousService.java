@@ -121,7 +121,6 @@ final public class InsidiousService implements
     final static private int TOOL_WINDOW_WIDTH = 400;
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
     private final UnloggedSdkApiAgent unloggedSdkApiAgent;
-    private final SessionLoader sessionLoader;
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
@@ -134,6 +133,7 @@ final public class InsidiousService implements
     private final GetProjectSessionsCallback sessionListener;
     private final ActiveSessionManager sessionManager;
     private final CurrentState currentState = new CurrentState();
+    private SessionLoader sessionLoader;
     private VideobugClientInterface client;
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
@@ -145,7 +145,6 @@ final public class InsidiousService implements
     private Content directMethodInvokeContent;
     private Content atomicTestContent;
     private Content stompWindowContent;
-    private Content introPanelContent = null;
     private AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
     private ReportingService reportingService = new ReportingService(this);
     private Content onboardingWindowContent;
@@ -167,8 +166,6 @@ final public class InsidiousService implements
         String pathToSessions = Constants.HOME_PATH + "/sessions";
         FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
         this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
-        this.sessionLoader = ApplicationManager.getApplication().getService(SessionLoader.class);
-        this.sessionLoader.setClient(this.client);
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, Boolean> checkCache = new HashMap<>();
             private ExecutionSession currentSession;
@@ -280,7 +277,6 @@ final public class InsidiousService implements
             }
 
         };
-        this.sessionLoader.addSessionCallbackListener(sessionListener);
 
 
         EditorEventMulticaster multicaster = EditorFactory.getInstance().getEventMulticaster();
@@ -462,6 +458,12 @@ final public class InsidiousService implements
         }
 
         addAllTabs();
+
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            this.sessionLoader = ApplicationManager.getApplication().getService(SessionLoader.class);
+            this.sessionLoader.setClient(this.client);
+            this.sessionLoader.addSessionCallbackListener(sessionListener);
+        });
     }
 
     public void addAllTabs() {

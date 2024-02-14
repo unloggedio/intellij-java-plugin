@@ -1,8 +1,5 @@
 package com.insidious.plugin.util;
 
-import com.insidious.plugin.factory.GutterState;
-import com.insidious.plugin.pojo.ProjectTypeInfo;
-import com.intellij.openapi.roots.ui.UiUtils;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.Gray;
 import com.intellij.ui.JBColor;
@@ -41,9 +38,11 @@ public class UIUtils {
     public static final Icon SAVE_CANDIDATE_GREY = IconLoader.getIcon("/icons/png/save_candidate.png", UIUtils.class);
     public static final Icon SAVE_CANDIDATE_PINK = IconLoader.getIcon("/icons/png/save-line-pink.png", UIUtils.class);
     public static final Icon CLOSE_LINE_PNG = IconLoader.getIcon("/icons/png/close-line.png", UIUtils.class);
-    public static final Icon CLOSE_LINE_BLACK_PNG = IconLoader.getIcon("/icons/png/close-line-black.png", UIUtils.class);
+    public static final Icon CLOSE_LINE_BLACK_PNG = IconLoader.getIcon("/icons/png/close-line-black.png",
+            UIUtils.class);
     public static final Icon SAVE_CANDIDATE_GREEN_SVG = IconLoader.getIcon("/icons/svg/save-line.svg", UIUtils.class);
-    public static final Icon CLOSE_FILE_RED_SVG = IconLoader.getIcon("/icons/svg/close_case_preview.svg", UIUtils.class);
+    public static final Icon CLOSE_FILE_RED_SVG = IconLoader.getIcon("/icons/svg/close_case_preview.svg",
+            UIUtils.class);
     public static final Icon DELETE_CANDIDATE_RED_SVG = IconLoader.getIcon("/icons/svg/delete-bin-6-line.svg",
             UIUtils.class);
     public static final Icon REPLAY_PINK = IconLoader.getIcon("/icons/svg/replay-all-pink.svg", UIUtils.class);
@@ -54,9 +53,11 @@ public class UIUtils {
             new Color(1, 204, 245, 100),
             new Color(1, 204, 245, 50)
     );
-    public static final JBColor ASSERTION_PASSING_COLOR = new JBColor(new Color(171, 232, 206), new Color(171, 232, 206));
+    public static final JBColor ASSERTION_PASSING_COLOR = new JBColor(new Color(171, 232, 206),
+            new Color(171, 232, 206));
     public static final JBColor ASSERTION_FAILING_COLOR = new JBColor(new Color(197, 48, 48), new Color(197, 48, 48));
-    public static final Icon COTRACT_UP_DOWN_ICON = IconLoader.getIcon("/icons/png/contract-up-down-line-black.png", UIUtils.class);
+    public static final Icon COTRACT_UP_DOWN_ICON = IconLoader.getIcon("/icons/png/contract-up-down-line-black.png",
+            UIUtils.class);
     public static final Icon EXPAND_UP_DOWN_ICON = IconLoader.getIcon("/icons/png/expand-up-down-line-black.png",
             UIUtils.class);
     public static Color teal = new JBColor(new Color(1, 204, 245), new Color(1, 204, 245));  // 01CCF5
@@ -103,14 +104,14 @@ public class UIUtils {
     public static Icon NO_DIFF_GUTTER = IconLoader.getIcon("/icons/svg/no_diff_gutter.svg", UIUtils.class);
     public static Icon MOCK_ADD = IconLoader.getIcon("/icons/svg/mock_add.svg", UIUtils.class);
 
-	// onboarding page image asset
-	public static Icon POSTMAN = IconLoader.getIcon("/icons/svg/postman.svg", UIUtils.class);
-	public static Icon SWAGGER = IconLoader.getIcon("/icons/svg/swagger.svg", UIUtils.class);
-	public static Icon UNLOGGED_ONBOARDING = IconLoader.getIcon("/icons/svg/unlogged_onboarding.svg", UIUtils.class);
-	public static Icon PLAY_ARROW = IconLoader.getIcon("/icons/svg/play_arrow.svg", UIUtils.class);
-	public static Icon LINK_ARROW = IconLoader.getIcon("/icons/svg/link_arrow.svg", UIUtils.class);
-	public static Icon VIDEO_BANNER = IconLoader.getIcon("/icons/png/video_banner.png", UIUtils.class);
-	public static Icon BELL_ICON = IconLoader.getIcon("/icons/svg/bell_icon.svg", UIUtils.class);
+    // onboarding page image asset
+    public static Icon POSTMAN = IconLoader.getIcon("/icons/svg/postman.svg", UIUtils.class);
+    public static Icon SWAGGER = IconLoader.getIcon("/icons/svg/swagger.svg", UIUtils.class);
+    public static Icon UNLOGGED_ONBOARDING = IconLoader.getIcon("/icons/svg/unlogged_onboarding.svg", UIUtils.class);
+    public static Icon PLAY_ARROW = IconLoader.getIcon("/icons/svg/play_arrow.svg", UIUtils.class);
+    public static Icon LINK_ARROW = IconLoader.getIcon("/icons/svg/link_arrow.svg", UIUtils.class);
+    public static Icon VIDEO_BANNER = IconLoader.getIcon("/icons/png/video_banner.png", UIUtils.class);
+    public static Icon BELL_ICON = IconLoader.getIcon("/icons/svg/bell_icon.svg", UIUtils.class);
 
     public static Icon NO_AGENT_GUTTER = IconLoader.getIcon("/icons/svg/no_agent_gutter.svg", UIUtils.class);
     public static Icon EXECUTE_COMPONENT = IconLoader.getIcon("/icons/svg/execute_component.svg", UIUtils.class);
@@ -159,137 +160,14 @@ public class UIUtils {
     public static Icon GRADLE_ICON = IconLoader.getIcon("/icons/png/gradle_icon_20.png", UIUtils.class);
     public static Icon INTELLIJ_ICON = IconLoader.getIcon("/icons/png/intelliJ_icon_20.png", UIUtils.class);
     public static Icon JAVA_ICON = IconLoader.getIcon("/icons/png/java_logo_20.png", UIUtils.class);
-    public static Icon ICON_1_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_1_teal.png", UIUtils.class);
-    public static Icon ICON_2_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_2_teal.png", UIUtils.class);
-    public static Icon ICON_3_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_3_teal.png", UIUtils.class);
-    public static Icon ICON_4_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_4_teal.png", UIUtils.class);
-    public static Icon ICON_5_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_5_teal.png", UIUtils.class);
-    //    public static Icon ICON_MINUS = IconLoader.getIcon("/icons/png/ph-minus-square-bold.png", UIUtils.class);
-//    public static Icon ICON_PLUS = IconLoader.getIcon("/icons/png/material-symbols-add-box-outline-rounded.png", UIUtils.class);
-    public static Icon SEND_TEAL_ICON = IconLoader.getIcon("/icons/png/sendButton.png", UIUtils.class);
-    public static Icon MISSING_DEPENDENCIES_ICON = IconLoader.getIcon("/icons/png/alert_icon_yellow.png",
-            UIUtils.class);
-    public static Icon NO_MISSING_DEPENDENCIES_ICON = IconLoader.getIcon(
-            "/icons/png/no_missing_dependencies_icon_20.png", UIUtils.class);
-    public static Icon GENERATE_ICON = IconLoader.getIcon("/icons/png/generate_icon.png", UIUtils.class);
-    public static Icon DOWNLOAD_WHITE = IconLoader.getIcon("/icons/png/download_white.png", UIUtils.class);
-    public static Icon NO_AGENT_HEADER = IconLoader.getIcon("/icons/png/no_agent_header.png", UIUtils.class);
+    public static Icon INFO_ICON = IconLoader.getIcon("/icons/png/information-line.png", UIUtils.class);
     public static Icon GHOST_MOCK = IconLoader.getIcon("/icons/svg/mock_ghost_icon_v2.svg", UIUtils.class);
-    public static Icon PROCESS_RUNNING_HEADER = IconLoader.getIcon("/icons/png/process_running_header.png",
-            UIUtils.class);
-    public static Icon DATA_AVAILABLE_HEADER = IconLoader.getIcon("/icons/png/data_available_header.png",
-            UIUtils.class);
 
     public UIUtils() throws IOException, FontFormatException {
     }
 
-    public static void setGifIconForButton(JButton button, String gif, Icon fallback) {
-        try {
-            ImageIcon loadingIcon = new ImageIcon(UIUtils.class.getResource(gifPath + gif));
-            button.setIcon(loadingIcon);
-        } catch (Exception e) {
-            System.out.println("Exception setting Gif icon for button " + e);
-            e.printStackTrace();
-            button.setIcon(fallback);
-        }
-    }
 
-    public static Image getImageForGif(String gif) {
-        try {
-            ImageIcon loadingIcon = new ImageIcon(UIUtils.class.getResource(gifPath + gif));
-            return loadingIcon.getImage();
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    public static void setGifIconForLabel(JLabel label, String gif, Icon fallback) {
-        try {
-            ImageIcon loadingIcon = new ImageIcon(UIUtils.class.getResource(gifPath + gif));
-            label.setIcon(loadingIcon);
-        } catch (Exception e) {
-            System.out.println("Exception setting Gif icon for label " + e);
-            e.printStackTrace();
-            label.setIcon(fallback);
-        }
-    }
-
-    public static void setGifIconForEditorPane(JEditorPane pane, String gif) {
-        try {
-//            ImageIcon loadingIcon = new ImageIcon(UIUtils.class.getResource(gifPath + gif));
-            //get abs path
-            pane.setText("<html><body><img src = \"" + gifPath + gif + "\"></body></html>");
-
-//            this.getClass().getClassLoader()
-//                    .getResource("images/logo_html.png").toString()
-        } catch (Exception e) {
-            System.out.println("Exception setting Gif icon for label " + e);
-            e.printStackTrace();
-        }
-    }
-
-    public static Icon getIconForRuntype(ProjectTypeInfo.RUN_TYPES type) {
-        switch (type) {
-            case MAVEN_CLI:
-                return MAVEN_ICON;
-            case GRADLE_CLI:
-                return GRADLE_ICON;
-            case INTELLIJ_APPLICATION:
-                return INTELLIJ_ICON;
-            case JAVA_JAR_CLI:
-                return JAVA_ICON;
-        }
-
-        return null;
-    }
-
-    public static String getDisplayNameForType(ProjectTypeInfo.RUN_TYPES type) {
-        switch (type) {
-            case MAVEN_CLI:
-                return "Maven CLI Application";
-            case GRADLE_CLI:
-                return "Gradle Application";
-            case INTELLIJ_APPLICATION:
-                return "IntelliJ Idea Application";
-            case JAVA_JAR_CLI:
-                return "Java jar command";
-        }
-
-        return null;
-    }
-
-    public static Icon getNumberedIconFor(int number) {
-        switch (number) {
-            case 1:
-                return ICON_1_TEAL;
-            case 2:
-                return ICON_2_TEAL;
-            case 3:
-                return ICON_3_TEAL;
-            case 4:
-                return ICON_4_TEAL;
-            case 5:
-                return ICON_5_TEAL;
-            default:
-                return ICON_1_TEAL;
-
-        }
-    }
-
-    public static Icon getGutterIconForState(GutterState state) {
-        switch (state) {
-            case NO_DIFF:
-                return NO_DIFF_GUTTER;
-            case DIFF:
-                return DIFF_GUTTER;
-            case PROCESS_RUNNING:
-                return EXECUTE;
-            case PROCESS_NOT_RUNNING:
-                return PROCESS_NOT_RUNNING;
-            case DATA_AVAILABLE:
-                return DATA_AVAILABLE;
-            default:
-                return UIUtils.RE_EXECUTE;
-        }
+    public static Icon getGutterIconForState() {
+        return EXECUTE;
     }
 }

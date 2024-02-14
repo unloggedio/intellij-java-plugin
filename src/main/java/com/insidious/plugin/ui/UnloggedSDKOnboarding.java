@@ -12,7 +12,6 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.ItemEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -51,7 +50,6 @@ public class UnloggedSDKOnboarding {
     private JTabbedPane primaryTabbedPane;
     private JTextArea gradleTextArea;
     private JButton gradleCopyButton;
-    private JComboBox jdkSelector;
     private JTextArea mavenDependencyAreaAnnotation;
     private JPanel topAligner;
     private JPanel infoPanel;
@@ -61,7 +59,6 @@ public class UnloggedSDKOnboarding {
     private JPanel dependencyContents;
     private JPanel bottomControls;
     private JPanel gradlePanel;
-    private JPanel gradleDependencyContents;
     private JTextArea importIoUnloggedUnloggedTextArea;
     private JPanel step1TitlePanel;
     private JLabel step1Label;
@@ -76,14 +73,19 @@ public class UnloggedSDKOnboarding {
     private JLabel emailButton;
     private JLabel githubButton;
     private JButton doneButton;
+    private JPanel gradleDependencyContents;
+    private JScrollPane extraMavenTextAreaScrollPanel;
+    private JCheckBox usingMavenCompilerPluginCheckBox;
     private InsidiousService insidiousService;
     private String currentJDK = "JDK 1.8";
 
     public UnloggedSDKOnboarding(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
+        extraMavenTextAreaScrollPanel.setBorder(BorderFactory.createEmptyBorder());
+        extraMavenTextAreaScrollPanel.setVisible(false);
         doneButton.setOpaque(true);
-        doneButton.setBackground(JBColor.BLUE);
-        doneButton.setBorderPainted(false);
+        doneButton.setBorderPainted(true);
+        doneButton.setContentAreaFilled(true);
         copyCodeButtonMaven.addActionListener(e -> copyCode(PROJECT_TYPE.MAVEN));
         discordButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         discordButton.addMouseListener(new MouseAdapter() {
@@ -155,20 +157,14 @@ public class UnloggedSDKOnboarding {
                 )
         );
 
-
-        jdkSelector.addItemListener(event -> {
-            if (event.getStateChange() == ItemEvent.SELECTED) {
-                String selectedItem = (String) jdkSelector.getSelectedItem();
-                currentJDK = selectedItem;
-                String version = selectedItem.split(" ")[1];
-                if (version.equals("1.8")) {
-                    mavenDependencyAreaAnnotation.setVisible(false);
-                } else {
-                    mavenDependencyAreaAnnotation.setVisible(true);
-                }
-            }
-        });
-
+        usingMavenCompilerPluginCheckBox.addActionListener(
+                e -> {
+                    boolean selected = usingMavenCompilerPluginCheckBox.isSelected();
+                    mavenDependencyAreaAnnotation.setVisible(selected);
+                    extraMavenTextAreaScrollPanel.setVisible(selected);
+                    extraMavenTextAreaScrollPanel.getParent().revalidate();
+                    extraMavenTextAreaScrollPanel.getParent().repaint();
+                });
 
 //        CircleBorderJLabel step1label = new CircleBorderJLabel("1");
         JBColor CIRCLE_BLUE_JB_COLOR = new JBColor(CIRCLE_BLUE_FILL_COLOR, CIRCLE_BLUE_FILL_COLOR);
@@ -202,9 +198,7 @@ public class UnloggedSDKOnboarding {
         step3ContainerPanel.add(step3Label, new GridConstraints());
 
 
-        CircularBorder circleBorder4 = new CircularBorder(new JBColor(
-                new Color(16, 39, 191),
-                new Color(16, 39, 191)
+        CircularBorder circleBorder4 = new CircularBorder(new JBColor(CIRCLE_BLUE_JB_COLOR, CIRCLE_BLUE_JB_COLOR
         ), 2, 10);
         step4Label.setBorder(
                 BorderFactory.createCompoundBorder(

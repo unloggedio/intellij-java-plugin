@@ -8,7 +8,6 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.mocking.ParameterMatcher;
-import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -147,9 +146,6 @@ public class AtomicRecordService {
         ModuleManager instance = ModuleManager.getInstance(insidiousService.getProject());
 
         Module[] modulesList = instance.getModules();
-        if (modulesList == null) {
-            return returnFileList;
-        }
 
         Map<String, Boolean> checkedPaths = new HashMap<>();
         for (Module module : modulesList) {
@@ -478,12 +474,12 @@ public class AtomicRecordService {
         }
         AtomicRecord record = classAtomicRecordMap.get(methodUnderTest.getClassName());
         Map<String, List<StoredCandidate>> storedCandidateMap = record.getStoredCandidateMap();
-        if(!storedCandidateMap.containsKey(methodUnderTest.getMethodHashKey())) {
+        if (!storedCandidateMap.containsKey(methodUnderTest.getMethodHashKey())) {
             // this shouldnt have happened
             return;
         }
         List<StoredCandidate> storedCandidates = storedCandidateMap.get(methodUnderTest.getMethodHashKey());
-        if (record == null || storedCandidates.size() == 0) {
+        if (storedCandidates.size() == 0) {
             return;
         }
         StoredCandidate candidateToRemove = null;
@@ -737,12 +733,13 @@ public class AtomicRecordService {
         return classAtomicRecordMap.get(fullyClassifiedClassName).getStoredCandidateMap();
     }
 
-    public StoredCandidate getStoredCandidateFor(MethodUnderTest methodUnderTest, TestCandidateMetadata testCandidate) {
-        StoredCandidate potentialCandidate = new StoredCandidate(testCandidate);
+    public StoredCandidate getStoredCandidateFor(TestCandidateMetadata testCandidate) {
+        return getStoredCandidate(new StoredCandidate(testCandidate));
+    }
 
-
-//        StoredCandidate candidate;
-        AtomicRecord ars = classAtomicRecordMap.get(testCandidate.getFullyQualifiedClassname());
+    public StoredCandidate getStoredCandidate(StoredCandidate potentialCandidate) {
+        MethodUnderTest methodUnderTest = potentialCandidate.getMethod();
+        AtomicRecord ars = classAtomicRecordMap.get(potentialCandidate.getMethod().getClassName());
         if (ars == null) {
             return potentialCandidate;
         }
@@ -754,7 +751,7 @@ public class AtomicRecordService {
         }
 
         for (StoredCandidate methodStoredCandidate : methodStoredCandidates) {
-            List<Parameter> arguments = testCandidate.getMainMethod().getArguments();
+            List<String> arguments = potentialCandidate.getMethodArguments();
             if (methodStoredCandidate.getMethodArguments().size() == arguments.size()) {
                 boolean match = true;
                 List<String> methodArguments = methodStoredCandidate.getMethodArguments();

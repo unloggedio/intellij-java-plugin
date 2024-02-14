@@ -281,11 +281,11 @@ public class CandidateMetadataFactory {
                 MethodCallExpression reflectedMethod = new MethodCallExpression();
 
                 List<Object> argsList = new ArrayList<>();
-                StringBuilder statement = new StringBuilder("$T $L = $T.forName($T.class).getMethod($S");
+                StringBuilder statement = new StringBuilder("$T $L = $T.forName($S).getMethod($S)");
                 argsList.add(ClassTypeUtils.createTypeFromNameString("java.lang.reflect.Method"));
                 argsList.add("methodInstance");
                 argsList.add(ClassTypeUtils.createTypeFromNameString("java.lang.Class"));
-                argsList.add(ClassTypeUtils.createTypeFromNameString(mainMethod.getSubject().getType()));
+                argsList.add(mainMethod.getSubject().getType());
                 argsList.add(mainMethod.getMethodName());
 //                Class.forName("").getMethod()
                 List<Parameter> arguments = new ArrayList<>();
