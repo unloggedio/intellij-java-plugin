@@ -2,6 +2,7 @@ package com.insidious.plugin.util;
 
 import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
+import com.intellij.openapi.roots.ui.UiUtils;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.Gray;
 import com.intellij.ui.JBColor;
@@ -101,6 +102,15 @@ public class UIUtils {
     public static Icon DIFF_GUTTER = IconLoader.getIcon("/icons/svg/diff_gutter.svg", UIUtils.class);
     public static Icon NO_DIFF_GUTTER = IconLoader.getIcon("/icons/svg/no_diff_gutter.svg", UIUtils.class);
     public static Icon MOCK_ADD = IconLoader.getIcon("/icons/svg/mock_add.svg", UIUtils.class);
+
+	// onboarding page image asset
+	public static Icon POSTMAN = IconLoader.getIcon("/icons/svg/postman.svg", UIUtils.class);
+	public static Icon SWAGGER = IconLoader.getIcon("/icons/svg/swagger.svg", UIUtils.class);
+	public static Icon UNLOGGED_ONBOARDING = IconLoader.getIcon("/icons/svg/unlogged_onboarding.svg", UIUtils.class);
+	public static Icon PLAY_ARROW = IconLoader.getIcon("/icons/svg/play_arrow.svg", UIUtils.class);
+	public static Icon LINK_ARROW = IconLoader.getIcon("/icons/svg/link_arrow.svg", UIUtils.class);
+	public static Icon VIDEO_BANNER = IconLoader.getIcon("/icons/png/video_banner.png", UIUtils.class);
+	public static Icon BELL_ICON = IconLoader.getIcon("/icons/svg/bell_icon.svg", UIUtils.class);
 
     public static Icon NO_AGENT_GUTTER = IconLoader.getIcon("/icons/svg/no_agent_gutter.svg", UIUtils.class);
     public static Icon EXECUTE_COMPONENT = IconLoader.getIcon("/icons/svg/execute_component.svg", UIUtils.class);
