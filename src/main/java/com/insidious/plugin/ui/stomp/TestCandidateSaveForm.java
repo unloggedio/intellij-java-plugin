@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.stomp;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
@@ -20,6 +21,9 @@ import com.insidious.plugin.ui.library.StoredCandidateItemPanel;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.util.*;
 import com.intellij.lang.jvm.JvmModifier;
+import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -28,6 +32,7 @@ import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -37,6 +42,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class TestCandidateSaveForm {
@@ -73,6 +79,8 @@ public class TestCandidateSaveForm {
     private JLabel linesCoveredExpandIcon;
     private JPanel assertionsScrollParentPanel;
     private JPanel hiddenAssertionsListContainer;
+    private JLabel candidateInfoIcon;
+    private JLabel mockInfoIcon;
 
     public TestCandidateSaveForm(List<TestCandidateMetadata> sourceCandidates,
                                  SaveFormListener saveFormListener, OnCloseListener<TestCandidateSaveForm> onCloseListener) {
@@ -94,6 +102,38 @@ public class TestCandidateSaveForm {
         this.candidateMetadataList = list;
 
 
+        candidateInfoIcon.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                ToolTipManager.sharedInstance().mouseMoved(
+                        new MouseEvent(candidateInfoIcon, MouseEvent.MOUSE_MOVED, System.currentTimeMillis(), 0,
+                                0, 0, 0, false));
+            }
+        });
+        candidateInfoIcon.setToolTipText(
+                "" +
+                        "<html>" +
+                        "Run from CLI using" +
+                        "<pre>mvn test</pre>" +
+                        " or " +
+                        "<pre>gradle test</pre>" +
+                        "</html>"
+        );
+
+        mockInfoIcon.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                ToolTipManager.sharedInstance().mouseMoved(
+                        new MouseEvent(candidateInfoIcon, MouseEvent.MOUSE_MOVED, System.currentTimeMillis(), 0,
+                                0, 0, 0, false));
+            }
+        });
+
+        mockInfoIcon.setToolTipText(
+                "" +
+                        "Saved mocks can be used for real time mocking (Enable from Library) and managed inside Library"
+        );
+
         this.saveFormListener = saveFormListener;
         selectedReplayCountLabel.setText(candidateMetadataList.size() + " replay selected");
 
@@ -108,12 +148,38 @@ public class TestCandidateSaveForm {
             public void actionPerformed(ActionEvent e) {
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
                     for (StoredCandidate storedCandidate : candidateList) {
+                        if (!unitRadioButton.isSelected()) {
+                            storedCandidate.setMockIds(new HashSet<>());
+                        }
                         saveFormListener.onSaved(storedCandidate);
                     }
 
-                    for (DeclaredMockItemPanel value : declaredMockPanelMap.values()) {
+                    Collection<DeclaredMockItemPanel> values = declaredMockPanelMap.values();
+                    for (DeclaredMockItemPanel value : values) {
                         saveFormListener.onSaved(value);
                     }
+
+
+                    InsidiousNotification
+                            .notifyMessage(
+                                    "Saved " + candidateList.size() + " replay tests and "
+                                            + values.size() + " mock definitions", NotificationType.INFORMATION,
+                                    List.of(
+                                            new AnAction(new Supplier<String>() {
+                                                @Override
+                                                public String get() {
+                                                    return "Show Library";
+                                                }
+                                            }, UIUtils.LIBRARY_ICON) {
+                                                @Override
+                                                public void actionPerformed(@NotNull AnActionEvent e) {
+                                                    saveFormListener.getProject()
+                                                            .getService(InsidiousService.class)
+                                                            .showLibrary();
+                                                }
+                                            }
+                                    )
+                            );
 
                     onCloseListener.onClose(TestCandidateSaveForm.this);
                 });
@@ -366,7 +432,7 @@ public class TestCandidateSaveForm {
         JLabel assertionDescriptionPanel = new JLabel("Can be customized from library after saving");
         assertionDescriptionPanel.setIcon(UIUtils.INFO_ICON);
         JPanel labelContainer = new JPanel();
-        labelContainer.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        assertionDescriptionPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 10, 5));
         labelContainer.add(assertionDescriptionPanel, BorderLayout.CENTER);
         assertionsScrollParentPanel.add(assertionDescriptionPanel, BorderLayout.NORTH);
         assertionsScrollParentPanel.add(assertionItemScroller, BorderLayout.CENTER);

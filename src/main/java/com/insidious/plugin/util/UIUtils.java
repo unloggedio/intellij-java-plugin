@@ -20,7 +20,7 @@ public class UIUtils {
             UIUtils.class);
     public static final Icon FIND_BUGS_GREY = IconLoader.getIcon("/icons/png/findbug_grey.png", UIUtils.class);
     public static final Icon CLASS_ICON = IconLoader.getIcon("/icons/png/class.png", UIUtils.class);
-    public static final Icon LINK = IconLoader.getIcon("/icons/png/link.png", UIUtils.class);
+    public static final Icon LIBRARY_ICON = IconLoader.getIcon("/icons/png/link.png", UIUtils.class);
     public static final Icon OPTIMIZE_GREY = IconLoader.getIcon("/icons/png/optimize_grey.png", UIUtils.class);
     public static final Icon REFACTOR_GREY = IconLoader.getIcon("/icons/png/refactor_grey.png", UIUtils.class);
     public static final Icon EXPLAIN_GREY = IconLoader.getIcon("/icons/png/explain_grey.png", UIUtils.class);

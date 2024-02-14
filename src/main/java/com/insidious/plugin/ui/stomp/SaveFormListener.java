@@ -16,15 +16,19 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 
 import java.awt.*;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.List;
-import java.util.*;
+import java.util.UUID;
 
 public class SaveFormListener implements CandidateLifeListener {
-    private static final DateTimeFormatter simpleDateFormat = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm");
+    private static final DateTimeFormatter simpleDateFormat = DateTimeFormatter
+            .ofPattern("uuuu-MM-dd HH:mm")
+            .withZone(ZoneId.systemDefault());
     private static final Logger logger = LoggerUtil.getInstance(SaveFormListener.class);
-    private AtomicRecordService atomicRecordService;
-    private InsidiousService insidiousService;
+    private final AtomicRecordService atomicRecordService;
+    private final InsidiousService insidiousService;
 
     public SaveFormListener(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;

@@ -38,9 +38,9 @@ public class AssertionBlock implements AssertionBlockManager {
         BoxLayout boxLayout = new BoxLayout(contentPanel, BoxLayout.Y_AXIS);
         contentPanel.setLayout(boxLayout);
 
-        if (!isRootCondition) {
-            topAligner.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
-        }
+//        if (!isRootCondition) {
+//            topAligner.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+//        }
 
         assertionBlockControlPanel = new AssertionBlockControlPanel(this, assertion, isRootCondition);
 

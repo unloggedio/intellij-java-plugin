@@ -92,7 +92,6 @@ public class TestCaseDesignerLite {
     private JComboBox<JsonFramework> jsonFrameworkComboBox;
     private JComboBox<ResourceEmbedMode> resourceEmberModeComboBox;
     private JButton createButton;
-    private JPanel saveDetailsPanel;
     private JPanel testFrameWorkPanel;
     private JLabel testFrameworkLabel;
     private JPanel mockFrameworkPanel;
@@ -101,6 +100,7 @@ public class TestCaseDesignerLite {
     private JPanel resourceEmbedModeChoicePanel;
     private JPanel useMockitoConfigPanel;
     private JPanel mockDownstreamContainerPanel;
+    private JPanel saveDetailsPanel;
     private TestCaseGenerationConfiguration currentTestGenerationConfiguration;
     private TestCaseUnit testCaseScript;
     private List<String> methodChecked;

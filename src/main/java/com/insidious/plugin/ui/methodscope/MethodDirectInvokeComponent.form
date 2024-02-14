@@ -28,18 +28,24 @@
                   <size top="4" left="4" bottom="4" right="4"/>
                 </border>
                 <children>
-                  <grid id="98f3c" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                  <grid id="32146" binding="centerPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
+                    <constraints border-constraint="Center"/>
+                    <properties/>
+                    <border type="none"/>
+                    <children/>
+                  </grid>
+                  <grid id="3aea" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                     <margin top="0" left="0" bottom="0" right="0"/>
-                    <constraints border-constraint="South"/>
+                    <constraints border-constraint="North"/>
                     <properties/>
                     <border type="none"/>
                     <children>
-                      <hspacer id="71a8c">
+                      <hspacer id="34c25">
                         <constraints>
                           <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                         </constraints>
                       </hspacer>
-                      <component id="c75e7" class="javax.swing.JButton" binding="executeButton">
+                      <component id="16b50" class="javax.swing.JButton" binding="executeButton">
                         <constraints>
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                         </constraints>
@@ -48,7 +54,7 @@
                           <text value="Execute"/>
                         </properties>
                       </component>
-                      <component id="c1bc7" class="javax.swing.JButton" binding="modifyArgumentsButton" default-binding="true">
+                      <component id="4af00" class="javax.swing.JButton" binding="modifyArgumentsButton" default-binding="true">
                         <constraints>
                           <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                         </constraints>
@@ -57,12 +63,6 @@
                         </properties>
                       </component>
                     </children>
-                  </grid>
-                  <grid id="32146" binding="centerPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
-                    <constraints border-constraint="Center"/>
-                    <properties/>
-                    <border type="none"/>
-                    <children/>
                   </grid>
                 </children>
               </grid>

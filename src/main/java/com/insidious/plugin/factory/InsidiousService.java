@@ -35,11 +35,7 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.record.AtomicRecordService;
-import com.insidious.plugin.ui.InsidiousCaretListener;
-import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
-import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import com.insidious.plugin.ui.UnloggedOnboardingScreenV2;
-import com.insidious.plugin.ui.UnloggedSDKOnboarding;
+import com.insidious.plugin.ui.*;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.library.LibraryComponent;
 import com.insidious.plugin.ui.library.LibraryFilterState;
@@ -627,6 +623,16 @@ final public class InsidiousService implements
         toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
     }
 
+    public void showLibrary() {
+        if (stompWindow == null) {
+            InsidiousNotification.notifyMessage(
+                    "Please start the application with unlogged-sdk to use", NotificationType.WARNING
+            );
+            return;
+        }
+        toolWindow.getContentManager().setSelectedContent(libraryWindowContent, true);
+    }
+
     public void compile(ClassAdapter psiClass, CompileStatusNotification compileStatusNotification) {
         XDebuggerManager xDebugManager = XDebuggerManager.getInstance(project);
         Optional<XDebugSession> currentSessionOption = Arrays
@@ -996,7 +1002,7 @@ final public class InsidiousService implements
                     libraryWindowContent = contentFactory.createContent(
                             libraryToolWindow.getComponent(), "Library", false);
                     libraryWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-                    libraryWindowContent.setIcon(UIUtils.LINK);
+                    libraryWindowContent.setIcon(UIUtils.LIBRARY_ICON);
                     contentManager.addContent(libraryWindowContent);
                 }
 

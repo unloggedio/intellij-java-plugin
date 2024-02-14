@@ -32,10 +32,8 @@ import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
-import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.impl.ContextMenuPopupHandler;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
@@ -45,7 +43,6 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -384,11 +381,15 @@ public class StompComponent implements
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
             saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener,
-                    component -> southPanel.removeAll());
-            JPanel component = saveFormReference.getComponent();
-            southPanel.removeAll();
-            southPanel.add(component, BorderLayout.SOUTH);
+                    component -> {
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            southPanel.removeAll();
+                        });
+                    });
             ApplicationManager.getApplication().invokeLater(() -> {
+                JPanel component = saveFormReference.getComponent();
+                southPanel.removeAll();
+                southPanel.add(component, BorderLayout.SOUTH);
                 southPanel.revalidate();
                 southPanel.repaint();
                 southPanel.getParent().revalidate();
@@ -397,7 +398,6 @@ public class StompComponent implements
 
 
         });
-
 
 
     }
@@ -1184,7 +1184,7 @@ public class StompComponent implements
         }
 
         JLabel process_started = new JLabel("Process started");
-        process_started.setIcon(UIUtils.LINK);
+        process_started.setIcon(UIUtils.LIBRARY_ICON);
         JPanel startedPanel = new JPanel();
         startedPanel.setLayout(new BorderLayout());
         process_started.setBorder(
@@ -1318,8 +1318,8 @@ public class StompComponent implements
         String newClassName = method.getContainingClass().getQualifiedName();
         if (lastMethodFocussed != null) {
             if (lastMethodFocussed.getName().equals(newMethodName) &&
-                    lastMethodFocussed.getContainingClass().getQualifiedName()
-                            .equals(newClassName)) {
+                    lastMethodFocussed.getContainingClass() != null &&
+                    lastMethodFocussed.getContainingClass().getQualifiedName().equals(newClassName)) {
                 // same method focussed again
                 return;
             }

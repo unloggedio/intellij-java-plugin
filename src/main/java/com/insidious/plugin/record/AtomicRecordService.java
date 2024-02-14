@@ -414,7 +414,9 @@ public class AtomicRecordService {
 
                 List<StoredCandidate> mockList = stringListEntry.getValue();
                 for (StoredCandidate storedCandidate : mockList) {
-                    storedCandidate.setMethod(new MethodUnderTest(keyParts[1], keyParts[2], 0, keyParts[0]));
+                    storedCandidate.setMethod(new MethodUnderTest(keyParts[1],
+                            keyParts.length == 3 ? keyParts[2] : record.getClassname()
+                            , 0, keyParts[0]));
                 }
 
             }
@@ -564,7 +566,8 @@ public class AtomicRecordService {
      */
     public List<DeclaredMock> getDeclaredMocksOf(MethodUnderTest methodUnderTest) {
 
-        if (!classAtomicRecordMap.containsKey(methodUnderTest.getClassName())) {
+        if (classAtomicRecordMap == null || methodUnderTest == null ||
+                !classAtomicRecordMap.containsKey(methodUnderTest.getClassName())) {
             return List.of();
         }
         Map<String, List<DeclaredMock>> declaredMockMap = classAtomicRecordMap
