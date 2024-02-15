@@ -25,7 +25,6 @@ import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -45,8 +44,27 @@ public class ClassTypeUtils {
     }
 
     public static PsiType substituteClassRecursively(PsiType typeToBeSubstituted, PsiSubstitutor classSubstitutor) {
-        if (classSubstitutor == null || typeToBeSubstituted instanceof PsiPrimitiveType) {
+        if (typeToBeSubstituted == null || classSubstitutor == null || typeToBeSubstituted instanceof PsiPrimitiveType) {
             return typeToBeSubstituted;
+        }
+        if (typeToBeSubstituted instanceof PsiClassReferenceType) {
+            PsiClassReferenceType classRef = (PsiClassReferenceType) typeToBeSubstituted;
+            if (classRef.getCanonicalText().contains(".")) {
+                boolean hasTemplate = false;
+                if (classRef.hasNonTrivialParameters()) {
+                    for (PsiType parameter : classRef.getParameters()) {
+                        if (!parameter.getCanonicalText().contains(".")) {
+                            hasTemplate = true;
+                            break;
+                        }
+                    }
+
+                }
+                if (!hasTemplate) {
+                    return typeToBeSubstituted;
+                }
+            }
+            PsiClass resolvedClass = classRef.resolve();
         }
         PsiType fieldTypeSubstitutor = classSubstitutor.substitute(typeToBeSubstituted);
         if (fieldTypeSubstitutor.getCanonicalText().equals(typeToBeSubstituted.getCanonicalText())) {

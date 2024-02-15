@@ -569,7 +569,7 @@ public class TestCaseDesignerLite {
 
         // method parameters
         ParameterAdapter[] parameterList = ApplicationManager.getApplication().runReadAction(
-                (Computable<ParameterAdapter[]>) () -> methodAdapter.getParameters());
+                (Computable<ParameterAdapter[]>) methodAdapter::getParameters);
         List<Parameter> arguments = new ArrayList<>(parameterList.length);
         for (ParameterAdapter parameter : parameterList) {
             Parameter argumentParameter = new Parameter();

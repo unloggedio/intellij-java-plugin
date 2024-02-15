@@ -202,12 +202,13 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
         int callExpressionCount = declaredMockMap.keySet().size();
         InlayPresentation createMock = createMockInlayPresentation(mockableCalls, 0, callExpressionCount);
-        inlayPresentations.add(createMock);
         if (savedMockCount > 0) {
             InlayPresentation mockInlayPresentation = createMockInlayPresentation(mockableCalls, savedMockCount,
                     callExpressionCount);
             inlayPresentations.add(mockInlayPresentation);
+            inlayPresentations.add(new SpacePresentation(1 * columnWidth, 0));
         }
+        inlayPresentations.add(createMock);
 
         SequencePresentation sequenceOfInlays = new SequencePresentation(inlayPresentations);
 
@@ -323,7 +324,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
             inlayAttributes = INSIDIOUS_CREATE_MOCK_ATTRIBUTES;
         } else {
             inlayAttributes = INSIDIOUS_BROWSE_MOCK_ATTRIBUTES;
-            inlayTextBuilder.append(savedMockCount).append(" saved mocks");
+            inlayTextBuilder.append(savedMockCount).append(" saved mock").append(savedMockCount == 1 ? "" : "s");
         }
 
 
