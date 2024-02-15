@@ -142,7 +142,7 @@ public class CandidateMetadataFactory {
 
                     methodCallExpression.writeReturnValue(objectRoutineScript, testConfiguration, testGenerationState);
                     if (firstCall) {
-                        methodCallExpression.writeCommentTo(objectRoutineScript);
+//                        methodCallExpression.writeCommentTo(objectRoutineScript);
                         pendingStatement = PendingStatement.in(objectRoutineScript, testGenerationState)
                                 .writeExpression(
                                         MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
@@ -226,7 +226,7 @@ public class CandidateMetadataFactory {
                             objectRoutineScript, testConfiguration, testGenerationState);
 
                     if (firstCall) {
-                        methodCallExpression.writeCommentTo(objectRoutineScript);
+//                        methodCallExpression.writeCommentTo(objectRoutineScript);
                         pendingStatement = PendingStatement.in(objectRoutineScript, testGenerationState)
                                 .writeExpression(
                                         MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
