@@ -2,7 +2,6 @@ package com.insidious.plugin.ui.assertions;
 
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
-import com.insidious.plugin.assertions.Expression;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 
@@ -20,8 +19,6 @@ public class AssertionRule {
     private JPanel mainPanel;
     private JPanel topAligner;
     private JLabel nameSelector;
-    private JLabel operationSelector;
-    private JLabel valueField;
     private JLabel trashButton;
 
     public AssertionRule(AssertionBlock assertionBlock, AtomicAssertion atomicAssertion1) {
@@ -32,7 +29,6 @@ public class AssertionRule {
 
 
         this.manager = assertionBlock;
-
 
 
         nameSelector.addKeyListener(new KeyListener() {
@@ -62,144 +58,143 @@ public class AssertionRule {
 
         String operationText = getOperationText(assertion);
 
-        this.nameSelector.setText("<html><pre>" + assertion.getKey() + " "+ operationText + " " + text + "" + "</pre" +
+        this.nameSelector.setText("<html><pre>" + assertion.getKey() + " " + operationText + " " + text + "" + "</pre" +
                 "></html>");
 //        this.valueField.setText("<html><pre>" + text + "</pre></html>");
 
 
-
-        operationSelector.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                String selectedItem = (String) operationSelector.getText();
-                logger.warn("Operator selected: " + selectedItem);
-                switch (selectedItem) {
-                    case "is":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.EQUAL);
-                        break;
-                    case "is not":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_EQUAL);
-                        break;
-                    case ">":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.GREATER_THAN);
-                        break;
-                    case "<":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.LESS_THAN);
-                        break;
-                    case "<=":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.LESS_THAN_OR_EQUAL);
-
-                        break;
-                    case ">=":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.GREATER_THAN_OR_EQUAL);
-                        break;
-
-                    case "is null":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NULL);
-                        break;
-                    case "is not null":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_NULL);
-                        break;
-                    case "is empty":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.EMPTY);
-                        break;
-                    case "is not empty":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_EMPTY);
-                        break;
-
-                    case "is true":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.TRUE);
-                        break;
-                    case "is false":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.FALSE);
-                        break;
-
-                    case "size is":
-                        assertion.setExpression(Expression.SIZE);
-                        assertion.setAssertionType(AssertionType.EQUAL);
-                        break;
-                    case "size is not":
-                        assertion.setExpression(Expression.SIZE);
-                        assertion.setAssertionType(AssertionType.NOT_EQUAL);
-                        break;
-
-                    case "length is":
-                        assertion.setExpression(Expression.LENGTH);
-                        assertion.setAssertionType(AssertionType.EQUAL);
-                        break;
-                    case "length is not":
-                        assertion.setExpression(Expression.LENGTH);
-                        assertion.setAssertionType(AssertionType.NOT_EQUAL);
-                        break;
-                    case "contains key in object":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.CONTAINS_KEY);
-                        break;
-                    case "contains item in array":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.CONTAINS_ITEM);
-                        break;
-                    case "not contains item in array":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_ITEM);
-                        break;
-                    case "contains substring":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.CONTAINS_STRING);
-                        break;
-                    case "not contains key in object":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_KEY);
-                        break;
-                    case "not contains substring":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_STRING);
-                        break;
-                    case "matches regex":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.MATCHES_REGEX);
-                        break;
-                    case "not matches regex":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_MATCHES_REGEX);
-                        break;
-                    case "equals ignore case":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.EQUAL_IGNORE_CASE);
-                        break;
-                    case "starts with":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.STARTS_WITH);
-                        break;
-                    case "not starts with":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_STARTS_WITH);
-                        break;
-                    case "ends with":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.ENDS_WITH);
-                        break;
-                    case "not ends with":
-                        assertion.setExpression(Expression.SELF);
-                        assertion.setAssertionType(AssertionType.NOT_ENDS_WITH);
-                        break;
-
-                }
-//                updateResult();
-            }
-        });
+//        operationSelector.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                String selectedItem = (String) operationSelector.getText();
+//                logger.warn("Operator selected: " + selectedItem);
+//                switch (selectedItem) {
+//                    case "is":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.EQUAL);
+//                        break;
+//                    case "is not":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_EQUAL);
+//                        break;
+//                    case ">":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.GREATER_THAN);
+//                        break;
+//                    case "<":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.LESS_THAN);
+//                        break;
+//                    case "<=":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.LESS_THAN_OR_EQUAL);
+//
+//                        break;
+//                    case ">=":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.GREATER_THAN_OR_EQUAL);
+//                        break;
+//
+//                    case "is null":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NULL);
+//                        break;
+//                    case "is not null":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_NULL);
+//                        break;
+//                    case "is empty":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.EMPTY);
+//                        break;
+//                    case "is not empty":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_EMPTY);
+//                        break;
+//
+//                    case "is true":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.TRUE);
+//                        break;
+//                    case "is false":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.FALSE);
+//                        break;
+//
+//                    case "size is":
+//                        assertion.setExpression(Expression.SIZE);
+//                        assertion.setAssertionType(AssertionType.EQUAL);
+//                        break;
+//                    case "size is not":
+//                        assertion.setExpression(Expression.SIZE);
+//                        assertion.setAssertionType(AssertionType.NOT_EQUAL);
+//                        break;
+//
+//                    case "length is":
+//                        assertion.setExpression(Expression.LENGTH);
+//                        assertion.setAssertionType(AssertionType.EQUAL);
+//                        break;
+//                    case "length is not":
+//                        assertion.setExpression(Expression.LENGTH);
+//                        assertion.setAssertionType(AssertionType.NOT_EQUAL);
+//                        break;
+//                    case "contains key in object":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.CONTAINS_KEY);
+//                        break;
+//                    case "contains item in array":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.CONTAINS_ITEM);
+//                        break;
+//                    case "not contains item in array":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_ITEM);
+//                        break;
+//                    case "contains substring":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.CONTAINS_STRING);
+//                        break;
+//                    case "not contains key in object":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_KEY);
+//                        break;
+//                    case "not contains substring":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_CONTAINS_STRING);
+//                        break;
+//                    case "matches regex":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.MATCHES_REGEX);
+//                        break;
+//                    case "not matches regex":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_MATCHES_REGEX);
+//                        break;
+//                    case "equals ignore case":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.EQUAL_IGNORE_CASE);
+//                        break;
+//                    case "starts with":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.STARTS_WITH);
+//                        break;
+//                    case "not starts with":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_STARTS_WITH);
+//                        break;
+//                    case "ends with":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.ENDS_WITH);
+//                        break;
+//                    case "not ends with":
+//                        assertion.setExpression(Expression.SELF);
+//                        assertion.setAssertionType(AssertionType.NOT_ENDS_WITH);
+//                        break;
+//
+//                }
+////                updateResult();
+//            }
+//        });
 
         trashButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         trashButton.addMouseListener(new MouseAdapter() {
@@ -319,10 +314,6 @@ public class AssertionRule {
 
     private String getOperatorText(String operatorText) {
         return operatorText;
-    }
-
-    private void setOperatorText(String not_contains_substring) {
-        operationSelector.setText(not_contains_substring);
     }
 
     public AssertionBlock getBlock() {

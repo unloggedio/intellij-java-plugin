@@ -391,6 +391,7 @@ public class StompComponent implements
             ApplicationManager.getApplication().invokeLater(() -> {
                 JPanel component = saveFormReference.getComponent();
                 southPanel.removeAll();
+                component.setMaximumSize(new Dimension(600, 800));
                 southPanel.add(component, BorderLayout.SOUTH);
                 southPanel.revalidate();
                 southPanel.repaint();
@@ -1125,13 +1126,10 @@ public class StompComponent implements
             InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
             mainPanel.revalidate();
             mainPanel.repaint();
-        }, new OnCloseListener<Void>() {
-            @Override
-            public void onClose(Void component) {
-                southPanel.removeAll();
-                scrollContainer.revalidate();
-                scrollContainer.repaint();
-            }
+        }, component -> {
+            southPanel.removeAll();
+            scrollContainer.revalidate();
+            scrollContainer.repaint();
         });
         JComponent content = mockEditor.getComponent();
         content.setMinimumSize(new Dimension(-1, 500));

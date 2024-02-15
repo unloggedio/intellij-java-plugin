@@ -201,8 +201,8 @@
                             <constraints>
                               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="2" use-parent-layout="false">
                                 <minimum-size width="-1" height="100"/>
-                                <preferred-size width="-1" height="200"/>
-                                <maximum-size width="-1" height="350"/>
+                                <preferred-size width="-1" height="400"/>
+                                <maximum-size width="-1" height="550"/>
                               </grid>
                             </constraints>
                             <properties/>
@@ -361,8 +361,8 @@
                             <constraints>
                               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="2" use-parent-layout="false">
                                 <minimum-size width="-1" height="100"/>
-                                <preferred-size width="-1" height="200"/>
-                                <maximum-size width="-1" height="350"/>
+                                <preferred-size width="-1" height="400"/>
+                                <maximum-size width="-1" height="550"/>
                               </grid>
                             </constraints>
                             <properties/>
@@ -455,8 +455,8 @@
                             <constraints>
                               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="2" use-parent-layout="false">
                                 <minimum-size width="-1" height="100"/>
-                                <preferred-size width="-1" height="200"/>
-                                <maximum-size width="-1" height="350"/>
+                                <preferred-size width="-1" height="400"/>
+                                <maximum-size width="-1" height="550"/>
                               </grid>
                             </constraints>
                             <properties/>

@@ -1197,10 +1197,6 @@ final public class InsidiousService implements
         }
     }
 
-    public ObjectMapper getObjectMapper() {
-        return objectMapper;
-    }
-
     public void triggerGutterIconReload() {
         if (project.isDisposed()) {
             return;

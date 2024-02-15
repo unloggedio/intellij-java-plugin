@@ -565,8 +565,9 @@ public class DaoService {
 
 
             if (methodCallExpression.isStaticCall() || dbMce.getSubject() == 0) {
-                com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter(
-                        parameterMap.get(dbMce.getSubject()));
+                com.insidious.plugin.pojo.Parameter staticSubject =
+                        parameterMap.get(dbMce.getSubject()) != null ?new com.insidious.plugin.pojo.Parameter(
+                        parameterMap.get(dbMce.getSubject())) : new com.insidious.plugin.pojo.Parameter();
                 staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
                 methodCallExpression.setSubject(staticSubject);
             } else {

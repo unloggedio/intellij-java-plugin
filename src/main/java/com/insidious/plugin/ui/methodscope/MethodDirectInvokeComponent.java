@@ -18,6 +18,7 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
+import com.insidious.plugin.ui.treeeditor.JsonTreeEditor;
 import com.insidious.plugin.util.*;
 import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
@@ -33,18 +34,14 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.search.ProjectAndLibrariesScope;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
-import com.intellij.ui.treeStructure.Tree;
 import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.swing.tree.DefaultTreeCellEditor;
-import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
@@ -76,17 +73,14 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JPanel centerPanel;
     private JTabbedPane tabbedPane;
     private MethodAdapter methodElement;
-    private Tree argumentValueTree = null;
-    private TreeModel argumentsValueTreeNode;
-    private JsonNode argumentsValueJsonNode;
     private JBScrollPane parameterScrollPanel = null;
-    private DefaultTreeCellEditor cellEditor;
     private TestCaseDesignerLite designerLite;
+    private JsonTreeEditor parameterEditor;
 
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService, OnCloseListener<MethodDirectInvokeComponent> onCloseListener) {
         this.insidiousService = insidiousService;
-        this.objectMapper = this.insidiousService.getObjectMapper();
+        this.objectMapper = ObjectMapperInstance.getInstance();
 
         configureCloseButton(onCloseListener);
 
@@ -301,35 +295,12 @@ public class MethodDirectInvokeComponent implements ActionListener {
             String source = "{}";
             try {
                 source = objectMapper.writeValueAsString(methodArgumentsMap);
-                argumentsValueJsonNode = objectMapper.readTree(source);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-            argumentsValueTreeNode = JsonTreeUtils.jsonToTreeModel(objectMapper.readTree(source), "Method Arguments");
-            argumentValueTree = new Tree(argumentsValueTreeNode);
-            argumentValueTree.setBackground(JBColor.WHITE);
-            argumentValueTree.setBorder(BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
-            argumentValueTree.setEditable(true);
 
-            cellEditor = new InsidiousCellEditor(argumentValueTree, null);
-
-            // Listener to handle changes in the tree nodes
-            InsidiousTreeListener l = new InsidiousTreeListener();
-            argumentValueTree.getModel().addTreeModelListener(l);
-
-            // single click edit
-            argumentValueTree.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    argumentValueTree.startEditingAtPath(argumentValueTree.getSelectionPath());
-                }
-            });
-
-
-            argumentValueTree.setBackground(JBColor.WHITE);
-            argumentValueTree.setCellEditor(cellEditor);
-            expandAllNodes(argumentValueTree);
-            methodParameterContainer.add(argumentValueTree, BorderLayout.CENTER);
+            parameterEditor = new JsonTreeEditor(objectMapper.readTree(source), "Method Arguments");
+            methodParameterContainer.add(parameterEditor.getContent(), BorderLayout.CENTER);
         } else {
             JBLabel noParametersLabel = new JBLabel("No method arguments");
             methodParameterContainer.add(noParametersLabel, BorderLayout.CENTER);
@@ -396,7 +367,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
             String selectedKey = "/" + parameter.getName();
 
-            JsonNode valueFromJsonNode = JsonTreeUtils.treeModelToJson(argumentsValueTreeNode);
+            JsonNode valueFromJsonNode = parameterEditor.getValue();
 
             String parameterValue = null;
             try {
@@ -466,13 +437,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                         if (targetMethodName == null) {
                             targetMethodName = agentCommandRequest.getMethodName();
                         }
-                        ApplicationManager.getApplication()
-                                .invokeLater(() -> {
-                                    if (argumentValueTree != null) {
-                                        argumentValueTree.collapsePath(
-                                                new TreePath(argumentValueTree.getModel().getRoot()));
-                                    }
-                                });
+
                         String toolTipText = "Timestamp: " +
                                 new Timestamp(agentCommandResponse.getTimestamp()) + " from "
                                 + targetClassName + "." + targetMethodName + "( " + " )";
@@ -487,36 +452,24 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
                         if (responseType.equals(ResponseType.NORMAL)) {
 
-                            ObjectMapper objectMapper = insidiousService.getObjectMapper();
                             try {
                                 String returnValueString = String.valueOf(methodReturnValue);
 
                                 String responseClassName = agentCommandResponse.getResponseClassName();
-                                if (responseClassName.equals("float") || responseClassName.equals(
-                                        "java.lang.Float")) {
+                                if (responseClassName.equals("float") ||
+                                        responseClassName.equals("java.lang.Float")) {
                                     returnValueString = ParameterUtils.getFloatValue(returnValueString);
                                 }
 
-                                if (responseClassName.equals("double") || responseClassName.equals(
-                                        "java.lang.Double")) {
-                                    returnValueString = ParameterUtils.getDoubleValue(
-                                            returnValueString);
+                                if (responseClassName.equals("double") ||
+                                        responseClassName.equals("java.lang.Double")) {
+                                    returnValueString = ParameterUtils.getDoubleValue(returnValueString);
                                 }
 
-                                JsonNode jsonNode = objectMapper.readValue(returnValueString,
-                                        JsonNode.class);
+                                JsonNode jsonNode = objectMapper.readTree(returnValueString);
 
-                                TreeModel responseObjectTree = JsonTreeUtils.jsonToTreeModel(
-                                        jsonNode, responseClassName);
-
-
-                                Tree comp = new Tree(responseObjectTree);
-                                comp.setToolTipText(toolTipText);
-                                comp.setBackground(JBColor.WHITE);
-//                                comp.setBorder(BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
-                                int totalNodeCount = expandAllNodes(comp);
-
-                                parameterScrollPanel.setViewportView(comp);
+                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(jsonNode, responseClassName);
+                                parameterScrollPanel.setViewportView(jsonTreeEditor.getContent());
 
                             } catch (JsonProcessingException ex) {
                                 Document document = EditorFactory.getInstance()

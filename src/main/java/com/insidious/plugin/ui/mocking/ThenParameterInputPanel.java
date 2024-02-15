@@ -5,29 +5,21 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.mocking.MethodExitType;
 import com.insidious.plugin.mocking.ThenParameter;
-import com.insidious.plugin.ui.methodscope.InsidiousCellEditor;
-import com.insidious.plugin.ui.methodscope.InsidiousTreeListener;
-import com.insidious.plugin.util.JsonTreeUtils;
+import com.insidious.plugin.ui.treeeditor.JsonTreeEditor;
+import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.search.GlobalSearchScope;
-import com.intellij.ui.JBColor;
-import com.intellij.ui.treeStructure.Tree;
 
 import javax.swing.*;
-import javax.swing.tree.TreeModel;
-import javax.swing.tree.TreeNode;
-import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.Arrays;
-import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -46,6 +38,7 @@ public class ThenParameterInputPanel {
     ));
 
     private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
+    private static final Logger logger = LoggerUtil.getInstance(ThenParameterInputPanel.class);
     private final ThenParameter thenParameter;
     private final Project project;
     private final Color originalBackgroundColor;
@@ -76,81 +69,18 @@ public class ThenParameterInputPanel {
 
 
         try {
-            TreeModel tree = JsonTreeUtils.jsonToTreeModel(objectMapper.readTree(thenParamValue), simpleClassName);
-            Tree valueTree = new Tree(tree);
-
-
-            valueTree.setCellEditor(new InsidiousCellEditor(valueTree, null));
-            valueTree.getModel().addTreeModelListener(new InsidiousTreeListener());
-
-            valueTree.setBackground(JBColor.WHITE);
-//            valueTree.setBorder(BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
-            valueTree.setEditable(true);
-
-
-            int totalNodeCount = expandAllNodes(valueTree);
-            valueTree.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    valueTree.startEditingAtPath(valueTree.getSelectionPath());
-                }
-            });
-
-            valueScrollPanel.setViewportView(valueTree);
+            JsonTreeEditor editor = new JsonTreeEditor(objectMapper.readTree(thenParamValue),
+                    simpleClassName);
+            editor.addChangeListener(object -> thenParameter.getReturnParameter().setValue(object.toString()));
+            valueScrollPanel.setViewportView(editor.getContent());
 
 
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
 
-//        returnValueTextArea.setText(thenParamValue);
-//
-//        returnValueTextArea.addKeyListener(new KeyAdapter() {
-//            @Override
-//            public void keyReleased(KeyEvent e) {
-//                thenParameter.getReturnParameter().setValue(returnValueTextArea.getText());
-//                validateValueValid();
-//            }
-//        });
-
-//        returnType.setText(MethodExitType.NORMAL.toString());
-
-//        returnType.setModel(new DefaultComboBoxModel<>(MethodExitType.values()));
-//        returnType.setSelectedItem(thenParameter.getMethodExitType());
-//        returnType.addActionListener(e -> {
-//            MethodExitType selectedItem = (MethodExitType) returnType.getSelectedItem();
-//            thenParameter.setMethodExitType(selectedItem);
-//            updateVisibleControls();
-//        });
-
-//        returnTypeTextField.addKeyListener(new KeyAdapter() {
-//            @Override
-//            public void keyReleased(KeyEvent e) {
-//                String text = returnTypeTextField.getText();
-//                thenParameter.getReturnParameter().setClassName(text);
-//                validateTypeValid();
-//            }
-//        });
         updateVisibleControls();
         validateTypeValid();
-    }
-
-    public int expandAllNodes(JTree tree) {
-        TreeNode root = (TreeNode) tree.getModel().getRoot();
-        return 1 + expandAll(tree, new TreePath(root));
-    }
-
-    private int expandAll(JTree tree, TreePath parent) {
-        TreeNode node = (TreeNode) parent.getLastPathComponent();
-        if (node.getChildCount() >= 0) {
-            for (Enumeration e = node.children(); e.hasMoreElements(); ) {
-                TreeNode n = (TreeNode) e.nextElement();
-                TreePath path = parent.pathByAddingChild(n);
-                expandAll(tree, path);
-            }
-        }
-        tree.expandPath(parent);
-        return 1 + node.getChildCount();
     }
 
 

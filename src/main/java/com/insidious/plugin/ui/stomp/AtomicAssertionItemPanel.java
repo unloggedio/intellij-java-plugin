@@ -11,6 +11,7 @@ import com.intellij.openapi.project.Project;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
+import java.awt.*;
 
 public class AtomicAssertionItemPanel {
     private final AtomicAssertion atomicAssertion;
@@ -18,7 +19,7 @@ public class AtomicAssertionItemPanel {
     private final Project project;
     private final AssertionBlock assertionBlock;
     private JPanel mainPanel;
-    private JScrollPane assertionPanel;
+    private JPanel assertionPanel;
 
     public AtomicAssertionItemPanel(AtomicAssertion atomicAssertion, ItemLifeCycleListener<AtomicAssertion> atomicAssertionLifeListener, Project project) {
 
@@ -64,7 +65,8 @@ public class AtomicAssertionItemPanel {
         this.atomicAssertionLifeListener = atomicAssertionLifeListener;
         this.project = project;
 
-        assertionPanel.setViewportView(assertionBlock.getContent());
+//        assertionPanel.setViewportView(assertionBlock.getContent());
+        assertionPanel.add(assertionBlock.getContent(), BorderLayout.CENTER);
         assertionPanel.setBorder(BorderFactory.createEmptyBorder());
     }
 
