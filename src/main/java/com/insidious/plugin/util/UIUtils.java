@@ -1,5 +1,6 @@
 package com.insidious.plugin.util;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.Gray;
 import com.intellij.ui.JBColor;
@@ -20,7 +21,7 @@ public class UIUtils {
             UIUtils.class);
     public static final Icon FIND_BUGS_GREY = IconLoader.getIcon("/icons/png/findbug_grey.png", UIUtils.class);
     public static final Icon CLASS_ICON = IconLoader.getIcon("/icons/png/class.png", UIUtils.class);
-    public static final Icon LIBRARY_ICON = IconLoader.getIcon("/icons/png/link.png", UIUtils.class);
+    public static final Icon LIBRARY_ICON = AllIcons.ObjectBrowser.ShowLibraryContents;
     public static final Icon OPTIMIZE_GREY = IconLoader.getIcon("/icons/png/optimize_grey.png", UIUtils.class);
     public static final Icon REFACTOR_GREY = IconLoader.getIcon("/icons/png/refactor_grey.png", UIUtils.class);
     public static final Icon EXPLAIN_GREY = IconLoader.getIcon("/icons/png/explain_grey.png", UIUtils.class);
@@ -117,7 +118,7 @@ public class UIUtils {
     public static Icon EXECUTE_COMPONENT = IconLoader.getIcon("/icons/svg/execute_component.svg", UIUtils.class);
     public static Icon EXCEPTION_CASE = IconLoader.getIcon("/icons/svg/exception_diff_case.svg", UIUtils.class);
     public static Icon PROCESS_RUNNING = IconLoader.getIcon("/icons/svg/process_running.svg", UIUtils.class);
-    public static Icon EXECUTE = IconLoader.getIcon("/icons/png/execute.png", UIUtils.class);
+    public static Icon EXECUTE = AllIcons.Actions.ProfileBlue;
     public static Icon PROCESS_NOT_RUNNING = IconLoader.getIcon("/icons/svg/process_not_running.svg", UIUtils.class);
     public static Icon DATA_AVAILABLE = IconLoader.getIcon("/icons/svg/data_available_v2.svg", UIUtils.class);
     public static Icon ATOMIC_TESTS = IconLoader.getIcon("/icons/svg/atomic_tests_v2.svg", UIUtils.class);
@@ -160,7 +161,7 @@ public class UIUtils {
     public static Icon GRADLE_ICON = IconLoader.getIcon("/icons/png/gradle_icon_20.png", UIUtils.class);
     public static Icon INTELLIJ_ICON = IconLoader.getIcon("/icons/png/intelliJ_icon_20.png", UIUtils.class);
     public static Icon JAVA_ICON = IconLoader.getIcon("/icons/png/java_logo_20.png", UIUtils.class);
-    public static Icon INFO_ICON = IconLoader.getIcon("/icons/png/information-line.png", UIUtils.class);
+    public static Icon INFO_ICON = AllIcons.General.ShowInfos;
     public static Icon GHOST_MOCK = IconLoader.getIcon("/icons/svg/mock_ghost_icon_v2.svg", UIUtils.class);
 
     public UIUtils() throws IOException, FontFormatException {

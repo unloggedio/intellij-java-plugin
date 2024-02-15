@@ -718,6 +718,7 @@ final public class InsidiousService implements
                 InsidiousNotification.notifyMessage(
                         "Failed to inject mocks [" + e.getMessage() + "]", NotificationType.ERROR
                 );
+                libraryToolWindow.setMockStatus(false);
             }
         });
 

@@ -81,6 +81,10 @@ public class TestCandidateSaveForm {
     private JPanel hiddenAssertionsListContainer;
     private JLabel candidateInfoIcon;
     private JLabel mockInfoIcon;
+    private JLabel methodReturningVoidLabel;
+    private JCheckBox methodReturningVoidCheckbox;
+    private JLabel methodReturningVoidInfoIcon;
+    private JPanel voidInfoPanel;
 
     public TestCandidateSaveForm(List<TestCandidateMetadata> sourceCandidates,
                                  SaveFormListener saveFormListener, OnCloseListener<TestCandidateSaveForm> onCloseListener) {
@@ -136,6 +140,20 @@ public class TestCandidateSaveForm {
 
         this.saveFormListener = saveFormListener;
         selectedReplayCountLabel.setText(candidateMetadataList.size() + " replay selected");
+
+
+        long voidMethodCount = candidateMetadataList.stream().filter(e ->
+                        e.getMainMethod().getReturnValue() == null ||
+                        e.getMainMethod().getReturnValue().getType() == null ||
+                e.getMainMethod().getReturnValue().getType().equalsIgnoreCase("void")).count();
+
+        if (voidMethodCount > 0 ) {
+            voidInfoPanel.setVisible(true);
+            methodReturningVoidLabel.setText(voidMethodCount + " method return void");
+        } else {
+            voidInfoPanel.setVisible(false);
+        }
+
 
         List<DeclaredMock> mocksList = ApplicationManager.getApplication().runReadAction(
                 (Computable<List<DeclaredMock>>) () -> collectDownstreamMockCalls(candidateMetadataList));

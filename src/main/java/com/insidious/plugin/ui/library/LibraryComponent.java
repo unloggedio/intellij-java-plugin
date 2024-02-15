@@ -360,6 +360,16 @@ public class LibraryComponent {
 
     }
 
+    public void setMockStatus(boolean status) {
+        if (status) {
+            mockingEnableRadioButton.setSelected(true);
+            mockingDisableRadioButton.setSelected(false);
+        } else {
+            mockingEnableRadioButton.setSelected(false);
+            mockingDisableRadioButton.setSelected(true);
+        }
+    }
+
     private void clearSelection() {
         selectedMocks.clear();
         selectedCandidates.clear();

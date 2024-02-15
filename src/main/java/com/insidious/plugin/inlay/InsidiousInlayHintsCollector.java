@@ -200,8 +200,14 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         inlayPresentations.add(new SpacePresentation(column * columnWidth - 2, 0));
 
 
-        inlayPresentations.add(createMockInlayPresentation(mockableCalls, savedMockCount,
-                declaredMockMap.keySet().size()));
+        int callExpressionCount = declaredMockMap.keySet().size();
+        InlayPresentation createMock = createMockInlayPresentation(mockableCalls, 0, callExpressionCount);
+        inlayPresentations.add(createMock);
+        if (savedMockCount > 0) {
+            InlayPresentation mockInlayPresentation = createMockInlayPresentation(mockableCalls, savedMockCount,
+                    callExpressionCount);
+            inlayPresentations.add(mockInlayPresentation);
+        }
 
         SequencePresentation sequenceOfInlays = new SequencePresentation(inlayPresentations);
 

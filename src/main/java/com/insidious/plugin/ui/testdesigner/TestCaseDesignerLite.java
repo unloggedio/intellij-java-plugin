@@ -108,10 +108,6 @@ public class TestCaseDesignerLite {
     private Editor editorReference;
     private FileEditor fileEditorReference;
 
-    public JButton getCreateButton() {
-        return createButton;
-    }
-
     public TestCaseDesignerLite(MethodAdapter currentMethod,
                                 TestCaseGenerationConfiguration configuration,
                                 boolean generateOnlyBoilerPlate,
@@ -307,6 +303,10 @@ public class TestCaseDesignerLite {
         return methodAccess;
     }
 
+    public JButton getCreateButton() {
+        return createButton;
+    }
+
     public JComponent getComponent() {
         return mainPanel;
     }
@@ -371,25 +371,29 @@ public class TestCaseDesignerLite {
 
         PsiFile containingFile = methodAdapter.getContainingFile();
         if (containingFile.getVirtualFile() == null || containingFile.getVirtualFile().getPath().contains("/test/")) {
-            InsidiousNotification.notifyMessage("Failed to method source code", NotificationType.ERROR);
+            InsidiousNotification.notifyMessage("Failed to get method source code", NotificationType.ERROR);
             return;
         }
 
         saveLocationTextField.setText("");
-        List<TestCandidateMetadata> testCandidateMetadataList =
-                null;
+        List<TestCandidateMetadata> testCandidateMetadataList = null;
         try {
             testCandidateMetadataList = ApplicationManager.getApplication()
                     .executeOnPooledThread(() -> ApplicationManager.getApplication().runReadAction(
-                                    (Computable<List<TestCandidateMetadata>>) () -> {
-                                        try {
-                                            return createTestCandidate();
-                                        } catch (ExecutionException | InterruptedException e) {
-                                            throw new RuntimeException(e);
-                                        }
-                                    })).get();
+                            (Computable<List<TestCandidateMetadata>>) () -> {
+                                try {
+                                    return createTestCandidate();
+                                } catch (ExecutionException | InterruptedException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            })).get();
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
+        }
+        if (testCandidateMetadataList == null) {
+            InsidiousNotification.notifyMessage("Failed to create test case boilerplate", NotificationType.ERROR);
+            return;
+
         }
 
         String testMethodName = "testMethod" + ClassTypeUtils.upperInstanceName(methodAdapter.getName());
