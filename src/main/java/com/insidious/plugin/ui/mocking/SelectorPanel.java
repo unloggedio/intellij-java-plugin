@@ -1,19 +1,28 @@
 package com.insidious.plugin.ui.mocking;
 
+import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
 
-public class SelectorPanel<T> {
+public class SelectorPanel<T>  {
     public static final JBColor HOVER_COLER = new JBColor(
             new Color(150, 188, 199),
             new Color(150, 188, 199));
+    private final PopUpGetter popUpGetter;
     private JPanel mainPanel;
     private JPanel itemContainerPanel;
+    private JBPopup popup;
 
-    public SelectorPanel(java.util.List<T> options, OnSelectListener<T> onSelectListener) {
+    public PopUpGetter getPopUpGetter() {
+        return popUpGetter;
+    }
+
+    public SelectorPanel(List<T> options, OnSelectListener<T> onSelectListener, PopUpGetter popUpGetter) {
+        this.popUpGetter = popUpGetter;
 
         OnSelectListener<T> selectListener = o -> onSelectListener.onSelect(o);
 
@@ -31,5 +40,13 @@ public class SelectorPanel<T> {
 
     public JComponent getContent() {
         return mainPanel;
+    }
+
+    public JBPopup getPopup() {
+        return popup;
+    }
+
+    public void setPopup(JBPopup popup) {
+        this.popup = popup;
     }
 }

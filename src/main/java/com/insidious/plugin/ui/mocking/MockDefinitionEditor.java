@@ -86,10 +86,12 @@ public class MockDefinitionEditor {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
+
                 SelectorPanel<MethodExitType> selectorPanel = new SelectorPanel<>(
                         Arrays.asList(MethodExitType.NORMAL, MethodExitType.NULL, MethodExitType.EXCEPTION),
                         o -> {
                             logger.warn("selected response: " + o);
+
                             switch (o) {
                                 case NORMAL:
                                     returnValueLabel.setText("Return");
@@ -101,12 +103,14 @@ public class MockDefinitionEditor {
                                     returnValueLabel.setText("Return NULL");
                                     break;
                             }
-                        });
+
+                        }, null);
 
                 ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
                         .createComponentPopupBuilder(selectorPanel.getContent(), null);
 
-                gutterMethodComponentPopup
+
+                JBPopup popup = gutterMethodComponentPopup
                         .setProject(project)
                         .setShowBorder(true)
                         .setShowShadow(true)
@@ -116,8 +120,10 @@ public class MockDefinitionEditor {
                         .setCancelOnOtherWindowOpen(true)
                         .setCancelKeyEnabled(true)
                         .setBelongsToGlobalPopupStack(false)
-                        .createPopup()
-                        .showUnderneathOf(returnValueLabel);
+                        .createPopup();
+                popup.showUnderneathOf(returnValueLabel);
+                selectorPanel.setPopup(popup);
+
 
             }
         };
