@@ -840,6 +840,11 @@ public class StompComponent implements
                 TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Gson, ResourceEmbedMode.IN_FILE
         );
         TestCaseService testCaseService = insidiousService.getTestCaseService();
+        if (testCaseService == null) {
+            InsidiousNotification.notifyMessage("Please start the application with unlogged-sdk to generate JUnit " +
+                    "test cases", NotificationType.WARNING);
+            return;
+        }
 
         for (TestCandidateMetadata testCandidateShell : selectedCandidates) {
 

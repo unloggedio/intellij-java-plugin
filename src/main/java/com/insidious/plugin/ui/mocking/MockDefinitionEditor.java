@@ -95,12 +95,15 @@ public class MockDefinitionEditor {
                             switch (o) {
                                 case NORMAL:
                                     returnValueLabel.setText("Return");
+                                    thenPanelList.get(0).setExitType(MethodExitType.NORMAL);
                                     break;
                                 case EXCEPTION:
                                     returnValueLabel.setText("Throw");
+                                    thenPanelList.get(0).setExitType(MethodExitType.EXCEPTION);
                                     break;
                                 case NULL:
                                     returnValueLabel.setText("Return NULL");
+                                    thenPanelList.get(0).setExitType(MethodExitType.NULL);
                                     break;
                             }
 

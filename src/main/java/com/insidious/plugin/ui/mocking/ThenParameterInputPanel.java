@@ -203,4 +203,8 @@ public class ThenParameterInputPanel {
     public JComponent getComponent() {
         return mainPanel;
     }
+
+    public void setExitType(MethodExitType normal) {
+        thenParameter.setMethodExitType(normal);
+    }
 }

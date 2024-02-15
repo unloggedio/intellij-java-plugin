@@ -2,7 +2,6 @@ package com.insidious.plugin.factory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-//import com.github.javafaker.App;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
@@ -173,7 +172,7 @@ final public class InsidiousService implements
             }
 
             @Override
-            public void success(List<ExecutionSession> executionSessionList) {
+            public synchronized void success(List<ExecutionSession> executionSessionList) {
                 if (executionSessionList.size() == 0) {
                     logger.debug("no sessions found");
                     // the currently loaded session has been deleted
@@ -181,8 +180,6 @@ final public class InsidiousService implements
                         // already na is set
                         return;
                     }
-
-                    loadDefaultSession();
                     currentSession = getCurrentExecutionSession();
                     return;
 
@@ -196,19 +193,20 @@ final public class InsidiousService implements
                     if (!checkSessionBelongsToProject(mostRecentSession, project)) {
                         return;
                     }
-                    currentSession = mostRecentSession;
-                    setSession(mostRecentSession);
 
-                } else if (!currentSession.getSessionId().equals(mostRecentSession.getSessionId())) {
+                } else if (currentSession.getSessionId().equals(mostRecentSession.getSessionId())) {
+                    // already using this session
+                    return;
+                } else {
                     if (!checkSessionBelongsToProject(mostRecentSession, project)) {
                         return;
                     }
                     logger.warn(
                             "Current loaded session [" + currentSession.getSessionId() + "] is different from most " +
                                     "recent session found [" + mostRecentSession.getSessionId() + "]");
-                    currentSession = mostRecentSession;
-                    setSession(mostRecentSession);
                 }
+                currentSession = mostRecentSession;
+                setSession(mostRecentSession);
             }
 
             private boolean checkSessionBelongsToProject(ExecutionSession mostRecentSession, Project project) {
@@ -404,7 +402,7 @@ final public class InsidiousService implements
 
 
     public TestCaseUnit getTestCandidateCode(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
-        TestCaseService testCaseService = getTestCaseService();
+//        TestCaseService testCaseService;
         if (testCaseService == null) {
             return null;
         }
@@ -607,6 +605,9 @@ final public class InsidiousService implements
 
 
     public void methodFocussedHandler(final MethodAdapter method) {
+        if (method == null || method.getContainingClass() == null) {
+            return;
+        }
         currentState.setCurrentMethod(method);
         if (stompWindow != null) {
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -939,13 +940,10 @@ final public class InsidiousService implements
     }
 
     public TestCaseService getTestCaseService() {
-        if (testCaseService == null) {
-            setSession(sessionManager.loadDefaultSession());
-        }
         return testCaseService;
     }
 
-    public synchronized void setSession(ExecutionSession executionSession) {
+    public void setSession(ExecutionSession executionSession) {
 
         SessionInstance currentSession = currentState.getSessionInstance();
         if (currentSession != null) {
@@ -1102,11 +1100,11 @@ final public class InsidiousService implements
     }
 
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
-        if (currentState.getSessionInstance() == null) {
-            setSession(sessionManager.loadDefaultSession());
+        SessionInstance sessionInstance = currentState.getSessionInstance();
+        if (sessionInstance == null || sessionInstance.getExecutionSession().getSessionId().equals("na")) {
             return new ClassMethodAggregates();
         }
-        return currentState.getSessionInstance().getClassMethodAggregates(qualifiedName);
+        return sessionInstance.getClassMethodAggregates(qualifiedName);
     }
 
 
@@ -1489,9 +1487,6 @@ final public class InsidiousService implements
         automaticExecutorService.executeAllJavaMethodsInProject();
     }
 
-    public void loadDefaultSession() {
-        setSession(sessionManager.loadDefaultSession());
-    }
 
     public void onAgentConnected(ServerMetadata serverMetadata) {
         logger.info("unlogged agent connected - " + serverMetadata);

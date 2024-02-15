@@ -452,6 +452,10 @@ public class TestCandidateSaveForm {
             doneMap.add(storedCandidate.getMethod().getMethodHashKey());
 
             AtomicAssertion atomicAssertion = storedCandidate.getTestAssertions();
+            if (atomicAssertion == null) {
+                storedCandidate.setTestAssertions(new AtomicAssertion());
+                continue;
+            }
             AtomicAssertionItemPanel atomicAssertionItemPanel = new AtomicAssertionItemPanel(
                     atomicAssertion, atomicAssertionLifeListener, project);
 
