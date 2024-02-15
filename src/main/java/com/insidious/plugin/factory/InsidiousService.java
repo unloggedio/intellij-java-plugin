@@ -1436,9 +1436,7 @@ final public class InsidiousService implements
     public void saveMockDefinition(DeclaredMock declaredMock) {
         AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         atomicRecordService.saveMockDefinition(declaredMock);
-        if (!isMockEnabled(declaredMock)) {
-            enableMock(declaredMock);
-        } else if (isFieldMockActive(declaredMock.getSourceClassName(), declaredMock.getFieldName())) {
+        if (configurationState.isFieldMockActive("*")) {
             injectMocksInRunningProcess(List.of(declaredMock));
         }
     }

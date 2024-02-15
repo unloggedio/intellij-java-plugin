@@ -239,7 +239,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         }
 
         Document document = editor.getDocument();
-        int elementLineNumber = document.getLineNumber(methodPsiElement.getTextOffset());
+//        int elementLineNumber = document.getLineNumber(methodPsiElement.getTextOffset());
 
         TextRange range = getTextRangeWithoutLeadingCommentsAndWhitespaces(methodPsiElement);
 
@@ -253,12 +253,13 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         InlayPresentation inlayShowingStdDev = createInlayPresentation(stdDevStringText, "stdDev");
 
 
-        int line = editor.getDocument().getLineNumber(range.getStartOffset());
-        int offset = getAnchorOffset(methodPsiElement);
+        int offset = range.getStartOffset();
+        int line = document.getLineNumber(offset);
         int columnWidth = EditorUtil.getPlainSpaceWidth(editor);
         int startOffset = document.getLineStartOffset(line);
         int column = offset - startOffset;
 
+        int inlayHintOffset = document.getLineStartOffset(document.getLineNumber(methodPsiElement.getTextOffset()));
         SequencePresentation sequenceOfInlays = new SequencePresentation(
                 Arrays.asList(
                         new SpacePresentation(column * columnWidth, 0),
@@ -277,7 +278,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 //                + methodElement.getName() + "()");
 
 //            inlayHintsSink.addBlockElement(line, true, root, constraints);
-        inlayHintsSink.addBlockElement(startOffset, true, true, UNLOGGED_APM_GROUP, sequenceOfInlays);
+        inlayHintsSink.addBlockElement(inlayHintOffset, true, true, UNLOGGED_APM_GROUP, sequenceOfInlays);
 
     }
 

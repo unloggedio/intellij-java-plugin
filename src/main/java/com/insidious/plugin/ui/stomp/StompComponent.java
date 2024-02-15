@@ -1121,7 +1121,7 @@ public class StompComponent implements
         onMethodFocussed(javaMethodAdapter);
         MockDefinitionEditor mockEditor = new MockDefinitionEditor(MethodUnderTest.fromMethodAdapter(javaMethodAdapter),
                 psiMethodCallExpression, insidiousService.getProject(), declaredMock -> {
-            atomicRecordService.saveMockDefinition(declaredMock);
+            insidiousService.saveMockDefinition(declaredMock);
             InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
             mainPanel.revalidate();
             mainPanel.repaint();

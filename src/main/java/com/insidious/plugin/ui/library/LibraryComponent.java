@@ -5,26 +5,22 @@ import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
-import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.record.AtomicRecordService;
-import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
-import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.java.JavaBundle;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
@@ -59,11 +55,27 @@ public class LibraryComponent {
     private JPanel southPanel;
     private JRadioButton includeMocksCheckBox;
     private JRadioButton includeTestsCheckBox;
+    private JPanel topContainerPanel;
+    private JRadioButton mockingEnableRadioButton;
+    private JRadioButton mockingDisableRadioButton;
     private MethodAdapter lastFocussedMethod;
+    private boolean currentMockInjectStatus = false;
 
     public LibraryComponent(Project project) {
         insidiousService = project.getService(InsidiousService.class);
         atomicRecordService = project.getService(AtomicRecordService.class);
+
+        ActionListener mockStatusChangeActionListener = e -> {
+            List<DeclaredMock> allDeclaredMocks = insidiousService.getAllDeclaredMocks();
+            if (mockingEnableRadioButton.isSelected() && !currentMockInjectStatus) {
+                currentMockInjectStatus = true;
+                insidiousService.injectMocksInRunningProcess(allDeclaredMocks);
+            } else {
+                insidiousService.removeMocksInRunningProcess(allDeclaredMocks);
+            }
+        };
+        mockingDisableRadioButton.addActionListener(mockStatusChangeActionListener);
+        mockingEnableRadioButton.addActionListener(mockStatusChangeActionListener);
 
 
         clearSelectionLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
