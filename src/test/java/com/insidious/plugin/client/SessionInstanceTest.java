@@ -38,9 +38,9 @@ public class SessionInstanceTest extends TestCase {
 
         CountDownLatch cdl = new CountDownLatch(1);
 
-        sessionInstance.getAllTestCandidates(testCandidateMetadata -> {
+        sessionInstance.getTestCandidates(testCandidateMetadata -> {
             cdl.countDown();
-        });
+        }, 0);
 
 
         cdl.await();
@@ -73,9 +73,9 @@ public class SessionInstanceTest extends TestCase {
 
         CountDownLatch cdl = new CountDownLatch(1);
 
-        sessionInstance.getAllTestCandidates(testCandidateMetadata -> {
+        sessionInstance.getTestCandidates(testCandidateMetadata -> {
             cdl.countDown();
-        });
+        }, 0);
 
 
         cdl.await();
