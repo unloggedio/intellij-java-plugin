@@ -8,16 +8,19 @@ import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.java.JavaBundle;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.ui.JBColor;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -158,8 +161,35 @@ public class LibraryComponent {
                     builder.addCancelAction();
                     builder.setTitle("Confirm Delete");
 
-                    builder.setCenterPanel(new JLabel(
-                            "Are you sure you want to delete " + selectedCount + " relay test" + (selectedCount == 1 ? "s" : "")));
+                    // deletePanel
+                    // deletePanelLeft
+                    JLabel deletePanelLeft = new JLabel();
+                    deletePanelLeft.setIcon(UIUtils.TRASH_PROMPT);
+
+                    // deletePromptUpper
+                    JLabel deletePromptUpper = new JLabel();
+                    deletePromptUpper.setText("Are you sure you want to delete " + selectedCount + " replay test" + (selectedCount == 1 ? "s" : "") + "?");
+
+                    // deletePromptLower
+                    JLabel deletePromptLower = new JLabel("<html> Use git to track and restore later. </html>");
+                    deletePromptLower.setForeground(Color.GRAY);
+                    String defaultFont = UIManager.getFont("Label.font").getFontName();
+                    deletePromptLower.setFont(new Font("", Font.PLAIN, 12));
+                    deletePromptLower.setBorder(new EmptyBorder(5,5,5,5));
+
+                    // deletePanelRight
+                    JPanel deletePanelRight = new JPanel();
+                    deletePanelRight.setLayout(new BoxLayout(deletePanelRight, BoxLayout.Y_AXIS));
+                    deletePanelRight.setBorder(new EmptyBorder(0,5,0,0));
+                    deletePanelRight.add(deletePromptUpper);
+                    deletePanelRight.add(deletePromptLower);
+
+                    // configure
+                    JPanel deletePanel = new JPanel();
+                    deletePanel.setLayout(new BoxLayout(deletePanel, BoxLayout.X_AXIS));
+                    deletePanel.add(deletePanelLeft);
+                    deletePanel.add(deletePanelRight);
+                    builder.setCenterPanel(deletePanel);
 
                     builder.setOkOperation(() -> {
                         for (StoredCandidate storedCandidate : selectedCandidates) {

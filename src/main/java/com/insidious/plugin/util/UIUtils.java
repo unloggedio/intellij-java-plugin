@@ -41,6 +41,7 @@ public class UIUtils {
     public static final Icon CLOSE_LINE_PNG = IconLoader.getIcon("/icons/png/close-line.png", UIUtils.class);
     public static final Icon CLOSE_LINE_BLACK_PNG = IconLoader.getIcon("/icons/png/close-line-black.png",
             UIUtils.class);
+    public static final Icon TRASH_PROMPT = IconLoader.getIcon("/icons/svg/trash_prompt.svg", UIUtils.class);
     public static final Icon SAVE_CANDIDATE_GREEN_SVG = IconLoader.getIcon("/icons/svg/save-line.svg", UIUtils.class);
     public static final Icon CLOSE_FILE_RED_SVG = IconLoader.getIcon("/icons/svg/close_case_preview.svg",
             UIUtils.class);
