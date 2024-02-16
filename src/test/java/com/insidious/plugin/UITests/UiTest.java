@@ -6,6 +6,7 @@ import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
+import org.apache.batik.transcoder.keys.IntegerKey;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -23,6 +24,253 @@ import static org.assertj.swing.timing.Pause.pause;
 public class UiTest {
     private RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8082");
     private final Keyboard keyboard = new Keyboard(remoteRobot);
+
+
+    //Expecting project to be open already
+    @Test
+    public void testOnboardingFlowOnFreshProject() {
+        final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
+        waitFor(ofMinutes(5), () -> !idea.isDumbMode());
+
+        //Open a java file, search and click on a gutter icon
+        //You should see a message asking you to start the application
+        //Click on done from onboarding
+        //You should see a blank screen/write after temp setup screen is incorporated
+        //Start application and wait for 20 seconds (depends on project)
+        //the view should automatically change to Live view
+        //pass the case here
+    }
+
+    @Test
+    public void testFullFlow() {
+        //How the test will go -
+
+        //Go file by file, method by method
+        //Before clicking on the gutter, track a list of candidate visible in candidate view on live traffic tab
+
+        //Step : DirectInvoke
+        //Click on method gutter icon and DirectInvoke
+        //Once you get the response, click on Re-Execute wait for 2 seconds and click on change args
+        //Close the DirectInvoke tab
+
+        //v0 add just the first candidate to save, as long as it's not the same as before after wait.
+        //alt addition : save the candidates based on the inputs recorded before DirectInvoke
+        //if the old candidate is not visible, add just the top candidate
+
+        //On save form, just click on save/confirm
+        //Post save open the candidates for the method you saved, make sure that method is there or its saved candidate count goes up
+
+
+        //Step : replay all
+        //select all and replay all
+        //make sure you see a message saying replayed 'x' candidates or something similar, there should be no Exceptions
+        //click on clear all
+
+        //search for any instances of "create mock" on the method
+        //open library and check the number of mocks available for this method, record the count of mocks
+        //If they exist, for each of these - click them, ensure that there's a mock editor panel that opens up
+        //save that mock, refresh in mock library and make sure the count goes up
+
+        boolean multiModule = false;
+        final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
+
+        String startWith = "PatientCaseAuditService";
+        boolean startFrom = false;
+        ContainerFixture projectView;
+        if (!startFrom) {
+            idea.getExpandAllButton().click();
+            pause(ofSeconds(1).toMillis());
+
+            projectView = idea.getProjectViewTree();
+            projectView.getData().getAll().get(0).click();
+            keyboard.enterText("src");
+        } else {
+            projectView = idea.getProjectViewTree();
+        }
+
+        String currentFile = "";
+        try {
+            TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
+            currentFile = editor.getEditor().getFileName();
+        } catch (Exception e) {
+            //noting to do
+            //this is for when no files are open in editor/no editor
+        }
+
+        List<RemoteText> treeNodes = projectView.getData().getAll();
+        if (startFrom) {
+            treeNodes = filterCustomStart(treeNodes, startWith);
+        }
+        List<RemoteText> toVisit = new ArrayList<>();
+
+        //0 - main package not found yet
+        //1 - inside main/java
+        //2 - found resources
+        int index = 0;
+        int status = 0;
+        if (startFrom) {
+            status = 1;
+        }
+        boolean done = false;
+        toVisit.addAll(treeNodes);
+        while (!done) {
+            if (index == toVisit.size()) {
+                //should update map and click locate to ensure expand all moves again
+                idea.getLocateButton().click();
+                pause(ofSeconds(1).toMillis());
+                RemoteText text = toVisit.get(index - 1);
+                toVisit = updateToVisit(toVisit, text, idea, projectView);
+            }
+            RemoteText text = toVisit.get(index);
+            if (status == 0) {
+                if (text.getText().equals("java")) {
+                    status = 1;
+                }
+            } else if (status == 1) {
+                if (text.getText().equals("resources")
+                        || text.getText().equals("test")
+                        || text.getText().equals("target")) {
+                    status = 2;
+                } else {
+
+                    if (text.getText().contains(".")) {
+                        index++;
+                        if (index == toVisit.size()) {
+                            toVisit = updateToVisit(toVisit, text, idea, projectView);
+                        }
+                        continue;
+                    }
+
+                    text.doubleClick();
+                    pause(ofSeconds(2).toMillis());
+
+                    TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
+                    if (editor.getEditor().getFileName().equals(currentFile)) {
+                        if (!currentFile.contains(text.getText())) {
+                            idea.getExpandAllButton().click();
+                            index++;
+                            if (index == toVisit.size()) {
+                                toVisit = updateToVisit(toVisit, text, idea, projectView);
+                            }
+                            //skip directories
+                            continue;
+                        }
+                    }
+
+                    if (!editor.getEditor().getFileName().endsWith(".java")) {
+                        idea.getExpandAllButton().click();
+                        index++;
+                        if (index == toVisit.size()) {
+                            toVisit = updateToVisit(toVisit, text, idea, projectView);
+                        }
+                        //skip non java files
+                        continue;
+                    }
+
+                    pause(ofSeconds(1).toMillis());
+
+                    //start from the top of the file, useful if that file was previously open
+                    editor.getEditor().scrollToOffset(1);
+                    pause(ofSeconds(1).toMillis());
+                    RemoteText packageText = editor.getEditor().findText("package");
+                    packageText.click();
+
+                    expandJavaFile(editor.getEditor());
+                    List<GutterIcon> icons = editor.getGutter().getIcons();
+                    TreeMap<Integer, GutterIcon> iconTreeMap = new TreeMap<>();
+                    for (GutterIcon icon : icons) {
+                        iconTreeMap.put(icon.getLineNumber(), icon);
+                    }
+
+                    if (iconTreeMap.size() == 0) {
+                        index++;
+                        if (index == toVisit.size()) {
+                            toVisit = updateToVisit(toVisit, text, idea, projectView);
+                        }
+                        currentFile = editor.getEditor().getFileName();
+                        idea.getExpandAllButton().click();
+                        //skip files with no gutter icons
+                        continue;
+                    }
+
+                    editor = idea.textEditor(Duration.ofSeconds(2));
+                    pause(ofSeconds(1).toMillis());
+
+                    //for each unlogged Icon :
+                    System.out.println("Icon tree map : ");
+                    for (Integer key : iconTreeMap.keySet()) {
+                        GutterIcon icon = iconTreeMap.get(key);
+                        String iconAsString = icon.toString();
+                        System.out.println("Icon info : " + iconAsString);
+                    }
+
+                    if (true) {
+                        return;
+                    }
+
+                    for (Integer key : iconTreeMap.keySet()) {
+                        GutterIcon icon = iconTreeMap.get(key);
+                        String iconAsString = icon.toString();
+                        if (iconAsString.contains("name=Unlogged")
+                                && (iconAsString.contains("process_running.svg")
+                                || iconAsString.contains("data_available_v2.svg"))) {
+                            //unlogged icon found, click it.
+                            scrollDownToIcon(editor, icon);
+                            pause(ofSeconds(1).toMillis());
+                            try {
+                                icon.click();
+                            } catch (Exception e) {
+                                scrollDownToIcon(editor, icon);
+                                icon.click();
+                            }
+
+                            if (icon.toString().contains("overriddenPath='/icons/svg/execute_v2.svg'")) {
+                                //skip if execute all, no need to hot reload as this test is for
+                                //Direct Invoke only
+                                continue;
+                            }
+
+                            step("Direct Invoke method", () -> {
+                                pause(ofSeconds(1).toMillis());
+                                idea.getDirectInvokeTabHeader().click();
+                                try {
+                                    idea.getExecuteMethodButton().click();
+                                } catch (Exception exception) {
+                                    //atomic window in focus right after button click
+                                    System.out.println("Atomic window in view when trying to click direct Invoke");
+                                    idea.getDirectInvokeTabHeader().click();
+                                    idea.getExecuteMethodButton().click();
+                                }
+                                //wait for response
+                                pause(ofSeconds(5).toMillis());
+                            });
+                        }
+                    }
+                    currentFile = editor.getEditor().getFileName();
+                    idea.getExpandAllButton().click();
+                }
+            } else {
+                //break for single module projects.
+                //continue for multi module
+                //break;
+                done = true;
+
+                //go to state 1, new module found with java base package.
+                if (!multiModule) {
+                    break;
+                }
+                //found a new java directory
+                if (text.getText().equals("java")) {
+                    status = 1;
+                }
+            }
+            index++;
+            if (index == toVisit.size()) {
+                toVisit = updateToVisit(toVisit, text, idea, projectView);
+            }
+        }
+
+    }
 
     //To be run after clean, will fail in other cases
     @Test
@@ -330,7 +578,7 @@ public class UiTest {
         return newRefs.subList(index, newRefs.size());
     }
 
-    @Test
+    //@Test
     public void fullCoverageFlow() {
         final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
 

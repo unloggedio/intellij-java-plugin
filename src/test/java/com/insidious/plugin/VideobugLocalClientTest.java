@@ -22,7 +22,7 @@ import java.util.concurrent.BlockingQueue;
 public class VideobugLocalClientTest {
 
 
-//    @Test
+//    //@Test
 //    public void testLocalClient1() throws IOException, InterruptedException, SQLException {
 //
 //        BlockingQueue<ExecutionSession> blockingQueue = new ArrayBlockingQueue<>(1);

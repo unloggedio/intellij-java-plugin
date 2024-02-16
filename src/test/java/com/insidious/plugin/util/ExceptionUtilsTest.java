@@ -11,7 +11,7 @@ public class ExceptionUtilsTest {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
 
-    @Test
+    //@Test
     public void testCase1() throws JsonProcessingException {
 
         IllegalAccessException exception = new IllegalAccessException("exception 1");

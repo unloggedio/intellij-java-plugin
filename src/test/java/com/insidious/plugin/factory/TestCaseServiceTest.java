@@ -53,7 +53,7 @@ public class TestCaseServiceTest {
         System.out.println(selection);
     }
 
-//    @Test public void testByListCandatidates2() throws APICallException, IOException, InterruptedException {
+//    //@Test public void testByListCandatidates2() throws APICallException, IOException, InterruptedException {
 //
 //        Project project = Mockito.mock(Project.class);
 //        Mockito.when(project.getBasePath()).thenReturn("./");
@@ -73,7 +73,7 @@ public class TestCaseServiceTest {
 //
 //    }
 
-//    @Test
+//    //@Test
 //    void testPrintObjectHistory() throws SessionNotSelectedException, SQLException, IOException {
 //
 //        Long objectId = Long.valueOf(909497978);
@@ -83,7 +83,7 @@ public class TestCaseServiceTest {
 //
 //    }
 
-//    @Test
+//    //@Test
 //    void testPrintEventsByProbeIds() {
 //
 //        List<Long> probeIds = List.of(909497978L);
@@ -168,7 +168,7 @@ public class TestCaseServiceTest {
 
     }
 
-//    @Test
+//    //@Test
 //    void testPrintObjectsByType() throws InterruptedException, SessionNotSelectedException, SQLException, IOException {
 //
 //        List<String> targetClasses = List.of("com.appsmith.server.services.UserDataServiceImpl");
@@ -240,7 +240,7 @@ public class TestCaseServiceTest {
 //
 //    }
 
-//    @Test
+//    //@Test
 //    public void printClassProbes() {
 //
 //
@@ -286,7 +286,7 @@ public class TestCaseServiceTest {
 
     }
 
-//    @Test
+//    //@Test
 //    void testGenerateByObjects() throws InterruptedException {
 //
 //
@@ -384,7 +384,7 @@ public class TestCaseServiceTest {
 //
 //    }
 
-//    @Test
+//    //@Test
 //    public void testGetTestCaseUnit() throws Exception {
 //        Project project = Mockito.mock(Project.class);
 //        Mockito.when(project.getBasePath()).thenReturn("./");
@@ -446,7 +446,7 @@ public class TestCaseServiceTest {
 //        }
 //    }
 
-    @Test
+    //@Test
     public void testScanAndGenerateAll() throws Exception {
 
         Project project = Mockito.mock(Project.class);

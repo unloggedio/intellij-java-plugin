@@ -10,6 +10,6 @@ public class EnableAutoExecutor extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         AutoExecutorRunOptions options = new AutoExecutorRunOptions(true);
-        e.getProject().getService(InsidiousService.class).autoExecutorEnableTrigger();
+//        e.getProject().getService(InsidiousService.class).autoExecutorEnableTrigger();
     }
 }

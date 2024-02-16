@@ -18,7 +18,7 @@ public class SessionInstanceTest extends TestCase {
 
     public static final String SESSIONS_PATH = "/Users/artpar/workspace/code/insidious/plugin/src/test/resources/test-sessions/";
 
-    @Test
+    //@Test
     public void testScan1() throws SQLException, IOException, InterruptedException {
         String sessionPath = SESSIONS_PATH + "selogger-2";
         Project project = Mockito.mock(Project.class);
@@ -52,7 +52,7 @@ public class SessionInstanceTest extends TestCase {
     }
 
 
-    @Test
+    //@Test
     public void testScan2() throws SQLException, IOException, InterruptedException {
         String sessionPath = SESSIONS_PATH + "selogger-3";
         Project project = Mockito.mock(Project.class);

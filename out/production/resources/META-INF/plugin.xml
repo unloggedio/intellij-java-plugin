@@ -1,0 +1,189 @@
+<idea-plugin>
+    <id>org.videobug.videobug</id>
+    <name>Unlogged</name>
+    <vendor email="support@bug.video" url="https://unlogged.io">Unlogged</vendor>
+
+    <idea-version since-build="213.7172.25"/>
+
+    <description>
+        <![CDATA[
+
+        <h4>Assertions for Custom Validation:</h4>
+
+        <p>Unlogged now introduces the power of assertions with a brand-new intuitive user interface (UI). With this feature, developers can define custom assertions to validate method return values, all the way down to the key level, without writing any code manually. Say goodbye to spending hours crafting assertion rules; now, you can create complex and nested validation rules with ease through our UI.</p>
+
+        <h4> Enhanced Method Comparison:</h4>
+
+        <p>In previous versions, Unlogged only compared the return values of changed methods, which sometimes led to false failures when dealing with ever-changing values like timestamps or external API responses. Now, with the addition of assertions, developers can perform comprehensive validation on method behavior. Each code change triggers Unlogged to replay the code execution, applying the defined custom assertions to ensure accurate and reliable results.</p>
+
+        <h4>Zero Extra Code:</h4>
+
+        <p>Unlogged has always focused on minimizing developer effort. With this release, we take that philosophy a step further. Defining and maintaining the assertions need no extra code, enabling you to focus solely on delivering quality code.</p>
+
+        <h4>Instant Regression Testing:</h4>
+
+        <p>Thanks to Unlogged's automated recording of method input and return values, developers can instantly replay code changes and verify the behavior of their applications with custom assertions. This feature accelerates the development process and provides early feedback, allowing for quick identification and resolution of potential issues before they escalate.</p>
+
+
+        <h4>Enhanced Developer Productivity:</h4>
+
+        <p>Unlogged's latest release is designed to enhance developer productivity significantly. By minimizing manual testing efforts, providing detailed validation through custom assertions, and offering instant regression testing, developers can focus more on innovation and delivering high-quality code.</p>
+
+        <h4>How to Get Started:</h4>
+        <ul>
+        <li>Install Unlogged from JetBrains marketplace</li>
+        <li>Add the dependency in your pom.xml or build.gradle,</li>
+        <li>Add @Unlogged above your main method.</li>
+        <li>Run your project in debug mode, call your methods directly, and replay previously saved inputs.</li>
+        <li>Click on Change Assertions. (Remember, the default assertion is comparison of return values, as is)</li>
+        <li>Define the assertions as you like, and Save!</li>
+        </ul>
+
+        <h4>Bug Fixes and Improvements</h4>
+
+        <p>In addition to the exciting new features, this release includes various bug fixes and performance improvements. Unlogged is now more stable and efficient than ever, providing a seamless experience for developers.</p>
+
+        <p>We hope that this latest release of Unlogged brings immense value to your Java development. As always, we are open to feedback and suggestions to make Unlogged even better. Feel free to reach out to our support team on Discord with any questions or comments.</p>
+
+        <a href="https://discord.gg/Hhwvay8uTa">Join Unlogged at Discord</a>
+
+
+
+        <h3>Version 1.16.3 (5th Jul 2023) </h3>
+            <h2 class="c9" id="h.6kd09fd21779"><span class="c6">Mock Panel</span></h2>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <p class="c4"><span class="c1">We are happy to launch the all new feature of mock linking. Now you can bind mocks with candidates and replay them for testing.</span></p>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <h3 class="c5" id="h.7do80d5h1u6m"><span class="c0">Assertion Panel</span></h3>
+            <p class="c4"><span class="c1">The all new assertion panel makes checking the candidates output a piece of cake. Just add assertion rules and check if the code change is adding regression.</span></p>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <h2 class="c9" id="h.7w4yn3c6zibu"><span class="c6">Unveiling Key Terms:</span></h2>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <p class="c4"><span class="c2">Direct Invoke</span><span class="c1">: Unleash the power of direct method invocation with Unlogged. No more relying on HTTP endpoints - call any Java method directly and unlock a world of convenience and speed.</span></p>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <p class="c4"><span class="c2">Atomic Tests</span><span class="c1">: Elevate your testing game with Atomic Tests. Record and save input/return value combinations effortlessly as JSON files. Replay these tests seamlessly and save valuable time.</span></p>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <h3 class="c5" id="h.uupjes841413"><span class="c0">Let&#39;s Decode the Gutter Icon States:</span></h3>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <ul class="c10 lst-kix_852smikog4mb-0 start">
+               <li class="c4 c7 li-bullet-0"><span class="c2">Red Icon</span><span class="c1">: This friendly icon indicates that your application is not running with the Unlogged SDK. No worries! Just add the required dependency in your pom.xml, and you&#39;re on your way to an enhanced development experience.</span></li>
+            </ul>
+            <p class="c3"><span class="c1"></span></p>
+            <ul class="c10 lst-kix_852smikog4mb-0">
+               <li class="c4 c7 li-bullet-0"><span class="c2">Cyan Icon</span><span class="c1">: Congratulations! Your application is rocking the Unlogged SDK. Enjoy the perks of Direct Invoke by navigating to any method you desire.</span></li>
+            </ul>
+            <p class="c3"><span class="c1"></span></p>
+            <ul class="c10 lst-kix_852smikog4mb-0">
+               <li class="c4 c7 li-bullet-0"><span class="c2">Pink Icon</span><span class="c1">: Exciting times ahead! This icon signals the availability of input/return value recordings for a method. Dive into the joy of reusing and replaying these inputs effortlessly.</span></li>
+            </ul>
+            <p class="c3"><span class="c1"></span></p>
+            <ul class="c10 lst-kix_852smikog4mb-0">
+               <li class="c4 c7 li-bullet-0"><span class="c2">Bolt Icon:</span><span class="c1">&nbsp;Experience lightning-fast changes! Modify your methods with confidence, knowing that Unlogged will hot reload the changes and replay the recorded inputs. Enjoy a seamless development cycle like never before.</span></li>
+            </ul>
+            <p class="c3"><span class="c1"></span></p>
+            <ul class="c10 lst-kix_852smikog4mb-0">
+               <li class="c4 c7 li-bullet-0"><span class="c2">Green Tick</span><span class="c1">: Upon replaying, this delightful icon assures you that there have been no changes in return values for the recorded inputs. Celebrate the consistency!</span></li>
+            </ul>
+            <p class="c3"><span class="c1"></span></p>
+            <ul class="c10 lst-kix_852smikog4mb-0">
+               <li class="c4 c7 li-bullet-0"><span class="c2">Different Tick</span><span class="c1">: A friendly heads-up! This icon indicates that one or more return values don&#39;t match for the recorded inputs upon replaying. Pay attention to these variations and tweak your code accordingly.</span></li>
+            </ul>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <p class="c4"><span class="c1">Gradle: Please note that we are diligently working on Gradle compatibility, and Gradle support will be available in our upcoming release. Stay tuned for even more exciting updates!</span></p>
+            <p class="c4 c8"><span class="c1"></span></p>
+            <p class="c4"><span class="c1">Unlogged is here to revolutionise your development process and bring joy to your coding adventures. Embrace these new features and experience the delight of seamless development. Happy coding!</span></p>
+
+        ]]>
+    </description>
+
+    <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
+         on how to target different products -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.xdebugger</depends>
+    <depends>com.intellij.modules.java</depends>
+    <depends>org.jetbrains.kotlin</depends>
+    <depends>org.jetbrains.idea.maven</depends>
+    <depends>org.jetbrains.plugins.gradle</depends>
+    <depends>org.jetbrains.plugins.gradle.maven</depends>
+    <actions>
+        <!-- Add your actions here -->
+
+        <action class="com.insidious.plugin.actions.ShowRawView">
+            <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F9"/>
+        </action>
+
+        <!--        <action class="com.insidious.plugin.actions.ToggleReporting">-->
+        <!--            <keyboard-shortcut keymap="$default" first-keystroke="alt F9"/>-->
+        <!--        </action>-->
+
+        <action class="com.insidious.plugin.actions.AutoExecutorMocked">
+            <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F7"/>
+        </action>
+
+        <action class="com.insidious.plugin.actions.AutoExecutorNonMock">
+            <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F8"/>
+        </action>
+
+        <action class="com.insidious.plugin.actions.EnableAutoExecutor">
+            <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F4"/>
+        </action>
+
+        <!--        <action icon="AllIcons.Actions.Back" text="Step Back" id="Debugger.ReverseResume"-->
+        <!--                class="com.insidious.plugin.actions.JumpBack">-->
+        <!--            <add-to-group relative-to-action="StepOver" group-id="XDebugger.ToolWindow.TopToolbar" anchor="before"/>-->
+        <!--            <keyboard-shortcut keymap="$default" first-keystroke="alt R" second-keystroke="F9"/>-->
+        <!--        </action>-->
+
+
+        <!--        <group id="Demo.BackStatement" text="Go back in time using this" description="Jump backwards using this button">-->
+        <!--            <add-to-group group-id="MainToolBar" anchor="last"/>-->
+        <!--            <action class="com.insidious.plugin.actions.JumpBack" description="Test Description" id="jumpBack"-->
+        <!--                    text="Jump Back"-->
+        <!--                    icon="AllIcons.Actions.Back"/>-->
+        <!--        </group>-->
+
+        <!--        <group id="Demo.NextStatement" text="Go Forward in time using this"-->
+        <!--               description="Jump forward using this button">-->
+        <!--            <add-to-group group-id="MainToolBar" anchor="last"/>-->
+        <!--            <action class="com.insidious.plugin.actions.JumpForward" description="Test Description" id="jumpForward"-->
+        <!--                    text="Jump Forward"-->
+        <!--                    icon="AllIcons.Debugger.NextStatement"/>-->
+        <!--        </group>-->
+
+    </actions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!--        <notificationGroup id="com.insidious" displayType="BALLOON"/>-->
+        <!--        <postStartupActivity implementation="com.insidious.plugin.factory.InsidiousService"/>-->
+        <toolWindow id="Unlogged" canCloseContents="false" secondary="false" icon="/icons/png/logo_unlogged.png"
+                    anchor="right" factoryClass="com.insidious.plugin.factory.InsidiousToolWindowFactory"/>
+
+        <applicationService serviceImplementation="com.insidious.plugin.factory.ActiveSessionManager"/>
+        <applicationService serviceImplementation="com.insidious.plugin.factory.SessionLoader"/>
+        <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
+        <projectService serviceImplementation="com.insidious.plugin.record.AtomicRecordService"/>
+        <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
+        <applicationService serviceImplementation="com.insidious.plugin.factory.ApplicationConfigurationState"/>
+        <testFinder implementation="com.insidious.plugin.tester.testfinder.UnloggedTestFinder"/>
+
+
+        <codeInsight.lineMarkerProvider
+                language="JAVA"
+                implementationClass="com.insidious.plugin.ui.highlighter.LineHighlighter"/>
+        <codeInsight.lineMarkerProvider
+                language="kotlin"
+                implementationClass="com.insidious.plugin.ui.highlighter.KotlinLineHighlighter"/>
+        <codeInsight.inlayProvider implementationClass="com.insidious.plugin.inlay.InsidiousInlayHintsProvider"
+                                   language="JAVA"/>
+        <errorHandler implementation="com.insidious.plugin.exceptionhandler.InsidiousExceptionReportSubmitter"/>
+
+        <!--        <coverageEngine implementation="com.insidious.plugin.coverage.InsidiousCoverageEngine"-->
+        <!--                        id="insidiousCoverageEngine"/>-->
+    </extensions>
+    <projectListeners>
+        <listener class="com.insidious.plugin.factory.InsidiousToolWindowManagerListener"
+                  topic="com.intellij.openapi.wm.ex.ToolWindowManagerListener"/>
+        <listener class="com.insidious.plugin.factory.AgentConnectionStateTracker"
+                  topic="com.insidious.plugin.agent.AgentConnectionStateNotifier"/>
+    </projectListeners>
+</idea-plugin>

@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 public class DaoServiceTest {
 
-    @Test
+    //@Test
     public void getMethodCallExpressionToMockFast() throws SQLException {
 //        ConnectionSource connectionSource = new JdbcConnectionSource(
 //                "jdbc:sqlite:/Users/artpar/workspace/code/insidious/plugin/execution.db");

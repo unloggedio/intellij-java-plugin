@@ -7,7 +7,7 @@ import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.adapter.java.JavaParameterAdapter;
 import com.insidious.plugin.mocking.*;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
-import com.insidious.plugin.ui.highlighter.MockMethodLineHighlighter;
+//import com.insidious.plugin.ui.highlighter.MockMethodLineHighlighter;
 import com.insidious.plugin.util.ClassUtils;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.util.JvmClassUtil;
@@ -30,6 +30,7 @@ import static com.insidious.plugin.ui.assertions.MockValueMap.getChildrenOfTypeR
 public class MockUtils {
 
     // Creates dummy mocks for an entire class
+    @Deprecated
     public static ArrayList<DeclaredMock> getDeclaredMocksForClass(ClassAdapter classAdapter) {
         ArrayList<DeclaredMock> declaredMocks = new ArrayList<>();
         PsiMethodCallExpression[] methodCallExpressions = getChildrenOfTypeRecursive(classAdapter.getSource(),
@@ -37,9 +38,9 @@ public class MockUtils {
         if (methodCallExpressions == null || methodCallExpressions.length == 0) {
             return new ArrayList<>();
         }
-        List<PsiMethodCallExpression> mockableCallExpressions = Arrays.stream(methodCallExpressions)
-                .filter(MockMethodLineHighlighter::isNonStaticDependencyCall)
-                .collect(Collectors.toList());
+        List<PsiMethodCallExpression> mockableCallExpressions = Arrays.stream(methodCallExpressions).collect(Collectors.toList());
+//                .filter(MockMethodLineHighlighter::isNonStaticDependencyCall)
+//                .collect(Collectors.toList());
 
         for (PsiMethodCallExpression local : mockableCallExpressions) {
             PsiMethod methodFromExpression = local.resolveMethod();
@@ -53,6 +54,7 @@ public class MockUtils {
     }
 
     // Creates dummy mocks for only a single method
+    @Deprecated
     public static ArrayList<DeclaredMock> getDeclaredMocksForMethod(MethodAdapter methodAdapter) {
         ArrayList<DeclaredMock> declaredMocks = new ArrayList<>();
         PsiMethodCallExpression[] methodCallExpressions = getChildrenOfTypeRecursive(methodAdapter.getPsiMethod(),
@@ -61,7 +63,7 @@ public class MockUtils {
             return new ArrayList<>();
         }
         List<PsiMethodCallExpression> mockableCallExpressions = Arrays.stream(methodCallExpressions)
-                .filter(MockMethodLineHighlighter::isNonStaticDependencyCall)
+//                .filter(MockMethodLineHighlighter::isNonStaticDependencyCall)
                 .collect(Collectors.toList());
 
         for (PsiMethodCallExpression local : mockableCallExpressions) {
@@ -184,14 +186,15 @@ public class MockUtils {
         if (callerQualifierChildren.length > 1) {
             fieldName = callerQualifierChildren[callerQualifierChildren.length - 1].getText();
         }
-        DeclaredMock mock = new DeclaredMock(
-                "mock response " + expressionText,
-                destinationMethodUnterTest.getClassName(),
-                parentClass.getQualifiedName(),
-                fieldName,
-                destinationMethodUnterTest.getName(),
-                parameterList, thenParameterList
-        );
+//        DeclaredMock mock = new DeclaredMock(
+//                "mock response " + expressionText,
+//                destinationMethodUnterTest.getClassName(),
+//                parentClass.getQualifiedName(),
+//                fieldName,
+//                destinationMethodUnterTest.getName(),
+//                parameterList, thenParameterList
+//        );
+        DeclaredMock mock = new DeclaredMock();
         return mock;
     }
 
