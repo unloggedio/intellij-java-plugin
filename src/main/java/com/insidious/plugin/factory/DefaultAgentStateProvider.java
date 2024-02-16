@@ -25,6 +25,7 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
     final private Logger logger = LoggerUtil.getInstance(DefaultAgentStateProvider.class);
     final private InsidiousService insidiousService;
     private boolean isAgentServerRunning;
+    private String includedPackageName = "*";
 
     public DefaultAgentStateProvider(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -101,12 +102,12 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
                         + "[" + finalIncludedPackageName + "]. Executed methods and saved replays will show up in the" +
                         " Replay tab. Use DirectInvoke to execute methods from here.",
                 NotificationType.INFORMATION, actions);
+        this.includedPackageName = finalIncludedPackageName;
 
 
         insidiousService.triggerGutterIconReload();
         insidiousService.setAgentProcessState(GutterState.PROCESS_RUNNING);
         insidiousService.focusDirectInvokeTab();
-
     }
 
     @Override
@@ -144,5 +145,9 @@ public class DefaultAgentStateProvider implements ConnectionStateListener, Agent
     @Override
     public boolean isAgentRunning() {
         return isAgentServerRunning;
+    }
+
+    public String getIncludedPackageName() {
+        return includedPackageName;
     }
 }

@@ -62,6 +62,10 @@ public class MethodMockGutterNavigationHandler implements GutterIconNavigationHa
             return;
         }
 
+//        List<PsiElement> more = Arrays.stream(getChildrenOfTypeRecursive(
+//                        statement, PsiMethodReferenceExpressionImpl.class)).map(e -> e.getReference().resolve())
+//                .collect(Collectors.toList());
+
 
         RelativePoint relativePoint = new RelativePoint(mouseEvent);
         Point point = relativePoint.getPoint();

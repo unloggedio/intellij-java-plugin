@@ -15,9 +15,8 @@ def getGitHash = { ->
 
 
 group 'org.videobug'
-version '1.18.17-' + getGitHash()
-
 def remoteRobotVersion = "0.11.20"
+version '1.19.1-Auto-' + getGitHash()
 
 compileJava {
     sourceCompatibility = '11'
@@ -206,8 +205,8 @@ patchPluginXml {
 }
 
 publishPlugin {
-    token = "$System.env.JETBRAINS_PUBLISH_TOKEN"
-    channels = ["$System.env.JEBTRAINS_PUBLISH_CHANNEL"]
+    token = "perm:c2hhcmR1bGxhdmVrYXI=.OTItODk5Mg==.ZZ1bQHA4AD2K7XM3tR0j2PpqwhYool"
+    channels = ['stable']
 }
 
 runIdeForUiTests {
@@ -225,7 +224,6 @@ runIdeForUiTests {
 downloadRobotServerPlugin {
     version.set(remoteRobotVersion)
 }
-
 
 test {
     useJUnitPlatform()

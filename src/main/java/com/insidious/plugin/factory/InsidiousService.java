@@ -10,10 +10,12 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.*;
 import com.insidious.plugin.atomicrecord.AtomicRecordService;
-import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
-import com.insidious.plugin.autoexecutor.AutomaticExecutorService;
 import com.insidious.plugin.auth.RequestAuthentication;
 import com.insidious.plugin.auth.SimpleAuthority;
+import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
+import com.insidious.plugin.autoexecutor.AutoExecutorRunOptions;
+import com.insidious.plugin.autoexecutor.AutomaticExecutorService;
+import com.insidious.plugin.autoexecutor.MockUtils;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
@@ -33,9 +35,11 @@ import com.insidious.plugin.ui.assertions.SaveForm;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
-import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
-import com.insidious.plugin.util.*;
+import com.insidious.plugin.util.ClassUtils;
+import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.TestCandidateUtils;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
@@ -63,7 +67,9 @@ import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
-import com.intellij.openapi.fileEditor.*;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileEditor.FileEditor;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -76,7 +82,6 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.*;
-import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.content.Content;
@@ -150,6 +155,8 @@ final public class InsidiousService implements
     private AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
     private GetProjectSessionsCallback sessionListener;
     private ReportingService reportingService = new ReportingService(this);
+    private boolean autoExecutorEnabled = false;
+    private int autoExecutorEnableCounter = 3;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -258,7 +265,7 @@ final public class InsidiousService implements
                                 "project [" + project.getName() + "]" +
                                 " -> " + mostRecentSession.getLogFilePath());
                         checkCache.put(mostRecentSession.getSessionId(), false);
-                        return false;
+//                        return false;
                     }
                     logger.warn("Package for agent [" + finalIncludedPackagedName + "] FOUND in current " +
                             "project [" + project.getName() + "]" +
@@ -695,7 +702,7 @@ final public class InsidiousService implements
                 agentCommandRequest.getMethodName(), agentCommandRequest.getMethodSignature(),
                 0, agentCommandRequest.getClassName()
         );
-
+        atomicRecordService.checkPreRequisites();
         List<DeclaredMock> availableMocks = getDeclaredMocksFor(methodUnderTest);
         if (agentCommandRequest.getRequestType().equals(DIRECT_INVOKE)) {
             List<DeclaredMock> activeMocks = availableMocks
@@ -731,6 +738,68 @@ final public class InsidiousService implements
                 logger.warn("failed to execute command - " + e.getMessage(), e);
             }
         });
+    }
+
+    public void executeMethodInRunningProcessSync(
+            AgentCommandRequest agentCommandRequest,
+            ExecutionResponseListener executionResponseListener
+    ) {
+
+        methodArgumentValueCache.addArgumentSet(agentCommandRequest);
+        RequestAuthentication requestAuthentication = ApplicationManager.getApplication()
+                .runReadAction((Computable<RequestAuthentication>) this::getRequestAuthentication);
+        agentCommandRequest.setRequestAuthentication(requestAuthentication);
+
+        MethodUnderTest methodUnderTest = new MethodUnderTest(
+                agentCommandRequest.getMethodName(), agentCommandRequest.getMethodSignature(),
+                0, agentCommandRequest.getClassName()
+        );
+
+        List<DeclaredMock> availableMocks = getDeclaredMocksFor(methodUnderTest);
+//        if (agentCommandRequest.getRequestType().equals(DIRECT_INVOKE)) {
+//            List<DeclaredMock> activeMocks = availableMocks
+//                    .stream()
+////              .filter(e -> isFieldMockActive(e.getSourceClassName(), e.getFieldName()))
+//                    .filter(this::isMockEnabled)
+//                    .collect(Collectors.toList());
+//
+//            agentCommandRequest.setDeclaredMocks(activeMocks);
+//        } else {
+//            List<DeclaredMock> enabledMock = agentCommandRequest.getDeclaredMocks();
+//            ArrayList<DeclaredMock> setMock = new ArrayList<>();
+//
+//            for (DeclaredMock localMock : enabledMock) {
+//                if (availableMocks.contains(localMock)) {
+//                    setMock.add(localMock);
+//                }
+//            }
+//            agentCommandRequest.setDeclaredMocks(setMock);
+//        }
+        if (agentCommandRequest.getDeclaredMocks() == null || agentCommandRequest.getDeclaredMocks().isEmpty()) {
+            List<DeclaredMock> activeMocks = availableMocks
+                    .stream()
+//              .filter(e -> isFieldMockActive(e.getSourceClassName(), e.getFieldName()))
+                    .filter(this::isMockEnabled)
+                    .collect(Collectors.toList());
+
+            agentCommandRequest.setDeclaredMocks(activeMocks);
+        }
+//        if (agentCommandRequest.getClassName().contains("UserInstanceDao")) {
+//            System.out.println("Before Execute : " + agentCommandRequest.getMethodName());
+//            System.out.println("Declared mocks : " + agentCommandRequest.getDeclaredMocks().toString());
+//        }
+        try {
+            AgentCommandResponse<String> agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
+            logger.warn("agent command response - " + agentCommandResponse);
+            if (executionResponseListener != null) {
+                cachedGutterState.remove(methodUnderTest.getMethodHashKey());
+                executionResponseListener.onExecutionComplete(agentCommandRequest, agentCommandResponse);
+            } else {
+                logger.warn("no body listening for the response");
+            }
+        } catch (IOException e) {
+            logger.warn("failed to execute command - " + e.getMessage(), e);
+        }
     }
 
     private RequestAuthentication getRequestAuthentication() {
@@ -1379,7 +1448,7 @@ final public class InsidiousService implements
         }
         addExecutionRecord(new AutoExecutorReportRecord(newDiffRecord,
                 sessionInstance.getProcessedFileCount(),
-                sessionInstance.getTotalFileCount()));
+                sessionInstance.getTotalFileCount(), agentCommandRequest.getDeclaredMocks()));
     }
 
     public void addExecutionRecord(AutoExecutorReportRecord result) {
@@ -1648,11 +1717,21 @@ final public class InsidiousService implements
         contentManager.setSelectedContent(introPanelContent);
     }
 
-    public void executeAllMethodsInCurrentClass() {
-        automaticExecutorService.executeAllJavaMethodsInProject();
+    public void executeAllMethodsInCurrentClass(AutoExecutorRunOptions options) {
+        if (autoExecutorEnabled) {
+            automaticExecutorService.executeAllJavaMethodsInProject(options);
+        }
     }
 
     public void loadDefaultSession() {
         setSession(sessionManager.loadDefaultSession());
+    }
+
+    public void autoExecutorEnableTrigger() {
+        autoExecutorEnableCounter--;
+        if (autoExecutorEnableCounter <= 0) {
+            this.autoExecutorEnabled = true;
+            InsidiousNotification.notifyMessage("AutoExecutor is enabled", NotificationType.INFORMATION);
+        }
     }
 }

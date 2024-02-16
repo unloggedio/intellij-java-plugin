@@ -315,7 +315,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
                         diffResult.setCommand(agentCommandRequest);
                         insidiousService.addExecutionRecord(new AutoExecutorReportRecord(diffResult,
                                 insidiousService.getSessionInstance().getProcessedFileCount(),
-                                insidiousService.getSessionInstance().getTotalFileCount()));
+                                insidiousService.getSessionInstance().getTotalFileCount(),
+                                agentCommandRequest1.getDeclaredMocks()));
                     });
         });
     }

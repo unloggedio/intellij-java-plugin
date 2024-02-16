@@ -4,9 +4,12 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
+import com.insidious.plugin.autoexecutor.AutomaticExecutorService;
 import com.insidious.plugin.ui.methodscope.DiffResultType;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.diagnostic.Logger;
 import com.sun.management.OperatingSystemMXBean;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -23,7 +26,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class ReportingService {
@@ -32,7 +34,8 @@ public class ReportingService {
     public boolean notify = true;
     private boolean reportingEnabled = false;
     private String output_file_name;
-    private int count = 1;
+    private static final Logger logger = LoggerUtil.getInstance(ReportingService.class);
+
 
     public ReportingService(InsidiousService service) {
         this.insidiousService = service;
@@ -66,37 +69,32 @@ public class ReportingService {
         if (!this.reportingEnabled) {
             return;
         }
-//        System.out.println("Execution record added count : " + count++);
         DifferenceResult result = autoExecutorReportRecord.getDifferenceResult();
-//        System.out.println("Adding record [***] " + result.toString());
         boolean isException = false;
         boolean isAgentException = false;
         boolean pluginException = false;
 
-        XSSFWorkbook workbook = getWorkbook();
+        XSSFWorkbook workbook = getWorkbook(autoExecutorReportRecord.getSource());
         if (workbook == null) {
-            System.out.println("Workbook is null : " + result.toString());
+            logger.info("Workbook Fetch failed");
             return;
         }
+
         XSSFSheet sheet = workbook.getSheetAt(0);
         int rowNum = sheet.getLastRowNum() + 1;
         XSSFRow row = sheet.createRow(rowNum);
 
-//        System.out.println("Report entry Start ----");
         AgentCommandRequest agentCommandRequest = result.getCommand();
         String classname = agentCommandRequest.getClassName();
-//        System.out.println("Class : "+classname);
 
         Cell cell = row.createCell(0);
         cell.setCellValue(classname);
 
         String method = agentCommandRequest.getMethodName() + "\n" + agentCommandRequest.getMethodSignature();
-//        System.out.println("Method : "+method);
         cell = row.createCell(1);
         cell.setCellValue(method);
 
         String executionMode = result.getExecutionMode().toString();
-//        System.out.println("Execution mode : "+executionMode);
         cell = row.createCell(2);
         cell.setCellValue(executionMode);
 
@@ -114,7 +112,6 @@ public class ReportingService {
                 pluginException = true;
             }
         } else {
-//            System.out.println("Execution Status : "+result.getDiffResultType());
             executionStatus = result.getDiffResultType().toString();
             if (result.getDiffResultType().equals(DiffResultType.BOTH_EXCEPTION)
                     || result.getDiffResultType().equals(DiffResultType.ACTUAL_EXCEPTION)) {
@@ -125,9 +122,8 @@ public class ReportingService {
         cell.setCellValue(executionStatus);
 
         List<String> input = getInputs(result.getCommand());
-//        System.out.println("Input Serialized : "+input.toString());
         cell = row.createCell(4);
-        cell.setCellValue(input.toString());
+        cell.setCellValue(wrapLargeStrings(input.toString()));
 
         String output;
         if (result.getResponse() == null || result.getResponse().getMethodReturnValue() == null) {
@@ -139,29 +135,29 @@ public class ReportingService {
         } else {
             output = result.getResponse().getMethodReturnValue().toString();
         }
-//        System.out.println("Output Serialized : "+output);
         if (isException) {
             if (result.getResponse().getResponseType().equals(ResponseType.FAILED)) {
                 isAgentException = true;
             }
         }
         cell = row.createCell(5);
-        cell.setCellValue(output);
+        if (output == null) {
+            cell.setCellValue("null - from agent");
+        } else {
+            cell.setCellValue(wrapLargeStrings(output));
+        }
 
         //make check for plugin exception
-        String exceptionTrace = "";
-        if (isException) {
-            if (result.getResponse().getMethodReturnValue() == null) {
-                exceptionTrace = result.getResponse().getMessage();
-            }
-        }
-        exceptionTrace = isException ? result.getResponse().getMethodReturnValue().toString() : "";
-//        System.out.println("Exception trace : "+exceptionTrace);
+        String exceptionTrace = isException ? String.valueOf(result.getResponse().getMethodReturnValue()) : "";
         if (pluginException) {
             exceptionTrace = "plugin exception, no response";
         }
         cell = row.createCell(6);
-        cell.setCellValue(exceptionTrace);
+        if (exceptionTrace == null) {
+            cell.setCellValue("");
+        } else {
+            cell.setCellValue(wrapLargeStrings(exceptionTrace));
+        }
 
         String exceptionType = "";
         if (isException) {
@@ -173,7 +169,6 @@ public class ReportingService {
                 exceptionType = "Expected Exception";
             }
         }
-//        System.out.println("Exception type : "+exceptionType);
         cell = row.createCell(7);
         cell.setCellValue(exceptionType);
 
@@ -182,7 +177,6 @@ public class ReportingService {
         if (!pluginException) {
             time = convertTimestamp(timestamp);
         }
-//        System.out.println("Timestamp : "+time);
         cell = row.createCell(8);
         cell.setCellValue(time);
 
@@ -204,14 +198,35 @@ public class ReportingService {
         cell = row.createCell(12);
         cell.setCellValue(autoExecutorReportRecord.getTotalFileCount());
 
+        cell = row.createCell(13);
+        if (autoExecutorReportRecord.getDeclaredMockList() == null) {
+            cell.setCellValue("No mocks found in request - plugin");
+        } else {
+            cell.setCellValue(wrapLargeStrings(autoExecutorReportRecord.getDeclaredMockList().toString()));
+        }
+
+        cell = row.createCell(14);
+        cell.setCellValue(autoExecutorReportRecord.getMethodReturnTypeCannonicalText());
+
+        cell = row.createCell(15);
+        cell.setCellValue(autoExecutorReportRecord.getImplementationSource());
+
         try {
+            LocalDate now = LocalDate.now();
+            String filename = insidiousService.getProject().getName() + "_"
+                    + autoExecutorReportRecord.getSource() + "_" + now.getYear() + "_" + now.getMonth()
+                    + "_" + now.getDayOfMonth() + ".xlsx";
             FileOutputStream out = new FileOutputStream(new File(insidiousService.getProject().getBasePath()
-                    + "/" + this.output_file_name));
+                    + "/" + filename));
             workbook.write(out);
-            out.close();
+            workbook.close();
+            out.flush();
+            org.apache.commons.io.IOUtils.closeQuietly(out);
+            AutomaticExecutorService.incrementWrites();
+//            out.close();
         } catch (Exception e) {
-            InsidiousNotification.notifyMessage("Logging Exception during addition of report record : " + e.getMessage(), NotificationType.ERROR);
-//            System.out.println("Execution record added [+] : " + result.toString());
+            logger.info("Exception writing record to file " + e);
+//            logger.error(e.getMessage(), e);
         }
     }
 
@@ -225,20 +240,18 @@ public class ReportingService {
         return inputList;
     }
 
-    private XSSFWorkbook getWorkbook() {
-        Date today = new Date();
+    private XSSFWorkbook getWorkbook(String source) {
         LocalDate now = LocalDate.now();
-        String filename = insidiousService.getProject().getName() + "_" + now.getYear() + "_" + now.getMonth()
+        String filename = insidiousService.getProject().getName() + "_"
+                + source + "_" + now.getYear() + "_" + now.getMonth()
                 + "_" + now.getDayOfMonth() + ".xlsx";
-        this.output_file_name = filename;
         File file = new File(insidiousService.getProject().getBasePath() + "/" + filename);
         if (!file.exists()) {
             try {
-                //create sheet
                 XSSFWorkbook workbook = new XSSFWorkbook();
-
                 XSSFSheet spreadsheet
                         = workbook.createSheet("Executions");
+
                 XSSFRow row = spreadsheet.createRow(0);
 
                 Cell cell = row.createCell(0);
@@ -280,6 +293,15 @@ public class ReportingService {
                 cell = row.createCell(12);
                 cell.setCellValue("Total number of files");
 
+                cell = row.createCell(13);
+                cell.setCellValue("Mocks used");
+
+                cell = row.createCell(14);
+                cell.setCellValue("Canonical return type");
+
+                cell = row.createCell(15);
+                cell.setCellValue("Selected Implementation Class");
+
                 FileOutputStream out = new FileOutputStream(
                         new File(insidiousService.getProject().getBasePath() + "/" + filename));
 
@@ -288,10 +310,7 @@ public class ReportingService {
 
                 return workbook;
             } catch (Exception e) {
-                InsidiousNotification.notifyMessage("Exception when creating excel file  : " + e.getMessage(),
-                        NotificationType.ERROR);
-                System.out.println("Exception when creating excel file " + e);
-                e.printStackTrace();
+                logger.info("Exception creating new excel file : " + e);
                 return null;
             }
         } else {
@@ -300,10 +319,8 @@ public class ReportingService {
                         new FileInputStream(insidiousService.getProject().getBasePath() + "/" + filename));
                 return workbook;
             } catch (Exception e) {
-                InsidiousNotification.notifyMessage("Exception opening excel file  : " + e.getMessage(),
-                        NotificationType.ERROR);
-                System.out.println("Exception opening existing excel file " + e);
-                e.printStackTrace();
+                logger.info("Exception opening existing excel file : " + e);
+//                logger.error(e.getMessage(), e);
                 return null;
             }
         }
@@ -313,5 +330,12 @@ public class ReportingService {
         ZonedDateTime dateTime = Instant.ofEpochMilli(timestamp)
                 .atZone(ZoneId.of("Asia/Kolkata"));
         return dateTime.toString();
+    }
+
+    private String wrapLargeStrings(String inputString) {
+        if (inputString.length() >= 32767) {
+            inputString = inputString.substring(0, 32766);
+        }
+        return inputString;
     }
 }

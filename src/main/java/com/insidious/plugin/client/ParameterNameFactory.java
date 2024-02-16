@@ -1,7 +1,7 @@
 package com.insidious.plugin.client;
 
 import com.insidious.plugin.pojo.Parameter;
-import org.apache.commons.lang.StringUtils;
+import com.insidious.plugin.util.StringUtils;
 
 import java.util.*;
 

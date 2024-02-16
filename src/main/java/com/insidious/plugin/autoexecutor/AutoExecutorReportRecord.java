@@ -1,19 +1,26 @@
 package com.insidious.plugin.autoexecutor;
 
+import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.ui.methodscope.DifferenceResult;
 
 import java.util.List;
 
 public class AutoExecutorReportRecord {
     private DifferenceResult differenceResult;
-    //index 0 points to processed count, index 1 points to total
     private int scannedFileCount;
     private int totalFileCount;
+    private List<DeclaredMock> declaredMockList;
+    private String source;
+    private String methodReturnTypeCannonicalText;
+    private String implementationSource;
 
-    public AutoExecutorReportRecord(DifferenceResult differenceResult, int scannedFileCount, int totalFileCount) {
+    public AutoExecutorReportRecord(DifferenceResult differenceResult,
+                                    int scannedFileCount, int totalFileCount,
+                                    List<DeclaredMock> declaredMocks) {
         this.differenceResult = differenceResult;
         this.scannedFileCount = scannedFileCount;
         this.totalFileCount = totalFileCount;
+        this.declaredMockList = declaredMocks;
     }
 
     public DifferenceResult getDifferenceResult() {
@@ -24,5 +31,35 @@ public class AutoExecutorReportRecord {
         return scannedFileCount;
     }
 
-    public int getTotalFileCount() { return totalFileCount; }
+    public int getTotalFileCount() {
+        return totalFileCount;
+    }
+
+    public List<DeclaredMock> getDeclaredMockList() {
+        return declaredMockList;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public String getMethodReturnTypeCannonicalText() {
+        return methodReturnTypeCannonicalText;
+    }
+
+    public void setMethodReturnTypeCannonicalText(String methodReturnTypeCannonicalText) {
+        this.methodReturnTypeCannonicalText = methodReturnTypeCannonicalText;
+    }
+
+    public String getImplementationSource() {
+        return implementationSource;
+    }
+
+    public void setImplementationSource(String implementationSource) {
+        this.implementationSource = implementationSource;
+    }
 }
