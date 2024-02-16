@@ -32,7 +32,7 @@ public class ReportingService {
 
     private final InsidiousService insidiousService;
     public boolean notify = true;
-    private boolean reportingEnabled = false;
+    private boolean reportingEnabled = true;
     private String output_file_name;
     private static final Logger logger = LoggerUtil.getInstance(ReportingService.class);
 
