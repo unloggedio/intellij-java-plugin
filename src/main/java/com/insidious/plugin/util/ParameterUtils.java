@@ -99,6 +99,9 @@ public class ParameterUtils {
     }
 
     public static String processResponseForFloatAndDoubleTypes(String responseClassname, String stringValue) {
+        if (responseClassname == null) {
+            return stringValue;
+        }
         if (responseClassname.equalsIgnoreCase("float")
                 || responseClassname.equalsIgnoreCase("java.lang.float")
                 || responseClassname.equals("F")) {

@@ -1,32 +1,31 @@
 package com.insidious.plugin.ui.mocking;
 
-import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.adapter.java.JavaParameterAdapter;
-import com.insidious.plugin.mocking.*;
+import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.mocking.MethodExitType;
+import com.insidious.plugin.mocking.ParameterMatcher;
+import com.insidious.plugin.mocking.ThenParameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
-import com.insidious.plugin.util.ClassTypeUtils;
+import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.lang.jvm.JvmParameter;
-import com.intellij.lang.jvm.util.JvmClassUtil;
-import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopup;
-import com.intellij.psi.*;
-import com.intellij.psi.impl.source.PsiClassReferenceType;
-import com.intellij.psi.impl.source.tree.java.*;
-import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.psi.util.TypeConversionUtil;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.util.Computable;
+import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.uiDesigner.core.GridConstraints;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
@@ -41,106 +40,103 @@ public class MockDefinitionEditor {
     private final OnSaveListener onSaveListener;
     //    private final CancelOrOkListener<DeclaredMock> cancelOrOkListener;
     private JPanel mainPanel;
-    private JPanel namePanel;
     private JTextField nameTextField;
-    private JRadioButton passThruRadioButton;
-    private JRadioButton returnNullByDefaultRadioButton;
-    private JPanel titlePanel;
+    private JPanel parameterListContainerPanel;
+    private JButton chainAnotherReturnButton;
+    private JPanel returnItemList;
+    private JButton saveButton;
+    private JLabel callExpressionLabel;
     private JPanel nameAndSettingPanel;
+    private JPanel bottomControlPanel;
+    private JPanel nameContainerPanel;
     private JPanel whenThenParentPanel;
     private JPanel whenPanel;
     private JPanel whenTitlePanel;
-    private JPanel parameterListContainerPanel;
     private JPanel thenPanel;
     private JPanel thenTitlePanel;
-    private JButton chainAnotherReturnButton;
-    private JPanel returnItemList;
-    private JPanel bottomControlPanel;
-    private JButton saveButton;
-    private JLabel callExpressionLabel;
-    private JPanel mockTypeParentPanel;
+    private JLabel changeThenType;
+    private JPanel thenReturnLabelContainer;
+    private JButton cancelButton;
+    private JLabel thenTextLabel;
+    private JLabel returnValueLabel;
     private String returnDummyValue;
     private String methodReturnTypeName;
-    private JBPopup editorPopup;
+    private JBPopup yeditorPopup;
+    private OnCloseListener<Void> onCloseListener;
 
     public MockDefinitionEditor(
             MethodUnderTest methodUnderTest,
             PsiMethodCallExpression methodCallExpression,
-            Project project, OnSaveListener onSaveListener) {
+            Project project, OnSaveListener onSaveListener, OnCloseListener<Void> onCloseListener) {
         this.onSaveListener = onSaveListener;
+        this.onCloseListener = onCloseListener;
         this.methodUnderTest = methodUnderTest;
         this.project = project;
-        mockTypeParentPanel.setVisible(false);
+        cancelButton.addActionListener(e -> onCloseListener.onClose(null));
+//        mockTypeParentPanel.setVisible(false);
 
-        PsiMethod destinationMethod = methodCallExpression.resolveMethod();
-
-        PsiType returnType = identifyReturnType(methodCallExpression);
-        if (returnType != null) {
-            returnDummyValue = ClassUtils.createDummyValue(returnType, new ArrayList<>(),
-                    destinationMethod.getProject());
-            methodReturnTypeName = buildJvmClassName(returnType);
-        } else {
-            methodReturnTypeName = "java.lang.Object";
-            returnDummyValue = "{}";
-        }
-
-        PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
-        if (parentClass == null) {
-            InsidiousNotification.notifyMessage("Failed to identify parent class for the call [" +
-                    methodCallExpression.getText() + "]", NotificationType.ERROR);
-            throw new RuntimeException("Failed to identify parent class for the call [" +
-                    methodCallExpression.getText() + "]");
-        }
-        String expressionText = methodCallExpression.getMethodExpression().getText();
+        String expressionText = ApplicationManager.getApplication().runReadAction(
+                (Computable<String>) () -> methodCallExpression.getMethodExpression().getText());
         callExpressionLabel.setText(expressionText);
 
-        PsiType[] methodParameterTypes = methodCallExpression.getArgumentList().getExpressionTypes();
-        JvmParameter[] jvmParameters = destinationMethod.getParameters();
-        List<ParameterMatcher> parameterList = new ArrayList<>();
+        changeThenType.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        returnValueLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
-        PsiClass containingClass = destinationMethod.getContainingClass();
-        PsiSubstitutor classSubstitutor = null;
-        if (containingClass != null && parentOfType != null) {
-            classSubstitutor = TypeConversionUtil
-                    .getClassSubstitutor(containingClass, parentOfType, PsiSubstitutor.EMPTY);
-        }
+        MouseAdapter returnTypeSelectorAdapter = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
 
-        for (int i = 0; i < methodParameterTypes.length; i++) {
-            JavaParameterAdapter param = new JavaParameterAdapter(jvmParameters[i]);
-            PsiType parameterType = methodParameterTypes[i];
+                SelectorPanel<MethodExitType> selectorPanel = new SelectorPanel<>(
+                        Arrays.asList(MethodExitType.NORMAL, MethodExitType.NULL, MethodExitType.EXCEPTION),
+                        o -> {
+                            logger.warn("selected response: " + o);
 
-            if (classSubstitutor != null) {
-                parameterType = classSubstitutor.substitute(parameterType);
+                            switch (o) {
+                                case NORMAL:
+                                    returnValueLabel.setText("Return");
+                                    thenPanelList.get(0).setExitType(MethodExitType.NORMAL);
+                                    break;
+                                case EXCEPTION:
+                                    returnValueLabel.setText("Throw");
+                                    thenPanelList.get(0).setExitType(MethodExitType.EXCEPTION);
+                                    break;
+                                case NULL:
+                                    returnValueLabel.setText("Return NULL");
+                                    thenPanelList.get(0).setExitType(MethodExitType.NULL);
+                                    break;
+                            }
+
+                        }, null);
+
+                ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+                        .createComponentPopupBuilder(selectorPanel.getContent(), null);
+
+
+                JBPopup popup = gutterMethodComponentPopup
+                        .setProject(project)
+                        .setShowBorder(true)
+                        .setShowShadow(true)
+                        .setFocusable(true)
+                        .setRequestFocus(true)
+                        .setCancelOnClickOutside(true)
+                        .setCancelOnOtherWindowOpen(true)
+                        .setCancelKeyEnabled(true)
+                        .setBelongsToGlobalPopupStack(false)
+                        .createPopup();
+                popup.showUnderneathOf(returnValueLabel);
+                selectorPanel.setPopup(popup);
+
+
             }
+        };
+        changeThenType.addMouseListener(returnTypeSelectorAdapter);
+        returnValueLabel.addMouseListener(returnTypeSelectorAdapter);
 
-            String parameterTypeName = parameterType.getCanonicalText();
-            if (parameterType instanceof PsiClassReferenceType) {
-                PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
-                parameterTypeName = classReferenceType.rawType().getCanonicalText();
-            }
-            ParameterMatcher parameterMatcher = new ParameterMatcher(param.getName(),
-                    ParameterMatcherType.ANY_OF_TYPE, parameterTypeName);
-            parameterList.add(parameterMatcher);
-        }
-
-
-        ArrayList<ThenParameter> thenParameterList = new ArrayList<>();
-        thenParameterList.add(createDummyThenParameter());
-        PsiElement callerQualifier = methodCallExpression.getMethodExpression().getQualifier();
-        String fieldName = callerQualifier.getText();
-        PsiElement[] callerQualifierChildren = callerQualifier.getChildren();
-        if (callerQualifierChildren.length > 1) {
-            fieldName = callerQualifierChildren[callerQualifierChildren.length - 1].getText();
-        }
-        this.declaredMock = new DeclaredMock(
-                "mock response " + expressionText,
-                methodUnderTest.getClassName(), parentClass.getQualifiedName(),
-                fieldName,
-                methodUnderTest.getName(), parameterList, thenParameterList
-        );
+        this.declaredMock = ApplicationManager.getApplication().runReadAction(
+                (Computable<DeclaredMock>) () -> ClassUtils.createDefaultMock(methodCallExpression));
         updateUiValues();
-        addListeners(methodUnderTest);
+        addListeners();
     }
 
     public MockDefinitionEditor(
@@ -156,143 +152,26 @@ public class MockDefinitionEditor {
         callExpressionLabel.setText(declaredMock.getSourceClassName() + "." + declaredMock.getMethodName() + "()");
 
         updateUiValues();
-        addListeners(methodUnderTest);
+        addListeners();
     }
 
-    private String buildJvmClassName(PsiType returnType) {
-        if (returnType == null) {
-            return "java.lang.Object";
-        }
-
-        if (!(returnType instanceof PsiClassReferenceType)) {
-            return returnType.getCanonicalText();
-        }
-        PsiClassReferenceType classReferenceType = (PsiClassReferenceType) returnType;
-        if (classReferenceType.resolve() == null) {
-            return "java.lang.Object";
-        }
-
-        String jvmClassName1 = JvmClassUtil.getJvmClassName(classReferenceType.resolve());
-        if (jvmClassName1 == null) {
-            jvmClassName1 = "java.lang.Object";
-        }
-        StringBuilder jvmClassName =
-                new StringBuilder(jvmClassName1);
-
-        int paramCount = classReferenceType.getParameterCount();
-        if (paramCount > 0) {
-            jvmClassName.append("<");
-
-            PsiType[] parameterArray = classReferenceType.getParameters();
-            for (int i = 0; i <= paramCount - 1; i++) {
-                jvmClassName.append(buildJvmClassName(parameterArray[i]));
-                if (i != paramCount - 1) {
-                    jvmClassName.append(",");
-                }
-            }
-            jvmClassName.append(">");
-        }
-
-        return jvmClassName.toString();
-    }
-
-    @Nullable
-    private PsiType identifyReturnType(PsiExpression methodCallExpression) {
-        PsiType returnType = null;
-
-        if (methodCallExpression.getParent() instanceof PsiConditionalExpressionImpl) {
-            return identifyReturnType((PsiConditionalExpressionImpl) methodCallExpression.getParent());
-        } else if (methodCallExpression.getParent() instanceof PsiLocalVariableImpl
-                && methodCallExpression.getParent().getParent() instanceof PsiDeclarationStatementImpl) {
-            // this is an assignment and we can probably get a better return type from the variable type which
-            // this is being assigned to
-            returnType = ((PsiLocalVariableImpl) methodCallExpression.getParent()).getType();
-        } else if (methodCallExpression.getParent() instanceof PsiAssignmentExpressionImpl
-                && methodCallExpression.getParent().getParent() instanceof PsiExpressionStatement) {
-            // this is an assignment and we can probably get a better return type from the variable type which
-            // this is being assigned to
-            returnType = ((PsiAssignmentExpressionImpl) methodCallExpression.getParent()).getType();
-        } else if (methodCallExpression.getParent() instanceof PsiExpressionListImpl
-                && methodCallExpression.getParent().getParent() instanceof PsiMethodCallExpressionImpl) {
-            // the return value is being passed to another method as a parameter
-            PsiExpressionListImpl expressionList = (PsiExpressionListImpl) methodCallExpression.getParent();
-            PsiType[] expressionTypes = expressionList.getExpressionTypes();
-            PsiExpression[] allExpressions = expressionList.getExpressions();
-            // identify the return value is which index
-            int i = 0;
-            for (PsiExpression expression : allExpressions) {
-                if (expression == methodCallExpression) {
-                    break;
-                }
-                i++;
-            }
-
-            if (i < expressionTypes.length) {
-                returnType = expressionTypes[i];
-            }
-
-            PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
-            PsiMethodCallExpression parentCall = PsiTreeUtil.getParentOfType(expressionList,
-                    PsiMethodCallExpression.class);
-            if (parentCall != null && parentCall.resolveMethod() != null) {
-                PsiMethod psiMethod = parentCall.resolveMethod();
-                PsiClass containingClass = psiMethod.getContainingClass();
-                if (containingClass != null && parentOfType != null) {
-                    PsiSubstitutor classSubstitutor = TypeConversionUtil
-                            .getClassSubstitutor(containingClass,
-                                    parentOfType, PsiSubstitutor.EMPTY);
-                    returnType = ClassTypeUtils.substituteClassRecursively(returnType, classSubstitutor);
-                }
-            }
-        } else if (methodCallExpression.getParent() instanceof PsiReturnStatementImpl) {
-            // value is being returned, so we can use the return type of the method which contains this call
-            PsiMethod parentMethod = PsiTreeUtil.getParentOfType(methodCallExpression, PsiMethod.class);
-            if (parentMethod != null && parentMethod.getReturnType() != null) {
-                returnType = parentMethod.getReturnType();
-                PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
-                PsiClass containingClass = parentMethod.getContainingClass();
-                if (containingClass != null && parentOfType != null) {
-                    PsiSubstitutor classSubstitutor = TypeConversionUtil
-                            .getClassSubstitutor(containingClass, parentOfType, PsiSubstitutor.EMPTY);
-                    returnType = ClassTypeUtils.substituteClassRecursively(returnType, classSubstitutor);
-                }
-            }
-        } else if (methodCallExpression instanceof PsiMethodCallExpression) {
-            PsiMethod psiMethod = ((PsiMethodCallExpression) methodCallExpression).resolveMethod();
-
-            PsiField fieldImpl = (PsiField) ((PsiReferenceExpression)
-                    ((PsiMethodCallExpression) methodCallExpression)
-                            .getMethodExpression().getQualifierExpression()).resolve();
-
-            PsiClass fieldClass = ((PsiClassReferenceType) fieldImpl.getType()).resolve();
-
-            if (psiMethod != null) {
-
-                returnType = psiMethod.getReturnType();
-                PsiClass containingClass = psiMethod.getContainingClass();
-
-                PsiSubstitutor classSubstitutor = TypeConversionUtil.getClassSubstitutor(containingClass,
-                        fieldClass, PsiSubstitutor.EMPTY);
-                returnType = ClassTypeUtils.substituteClassRecursively(returnType, classSubstitutor);
-            }
-        }
-
-        return returnType;
-    }
-
-    private void addListeners(MethodUnderTest methodUnderTest) {
+    private void addListeners() {
         chainAnotherReturnButton.setVisible(false);
         chainAnotherReturnButton.addActionListener(e -> {
-            ThenParameter newThenParameter = createDummyThenParameter();
+            ThenParameter newThenParameter = ClassUtils.createDummyThenParameter(returnDummyValue,
+                    methodReturnTypeName);
             declaredMock.getThenParameter().add(newThenParameter);
             returnItemList.setLayout(new GridLayout(declaredMock.getThenParameter().size(), 1));
             ThenParameterInputPanel thenParameterInputPanel = new ThenParameterInputPanel(newThenParameter, project);
+
+            Dimension thenParameterInputPanelDimension = new Dimension(-1, 200);
+
             GridConstraints constraints = new GridConstraints(
                     declaredMock.getThenParameter().size() - 1, 0, 1, 1, ANCHOR_NORTH,
                     FILL_HORIZONTAL, SIZEPOLICY_CAN_GROW | SIZEPOLICY_CAN_SHRINK, SIZEPOLICY_FIXED,
-                    new Dimension(-1, 75),
-                    new Dimension(-1, 75),
-                    new Dimension(-1, 75)
+                    thenParameterInputPanelDimension,
+                    thenParameterInputPanelDimension,
+                    thenParameterInputPanelDimension
             );
 
             returnItemList.add(thenParameterInputPanel.getComponent(), constraints);
@@ -302,15 +181,9 @@ public class MockDefinitionEditor {
         });
 
         saveButton.addActionListener(e -> {
-            onSaveListener.onSaveDeclaredMock(declaredMock, methodUnderTest);
-            editorPopup.cancel();
+            onSaveListener.onSaveDeclaredMock(declaredMock);
+            onCloseListener.onClose(null);
         });
-    }
-
-    @NotNull
-    private ThenParameter createDummyThenParameter() {
-        ReturnValue returnValue = new ReturnValue(returnDummyValue, methodReturnTypeName, ReturnValueType.REAL);
-        return new ThenParameter(returnValue, MethodExitType.NORMAL);
     }
 
     private void updateUiValues() {
@@ -320,6 +193,7 @@ public class MockDefinitionEditor {
 
 
         nameTextField.setText(declaredMock.getName());
+        nameTextField.setSelectionStart(0);
 
         nameTextField.addKeyListener(new KeyAdapter() {
             @Override
@@ -351,12 +225,13 @@ public class MockDefinitionEditor {
         for (int i = 0; i < thenParameters.size(); i++) {
             ThenParameter thenParameter = thenParameters.get(i);
             ThenParameterInputPanel thenParameterInputPanel = new ThenParameterInputPanel(thenParameter, project);
+            Dimension thenParameterInputPanelDimension = new Dimension(-1, 200);
             GridConstraints constraints = new GridConstraints(
                     i, 0, 1, 1, ANCHOR_NORTH,
                     FILL_HORIZONTAL, SIZEPOLICY_CAN_GROW | SIZEPOLICY_CAN_SHRINK, SIZEPOLICY_FIXED,
-                    new Dimension(-1, 75),
-                    new Dimension(-1, 75),
-                    new Dimension(-1, 75)
+                    thenParameterInputPanelDimension,
+                    thenParameterInputPanelDimension,
+                    thenParameterInputPanelDimension
             );
 
             returnItemList.add(thenParameterInputPanel.getComponent(), constraints);
@@ -368,9 +243,5 @@ public class MockDefinitionEditor {
 
     public JComponent getComponent() {
         return mainPanel;
-    }
-
-    public void setPopupHandle(JBPopup editorPopup) {
-        this.editorPopup = editorPopup;
     }
 }

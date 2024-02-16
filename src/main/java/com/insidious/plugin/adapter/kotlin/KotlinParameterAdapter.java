@@ -1,6 +1,7 @@
 package com.insidious.plugin.adapter.kotlin;
 
 import com.insidious.plugin.adapter.ParameterAdapter;
+import com.insidious.plugin.adapter.java.JavaTypeAdapter;
 import com.intellij.psi.PsiType;
 import org.jetbrains.kotlin.psi.KtParameter;
 

@@ -26,8 +26,18 @@ public class TestCandidateMetadata {
     private long entryProbeIndex;
     @DatabaseField
     private long exitProbeIndex;
+    @DatabaseField(columnDefinition = "DATE DEFAULT CURRENT_TIMESTAMP")
+    private long createdAt;
     @DatabaseField
     private String variables;
+
+    public void setCreatedAt(long createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public long getCreatedAt() {
+        return createdAt;
+    }
 
     public static com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata
     toTestCandidate(TestCandidateMetadata testCandidateMetadata) {
@@ -37,6 +47,7 @@ public class TestCandidateMetadata {
         newCandidate.setEntryProbeIndex(testCandidateMetadata.getEntryProbeIndex());
         newCandidate.setExitProbeIndex(testCandidateMetadata.getExitProbeIndex());
         newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
+        newCandidate.setCreatedAt(testCandidateMetadata.getCreatedAt());
         if (testCandidateMetadata.getLines() != null) {
             newCandidate.setLines(
                     new ArrayList<>(

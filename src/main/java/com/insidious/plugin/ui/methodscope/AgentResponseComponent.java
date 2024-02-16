@@ -20,11 +20,11 @@ import java.util.Map;
 import static com.insidious.plugin.util.ParameterUtils.processResponseForFloatAndDoubleTypes;
 
 public class AgentResponseComponent implements ResponsePreviewComponent {
-    public static final ObjectMapper objectMapper = new ObjectMapper();
+    public static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
     private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = false;
     private final AgentCommandResponse<String> agentCommandResponse;
-//    private JButton createTestCaseButton;
+    //    private JButton createTestCaseButton;
     private StoredCandidate testCandidate;
     private JPanel mainPanel;
     private JPanel centerPanel;
@@ -48,7 +48,7 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
             AgentCommandResponse<String> agentCommandResponse,
             StoredCandidate testCandidate,
             FullViewEventListener fullViewEventListener,
-            CandidateLifeListener candidateLifeListener
+            CandidateLifeListener storedCandidateLifeListener
     ) {
         this.agentCommandResponse = agentCommandResponse;
         this.testCandidate = testCandidate;
@@ -72,8 +72,10 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
 
         setInfoLabel("Replayed at " + DateUtils.formatDate(new Date(agentCommandResponse.getTimestamp())) +
                 " for " + methodLabel);
-        String processedOriginal = processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(), originalString);
-        String processedActual = processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(), actualString);
+        String processedOriginal = processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(),
+                originalString);
+        String processedActual = processResponseForFloatAndDoubleTypes(agentCommandResponse.getResponseClassName(),
+                actualString);
         viewFullButton.addActionListener(
                 e -> fullViewEventListener.generateCompareWindows(processedOriginal, processedActual));
 
@@ -93,11 +95,11 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
 //        }
 
         acceptButton.addActionListener(
-                e -> candidateLifeListener.onSaveRequest(this.testCandidate, agentCommandResponse));
+                e -> storedCandidateLifeListener.onSaveRequest(this.testCandidate, agentCommandResponse));
         if (this.testCandidate.getCandidateId() == null) {
             deleteButton.setVisible(false);
         }
-        deleteButton.addActionListener(e -> candidateLifeListener.onDeleteRequest(this.testCandidate));
+        deleteButton.addActionListener(e -> storedCandidateLifeListener.onDeleteRequest(this.testCandidate));
 
         deleteButton.setIcon(UIUtils.DELETE_CANDIDATE_RED_SVG);
         acceptButton.setIcon(UIUtils.SAVE_CANDIDATE_GREEN_SVG);
@@ -185,17 +187,17 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
     }
 
     @Override
+    public StoredCandidate getTestCandidate() {
+        return testCandidate;
+    }
+
+    @Override
     public void setTestCandidate(StoredCandidate candidate) {
         this.testCandidate = candidate;
 //        if (testCandidate.getEntryProbeIndex() > 1 && !createTestCaseButton.isEnabled()) {
 //            createTestCaseButton.setEnabled(true);
 //            createTestCaseButton.setText("Create JUnit test case");
 //        }
-    }
-
-    @Override
-    public StoredCandidate getTestCandidate() {
-        return testCandidate;
     }
 
 }

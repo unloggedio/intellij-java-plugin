@@ -14,6 +14,7 @@ import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
@@ -45,7 +46,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     public static final String TRACE_BY_STRING = "/traceByString";
     public static final String GENERATE_PROJECT_TOKEN_URL = "/api/auth/generateAgentToken";
     private final Logger logger = LoggerUtil.getInstance(VideobugNetworkClient.class);
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<DataResponse<DataEventWithSessionId>>() {
     };
     OkHttpClient client;

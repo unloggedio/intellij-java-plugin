@@ -6,9 +6,13 @@ import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ParameterUtils;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.util.Computable;
+import com.intellij.psi.PsiClassType;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
+import com.intellij.psi.impl.source.PsiImmediateClassType;
 
 import java.util.List;
 
@@ -75,8 +79,8 @@ public class TestCaseWriter {
     }
 
     static public void setParameterTypeFromPsiType(Parameter parameter, PsiType psiType, boolean isReturnParameter) {
-        if (psiType instanceof PsiClassReferenceType) {
-            PsiClassReferenceType returnClassType = (PsiClassReferenceType) psiType;
+        if (psiType instanceof PsiClassType) {
+            PsiClassType returnClassType = (PsiClassType) psiType;
             if (returnClassType.getCanonicalText().equals(returnClassType.getName())) {
                 logger.warn("return class type canonical text[" + returnClassType.getCanonicalText()
                         + "] is same as its name [" + returnClassType.getName() + "]");
@@ -89,7 +93,7 @@ public class TestCaseWriter {
                 ClassUtils.extractTemplateMap(returnClassType, parameter.getTemplateMap());
                 parameter.setContainer(true);
             }
-        } else {
+        } else{
             parameter.setTypeForced(psiTypeToJvmType(psiType.getCanonicalText(), isReturnParameter));
         }
     }

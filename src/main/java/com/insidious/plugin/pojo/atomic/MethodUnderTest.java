@@ -2,8 +2,16 @@ package com.insidious.plugin.pojo.atomic;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.util.ClassTypeUtils;
+import com.insidious.plugin.util.ClassUtils;
+import com.intellij.psi.*;
+import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.TypeConversionUtil;
 
 import java.util.Objects;
 
@@ -34,8 +42,23 @@ public class MethodUnderTest {
 
     public static MethodUnderTest fromTestCandidateMetadata(TestCandidateMetadata testCandidateMetadata) {
         return new MethodUnderTest(
-                testCandidateMetadata.getMainMethod().getMethodName(), null, 0,
+                testCandidateMetadata.getMainMethod().getMethodName(), buildMethodSignature(testCandidateMetadata), 0,
                 testCandidateMetadata.getFullyQualifiedClassname());
+    }
+
+    private static String buildMethodSignature(TestCandidateMetadata testCandidateMetadata) {
+        StringBuilder methodSignature = new StringBuilder("(");
+
+        for (Parameter argument : testCandidateMetadata.getMainMethod().getArguments()) {
+            String type = argument.getType();
+            methodSignature.append(ClassTypeUtils.getDescriptorName(type));
+        }
+
+        methodSignature.append(")");
+        String type = testCandidateMetadata.getMainMethod().getReturnValue().getType();
+        methodSignature.append(ClassTypeUtils.getDescriptorName(type));
+
+        return methodSignature.toString();
     }
 
     public static MethodUnderTest fromCandidateSearchQuery(CandidateSearchQuery candidateSearchQuery) {
@@ -43,6 +66,28 @@ public class MethodUnderTest {
                 candidateSearchQuery.getMethodSignature(), 0, candidateSearchQuery.getClassName());
     }
 
+    public static MethodUnderTest fromPsiCallExpression(PsiMethodCallExpression methodCallExpression) {
+        PsiExpression fieldExpression = methodCallExpression.getMethodExpression().getQualifierExpression();
+        PsiReferenceExpression qualifierExpression1 = (PsiReferenceExpression) fieldExpression;
+        PsiField fieldPsiInstance = (PsiField) qualifierExpression1.resolve();
+
+        PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(methodCallExpression);
+        PsiType fieldTypeSubstitutor = ClassTypeUtils.substituteClassRecursively(fieldPsiInstance.getType(),
+                classSubstitutor);
+
+
+        PsiMethod targetMethod = methodCallExpression.resolveMethod();
+        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethod));
+        if (fieldPsiInstance != null && fieldPsiInstance.getType() != null) {
+            methodUnderTest.setClassName(fieldPsiInstance.getType().getCanonicalText());
+        }
+
+        if (fieldTypeSubstitutor != null) {
+            String actualClass = fieldTypeSubstitutor.getCanonicalText();
+            methodUnderTest.setClassName(actualClass);
+        }
+        return methodUnderTest;
+    }
 
     public String getName() {
         return name;

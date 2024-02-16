@@ -2,9 +2,12 @@ package com.insidious.plugin.util;
 
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
+import com.insidious.plugin.adapter.java.JavaParameterAdapter;
+import com.insidious.plugin.mocking.*;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.methodscope.ClassChosenListener;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
 import com.intellij.lang.jvm.JvmMethod;
@@ -22,18 +25,118 @@ import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
+import com.intellij.psi.impl.source.tree.java.*;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.TypeConversionUtil;
 
-import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.intellij.psi.PsiModifier.ABSTRACT;
+import static com.intellij.psi.PsiKeyword.ABSTRACT;
 
 public class ClassUtils {
 
     private static final Logger logger = LoggerUtil.getInstance(ClassUtils.class);
     private static final Map<String, Boolean> classNotFound = new HashMap<>();
+
+    public static DeclaredMock createDefaultMock(PsiMethodCallExpression methodCallExpression) {
+
+
+        PsiMethod destinationMethod = methodCallExpression.resolveMethod();
+
+        MethodUnderTest mut = MethodUnderTest.fromPsiCallExpression(methodCallExpression);
+
+        PsiType returnType = identifyReturnType(methodCallExpression);
+        String returnDummyValue;
+        String methodReturnTypeName;
+        if (returnType != null) {
+            returnDummyValue = ClassUtils.createDummyValue(returnType, new ArrayList<>(),
+                    destinationMethod.getProject());
+            methodReturnTypeName = buildJvmClassName(returnType);
+        } else {
+            methodReturnTypeName = "java.lang.Object";
+            returnDummyValue = "{}";
+        }
+
+        PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
+        if (parentClass == null) {
+            InsidiousNotification.notifyMessage("Failed to identify parent class for the call [" +
+                    methodCallExpression.getText() + "]", NotificationType.ERROR);
+            throw new RuntimeException("Failed to identify parent class for the call [" +
+                    methodCallExpression.getText() + "]");
+        }
+        PsiSubstitutor classSubstitution = getSubstitutorForCallExpression(methodCallExpression);
+
+        List<ParameterMatcher> parameterList = new ArrayList<>();
+        PsiType[] methodParameterTypes = methodCallExpression.getArgumentList().getExpressionTypes();
+        JvmParameter[] jvmParameters = destinationMethod.getParameters();
+
+        for (int i = 0; i < methodParameterTypes.length; i++) {
+            JavaParameterAdapter param = new JavaParameterAdapter(jvmParameters[i]);
+            PsiType parameterType = methodParameterTypes[i];
+
+            if (classSubstitution != null) {
+                parameterType = classSubstitution.substitute(parameterType);
+            }
+
+            String parameterTypeName = parameterType.getCanonicalText();
+            if (parameterType instanceof PsiClassReferenceType) {
+                PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
+                parameterTypeName = classReferenceType.rawType().getCanonicalText();
+            }
+            ParameterMatcher parameterMatcher = new ParameterMatcher(param.getName(),
+                    ParameterMatcherType.ANY_OF_TYPE, parameterTypeName);
+            parameterList.add(parameterMatcher);
+        }
+
+
+        ArrayList<ThenParameter> thenParameterList = new ArrayList<>();
+        thenParameterList.add(createDummyThenParameter(returnDummyValue, methodReturnTypeName));
+        PsiElement callerQualifier = methodCallExpression.getMethodExpression().getQualifier();
+        String fieldName = callerQualifier.getText();
+        PsiElement[] callerQualifierChildren = callerQualifier.getChildren();
+        if (callerQualifierChildren.length > 1) {
+            fieldName = callerQualifierChildren[callerQualifierChildren.length - 1].getText();
+        }
+
+        String expressionText = methodCallExpression.getMethodExpression().getText();
+        return new DeclaredMock(
+                "mock response for call to" + expressionText, mut.getClassName(), parentClass.getQualifiedName(),
+                fieldName, mut.getName(), mut.getMethodHashKey(), parameterList, thenParameterList
+        );
+    }
+
+    public static PsiSubstitutor getSubstitutorForCallExpression(PsiMethodCallExpression methodCallExpression) {
+        PsiReferenceExpression methodExpression = methodCallExpression.getMethodExpression();
+        PsiMethod destinationMethod = (PsiMethod) methodExpression.resolve();
+        PsiExpression fieldReferenceExpression = methodExpression
+                .getQualifierExpression();
+        if (fieldReferenceExpression == null) {
+            // this shouldnt be null
+            throw new RuntimeException("should be not null");
+        }
+
+        PsiElement fieldExpression = fieldReferenceExpression.getReference().resolve();
+        if (!(fieldExpression instanceof PsiField)) {
+            // we shouldn't be mocking this
+            throw new RuntimeException("should be psifield");
+        }
+        PsiField callOnField = (PsiField) fieldExpression;
+        PsiClass containingClass = destinationMethod.getContainingClass();
+        PsiSubstitutor classSubstitutor = null;
+
+        if (callOnField.getType() instanceof PsiClassReferenceType) {
+            classSubstitutor = TypeConversionUtil.getClassSubstitutor(
+                    containingClass, ((PsiClassReferenceType) callOnField.getType()).resolve(), PsiSubstitutor.EMPTY);
+        }
+        return classSubstitutor;
+    }
+
+    public static ThenParameter createDummyThenParameter(String returnDummyValue1, String methodReturnTypeName1) {
+        ReturnValue returnValue = new ReturnValue(returnDummyValue1, methodReturnTypeName1, ReturnValueType.REAL);
+        return new ThenParameter(returnValue, MethodExitType.NORMAL);
+    }
 
     public static String createDummyValue(
             PsiType parameterType,
@@ -44,8 +147,7 @@ public class ClassUtils {
             return "null";
         }
         String parameterTypeCanonicalText =
-                ApplicationManager.getApplication()
-                        .runReadAction((Computable<String>) parameterType::getCanonicalText);
+                parameterType.getCanonicalText();
         if (creationStack.contains(parameterTypeCanonicalText)) {
             return "null";
         }
@@ -81,29 +183,31 @@ public class ClassUtils {
             if (parameterTypeCanonicalText.equals("java.util.Date")) {
                 return String.valueOf(new Date().getTime());
             }
-			if (parameterTypeCanonicalText.equals("java.sql.Timestamp")) {
+            if (parameterTypeCanonicalText.equals("java.sql.Timestamp")) {
                 return String.valueOf(new Date().getTime());
             }
             if (parameterTypeCanonicalText.equals("java.time.Instant")) {
 //                Date date = new Date();
                 return String.valueOf(new Date().getTime() / 1000);
             }
-			if (parameterTypeCanonicalText.equals("org.joda.time.Instant")) {
-				return String.valueOf(new Date().getTime());
-			}
-			if (parameterTypeCanonicalText.equals("org.joda.time.DateTime")) {
-				return String.valueOf(new Date().getTime());
-			}
+            if (parameterTypeCanonicalText.equals("org.joda.time.Instant")) {
+                return String.valueOf(new Date().getTime());
+            }
+            if (parameterTypeCanonicalText.equals("org.joda.time.DateTime")) {
+                return String.valueOf(new Date().getTime());
+            }
+            if (parameterTypeCanonicalText.equals("org.springframework.security.core.GrantedAuthority")) {
+                // SimpleGrantedAuthority
+                return "\"USER\"";
+            }
 
             if (parameterType instanceof PsiClassType) {
                 PsiClassType classReferenceType = (PsiClassType) parameterType;
                 PsiClassType psiClassRawType =
-                        ApplicationManager.getApplication()
-                                .runReadAction((Computable<PsiClassType>) classReferenceType::rawType);
+                        classReferenceType.rawType();
 
                 String rawTypeCanonicalText =
-                        ApplicationManager.getApplication()
-                                .runReadAction((Computable<String>) psiClassRawType::getCanonicalText);
+                        psiClassRawType.getCanonicalText();
                 if (
                         rawTypeCanonicalText.equals("java.util.List") ||
                                 rawTypeCanonicalText.equals("java.util.ArrayList") ||
@@ -114,10 +218,9 @@ public class ClassUtils {
                 ) {
                     dummyValue.append("[");
                     PsiType type =
-                            ApplicationManager.getApplication().runReadAction((Computable<PsiType>) () ->
-                                    classReferenceType.getParameters().length > 0 ?
-                                            classReferenceType.getParameters()[0] : PsiType.getTypeByName("java.lang" +
-                                            ".Object", project, GlobalSearchScope.allScope(project)));
+                            classReferenceType.getParameters().length > 0 ?
+                                    classReferenceType.getParameters()[0] : PsiType.getTypeByName("java.lang" +
+                                    ".Object", project, GlobalSearchScope.allScope(project));
                     dummyValue.append(createDummyValue(type, creationStack, project));
                     dummyValue.append("]");
                     return dummyValue.toString();
@@ -140,12 +243,11 @@ public class ClassUtils {
                         // key for a map is always string in json
                         // objectMapper cannot probably reconstruct this back
                         //
-						if (classReferenceType.getParameters()[0].toString().equals("PsiType:Integer")) {
-							dummyValue.append("\"0\"");
-						}
-						else {
-							dummyValue.append("\"keyFromClass" + classReferenceType.getName() + "\"");
-						}
+                        if (classReferenceType.getParameters()[0].toString().equals("PsiType:Integer")) {
+                            dummyValue.append("\"0\"");
+                        } else {
+                            dummyValue.append("\"keyFromClass" + classReferenceType.getName() + "\"");
+                        }
                         dummyValue.append(": ");
                         dummyValue.append(
                                 createDummyValue(classReferenceType.getParameters()[1], creationStack, project));
@@ -179,10 +281,9 @@ public class ClassUtils {
                 }
 
                 PsiClass resolvedClass =
-                        ApplicationManager.getApplication().runReadAction((Computable<PsiClass>) () ->
-                                JavaPsiFacade.getInstance(project)
-                                        .findClass(classReferenceType.getCanonicalText(),
-                                                GlobalSearchScope.allScope(project)));
+                        JavaPsiFacade.getInstance(project)
+                                .findClass(classReferenceType.getCanonicalText(),
+                                        GlobalSearchScope.allScope(project));
 
                 if (resolvedClass == null) {
                     // class not resolved
@@ -198,23 +299,17 @@ public class ClassUtils {
                     return "\"" + enumValues[0].getName() + "\"";
                 }
 
-                PsiField[] parameterObjectFieldList =
-                        ApplicationManager.getApplication()
-                                .runReadAction((Computable<PsiField[]>) () -> resolvedClass.getAllFields());
+                PsiField[] parameterObjectFieldList = resolvedClass.getAllFields();
 
                 StringBuilder dummyInternalObjValue = new StringBuilder();
                 if (creationStack.size() < 10) {
                     boolean firstField = true;
                     for (PsiField psiField : parameterObjectFieldList) {
-                        String name =
-                                ApplicationManager.getApplication()
-                                        .runReadAction((Computable<String>) () -> psiField.getName());
+                        String name = psiField.getName();
                         if (name.equals("serialVersionUID")) {
                             continue;
                         }
-                        boolean hasModifier =
-                                ApplicationManager.getApplication().runReadAction(
-                                        (Computable<Boolean>) () -> psiField.hasModifier(JvmModifier.STATIC));
+                        boolean hasModifier = psiField.hasModifier(JvmModifier.STATIC);
                         if (hasModifier) {
                             continue;
                         }
@@ -224,14 +319,11 @@ public class ClassUtils {
 
                         dummyInternalObjValue.append("\"");
                         String fieldName =
-                                ApplicationManager.getApplication()
-                                        .runReadAction((Computable<String>) () -> psiField.getName());
+                                psiField.getName();
                         dummyInternalObjValue.append(fieldName);
                         dummyInternalObjValue.append("\"");
                         dummyInternalObjValue.append(": ");
-                        PsiType type =
-                                ApplicationManager.getApplication()
-                                        .runReadAction((Computable<PsiType>) () -> psiField.getType());
+                        PsiType type = psiField.getType();
                         dummyInternalObjValue.append(createDummyValue(type, creationStack, project));
                         firstField = false;
                     }
@@ -324,24 +416,30 @@ public class ClassUtils {
             classChosenListener.classSelected(classUnderTest);
             return;
         }
-        JBPopup implementationChooserPopup = JBPopupFactory
-                .getInstance()
-                .createPopupChooserBuilder(implementationOptions.stream()
-                        .map(PsiClass::getQualifiedName)
-                        .sorted()
-                        .collect(Collectors.toList()))
-                .setTitle("Run using implementation for " + psiClass.getName())
-                .setItemChosenCallback(psiElementName -> {
-                    Arrays.stream(implementations)
-                            .filter(e -> Objects.equals(((PsiClass) e).getQualifiedName(), psiElementName))
-                            .findFirst().ifPresent(e -> {
-                                classChosenListener.classSelected(
-                                        new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) e)));
-                            });
-                })
-                .createPopup();
         if (showUI) {
+            JBPopup implementationChooserPopup = JBPopupFactory
+                    .getInstance()
+                    .createPopupChooserBuilder(implementationOptions.stream()
+                            .map(PsiClass::getQualifiedName)
+                            .sorted()
+                            .collect(Collectors.toList()))
+                    .setTitle("Run using implementation for " + psiClass.getName())
+                    .setItemChosenCallback(psiElementName -> {
+                        Arrays.stream(implementations)
+                                .filter(e -> Objects.equals(((PsiClass) e).getQualifiedName(), psiElementName))
+                                .findFirst().ifPresent(e -> {
+                                    classChosenListener.classSelected(
+                                            new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) e)));
+                                });
+                    })
+                    .createPopup();
             implementationChooserPopup.showInFocusCenter();
+        } else {
+            ClassUnderTest classUnderTest =
+                    ApplicationManager.getApplication().runReadAction(
+                            (Computable<ClassUnderTest>) () -> new ClassUnderTest(
+                                    JvmClassUtil.getJvmClassName(implementationOptions.get(0))));
+            classChosenListener.classSelected(classUnderTest);
         }
 
     }
@@ -398,14 +496,14 @@ public class ClassUtils {
         return className;
     }
 
-    public static void resolveTemplatesInCall(MethodCallExpression methodCallExpression, Project project) {
+    public static MethodCallExpression resolveTemplatesInCall(MethodCallExpression methodCallExpression, Project project) {
         Parameter callSubject = methodCallExpression.getSubject();
         String subjectType = callSubject.getType();
         if (subjectType.length() == 1) {
-            return;
+            return methodCallExpression;
         }
         if (classNotFound.containsKey(subjectType)) {
-            return;
+            return methodCallExpression;
         }
 
         PsiClass classPsiInstance = null;
@@ -425,15 +523,20 @@ public class ClassUtils {
             // cant do much here
             classNotFound.put(subjectType, true);
             logger.warn("Class not found in source code for resolving generic template: " + subjectType);
-            return;
+            return methodCallExpression;
+        }
+
+        String methodName = methodCallExpression.getMethodName();
+        if (methodName.startsWith("lambda$")) {
+            methodName = methodName.split("\\$")[1];
         }
 
         JvmMethod[] methodPsiInstanceList =
-                classPsiInstance.findMethodsByName(methodCallExpression.getMethodName());
+                classPsiInstance.findMethodsByName(methodName, true);
         if (methodPsiInstanceList.length == 0) {
             logger.warn(
-                    "[2] did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
-            return;
+                    "[2] did not find a matching method in source code: " + subjectType + "." + methodName);
+            return methodCallExpression;
         }
 
         List<Parameter> methodArguments = methodCallExpression.getArguments();
@@ -558,10 +661,11 @@ public class ClassUtils {
                 }
             }
         }
+        return methodCallExpression;
     }
 
     public static void
-    extractTemplateMap(PsiClassReferenceType classReferenceType, List<Parameter> templateMap) {
+    extractTemplateMap(PsiClassType classReferenceType, List<Parameter> templateMap) {
         char templateChar = 'D';
         boolean hasGenericTemplate = false;
         PsiType[] typeTemplateParameters = classReferenceType.getParameters();
@@ -607,6 +711,111 @@ public class ClassUtils {
         if (hasGenericTemplate) {
             templateMap.clear();
         }
+    }
+
+    public static PsiType identifyReturnType(PsiExpression methodCallExpression) {
+        PsiType returnType = null;
+
+        if (methodCallExpression.getParent() instanceof PsiConditionalExpressionImpl) {
+            return identifyReturnType((PsiConditionalExpressionImpl) methodCallExpression.getParent());
+        } else if (methodCallExpression.getParent() instanceof PsiLocalVariableImpl
+                && methodCallExpression.getParent().getParent() instanceof PsiDeclarationStatementImpl) {
+            // this is an assignment and we can probably get a better return type from the variable type which
+            // this is being assigned to
+            returnType = ((PsiLocalVariableImpl) methodCallExpression.getParent()).getType();
+        } else if (methodCallExpression.getParent() instanceof PsiAssignmentExpressionImpl
+                && methodCallExpression.getParent().getParent() instanceof PsiExpressionStatement) {
+            // this is an assignment and we can probably get a better return type from the variable type which
+            // this is being assigned to
+            returnType = ((PsiAssignmentExpressionImpl) methodCallExpression.getParent()).getType();
+        } else if (methodCallExpression.getParent() instanceof PsiExpressionListImpl
+                && methodCallExpression.getParent().getParent() instanceof PsiMethodCallExpressionImpl) {
+            // the return value is being passed to another method as a parameter
+            PsiExpressionListImpl expressionList = (PsiExpressionListImpl) methodCallExpression.getParent();
+            PsiType[] expressionTypes = expressionList.getExpressionTypes();
+            PsiExpression[] allExpressions = expressionList.getExpressions();
+            // identify the return value is which index
+            int i = 0;
+            for (PsiExpression expression : allExpressions) {
+                if (expression == methodCallExpression) {
+                    break;
+                }
+                i++;
+            }
+
+            if (i < expressionTypes.length) {
+                returnType = expressionTypes[i];
+            }
+
+            PsiMethodCallExpression parentCall = PsiTreeUtil.getParentOfType(expressionList,
+                    PsiMethodCallExpression.class);
+            if (parentCall != null && methodCallExpression instanceof PsiMethodCallExpression && parentCall.resolveMethod() != null) {
+                PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(
+                        (PsiMethodCallExpression) methodCallExpression);
+                returnType = ClassTypeUtils.substituteClassRecursively(returnType, classSubstitutor);
+            }
+        } else if (methodCallExpression.getParent() instanceof PsiReturnStatementImpl) {
+            // value is being returned, so we can use the return type of the method which contains this call
+            PsiMethod parentMethod = PsiTreeUtil.getParentOfType(methodCallExpression, PsiMethod.class);
+            if (parentMethod != null && parentMethod.getReturnType() != null) {
+                returnType = parentMethod.getReturnType();
+                PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
+                PsiClass containingClass = parentMethod.getContainingClass();
+                if (containingClass != null && parentOfType != null) {
+                    PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(
+                            (PsiMethodCallExpression) methodCallExpression);
+                    returnType = ClassTypeUtils.substituteClassRecursively(returnType, classSubstitutor);
+                }
+            }
+        } else if (methodCallExpression instanceof PsiMethodCallExpression) {
+            PsiMethod psiMethod = ((PsiMethodCallExpression) methodCallExpression).resolveMethod();
+            if (psiMethod != null) {
+
+                returnType = psiMethod.getReturnType();
+                PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(
+                        (PsiMethodCallExpression) methodCallExpression);
+                returnType = ClassTypeUtils.substituteClassRecursively(returnType, classSubstitutor);
+            }
+        }
+
+        return returnType;
+    }
+
+    private static String buildJvmClassName(PsiType returnType) {
+        if (returnType == null) {
+            return "java.lang.Object";
+        }
+
+        if (!(returnType instanceof PsiClassReferenceType)) {
+            return returnType.getCanonicalText();
+        }
+        PsiClassReferenceType classReferenceType = (PsiClassReferenceType) returnType;
+        if (classReferenceType.resolve() == null) {
+            return "java.lang.Object";
+        }
+
+        String jvmClassName1 = JvmClassUtil.getJvmClassName(classReferenceType.resolve());
+        if (jvmClassName1 == null) {
+            jvmClassName1 = "java.lang.Object";
+        }
+        StringBuilder jvmClassName =
+                new StringBuilder(jvmClassName1);
+
+        int paramCount = classReferenceType.getParameterCount();
+        if (paramCount > 0) {
+            jvmClassName.append("<");
+
+            PsiType[] parameterArray = classReferenceType.getParameters();
+            for (int i = 0; i <= paramCount - 1; i++) {
+                jvmClassName.append(buildJvmClassName(parameterArray[i]));
+                if (i != paramCount - 1) {
+                    jvmClassName.append(",");
+                }
+            }
+            jvmClassName.append(">");
+        }
+
+        return jvmClassName.toString();
     }
 
 }

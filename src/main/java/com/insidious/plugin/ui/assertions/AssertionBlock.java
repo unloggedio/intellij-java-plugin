@@ -38,9 +38,9 @@ public class AssertionBlock implements AssertionBlockManager {
         BoxLayout boxLayout = new BoxLayout(contentPanel, BoxLayout.Y_AXIS);
         contentPanel.setLayout(boxLayout);
 
-        if (!isRootCondition) {
-            topAligner.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
-        }
+//        if (!isRootCondition) {
+//            topAligner.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+//        }
 
         assertionBlockControlPanel = new AssertionBlockControlPanel(this, assertion, isRootCondition);
 
@@ -60,10 +60,11 @@ public class AssertionBlock implements AssertionBlockManager {
                 }
             }
         }
+        controlPanel.setVisible(false);
 
     }
 
-    public JPanel getMainPanel() {
+    public JPanel getContent() {
         return this.mainPanel;
     }
 
@@ -102,7 +103,7 @@ public class AssertionBlock implements AssertionBlockManager {
     private void addGroup(AtomicAssertion newSubGroup) {
         AssertionBlock newBlock = new AssertionBlock(newSubGroup, this, false);
         assertionGroups.add(newBlock);
-        contentPanel.add(newBlock.getMainPanel());
+        contentPanel.add(newBlock.getContent());
         contentPanel.revalidate();
     }
 
@@ -113,12 +114,8 @@ public class AssertionBlock implements AssertionBlockManager {
 
         if (result) {
             topAligner.setBackground(UIUtils.ASSERTION_PASSING_COLOR);
-//            topAligner.setBorder(new LineBorder(AtomicAssertionConstants.PASSING_COLOR));
-//            mainPanel.setBackground(AtomicAssertionConstants.PASSING_COLOR);
         } else {
-//            topAligner.setBorder(new LineBorder(AtomicAssertionConstants.FAILING_COLOR));
             topAligner.setBackground(UIUtils.ASSERTION_FAILING_COLOR);
-//            mainPanel.setBackground(AtomicAssertionConstants.FAILING_COLOR);
         }
 
         return thisResult;
@@ -154,7 +151,7 @@ public class AssertionBlock implements AssertionBlockManager {
             if (assertionBlock.equals(block)) {
                 assertionGroups.remove(block);
                 assertion.getSubAssertions().remove(block.getAssertion());
-                contentPanel.remove(block.getMainPanel());
+                contentPanel.remove(block.getContent());
                 contentPanel.revalidate();
                 executeAssertion(assertion);
                 break;

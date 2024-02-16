@@ -6,23 +6,37 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
-import com.intellij.psi.PsiClassType;
-import com.intellij.psi.PsiSubstitutor;
-import com.intellij.psi.PsiType;
+import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.Parameter;
+import com.intellij.lang.jvm.JvmParameter;
+import com.intellij.lang.jvm.types.JvmType;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.util.Pair;
+import com.intellij.psi.*;
+import com.intellij.psi.impl.InheritanceImplUtil;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
+import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.util.ArrayUtil;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ClassTypeUtils {
 
     private static final JavaParser javaParser = new JavaParser(new ParserConfiguration());
+    private static final Logger logger = LoggerUtil.getInstance(ClassTypeUtils.class);
 
     public static String upperInstanceName(String methodName) {
         return methodName.substring(0, 1)
@@ -30,14 +44,42 @@ public class ClassTypeUtils {
     }
 
     public static PsiType substituteClassRecursively(PsiType typeToBeSubstituted, PsiSubstitutor classSubstitutor) {
-        if (classSubstitutor == null) {
+        if (typeToBeSubstituted == null || classSubstitutor == null || typeToBeSubstituted instanceof PsiPrimitiveType) {
             return typeToBeSubstituted;
+        }
+        if (typeToBeSubstituted instanceof PsiClassReferenceType) {
+            PsiClassReferenceType classRef = (PsiClassReferenceType) typeToBeSubstituted;
+            if (classRef.getCanonicalText().contains(".")) {
+                boolean hasTemplate = false;
+                if (classRef.hasNonTrivialParameters()) {
+                    for (PsiType parameter : classRef.getParameters()) {
+                        if (!parameter.getCanonicalText().contains(".")) {
+                            hasTemplate = true;
+                            break;
+                        }
+                    }
+
+                }
+                if (!hasTemplate) {
+                    return typeToBeSubstituted;
+                }
+            }
+            PsiClass resolvedClass = classRef.resolve();
         }
         PsiType fieldTypeSubstitutor = classSubstitutor.substitute(typeToBeSubstituted);
         if (fieldTypeSubstitutor.getCanonicalText().equals(typeToBeSubstituted.getCanonicalText())) {
-            PsiClassType[] checkSuperTypes = ((PsiClassReferenceType) typeToBeSubstituted).resolve()
-                    .getExtendsListTypes();
-            for (PsiClassType checkSuperType : checkSuperTypes) {
+
+            PsiType[] checkSuperTypes = typeToBeSubstituted.getSuperTypes();
+            if (typeToBeSubstituted instanceof PsiClassReferenceType) {
+                PsiClassReferenceType typeToBeSubstituted1 = (PsiClassReferenceType) typeToBeSubstituted;
+                checkSuperTypes = typeToBeSubstituted1.resolve().getExtendsListTypes();
+            }
+            if (typeToBeSubstituted instanceof PsiClassType) {
+                checkSuperTypes = ((PsiClassType) typeToBeSubstituted).resolve().getExtendsListTypes();
+            }
+
+
+            for (PsiType checkSuperType : checkSuperTypes) {
                 PsiType possibleType = classSubstitutor.substitute(checkSuperType);
                 if (!possibleType.getCanonicalText().equals(typeToBeSubstituted.getCanonicalText())) {
                     fieldTypeSubstitutor = possibleType;
@@ -92,7 +134,7 @@ public class ClassTypeUtils {
             return null;
         }
         String lastPart = ClassTypeUtils.getDottedClassName(typeNameRaw);
-        lastPart = lastPart.substring(lastPart.lastIndexOf(".") + 1);
+        lastPart = getSimpleClassName(lastPart);
         if (lastPart.length() < 2) {
             return lastPart.toLowerCase();
         }
@@ -117,8 +159,11 @@ public class ClassTypeUtils {
 
 
     public static String getDescriptorName(String className) {
-        if (className.contains("$")) {
-            className = className.substring(0, className.indexOf('$'));
+        if (className == null) {
+            return "V";
+        }
+        if (className.length() < 2) {
+            return className;
         }
         return "L" + className.replace('.', '/') + ";";
     }
@@ -214,7 +259,7 @@ public class ClassTypeUtils {
             } catch (Exception exception) {
                 // java poet failed to create class name from string
                 String packageName = typeName.substring(0, typeName.lastIndexOf("."));
-                String simpleName = typeName.substring(typeName.lastIndexOf(".") + 1);
+                String simpleName = getSimpleClassName(typeName);
                 return ClassName.get(packageName, simpleName);
             }
             return returnValueSquareClass;
@@ -227,6 +272,13 @@ public class ClassTypeUtils {
         }
 
         return returnParamType;
+    }
+
+    public static String getSimpleClassName(String typeName) {
+        if (!typeName.contains(".")) {
+            return typeName;
+        }
+        return typeName.substring(typeName.lastIndexOf(".") + 1);
     }
 
     public static TypeName createTypeFromTypeDeclaration(String templateParameterType) {
@@ -367,4 +419,229 @@ public class ClassTypeUtils {
 
     }
 
+    public static PsiMethod getPsiMethod(MethodCallExpression methodCallExpression, Project project) {
+        String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
+        PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
+                GlobalSearchScope.allScope(project));
+
+        String methodName = methodCallExpression.getMethodName();
+        boolean isLambda = false;
+        if (methodName.startsWith("lambda$")) {
+            methodName = methodName.split("\\$")[1];
+            isLambda = true;
+        }
+        List<Pair<PsiMethod, PsiSubstitutor>> methodsByNameList = classPsiElement.findMethodsAndTheirSubstitutorsByName(
+                methodName, true);
+
+        if (methodsByNameList.size() == 1 && isLambda) {
+            // should we verify parameters ?
+            return methodsByNameList.get(0).getFirst();
+        }
+
+        for (Pair<PsiMethod, PsiSubstitutor> jvmMethodPair : methodsByNameList) {
+
+            List<Parameter> expectedArguments = methodCallExpression.getArguments();
+            PsiMethod jvmMethod = jvmMethodPair.getFirst();
+            JvmParameter[] actualArguments = jvmMethod.getParameters();
+
+            if (expectedArguments.size() == actualArguments.length) {
+
+                boolean mismatch = false;
+                for (int i = 0; i < expectedArguments.size(); i++) {
+                    Parameter expectedArgument = expectedArguments.get(i);
+                    JvmParameter actualArgument = actualArguments[i];
+                    JvmType actualArgumentType = actualArgument.getType();
+                    if (actualArgumentType instanceof PsiType) {
+                        String expectedArgumentType = expectedArgument.getType();
+                        TypeName typeInstance = ClassTypeUtils.createTypeFromNameString(expectedArgumentType);
+                        String actualTypeCanonicalName = ((PsiType) actualArgumentType).getCanonicalText();
+                        if (actualTypeCanonicalName.contains("...")) {
+                            actualTypeCanonicalName = actualTypeCanonicalName.replace("...", "[]");
+                        }
+                        TypeName expectedTypeName = constructClassName(expectedArgumentType);
+                        PsiClass expectedTypePsiClass = JavaPsiFacade.getInstance(
+                                project).findClass(expectedTypeName.toString(),
+                                GlobalSearchScope.allScope(project));
+                        PsiClassType expectedType = PsiType.getTypeByName(expectedArgumentType,
+                                project, GlobalSearchScope.allScope(project));
+                        boolean isNotOkay = !actualTypeCanonicalName.contains(expectedTypeName.toString())
+                                && !((PsiType) actualArgumentType).isAssignableFrom(expectedType);
+                        if (isNotOkay) {
+
+                            // TODO FIXME RIGHTNOW
+                            PsiClass expectedClassPsi = ApplicationManager.getApplication().runReadAction(
+                                    (Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
+                                            .findClass(typeInstance.toString(),
+                                                    GlobalSearchScope.allScope(project)));
+
+                            if (expectedClassPsi != null) {
+                                if (actualArgumentType instanceof PsiClassReferenceType) {
+                                    boolean ok = InheritanceImplUtil.isInheritor(
+                                            ((PsiClassReferenceType) actualArgumentType).resolve(),
+                                            expectedClassPsi, true);
+                                    if (ok) {
+                                        return (PsiMethod) jvmMethod.getSourceElement();
+                                    }
+                                } else if (actualArgumentType instanceof PsiClass) {
+                                    boolean ok = InheritanceImplUtil.isInheritor(((PsiClass) actualArgumentType),
+                                            expectedClassPsi, true);
+                                    if (ok) {
+                                        return (PsiMethod) jvmMethod.getSourceElement();
+                                    }
+                                }
+
+                            }
+
+
+                            mismatch = true;
+                            break;
+                        }
+                    }
+
+                }
+                if (mismatch) {
+                    continue;
+                }
+
+                return (PsiMethod) jvmMethod.getSourceElement();
+
+
+            }
+
+        }
+        return null;
+    }
+
+    // method call expressions are in the form
+    // <optional qualifier>.<method reference name>( < arguments list > )
+    public static boolean isNonStaticDependencyCall(PsiMethodCallExpression methodCall) {
+        final PsiExpression qualifier = methodCall.getMethodExpression().getQualifierExpression();
+        if (!(qualifier instanceof PsiReferenceExpression) ||
+                !(((PsiReferenceExpression) qualifier).resolve() instanceof PsiField)) {
+            return false;
+        }
+
+        PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCall, PsiClass.class);
+        if (parentClass == null) {
+            logger.warn("parent class is null [" + methodCall.getText() + " ]");
+            return false;
+        }
+        String expressionParentClass = parentClass.getQualifiedName();
+
+        PsiClass fieldParentPsiClass = (PsiClass) ((PsiReferenceExpression) qualifier).resolve()
+                .getParent();
+        String fieldParentClass = fieldParentPsiClass.getQualifiedName();
+        if (!Objects.equals(fieldParentClass, expressionParentClass) &&
+                !IsImplementedBy(fieldParentPsiClass, parentClass)) {
+            // this field belongs to some other class
+            return false;
+        }
+
+        // not mocking static calls for now
+        PsiMethod targetMethod = (PsiMethod) methodCall.getMethodExpression().getReference().resolve();
+        if (targetMethod == null) {
+            logger.warn("Failed to resolve target method call: " + methodCall.getText());
+            return false;
+        }
+        PsiModifierList modifierList = targetMethod.getModifierList();
+        if (modifierList.hasModifierProperty(PsiModifier.STATIC)) {
+            return false;
+        }
+
+        return true;
+
+    }
+
+    // method call expressions are in the form
+    // <optional qualifier>.<method reference name>( < arguments list > )
+    public static boolean isNonStaticDependencyCall(PsiMethod targetMethod) {
+
+        // not mocking static calls for now
+        if (targetMethod == null) {
+            logger.warn("Failed to resolve target method call: " + targetMethod.getText());
+            return false;
+        }
+        PsiModifierList modifierList = targetMethod.getModifierList();
+        if (modifierList.hasModifierProperty(PsiModifier.STATIC)) {
+            return false;
+        }
+
+        return true;
+
+    }
+
+    public static boolean isNonStaticDependencyCall(PsiMethodReferenceExpression methodCall) {
+        final PsiExpression qualifier = methodCall.getQualifierExpression();
+        if (!(qualifier instanceof PsiReferenceExpression) ||
+                !(((PsiReferenceExpression) qualifier).resolve() instanceof PsiField)) {
+            return false;
+        }
+
+        PsiClass parentClass = PsiTreeUtil.getParentOfType(methodCall, PsiClass.class);
+        if (parentClass == null) {
+            logger.warn("parent class is null [" + methodCall.getText() + " ]");
+            return false;
+        }
+        String expressionParentClass = parentClass.getQualifiedName();
+
+        PsiClass fieldParentPsiClass = (PsiClass) ((PsiReferenceExpression) qualifier).resolve()
+                .getParent();
+        String fieldParentClass = fieldParentPsiClass.getQualifiedName();
+        if (!Objects.equals(fieldParentClass, expressionParentClass) &&
+                !IsImplementedBy(fieldParentPsiClass, parentClass)) {
+            // this field belongs to some other class
+            return false;
+        }
+
+        // not mocking static calls for now
+        PsiMethod targetMethod = (PsiMethod) methodCall.getReference().resolve();
+        if (targetMethod == null) {
+            logger.warn("Failed to resolve target method call: " + methodCall.getText());
+            return false;
+        }
+        PsiModifierList modifierList = targetMethod.getModifierList();
+        if (modifierList.hasModifierProperty(PsiModifier.STATIC)) {
+            return false;
+        }
+
+        return true;
+
+    }
+
+    private static boolean IsImplementedBy(PsiClass topClass, PsiClass bottomClass) {
+        if (bottomClass == null || bottomClass.getQualifiedName() == null) {
+            return false;
+        }
+        if (bottomClass.getQualifiedName().equals(topClass.getQualifiedName())) {
+            return true;
+        }
+        if (bottomClass.getImplementsList() != null) {
+            for (PsiClassType referencedType : bottomClass.getImplementsList().getReferencedTypes()) {
+                if (IsImplementedBy(topClass, referencedType.resolve())) {
+                    return true;
+                }
+            }
+        }
+
+        return IsImplementedBy(topClass, bottomClass.getSuperClass());
+    }
+
+    public static <T extends PsiElement> T[] getChildrenOfTypeRecursive(PsiElement element, Class<T> aClass) {
+        if (element == null) return null;
+        List<T> result = getChildrenOfTypeAsListRecursive(element, aClass);
+        return result.isEmpty() ? null : ArrayUtil.toObjectArray(result, aClass);
+    }
+
+    public static <T extends PsiElement> List<T> getChildrenOfTypeAsListRecursive(PsiElement element, Class<? extends T> aClass) {
+        List<T> result = new ArrayList<>();
+        if (element != null) {
+            for (PsiElement child = element.getFirstChild(); child != null; child = child.getNextSibling()) {
+                if (aClass.isInstance(child)) {
+                    result.add(aClass.cast(child));
+                }
+                result.addAll(getChildrenOfTypeAsListRecursive(child, aClass));
+            }
+        }
+        return result;
+    }
 }

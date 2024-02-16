@@ -5,7 +5,6 @@ import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -20,6 +19,7 @@ public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> 
     private long entryProbeIndex;
     private long exitProbeIndex;
     private List<Integer> lineNumbers = new ArrayList<>();
+    private long createdAt;
 
     public TestCandidateMetadata(TestCandidateMetadata original) {
 
@@ -29,12 +29,13 @@ public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> 
         methodCallExpressions = original.methodCallExpressions
                 .stream().map(MethodCallExpression::new)
                 .collect(Collectors.toList());
-        fields = (VariableContainer) original.fields.clone();
+        fields = original.fields.clone();
         mainMethod = new MethodCallExpression(original.mainMethod);
         testSubject = new Parameter(original.testSubject);
         callTimeNanoSecond = original.callTimeNanoSecond;
         entryProbeIndex = original.entryProbeIndex;
         exitProbeIndex = original.exitProbeIndex;
+        createdAt = original.createdAt;
         lineNumbers = new ArrayList<>(original.lineNumbers);
     }
 
@@ -151,11 +152,19 @@ public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> 
     }
 
     @Override
-    public int compareTo( TestCandidateMetadata o) {
+    public int compareTo(TestCandidateMetadata o) {
         return Long.compare(this.entryProbeIndex, o.entryProbeIndex);
     }
 
     public void setLines(List<Integer> lineNumbers) {
         this.lineNumbers = lineNumbers;
+    }
+
+    public void setCreatedAt(long createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public long getCreatedAt() {
+        return createdAt;
     }
 }

@@ -1,9 +1,14 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.ui.library.LibraryFilterState;
+import com.insidious.plugin.ui.stomp.FilterModel;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.xmlb.XmlSerializerUtil;
+import com.intellij.util.xmlb.annotations.OptionTag;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,12 +22,30 @@ import java.util.Map;
         name = "com.insidious.plugin.factory.InsidiousConfigurationState",
         storages = @Storage("InsidiousPlugin.xml")
 )
-public class InsidiousConfigurationState implements PersistentStateComponent<InsidiousConfigurationState> {
+public class InsidiousConfigurationState
+        implements PersistentStateComponent<InsidiousConfigurationState> {
 
-    private Map<String, Boolean> classFieldMockActiveStatus = new HashMap<>();
-    private Map<String, Boolean> mockActiveStatus = new HashMap<>();
+    private static final Logger logger = LoggerUtil.getInstance(InsidiousConfigurationState.class);
+    private final Map<String, Boolean> classFieldMockActiveStatus = new HashMap<>();
+    private final Map<String, Boolean> mockActiveStatus = new HashMap<>();
+    @OptionTag(converter = LibraryFilterModelConverter.class)
+    private final LibraryFilterState libraryFilterModel = new LibraryFilterState();
+    @OptionTag(converter = FilterModelConverter.class)
+    private FilterModel filterModel = new FilterModel();
+
 
     public InsidiousConfigurationState() {
+    }
+
+    public LibraryFilterState getLibraryFilterModel() {
+        return libraryFilterModel;
+    }
+
+    public FilterModel getFilterModel() {
+        if (filterModel == null) {
+            filterModel = new FilterModel();
+        }
+        return filterModel;
     }
 
     @Override
@@ -34,7 +57,6 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
     public void loadState(InsidiousConfigurationState state) {
         XmlSerializerUtil.copyBean(state, this);
     }
-
 
     public void removeMock(String id) {
         mockActiveStatus.remove(id);
@@ -56,26 +78,9 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
         classFieldMockActiveStatus.put(key, true);
     }
 
-    public Map<String, Boolean> getClassFieldMockActiveStatus() {
-        return classFieldMockActiveStatus;
-    }
-
-    public void setClassFieldMockActiveStatus(Map<String, Boolean> classFieldMockActiveStatus) {
-        this.classFieldMockActiveStatus = classFieldMockActiveStatus;
-    }
-
-    public Map<String, Boolean> getMockActiveStatus() {
-        return mockActiveStatus;
-    }
-
-    public void setMockActiveStatus(Map<String, Boolean> mockActiveStatus) {
-        this.mockActiveStatus = mockActiveStatus;
-    }
-
     public boolean isFieldMockActive(String key) {
         return classFieldMockActiveStatus.containsKey(key);
     }
-
 
     public boolean hasShownFeatures() {
         return classFieldMockActiveStatus.containsKey("hasShownFeatures");

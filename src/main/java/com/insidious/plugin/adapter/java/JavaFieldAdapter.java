@@ -29,4 +29,9 @@ public class JavaFieldAdapter implements FieldAdapter {
     public PsiType getType() {
         return ApplicationManager.getApplication().runReadAction((Computable<PsiType>) psiField::getType);
     }
+
+    @Override
+    public PsiField getPsiField() {
+        return psiField;
+    }
 }

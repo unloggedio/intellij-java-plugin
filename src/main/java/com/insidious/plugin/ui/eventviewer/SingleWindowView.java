@@ -15,13 +15,13 @@ public class SingleWindowView {
     private final Project project;
     private final InsidiousService insidiousService;
     private final GridConstraints constraints;
+    private final EventLogWindow eventViewer;
     private JButton refreshButton;
     private JPanel mainPanel;
     private JPanel filterPanel;
     private JPanel eventViewerPanel;
-    private final EventLogWindow eventViewer;
 
-    public SingleWindowView(Project project, InsidiousService insidiousService) {
+    public SingleWindowView(Project project) {
 
         this.project = project;
 
@@ -33,17 +33,17 @@ public class SingleWindowView {
                 e1.printStackTrace();
             }
         });
-        this.insidiousService = insidiousService;
+        insidiousService = project.getService(InsidiousService.class);
         constraints = new GridConstraints();
         constraints.setFill(GridConstraints.FILL_BOTH);
 
-        eventViewer = new EventLogWindow(insidiousService);
+        eventViewer = new EventLogWindow(insidiousService.getProject(), insidiousService.getClient());
         eventViewerPanel.add(eventViewer.getContent(), constraints);
 
     }
 
     public void generateAllTestCandidateCases() throws Exception {
-        TestCaseUtils.generateAllTestCandidateCases(insidiousService);
+        TestCaseUtils.generateAllTestCandidateCases(insidiousService, insidiousService.getClient());
     }
 
     public JComponent getContent() {

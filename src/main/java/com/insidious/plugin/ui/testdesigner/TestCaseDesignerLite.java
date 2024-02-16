@@ -57,6 +57,7 @@ import com.intellij.psi.impl.source.tree.java.PsiJavaTokenImpl;
 import com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl;
 import com.intellij.psi.impl.source.tree.java.PsiThisExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.util.FileContentUtil;
 import org.json.JSONObject;
@@ -64,53 +65,48 @@ import org.objectweb.asm.Opcodes;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class TestCaseDesignerLite {
+    private static final Logger logger = LoggerUtil.getInstance(TestCaseDesignerLite.class);
+    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
+    private final LightVirtualFile testCaseScriptFile;
+    private final MethodAdapter methodAdapter;
+    private final Project project;
+    Random random = new Random(new Date().getTime());
     private JPanel mainPanel;
     private JPanel configurationPanel;
-    private JPanel saveDetailsPanel;
-    private JPanel leftOptions;
-    private JPanel rightOptions;
     private JPanel bottomControlPanel;
     private JTextField saveLocationTextField;
-    private JButton closeButton;
     private JButton saveTestCaseButton;
-    private JPanel addFieldMocksConfigPanel;
     private JCheckBox addFieldMocksCheckBox;
-    private JPanel useMockitoConfigPanel;
     private JCheckBox useMockitoAnnotationsMockCheckBox;
-    private JPanel mockitoOptions;
+    private JComboBox<TestFramework> testFrameworkComboBox;
+    private JComboBox<MockFramework> mockFrameworkComboBox;
+    private JComboBox<JsonFramework> jsonFrameworkComboBox;
+    private JComboBox<ResourceEmbedMode> resourceEmberModeComboBox;
+    private JButton createButton;
     private JPanel testFrameWorkPanel;
     private JLabel testFrameworkLabel;
-    private JComboBox testFrameworkComboBox;
     private JPanel mockFrameworkPanel;
     private JLabel mockFrameworkLabel;
-    private JComboBox mockFrameworkComboBox;
     private JPanel jsonFrameworkChoicePanel;
-    private JComboBox jsonFrameworkComboBox;
     private JPanel resourceEmbedModeChoicePanel;
-    private JComboBox resourceEmberModeComboBox;
-    private JPanel testOptions;
-    private static final Logger logger = LoggerUtil.getInstance(TestCaseDesigner.class);
-    private LightVirtualFile testCaseScriptFile;
-    private MethodAdapter methodAdapter;
-    Random random = new Random(new Date().getTime());
+    private JPanel useMockitoConfigPanel;
+    private JPanel mockDownstreamContainerPanel;
+    private JPanel saveDetailsPanel;
     private TestCaseGenerationConfiguration currentTestGenerationConfiguration;
     private TestCaseUnit testCaseScript;
     private List<String> methodChecked;
     private Map<String, Parameter> fieldMapByName;
     private Editor editorReference;
     private FileEditor fileEditorReference;
-    private Project project;
-    private ObjectMapper objectMapper = new ObjectMapper();
 
     public TestCaseDesignerLite(MethodAdapter currentMethod,
                                 TestCaseGenerationConfiguration configuration,
@@ -124,10 +120,11 @@ public class TestCaseDesignerLite {
 
         saveTestCaseButton.setEnabled(false);
         saveTestCaseButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        closeButton.setIcon(UIUtils.CLOSE_FILE_RED_SVG);
 
-        closeButton.setForeground(UIUtils.defaultForeground);
+//        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        closeButton.setIcon(UIUtils.CLOSE_FILE_RED_SVG);
+//        closeButton.setForeground(UIUtils.defaultForeground);
+
         saveTestCaseButton.setForeground(UIUtils.defaultForeground);
 
         testFrameworkComboBox.setModel(new DefaultComboBoxModel<>(TestFramework.values()));
@@ -139,8 +136,7 @@ public class TestCaseDesignerLite {
         resourceEmberModeComboBox.setModel(new DefaultComboBoxModel<>(ResourceEmbedMode.values()));
         resourceEmberModeComboBox.setSelectedItem(ResourceEmbedMode.IN_CODE);
 
-        if (generateOnlyBoilerPlate ||
-                currentTestGenerationConfiguration == null) {
+        if (generateOnlyBoilerPlate || currentTestGenerationConfiguration == null) {
             generateTestCaseBoilerPlace();
         }
 
@@ -269,25 +265,14 @@ public class TestCaseDesignerLite {
                     NotificationType.WARNING);
         });
 
-        this.closeButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                closeEditorWindow();
-            }
-        });
+//        this.closeButton.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent e) {
+//                closeEditorWindow();
+//            }
+//        });
 
         generateAndPreviewTestCase(currentTestGenerationConfiguration);
-    }
-
-    public JPanel getMainPanel() {
-        return mainPanel;
-    }
-
-    public void closeEditorWindow() {
-        if (fileEditorReference != null) {
-            FileEditorManager.getInstance(project)
-                    .closeFile(fileEditorReference.getFile());
-        }
     }
 
     private static int buildMethodAccessModifier(PsiModifierList modifierList) {
@@ -316,6 +301,21 @@ public class TestCaseDesignerLite {
             }
         }
         return methodAccess;
+    }
+
+    public JButton getCreateButton() {
+        return createButton;
+    }
+
+    public JComponent getComponent() {
+        return mainPanel;
+    }
+
+    public void closeEditorWindow() {
+        if (fileEditorReference != null) {
+            FileEditorManager.getInstance(project)
+                    .closeFile(fileEditorReference.getFile());
+        }
     }
 
     private void saveMethodToExistingFile(File testcaseFile) {
@@ -371,14 +371,30 @@ public class TestCaseDesignerLite {
 
         PsiFile containingFile = methodAdapter.getContainingFile();
         if (containingFile.getVirtualFile() == null || containingFile.getVirtualFile().getPath().contains("/test/")) {
-            InsidiousNotification.notifyMessage("Failed to method source code", NotificationType.ERROR);
+            InsidiousNotification.notifyMessage("Failed to get method source code", NotificationType.ERROR);
             return;
         }
 
         saveLocationTextField.setText("");
-        List<TestCandidateMetadata> testCandidateMetadataList =
-                ApplicationManager.getApplication().runReadAction(
-                        (Computable<List<TestCandidateMetadata>>) this::createTestCandidate);
+        List<TestCandidateMetadata> testCandidateMetadataList = null;
+        try {
+            testCandidateMetadataList = ApplicationManager.getApplication()
+                    .executeOnPooledThread(() -> ApplicationManager.getApplication().runReadAction(
+                            (Computable<List<TestCandidateMetadata>>) () -> {
+                                try {
+                                    return createTestCandidate();
+                                } catch (ExecutionException | InterruptedException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            })).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        if (testCandidateMetadataList == null) {
+            InsidiousNotification.notifyMessage("Failed to create test case boilerplate", NotificationType.ERROR);
+            return;
+
+        }
 
         String testMethodName = "testMethod" + ClassTypeUtils.upperInstanceName(methodAdapter.getName());
         currentTestGenerationConfiguration = new TestCaseGenerationConfiguration(
@@ -448,7 +464,8 @@ public class TestCaseDesignerLite {
             }
 
             Document document = editorFactory.createDocument(testCaseScriptCode);
-            Editor editor = editorFactory.createEditor(document, methodAdapter.getProject(), JavaFileType.INSTANCE, false);
+            Editor editor = editorFactory.createEditor(document, methodAdapter.getProject(), JavaFileType.INSTANCE,
+                    false);
 
             testCaseScriptFile.setContent(this, editor.getDocument().getText(), true);
             saveTestCaseButton.setEnabled(true);
@@ -461,7 +478,8 @@ public class TestCaseDesignerLite {
             e.printStackTrace(stringWriter);
             String exceptionText = out.toString().replace("\r", "");
             Document document = editorFactory.createDocument(exceptionText);
-            Editor editor = editorFactory.createEditor(document, methodAdapter.getProject(), PlainTextFileType.INSTANCE, true);
+            Editor editor = editorFactory.createEditor(document, methodAdapter.getProject(), PlainTextFileType.INSTANCE,
+                    true);
 
             testCaseScriptFile.setContent(this, editor.getDocument().getText(), true);
             saveTestCaseButton.setEnabled(false);
@@ -473,18 +491,20 @@ public class TestCaseDesignerLite {
     private void updateFileContents() {
         ApplicationManager.getApplication().runWriteAction(() -> {
             if (this.editorReference != null) {
+
                 Document document = editorReference.getDocument();
                 document.setText(testCaseScript.getCode());
             }
         });
     }
 
-    private List<TestCandidateMetadata> createTestCandidate() {
+    private List<TestCandidateMetadata> createTestCandidate() throws ExecutionException, InterruptedException {
 
         if (methodAdapter.getContainingClass() == null) {
             return new ArrayList<>();
         }
         ClassAdapter currentClass = methodAdapter.getContainingClass();
+        PsiClass parentOfType = (PsiClass) currentClass.getSource();
         List<TestCandidateMetadata> testCandidateMetadataList = new ArrayList<>();
 
         fieldMapByName = new HashMap<>();
@@ -500,14 +520,20 @@ public class TestCaseDesignerLite {
             fieldParameter.setName(fieldName);
 
             PsiType fieldType = field.getType();
+
+            String canonicalText = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> {
+                        TestCaseWriter.setParameterTypeFromPsiType(fieldParameter, fieldType, false);
+                        return fieldType.getCanonicalText();
+                    });
             if (!(fieldType instanceof PsiClassReferenceType)
-                    || fieldType.getCanonicalText().equals("java.lang.String")
-                    || fieldType.getCanonicalText().startsWith("org.apache.commons.logging")
-                    || fieldType.getCanonicalText().startsWith("org.slf4j")
+                    || canonicalText.equals("java.lang.String")
+                    || canonicalText.startsWith("org.apache.commons.logging")
+                    || canonicalText.startsWith("org.slf4j")
             ) {
                 continue;
             }
-            TestCaseWriter.setParameterTypeFromPsiType(fieldParameter, fieldType, false);
+
             fieldParameter.setValue(random.nextLong());
             fieldParameter.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
             fieldContainer.add(fieldParameter);
@@ -516,7 +542,7 @@ public class TestCaseDesignerLite {
 
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
         testCandidateMetadata.setLines(List.of());
-
+        testCandidateMetadata.setCreatedAt(new Date().getTime());
         Parameter testSubjectParameter = new Parameter();
         testSubjectParameter.setType(currentClass.getQualifiedName());
         testSubjectParameter.setValue(random.nextLong());
@@ -528,11 +554,13 @@ public class TestCaseDesignerLite {
         testCandidateMetadataList.addAll(constructorCandidate);
 
         Parameter returnValue = null;
-        if (methodAdapter.getReturnType() != null) {
+        PsiType returnType1 = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiType>) () -> methodAdapter.getReturnType());
+        if (returnType1 != null) {
             returnValue = new Parameter();
             returnValue.setValue(random.nextLong());
 
-            PsiType returnType = methodAdapter.getReturnType();
+            PsiType returnType = returnType1;
             TestCaseWriter.setParameterTypeFromPsiType(returnValue, returnType, true);
 
             DataEventWithSessionId returnValueProbe = new DataEventWithSessionId();
@@ -540,15 +568,20 @@ public class TestCaseDesignerLite {
         }
 
         // method parameters
-        ParameterAdapter[] parameterList = methodAdapter.getParameters();
+        ParameterAdapter[] parameterList = ApplicationManager.getApplication().runReadAction(
+                (Computable<ParameterAdapter[]>) methodAdapter::getParameters);
         List<Parameter> arguments = new ArrayList<>(parameterList.length);
         for (ParameterAdapter parameter : parameterList) {
             Parameter argumentParameter = new Parameter();
 
             argumentParameter.setValue(random.nextLong());
 
-            PsiType parameterPsiType = parameter.getType();
-            TestCaseWriter.setParameterTypeFromPsiType(argumentParameter, parameterPsiType, false);
+            PsiType parameterPsiType = ApplicationManager.getApplication().runReadAction(
+                    (Computable<PsiType>) () -> {
+                        TestCaseWriter.setParameterTypeFromPsiType(argumentParameter, parameter.getType(), false);
+                        return parameter.getType();
+                    });
+
 
             DataEventWithSessionId parameterProbe = new DataEventWithSessionId();
             argumentParameter.setProbeAndProbeInfo(parameterProbe, new DataInfo());
@@ -567,10 +600,14 @@ public class TestCaseDesignerLite {
         }
 
 
-        PsiModifierList modifierList = methodAdapter.getModifierList();
+        PsiModifierList modifierList = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiModifierList>) () -> methodAdapter.getModifierList());
+
         int methodAccess = buildMethodAccessModifier(modifierList);
         MethodCallExpression mainMethod = new MethodCallExpression(
-                methodAdapter.getName(), testSubjectParameter, arguments, returnValue, 0
+                ApplicationManager.getApplication().runReadAction((Computable<String>) () -> methodAdapter.getName()),
+                testSubjectParameter, arguments,
+                returnValue, 0
         );
         mainMethod.setSubject(testSubjectParameter);
         mainMethod.setMethodAccess(methodAccess);
@@ -579,12 +616,12 @@ public class TestCaseDesignerLite {
 
         testCandidateMetadata.setTestSubject(testSubjectParameter);
 
-        if (methodAdapter.getReturnType() != null && !methodAdapter.getReturnType().getCanonicalText().equals("void")) {
+        if (returnType1 != null && !returnType1.getCanonicalText().equals("void")) {
             Parameter assertionExpectedValue = new Parameter();
             assertionExpectedValue.setName(returnValue.getName() + "Expected");
             assertionExpectedValue.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
 
-            TestCaseWriter.setParameterTypeFromPsiType(assertionExpectedValue, methodAdapter.getReturnType(), true);
+            TestCaseWriter.setParameterTypeFromPsiType(assertionExpectedValue, returnType1, true);
             TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, assertionExpectedValue, returnValue);
             testCandidateMetadata.getAssertionList().add(testAssertion);
         }
@@ -596,7 +633,8 @@ public class TestCaseDesignerLite {
         }
 
         methodChecked = new ArrayList<>();
-        List<MethodCallExpression> collectedMceList = extractMethodCalls(methodAdapter);
+        List<MethodCallExpression> collectedMceList = ApplicationManager.getApplication().runReadAction(
+                (Computable<List<MethodCallExpression>>) () -> extractMethodCalls(methodAdapter));
         for (int i = 0; i < collectedMceList.size(); i++) {
             MethodCallExpression methodCallExpression = collectedMceList.get(i);
             DataEventWithSessionId entryProbe = new DataEventWithSessionId();
@@ -657,8 +695,8 @@ public class TestCaseDesignerLite {
                         collectedMceList.addAll(callExpressions);
                     } else {
 
-                        String callSubjectName = subjectReferenceChild.getText();
-                        Parameter fieldByName = fieldMapByName.get(callSubjectName);
+                        String fieldName = subjectReferenceChild.getText();
+                        Parameter fieldByName = fieldMapByName.get(fieldName);
                         if (fieldByName == null) {
                             // no such field
                             continue;
@@ -691,16 +729,39 @@ public class TestCaseDesignerLite {
 
                         PsiExpression[] actualParameterExpressions = callParameterExpression.getExpressions();
                         ParameterAdapter[] parameters = matchedMethod.getParameters();
+
+                        PsiClass parentOfType = PsiTreeUtil.getParentOfType(callParameterExpression, PsiClass.class);
+
+                        PsiField callOnField = null;
+                        for (PsiField field : parentOfType.getFields()) {
+                            if (field.getName().equals(fieldName)) {
+                                callOnField = field;
+                                break;
+                            }
+                        }
+
+                        PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(
+                                psiMethodCallExpression);
+                        PsiType fieldType = ClassTypeUtils.substituteClassRecursively(callOnField.getType(),
+                                classSubstitutor);
+
+                        TestCaseWriter.setParameterTypeFromPsiType(fieldByName, fieldType, false);
+
                         for (int i = 0; i < parameters.length; i++) {
                             ParameterAdapter parameter = parameters[i];
                             PsiExpression parameterExpression = actualParameterExpressions[i];
 
                             Parameter callParameter = new Parameter();
                             PsiType typeToAssignFrom = parameterExpression.getType();
+
+
                             if (typeToAssignFrom == null || typeToAssignFrom.getCanonicalText().equals("null")) {
                                 typeToAssignFrom = parameter.getType();
                             }
-                            TestCaseWriter.setParameterTypeFromPsiType(callParameter, typeToAssignFrom, false);
+                            final PsiType ungenericType = ClassTypeUtils.substituteClassRecursively(typeToAssignFrom,
+                                    classSubstitutor);
+
+                            TestCaseWriter.setParameterTypeFromPsiType(callParameter, ungenericType, false);
 
 
                             long nextValue;
@@ -746,7 +807,8 @@ public class TestCaseDesignerLite {
                                 prob.setSerializedValue(("\"" + parameter.getName() + "\"").getBytes());
                             } else {
                                 String serializedStringValue = ClassUtils.createDummyValue(
-                                        typeToAssignFrom, new LinkedList<>(), methodAdapter.getContainingClass().getProject()
+                                        typeToAssignFrom, new LinkedList<>(),
+                                        methodAdapter.getContainingClass().getProject()
                                 );
                                 prob.setSerializedValue(serializedStringValue.getBytes());
 
@@ -759,16 +821,22 @@ public class TestCaseDesignerLite {
                             methodArguments.add(callParameter);
                         }
 
-                        PsiType methodReturnPsiReference = matchedMethod.getReturnType();
+                        PsiType ungenericReturnClassType = ClassTypeUtils.substituteClassRecursively(
+                                matchedMethod.getReturnType(),
+                                classSubstitutor);
 
                         methodReturnValue.setValue(random.nextLong());
-                        TestCaseWriter.setParameterTypeFromPsiType(methodReturnValue, methodReturnPsiReference, true);
+                        TestCaseWriter.setParameterTypeFromPsiType(methodReturnValue, ungenericReturnClassType, true);
                         DataInfo probeInfo = new DataInfo(
                                 0, 0, 0, 0, 0, EventType.ARRAY_LENGTH, Descriptor.Boolean, ""
                         );
                         DataEventWithSessionId returnValueDataEvent = new DataEventWithSessionId();
-                        returnValueDataEvent.setSerializedValue(ClassUtils.createDummyValue(methodReturnPsiReference,
-                                new LinkedList<>(), methodAdapter.getContainingClass().getProject()).getBytes());
+
+                        String dummyValue = ClassUtils.createDummyValue(ungenericReturnClassType,
+                                new LinkedList<>(), methodAdapter.getContainingClass().getProject());
+
+
+                        returnValueDataEvent.setSerializedValue(dummyValue.getBytes());
                         methodReturnValue.setProbeAndProbeInfo(returnValueDataEvent, probeInfo);
 
 
@@ -803,7 +871,8 @@ public class TestCaseDesignerLite {
     }
 
     private List<MethodCallExpression> getCallsFromMethod(PsiExpressionListImpl callParameterExpression, String invokedMethodName) {
-        MethodAdapter matchedMethod = getMatchingMethod(methodAdapter.getContainingClass(), invokedMethodName, callParameterExpression);
+        MethodAdapter matchedMethod = getMatchingMethod(methodAdapter.getContainingClass(), invokedMethodName,
+                callParameterExpression);
         if (matchedMethod == null) {
             return Collections.emptyList();
         }
@@ -1028,5 +1097,8 @@ public class TestCaseDesignerLite {
     public void setEditorReferences(Editor viewerFileEditor, FileEditor fileEditor) {
         this.editorReference = viewerFileEditor;
         this.fileEditorReference = fileEditor;
+        fileEditorReference.addPropertyChangeListener(evt -> {
+            logger.warn("editor property changed" + evt);
+        });
     }
 }

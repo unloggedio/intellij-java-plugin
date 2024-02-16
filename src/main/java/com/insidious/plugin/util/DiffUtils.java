@@ -19,7 +19,7 @@ import static com.insidious.plugin.util.ParameterUtils.processResponseForFloatAn
 
 public class DiffUtils {
     static final private Logger logger = LoggerUtil.getInstance(DiffUtils.class);
-    static final private ObjectMapper objectMapper = new ObjectMapper();
+    static final private ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
 
     static public DifferenceResult calculateDifferences(
             StoredCandidate testCandidateMetadata,
@@ -35,6 +35,9 @@ public class DiffUtils {
                 && !returnValueAsString.equals("null")
         ) {
             returnValueAsString = "\"" + returnValueAsString + "\"";
+        }
+        if (responseClassname == null) {
+            responseClassname = "";
         }
 
         if (testAssertions != null && AtomicAssertionUtils.countAssertions(testAssertions) > 0) {
@@ -165,10 +168,9 @@ public class DiffUtils {
 
         if (agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION)) {
             try {
-                String responseClassName = responseClassname;
                 String expectedClassName = testCandidateMetadata.getReturnValueClassname();
 
-                isDifferent = responseClassName.equals(expectedClassName);
+                isDifferent = responseClassname.equals(expectedClassName);
                 if (!isDifferent) {
                     return new DifferenceResult(new LinkedList<>(), DiffResultType.SAME, null, null);
                 }
