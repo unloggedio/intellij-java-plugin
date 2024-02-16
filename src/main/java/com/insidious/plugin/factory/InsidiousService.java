@@ -1531,7 +1531,7 @@ final public class InsidiousService implements
     }
 
     public void toggleReportGeneration() {
-        this.reportingService.toggleReportMode();
+        reportingService.toggleReportMode();
     }
 
     public MethodDefinition getMethodInformation(MethodUnderTest methodUnderTest) {
