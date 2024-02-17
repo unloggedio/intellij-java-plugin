@@ -300,6 +300,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
             }
 
             parameterEditor = new JsonTreeEditor(objectMapper.readTree(source), "Method Arguments");
+            parameterEditor.setEditable(true);
             methodParameterContainer.add(parameterEditor.getContent(), BorderLayout.CENTER);
         } else {
             JBLabel noParametersLabel = new JBLabel("No method arguments");

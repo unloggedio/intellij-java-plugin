@@ -20,8 +20,7 @@ import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -77,8 +76,8 @@ public class JsonTreeEditor {
         valueTree.setBackground(JBColor.WHITE);
         valueTree.setUI(new BasicTreeUI());
 //            valueTree.setBorder(BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
-        valueTree.setEditable(true);
-
+        valueTree.setInvokesStopCellEditing(true);
+        valueTree.addMouseListener(getMouseListener(valueTree));
 
         int nodeCount = expandAllNodes();
         valueTree.addMouseListener(new MouseAdapter() {
@@ -91,6 +90,40 @@ public class JsonTreeEditor {
 
         centralPanel.add(valueTree, BorderLayout.CENTER);
 
+    }
+
+
+    private static MouseListener getMouseListener(final JTree tree) {
+        return new MouseListener() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if(tree.getRowForLocation(e.getX(),e.getY()) == -1) {
+                    tree.clearSelection();
+                }
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if(tree.getRowForLocation(e.getX(),e.getY()) == -1) {
+                    tree.clearSelection();
+                }
+            }
+        };
     }
 
     private void notifyListeners() {
@@ -128,5 +161,9 @@ public class JsonTreeEditor {
 
     public void addChangeListener(OnChangeListener<JsonNode> onChangeListener) {
         this.listeners.add(onChangeListener);
+    }
+
+    public void setEditable(Boolean editState) {
+        valueTree.setEditable(editState);
     }
 }
