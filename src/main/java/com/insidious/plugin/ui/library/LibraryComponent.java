@@ -9,6 +9,7 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.java.JavaBundle;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -16,10 +17,12 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.ui.JBColor;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -62,6 +65,38 @@ public class LibraryComponent {
     private JRadioButton mockingDisableRadioButton;
     private MethodAdapter lastFocussedMethod;
     private boolean currentMockInjectStatus = false;
+
+    static JPanel deletePromptPanelBuilder(String deletePrompt) {
+        // deletePrompt
+        // deletePanelLeft
+        JLabel deletePanelLeft = new JLabel();
+        deletePanelLeft.setIcon(UIUtils.TRASH_PROMPT);
+
+        // deletePromptUpper
+        JLabel deletePromptUpper = new JLabel();
+        deletePromptUpper.setText(deletePrompt);
+
+        // deletePromptLower
+        JLabel deletePromptLower = new JLabel("<html> Use git to track and restore later. </html>");
+        deletePromptLower.setForeground(Color.GRAY);
+        String defaultFont = UIManager.getFont("Label.font").getFontName();
+        deletePromptLower.setFont(new Font("", Font.PLAIN, 12));
+        deletePromptLower.setBorder(new EmptyBorder(5,5,5,5));
+
+        // deletePanelRight
+        JPanel deletePanelRight = new JPanel();
+        deletePanelRight.setLayout(new BoxLayout(deletePanelRight, BoxLayout.Y_AXIS));
+        deletePanelRight.add(deletePromptUpper);
+        deletePanelRight.add(deletePromptLower);
+
+        // configure
+        JPanel deletePanel = new JPanel();
+        deletePanel.setLayout(new BoxLayout(deletePanel, BoxLayout.X_AXIS));
+        deletePanel.add(deletePanelLeft);
+        deletePanel.add(deletePanelRight);
+
+        return deletePanel;
+    }
 
     public LibraryComponent(Project project) {
         insidiousService = project.getService(InsidiousService.class);
@@ -135,8 +170,10 @@ public class LibraryComponent {
                     builder.okActionEnabled(true);
                     builder.setTitle("Confirm Delete");
 
-                    builder.setCenterPanel(new JLabel(
-                            "Are you sure you want to delete " + selectedCount + " mock definition" + (selectedCount == 1 ? "s" : "")));
+                    JPanel deletePanel = LibraryComponent.deletePromptPanelBuilder(
+                            "Are you sure you want to delete " + selectedCount + " mock definition" + (selectedCount == 1 ? "s" : "")
+                    );
+                    builder.setCenterPanel(deletePanel);
 
                     builder.setOkOperation(() -> {
                         for (DeclaredMock selectedMock : selectedMocks) {
@@ -160,8 +197,10 @@ public class LibraryComponent {
                     builder.addCancelAction();
                     builder.setTitle("Confirm Delete");
 
-                    builder.setCenterPanel(new JLabel(
-                            "Are you sure you want to delete " + selectedCount + " relay test" + (selectedCount == 1 ? "s" : "")));
+                    JPanel deletePanel = LibraryComponent.deletePromptPanelBuilder(
+                            "Are you sure you want to delete " + selectedCount + " replay test" + (selectedCount == 1 ? "s" : "") + "?"
+                    );
+                    builder.setCenterPanel(deletePanel);
 
                     builder.setOkOperation(() -> {
                         for (StoredCandidate storedCandidate : selectedCandidates) {
@@ -238,7 +277,11 @@ public class LibraryComponent {
                 builder.addOkAction();
                 builder.addCancelAction();
                 builder.setTitle("Confirm Delete");
-                builder.setCenterPanel(new JLabel("Are you sure you want to delete " + "mock definition"));
+
+                JPanel deletePanel = LibraryComponent.deletePromptPanelBuilder(
+                        "Are you sure you want to delete mock definition"
+                );
+                builder.setCenterPanel(deletePanel);
 
                 builder.setOkOperation(() -> {
                     atomicRecordService.deleteMockDefinition(item);
@@ -281,7 +324,11 @@ public class LibraryComponent {
                 builder.addOkAction();
                 builder.addCancelAction();
                 builder.setTitle("Confirm Delete");
-                builder.setCenterPanel(new JLabel("Are you sure you want to delete " + "replay test"));
+                JPanel deletePanel = LibraryComponent.deletePromptPanelBuilder(
+                        "Are you sure you want to delete replay test"
+                );
+                builder.setCenterPanel(deletePanel);
+
                 builder.setOkOperation(() -> {
                     atomicRecordService.deleteStoredCandidate(item.getMethod(), item.getCandidateId());
                     InsidiousNotification.notifyMessage(
