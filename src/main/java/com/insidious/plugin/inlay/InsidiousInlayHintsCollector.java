@@ -170,20 +170,16 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         }
         if (mockableCallCount == 1) {
             PsiMethodCallExpression theCall = mockableCalls.get(0);
-            PsiExpression qualifierTextExpression = theCall.getMethodExpression()
-                    .getQualifierExpression();
+            PsiExpression qualifierTextExpression = theCall.getMethodExpression().getQualifierExpression();
             if (qualifierTextExpression == null) {
                 return;
             }
             String qualifierText = qualifierTextExpression.getText();
-            String typeCanonicalName = qualifierTextExpression.getType()
-                    .getCanonicalText();
+            String typeCanonicalName = qualifierTextExpression.getType().getCanonicalText();
             if (qualifierText.equals("log") || qualifierText.equals("logger")) {
                 return;
             }
-            if (
-                    typeCanonicalName.startsWith("com.fasterxml.jackson")
-            ) {
+            if (typeCanonicalName.startsWith("com.fasterxml.jackson")) {
                 return;
             }
         }

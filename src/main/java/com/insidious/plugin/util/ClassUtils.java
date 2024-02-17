@@ -118,17 +118,22 @@ public class ClassUtils {
         }
 
         PsiElement fieldExpression = fieldReferenceExpression.getReference().resolve();
-        if (!(fieldExpression instanceof PsiField)) {
-            // we shouldn't be mocking this
-            throw new RuntimeException("should be psifield");
+        PsiType type;
+        if (fieldExpression instanceof PsiField) {
+            PsiField callOnField = (PsiField) fieldExpression;
+            type = callOnField.getType();
+        } else if (fieldExpression instanceof PsiLocalVariable) {
+            PsiLocalVariable callOnField = (PsiLocalVariable) fieldExpression;
+            type = callOnField.getType();
+        } else {
+            type = fieldReferenceExpression.getType();
         }
-        PsiField callOnField = (PsiField) fieldExpression;
         PsiClass containingClass = destinationMethod.getContainingClass();
         PsiSubstitutor classSubstitutor = null;
 
-        if (callOnField.getType() instanceof PsiClassReferenceType) {
+        if (type instanceof PsiClassReferenceType) {
             classSubstitutor = TypeConversionUtil.getClassSubstitutor(
-                    containingClass, ((PsiClassReferenceType) callOnField.getType()).resolve(), PsiSubstitutor.EMPTY);
+                    containingClass, ((PsiClassReferenceType) type).resolve(), PsiSubstitutor.EMPTY);
         }
         return classSubstitutor;
     }

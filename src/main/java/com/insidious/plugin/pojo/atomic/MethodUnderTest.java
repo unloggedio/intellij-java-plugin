@@ -9,9 +9,9 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.ClassUtils;
+import com.intellij.lang.jvm.JvmParameter;
+import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.psi.*;
-import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.psi.util.TypeConversionUtil;
 
 import java.util.Objects;
 
@@ -41,25 +41,64 @@ public class MethodUnderTest {
     }
 
     public static MethodUnderTest fromTestCandidateMetadata(TestCandidateMetadata testCandidateMetadata) {
-        return new MethodUnderTest(
-                testCandidateMetadata.getMainMethod().getMethodName(), buildMethodSignature(testCandidateMetadata), 0,
-                testCandidateMetadata.getFullyQualifiedClassname());
+        return MethodUnderTest.fromMethodCallExpression(testCandidateMetadata.getMainMethod());
     }
 
-    private static String buildMethodSignature(TestCandidateMetadata testCandidateMetadata) {
+    public static MethodUnderTest fromMethodCallExpression(MethodCallExpression methodCallExpression) {
+        return new MethodUnderTest(
+                methodCallExpression.getMethodName(), buildMethodSignature(methodCallExpression), 0,
+                methodCallExpression.getSubject().getType());
+    }
+
+    public static MethodUnderTest fromMethodCallExpression(MethodCallExpression methodCallExpression,
+                                                           PsiSubstitutor substitutor) {
+        return new MethodUnderTest(
+                methodCallExpression.getMethodName(), buildMethodSignature(methodCallExpression), 0,
+                methodCallExpression.getSubject().getType());
+    }
+
+    private static String buildMethodSignature(MethodCallExpression mainMethod) {
         StringBuilder methodSignature = new StringBuilder("(");
 
-        for (Parameter argument : testCandidateMetadata.getMainMethod().getArguments()) {
+        for (Parameter argument : mainMethod.getArguments()) {
             String type = argument.getType();
             methodSignature.append(ClassTypeUtils.getDescriptorName(type));
         }
 
         methodSignature.append(")");
-        String type = testCandidateMetadata.getMainMethod().getReturnValue().getType();
+        String type = mainMethod.getReturnValue().getType();
         methodSignature.append(ClassTypeUtils.getDescriptorName(type));
 
         return methodSignature.toString();
     }
+
+    private static String buildMethodSignature(PsiMethodCallExpression mainMethod, PsiSubstitutor substitutor) {
+
+        PsiMethod targetMethod = mainMethod.resolveMethod();
+
+
+        StringBuilder methodSignature = new StringBuilder("(");
+
+        for (JvmParameter argument : targetMethod.getParameters()) {
+            JvmType type1 = argument.getType();
+            if (type1 instanceof PsiClassType) {
+                type1 = ClassTypeUtils.substituteClassRecursively((PsiType) type1, substitutor);
+                String type = ((PsiClassType) type1).getCanonicalText();
+                methodSignature.append(ClassTypeUtils.getDescriptorName(type));
+            } else if (type1 instanceof PsiPrimitiveType) {
+                PsiPrimitiveType psiType = (PsiPrimitiveType) type1;
+                methodSignature.append(psiType.getKind().getBinaryName());
+            }
+        }
+
+        methodSignature.append(")");
+        PsiType returnType = targetMethod.getReturnType();
+        returnType = ClassTypeUtils.substituteClassRecursively(returnType, substitutor);
+        methodSignature.append(ClassTypeUtils.getDescriptorName(returnType.getCanonicalText()));
+
+        return methodSignature.toString();
+    }
+
 
     public static MethodUnderTest fromCandidateSearchQuery(CandidateSearchQuery candidateSearchQuery) {
         return new MethodUnderTest(candidateSearchQuery.getMethodName(),
@@ -69,18 +108,33 @@ public class MethodUnderTest {
     public static MethodUnderTest fromPsiCallExpression(PsiMethodCallExpression methodCallExpression) {
         PsiExpression fieldExpression = methodCallExpression.getMethodExpression().getQualifierExpression();
         PsiReferenceExpression qualifierExpression1 = (PsiReferenceExpression) fieldExpression;
-        PsiField fieldPsiInstance = (PsiField) qualifierExpression1.resolve();
+        PsiElement resolve = qualifierExpression1.resolve();
+        PsiType callOnType;
+        if (resolve instanceof PsiField) {
+            PsiField fieldPsiInstance = (PsiField) resolve;
+            callOnType = fieldPsiInstance.getType();
+        } else if (resolve instanceof PsiLocalVariable) {
+            PsiLocalVariable localVariable = (PsiLocalVariable) resolve;
+            callOnType = localVariable.getType();
+        } else if (resolve instanceof PsiClass) {
+            PsiClass localVariable = (PsiClass) resolve;
+            callOnType = JavaPsiFacade.getInstance(methodCallExpression.getProject())
+                    .getElementFactory().createType(localVariable);
+        } else {
+            callOnType = qualifierExpression1.getType();
+        }
 
         PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(methodCallExpression);
-        PsiType fieldTypeSubstitutor = ClassTypeUtils.substituteClassRecursively(fieldPsiInstance.getType(),
-                classSubstitutor);
+        PsiType fieldTypeSubstitutor = ClassTypeUtils.substituteClassRecursively(callOnType, classSubstitutor);
 
 
-        PsiMethod targetMethod = methodCallExpression.resolveMethod();
-        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(targetMethod));
-        if (fieldPsiInstance != null && fieldPsiInstance.getType() != null) {
-            methodUnderTest.setClassName(fieldPsiInstance.getType().getCanonicalText());
-        }
+        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
+                new JavaMethodAdapter(methodCallExpression.resolveMethod()));
+
+
+        methodUnderTest.setClassName(callOnType.getCanonicalText());
+        String signatureVal = buildMethodSignature(methodCallExpression, classSubstitutor);
+        methodUnderTest.setSignature(signatureVal);
 
         if (fieldTypeSubstitutor != null) {
             String actualClass = fieldTypeSubstitutor.getCanonicalText();

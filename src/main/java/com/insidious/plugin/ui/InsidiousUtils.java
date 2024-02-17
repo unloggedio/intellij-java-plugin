@@ -148,7 +148,8 @@ public class InsidiousUtils {
         PsiFile methodFile = psiMethod.getContainingFile();
         VirtualFile psiVirtualFile = methodFile.getVirtualFile();
 
-        final int startOffsetInParent = psiMethod.getTextOffset();
+        final int startOffsetInParent = ApplicationManager.getApplication().runReadAction(
+                (Computable<Integer>) psiMethod::getTextOffset);
 
         ApplicationManager.getApplication().invokeLater(() -> {
 

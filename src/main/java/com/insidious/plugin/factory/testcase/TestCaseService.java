@@ -26,18 +26,20 @@ import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
+import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.IndexNotReadyException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.util.Pair;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
-import com.intellij.psi.impl.source.tree.java.PsiMethodCallExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.squareup.javapoet.*;
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
 
@@ -174,6 +176,61 @@ public class TestCaseService {
         );
     }
 
+    public static void normalizeMethodTypes(MethodCallExpression mainMethod, PsiMethod targetMethodPsi, PsiSubstitutor substitutor) {
+        JvmMethod selectedPsiMethod = targetMethodPsi;
+
+        // fix argument types
+        JvmParameter[] methodParameters = selectedPsiMethod.getParameters();
+        List<Parameter> methodArguments = mainMethod.getArguments();
+        for (int i = 0; i < methodParameters.length; i++) {
+            JvmParameter parameter = methodParameters[i];
+            Parameter ourParam = methodArguments.get(i);
+            ourParam.addName(parameter.getName());
+            PsiType type = ClassTypeUtils.substituteClassRecursively((PsiType) parameter.getType(), substitutor);
+            TestCaseWriter.setParameterTypeFromPsiType(ourParam, type, false);
+        }
+
+        JvmType returnType = selectedPsiMethod.getReturnType();
+        if (returnType != null) {
+            if (returnType instanceof PsiType) {
+                returnType = ClassTypeUtils.substituteClassRecursively((PsiType) returnType, substitutor);
+            }
+            TestCaseWriter.setParameterTypeFromPsiType(mainMethod.getReturnValue(),
+                    (PsiType) returnType, true);
+        }
+    }
+
+    public static void normalizeMethodTypes(MethodCallExpression mainMethod,
+                                            PsiMethodCallExpression psiCallExpression) {
+        @Nullable PsiMethod targetMethodPsi = psiCallExpression.resolveMethod();
+        if (targetMethodPsi == null) {
+            return;
+        }
+        PsiReferenceExpression methodExpression = psiCallExpression.getMethodExpression();
+        PsiType fieldType = methodExpression.getQualifierExpression().getType();
+        if (fieldType == null) {
+            return;
+        }
+        PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(psiCallExpression);
+
+        // fix argument types
+        JvmParameter[] methodParameters = ((JvmMethod) targetMethodPsi).getParameters();
+        List<Parameter> methodArguments = mainMethod.getArguments();
+        for (int i = 0; i < methodParameters.length; i++) {
+            JvmParameter parameter = methodParameters[i];
+            Parameter ourParam = methodArguments.get(i);
+            ourParam.addName(parameter.getName());
+            PsiType type = ClassTypeUtils.substituteClassRecursively((PsiType) parameter.getType(), classSubstitutor);
+            TestCaseWriter.setParameterTypeFromPsiType(ourParam, type, false);
+        }
+
+        if (((JvmMethod) targetMethodPsi).getReturnType() != null) {
+            PsiType returnType = (PsiType) ((JvmMethod) targetMethodPsi).getReturnType();
+            PsiType ungenericType = ClassTypeUtils.substituteClassRecursively(returnType, classSubstitutor);
+            TestCaseWriter.setParameterTypeFromPsiType(mainMethod.getReturnValue(),
+                    ungenericType, true);
+        }
+    }
 
     public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
 
@@ -242,13 +299,18 @@ public class TestCaseService {
 
             MethodCallExpression mainMethod = testCandidateMetadata.getMainMethod();
 
-            PsiMethod targetMethodPsi = ClassTypeUtils.getPsiMethod(testCandidateMetadata.getMainMethod(), project);
-            if (targetMethodPsi != null) {
-                normalizeMethodTypes(mainMethod, targetMethodPsi);
+            Pair<PsiMethod, PsiSubstitutor> targetMethodPsiPair = ClassTypeUtils.getPsiMethod(
+                    testCandidateMetadata.getMainMethod(), project);
+            PsiMethod targetMethodPsi = null;
+            if (targetMethodPsiPair == null) {
+                return;
             }
+            targetMethodPsi = targetMethodPsiPair.getFirst();
+            PsiSubstitutor psiSubstitutor = targetMethodPsiPair.getSecond();
+            normalizeMethodTypes(mainMethod, targetMethodPsi, psiSubstitutor);
 
-            Collection<PsiMethodCallExpression> childCallExpressions = PsiTreeUtil.findChildrenOfType(
-                    targetMethodPsi, PsiMethodCallExpression.class);
+            Collection<PsiMethodCallExpression> childCallExpressions = PsiTreeUtil.findChildrenOfType(targetMethodPsi,
+                    PsiMethodCallExpression.class);
 
             for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
 
@@ -267,65 +329,14 @@ public class TestCaseService {
                     if (targetMethodPsi.getName().equals(methodCallExpression.getMethodName())
                             && targetMethodPsi.getContainingClass().getQualifiedName()
                             .equals(methodCallExpression.getSubject().getType())) {
-                        normalizeMethodTypes(methodCallExpression, targetMethodPsi);
+                        normalizeMethodTypes(methodCallExpression, targetMethodPsi, psiSubstitutor);
                     }
                 } else {
-                    normalizeMethodTypes(methodCallExpression, callExpress.resolveMethod(), callExpress);
+                    normalizeMethodTypes(methodCallExpression, callExpress);
                 }
             }
         }
 
-    }
-
-    private void normalizeMethodTypes(MethodCallExpression mainMethod, PsiMethod targetMethodPsi) {
-        JvmMethod selectedPsiMethod = targetMethodPsi;
-
-        // fix argument types
-        JvmParameter[] methodParameters = selectedPsiMethod.getParameters();
-        List<Parameter> methodArguments = mainMethod.getArguments();
-        for (int i = 0; i < methodParameters.length; i++) {
-            JvmParameter parameter = methodParameters[i];
-            Parameter ourParam = methodArguments.get(i);
-            ourParam.addName(parameter.getName());
-            TestCaseWriter.setParameterTypeFromPsiType(ourParam, (PsiType) parameter.getType(), false);
-        }
-
-        if (selectedPsiMethod.getReturnType() != null) {
-            TestCaseWriter.setParameterTypeFromPsiType(mainMethod.getReturnValue(),
-                    (PsiType) selectedPsiMethod.getReturnType(), true);
-        }
-    }
-
-    private void normalizeMethodTypes(MethodCallExpression mainMethod, PsiMethod targetMethodPsi,
-                                      PsiMethodCallExpression psiCallExpression) {
-
-        PsiReferenceExpression methodExpression = psiCallExpression.getMethodExpression();
-        PsiType fieldType = methodExpression.getQualifierExpression().getType();
-        if (fieldType == null) {
-            return;
-        }
-
-        PsiClass fieldTypeClassPsi = JavaPsiFacade.getInstance(project)
-                .findClass(fieldType.getCanonicalText(), GlobalSearchScope.allScope(project));
-        PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(psiCallExpression);
-
-        // fix argument types
-        JvmParameter[] methodParameters = ((JvmMethod) targetMethodPsi).getParameters();
-        List<Parameter> methodArguments = mainMethod.getArguments();
-        for (int i = 0; i < methodParameters.length; i++) {
-            JvmParameter parameter = methodParameters[i];
-            Parameter ourParam = methodArguments.get(i);
-            ourParam.addName(parameter.getName());
-            PsiType type = ClassTypeUtils.substituteClassRecursively((PsiType) parameter.getType(), classSubstitutor);
-            TestCaseWriter.setParameterTypeFromPsiType(ourParam, type, false);
-        }
-
-        if (((JvmMethod) targetMethodPsi).getReturnType() != null) {
-            PsiType returnType = (PsiType) ((JvmMethod) targetMethodPsi).getReturnType();
-            PsiType ungenericType = ClassTypeUtils.substituteClassRecursively(returnType, classSubstitutor);
-            TestCaseWriter.setParameterTypeFromPsiType(mainMethod.getReturnValue(),
-                    ungenericType, true);
-        }
     }
 
     public List<TestCandidateMetadata> createFieldMocks(ObjectRoutineContainer objectRoutineContainer) {
@@ -421,14 +432,30 @@ public class TestCaseService {
             if (fieldParameter.isPrimitiveType()) {
 
                 switch (fieldParameter.getType()) {
-                    case "I": fieldParameter.setTypeForced("java.lang.Integer"); break;
-                    case "L": fieldParameter.setTypeForced("java.lang.Long"); break;
-                    case "F": fieldParameter.setTypeForced("java.lang.Float"); break;
-                    case "D": fieldParameter.setTypeForced("java.lang.Double"); break;
-                    case "B": fieldParameter.setTypeForced("java.lang.Byte"); break;
-                    case "Z": fieldParameter.setTypeForced("java.lang.Boolean"); break;
-                    case "C": fieldParameter.setTypeForced("java.lang.Character"); break;
-                    case "V": fieldParameter.setTypeForced("java.lang.Void"); break;
+                    case "I":
+                        fieldParameter.setTypeForced("java.lang.Integer");
+                        break;
+                    case "L":
+                        fieldParameter.setTypeForced("java.lang.Long");
+                        break;
+                    case "F":
+                        fieldParameter.setTypeForced("java.lang.Float");
+                        break;
+                    case "D":
+                        fieldParameter.setTypeForced("java.lang.Double");
+                        break;
+                    case "B":
+                        fieldParameter.setTypeForced("java.lang.Byte");
+                        break;
+                    case "Z":
+                        fieldParameter.setTypeForced("java.lang.Boolean");
+                        break;
+                    case "C":
+                        fieldParameter.setTypeForced("java.lang.Character");
+                        break;
+                    case "V":
+                        fieldParameter.setTypeForced("java.lang.Void");
+                        break;
                 }
                 TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
                 testCandidateMetadata.setTestSubject(fieldParameter);

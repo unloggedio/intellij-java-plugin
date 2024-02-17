@@ -419,7 +419,7 @@ public class ClassTypeUtils {
 
     }
 
-    public static PsiMethod getPsiMethod(MethodCallExpression methodCallExpression, Project project) {
+    public static Pair<PsiMethod, PsiSubstitutor> getPsiMethod(MethodCallExpression methodCallExpression, Project project) {
         String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
         PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
                 GlobalSearchScope.allScope(project));
@@ -435,13 +435,16 @@ public class ClassTypeUtils {
 
         if (methodsByNameList.size() == 1 && isLambda) {
             // should we verify parameters ?
-            return methodsByNameList.get(0).getFirst();
+            return new Pair<>(methodsByNameList.get(0).getFirst(), EmptySubstitutor.getInstance());
         }
 
         for (Pair<PsiMethod, PsiSubstitutor> jvmMethodPair : methodsByNameList) {
 
+
             List<Parameter> expectedArguments = methodCallExpression.getArguments();
+
             PsiMethod jvmMethod = jvmMethodPair.getFirst();
+            PsiSubstitutor substitutor = jvmMethodPair.getSecond();
             JvmParameter[] actualArguments = jvmMethod.getParameters();
 
             if (expectedArguments.size() == actualArguments.length) {
@@ -454,6 +457,10 @@ public class ClassTypeUtils {
                     if (actualArgumentType instanceof PsiType) {
                         String expectedArgumentType = expectedArgument.getType();
                         TypeName typeInstance = ClassTypeUtils.createTypeFromNameString(expectedArgumentType);
+
+                        actualArgumentType = ClassTypeUtils.substituteClassRecursively((PsiType) actualArgumentType,
+                                substitutor);
+
                         String actualTypeCanonicalName = ((PsiType) actualArgumentType).getCanonicalText();
                         if (actualTypeCanonicalName.contains("...")) {
                             actualTypeCanonicalName = actualTypeCanonicalName.replace("...", "[]");
@@ -480,13 +487,13 @@ public class ClassTypeUtils {
                                             ((PsiClassReferenceType) actualArgumentType).resolve(),
                                             expectedClassPsi, true);
                                     if (ok) {
-                                        return (PsiMethod) jvmMethod.getSourceElement();
+                                        return jvmMethodPair;
                                     }
                                 } else if (actualArgumentType instanceof PsiClass) {
                                     boolean ok = InheritanceImplUtil.isInheritor(((PsiClass) actualArgumentType),
                                             expectedClassPsi, true);
                                     if (ok) {
-                                        return (PsiMethod) jvmMethod.getSourceElement();
+                                        return jvmMethodPair;
                                     }
                                 }
 
@@ -503,7 +510,7 @@ public class ClassTypeUtils {
                     continue;
                 }
 
-                return (PsiMethod) jvmMethod.getSourceElement();
+                return jvmMethodPair;
 
 
             }
@@ -528,8 +535,7 @@ public class ClassTypeUtils {
         }
         String expressionParentClass = parentClass.getQualifiedName();
 
-        PsiClass fieldParentPsiClass = (PsiClass) ((PsiReferenceExpression) qualifier).resolve()
-                .getParent();
+        PsiClass fieldParentPsiClass = (PsiClass) ((PsiReferenceExpression) qualifier).resolve().getParent();
         String fieldParentClass = fieldParentPsiClass.getQualifiedName();
         if (!Objects.equals(fieldParentClass, expressionParentClass) &&
                 !IsImplementedBy(fieldParentPsiClass, parentClass)) {

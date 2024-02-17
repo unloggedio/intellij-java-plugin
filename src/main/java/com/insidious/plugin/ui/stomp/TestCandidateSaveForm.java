@@ -4,11 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.Expression;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.MethodCallExpression;
@@ -28,6 +28,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.util.Pair;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.components.JBScrollPane;
@@ -528,8 +529,8 @@ public class TestCandidateSaveForm {
         List<PsiMethodCallExpression> collectedCalls = new ArrayList<>();
 
         for (PsiMethodCallExpression psiMethodCallExpression : psiMethodCallExpressions) {
-            PsiExpression qualifierExpression = psiMethodCallExpression.getMethodExpression()
-                    .getQualifierExpression();
+            PsiExpression qualifierExpression = psiMethodCallExpression.getMethodExpression().getQualifierExpression();
+
             if (qualifierExpression == null) {
                 // this call needs to be scanned
                 PsiMethod subTargetMethod = (PsiMethod) psiMethodCallExpression.getMethodExpression().resolve();
@@ -554,18 +555,13 @@ public class TestCandidateSaveForm {
         Map<String, DeclaredMock> mocks = new HashMap<>();
         for (TestCandidateMetadata testCandidateMetadata : candidateMetadataList) {
             PsiMethod targetMethod = ClassTypeUtils.getPsiMethod(testCandidateMetadata.getMainMethod(),
-                    saveFormListener.getProject());
+                    saveFormListener.getProject()).getFirst();
 
             List<PsiMethodCallExpression> allCallExpressions = getAllCallExpressions(targetMethod);
 
 
             Map<String, List<PsiMethodCallExpression>> expressionsBySignatureMap = allCallExpressions.stream()
-                    .collect(Collectors.groupingBy(e1 -> {
-                        PsiMethod method = e1.resolveMethod();
-                        return MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(method))
-                                .getMethodHashKey();
-                    }));
-
+                    .collect(Collectors.groupingBy(e1 -> MethodUnderTest.fromPsiCallExpression(e1).getMethodHashKey()));
 
             mocks = new HashMap<>();
 
@@ -574,14 +570,18 @@ public class TestCandidateSaveForm {
             while (callListCopy.size() > 0) {
                 MethodCallExpression methodCallExpression = callListCopy.remove(0);
 
-                PsiMethod psiMethod = ClassTypeUtils.getPsiMethod(methodCallExpression, saveFormListener.getProject());
-                if (psiMethod == null) {
+                Pair<PsiMethod, PsiSubstitutor> psiMethodPair = ClassTypeUtils.getPsiMethod(
+                        methodCallExpression, saveFormListener.getProject());
+                PsiMethod method = psiMethodPair.getFirst();
+                PsiSubstitutor substitutor = psiMethodPair.getSecond();
+                TestCaseService.normalizeMethodTypes(methodCallExpression, method, substitutor);
+                
+                MethodUnderTest mockMethodTarget = MethodUnderTest.fromMethodCallExpression(methodCallExpression);
+                if (method == null) {
                     logger.warn(
                             "Failed to resolve method: " + methodCallExpression + ", call will not be mocked");
                     continue;
                 }
-                MethodUnderTest mockMethodTarget = MethodUnderTest.fromMethodAdapter(
-                        new JavaMethodAdapter(psiMethod));
 
                 List<PsiMethodCallExpression> expressionsBySignature = expressionsBySignatureMap.get(
                         mockMethodTarget.getMethodHashKey());

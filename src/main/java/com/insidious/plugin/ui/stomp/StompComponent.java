@@ -33,6 +33,7 @@ import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
@@ -377,7 +378,10 @@ public class StompComponent implements
     }
 
     private void saveSelected() {
-
+        if (DumbService.getInstance(insidiousService.getProject()).isDumb()) {
+            InsidiousNotification.notifyMessage("Please wait for IDE indexing to complete", NotificationType.INFORMATION);
+            return;
+        }
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
             saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener,
@@ -424,7 +428,7 @@ public class StompComponent implements
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             PsiMethod methodPsiElement = ApplicationManager.getApplication().runReadAction(
                     (Computable<PsiMethod>) () -> ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
-                            insidiousService.getProject()));
+                            insidiousService.getProject()).getFirst());
             long batchTime = System.currentTimeMillis();
 
             insidiousService.executeSingleCandidate(
@@ -753,7 +757,7 @@ public class StompComponent implements
             PsiMethod methodPsiElement = ApplicationManager.getApplication()
                     .runReadAction(
                             (Computable<PsiMethod>) () -> ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
-                                    insidiousService.getProject()));
+                                    insidiousService.getProject()).getFirst());
             showDirectInvoke(new JavaMethodAdapter(methodPsiElement));
             directInvokeComponent.triggerExecute();
         }
