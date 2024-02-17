@@ -42,10 +42,7 @@ public class DeclaredMockItemPanel {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    InsidiousUtils.focusInEditor(declaredMock.getFieldTypeName(),
-                            declaredMock.getMethodName(), project);
-                });
+                itemLifeCycleListener.onSelect(declaredMock);
             }
         });
         TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();

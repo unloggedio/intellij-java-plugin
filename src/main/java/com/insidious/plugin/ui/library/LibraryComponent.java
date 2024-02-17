@@ -7,9 +7,11 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.record.AtomicRecordService;
+import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.java.JavaBundle;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
@@ -188,6 +190,14 @@ public class LibraryComponent {
             }
 
             @Override
+            public void onClick(DeclaredMock item) {
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    InsidiousUtils.focusInEditor(item.getFieldTypeName(),
+                            item.getMethodName(), project);
+                });
+            }
+
+            @Override
             public void onUnSelect(DeclaredMock item) {
                 selectedMocks.remove(item);
                 updateSelectionLabel();
@@ -251,6 +261,11 @@ public class LibraryComponent {
             public void onSelect(StoredCandidate item) {
                 selectedCandidates.add(item);
                 updateSelectionLabel();
+            }
+
+            @Override
+            public void onClick(StoredCandidate item) {
+
             }
 
             @Override

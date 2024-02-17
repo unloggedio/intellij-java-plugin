@@ -15,6 +15,7 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.ui.library.DeclaredMockItemPanel;
 import com.insidious.plugin.ui.library.ItemLifeCycleListener;
 import com.insidious.plugin.ui.library.StoredCandidateItemPanel;
@@ -312,6 +313,11 @@ public class TestCandidateSaveForm {
             }
 
             @Override
+            public void onClick(StoredCandidate item) {
+
+            }
+
+            @Override
             public void onUnSelect(StoredCandidate item) {
 
             }
@@ -355,7 +361,15 @@ public class TestCandidateSaveForm {
         ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener = new ItemLifeCycleListener<>() {
             @Override
             public void onSelect(DeclaredMock item) {
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    InsidiousUtils.focusInEditor(item.getFieldTypeName(),
+                            item.getMethodName(), project);
+                });
 
+            }
+
+            @Override
+            public void onClick(DeclaredMock item) {
             }
 
             @Override
@@ -426,6 +440,11 @@ public class TestCandidateSaveForm {
         ItemLifeCycleListener<AtomicAssertion> atomicAssertionLifeListener = new ItemLifeCycleListener<>() {
             @Override
             public void onSelect(AtomicAssertion item) {
+
+            }
+
+            @Override
+            public void onClick(AtomicAssertion item) {
 
             }
 
@@ -575,7 +594,7 @@ public class TestCandidateSaveForm {
                 PsiMethod method = psiMethodPair.getFirst();
                 PsiSubstitutor substitutor = psiMethodPair.getSecond();
                 TestCaseService.normalizeMethodTypes(methodCallExpression, method, substitutor);
-                
+
                 MethodUnderTest mockMethodTarget = MethodUnderTest.fromMethodCallExpression(methodCallExpression);
                 if (method == null) {
                     logger.warn(
