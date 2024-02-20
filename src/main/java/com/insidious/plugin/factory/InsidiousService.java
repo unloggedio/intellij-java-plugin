@@ -480,7 +480,7 @@ final public class InsidiousService implements
                 onboardingWindow.getComponent(), "Setup", false);
 
         onboardingWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        onboardingWindowContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
+        onboardingWindowContent.setIcon(UIUtils.UNLOGGED_SETUP);
         contentManager.addContent(onboardingWindowContent);
 
 

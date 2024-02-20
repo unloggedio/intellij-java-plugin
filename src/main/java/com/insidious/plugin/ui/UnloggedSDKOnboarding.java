@@ -81,12 +81,18 @@ public class UnloggedSDKOnboarding {
 
     public UnloggedSDKOnboarding(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
+
+        headingLabel.setFont(new Font("SF Pro Text", Font.BOLD, 16));
+
         extraMavenTextAreaScrollPanel.setBorder(BorderFactory.createEmptyBorder());
         extraMavenTextAreaScrollPanel.setVisible(false);
-        doneButton.setOpaque(true);
+
+		doneButton.setOpaque(true);
         doneButton.setBorderPainted(true);
         doneButton.setContentAreaFilled(true);
+
         copyCodeButtonMaven.addActionListener(e -> copyCode(PROJECT_TYPE.MAVEN));
+
         discordButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         discordButton.addMouseListener(new MouseAdapter() {
             @Override
@@ -94,7 +100,6 @@ public class UnloggedSDKOnboarding {
                 routeToDiscord();
             }
         });
-
 
         emailButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         emailButton.addMouseListener(new MouseAdapter() {
@@ -104,7 +109,6 @@ public class UnloggedSDKOnboarding {
             }
         });
 
-
         githubButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         githubButton.addMouseListener(new MouseAdapter() {
             @Override
@@ -112,7 +116,6 @@ public class UnloggedSDKOnboarding {
                 routeToGithub();
             }
         });
-
 
         gradleCopyButton.addActionListener(e -> copyCode(PROJECT_TYPE.GRADLE));
 
