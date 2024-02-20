@@ -222,15 +222,18 @@ public class TestCandidateSaveForm {
                     JsonNode returnValue;
                     MethodCallExpression mainMethod = candidateMetadata.getMainMethod();
                     if (mainMethod.getReturnValue().getValue() == 0 || mainMethod.getReturnValue().getType() == null) {
-                        return storedCandidate;
+						storedCandidate.setTestAssertions(new AtomicAssertion());
+                    	return storedCandidate;
                     }
                     Parameter returnValue1 = mainMethod.getReturnValue();
                     if (returnValue1.getProb().getSerializedValue().length == 0) {
-                        return storedCandidate;
+						storedCandidate.setTestAssertions(new AtomicAssertion());
+                    	return storedCandidate;
                     }
                     String stringValue = new String(returnValue1.getProb().getSerializedValue());
                     if (stringValue.length() == 0) {
-                        return storedCandidate;
+						storedCandidate.setTestAssertions(new AtomicAssertion());
+                    	return storedCandidate;
                     }
                     try {
                         returnValue = objectMapper.readTree(stringValue);
