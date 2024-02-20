@@ -480,15 +480,8 @@ final public class InsidiousService implements
                 onboardingWindow.getComponent(), "Setup", false);
 
         onboardingWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        onboardingWindowContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
+        onboardingWindowContent.setIcon(UIUtils.UNLOGGED_SETUP);
         contentManager.addContent(onboardingWindowContent);
-
-
-        // This block is for testing onboarding screen
-        UnloggedOnboardingScreenV2 obs = new UnloggedOnboardingScreenV2();
-        Content obsContent = contentFactory.createContent(
-                obs.getComponent(), "Temp Setup", false);
-        contentManager.addContent(obsContent);
 
 
         // stomp window

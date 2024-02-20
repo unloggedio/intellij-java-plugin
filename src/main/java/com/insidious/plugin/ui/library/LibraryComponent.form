@@ -208,29 +208,19 @@
             <properties/>
             <border type="none"/>
             <children>
-              <component id="85922" class="javax.swing.JLabel" binding="selectedCountLabel">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <font size="11"/>
-                  <foreground color="-10395295"/>
-                  <text value="0 selected"/>
-                </properties>
-              </component>
               <component id="64ba7" class="javax.swing.JLabel" binding="selectAllLabel">
                 <constraints>
                   <grid row="0" column="5" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
-                  <font size="11"/>
-                  <foreground color="-15718465"/>
+                  <font size="13"/>
+                  <foreground color="-11236617"/>
                   <text value="&lt;html&gt;&lt;u&gt;&lt;small&gt;Select all&lt;/small&gt;&lt;/u&gt;&lt;/html&gt;"/>
                 </properties>
               </component>
               <component id="e4084" class="javax.swing.JLabel" binding="clearSelectionLabel">
                 <constraints>
-                  <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
                   <font size="11"/>
@@ -241,12 +231,12 @@
               </component>
               <hspacer id="23d1e">
                 <constraints>
-                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                 </constraints>
               </hspacer>
               <component id="8145e" class="javax.swing.JLabel" binding="clearFilterLabel">
                 <constraints>
-                  <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
                   <font size="11"/>
@@ -257,13 +247,23 @@
               </component>
               <component id="37f0e" class="javax.swing.JLabel" binding="filterAppliedLabel">
                 <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
                   <font size="11"/>
                   <foreground color="-10395295"/>
                   <text value="0 filters applied"/>
                   <visible value="false"/>
+                </properties>
+              </component>
+              <component id="85922" class="javax.swing.JLabel" binding="selectedCountLabel">
+                <constraints>
+                  <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                </constraints>
+                <properties>
+                  <font size="11"/>
+                  <foreground color="-10395295"/>
+                  <text value="0 selected"/>
                 </properties>
               </component>
             </children>
