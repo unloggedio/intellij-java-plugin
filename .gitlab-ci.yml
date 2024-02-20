@@ -22,6 +22,8 @@ before_script:
 
 build:
   stage: build
+  rules:
+    if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
     - "apt-get update && apt-get install zip"
     - "./gradlew buildPlugin"
@@ -33,7 +35,7 @@ build:
       - .gradle
   artifacts:
     untracked: false
-    name: videobug-intellij-plugin.zip
+    name: unlogged-intellij-plugin.zip
     paths:
       - build/distributions/*.zip
     expire_in: 30 days
@@ -41,6 +43,8 @@ build:
 test:
   stage: build
   script: ./gradlew check --scan --info
+  rules:
+    if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: pull
