@@ -5,6 +5,7 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
 
@@ -283,6 +284,10 @@ public class UnloggedSDKOnboarding {
     public void showStep2(UnloggedOnboardingScreenV2 screen) {
         mainPanel.removeAll();
         mainPanel.add(screen.getComponent(), new GridConstraints());
+        ApplicationManager.getApplication().invokeLater(() -> {
+            mainPanel.revalidate();
+            mainPanel.repaint();
+        });
     }
 
     private enum PROJECT_TYPE {MAVEN, GRADLE}

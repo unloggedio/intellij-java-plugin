@@ -1111,6 +1111,9 @@ final public class InsidiousService implements
 
 
     public ExecutionSession getCurrentExecutionSession() {
+        if (currentState.getSessionInstance() == null) {
+            return null;
+        }
         return currentState.getSessionInstance().getExecutionSession();
     }
 
