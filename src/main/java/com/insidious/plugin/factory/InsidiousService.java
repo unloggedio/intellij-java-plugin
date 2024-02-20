@@ -484,13 +484,6 @@ final public class InsidiousService implements
         contentManager.addContent(onboardingWindowContent);
 
 
-        // This block is for testing onboarding screen
-        UnloggedOnboardingScreenV2 obs = new UnloggedOnboardingScreenV2();
-        Content obsContent = contentFactory.createContent(
-                obs.getComponent(), "Temp Setup", false);
-        contentManager.addContent(obsContent);
-
-
         // stomp window
 //        stompWindow = new StompComponent(this);
 //        threadPoolExecutor.submit(stompWindow);
