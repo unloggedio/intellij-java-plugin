@@ -478,6 +478,7 @@ final public class InsidiousService implements
 
         onboardingWindowContent = contentFactory.createContent(
                 onboardingWindow.getComponent(), "Setup", false);
+
         onboardingWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         onboardingWindowContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
         contentManager.addContent(onboardingWindowContent);
@@ -1637,5 +1638,10 @@ final public class InsidiousService implements
 
     public void reloadLibrary() {
         libraryToolWindow.reloadItems();
+    }
+
+    public void showCallYourApplicationScreen() {
+        UnloggedOnboardingScreenV2 screen = new UnloggedOnboardingScreenV2();
+        onboardingWindow.showStep2(screen);
     }
 }

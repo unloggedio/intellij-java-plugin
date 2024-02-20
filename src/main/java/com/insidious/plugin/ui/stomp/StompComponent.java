@@ -23,6 +23,7 @@ import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.ui.UnloggedOnboardingScreenV2;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
@@ -278,6 +279,12 @@ public class StompComponent implements
                         .setCancelKeyEnabled(false)
                         .setBelongsToGlobalPopupStack(false)
                         .setTitle("Unlogged Preferences")
+                        .setCancelCallback(new Computable<Boolean>() {
+                            @Override
+                            public Boolean compute() {
+                                return null;
+                            }
+                        })
                         .setTitleIcon(new ActiveIcon(UIUtils.UNLOGGED_ICON_DARK))
                         .createPopup();
 
@@ -379,7 +386,8 @@ public class StompComponent implements
 
     private void saveSelected() {
         if (DumbService.getInstance(insidiousService.getProject()).isDumb()) {
-            InsidiousNotification.notifyMessage("Please wait for IDE indexing to complete", NotificationType.INFORMATION);
+            InsidiousNotification.notifyMessage("Please wait for IDE indexing to complete",
+                    NotificationType.INFORMATION);
             return;
         }
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -1366,4 +1374,8 @@ public class StompComponent implements
         }
     }
 
+    public void showOnboardingScreen(UnloggedOnboardingScreenV2 screen) {
+        mainPanel.removeAll();
+        mainPanel.add(screen.getComponent(), BorderLayout.CENTER);
+    }
 }

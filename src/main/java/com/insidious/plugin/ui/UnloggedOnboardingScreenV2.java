@@ -54,8 +54,8 @@ public class UnloggedOnboardingScreenV2 {
 		// configure
 		JPanel panel1 = new JPanel();
 		panel1.add(panel1text);
-		panel1.setMinimumSize(new Dimension(screenWidth, 40));
-		panel1.setMaximumSize(new Dimension(screenWidth, 40));
+//		panel1.setMinimumSize(new Dimension(screenWidth, 40));
+//		panel1.setMaximumSize(new Dimension(screenWidth, 40));
 		panelMain.add(panel1);
 
 

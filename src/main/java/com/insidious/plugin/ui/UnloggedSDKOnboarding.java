@@ -210,8 +210,7 @@ public class UnloggedSDKOnboarding {
 
         doneButton.addActionListener(e -> {
             mainPanel.removeAll();
-            mainPanel.add(new JLabel("Start calling your application"), new GridConstraints());
-//            insidiousService.showS
+            insidiousService.showCallYourApplicationScreen();
         });
 
     }
@@ -279,6 +278,11 @@ public class UnloggedSDKOnboarding {
 
     public JPanel getComponent() {
         return this.mainPanel;
+    }
+
+    public void showStep2(UnloggedOnboardingScreenV2 screen) {
+        mainPanel.removeAll();
+        mainPanel.add(screen.getComponent(), new GridConstraints());
     }
 
     private enum PROJECT_TYPE {MAVEN, GRADLE}
