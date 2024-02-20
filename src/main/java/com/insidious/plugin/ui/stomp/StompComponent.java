@@ -279,12 +279,12 @@ public class StompComponent implements
                         .setCancelKeyEnabled(false)
                         .setBelongsToGlobalPopupStack(false)
                         .setTitle("Unlogged Preferences")
-                        .setCancelCallback(new Computable<Boolean>() {
-                            @Override
-                            public Boolean compute() {
-                                return null;
-                            }
-                        })
+//                        .setCancelCallback(new Computable<Boolean>() {
+//                            @Override
+//                            public Boolean compute() {
+//                                return null;
+//                            }
+//                        })
                         .setTitleIcon(new ActiveIcon(UIUtils.UNLOGGED_ICON_DARK))
                         .createPopup();
 
