@@ -114,6 +114,7 @@ public class UIUtils {
     public static Icon LINK_ARROW = IconLoader.getIcon("/icons/svg/link_arrow.svg", UIUtils.class);
     public static Icon VIDEO_BANNER = IconLoader.getIcon("/icons/png/video_banner.png", UIUtils.class);
     public static Icon BELL_ICON = IconLoader.getIcon("/icons/svg/bell_icon.svg", UIUtils.class);
+    public static Icon UNLOGGED_SETUP = IconLoader.getIcon("/icons/svg/unlogged_setup.svg", UIUtils.class);
 
     public static Icon NO_AGENT_GUTTER = IconLoader.getIcon("/icons/svg/no_agent_gutter.svg", UIUtils.class);
     public static Icon EXECUTE_COMPONENT = IconLoader.getIcon("/icons/svg/execute_component.svg", UIUtils.class);
@@ -122,7 +123,7 @@ public class UIUtils {
     public static Icon EXECUTE = AllIcons.Actions.ProfileBlue;
     public static Icon PROCESS_NOT_RUNNING = IconLoader.getIcon("/icons/svg/process_not_running.svg", UIUtils.class);
     public static Icon DATA_AVAILABLE = IconLoader.getIcon("/icons/svg/data_available_v2.svg", UIUtils.class);
-    public static Icon ATOMIC_TESTS = IconLoader.getIcon("/icons/svg/atomic_tests_v2.svg", UIUtils.class);
+    public static Icon ATOMIC_TESTS = IconLoader.getIcon("/icons/svg/atomic_tests.svg", UIUtils.class);
     public static Icon DIRECT_INVOKE_EXECUTE = IconLoader.getIcon("/icons/svg/direct-invoke-execute.svg",
             UIUtils.class);
     public static Icon EXECUTE_METHOD = IconLoader.getIcon("/icons/svg/execute_method.svg", UIUtils.class);

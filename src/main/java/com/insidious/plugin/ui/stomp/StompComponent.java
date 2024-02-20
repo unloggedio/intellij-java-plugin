@@ -166,6 +166,7 @@ public class StompComponent implements
         clearSelectionLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         clearSelectionLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
+        clearSelectionLabel.setForeground(new Color(84, 138, 247));
         clearSelectionLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -187,12 +188,12 @@ public class StompComponent implements
                     selectedCandidates.add(stompItem.getTestCandidate());
                 }
                 updateControlPanel();
-
             }
         });
 
+
         clearFilterLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        clearFilterLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
+//        clearFilterLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2))
         clearFilterLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -797,7 +798,6 @@ public class StompComponent implements
             clearSelectionLabel.setVisible(true);
 //            selectAllLabel.setVisible(true);
 
-
             generateJUnitButton.setEnabled(true);
 //            saveAsMockButton.setEnabled(true);
             replayButton.setEnabled(true);
@@ -1207,18 +1207,14 @@ public class StompComponent implements
             welcomePanelRemoved = true;
         }
 
-        JLabel process_started = new JLabel("Process started");
-        process_started.setIcon(UIUtils.LIBRARY_ICON);
+        JLabel process_started = new JLabel("<html><b> Process started... </b></html>");
+//        process_started.setIcon(UIUtils.LIBRARY_ICON);
         JPanel startedPanel = new JPanel();
         startedPanel.setLayout(new BorderLayout());
         process_started.setBorder(
-                BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new JBColor(
-                                new Color(35, 103, 30),
-                                new Color(35, 103, 30)), 2, true),
-                        BorderFactory.createEmptyBorder(6, 6, 6, 6)
-                )
+                BorderFactory.createEmptyBorder(6, 6, 6, 6)
         );
+        process_started.setForeground(new Color(84, 138, 247));
         startedPanel.add(process_started, BorderLayout.EAST);
 
         JPanel rowPanel = new JPanel();

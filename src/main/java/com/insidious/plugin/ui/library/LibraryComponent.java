@@ -116,6 +116,8 @@ public class LibraryComponent {
 
 
         clearSelectionLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        clearSelectionLabel.setForeground(new Color(84, 138, 247));
+        clearSelectionLabel.setFont(new Font("SF Pro Text", Font.PLAIN, 13));
         clearSelectionLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {

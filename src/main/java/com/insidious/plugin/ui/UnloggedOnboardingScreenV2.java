@@ -82,7 +82,7 @@ public class UnloggedOnboardingScreenV2 {
 		JPanel panel3mid = new JPanel();
 		JLabel panel3midText = new JLabel();
 		panel3midText.setFont(new Font("SF Pro Text", Font.PLAIN, 14));
-		panel3midText.setText("<html>You can now start making API calls<br>from <font color=\"#5AED00\"> Swagger </font>, <font color=\"#FF6C37\">Postman</font>, etc!</html>");
+		panel3midText.setText("<html>&nbsp&nbsp&nbsp&nbsp&nbsp You can now start making API calls <br> &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp from your preferred service!</html>");
 		panel3mid.add(panel3midText);
 
 		// swagger panel
@@ -153,7 +153,7 @@ public class UnloggedOnboardingScreenV2 {
 		JPanel panel7lower = new JPanel();
 		JLabel panel7lowerText = new JLabel();
 		panel7lowerText.setFont(new Font("SF Pro Text", Font.PLAIN, 13));
-		panel7lowerText.setText("<html>Checkout out our Youtube channel where we<br>talk about the tool and it’s features.</html>");
+		panel7lowerText.setText("<html>Checkout out our Youtube channel where <br> &nbsp we talk about the tool and it’s features.</html>");
 		panel7lower.add(panel7lowerText);
 		panel7lower.setPreferredSize(new Dimension(screenWidth, 45));
 
@@ -195,7 +195,7 @@ public class UnloggedOnboardingScreenV2 {
 		JPanel panel9 = new JPanel();
 		JLabel panel9label = new JLabel();
 		panel9label.setIcon(UIUtils.BELL_ICON);
-		panel9label.setText("<html><b>Stay updated!</b></html>");
+		panel9label.setText("<html><b>Stay updated/ Give us feedback</b></html>");
 		panel9label.setFont(new Font("SF Pro Text", Font.PLAIN, 15));
 		panel9.add(panel9label);
 		panel9.setPreferredSize(new Dimension(screenWidth, 30));
