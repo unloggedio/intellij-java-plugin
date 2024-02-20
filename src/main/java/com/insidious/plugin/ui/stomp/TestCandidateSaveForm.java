@@ -90,7 +90,8 @@ public class TestCandidateSaveForm {
 
     public TestCandidateSaveForm(List<TestCandidateMetadata> sourceCandidates,
                                  SaveFormListener saveFormListener, OnCloseListener<TestCandidateSaveForm> onCloseListener) {
-        InsidiousService service = saveFormListener.getProject().getService(InsidiousService.class);
+        Project project1 = saveFormListener.getProject();
+        InsidiousService insidiousService = project1.getService(InsidiousService.class);
 
 //        ProgressManager instance = ProgressManager.getInstance();
 //        ProgressIndicator progressIndicator = instance.getProgressIndicator();
@@ -101,7 +102,8 @@ public class TestCandidateSaveForm {
 //            if (progressIndicator.isCanceled()) {
 //                throw new RuntimeException("saving cancelled");
 //            }
-            TestCandidateMetadata testCandidateById = service.getTestCandidateById(sourceCandidate.getEntryProbeIndex(),
+            TestCandidateMetadata testCandidateById = insidiousService.getTestCandidateById(
+                    sourceCandidate.getEntryProbeIndex(),
                     true);
             list.add(testCandidateById);
         }
@@ -145,11 +147,11 @@ public class TestCandidateSaveForm {
 
 
         long voidMethodCount = candidateMetadataList.stream().filter(e ->
-                        e.getMainMethod().getReturnValue() == null ||
+                e.getMainMethod().getReturnValue() == null ||
                         e.getMainMethod().getReturnValue().getType() == null ||
-                e.getMainMethod().getReturnValue().getType().equalsIgnoreCase("void")).count();
+                        e.getMainMethod().getReturnValue().getType().equalsIgnoreCase("void")).count();
 
-        if (voidMethodCount > 0 ) {
+        if (voidMethodCount > 0) {
             voidInfoPanel.setVisible(true);
             methodReturningVoidLabel.setText(voidMethodCount + " method return void");
         } else {
@@ -157,11 +159,13 @@ public class TestCandidateSaveForm {
         }
 
 
-        List<DeclaredMock> mocksList = ApplicationManager.getApplication().runReadAction(
-                (Computable<List<DeclaredMock>>) () -> collectDownstreamMockCalls(candidateMetadataList));
+        Map<TestCandidateMetadata, List<DeclaredMock>> mocksMap = ApplicationManager.getApplication().runReadAction(
+                (Computable<Map<TestCandidateMetadata, List<DeclaredMock>>>) () -> collectDownstreamMockCalls(
+                        candidateMetadataList));
 
-        mockCallCountLabel.setText(mocksList.size() + " downstream call mocks");
-
+        List<DeclaredMock> declaredMockList = mocksMap.values().stream().flatMap(Collection::stream)
+                .collect(Collectors.toList());
+        mockCallCountLabel.setText(declaredMockList.size() + " downstream call mocks");
 
         confirmButton.addActionListener(new ActionListener() {
             @Override
@@ -170,15 +174,19 @@ public class TestCandidateSaveForm {
                     for (StoredCandidate storedCandidate : candidateList) {
                         if (!unitRadioButton.isSelected()) {
                             storedCandidate.setMockIds(new HashSet<>());
+                        } else {
+                            List<DeclaredMock> mocks = mocksMap.get(storedCandidate);
+                            storedCandidate.setMockIds(
+                                    mocks.stream().map(DeclaredMock::getId).collect(Collectors.toSet()));
                         }
                         saveFormListener.onSaved(storedCandidate);
                     }
 
                     Collection<DeclaredMockItemPanel> values = declaredMockPanelMap.values();
                     for (DeclaredMockItemPanel value : values) {
-                        saveFormListener.onSaved(value);
+                        saveFormListener.onSaved(value.getDeclaredMock());
                     }
-
+                    insidiousService.reloadLibrary();
 
                     InsidiousNotification
                             .notifyMessage(
@@ -188,7 +196,7 @@ public class TestCandidateSaveForm {
                                             new AnAction(new Supplier<String>() {
                                                 @Override
                                                 public String get() {
-                                                    return "Show Library";
+                                                    return "Go to Library";
                                                 }
                                             }, UIUtils.LIBRARY_ICON) {
                                                 @Override
@@ -212,7 +220,6 @@ public class TestCandidateSaveForm {
                 onCloseListener.onClose(TestCandidateSaveForm.this);
             }
         });
-
 
 
         candidateList = candidateMetadataList.stream()
@@ -345,7 +352,6 @@ public class TestCandidateSaveForm {
         candidateItemContainer.setAlignmentX(0);
 
 
-
         Project project = saveFormListener.getProject();
         for (int i = 0; i < candidateList.size(); i++) {
             StoredCandidate storedCandidate = candidateList.get(i);
@@ -398,8 +404,8 @@ public class TestCandidateSaveForm {
         mockItemContainer.setAlignmentY(0);
         mockItemContainer.setAlignmentX(0);
 
-        for (int i = 0; i < mocksList.size(); i++) {
-            DeclaredMock declaredMock = mocksList.get(i);
+        for (int i = 0; i < declaredMockList.size(); i++) {
+            DeclaredMock declaredMock = declaredMockList.get(i);
             DeclaredMockItemPanel declaredMockItemPanel = new DeclaredMockItemPanel(declaredMock,
                     itemLifeCycleListener, project);
             declaredMockItemPanel.setIsSelectable(false);
@@ -408,7 +414,7 @@ public class TestCandidateSaveForm {
         }
 
 
-        mockItemContainer.add(new JPanel(), createGBCForFakeComponent(mocksList.size()));
+        mockItemContainer.add(new JPanel(), createGBCForFakeComponent(declaredMockList.size()));
 
 
         MouseAdapter showMocksAdapter = new MouseAdapter() {
@@ -569,12 +575,14 @@ public class TestCandidateSaveForm {
         return collectedCalls;
     }
 
-    private List<DeclaredMock> collectDownstreamMockCalls(List<TestCandidateMetadata> candidateMetadataList) {
+    private Map<TestCandidateMetadata, List<DeclaredMock>> collectDownstreamMockCalls(List<TestCandidateMetadata> candidateMetadataList) {
 
-        Map<String, DeclaredMock> mocks = new HashMap<>();
+        Map<TestCandidateMetadata, List<DeclaredMock>> mocks = new HashMap<>();
+        Project project = saveFormListener.getProject();
         for (TestCandidateMetadata testCandidateMetadata : candidateMetadataList) {
-            PsiMethod targetMethod = ClassTypeUtils.getPsiMethod(testCandidateMetadata.getMainMethod(),
-                    saveFormListener.getProject()).getFirst();
+            Pair<PsiMethod, PsiSubstitutor> psiMethod = ClassTypeUtils.getPsiMethod(
+                    testCandidateMetadata.getMainMethod(), project);
+            PsiMethod targetMethod = psiMethod.getFirst();
 
             List<PsiMethodCallExpression> allCallExpressions = getAllCallExpressions(targetMethod);
 
@@ -590,7 +598,7 @@ public class TestCandidateSaveForm {
                 MethodCallExpression methodCallExpression = callListCopy.remove(0);
 
                 Pair<PsiMethod, PsiSubstitutor> psiMethodPair = ClassTypeUtils.getPsiMethod(
-                        methodCallExpression, saveFormListener.getProject());
+                        methodCallExpression, project);
                 PsiMethod method = psiMethodPair.getFirst();
                 PsiSubstitutor substitutor = psiMethodPair.getSecond();
                 TestCaseService.normalizeMethodTypes(methodCallExpression, method, substitutor);
@@ -636,22 +644,19 @@ public class TestCandidateSaveForm {
                 DeclaredMock declaredMock = ApplicationManager.getApplication().runReadAction(
                         (Computable<DeclaredMock>) () -> ClassUtils.createDefaultMock(methodCallExpression1));
 
-                DeclaredMock existingMock = mocks.get(mockMethodTarget.getMethodHashKey());
+                List<DeclaredMock> existingMock = mocks.get(testCandidateMetadata);
                 if (existingMock == null) {
-                    mocks.put(mockMethodTarget.getMethodHashKey(), declaredMock);
+                    ArrayList<DeclaredMock> value = new ArrayList<>();
+                    value.add(declaredMock);
+                    mocks.put(testCandidateMetadata, value);
                 } else {
-                    existingMock.getThenParameter().addAll(declaredMock.getThenParameter());
+                    existingMock.add(declaredMock);
                 }
-
-
             }
-
-
         }
 
 
-        return new ArrayList<>(mocks.values());
-
+        return mocks;
     }
 
     private AtomicAssertion createAssertions(JsonNode value, String key) {

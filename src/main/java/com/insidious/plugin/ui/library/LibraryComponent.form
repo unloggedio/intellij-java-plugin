@@ -129,7 +129,7 @@
                   <font size="11"/>
                   <foreground color="-7237231"/>
                   <icon value="icons/png/information-line.png"/>
-                  <text value="inject mocks in live application"/>
+                  <text value="mocks calls in live application"/>
                 </properties>
               </component>
               <grid id="76fd4" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">

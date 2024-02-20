@@ -1779,7 +1779,7 @@ public class SessionInstance implements Runnable {
 //        return events;
 //    }
 
-    private String getFileStreamFromArchive(File sessionArchive, String archiveFile) throws IOException, FailedToReadClassWeaveException {
+    private String getFileStreamFromArchive(File sessionArchive, String archiveFile) throws FailedToReadClassWeaveException {
         long start = new Date().getTime();
         String eventFile = createFileOnDiskFromSessionArchiveFileV2(sessionArchive, archiveFile);
         if (eventFile == null) {

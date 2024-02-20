@@ -1433,6 +1433,7 @@ final public class InsidiousService implements
     public void saveMockDefinition(DeclaredMock declaredMock) {
         AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         atomicRecordService.saveMockDefinition(declaredMock);
+        reloadLibrary();
         if (configurationState.isFieldMockActive("*")) {
             injectMocksInRunningProcess(List.of(declaredMock));
         }
@@ -1632,5 +1633,9 @@ final public class InsidiousService implements
         ApplicationManager.getApplication().invokeLater(() -> {
             toolWindow.getContentManager().setSelectedContent(stompWindowContent, true, true);
         });
+    }
+
+    public void reloadLibrary() {
+        libraryToolWindow.reloadItems();
     }
 }

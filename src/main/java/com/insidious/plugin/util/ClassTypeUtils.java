@@ -458,10 +458,11 @@ public class ClassTypeUtils {
                         String expectedArgumentType = expectedArgument.getType();
                         TypeName typeInstance = ClassTypeUtils.createTypeFromNameString(expectedArgumentType);
 
-                        actualArgumentType = ClassTypeUtils.substituteClassRecursively((PsiType) actualArgumentType,
+                        PsiType actualArgumentPsiType = (PsiType) actualArgumentType;
+                        actualArgumentType = ClassTypeUtils.substituteClassRecursively(actualArgumentPsiType,
                                 substitutor);
 
-                        String actualTypeCanonicalName = ((PsiType) actualArgumentType).getCanonicalText();
+                        String actualTypeCanonicalName = actualArgumentPsiType.getCanonicalText();
                         if (actualTypeCanonicalName.contains("...")) {
                             actualTypeCanonicalName = actualTypeCanonicalName.replace("...", "[]");
                         }
@@ -471,8 +472,7 @@ public class ClassTypeUtils {
                                 GlobalSearchScope.allScope(project));
                         PsiClassType expectedType = PsiType.getTypeByName(expectedArgumentType,
                                 project, GlobalSearchScope.allScope(project));
-                        boolean isNotOkay = !actualTypeCanonicalName.contains(expectedTypeName.toString())
-                                && !((PsiType) actualArgumentType).isAssignableFrom(expectedType);
+                        boolean isNotOkay = isTypeClassesSame(actualArgumentPsiType, expectedType);
                         if (isNotOkay) {
 
                             // TODO FIXME RIGHTNOW
@@ -517,6 +517,17 @@ public class ClassTypeUtils {
 
         }
         return null;
+    }
+
+    private static boolean isTypeClassesSame(PsiType actualArgumentType, PsiType expectedType) {
+        if (actualArgumentType instanceof PsiArrayType) {
+            if (!(expectedType instanceof PsiArrayType)) {
+                return false;
+            }
+        }
+        boolean nameContainsTrue = !actualArgumentType.getCanonicalText().contains(expectedType.getCanonicalText());
+        boolean isAssignable = !actualArgumentType.isAssignableFrom(expectedType);
+        return nameContainsTrue && isAssignable;
     }
 
     // method call expressions are in the form

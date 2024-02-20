@@ -213,6 +213,7 @@ public class LibraryComponent {
                                 NotificationType.INFORMATION);
                         builder.getDialogWrapper().close(0);
                         builder.dispose();
+                        reloadItems();
                     });
                     builder.showModal(true);
 
@@ -639,8 +640,12 @@ public class LibraryComponent {
 
         itemsContainer.add(new JPanel(), createGBCForFakeComponent(count++));
 
-        itemScrollPanel.revalidate();
-        itemScrollPanel.repaint();
+        ApplicationManager.getApplication().invokeLater(() -> {
+            itemScrollPanel.revalidate();
+            itemScrollPanel.repaint();
+            itemScrollPanel.getParent().revalidate();
+            itemScrollPanel.getParent().repaint();
+        });
 
 
     }

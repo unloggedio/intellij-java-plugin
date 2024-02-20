@@ -110,18 +110,25 @@ public class MethodUnderTest {
         PsiReferenceExpression qualifierExpression1 = (PsiReferenceExpression) fieldExpression;
         PsiElement resolve = qualifierExpression1.resolve();
         PsiType callOnType;
-        if (resolve instanceof PsiField) {
-            PsiField fieldPsiInstance = (PsiField) resolve;
-            callOnType = fieldPsiInstance.getType();
-        } else if (resolve instanceof PsiLocalVariable) {
-            PsiLocalVariable localVariable = (PsiLocalVariable) resolve;
-            callOnType = localVariable.getType();
-        } else if (resolve instanceof PsiClass) {
-            PsiClass localVariable = (PsiClass) resolve;
-            callOnType = JavaPsiFacade.getInstance(methodCallExpression.getProject())
-                    .getElementFactory().createType(localVariable);
+        if (fieldExpression instanceof PsiReferenceExpression) {
+            if (resolve instanceof PsiField) {
+                PsiField fieldPsiInstance = (PsiField) resolve;
+                callOnType = fieldPsiInstance.getType();
+            } else if (resolve instanceof PsiLocalVariable) {
+                PsiLocalVariable localVariable = (PsiLocalVariable) resolve;
+                callOnType = localVariable.getType();
+            } else if (resolve instanceof PsiClass) {
+                PsiClass localVariable = (PsiClass) resolve;
+                callOnType = JavaPsiFacade.getInstance(methodCallExpression.getProject())
+                        .getElementFactory().createType(localVariable);
+            } else {
+                callOnType = qualifierExpression1.getType();
+            }
+        } else if (fieldExpression instanceof PsiMethodCallExpression) {
+            PsiMethodCallExpression mce = (PsiMethodCallExpression) fieldExpression;
+            callOnType = mce.getType();
         } else {
-            callOnType = qualifierExpression1.getType();
+            throw new RuntimeException("Unexpected expression: " + fieldExpression.toString());
         }
 
         PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(methodCallExpression);

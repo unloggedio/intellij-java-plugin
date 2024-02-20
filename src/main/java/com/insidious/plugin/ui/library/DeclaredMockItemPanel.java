@@ -42,7 +42,7 @@ public class DeclaredMockItemPanel {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
-                itemLifeCycleListener.onSelect(declaredMock);
+                itemLifeCycleListener.onClick(declaredMock);
             }
         });
         TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
