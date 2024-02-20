@@ -15,6 +15,12 @@ import java.net.URISyntaxException;
 
 public class UnloggedOnboardingScreenV2 {
 
+	// define constants
+	int screenWidth = 1000;
+	int panel3height = 60;
+	int stickerWidth = 27;
+	int seperatorWidth = 100;
+
 	private JPanel seperatorPanel(int height) {
 
 		// left panel
@@ -30,8 +36,7 @@ public class UnloggedOnboardingScreenV2 {
 		seperatorPanel.setLayout(new BoxLayout(seperatorPanel, BoxLayout.X_AXIS));
 		seperatorPanel.add(leftPanel);
 		seperatorPanel.add(rightPanel);
-		seperatorPanel.setMinimumSize(new Dimension(100,height));
-		seperatorPanel.setMaximumSize(new Dimension(100,height));
+		seperatorPanel.setPreferredSize(new Dimension(seperatorWidth, height));
 		return seperatorPanel;
 	}
 
@@ -41,7 +46,6 @@ public class UnloggedOnboardingScreenV2 {
 		// panelMain properties
         panelMain = new JPanel();
         panelMain.setLayout(new BoxLayout(panelMain, BoxLayout.Y_AXIS));
-		int screenWidth = 1000;
 
         // panel1
 		// text label
@@ -54,13 +58,13 @@ public class UnloggedOnboardingScreenV2 {
 		// configure
 		JPanel panel1 = new JPanel();
 		panel1.add(panel1text);
-//		panel1.setMinimumSize(new Dimension(screenWidth, 40));
-//		panel1.setMaximumSize(new Dimension(screenWidth, 40));
+		panel1.setAlignmentY(JPanel.TOP_ALIGNMENT);
+		panel1.setPreferredSize(new Dimension(screenWidth, 40));
 		panelMain.add(panel1);
 
 
 		// panel2
-		JPanel panel2 = this.seperatorPanel(43);
+		JPanel panel2 = this.seperatorPanel(80);
 		panelMain.add(panel2);
 
 
@@ -71,7 +75,8 @@ public class UnloggedOnboardingScreenV2 {
 		JLabel postmanLabel = new JLabel();
 		postmanLabel.setIcon(UIUtils.POSTMAN);
 		postmanPanel.add(postmanLabel, BorderLayout.NORTH);
-		postmanPanel.setSize(new Dimension(27,53));
+		postmanPanel.setMinimumSize(new Dimension(stickerWidth, panel3height));
+		postmanPanel.setMaximumSize(new Dimension(stickerWidth, panel3height));
 
 		// mid panel
 		JPanel panel3mid = new JPanel();
@@ -86,7 +91,8 @@ public class UnloggedOnboardingScreenV2 {
 		JLabel swaggerLabel = new JLabel();
 		swaggerLabel.setIcon(UIUtils.SWAGGER);
 		swaggerPanel.add(swaggerLabel, BorderLayout.EAST);
-		swaggerPanel.setSize(new Dimension(27,53));
+		swaggerPanel.setMinimumSize(new Dimension(stickerWidth, panel3height));
+		swaggerPanel.setMaximumSize(new Dimension(stickerWidth, panel3height));
 
 
 		// configure
@@ -95,8 +101,7 @@ public class UnloggedOnboardingScreenV2 {
 		panel3.add(postmanPanel);
 		panel3.add(panel3mid);
 		panel3.add(swaggerPanel);
-		panel3.setMaximumSize(new Dimension(screenWidth, 60));
-		panel3.setMinimumSize(new Dimension(screenWidth, 60));
+		panel3.setPreferredSize(new Dimension(screenWidth, panel3height));
 		panelMain.add(panel3);
 
 
@@ -111,8 +116,7 @@ public class UnloggedOnboardingScreenV2 {
 		JLabel mainIconLabel = new JLabel();
 		mainIconLabel.setIcon(UIUtils.UNLOGGED_ONBOARDING);
 		mainIconPanel.add(mainIconLabel);
-		mainIconPanel.setMaximumSize(new Dimension(screenWidth, 50));
-		mainIconPanel.setMinimumSize(new Dimension(screenWidth, 50));
+		mainIconPanel.setPreferredSize(new Dimension(screenWidth, 50));
 
 		// text panel
 		JPanel mainIconText = new JPanel();
@@ -120,8 +124,7 @@ public class UnloggedOnboardingScreenV2 {
 		mainIconTextLabel.setText("<html>But before you do....</html>");
 		mainIconTextLabel.setFont(new Font("SF Pro Text", Font.PLAIN, 14));
 		mainIconText.add(mainIconTextLabel);
-		mainIconText.setMaximumSize(new Dimension(screenWidth, 30));
-		mainIconText.setMinimumSize(new Dimension(screenWidth, 30));
+		mainIconText.setPreferredSize(new Dimension(screenWidth, 30));
 
 		// configure
 		JPanel panel5 = new JPanel();
@@ -144,8 +147,7 @@ public class UnloggedOnboardingScreenV2 {
 		panel7upperLabel.setFont(new Font("SF Pro Text", Font.PLAIN, 13));
 		panel7upperLabel.setText("<html><b>Here's some starter content for you</b></html>");
 		panel7upper.add(panel7upperLabel);
-		panel7upper.setMaximumSize(new Dimension(screenWidth, 30));
-		panel7upper.setMinimumSize(new Dimension(screenWidth, 30));
+		panel7upper.setPreferredSize(new Dimension(screenWidth, 30));
 
 		// lower text
 		JPanel panel7lower = new JPanel();
@@ -153,8 +155,7 @@ public class UnloggedOnboardingScreenV2 {
 		panel7lowerText.setFont(new Font("SF Pro Text", Font.PLAIN, 13));
 		panel7lowerText.setText("<html>Checkout out our Youtube channel where we<br>talk about the tool and it’s features.</html>");
 		panel7lower.add(panel7lowerText);
-		panel7lower.setMaximumSize(new Dimension(screenWidth, 45));
-		panel7lower.setMinimumSize(new Dimension(screenWidth, 45));
+		panel7lower.setPreferredSize(new Dimension(screenWidth, 45));
 
 		// video panel
 		JPanel videoPanel = new JPanel();
@@ -174,8 +175,7 @@ public class UnloggedOnboardingScreenV2 {
 			
 		});
 		videoPanel.add(videoLabel);
-		videoPanel.setMaximumSize(new Dimension(screenWidth, 220));
-		videoPanel.setMinimumSize(new Dimension(screenWidth, 220));
+		videoPanel.setPreferredSize(new Dimension(screenWidth, 220));
 
 		// configure
 		JPanel panel7 = new JPanel();
@@ -198,8 +198,7 @@ public class UnloggedOnboardingScreenV2 {
 		panel9label.setText("<html><b>Stay updated!</b></html>");
 		panel9label.setFont(new Font("SF Pro Text", Font.PLAIN, 15));
 		panel9.add(panel9label);
-		panel9.setMaximumSize(new Dimension(screenWidth, 30));
-		panel9.setMinimumSize(new Dimension(screenWidth, 30));
+		panel9.setPreferredSize(new Dimension(screenWidth, 30));
 		panelMain.add(panel9);
 
 
@@ -253,8 +252,7 @@ public class UnloggedOnboardingScreenV2 {
         panel10.setLayout(new BoxLayout(panel10, BoxLayout.X_AXIS));
 		panel10.add(panel10left);
 		panel10.add(panel10right);
-		panel10.setMaximumSize(new Dimension(screenWidth, 30));
-		panel10.setMinimumSize(new Dimension(screenWidth, 30));
+		panel10.setPreferredSize(new Dimension(screenWidth, 30));
 		panelMain.add(panel10);
     }
 

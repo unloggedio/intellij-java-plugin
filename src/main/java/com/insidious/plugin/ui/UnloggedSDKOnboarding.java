@@ -282,7 +282,10 @@ public class UnloggedSDKOnboarding {
 
     public void showStep2(UnloggedOnboardingScreenV2 screen) {
         mainPanel.removeAll();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.add(screen.getComponent(), new GridConstraints());
+        mainPanel.revalidate();
+        mainPanel.repaint();
     }
 
     private enum PROJECT_TYPE {MAVEN, GRADLE}
