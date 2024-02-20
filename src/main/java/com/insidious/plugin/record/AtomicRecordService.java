@@ -179,19 +179,26 @@ public class AtomicRecordService {
 
 
     private String getFilenameForClass(String classname, Module module) {
-        String destinationFileName = separator + classname + ".json";
 
+        String destinationFileName = separator + classname + ".json";
+        String defaultPath = projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
         if (module == null) {
-            return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
+            return defaultPath;
         }
 
         VirtualFile moduleDirectoryFile = ProjectUtil.guessModuleDir(module);
-
         if (moduleDirectoryFile == null) {
-            return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
+            return defaultPath;
+        }
+        String testContentPathFromModule = buildModuleBasePath(moduleDirectoryFile);
+
+        // sometimes returned virtual file is a location in build
+        // artifact this removes it from file location
+        int indexBuild = testContentPathFromModule.indexOf("/build/generated/sources");
+        if (indexBuild != -1) {
+            testContentPathFromModule = testContentPathFromModule.substring(0, indexBuild);
         }
 
-        String testContentPathFromModule = buildModuleBasePath(moduleDirectoryFile);
         String testResourcesPathFromModulePath = testContentPathFromModule +
                 TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME;
 
@@ -666,8 +673,9 @@ public class AtomicRecordService {
             eventname = "UPDATED_EXISTING_MOCK";
         }
         UsageInsightTracker.getInstance().RecordEvent(eventname, jsonObject);
+        File file = new File(getFilenameForClass(className, guessModuleForClassName(declaredMock.getSourceClassName())));
         writeToFile(
-                new File(getFilenameForClass(className, guessModuleForClassName(declaredMock.getSourceClassName()))),
+                file,
                 record,
                 updated ? FileUpdateType.UPDATE_MOCK : FileUpdateType.ADD_MOCK, true);
     }
