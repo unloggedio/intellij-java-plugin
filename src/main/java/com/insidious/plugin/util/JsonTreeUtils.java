@@ -63,7 +63,7 @@ public class JsonTreeUtils {
         }
         while (children.hasMoreElements()) {
             DefaultMutableTreeNode child = (DefaultMutableTreeNode) children.nextElement();
-            if (!child.getUserObject().toString().matches("\\[\\d+\\]")) {
+            if (!child.getUserObject().toString().matches("^\\[\\d+\\].*")) {
                 return false;
             }
         }
