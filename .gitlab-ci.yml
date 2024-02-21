@@ -23,7 +23,7 @@ before_script:
 build:
   stage: build
   rules:
-    if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
     - "apt-get update && apt-get install zip"
     - "./gradlew buildPlugin"
@@ -44,7 +44,7 @@ test:
   stage: build
   script: ./gradlew check --scan --info
   rules:
-    if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: pull
