@@ -290,8 +290,14 @@ public class StompComponent implements
                         .createPopup();
 
                 component.setMaximumSize(new Dimension(500, 800));
-
-                OnCloseListener<StompFilter> onCloseListener = component1 -> unloggedPreferencesPopup.cancel();
+                OnCloseListener<StompFilter> onCloseListener = new OnCloseListener<StompFilter>() {
+                    @Override
+                    public void onClose(StompFilter component) {
+                        unloggedPreferencesPopup.cancel();
+                        updateFilterLabel();
+                        resetAndReload();
+                    }
+                };
 
                 stompFilter.setOnCloseListener(onCloseListener);
 
