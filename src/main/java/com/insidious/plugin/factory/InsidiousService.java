@@ -173,6 +173,13 @@ final public class InsidiousService implements
 
             @Override
             public synchronized void success(List<ExecutionSession> executionSessionList) {
+                if (DumbService.getInstance(project).isDumb()) {
+//                    DumbService.getInstance(project).runWhenSmart(() -> {
+//                        setSession(executionSession);
+//                    });
+                    return;
+                }
+
                 if (executionSessionList.size() == 0) {
                     logger.debug("no sessions found");
                     // the currently loaded session has been deleted
@@ -348,7 +355,8 @@ final public class InsidiousService implements
         JBPopup implementationChooserPopup = JBPopupFactory
                 .getInstance()
                 .createPopupChooserBuilder(implementationOptions.stream()
-                        .map(e -> e.getQualifiedName())
+                        .map(PsiClass::getQualifiedName)
+                        .filter(Objects::nonNull)
                         .sorted()
                         .collect(Collectors.toList()))
                 .setTitle("Run using implementation for " + className)
@@ -356,13 +364,16 @@ final public class InsidiousService implements
                     Arrays.stream(implementations)
                             .filter(e -> Objects.equals(((PsiClass) e).getQualifiedName(), psiElementName))
                             .findFirst().ifPresent(e -> {
-                                classChosenListener.classSelected(
-                                        new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) e)));
+                                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                                    classChosenListener.classSelected(
+                                            new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) e)));
+                                });
                             });
                 })
                 .createPopup();
-        implementationChooserPopup.showInFocusCenter();
-
+        ApplicationManager.getApplication().invokeLater(() -> {
+            implementationChooserPopup.showInFocusCenter();
+        });
     }
 
     public ReportingService getReportingService() {

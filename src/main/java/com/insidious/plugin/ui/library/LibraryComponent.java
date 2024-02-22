@@ -108,6 +108,7 @@ public class LibraryComponent {
                 currentMockInjectStatus = true;
                 insidiousService.injectMocksInRunningProcess(allDeclaredMocks);
             } else {
+                currentMockInjectStatus = false;
                 insidiousService.removeMocksInRunningProcess(allDeclaredMocks);
             }
         };

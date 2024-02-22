@@ -536,10 +536,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
     }
 
     private void chooseClassAndDirectInvoke() {
-        ApplicationManager.getApplication().invokeLater(() -> {
-            insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(),
-                    this::classSelected);
-        });
+        insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(),
+                this::classSelected);
     }
 
 //    public void uncheckPermanentMocks() {
