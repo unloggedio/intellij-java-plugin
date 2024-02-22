@@ -64,13 +64,14 @@ public class StompFilter {
     public StompFilter(FilterModel filterModel, MethodUnderTest lastMethodFocussed) {
         originalFilterModel = new FilterModel(filterModel);
         this.filterModel = new FilterModel(originalFilterModel);
-
+        int stompFilterPanelWidth = 300;
 
         cancelButton.addActionListener(e -> {
             if (onCloseListener != null) {
                 onCloseListener.onClose(StompFilter.this);
             }
         });
+
         applyButton.addActionListener(e -> {
             originalFilterModel.setFollowEditor(filterModel.followEditor);
 
@@ -94,12 +95,12 @@ public class StompFilter {
 
             originalFilterModel.candidateFilterType = filterModel.candidateFilterType;
             onCloseListener.onClose(StompFilter.this);
-
         });
-        includedClassesList.setFixedCellWidth(300);
-        excludedClassesList.setFixedCellWidth(300);
-        includedMethodsList.setFixedCellWidth(300);
-        excludedMethodsList.setFixedCellWidth(300);
+
+        includedClassesList.setFixedCellWidth(stompFilterPanelWidth);
+        excludedClassesList.setFixedCellWidth(stompFilterPanelWidth);
+        includedMethodsList.setFixedCellWidth(stompFilterPanelWidth);
+        excludedMethodsList.setFixedCellWidth(stompFilterPanelWidth);
 
         setUiModels(filterModel);
         resetToDefaultButton.addActionListener(new ActionListener() {
