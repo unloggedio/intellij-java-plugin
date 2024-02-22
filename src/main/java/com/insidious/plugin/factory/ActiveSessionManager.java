@@ -63,8 +63,7 @@ public class ActiveSessionManager {
             logger.warn("called to delete unknown session id: " + executionSession.getSessionId()
                     + " -> " + executionSession.getPath());
         } else {
-            sessionInstance.close();
-            sessionInstanceMap.remove(executionSession.getSessionId());
+            closeSession(sessionInstance);
         }
         File directoryToBeDeleted = FileSystems.getDefault()
                 .getPath(executionSession.getPath())
@@ -87,4 +86,8 @@ public class ActiveSessionManager {
         directoryToBeDeleted.delete();
     }
 
+    public void closeSession(SessionInstance sessionInstance) {
+        sessionInstanceMap.remove(sessionInstance.getExecutionSession().getSessionId());
+        sessionInstance.close();
+    }
 }

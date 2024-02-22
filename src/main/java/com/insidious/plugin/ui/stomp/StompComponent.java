@@ -550,10 +550,13 @@ public class StompComponent implements
             clearTimelineLabel.setVisible(true);
         }
 
+        JScrollBar verticalScrollBar1 = historyStreamScrollPanel.getVerticalScrollBar();
+        int max = verticalScrollBar1.getMaximum();
+        if (verticalScrollBar1.getValue() != 0 &&  verticalScrollBar1.getValue() != max) {
+            return;
+        }
 
         ApplicationManager.getApplication().invokeLater(() -> {
-            JScrollBar verticalScrollBar1 = historyStreamScrollPanel.getVerticalScrollBar();
-            int max = verticalScrollBar1.getMaximum();
             verticalScrollBar1.setValue(max);
         });
         // Restore the scroll position after adding the component
@@ -1325,7 +1328,8 @@ public class StompComponent implements
                 JPanel rowPanel = new JPanel(new BorderLayout());
                 rowPanel.add(labelPanel, BorderLayout.CENTER);
                 rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
-                GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent(itemPanel.getComponentCount());
+                GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent(
+                        itemPanel.getComponentCount());
 //                makeSpace(0);
                 itemPanel.add(rowPanel, gbcForLeftMainComponent, 0);
 

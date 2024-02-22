@@ -561,7 +561,7 @@ final public class InsidiousService implements
 //        unloggedSdkApiAgent.close();
         if (currentState.getSessionInstance() != null) {
             try {
-                currentState.getSessionInstance().close();
+                sessionManager.closeSession(currentState.getSessionInstance());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -955,7 +955,7 @@ final public class InsidiousService implements
         if (currentSession != null) {
             try {
                 logger.info("Closing existing session: " + currentSession.getExecutionSession().getSessionId());
-                currentSession.close();
+                sessionManager.closeSession(currentSession);
             } catch (Exception e) {
                 logger.error("Failed to close existing session before opening new session: " + e.getMessage());
                 throw new RuntimeException(e);
