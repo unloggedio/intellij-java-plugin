@@ -47,7 +47,6 @@ public class MockDefinitionEditor {
     private JButton saveButton;
     private JLabel callExpressionLabel;
     private JPanel nameAndSettingPanel;
-    private JPanel bottomControlPanel;
     private JPanel nameContainerPanel;
     private JPanel whenThenParentPanel;
     private JPanel whenPanel;
@@ -59,6 +58,7 @@ public class MockDefinitionEditor {
     private JButton cancelButton;
     private JLabel thenTextLabel;
     private JLabel returnValueLabel;
+    private JPanel bottomControlPanel;
     private String returnDummyValue;
     private String methodReturnTypeName;
     private JBPopup yeditorPopup;
