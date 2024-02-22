@@ -8,7 +8,9 @@ import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.intellij.lang.jvm.JvmParameter;
+import com.intellij.lang.jvm.types.JvmPrimitiveTypeKind;
 import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -419,6 +421,114 @@ public class ClassTypeUtils {
 
     }
 
+    public static Pair<PsiMethod, PsiSubstitutor> getPsiMethod(MethodUnderTest methodCallExpression, Project project) {
+        String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getClassName());
+        PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
+                GlobalSearchScope.allScope(project));
+
+        String methodName = methodCallExpression.getName();
+        boolean isLambda = false;
+        if (methodName.startsWith("lambda$")) {
+            methodName = methodName.split("\\$")[1];
+            isLambda = true;
+        }
+        List<Pair<PsiMethod, PsiSubstitutor>> methodsByNameList = classPsiElement.findMethodsAndTheirSubstitutorsByName(
+                methodName, true);
+
+        if (methodsByNameList.size() == 1 && isLambda) {
+            // should we verify parameters ?
+            return new Pair<>(methodsByNameList.get(0).getFirst(), EmptySubstitutor.getInstance());
+        }
+
+        for (Pair<PsiMethod, PsiSubstitutor> jvmMethodPair : methodsByNameList) {
+
+
+            List<String> methodDescriptor = ClassTypeUtils.splitMethodDescriptor(methodCallExpression.getSignature());
+            String returnType = methodDescriptor.remove(methodDescriptor.size() - 1);
+
+            PsiMethod jvmMethod = jvmMethodPair.getFirst();
+            PsiSubstitutor substitutor = jvmMethodPair.getSecond();
+            JvmParameter[] actualArguments = jvmMethod.getParameters();
+
+            if (methodDescriptor.size() == actualArguments.length) {
+
+                boolean mismatch = false;
+                for (int i = 0; i < methodDescriptor.size(); i++) {
+                    String expectedArgument = ClassTypeUtils.getDottedClassName(methodDescriptor.get(i));
+                    JvmParameter actualArgument = actualArguments[i];
+                    JvmType actualArgumentType = actualArgument.getType();
+                    if (actualArgumentType instanceof PsiType) {
+                        String expectedArgumentType = expectedArgument;
+                        TypeName typeInstance = ClassTypeUtils.createTypeFromNameString(expectedArgumentType);
+                        if (actualArgumentType instanceof PsiPrimitiveType) {
+                            JvmPrimitiveTypeKind kind = ((PsiPrimitiveType) actualArgumentType).getKind();
+                            if (kind.getBinaryName().equals(expectedArgumentType) || kind.getName().equals(expectedArgumentType)) {
+                                continue;
+                            }
+                        }
+
+                        PsiType actualArgumentPsiType = (PsiType) actualArgumentType;
+                        actualArgumentType = ClassTypeUtils.substituteClassRecursively(actualArgumentPsiType,
+                                substitutor);
+
+                        String actualTypeCanonicalName = actualArgumentPsiType.getCanonicalText();
+                        if (actualTypeCanonicalName.contains("...")) {
+                            actualTypeCanonicalName = actualTypeCanonicalName.replace("...", "[]");
+                        }
+                        TypeName expectedTypeName = constructClassName(expectedArgumentType);
+                        PsiClass expectedTypePsiClass = JavaPsiFacade.getInstance(
+                                project).findClass(expectedTypeName.toString(),
+                                GlobalSearchScope.allScope(project));
+                        PsiClassType expectedType = PsiType.getTypeByName(expectedArgumentType,
+                                project, GlobalSearchScope.allScope(project));
+                        boolean isNotOkay = isTypeClassesSame(actualArgumentPsiType, expectedType);
+                        if (isNotOkay) {
+
+                            // TODO FIXME RIGHTNOW
+                            PsiClass expectedClassPsi = ApplicationManager.getApplication().runReadAction(
+                                    (Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
+                                            .findClass(typeInstance.toString(),
+                                                    GlobalSearchScope.allScope(project)));
+
+                            if (expectedClassPsi != null) {
+                                if (actualArgumentType instanceof PsiClassReferenceType) {
+                                    boolean ok = InheritanceImplUtil.isInheritor(
+                                            ((PsiClassReferenceType) actualArgumentType).resolve(),
+                                            expectedClassPsi, true);
+                                    if (ok) {
+                                        return jvmMethodPair;
+                                    }
+                                } else if (actualArgumentType instanceof PsiClass) {
+                                    boolean ok = InheritanceImplUtil.isInheritor(((PsiClass) actualArgumentType),
+                                            expectedClassPsi, true);
+                                    if (ok) {
+                                        return jvmMethodPair;
+                                    }
+                                }
+
+                            }
+
+
+                            mismatch = true;
+                            break;
+                        }
+                    }
+
+                }
+                if (mismatch) {
+                    continue;
+                }
+
+                return jvmMethodPair;
+
+
+            }
+
+        }
+        return null;
+    }
+
+
     public static Pair<PsiMethod, PsiSubstitutor> getPsiMethod(MethodCallExpression methodCallExpression, Project project) {
         String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
         PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
@@ -457,6 +567,12 @@ public class ClassTypeUtils {
                     if (actualArgumentType instanceof PsiType) {
                         String expectedArgumentType = expectedArgument.getType();
                         TypeName typeInstance = ClassTypeUtils.createTypeFromNameString(expectedArgumentType);
+                        if (actualArgumentType instanceof PsiPrimitiveType) {
+                            JvmPrimitiveTypeKind kind = ((PsiPrimitiveType) actualArgumentType).getKind();
+                            if (kind.getBinaryName().equals(expectedArgumentType) || kind.getName().equals(expectedArgumentType)) {
+                                continue;
+                            }
+                        }
 
                         PsiType actualArgumentPsiType = (PsiType) actualArgumentType;
                         actualArgumentType = ClassTypeUtils.substituteClassRecursively(actualArgumentPsiType,

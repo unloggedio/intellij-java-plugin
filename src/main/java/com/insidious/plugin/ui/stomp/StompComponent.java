@@ -1127,6 +1127,8 @@ public class StompComponent implements
         }
         try {
             directInvokeComponent.renderForMethod(method, null);
+            southPanel.removeAll();
+            southPanel.add(directInvokeComponent.getContent(), BorderLayout.CENTER);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

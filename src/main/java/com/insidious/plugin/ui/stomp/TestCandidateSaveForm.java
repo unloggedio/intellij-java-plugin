@@ -158,10 +158,57 @@ public class TestCandidateSaveForm {
             voidInfoPanel.setVisible(false);
         }
 
+        Map<Long, List<TestCandidateMetadata>> mapByEntryProbe = candidateMetadataList.stream()
+                .collect(Collectors.groupingBy(TestCandidateMetadata::getEntryProbeIndex));
 
-        Map<TestCandidateMetadata, List<DeclaredMock>> mocksMap = ApplicationManager.getApplication().runReadAction(
-                (Computable<Map<TestCandidateMetadata, List<DeclaredMock>>>) () -> collectDownstreamMockCalls(
-                        candidateMetadataList));
+        candidateList = candidateMetadataList.stream()
+                .map(candidateMetadata -> {
+                    StoredCandidate storedCandidate = new StoredCandidate(candidateMetadata);
+
+                    JsonNode returnValue;
+                    MethodCallExpression mainMethod = candidateMetadata.getMainMethod();
+                    if (mainMethod.getReturnValue().getValue() == 0 || mainMethod.getReturnValue().getType() == null) {
+                        storedCandidate.setTestAssertions(new AtomicAssertion());
+                        return storedCandidate;
+                    }
+                    Parameter returnValue1 = mainMethod.getReturnValue();
+                    if (returnValue1.getProb().getSerializedValue().length == 0) {
+                        storedCandidate.setTestAssertions(new AtomicAssertion());
+                        return storedCandidate;
+                    }
+                    String stringValue = new String(returnValue1.getProb().getSerializedValue());
+                    if (stringValue.length() == 0) {
+                        storedCandidate.setTestAssertions(new AtomicAssertion());
+                        return storedCandidate;
+                    }
+                    try {
+                        returnValue = objectMapper.readTree(stringValue);
+                    } catch (JsonProcessingException e) {
+                        logger.warn("Failed to parse response value as a json object: " + e.getMessage());
+                        returnValue =
+                                objectMapper.getNodeFactory().textNode(stringValue);
+                    }
+
+
+                    AtomicAssertion assertion;
+                    if (!returnValue1.isException()) {
+                        assertion = createAssertions(returnValue);
+                    } else {
+                        JsonNode message = returnValue.get("message");
+                        String expectedValue = message == null ? "" : message.toString();
+                        assertion = new AtomicAssertion(Expression.SELF, AssertionType.EQUAL, "/message",
+                                expectedValue);
+                    }
+                    storedCandidate.setTestAssertions(assertion);
+                    return storedCandidate;
+                }).collect(Collectors.toList());
+
+        Map<Long, List<StoredCandidate>> storedCandidateByEntryProbe = candidateList.stream()
+                .collect(Collectors.groupingBy(StoredCandidate::getEntryProbeIndex));
+
+        Map<StoredCandidate, List<DeclaredMock>> mocksMap = ApplicationManager.getApplication().runReadAction(
+                (Computable<Map<StoredCandidate, List<DeclaredMock>>>) ()
+                        -> collectDownstreamMockCalls(candidateMetadataList, storedCandidateByEntryProbe));
 
         List<DeclaredMock> declaredMockList = mocksMap.values().stream().flatMap(Collection::stream)
                 .collect(Collectors.toList());
@@ -222,47 +269,6 @@ public class TestCandidateSaveForm {
         });
 
 
-        candidateList = candidateMetadataList.stream()
-                .map(candidateMetadata -> {
-                    StoredCandidate storedCandidate = new StoredCandidate(candidateMetadata);
-
-                    JsonNode returnValue;
-                    MethodCallExpression mainMethod = candidateMetadata.getMainMethod();
-                    if (mainMethod.getReturnValue().getValue() == 0 || mainMethod.getReturnValue().getType() == null) {
-						storedCandidate.setTestAssertions(new AtomicAssertion());
-                    	return storedCandidate;
-                    }
-                    Parameter returnValue1 = mainMethod.getReturnValue();
-                    if (returnValue1.getProb().getSerializedValue().length == 0) {
-						storedCandidate.setTestAssertions(new AtomicAssertion());
-                    	return storedCandidate;
-                    }
-                    String stringValue = new String(returnValue1.getProb().getSerializedValue());
-                    if (stringValue.length() == 0) {
-						storedCandidate.setTestAssertions(new AtomicAssertion());
-                    	return storedCandidate;
-                    }
-                    try {
-                        returnValue = objectMapper.readTree(stringValue);
-                    } catch (JsonProcessingException e) {
-                        logger.warn("Failed to parse response value as a json object: " + e.getMessage());
-                        returnValue =
-                                objectMapper.getNodeFactory().textNode(stringValue);
-                    }
-
-
-                    AtomicAssertion assertion;
-                    if (!returnValue1.isException()) {
-                        assertion = createAssertions(returnValue);
-                    } else {
-                        JsonNode message = returnValue.get("message");
-                        String expectedValue = message == null ? "" : message.toString();
-                        assertion = new AtomicAssertion(Expression.SELF, AssertionType.EQUAL, "/message",
-                                expectedValue);
-                    }
-                    storedCandidate.setTestAssertions(assertion);
-                    return storedCandidate;
-                }).collect(Collectors.toList());
 
 
         List<AtomicAssertion> allAssertions = candidateList.stream()
@@ -578,9 +584,11 @@ public class TestCandidateSaveForm {
         return collectedCalls;
     }
 
-    private Map<TestCandidateMetadata, List<DeclaredMock>> collectDownstreamMockCalls(List<TestCandidateMetadata> candidateMetadataList) {
+    private Map<StoredCandidate, List<DeclaredMock>>
+    collectDownstreamMockCalls(List<TestCandidateMetadata> candidateMetadataList,
+                               Map<Long, List<StoredCandidate>> storedCandidateMap) {
 
-        Map<TestCandidateMetadata, List<DeclaredMock>> mocks = new HashMap<>();
+        Map<StoredCandidate, List<DeclaredMock>> mocks = new HashMap<>();
         Project project = saveFormListener.getProject();
         for (TestCandidateMetadata testCandidateMetadata : candidateMetadataList) {
             Pair<PsiMethod, PsiSubstitutor> psiMethod = ClassTypeUtils.getPsiMethod(
@@ -647,11 +655,14 @@ public class TestCandidateSaveForm {
                 DeclaredMock declaredMock = ApplicationManager.getApplication().runReadAction(
                         (Computable<DeclaredMock>) () -> ClassUtils.createDefaultMock(methodCallExpression1));
 
-                List<DeclaredMock> existingMock = mocks.get(testCandidateMetadata);
+                StoredCandidate storedCandidate = storedCandidateMap.get(
+                        testCandidateMetadata.getEntryProbeIndex()).get(0);
+
+                List<DeclaredMock> existingMock = mocks.get(storedCandidate);
                 if (existingMock == null) {
                     ArrayList<DeclaredMock> value = new ArrayList<>();
                     value.add(declaredMock);
-                    mocks.put(testCandidateMetadata, value);
+                    mocks.put(storedCandidate, value);
                 } else {
                     existingMock.add(declaredMock);
                 }
