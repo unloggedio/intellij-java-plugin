@@ -40,7 +40,6 @@ import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
@@ -539,9 +538,8 @@ public class StompComponent implements
         rowPanel.add(dateAndTimePanel, BorderLayout.EAST);
 
 
-        makeSpace(index);
-        GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent();
-        gbcForLeftMainComponent.gridy = index;
+//        makeSpace(index);
+        GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent(index);
         itemPanel.add(rowPanel, gbcForLeftMainComponent);
         itemPanel.revalidate();
         itemPanel.repaint();
@@ -552,19 +550,22 @@ public class StompComponent implements
             clearTimelineLabel.setVisible(true);
         }
 
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            JScrollBar verticalScrollBar1 = historyStreamScrollPanel.getVerticalScrollBar();
+            int max = verticalScrollBar1.getMaximum();
+            verticalScrollBar1.setValue(max);
+        });
         // Restore the scroll position after adding the component
 //        double newPanelSize = component.getSize().getHeight();
-//        int newScrollPosition = (int) (scrollPosition + newPanelSize);
-//        logger.warn("setting scroll position to [1]" + scrollPosition + "+" + newPanelSize
-//                + " => " + newScrollPosition);
-//        verticalScrollBar.setValue(newScrollPosition);
+//        verticalScrollBar.setValue(Double.valueOf(newPanelSize).intValue());
     }
 
-    private GridBagConstraints createGBCForLeftMainComponent() {
+    private GridBagConstraints createGBCForLeftMainComponent(int yIndex) {
         GridBagConstraints gbc = new GridBagConstraints();
 
         gbc.gridx = 0;
-        gbc.gridy = 0;
+        gbc.gridy = yIndex;
         gbc.gridwidth = 1;
         gbc.gridheight = 1;
 
@@ -1231,7 +1232,7 @@ public class StompComponent implements
 
         rowPanel.add(startedPanel, BorderLayout.CENTER);
         rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
-        makeSpace(0);
+//        makeSpace(0);
         rowPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
         itemPanel.add(rowPanel, createGBCForProcessStartedComponent());
 
@@ -1324,13 +1325,13 @@ public class StompComponent implements
                 JPanel rowPanel = new JPanel(new BorderLayout());
                 rowPanel.add(labelPanel, BorderLayout.CENTER);
                 rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
-                GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent();
-                makeSpace(0);
+                GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent(itemPanel.getComponentCount());
+//                makeSpace(0);
                 itemPanel.add(rowPanel, gbcForLeftMainComponent, 0);
 
             }
         }
-        addCandidateToUi(testCandidateMetadata, 0);
+        addCandidateToUi(testCandidateMetadata, itemPanel.getComponentCount());
         itemPanel.revalidate();
         scrollContainer.revalidate();
         scrollContainer.repaint();
