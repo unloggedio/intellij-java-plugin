@@ -224,7 +224,7 @@
                 </constraints>
                 <properties>
                   <font size="11"/>
-                  <foreground color="-15718465"/>
+                  <foreground color="-11236617"/>
                   <text value="&lt;html&gt;&lt;u&gt;&lt;small&gt;Clear selection&lt;/small&gt;&lt;/u&gt;&lt;/html&gt;"/>
                   <visible value="false"/>
                 </properties>
@@ -240,7 +240,7 @@
                 </constraints>
                 <properties>
                   <font size="11"/>
-                  <foreground color="-15718465"/>
+                  <foreground color="-11236617"/>
                   <text value="&lt;html&gt;&lt;u&gt;&lt;small&gt;Clear filters&lt;/small&gt;&lt;/u&gt;&lt;/html&gt;"/>
                   <visible value="false"/>
                 </properties>

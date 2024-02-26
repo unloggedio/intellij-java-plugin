@@ -10,10 +10,22 @@ public class LibraryFilterState {
     private final Set<String> excludedClassNames = new HashSet<>();
     private final Set<String> includedMethodNames = new HashSet<>();
     private final Set<String> excludedMethodNames = new HashSet<>();
-    boolean followEditor;
-    CandidateFilterType candidateFilterType;
+    public boolean followEditor;
+    public CandidateFilterType candidateFilterType;
     boolean showTests = true;
     boolean showMocks = false;
+
+	public LibraryFilterState(LibraryFilterState libraryFilterState) {
+        this.includedMethodNames.addAll(libraryFilterState.includedMethodNames);
+        this.includedClassNames.addAll(libraryFilterState.includedClassNames);
+        this.excludedMethodNames.addAll(libraryFilterState.excludedMethodNames);
+        this.excludedClassNames.addAll(libraryFilterState.excludedClassNames);
+        this.followEditor = libraryFilterState.followEditor;
+        this.candidateFilterType = libraryFilterState.candidateFilterType;
+    }
+
+    public LibraryFilterState() {
+    }
 
     public CandidateFilterType getCandidateFilterType() {
         return candidateFilterType;
@@ -61,5 +73,21 @@ public class LibraryFilterState {
 
     public Set<String> getExcludedMethodNames() {
         return excludedMethodNames;
+    }
+
+	public void setFrom(LibraryFilterState libraryFilterState) {
+        this.includedMethodNames.clear();
+        this.includedClassNames.clear();
+
+        this.excludedMethodNames.clear();
+        this.excludedClassNames.clear();
+
+		
+        this.includedMethodNames.addAll(libraryFilterState.includedMethodNames);
+        this.includedClassNames.addAll(libraryFilterState.includedClassNames);
+        this.excludedMethodNames.addAll(libraryFilterState.excludedMethodNames);
+        this.excludedClassNames.addAll(libraryFilterState.excludedClassNames);
+        this.followEditor = libraryFilterState.followEditor;
+        this.candidateFilterType = libraryFilterState.candidateFilterType;
     }
 }

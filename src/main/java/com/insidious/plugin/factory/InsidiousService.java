@@ -619,6 +619,11 @@ final public class InsidiousService implements
                 stompWindow.onMethodFocussed(method);
             });
         }
+        if (libraryToolWindow != null) {
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                libraryToolWindow.onMethodFocussed(method);
+            });
+        }
     }
 
     public void showDirectInvoke(MethodAdapter method) {

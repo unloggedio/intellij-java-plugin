@@ -5,9 +5,11 @@ import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.InsidiousUtils;
+import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.java.JavaBundle;
@@ -17,7 +19,11 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.ui.JBColor;
+import com.intellij.openapi.ui.popup.ActiveIcon;
+import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
+import com.intellij.openapi.ui.popup.JBPopup;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.util.Computable;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
@@ -33,6 +39,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class LibraryComponent {
+
     private static final Logger logger = LoggerUtil.getInstance(LibraryComponent.class);
     public final ItemLifeCycleListener<DeclaredMock> MOCK_ITEM_LIFE_CYCLE_LISTENER;
     public final ItemLifeCycleListener<StoredCandidate> STORED_CANDIDATE_ITEM_LIFE_CYCLE_LISTENER;
@@ -63,7 +70,7 @@ public class LibraryComponent {
     private JPanel topContainerPanel;
     private JRadioButton mockingEnableRadioButton;
     private JRadioButton mockingDisableRadioButton;
-    private MethodAdapter lastFocussedMethod;
+    private MethodUnderTest lastMethodFocussed;
     private boolean currentMockInjectStatus = false;
 
     static JPanel deletePromptPanelBuilder(String deletePrompt) {
@@ -159,6 +166,41 @@ public class LibraryComponent {
             }
         });
 
+		showOptionsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        showOptionsButton.addMouseListener(new MouseAdapter() {
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                LibraryFilter libraryFilter = new LibraryFilter(filterModel, lastMethodFocussed);
+                JComponent component = libraryFilter.getComponent();
+                ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+                        .createComponentPopupBuilder(component, null);
+                JBPopup unloggedPreferencesPopup = gutterMethodComponentPopup
+                        .setProject(project)
+                        .setShowBorder(true)
+                        .setShowShadow(true)
+                        .setFocusable(true)
+                        .setRequestFocus(true)
+                        .setCancelOnClickOutside(false)
+                        .setCancelOnOtherWindowOpen(false)
+                        .setCancelKeyEnabled(false)
+                        .setBelongsToGlobalPopupStack(false)
+                        .setTitle("Unlogged Preferences")
+                        .setTitleIcon(new ActiveIcon(UIUtils.UNLOGGED_ICON_DARK))
+                        .createPopup();
+                component.setMaximumSize(new Dimension(500, 800));
+                OnCloseListener<LibraryFilter> onCloseListener = new OnCloseListener<LibraryFilter>() {
+                    @Override
+                    public void onClose(LibraryFilter component) {
+                        unloggedPreferencesPopup.cancel();
+                        updateFilterLabel();
+                        reloadItems();
+                    }
+                };
+                libraryFilter.setOnCloseListener(onCloseListener);
+                unloggedPreferencesPopup.showCenteredInCurrentWindow(project);
+            }
+        });
 
         deleteButton.addMouseListener(new MouseAdapter() {
             @Override
@@ -675,7 +717,43 @@ public class LibraryComponent {
 //
 //    }
 
-    public void onMethodFocussed(MethodAdapter method) {
-        this.lastFocussedMethod = method;
+	public void onMethodFocussed(MethodAdapter method) {
+        String newMethodName = method.getName();
+        String newClassName = method.getContainingClass().getQualifiedName();
+        MethodUnderTest newMethodAdapter = ApplicationManager.getApplication().runReadAction(
+                (Computable<MethodUnderTest>) () -> MethodUnderTest.fromMethodAdapter(method));
+        if (lastMethodFocussed != null) {
+            if (lastMethodFocussed.getMethodHashKey().equals(newMethodAdapter.getMethodHashKey())) {
+                // same method focussed again
+                return;
+            }
+        }
+
+        lastMethodFocussed = newMethodAdapter;
+        if (filterModel.isFollowEditor()) {
+            if (filterModel.getIncludedMethodNames().size() == 1 && filterModel.getIncludedMethodNames()
+                    .contains(newMethodName)) {
+                if (filterModel.getIncludedClassNames().size() == 1 && filterModel.getIncludedClassNames()
+                        .contains(newClassName)) {
+                    if (filterModel.getExcludedClassNames().size() == 0 && filterModel.getExcludedMethodNames()
+                            .size() == 0) {
+                        // already set
+                        return;
+                    }
+                }
+            }
+            clearFilter();
+            filterModel.getIncludedMethodNames().add(newMethodName);
+            filterModel.getIncludedClassNames().add(newClassName);
+            updateFilterLabel();
+            reloadItems();
+        }
+    }
+
+	private void clearFilter() {
+        filterModel.getIncludedMethodNames().clear();
+        filterModel.getExcludedMethodNames().clear();
+        filterModel.getIncludedClassNames().clear();
+        filterModel.getExcludedClassNames().clear();
     }
 }
