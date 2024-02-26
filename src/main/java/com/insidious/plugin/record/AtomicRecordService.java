@@ -199,7 +199,7 @@ public class AtomicRecordService {
             testContentPathFromModule = testContentPathFromModule.substring(0, indexBuild);
         }
 
-        String testResourcesPathFromModulePath = testContentPathFromModule +
+        String testResourcesPathFromModulePath = testContentPathFromModule + separator +
                 TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME;
 
         return testResourcesPathFromModulePath + destinationFileName;
