@@ -4,13 +4,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.adapter.java.JavaParameterAdapter;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.Expression;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
+import com.insidious.plugin.mocking.*;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
@@ -22,6 +24,7 @@ import com.insidious.plugin.ui.library.StoredCandidateItemPanel;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.util.*;
 import com.intellij.lang.jvm.JvmModifier;
+import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -31,6 +34,9 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Pair;
 import com.intellij.psi.*;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
+import com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
@@ -161,9 +167,19 @@ public class TestCandidateSaveForm {
         Map<Long, List<TestCandidateMetadata>> mapByEntryProbe = candidateMetadataList.stream()
                 .collect(Collectors.groupingBy(TestCandidateMetadata::getEntryProbeIndex));
 
+        Map<StoredCandidate, List<DeclaredMock>> mocksMap = new HashMap<>();
+
         candidateList = candidateMetadataList.stream()
                 .map(candidateMetadata -> {
                     StoredCandidate storedCandidate = new StoredCandidate(candidateMetadata);
+
+
+                    List<DeclaredMock> mocks = ApplicationManager.getApplication()
+                            .runReadAction((Computable<List<DeclaredMock>>) () -> patchCandidate(candidateMetadata,
+                                    storedCandidate, project1));
+
+                    mocksMap.put(storedCandidate, mocks);
+
 
                     JsonNode returnValue;
                     MethodCallExpression mainMethod = candidateMetadata.getMainMethod();
@@ -171,6 +187,7 @@ public class TestCandidateSaveForm {
                         storedCandidate.setTestAssertions(new AtomicAssertion());
                         return storedCandidate;
                     }
+
                     Parameter returnValue1 = mainMethod.getReturnValue();
                     if (returnValue1.getProb().getSerializedValue().length == 0) {
                         storedCandidate.setTestAssertions(new AtomicAssertion());
@@ -203,12 +220,9 @@ public class TestCandidateSaveForm {
                     return storedCandidate;
                 }).collect(Collectors.toList());
 
-        Map<Long, List<StoredCandidate>> storedCandidateByEntryProbe = candidateList.stream()
-                .collect(Collectors.groupingBy(StoredCandidate::getEntryProbeIndex));
+//        Map<Long, List<StoredCandidate>> storedCandidateByEntryProbe = candidateList.stream()
+//                .collect(Collectors.groupingBy(StoredCandidate::getEntryProbeIndex));
 
-        Map<StoredCandidate, List<DeclaredMock>> mocksMap = ApplicationManager.getApplication().runReadAction(
-                (Computable<Map<StoredCandidate, List<DeclaredMock>>>) ()
-                        -> collectDownstreamMockCalls(candidateMetadataList, storedCandidateByEntryProbe));
 
         List<DeclaredMock> declaredMockList = mocksMap.values().stream().flatMap(Collection::stream)
                 .collect(Collectors.toList());
@@ -222,7 +236,7 @@ public class TestCandidateSaveForm {
                         if (!unitRadioButton.isSelected()) {
                             storedCandidate.setMockIds(new HashSet<>());
                         } else {
-                            List<DeclaredMock> mocks = mocksMap.get(storedCandidate);
+                            List<DeclaredMock> mocks = mocksMap.getOrDefault(storedCandidate, new ArrayList<>());
                             storedCandidate.setMockIds(
                                     mocks.stream().map(DeclaredMock::getId).collect(Collectors.toSet()));
                         }
@@ -267,8 +281,6 @@ public class TestCandidateSaveForm {
                 onCloseListener.onClose(TestCandidateSaveForm.this);
             }
         });
-
-
 
 
         List<AtomicAssertion> allAssertions = candidateList.stream()
@@ -516,8 +528,11 @@ public class TestCandidateSaveForm {
             assertionItemContainer.add(atomicAssertionItemPanel.getComponent(),
                     createGBCForLeftMainComponent(assertionPanelCount));
             int count = AtomicAssertionUtils.countAssertions(atomicAssertion);
+            String returnValueClassname = storedCandidate.getReturnValueClassname();
             atomicAssertionItemPanel.setTitle(count + " assertions for " +
-                    ClassTypeUtils.getSimpleClassName(storedCandidate.getReturnValueClassname()));
+                    ClassTypeUtils.getSimpleClassName(returnValueClassname == null ? "Void" : returnValueClassname) +
+                    " from " + ClassTypeUtils.getSimpleClassName(storedCandidate.getMethod().getClassName()) + "." + storedCandidate.getMethod()
+                    .getName());
             assertionPanelCount++;
         }
         assertionItemContainer.add(new JPanel(), createGBCForFakeComponent(assertionPanelCount));
@@ -552,6 +567,102 @@ public class TestCandidateSaveForm {
         assertionLine.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         assertionExpandIcon.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         assertionCountLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+    }
+
+    private List<DeclaredMock> patchCandidate(
+            TestCandidateMetadata candidateMetadata,
+            StoredCandidate storedCandidate,
+            Project project
+    ) {
+
+        Pair<PsiMethod, PsiSubstitutor> psiMethod = ClassTypeUtils.getPsiMethod(
+                candidateMetadata.getMainMethod(), project);
+        PsiMethod candidateTargetMethod = psiMethod.getFirst();
+
+        List<PsiMethodCallExpression> allCallExpressions = ApplicationManager.getApplication().runReadAction(
+                (Computable<List<PsiMethodCallExpression>>) () -> getAllCallExpressions(candidateTargetMethod));
+
+        Map<String, List<PsiMethodCallExpression>> expressionsBySignatureMap = allCallExpressions.stream()
+                .collect(Collectors.groupingBy(e1 -> ApplicationManager.getApplication().runReadAction(
+                        (Computable<String>) () -> MethodUnderTest.fromPsiCallExpression(e1).getName())));
+        List<DeclaredMock> mocks = new ArrayList<>();
+
+        List<MethodCallExpression> callListCopy = new ArrayList<>(candidateMetadata.getCallsList());
+        while (callListCopy.size() > 0) {
+            MethodCallExpression methodCallExpression = callListCopy.remove(0);
+            if (methodCallExpression.isStaticCall()) {
+                continue;
+            }
+            String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
+            PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
+                    GlobalSearchScope.allScope(project));
+
+            String methodName = methodCallExpression.getMethodName();
+
+            List<PsiMethodCallExpression> callExpressionByName = expressionsBySignatureMap.get(methodName);
+            if (callExpressionByName == null) {
+                // no such call
+                continue;
+            }
+            if (callExpressionByName.size() != 1) {
+                //
+//                throw new RuntimeException("please");
+            }
+
+            PsiMethodCallExpression callExpression = callExpressionByName.get(0);
+
+            PsiExpression callOnSubject = callExpression.getMethodExpression().getQualifierExpression();
+            if (callOnSubject instanceof PsiMethodCallExpression) {
+                continue;
+            }
+            PsiElement resolvedSubject = ((PsiReferenceExpressionImpl) callOnSubject).resolve();
+            if (!(resolvedSubject instanceof PsiField)) {
+                // call on local variable or paramter
+                continue;
+            }
+
+
+            String fieldName = callExpression.getMethodExpression()
+                    .getQualifierExpression().getText();
+            PsiSubstitutor substitutor = ClassUtils.getSubstitutorForCallExpression(callExpression);
+
+            PsiMethod callTarget = callExpression.resolveMethod();
+
+            PsiType callExpressionReturnType = ClassTypeUtils.substituteClassRecursively(callTarget.getReturnType(),
+                    substitutor);
+
+            TestCaseWriter.setParameterTypeFromPsiType(methodCallExpression.getReturnValue(),
+                    callExpressionReturnType, true);
+
+            MethodUnderTest mut = MethodUnderTest.fromMethodCallExpression(methodCallExpression);
+
+            List<ParameterMatcher> whenParameterList = new ArrayList<>();
+            for (Parameter argument : methodCallExpression.getArguments()) {
+                ParameterMatcher parameterMatcher = new ParameterMatcher(argument.getName(),
+                        ParameterMatcherType.ANY_OF_TYPE, argument.getType());
+                whenParameterList.add(parameterMatcher);
+            }
+
+
+            List<ThenParameter> thenParameterList = new ArrayList<>();
+            Parameter returnValue1 = methodCallExpression.getReturnValue();
+            ReturnValue returnValue = new ReturnValue(new String(returnValue1.getProb().getSerializedValue()), returnValue1.getType(),
+                    ReturnValueType.REAL);
+            ThenParameter thenParam = new ThenParameter(returnValue, MethodExitType.NORMAL);
+            thenParameterList.add(thenParam);
+            DeclaredMock newMock = new DeclaredMock(
+                    "mock response for call to" + callExpression.getText(), methodCallExpression.getSubject().getType(),
+                    candidateMetadata.getFullyQualifiedClassname(), fieldName, methodCallExpression.getMethodName(),
+                    mut.getMethodHashKey(), whenParameterList, thenParameterList
+            );
+            mocks.add(newMock);
+            storedCandidate.getMockIds().add(newMock.getId());
+
+        }
+
+        return mocks;
+
 
     }
 

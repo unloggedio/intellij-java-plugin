@@ -28,6 +28,7 @@ import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.impl.source.tree.java.*;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.PsiTypesUtil;
 import com.intellij.psi.util.TypeConversionUtil;
 
 import java.util.*;
@@ -112,28 +113,37 @@ public class ClassUtils {
         PsiMethod destinationMethod = (PsiMethod) methodExpression.resolve();
         PsiExpression fieldReferenceExpression = methodExpression
                 .getQualifierExpression();
-        if (fieldReferenceExpression == null) {
-            // this shouldnt be null
-            throw new RuntimeException("should be not null");
+        PsiType type;
+        if (fieldReferenceExpression == null || fieldReferenceExpression.getReference() == null) {
+            // a call to a methid in the same class, so
+            type =
+                    PsiTypesUtil.getClassType(
+                            ((PsiMethod) methodCallExpression.getMethodExpression().resolve()).getContainingClass());
+        } else {
+            PsiElement fieldExpression = fieldReferenceExpression.getReference().resolve();
+            if (fieldExpression instanceof PsiField) {
+                PsiField callOnField = (PsiField) fieldExpression;
+                type = callOnField.getType();
+            } else if (fieldExpression instanceof PsiLocalVariable) {
+                PsiLocalVariable callOnField = (PsiLocalVariable) fieldExpression;
+                type = callOnField.getType();
+            } else {
+                type = fieldReferenceExpression.getType();
+            }
         }
 
-        PsiElement fieldExpression = fieldReferenceExpression.getReference().resolve();
-        PsiType type;
-        if (fieldExpression instanceof PsiField) {
-            PsiField callOnField = (PsiField) fieldExpression;
-            type = callOnField.getType();
-        } else if (fieldExpression instanceof PsiLocalVariable) {
-            PsiLocalVariable callOnField = (PsiLocalVariable) fieldExpression;
-            type = callOnField.getType();
-        } else {
-            type = fieldReferenceExpression.getType();
-        }
         PsiClass containingClass = destinationMethod.getContainingClass();
         PsiSubstitutor classSubstitutor = null;
 
         if (type instanceof PsiClassReferenceType) {
-            classSubstitutor = TypeConversionUtil.getClassSubstitutor(
-                    containingClass, ((PsiClassReferenceType) type).resolve(), PsiSubstitutor.EMPTY);
+            PsiClass resolveChildClass = ((PsiClassReferenceType) type).resolve();
+            if (((PsiClassReferenceType) type).resolve().equals(containingClass)) {
+                classSubstitutor = TypeConversionUtil.getSuperClassSubstitutor(containingClass,
+                        (PsiClassType) type);
+            } else {
+                classSubstitutor = TypeConversionUtil.getClassSubstitutor(
+                        containingClass, resolveChildClass, PsiSubstitutor.EMPTY);
+            }
         }
         return classSubstitutor;
     }

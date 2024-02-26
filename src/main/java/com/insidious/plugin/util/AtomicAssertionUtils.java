@@ -1,5 +1,6 @@
 package com.insidious.plugin.util;
 
+import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 
 import java.util.ArrayList;
@@ -30,6 +31,13 @@ public class AtomicAssertionUtils {
         }
 
         if (testAssertions.getSubAssertions() == null || testAssertions.getSubAssertions().size() == 0) {
+            if (testAssertions.getAssertionType() == AssertionType.ALLOF
+                    || testAssertions.getAssertionType() == AssertionType.ANYOF
+                    || testAssertions.getAssertionType() == AssertionType.NOTALLOF
+                    || testAssertions.getAssertionType() == AssertionType.NOTANYOF
+            ) {
+                return 0;
+            }
             return 1;
         }
 

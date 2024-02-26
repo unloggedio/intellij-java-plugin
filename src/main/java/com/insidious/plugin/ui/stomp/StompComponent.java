@@ -182,6 +182,7 @@ public class StompComponent implements
         selectAllLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
+                selectedCandidates.clear();
                 for (StompItem stompItem : stompItems) {
                     stompItem.setSelected(true);
                     selectedCandidates.add(stompItem.getTestCandidate());
@@ -552,7 +553,7 @@ public class StompComponent implements
 
         JScrollBar verticalScrollBar1 = historyStreamScrollPanel.getVerticalScrollBar();
         int max = verticalScrollBar1.getMaximum();
-        if (verticalScrollBar1.getValue() != 0 &&  verticalScrollBar1.getValue() != max) {
+        if (verticalScrollBar1.getValue() != max) {
             return;
         }
 
@@ -1291,15 +1292,23 @@ public class StompComponent implements
                 final TestCandidateMetadata testCandidateMetadata = incomingQueue.take();
                 CountDownLatch pollerCDL = new CountDownLatch(1);
                 ApplicationManager.getApplication().invokeLater(() -> {
-                    acceptSingle(testCandidateMetadata);
-                    pollerCDL.countDown();
+                    try {
+
+                        acceptSingle(testCandidateMetadata);
+                    } catch (Throwable t) {
+                        t.printStackTrace();
+                    } finally {
+                        pollerCDL.countDown();
+                    }
                 });
 
                 pollerCDL.await();
             }
 
 
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
+            // who killed this
+//            e.printStackTrace();
             // just end
         } finally {
         }
@@ -1307,6 +1316,7 @@ public class StompComponent implements
     }
 
     private void acceptSingle(TestCandidateMetadata testCandidateMetadata) {
+        logger.warn("entr acceptSingle: " + testCandidateMetadata);
         if (testCandidateMetadata.getExitProbeIndex() > lastEventId) {
             lastEventId = testCandidateMetadata.getExitProbeIndex();
         }
@@ -1339,6 +1349,8 @@ public class StompComponent implements
         itemPanel.revalidate();
         scrollContainer.revalidate();
         scrollContainer.repaint();
+        logger.warn("exit acceptSingle: " + testCandidateMetadata);
+
     }
 
     public void setSession(ExecutionSession executionSession) {

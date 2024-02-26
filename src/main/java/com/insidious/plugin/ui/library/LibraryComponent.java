@@ -585,7 +585,7 @@ public class LibraryComponent {
         clearSelection();
 
         itemScrollPanel.setViewportView(itemsContainer);
-
+        atomicRecordService.checkPreRequisites();
         int count = 1;
         if (filterModel.isShowMocks()) {
             Map<String, List<DeclaredMock>> mocksByClass = atomicRecordService.getAllDeclaredMocks()

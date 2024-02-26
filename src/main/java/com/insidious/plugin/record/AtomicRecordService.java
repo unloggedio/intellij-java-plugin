@@ -752,13 +752,13 @@ public class AtomicRecordService {
         MethodUnderTest methodUnderTest = potentialCandidate.getMethod();
         AtomicRecord ars = classAtomicRecordMap.get(potentialCandidate.getMethod().getClassName());
         if (ars == null) {
-            return potentialCandidate;
+            return null;
         }
 
         List<StoredCandidate> methodStoredCandidates = ars.getStoredCandidateMap()
                 .get(methodUnderTest.getMethodHashKey());
         if (methodStoredCandidates == null || methodStoredCandidates.size() == 0) {
-            return potentialCandidate;
+            return null;
         }
 
         for (StoredCandidate methodStoredCandidate : methodStoredCandidates) {
@@ -782,7 +782,7 @@ public class AtomicRecordService {
         }
 
 
-        return potentialCandidate;
+        return null;
     }
 
     public enum FileUpdateType {

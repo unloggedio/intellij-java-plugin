@@ -12,6 +12,8 @@ import com.insidious.plugin.util.ClassUtils;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.psi.*;
+import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.PsiTypesUtil;
 
 import java.util.Objects;
 
@@ -81,7 +83,11 @@ public class MethodUnderTest {
 
         for (JvmParameter argument : targetMethod.getParameters()) {
             JvmType type1 = argument.getType();
-            if (type1 instanceof PsiClassType) {
+            if (type1 instanceof PsiWildcardType) {
+                type1 = ClassTypeUtils.substituteClassRecursively((PsiWildcardType) type1, substitutor);
+                String type = ((PsiWildcardType) type1).getCanonicalText();
+                methodSignature.append(ClassTypeUtils.getDescriptorName(type));
+            } else if (type1 instanceof PsiClassType) {
                 type1 = ClassTypeUtils.substituteClassRecursively((PsiType) type1, substitutor);
                 String type = ((PsiClassType) type1).getCanonicalText();
                 methodSignature.append(ClassTypeUtils.getDescriptorName(type));
@@ -107,10 +113,10 @@ public class MethodUnderTest {
 
     public static MethodUnderTest fromPsiCallExpression(PsiMethodCallExpression methodCallExpression) {
         PsiExpression fieldExpression = methodCallExpression.getMethodExpression().getQualifierExpression();
-        PsiReferenceExpression qualifierExpression1 = (PsiReferenceExpression) fieldExpression;
-        PsiElement resolve = qualifierExpression1.resolve();
         PsiType callOnType;
         if (fieldExpression instanceof PsiReferenceExpression) {
+            PsiReferenceExpression qualifierExpression1 = (PsiReferenceExpression) fieldExpression;
+            PsiElement resolve = qualifierExpression1.resolve();
             if (resolve instanceof PsiField) {
                 PsiField fieldPsiInstance = (PsiField) resolve;
                 callOnType = fieldPsiInstance.getType();
@@ -128,7 +134,9 @@ public class MethodUnderTest {
             PsiMethodCallExpression mce = (PsiMethodCallExpression) fieldExpression;
             callOnType = mce.getType();
         } else {
-            throw new RuntimeException("Unexpected expression: " + fieldExpression.toString());
+            // no qualifier , its a method on the same class
+            callOnType = PsiTypesUtil.getClassType(PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class));
+//            throw new RuntimeException("Unexpected expression: " + fieldExpression.toString());
         }
 
         PsiSubstitutor classSubstitutor = ClassUtils.getSubstitutorForCallExpression(methodCallExpression);

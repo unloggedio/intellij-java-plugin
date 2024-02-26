@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class ClassTypeUtils {
 
@@ -166,6 +167,9 @@ public class ClassTypeUtils {
         }
         if (className.length() < 2) {
             return className;
+        }
+        if (className.endsWith("[]")) {
+            return "[" + getDescriptorName(className.substring(0, className.length() - 2));
         }
         return "L" + className.replace('.', '/') + ";";
     }
@@ -543,9 +547,17 @@ public class ClassTypeUtils {
         List<Pair<PsiMethod, PsiSubstitutor>> methodsByNameList = classPsiElement.findMethodsAndTheirSubstitutorsByName(
                 methodName, true);
 
-        if (methodsByNameList.size() == 1 && isLambda) {
+        if (methodsByNameList.size() == 1) {
             // should we verify parameters ?
             return new Pair<>(methodsByNameList.get(0).getFirst(), EmptySubstitutor.getInstance());
+        }
+
+        int expectedParameterSize = methodCallExpression.getArguments().size();
+        List<Pair<PsiMethod, PsiSubstitutor>> matching = methodsByNameList.stream()
+                .filter(e -> e.getFirst().getParameters().length == expectedParameterSize).collect(
+                        Collectors.toList());
+        if (matching.size() == 1) {
+            return matching.get(0);
         }
 
         for (Pair<PsiMethod, PsiSubstitutor> jvmMethodPair : methodsByNameList) {

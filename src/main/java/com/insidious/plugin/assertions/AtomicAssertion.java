@@ -11,7 +11,7 @@ public class AtomicAssertion {
     private Expression expression = Expression.SELF;
     private String expectedValue;
     private String id = UUID.randomUUID().toString();
-    private AssertionType assertionType = AssertionType.EQUAL;
+    private AssertionType assertionType = AssertionType.ALLOF;
     private String key;
 
     public AtomicAssertion() {

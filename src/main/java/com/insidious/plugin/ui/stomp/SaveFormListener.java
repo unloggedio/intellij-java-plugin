@@ -53,13 +53,24 @@ public class SaveFormListener implements CandidateLifeListener {
         TestCandidateMetadata loadedTestCandidate = insidiousService.getTestCandidateById(
                 storedCandidate.getEntryProbeIndex(), false);
 
-        StoredCandidate existingMatchingStoredCandidate = atomicRecordService
-                .getStoredCandidateFor(loadedTestCandidate);
-        if (existingMatchingStoredCandidate.getCandidateId() == null) {
-            existingMatchingStoredCandidate.setCandidateId(UUID.randomUUID().toString());
+        StoredCandidate existingMatchingStoredCandidate = atomicRecordService.getStoredCandidateFor(
+                loadedTestCandidate);
+        if (existingMatchingStoredCandidate != null) {
             existingMatchingStoredCandidate.setName("saved on " + simpleDateFormat.format(new Date().toInstant()));
+            existingMatchingStoredCandidate.setMockIds(storedCandidate.getMockIds());
+            existingMatchingStoredCandidate.setTestAssertions(storedCandidate.getTestAssertions());
+            existingMatchingStoredCandidate.setLineNumbers(storedCandidate.getLineNumbers());
+            existingMatchingStoredCandidate.setMetadata(storedCandidate.getMetadata());
+            existingMatchingStoredCandidate.setException(storedCandidate.isException());
+            existingMatchingStoredCandidate.setMethodArguments(storedCandidate.getMethodArguments());
+            existingMatchingStoredCandidate.setReturnValue(storedCandidate.getReturnValue());
+            existingMatchingStoredCandidate.setProbSerializedValue(storedCandidate.getProbSerializedValue());
+            atomicRecordService.saveCandidate(methodUnderTest, existingMatchingStoredCandidate);
+        } else {
+            storedCandidate.setCandidateId(UUID.randomUUID().toString());
+            storedCandidate.setName("saved on " + simpleDateFormat.format(new Date().toInstant()));
+            atomicRecordService.saveCandidate(methodUnderTest, storedCandidate);
         }
-        atomicRecordService.saveCandidate(methodUnderTest, existingMatchingStoredCandidate);
 
     }
 
