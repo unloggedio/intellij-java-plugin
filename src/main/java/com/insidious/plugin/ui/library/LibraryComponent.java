@@ -73,38 +73,6 @@ public class LibraryComponent {
     private MethodUnderTest lastMethodFocussed;
     private boolean currentMockInjectStatus = false;
 
-    static JPanel deletePromptPanelBuilder(String deletePrompt) {
-        // deletePrompt
-        // deletePanelLeft
-        JLabel deletePanelLeft = new JLabel();
-        deletePanelLeft.setIcon(UIUtils.TRASH_PROMPT);
-
-        // deletePromptUpper
-        JLabel deletePromptUpper = new JLabel();
-        deletePromptUpper.setText(deletePrompt);
-
-        // deletePromptLower
-        JLabel deletePromptLower = new JLabel("<html> Use git to track and restore later. </html>");
-        deletePromptLower.setForeground(Color.GRAY);
-        String defaultFont = UIManager.getFont("Label.font").getFontName();
-        deletePromptLower.setFont(new Font("", Font.PLAIN, 12));
-        deletePromptLower.setBorder(new EmptyBorder(5,5,5,5));
-
-        // deletePanelRight
-        JPanel deletePanelRight = new JPanel();
-        deletePanelRight.setLayout(new BoxLayout(deletePanelRight, BoxLayout.Y_AXIS));
-        deletePanelRight.add(deletePromptUpper);
-        deletePanelRight.add(deletePromptLower);
-
-        // configure
-        JPanel deletePanel = new JPanel();
-        deletePanel.setLayout(new BoxLayout(deletePanel, BoxLayout.X_AXIS));
-        deletePanel.add(deletePanelLeft);
-        deletePanel.add(deletePanelRight);
-
-        return deletePanel;
-    }
-
     public LibraryComponent(Project project) {
         insidiousService = project.getService(InsidiousService.class);
         atomicRecordService = project.getService(AtomicRecordService.class);
@@ -166,7 +134,7 @@ public class LibraryComponent {
             }
         });
 
-		showOptionsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        showOptionsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         showOptionsButton.addMouseListener(new MouseAdapter() {
 
             @Override
@@ -466,6 +434,38 @@ public class LibraryComponent {
 
         updateFilterLabel();
 
+    }
+
+    static JPanel deletePromptPanelBuilder(String deletePrompt) {
+        // deletePrompt
+        // deletePanelLeft
+        JLabel deletePanelLeft = new JLabel();
+        deletePanelLeft.setIcon(UIUtils.TRASH_PROMPT);
+
+        // deletePromptUpper
+        JLabel deletePromptUpper = new JLabel();
+        deletePromptUpper.setText(deletePrompt);
+
+        // deletePromptLower
+        JLabel deletePromptLower = new JLabel("<html> Use git to track and restore later. </html>");
+        deletePromptLower.setForeground(Color.GRAY);
+        String defaultFont = UIManager.getFont("Label.font").getFontName();
+        deletePromptLower.setFont(new Font("", Font.PLAIN, 12));
+        deletePromptLower.setBorder(new EmptyBorder(5, 5, 5, 5));
+
+        // deletePanelRight
+        JPanel deletePanelRight = new JPanel();
+        deletePanelRight.setLayout(new BoxLayout(deletePanelRight, BoxLayout.Y_AXIS));
+        deletePanelRight.add(deletePromptUpper);
+        deletePanelRight.add(deletePromptLower);
+
+        // configure
+        JPanel deletePanel = new JPanel();
+        deletePanel.setLayout(new BoxLayout(deletePanel, BoxLayout.X_AXIS));
+        deletePanel.add(deletePanelLeft);
+        deletePanel.add(deletePanelRight);
+
+        return deletePanel;
     }
 
     public void setMockStatus(boolean status) {

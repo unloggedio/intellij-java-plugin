@@ -1159,10 +1159,10 @@ public class StompComponent implements
         JComponent content = mockEditor.getComponent();
         content.setMinimumSize(new Dimension(-1, 500));
         content.setMaximumSize(new Dimension(-1, 600));
-        southPanel.removeAll();
-        southPanel.add(content, BorderLayout.CENTER);
 
         ApplicationManager.getApplication().invokeLater(() -> {
+            southPanel.removeAll();
+            southPanel.add(content, BorderLayout.CENTER);
             scrollContainer.revalidate();
             scrollContainer.repaint();
             historyStreamScrollPanel.revalidate();
