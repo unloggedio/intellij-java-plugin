@@ -254,12 +254,7 @@ public class TestCandidateSaveForm {
                                     "Saved " + candidateList.size() + " replay tests and "
                                             + values.size() + " mock definitions", NotificationType.INFORMATION,
                                     List.of(
-                                            new AnAction(new Supplier<String>() {
-                                                @Override
-                                                public String get() {
-                                                    return "Go to Library";
-                                                }
-                                            }, UIUtils.LIBRARY_ICON) {
+                                            new AnAction(() -> "Go to Library", UIUtils.LIBRARY_ICON) {
                                                 @Override
                                                 public void actionPerformed(@NotNull AnActionEvent e) {
                                                     saveFormListener.getProject()
@@ -275,12 +270,7 @@ public class TestCandidateSaveForm {
             }
         });
 
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                onCloseListener.onClose(TestCandidateSaveForm.this);
-            }
-        });
+        cancelButton.addActionListener(e -> onCloseListener.onClose(TestCandidateSaveForm.this));
 
 
         List<AtomicAssertion> allAssertions = candidateList.stream()

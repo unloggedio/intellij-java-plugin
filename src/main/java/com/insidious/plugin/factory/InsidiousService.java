@@ -553,7 +553,9 @@ final public class InsidiousService implements
         UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_DISPOSED", eventProperties);
         logger.warn("Disposing InsidiousService for project: " + project.getName());
         threadPoolExecutor.shutdownNow();
-        sessionLoader.removeListener(sessionListener);
+        if (sessionLoader != null) {
+            sessionLoader.removeListener(sessionListener);
+        }
         if (client != null) {
             client.close();
             client = null;
