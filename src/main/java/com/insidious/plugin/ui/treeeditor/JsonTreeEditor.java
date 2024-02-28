@@ -1,6 +1,11 @@
 package com.insidious.plugin.ui.treeeditor;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.ui.methodscope.InsidiousCellEditor;
 import com.insidious.plugin.ui.methodscope.InsidiousTreeListener;
@@ -15,20 +20,18 @@ import com.intellij.ui.treeStructure.Tree;
 import javax.swing.*;
 import javax.swing.event.TreeModelEvent;
 import javax.swing.plaf.basic.BasicTreeUI;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreeModel;
-import javax.swing.tree.TreeNode;
-import javax.swing.tree.TreePath;
+import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
 
 public class JsonTreeEditor {
     private static final Logger logger = LoggerUtil.getInstance(JsonTreeEditor.class);
     private final JsonNode jsonNode;
-    private final TreeModel treeModel;
+    private TreeModel treeModel;
     private final Tree valueTree;
     private JPanel mainPanel;
     private JPanel northPanel;
@@ -40,8 +43,6 @@ public class JsonTreeEditor {
         treeModel = JsonTreeUtils.jsonToTreeModel(jsonNode, title);
 
         valueTree = new Tree(treeModel);
-
-
         valueTree.setCellEditor(new InsidiousCellEditor(valueTree, null));
         valueTree.getModel().addTreeModelListener(new InsidiousTreeListener() {
 
@@ -51,12 +52,41 @@ public class JsonTreeEditor {
                 TreePath path = e.getTreePath();
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
 
-
                 for (Object child : e.getChildren()) {
                     String stringVal = (String) ((DefaultMutableTreeNode) child).getUserObject();
-                    String[] parts = stringVal.split(": ", 2);
-                    String key = parts[0];
-                    String value = parts[1];
+                    if (stringVal.matches("\\{.*\\}")) {
+                        // this is JSON node
+
+                        String jsonData = stringVal;
+//                        if (stringVal.length()<=4) {
+//                            jsonData = stringVal.substring(2, stringVal.length()-2);
+//                        }
+//                        else {
+//                            jsonData = "json data is small";
+//                        }
+
+                        // remove all old children
+                        ((DefaultTreeModel) treeModel).removeNodeFromParent((MutableTreeNode) node.getChildAt(0));
+
+                        // make new node and add them as children
+                        JsonObject jsonObject = JsonParser.parseString(jsonData).getAsJsonObject();
+                        int baseIndex = treeModel.getIndexOfChild(node.getParent(), node);
+                        int count=0;
+                        for (java.util.Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
+                            String key = entry.getKey();
+                            JsonElement value = entry.getValue();
+                            System.out.println("Key: " + key + ", Value: " + value);
+
+                            DefaultMutableTreeNode newNode = new DefaultMutableTreeNode("{\"" + key + "\" : " + value + "}");
+                            ((DefaultTreeModel) treeModel).insertNodeInto(newNode, (MutableTreeNode) node, baseIndex+count);
+                            count++;
+                        }
+                    }
+                    else {
+                        String[] parts = stringVal.split(": ", 2);
+                        String key = parts[0];
+                        String value = parts[1];
+                    }
                 }
 
                 try {
@@ -77,7 +107,7 @@ public class JsonTreeEditor {
         valueTree.setUI(new BasicTreeUI());
 //            valueTree.setBorder(BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
         valueTree.setInvokesStopCellEditing(true);
-        valueTree.addMouseListener(getMouseListener(valueTree));
+        valueTree.addMouseListener(getMouseListener(valueTree, this));
 
         int nodeCount = expandAllNodes();
         valueTree.addMouseListener(new MouseAdapter() {
@@ -92,13 +122,18 @@ public class JsonTreeEditor {
 
     }
 
+    private void reload() {
+        mainPanel.revalidate();
+        mainPanel.repaint();
+    }
 
-    private static MouseListener getMouseListener(final JTree tree) {
+    private static MouseListener getMouseListener(final JTree tree, JsonTreeEditor jsonTreeEditor) {
         return new MouseListener() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if(tree.getRowForLocation(e.getX(),e.getY()) == -1) {
                     tree.clearSelection();
+                    jsonTreeEditor.reload();
                 }
             }
 
@@ -121,6 +156,7 @@ public class JsonTreeEditor {
             public void mouseExited(MouseEvent e) {
                 if(tree.getRowForLocation(e.getX(),e.getY()) == -1) {
                     tree.clearSelection();
+                    jsonTreeEditor.reload();
                 }
             }
         };
