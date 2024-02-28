@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.adapter.java.JavaParameterAdapter;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.Expression;
@@ -24,7 +23,6 @@ import com.insidious.plugin.ui.library.StoredCandidateItemPanel;
 import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.util.*;
 import com.intellij.lang.jvm.JvmModifier;
-import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -34,7 +32,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Pair;
 import com.intellij.psi.*;
-import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -50,7 +47,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.*;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class TestCandidateSaveForm {
@@ -62,6 +58,7 @@ public class TestCandidateSaveForm {
     private final Map<StoredCandidate, StoredCandidateItemPanel> candidatePanelMap = new HashMap<>();
     private final Map<DeclaredMock, DeclaredMockItemPanel> declaredMockPanelMap = new HashMap<>();
     private final Map<AtomicAssertion, AtomicAssertionItemPanel> atomicAssertionPanelMap = new HashMap<>();
+    Set<AssertionType> TOP_ONE = new HashSet<>();
     private JPanel mainPanel;
     private JLabel assertionCountLabel;
     private JLabel linesCountLabel;
@@ -96,6 +93,13 @@ public class TestCandidateSaveForm {
 
     public TestCandidateSaveForm(List<TestCandidateMetadata> sourceCandidates,
                                  SaveFormListener saveFormListener, OnCloseListener<TestCandidateSaveForm> onCloseListener) {
+
+        TOP_ONE.add(AssertionType.ALLOF);
+        TOP_ONE.add(AssertionType.ANYOF);
+        TOP_ONE.add(AssertionType.NOTALLOF);
+        TOP_ONE.add(AssertionType.NOTANYOF);
+
+
         Project project1 = saveFormListener.getProject();
         InsidiousService insidiousService = project1.getService(InsidiousService.class);
 
@@ -190,20 +194,77 @@ public class TestCandidateSaveForm {
 
                     Parameter returnValue1 = mainMethod.getReturnValue();
                     if (returnValue1.getProb().getSerializedValue().length == 0) {
-                        storedCandidate.setTestAssertions(new AtomicAssertion());
-                        return storedCandidate;
-                    }
-                    String stringValue = new String(returnValue1.getProb().getSerializedValue());
-                    if (stringValue.length() == 0) {
-                        storedCandidate.setTestAssertions(new AtomicAssertion());
-                        return storedCandidate;
-                    }
-                    try {
-                        returnValue = objectMapper.readTree(stringValue);
-                    } catch (JsonProcessingException e) {
-                        logger.warn("Failed to parse response value as a json object: " + e.getMessage());
-                        returnValue =
-                                objectMapper.getNodeFactory().textNode(stringValue);
+
+
+                        switch (returnValue1.getType()) {
+                            case "I":
+                            case "java.lang.Integer":
+                                returnValue = objectMapper.getNodeFactory()
+                                        .numberNode(Math.toIntExact(returnValue1.getProb().getValue()));
+                                break;
+                            case "L":
+                            case "java.lang.Long":
+                                returnValue =
+                                        objectMapper.getNodeFactory()
+                                                .numberNode(Long.valueOf(returnValue1.getProb().getValue()));
+                                break;
+                            case "F":
+                            case "java.lang.Float":
+                                returnValue =
+                                        objectMapper.getNodeFactory()
+                                                .numberNode(Float.valueOf(returnValue1.getProb().getValue()));
+                                break;
+                            case "B":
+                            case "java.lang.Byte":
+                                returnValue =
+                                        objectMapper.getNodeFactory()
+                                                .numberNode(Byte.valueOf((byte) returnValue1.getProb().getValue()));
+                                break;
+                            case "D":
+                            case "java.lang.Double":
+                                returnValue =
+                                        objectMapper.getNodeFactory()
+                                                .numberNode(Double.valueOf(returnValue1.getProb().getValue()));
+                                break;
+                            case "C":
+                            case "java.lang.Character":
+                                returnValue =
+                                        objectMapper.getNodeFactory()
+                                                .numberNode((char) returnValue1.getProb().getValue());
+                                break;
+                            case "Z":
+                            case "java.lang.Boolean":
+                                returnValue =
+                                        objectMapper.getNodeFactory()
+                                                .booleanNode(returnValue1.getProb().getValue() != 0);
+                                break;
+                            case "S":
+                            case "java.lang.Short":
+                                returnValue =
+                                        objectMapper.getNodeFactory()
+                                                .numberNode((short) returnValue1.getProb().getValue());
+                                break;
+
+                            default:
+                                returnValue = objectMapper.getNodeFactory()
+                                        .numberNode(returnValue1.getProb().getValue());
+                                break;
+
+                        }
+
+                    } else {
+                        String stringValue = new String(returnValue1.getProb().getSerializedValue());
+                        if (stringValue.length() == 0) {
+                            storedCandidate.setTestAssertions(new AtomicAssertion());
+                            return storedCandidate;
+                        }
+                        try {
+                            returnValue = objectMapper.readTree(stringValue);
+                        } catch (JsonProcessingException e) {
+                            logger.warn("Failed to parse response value as a json object: " + e.getMessage());
+                            returnValue =
+                                    objectMapper.getNodeFactory().textNode(stringValue);
+                        }
                     }
 
 
@@ -521,7 +582,8 @@ public class TestCandidateSaveForm {
             String returnValueClassname = storedCandidate.getReturnValueClassname();
             atomicAssertionItemPanel.setTitle(count + " assertions for " +
                     ClassTypeUtils.getSimpleClassName(returnValueClassname == null ? "Void" : returnValueClassname) +
-                    " from " + ClassTypeUtils.getSimpleClassName(storedCandidate.getMethod().getClassName()) + "." + storedCandidate.getMethod()
+                    " from " + ClassTypeUtils.getSimpleClassName(
+                    storedCandidate.getMethod().getClassName()) + "." + storedCandidate.getMethod()
                     .getName());
             assertionPanelCount++;
         }
@@ -637,7 +699,8 @@ public class TestCandidateSaveForm {
 
             List<ThenParameter> thenParameterList = new ArrayList<>();
             Parameter returnValue1 = methodCallExpression.getReturnValue();
-            ReturnValue returnValue = new ReturnValue(new String(returnValue1.getProb().getSerializedValue()), returnValue1.getType(),
+            ReturnValue returnValue = new ReturnValue(new String(returnValue1.getProb().getSerializedValue()),
+                    returnValue1.getType(),
                     ReturnValueType.REAL);
             ThenParameter thenParam = new ThenParameter(returnValue, MethodExitType.NORMAL);
             thenParameterList.add(thenParam);
@@ -808,7 +871,11 @@ public class TestCandidateSaveForm {
     }
 
     private AtomicAssertion createAssertions(JsonNode returnValue) {
-        return createAssertions(returnValue, "/");
+        AtomicAssertion assertions = createAssertions(returnValue, "/");
+        if (!TOP_ONE.contains(assertions.getAssertionType())) {
+            assertions = new AtomicAssertion(AssertionType.ALLOF, List.of(assertions));
+        }
+        return assertions;
     }
 
     public JPanel getComponent() {

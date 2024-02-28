@@ -374,7 +374,7 @@ final public class InsidiousService implements
                     Arrays.stream(implementations)
                             .filter(e -> Objects.equals(ApplicationManager.getApplication().runReadAction(
                                             (Computable<String>) () -> ((PsiClass) e).getQualifiedName()),
-                                            psiElementName))
+                                    psiElementName))
                             .findFirst().ifPresent(e -> {
                                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
                                     classChosenListener.classSelected(
@@ -808,6 +808,11 @@ final public class InsidiousService implements
             ExecutionResponseListener executionResponseListener
     ) {
 
+        if (DumbService.getInstance(project).isDumb()) {
+            InsidiousNotification.notifyMessage("Please try after ide indexing is complete", NotificationType.WARNING);
+            return;
+        }
+
         methodArgumentValueCache.addArgumentSet(agentCommandRequest);
         agentCommandRequest.setRequestAuthentication(getRequestAuthentication());
 
@@ -854,11 +859,10 @@ final public class InsidiousService implements
                     // TODO: search by signature and remove loop
                     PsiMethod[] methodPsiList = ApplicationManager.getApplication().runReadAction(
                             (Computable<PsiMethod[]>) () -> {
-                                PsiMethod[] list = JavaPsiFacade.getInstance(
-                                                project)
+                                PsiMethod[] list = JavaPsiFacade.getInstance(project)
                                         .findClass(agentCommandRequest.getClassName(),
-                                                GlobalSearchScope.projectScope(project))
-                                        .findMethodsByName(finalMethodName, true);
+                                                GlobalSearchScope.projectScope(project)
+                                        ).findMethodsByName(finalMethodName, true);
                                 for (PsiMethod psiMethod : list) {
                                     if (psiMethod.getName().equals(finalMethodName)) {
                                         updateMethodHashForExecutedMethod(new JavaMethodAdapter(psiMethod));
@@ -1699,6 +1703,10 @@ final public class InsidiousService implements
             return;
         }
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            if (stompWindowContent == null) {
+                logger.error("stompWindowContent is null in showMockCreator");
+                return;
+            }
             toolWindow.getContentManager().setSelectedContent(stompWindowContent, true, true);
             stompWindow.onMethodFocussed(method);
             stompWindow.showNewDeclaredMockCreator(method, callExpression);

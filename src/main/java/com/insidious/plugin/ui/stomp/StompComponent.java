@@ -57,6 +57,7 @@ import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -1260,7 +1261,10 @@ public class StompComponent implements
     public void run() {
         try {
             while (true) {
-                final TestCandidateMetadata testCandidateMetadata = incomingQueue.take();
+                final TestCandidateMetadata testCandidateMetadata = incomingQueue.poll(1000, TimeUnit.MILLISECONDS);
+                if (testCandidateMetadata == null) {
+                    continue;
+                }
                 CountDownLatch pollerCDL = new CountDownLatch(1);
                 ApplicationManager.getApplication().invokeLater(() -> {
                     try {

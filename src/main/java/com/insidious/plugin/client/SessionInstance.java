@@ -4075,8 +4075,9 @@ public class SessionInstance implements Runnable {
                     publishEvent(ScanEventType.WAITING);
                 }
             } catch (InterruptedException ie) {
+                ie.printStackTrace();
                 logger.warn("scan checker interrupted");
-                return;
+//                return;
             } catch (Exception e) {
                 logger.warn("scan checker interruption", e);
                 e.printStackTrace();
