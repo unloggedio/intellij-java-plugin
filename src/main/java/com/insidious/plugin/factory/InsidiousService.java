@@ -639,7 +639,8 @@ final public class InsidiousService implements
     public void showDirectInvoke(MethodAdapter method) {
         if (stompWindow == null) {
             InsidiousNotification.notifyMessage(
-                    "Please start the application with unlogged-sdk to use", NotificationType.WARNING
+                    "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                    NotificationType.WARNING
             );
             return;
         }
@@ -650,7 +651,7 @@ final public class InsidiousService implements
     public void showLibrary() {
         if (stompWindow == null) {
             InsidiousNotification.notifyMessage(
-                    "Please start the application with unlogged-sdk to use", NotificationType.WARNING
+                    "Please start the application with unlogged-sdk to use and open the unlogged tool window to use", NotificationType.WARNING
             );
             return;
         }

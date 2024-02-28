@@ -18,16 +18,19 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.editor.ex.util.EditorUtil;
+import com.intellij.openapi.editor.impl.EditorImpl;
 import com.intellij.openapi.editor.markup.EffectType;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.ui.popup.ActiveIcon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiMethodImpl;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.containers.JBIterable;
@@ -106,6 +109,16 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
     @Override
     public boolean collect(PsiElement element, Editor editor, InlayHintsSink inlayHintsSink) {
+        if (!(editor instanceof EditorImpl)) {
+            return true;
+        } else {
+            VirtualFile vf = ((EditorImpl) editor).getVirtualFile();
+            if (vf instanceof LightVirtualFile) {
+                // no inlay hints for light virtual files, which are in memory files like snippets
+                return true;
+            }
+        }
+
         if (element instanceof PsiClass) {
             currentClass = (PsiClass) element;
             classMethodAggregates = insidiousService.getClassMethodAggregates(currentClass.getQualifiedName());
