@@ -107,7 +107,6 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     implementation 'com.squareup.okhttp3:okhttp:4.9.0'
 //    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2'
-    implementation 'com.google.code.gson:gson:2.8.8'
 
     implementation group: 'com.j256.ormlite', name: 'ormlite-jdbc', version: '6.1'
     implementation group: 'com.j256.ormlite', name: 'ormlite-core', version: '6.1'
