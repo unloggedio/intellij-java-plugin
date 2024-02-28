@@ -1142,8 +1142,13 @@ public class StompComponent implements
             throw new RuntimeException(e);
         }
 
-        historyStreamScrollPanel.revalidate();
-        historyStreamScrollPanel.repaint();
+        ApplicationManager.getApplication().invokeLater(() -> {
+            southPanel.revalidate();
+            southPanel.repaint();
+            historyStreamScrollPanel.revalidate();
+            historyStreamScrollPanel.repaint();
+        });
+
     }
 
     public void showNewDeclaredMockCreator(JavaMethodAdapter javaMethodAdapter,
