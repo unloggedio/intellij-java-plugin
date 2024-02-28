@@ -185,7 +185,6 @@ public class TestCandidateSaveForm {
                     mocksMap.put(storedCandidate, mocks);
 
 
-                    JsonNode returnValue;
                     MethodCallExpression mainMethod = candidateMetadata.getMainMethod();
                     if (mainMethod.getReturnValue().getValue() == 0 || mainMethod.getReturnValue().getType() == null) {
                         storedCandidate.setTestAssertions(new AtomicAssertion());
@@ -193,79 +192,7 @@ public class TestCandidateSaveForm {
                     }
 
                     Parameter returnValue1 = mainMethod.getReturnValue();
-                    if (returnValue1.getProb().getSerializedValue().length == 0) {
-
-
-                        switch (returnValue1.getType()) {
-                            case "I":
-                            case "java.lang.Integer":
-                                returnValue = objectMapper.getNodeFactory()
-                                        .numberNode(Math.toIntExact(returnValue1.getProb().getValue()));
-                                break;
-                            case "L":
-                            case "java.lang.Long":
-                                returnValue =
-                                        objectMapper.getNodeFactory()
-                                                .numberNode(Long.valueOf(returnValue1.getProb().getValue()));
-                                break;
-                            case "F":
-                            case "java.lang.Float":
-                                returnValue =
-                                        objectMapper.getNodeFactory()
-                                                .numberNode(Float.valueOf(returnValue1.getProb().getValue()));
-                                break;
-                            case "B":
-                            case "java.lang.Byte":
-                                returnValue =
-                                        objectMapper.getNodeFactory()
-                                                .numberNode(Byte.valueOf((byte) returnValue1.getProb().getValue()));
-                                break;
-                            case "D":
-                            case "java.lang.Double":
-                                returnValue =
-                                        objectMapper.getNodeFactory()
-                                                .numberNode(Double.valueOf(returnValue1.getProb().getValue()));
-                                break;
-                            case "C":
-                            case "java.lang.Character":
-                                returnValue =
-                                        objectMapper.getNodeFactory()
-                                                .numberNode((char) returnValue1.getProb().getValue());
-                                break;
-                            case "Z":
-                            case "java.lang.Boolean":
-                                returnValue =
-                                        objectMapper.getNodeFactory()
-                                                .booleanNode(returnValue1.getProb().getValue() != 0);
-                                break;
-                            case "S":
-                            case "java.lang.Short":
-                                returnValue =
-                                        objectMapper.getNodeFactory()
-                                                .numberNode((short) returnValue1.getProb().getValue());
-                                break;
-
-                            default:
-                                returnValue = objectMapper.getNodeFactory()
-                                        .numberNode(returnValue1.getProb().getValue());
-                                break;
-
-                        }
-
-                    } else {
-                        String stringValue = new String(returnValue1.getProb().getSerializedValue());
-                        if (stringValue.length() == 0) {
-                            storedCandidate.setTestAssertions(new AtomicAssertion());
-                            return storedCandidate;
-                        }
-                        try {
-                            returnValue = objectMapper.readTree(stringValue);
-                        } catch (JsonProcessingException e) {
-                            logger.warn("Failed to parse response value as a json object: " + e.getMessage());
-                            returnValue =
-                                    objectMapper.getNodeFactory().textNode(stringValue);
-                        }
-                    }
+                    JsonNode returnValue = getValueForParameter(returnValue1);
 
 
                     AtomicAssertion assertion;
@@ -622,6 +549,83 @@ public class TestCandidateSaveForm {
 
     }
 
+    private JsonNode getValueForParameter(Parameter returnValue1) {
+        JsonNode returnValue;
+        if (returnValue1.getProb().getSerializedValue().length == 0) {
+
+
+            switch (returnValue1.getType()) {
+                case "I":
+                case "java.lang.Integer":
+                    returnValue = objectMapper.getNodeFactory()
+                            .numberNode(Math.toIntExact(returnValue1.getProb().getValue()));
+                    break;
+                case "L":
+                case "java.lang.Long":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode(Long.valueOf(returnValue1.getProb().getValue()));
+                    break;
+                case "F":
+                case "java.lang.Float":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode(Float.valueOf(returnValue1.getProb().getValue()));
+                    break;
+                case "B":
+                case "java.lang.Byte":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode(Byte.valueOf((byte) returnValue1.getProb().getValue()));
+                    break;
+                case "D":
+                case "java.lang.Double":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode(Double.valueOf(returnValue1.getProb().getValue()));
+                    break;
+                case "C":
+                case "java.lang.Character":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode((char) returnValue1.getProb().getValue());
+                    break;
+                case "Z":
+                case "java.lang.Boolean":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .booleanNode(returnValue1.getProb().getValue() != 0);
+                    break;
+                case "S":
+                case "java.lang.Short":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode((short) returnValue1.getProb().getValue());
+                    break;
+
+                default:
+                    returnValue = objectMapper.getNodeFactory()
+                            .numberNode(returnValue1.getProb().getValue());
+                    break;
+
+            }
+
+        } else {
+            String stringValue = new String(returnValue1.getProb().getSerializedValue());
+            if (stringValue.length() == 0) {
+                returnValue = objectMapper.getNodeFactory().nullNode();
+            } else {
+                try {
+                    returnValue = objectMapper.readTree(stringValue);
+                } catch (JsonProcessingException e) {
+                    logger.warn("Failed to parse response value as a json object: " + e.getMessage());
+                    returnValue = objectMapper.getNodeFactory().textNode(stringValue);
+                }
+            }
+        }
+        return returnValue;
+    }
+
     private List<DeclaredMock> patchCandidate(
             TestCandidateMetadata candidateMetadata,
             StoredCandidate storedCandidate,
@@ -699,7 +703,8 @@ public class TestCandidateSaveForm {
 
             List<ThenParameter> thenParameterList = new ArrayList<>();
             Parameter returnValue1 = methodCallExpression.getReturnValue();
-            ReturnValue returnValue = new ReturnValue(new String(returnValue1.getProb().getSerializedValue()),
+            JsonNode value = getValueForParameter(returnValue1);
+            ReturnValue returnValue = new ReturnValue(value.toString(),
                     returnValue1.getType(),
                     ReturnValueType.REAL);
             ThenParameter thenParam = new ThenParameter(returnValue, MethodExitType.NORMAL);
