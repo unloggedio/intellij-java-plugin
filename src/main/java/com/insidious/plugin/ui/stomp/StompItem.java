@@ -29,7 +29,8 @@ public class StompItem {
     public static final int MAX_METHOD_NAME_LABEL_LENGTH = 25;
     public static final JBColor HOVER_HIGHLIGHT_COLOR = new JBColor(
             new Color(221, 245, 238),
-            new Color(221, 245, 238));
+            new Color(221, 245, 238)
+    );
     private static final Logger logger = LoggerUtil.getInstance(StompItem.class);
     private final TestCandidateLifeListener testCandidateLifeListener;
     private final Color defaultPanelColor;

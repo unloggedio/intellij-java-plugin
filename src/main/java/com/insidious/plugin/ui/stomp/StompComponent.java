@@ -40,6 +40,7 @@ import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
@@ -805,6 +806,7 @@ public class StompComponent implements
 
     private void updateControlPanel() {
 
+        selectedCountLabel.setForeground(JBColor.DARK_GRAY);
         selectedCountLabel.setText(selectedCandidates.size() + " selected");
         if (selectedCandidates.size() > 0 && !controlPanel.isEnabled()) {
 //            reloadButton.setEnabled(true);
