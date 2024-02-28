@@ -278,6 +278,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
 //
                 String parameterValue = "";
                 PsiType methodParameterType = methodParameter.getType();
+                // TODO: removing this causes the default input value to be a long list
+                methodArgumentValues = null;
                 if (methodArgumentValues != null && i < methodArgumentValues.size()) {
                     parameterValue = methodArgumentValues.get(i);
                 } else {
