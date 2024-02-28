@@ -444,6 +444,11 @@ public class StompComponent implements
             PsiMethod methodPsiElement = ApplicationManager.getApplication().runReadAction(
                     (Computable<PsiMethod>) () -> ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
                             insidiousService.getProject()).getFirst());
+            if (methodPsiElement == null) {
+                InsidiousNotification.notifyMessage("Failed to identify method in source for " +
+                        selectedCandidate.getMainMethod().getMethodName(), NotificationType.WARNING);
+                return;
+            }
             long batchTime = System.currentTimeMillis();
 
             insidiousService.executeSingleCandidate(
@@ -778,6 +783,12 @@ public class StompComponent implements
                     .runReadAction(
                             (Computable<PsiMethod>) () -> ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
                                     insidiousService.getProject()).getFirst());
+            if (methodPsiElement == null) {
+                InsidiousNotification.notifyMessage("Failed to identify method in source for " +
+                        selectedCandidate.getMainMethod().getMethodName(), NotificationType.WARNING);
+                return;
+            }
+
             showDirectInvoke(new JavaMethodAdapter(methodPsiElement));
             directInvokeComponent.triggerExecute();
         }
@@ -1170,38 +1181,6 @@ public class StompComponent implements
         });
     }
 
-//    public void showNewTestCandidateCreator(MethodUnderTest methodUnderTest,
-//                                            PsiMethodCallExpression psiMethodCallExpression) {
-//        MockDefinitionEditor mockEditor = new MockDefinitionEditor(methodUnderTest, psiMethodCallExpression,
-//                insidiousService.getProject(), new OnSaveListener() {
-//            @Override
-//            public void onSaveDeclaredMock(DeclaredMock declaredMock) {
-//                atomicRecordService.saveMockDefinition(declaredMock);
-//                InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
-//            }
-//        }, new OnCloseListener<Void>() {
-//            @Override
-//            public void onClose(Void component) {
-//                southPanel.removeAll();
-//            }
-//        });
-//        JComponent content = mockEditor.getComponent();
-//        content.setMinimumSize(new Dimension(-1, 500));
-//        content.setMaximumSize(new Dimension(-1, 600));
-//        southPanel.add(content, BorderLayout.CENTER);
-//    }
-
-    void makeSpace(int position) {
-        Component[] components = itemPanel.getComponents();
-        for (Component component : components) {
-            GridBagConstraints gbc = ((GridBagLayout) itemPanel.getLayout()).getConstraints(component);
-            if (gbc.gridy < position) {
-                continue;
-            }
-            gbc.gridy += 1;
-            itemPanel.add(component, gbc);
-        }
-    }
 
     public void removeDirectInvoke() {
         southPanel.remove(directInvokeComponent.getContent());
@@ -1218,15 +1197,15 @@ public class StompComponent implements
             welcomePanelRemoved = true;
         }
 
-        JLabel process_started = new JLabel("<html><b> Process started... </b></html>");
+        JLabel process_started = new JLabel("<html><font color='#548AF7'><b> Process started... </b></font></html>");
 //        process_started.setIcon(UIUtils.LIBRARY_ICON);
         JPanel startedPanel = new JPanel();
         startedPanel.setLayout(new BorderLayout());
         process_started.setBorder(
                 BorderFactory.createEmptyBorder(6, 6, 6, 6)
         );
-        process_started.setForeground(new Color(84, 138, 247));
-        startedPanel.add(process_started, BorderLayout.EAST);
+//        process_started.setForeground(new Color(84, 138, 247));
+//        startedPanel.add(process_started, BorderLayout.EAST);
 
         JPanel rowPanel = new JPanel();
         rowPanel.setLayout(new BorderLayout());
