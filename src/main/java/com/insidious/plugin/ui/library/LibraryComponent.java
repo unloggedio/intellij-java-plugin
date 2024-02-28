@@ -404,14 +404,7 @@ public class LibraryComponent {
             }
         });
 
-        if (filterModel.isShowMocks()) {
-            includeMocksCheckBox.setSelected(true);
-            includeTestsCheckBox.setSelected(false);
-        } else {
-            includeMocksCheckBox.setSelected(false);
-            includeTestsCheckBox.setSelected(true);
-        }
-
+        updateMocksOrTestsRadioBox();
 
         selectAllLabel.addMouseListener(new MouseAdapter() {
             @Override
@@ -466,6 +459,31 @@ public class LibraryComponent {
         deletePanel.add(deletePanelRight);
 
         return deletePanel;
+    }
+
+    private void updateMocksOrTestsRadioBox() {
+        if (filterModel.isShowMocks()) {
+            includeMocksCheckBox.setSelected(true);
+            includeTestsCheckBox.setSelected(false);
+        } else {
+            includeMocksCheckBox.setSelected(false);
+            includeTestsCheckBox.setSelected(true);
+        }
+    }
+
+    public void setLibraryFilterState(LibraryFilterState lfs) {
+        clearFilter();
+        filterModel.getIncludedClassNames().addAll(lfs.getIncludedClassNames());
+        filterModel.getIncludedMethodNames().addAll(lfs.getIncludedMethodNames());
+        filterModel.getExcludedClassNames().addAll(lfs.getExcludedClassNames());
+        filterModel.getExcludedMethodNames().addAll(lfs.getExcludedMethodNames());
+        filterModel.setShowTests(lfs.isShowTests());
+        filterModel.setShowMocks(lfs.isShowMocks());
+        filterModel.setFollowEditor(lfs.isFollowEditor());
+
+        updateMocksOrTestsRadioBox();
+        updateFilterLabel();
+        reloadItems();
     }
 
     public void setMockStatus(boolean status) {
@@ -717,7 +735,8 @@ public class LibraryComponent {
 //
 //    }
 
-	public void onMethodFocussed(MethodAdapter method) {
+
+    public void onMethodFocussed(MethodAdapter method) {
         String newMethodName = method.getName();
         String newClassName = method.getContainingClass().getQualifiedName();
         MethodUnderTest newMethodAdapter = ApplicationManager.getApplication().runReadAction(
@@ -750,7 +769,7 @@ public class LibraryComponent {
         }
     }
 
-	private void clearFilter() {
+    private void clearFilter() {
         filterModel.getIncludedMethodNames().clear();
         filterModel.getExcludedMethodNames().clear();
         filterModel.getIncludedClassNames().clear();

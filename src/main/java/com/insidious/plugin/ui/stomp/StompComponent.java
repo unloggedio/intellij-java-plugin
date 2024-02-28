@@ -1359,6 +1359,10 @@ public class StompComponent implements
     }
 
     public void onMethodFocussed(MethodAdapter method) {
+        if (method == null) {
+            lastMethodFocussed = null;
+            return;
+        }
         String newMethodName = method.getName();
         String newClassName = method.getContainingClass().getQualifiedName();
         MethodUnderTest newMethodAdapter = ApplicationManager.getApplication().runReadAction(

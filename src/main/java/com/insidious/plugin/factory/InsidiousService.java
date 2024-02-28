@@ -40,6 +40,7 @@ import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.library.LibraryComponent;
 import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
+import com.insidious.plugin.ui.stomp.FilterModel;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.util.*;
@@ -636,6 +637,10 @@ final public class InsidiousService implements
         }
     }
 
+    public void setLibraryFilterState(LibraryFilterState libraryFilterState) {
+        libraryToolWindow.setLibraryFilterState(libraryFilterState);
+    }
+
     public void showDirectInvoke(MethodAdapter method) {
         if (stompWindow == null) {
             InsidiousNotification.notifyMessage(
@@ -648,10 +653,28 @@ final public class InsidiousService implements
         toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
     }
 
+    public void showStompAndFilterForMethod(MethodAdapter method) {
+        if (stompWindow == null) {
+            InsidiousNotification.notifyMessage(
+                    "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                    NotificationType.WARNING
+            );
+            return;
+        }
+
+        FilterModel stompFilterModel = configurationState.getFilterModel();
+        stompFilterModel.setFollowEditor(true);
+        stompWindow.onMethodFocussed(null);
+        stompWindow.onMethodFocussed(method);
+        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
+
+    }
+
     public void showLibrary() {
         if (stompWindow == null) {
             InsidiousNotification.notifyMessage(
-                    "Please start the application with unlogged-sdk to use and open the unlogged tool window to use", NotificationType.WARNING
+                    "Please start the application with unlogged-sdk to use and open the unlogged tool window to use",
+                    NotificationType.WARNING
             );
             return;
         }
@@ -1470,7 +1493,8 @@ final public class InsidiousService implements
                 final VirtualFile file = selectedEditor.getFile();
                 if (file != null) {
                     final PsiFile psiFile = ReadAction.compute(() -> PsiManager.getInstance(project).findFile(file));
-                    final Document document = ReadAction.compute(() -> FileDocumentManager.getInstance().getDocument(file));
+                    final Document document = ReadAction.compute(
+                            () -> FileDocumentManager.getInstance().getDocument(file));
                     final ProgressIndicator daemonIndicator = new DaemonProgressIndicator();
                     ProgressManager.getInstance().runProcess(() -> {
                         ReadAction.run(() -> codeAnalyzer.runMainPasses(psiFile, document, daemonIndicator));
@@ -1648,13 +1672,7 @@ final public class InsidiousService implements
 
         logger.warn("inlay clicked create mock");
 
-        LibraryFilterState libraryFilerModel = configurationState.getLibraryFilterModel();
-
-        libraryFilerModel.getExcludedMethodNames().clear();
-        libraryFilerModel.getExcludedClassNames().clear();
-
-        libraryFilerModel.getIncludedMethodNames().clear();
-        libraryFilerModel.getIncludedClassNames().clear();
+        LibraryFilterState libraryFilerModel = new LibraryFilterState();
 
         for (PsiMethodCallExpression mockableCallExpression : mockableCallExpressions) {
             MethodUnderTest mut = MethodUnderTest.fromPsiCallExpression(mockableCallExpression);
@@ -1665,8 +1683,7 @@ final public class InsidiousService implements
         libraryFilerModel.setShowMocks(true);
         libraryFilerModel.setShowTests(false);
 
-        libraryToolWindow.updateFilterLabel();
-        libraryToolWindow.reloadItems();
+        libraryToolWindow.setLibraryFilterState(libraryFilerModel);
         toolWindow.getContentManager().setSelectedContent(libraryWindowContent);
 
     }
