@@ -16,9 +16,11 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiMethodCallExpression;
+import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -190,6 +192,9 @@ public class MockDefinitionEditor {
         parameterListContainerPanel.removeAll();
         whenPanelList.clear();
         thenPanelList.clear();
+
+        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
+        titledBorder.setTitleColor(JBColor.BLACK);
 
 
         nameTextField.setText(declaredMock.getName());

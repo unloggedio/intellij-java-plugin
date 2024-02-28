@@ -364,18 +364,22 @@ final public class InsidiousService implements
         JBPopup implementationChooserPopup = JBPopupFactory
                 .getInstance()
                 .createPopupChooserBuilder(implementationOptions.stream()
-                        .map(PsiClass::getQualifiedName)
+                        .map((e) -> ApplicationManager.getApplication().runReadAction(
+                                (Computable<String>) e::getQualifiedName))
                         .filter(Objects::nonNull)
                         .sorted()
                         .collect(Collectors.toList()))
                 .setTitle("Run using implementation for " + className)
                 .setItemChosenCallback(psiElementName -> {
                     Arrays.stream(implementations)
-                            .filter(e -> Objects.equals(((PsiClass) e).getQualifiedName(), psiElementName))
+                            .filter(e -> Objects.equals(ApplicationManager.getApplication().runReadAction(
+                                            (Computable<String>) () -> ((PsiClass) e).getQualifiedName()),
+                                            psiElementName))
                             .findFirst().ifPresent(e -> {
                                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
                                     classChosenListener.classSelected(
-                                            new ClassUnderTest(JvmClassUtil.getJvmClassName((PsiClass) e)));
+                                            new ClassUnderTest(ApplicationManager.getApplication().runReadAction(
+                                                    (Computable<String>) () -> JvmClassUtil.getJvmClassName((PsiClass) e))));
                                 });
                             });
                 })

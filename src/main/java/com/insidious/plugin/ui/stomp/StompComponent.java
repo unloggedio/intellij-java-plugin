@@ -211,20 +211,12 @@ public class StompComponent implements
         generateJUnitButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
-                    onGenerateJunitTestCaseRequest(selectedCandidate);
-                }
-
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
+                        onGenerateJunitTestCaseRequest(selectedCandidate);
+                    }
+                });
             }
-//            @Override
-//            public void mouseEntered(MouseEvent e) {
-//                generateJUnitButton.setBorder(BorderFactory.createRaisedBevelBorder());
-//            }
-//
-//            @Override
-//            public void mouseExited(MouseEvent e) {
-//                generateJUnitButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-//            }
         });
 
         reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));

@@ -77,7 +77,7 @@
                         </constraints>
                         <properties>
                           <enabled value="true"/>
-                          <icon value="icons/png/refresh_icon_grey.png"/>
+                          <icon value="actions/refresh.png"/>
                           <text value=""/>
                         </properties>
                       </component>
