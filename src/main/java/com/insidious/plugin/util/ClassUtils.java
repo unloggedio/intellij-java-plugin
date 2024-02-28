@@ -103,7 +103,7 @@ public class ClassUtils {
 
         String expressionText = methodCallExpression.getMethodExpression().getText();
         return new DeclaredMock(
-                "mock response for call to" + expressionText, mut.getClassName(), parentClass.getQualifiedName(),
+                "mock response for call to " + expressionText, mut.getClassName(), parentClass.getQualifiedName(),
                 fieldName, mut.getName(), mut.getMethodHashKey(), parameterList, thenParameterList
         );
     }

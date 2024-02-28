@@ -4,11 +4,9 @@ import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.mocking.ParameterMatcher;
 import com.insidious.plugin.mocking.ParameterMatcherType;
 import com.insidious.plugin.mocking.ThenParameter;
-import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.ui.stomp.StompItem;
-import com.insidious.plugin.util.ClassTypeUtils;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.ui.JBColor;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -51,6 +49,7 @@ public class DeclaredMockItemPanel {
             simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
         }
         titledBorder.setTitle("Declared mock definition");
+        titledBorder.setTitleColor(JBColor.BLACK);
 
 
         Map<ParameterMatcherType, java.util.List<ParameterMatcher>> countByType = declaredMock.getWhenParameter()
@@ -77,9 +76,6 @@ public class DeclaredMockItemPanel {
         }
 
 
-
-
-
         deleteButton.setVisible(false);
         deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         deleteButton.addMouseListener(new MouseAdapter() {
@@ -92,18 +88,18 @@ public class DeclaredMockItemPanel {
         int thenParameterSize = declaredMock.getThenParameter().size();
         ThenParameter thenParameter = declaredMock.getThenParameter().get(0);
         String className = thenParameter.getReturnParameter().getClassName();
-        if(className.contains(".")) {
+        if (className.contains(".")) {
             className = className.substring(className.lastIndexOf(".") + 1);
         }
         JLabel returnsTag =
                 StompItem.createTagLabel(thenParameter.getMethodExitType() + " " + className,
-                new Object[]{thenParameterSize},
-                TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, new MouseAdapter() {
-                    @Override
-                    public void mouseClicked(MouseEvent e) {
-                        super.mouseClicked(e);
-                    }
-                });
+                        new Object[]{thenParameterSize},
+                        TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, new MouseAdapter() {
+                            @Override
+                            public void mouseClicked(MouseEvent e) {
+                                super.mouseClicked(e);
+                            }
+                        });
 
 
         tagsContainerPanel.add(returnsTag);

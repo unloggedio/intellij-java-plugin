@@ -73,38 +73,6 @@ public class LibraryComponent {
     private MethodUnderTest lastMethodFocussed;
     private boolean currentMockInjectStatus = false;
 
-    static JPanel deletePromptPanelBuilder(String deletePrompt) {
-        // deletePrompt
-        // deletePanelLeft
-        JLabel deletePanelLeft = new JLabel();
-        deletePanelLeft.setIcon(UIUtils.TRASH_PROMPT);
-
-        // deletePromptUpper
-        JLabel deletePromptUpper = new JLabel();
-        deletePromptUpper.setText(deletePrompt);
-
-        // deletePromptLower
-        JLabel deletePromptLower = new JLabel("<html> Use git to track and restore later. </html>");
-        deletePromptLower.setForeground(Color.GRAY);
-        String defaultFont = UIManager.getFont("Label.font").getFontName();
-        deletePromptLower.setFont(new Font("", Font.PLAIN, 12));
-        deletePromptLower.setBorder(new EmptyBorder(5,5,5,5));
-
-        // deletePanelRight
-        JPanel deletePanelRight = new JPanel();
-        deletePanelRight.setLayout(new BoxLayout(deletePanelRight, BoxLayout.Y_AXIS));
-        deletePanelRight.add(deletePromptUpper);
-        deletePanelRight.add(deletePromptLower);
-
-        // configure
-        JPanel deletePanel = new JPanel();
-        deletePanel.setLayout(new BoxLayout(deletePanel, BoxLayout.X_AXIS));
-        deletePanel.add(deletePanelLeft);
-        deletePanel.add(deletePanelRight);
-
-        return deletePanel;
-    }
-
     public LibraryComponent(Project project) {
         insidiousService = project.getService(InsidiousService.class);
         atomicRecordService = project.getService(AtomicRecordService.class);
@@ -166,7 +134,7 @@ public class LibraryComponent {
             }
         });
 
-		showOptionsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        showOptionsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         showOptionsButton.addMouseListener(new MouseAdapter() {
 
             @Override
@@ -436,14 +404,7 @@ public class LibraryComponent {
             }
         });
 
-        if (filterModel.isShowMocks()) {
-            includeMocksCheckBox.setSelected(true);
-            includeTestsCheckBox.setSelected(false);
-        } else {
-            includeMocksCheckBox.setSelected(false);
-            includeTestsCheckBox.setSelected(true);
-        }
-
+        updateMocksOrTestsRadioBox();
 
         selectAllLabel.addMouseListener(new MouseAdapter() {
             @Override
@@ -466,6 +427,63 @@ public class LibraryComponent {
 
         updateFilterLabel();
 
+    }
+
+    static JPanel deletePromptPanelBuilder(String deletePrompt) {
+        // deletePrompt
+        // deletePanelLeft
+        JLabel deletePanelLeft = new JLabel();
+        deletePanelLeft.setIcon(UIUtils.TRASH_PROMPT);
+
+        // deletePromptUpper
+        JLabel deletePromptUpper = new JLabel();
+        deletePromptUpper.setText(deletePrompt);
+
+        // deletePromptLower
+        JLabel deletePromptLower = new JLabel("<html> Use git to track and restore later. </html>");
+        deletePromptLower.setForeground(Color.GRAY);
+        String defaultFont = UIManager.getFont("Label.font").getFontName();
+        deletePromptLower.setFont(new Font("", Font.PLAIN, 12));
+        deletePromptLower.setBorder(new EmptyBorder(5, 5, 5, 5));
+
+        // deletePanelRight
+        JPanel deletePanelRight = new JPanel();
+        deletePanelRight.setLayout(new BoxLayout(deletePanelRight, BoxLayout.Y_AXIS));
+        deletePanelRight.add(deletePromptUpper);
+        deletePanelRight.add(deletePromptLower);
+
+        // configure
+        JPanel deletePanel = new JPanel();
+        deletePanel.setLayout(new BoxLayout(deletePanel, BoxLayout.X_AXIS));
+        deletePanel.add(deletePanelLeft);
+        deletePanel.add(deletePanelRight);
+
+        return deletePanel;
+    }
+
+    private void updateMocksOrTestsRadioBox() {
+        if (filterModel.isShowMocks()) {
+            includeMocksCheckBox.setSelected(true);
+            includeTestsCheckBox.setSelected(false);
+        } else {
+            includeMocksCheckBox.setSelected(false);
+            includeTestsCheckBox.setSelected(true);
+        }
+    }
+
+    public void setLibraryFilterState(LibraryFilterState lfs) {
+        clearFilter();
+        filterModel.getIncludedClassNames().addAll(lfs.getIncludedClassNames());
+        filterModel.getIncludedMethodNames().addAll(lfs.getIncludedMethodNames());
+        filterModel.getExcludedClassNames().addAll(lfs.getExcludedClassNames());
+        filterModel.getExcludedMethodNames().addAll(lfs.getExcludedMethodNames());
+        filterModel.setShowTests(lfs.isShowTests());
+        filterModel.setShowMocks(lfs.isShowMocks());
+        filterModel.setFollowEditor(lfs.isFollowEditor());
+
+        updateMocksOrTestsRadioBox();
+        updateFilterLabel();
+        reloadItems();
     }
 
     public void setMockStatus(boolean status) {
@@ -717,7 +735,8 @@ public class LibraryComponent {
 //
 //    }
 
-	public void onMethodFocussed(MethodAdapter method) {
+
+    public void onMethodFocussed(MethodAdapter method) {
         String newMethodName = method.getName();
         String newClassName = method.getContainingClass().getQualifiedName();
         MethodUnderTest newMethodAdapter = ApplicationManager.getApplication().runReadAction(
@@ -750,7 +769,7 @@ public class LibraryComponent {
         }
     }
 
-	private void clearFilter() {
+    private void clearFilter() {
         filterModel.getIncludedMethodNames().clear();
         filterModel.getExcludedMethodNames().clear();
         filterModel.getIncludedClassNames().clear();

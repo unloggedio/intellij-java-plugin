@@ -131,6 +131,14 @@ public class MethodDirectInvokeComponent implements ActionListener {
                         designerLite.setEditorReferences(selectedTextEditor, selectedEditor);
                     }
                 });
+                ApplicationManager.getApplication().invokeLater(() -> {
+
+                    boilerplateCustomizerContainer.getParent().revalidate();
+                    boilerplateCustomizerContainer.getParent().repaint();
+
+                    boilerplateCustomizerContainer.getParent().getParent().revalidate();
+                    boilerplateCustomizerContainer.getParent().getParent().repaint();
+                });
 
             }
         });
@@ -315,6 +323,39 @@ public class MethodDirectInvokeComponent implements ActionListener {
         } else {
             parameterScrollPanel.setViewportView(methodParameterContainer);
         }
+
+
+        //////////////////
+
+        if (designerLite != null) {
+            // previewing boilerplate test case
+            // refresh it as well
+            designerLite.closeEditorWindow();
+            designerLite = new TestCaseDesignerLite(methodElement,
+                    null, true, insidiousService.getProject());
+
+            boilerplateCustomizerContainer.add(designerLite.getComponent(), BorderLayout.CENTER);
+            designerLite.getCreateButton().addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    super.mouseClicked(e);
+                    FileEditorManager fileEditorManager = insidiousService.previewTestCase(
+                            designerLite.getLightVirtualFile());
+                    Editor selectedTextEditor = fileEditorManager.getSelectedTextEditor();
+                    FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
+                    designerLite.setEditorReferences(selectedTextEditor, selectedEditor);
+                }
+            });
+            ApplicationManager.getApplication().invokeLater(() -> {
+                boilerplateCustomizerContainer.getParent().revalidate();
+                boilerplateCustomizerContainer.getParent().repaint();
+                boilerplateCustomizerContainer.getParent().getParent().revalidate();
+                boilerplateCustomizerContainer.getParent().getParent().repaint();
+            });
+        }
+
+        //////////////////
+
 
         configureCreateBoilerplateButton();
         parameterScrollPanel.setBorder(BorderFactory.createEmptyBorder());

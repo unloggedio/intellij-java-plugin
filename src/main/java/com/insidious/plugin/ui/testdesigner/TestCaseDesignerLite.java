@@ -141,6 +141,7 @@ public class TestCaseDesignerLite {
         }
 
         addFieldMocksCheckBox.addActionListener(e -> {
+            generateTestCaseBoilerPlace();
             updatePreviewTestCase();
         });
 
@@ -491,9 +492,11 @@ public class TestCaseDesignerLite {
     private void updateFileContents() {
         ApplicationManager.getApplication().runWriteAction(() -> {
             if (this.editorReference != null) {
+                FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
 
                 Document document = editorReference.getDocument();
                 document.setText(testCaseScript.getCode());
+                fileEditorManager.openFile(testCaseScriptFile, true);
             }
         });
     }

@@ -40,6 +40,7 @@ import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
@@ -211,20 +212,12 @@ public class StompComponent implements
         generateJUnitButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
-                    onGenerateJunitTestCaseRequest(selectedCandidate);
-                }
-
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
+                        onGenerateJunitTestCaseRequest(selectedCandidate);
+                    }
+                });
             }
-//            @Override
-//            public void mouseEntered(MouseEvent e) {
-//                generateJUnitButton.setBorder(BorderFactory.createRaisedBevelBorder());
-//            }
-//
-//            @Override
-//            public void mouseExited(MouseEvent e) {
-//                generateJUnitButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-//            }
         });
 
         reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -444,6 +437,11 @@ public class StompComponent implements
             PsiMethod methodPsiElement = ApplicationManager.getApplication().runReadAction(
                     (Computable<PsiMethod>) () -> ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
                             insidiousService.getProject()).getFirst());
+            if (methodPsiElement == null) {
+                InsidiousNotification.notifyMessage("Failed to identify method in source for " +
+                        selectedCandidate.getMainMethod().getMethodName(), NotificationType.WARNING);
+                return;
+            }
             long batchTime = System.currentTimeMillis();
 
             insidiousService.executeSingleCandidate(
@@ -778,6 +776,12 @@ public class StompComponent implements
                     .runReadAction(
                             (Computable<PsiMethod>) () -> ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
                                     insidiousService.getProject()).getFirst());
+            if (methodPsiElement == null) {
+                InsidiousNotification.notifyMessage("Failed to identify method in source for " +
+                        selectedCandidate.getMainMethod().getMethodName(), NotificationType.WARNING);
+                return;
+            }
+
             showDirectInvoke(new JavaMethodAdapter(methodPsiElement));
             directInvokeComponent.triggerExecute();
         }
@@ -802,6 +806,7 @@ public class StompComponent implements
 
     private void updateControlPanel() {
 
+        selectedCountLabel.setForeground(JBColor.DARK_GRAY);
         selectedCountLabel.setText(selectedCandidates.size() + " selected");
         if (selectedCandidates.size() > 0 && !controlPanel.isEnabled()) {
 //            reloadButton.setEnabled(true);
@@ -1127,8 +1132,6 @@ public class StompComponent implements
             JComponent content = directInvokeComponent.getContent();
             content.setMinimumSize(new Dimension(-1, 500));
             content.setMaximumSize(new Dimension(-1, 600));
-            southPanel.removeAll();
-            southPanel.add(content, BorderLayout.CENTER);
         }
         try {
             directInvokeComponent.renderForMethod(method, null);
@@ -1159,10 +1162,10 @@ public class StompComponent implements
         JComponent content = mockEditor.getComponent();
         content.setMinimumSize(new Dimension(-1, 500));
         content.setMaximumSize(new Dimension(-1, 600));
-        southPanel.removeAll();
-        southPanel.add(content, BorderLayout.CENTER);
 
         ApplicationManager.getApplication().invokeLater(() -> {
+            southPanel.removeAll();
+            southPanel.add(content, BorderLayout.CENTER);
             scrollContainer.revalidate();
             scrollContainer.repaint();
             historyStreamScrollPanel.revalidate();
@@ -1172,38 +1175,6 @@ public class StompComponent implements
         });
     }
 
-//    public void showNewTestCandidateCreator(MethodUnderTest methodUnderTest,
-//                                            PsiMethodCallExpression psiMethodCallExpression) {
-//        MockDefinitionEditor mockEditor = new MockDefinitionEditor(methodUnderTest, psiMethodCallExpression,
-//                insidiousService.getProject(), new OnSaveListener() {
-//            @Override
-//            public void onSaveDeclaredMock(DeclaredMock declaredMock) {
-//                atomicRecordService.saveMockDefinition(declaredMock);
-//                InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
-//            }
-//        }, new OnCloseListener<Void>() {
-//            @Override
-//            public void onClose(Void component) {
-//                southPanel.removeAll();
-//            }
-//        });
-//        JComponent content = mockEditor.getComponent();
-//        content.setMinimumSize(new Dimension(-1, 500));
-//        content.setMaximumSize(new Dimension(-1, 600));
-//        southPanel.add(content, BorderLayout.CENTER);
-//    }
-
-    void makeSpace(int position) {
-        Component[] components = itemPanel.getComponents();
-        for (Component component : components) {
-            GridBagConstraints gbc = ((GridBagLayout) itemPanel.getLayout()).getConstraints(component);
-            if (gbc.gridy < position) {
-                continue;
-            }
-            gbc.gridy += 1;
-            itemPanel.add(component, gbc);
-        }
-    }
 
     public void removeDirectInvoke() {
         southPanel.remove(directInvokeComponent.getContent());
@@ -1220,15 +1191,15 @@ public class StompComponent implements
             welcomePanelRemoved = true;
         }
 
-        JLabel process_started = new JLabel("<html><b> Process started... </b></html>");
+        JLabel process_started = new JLabel("<html><font color='#548AF7'><b> Process started... </b></font></html>");
 //        process_started.setIcon(UIUtils.LIBRARY_ICON);
         JPanel startedPanel = new JPanel();
         startedPanel.setLayout(new BorderLayout());
         process_started.setBorder(
                 BorderFactory.createEmptyBorder(6, 6, 6, 6)
         );
-        process_started.setForeground(new Color(84, 138, 247));
-        startedPanel.add(process_started, BorderLayout.EAST);
+//        process_started.setForeground(new Color(84, 138, 247));
+//        startedPanel.add(process_started, BorderLayout.EAST);
 
         JPanel rowPanel = new JPanel();
         rowPanel.setLayout(new BorderLayout());
@@ -1361,6 +1332,10 @@ public class StompComponent implements
     }
 
     public void onMethodFocussed(MethodAdapter method) {
+        if (method == null) {
+            lastMethodFocussed = null;
+            return;
+        }
         String newMethodName = method.getName();
         String newClassName = method.getContainingClass().getQualifiedName();
         MethodUnderTest newMethodAdapter = ApplicationManager.getApplication().runReadAction(

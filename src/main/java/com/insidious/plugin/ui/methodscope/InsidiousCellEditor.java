@@ -48,7 +48,7 @@ public class InsidiousCellEditor extends DefaultTreeCellEditor {
                 // this is a normal data
                 String[] parts = userObject.toString().split(":");
                 key = parts[0];
-                editor.setText(parts[1].trim());
+                editor.setText(parts.length < 2 ? "" : parts[1].trim());
             }
 
             editor.addKeyListener(new KeyStrokeAdapter() {

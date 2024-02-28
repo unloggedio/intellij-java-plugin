@@ -1608,9 +1608,11 @@ public class DaoService {
                     try {
                         return convertTestCandidateMetadata(e, false);
                     } catch (Exception ex) {
-                        throw new RuntimeException(ex);
+                        logger.warn("failed to convert test candidate: " + ex.getMessage());
+                        return null;
                     }
                 })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
