@@ -59,13 +59,12 @@ public class JsonTreeEditor {
                 TreePath path = e.getTreePath();
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
 
-
-                for (Object child : e.getChildren()) {
-                    String stringVal = (String) ((DefaultMutableTreeNode) child).getUserObject();
-                    String[] parts = stringVal.split(": ", 2);
-                    String key = parts[0];
-                    String value = parts[1];
-                }
+//                for (Object child : e.getChildren()) {
+//                    String stringVal = (String) ((DefaultMutableTreeNode) child).getUserObject();
+//                    String[] parts = stringVal.split(": ", 2);
+//                    String key = parts[0];
+//                    String value = parts[1];
+//                }
 
                 try {
                     String editedValue = (String) node.getUserObject();
