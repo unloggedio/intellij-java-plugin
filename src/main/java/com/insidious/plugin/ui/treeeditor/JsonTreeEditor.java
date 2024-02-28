@@ -54,9 +54,20 @@ public class JsonTreeEditor {
 
                 for (Object child : e.getChildren()) {
                     String stringVal = (String) ((DefaultMutableTreeNode) child).getUserObject();
-                    String[] parts = stringVal.split(": ", 2);
-                    String key = parts[0];
-                    String value = parts[1];
+                    if (stringVal.matches("\\{.*\\}")) {
+                        String jsonData = stringVal;
+                        if (stringVal.length()<=4) {
+                            jsonData = stringVal.substring(2, stringVal.length()-2);
+                        }
+                        else {
+                            jsonData = "json data is small";
+                        }
+                    }
+                    else {
+                        String[] parts = stringVal.split(": ", 2);
+                        String key = parts[0];
+                        String value = parts[1];
+                    }
                 }
 
                 try {
