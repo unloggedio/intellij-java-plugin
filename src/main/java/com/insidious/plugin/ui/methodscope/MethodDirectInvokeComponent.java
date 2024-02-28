@@ -262,7 +262,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(query);
                 int candidateCount = methodTestCandidates.size();
                 if (candidateCount > 0) {
-                    TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(candidateCount - 1);
+                    TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(0);
                     methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
                             mostRecentTestCandidate);
                 }
