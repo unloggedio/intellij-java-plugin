@@ -88,6 +88,7 @@ import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.testFramework.LightVirtualFile;
+import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
@@ -344,11 +345,12 @@ final public class InsidiousService implements
             return;
         }
 
-        List<PsiClass> implementationOptions = Arrays.stream(implementations)
-                .map(e -> (PsiClass) e)
-                .filter(e -> !e.isInterface())
-                .filter(e -> !e.hasModifierProperty(ABSTRACT))
-                .collect(Collectors.toList());
+        List<PsiClass> implementationOptions = ApplicationManager.getApplication().runReadAction(
+                (Computable<? extends List<PsiClass>>) () -> Arrays.stream(implementations)
+                        .map(e -> (PsiClass) e)
+                        .filter(e -> !e.isInterface())
+                        .filter(e -> !e.hasModifierProperty(ABSTRACT))
+                        .collect(Collectors.toList()));
 
         if (implementationOptions.size() == 0) {
             InsidiousNotification.notifyMessage("No implementations found for " + className,
@@ -384,7 +386,9 @@ final public class InsidiousService implements
                 })
                 .createPopup();
         ApplicationManager.getApplication().invokeLater(() -> {
-            implementationChooserPopup.showInFocusCenter();
+            Point cursorLocation = MouseInfo.getPointerInfo().getLocation();
+            // Show the popup under the cursor
+            implementationChooserPopup.show(new RelativePoint(new Point(cursorLocation.x, cursorLocation.y)));
         });
     }
 

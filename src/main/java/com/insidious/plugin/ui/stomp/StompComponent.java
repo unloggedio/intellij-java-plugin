@@ -257,6 +257,7 @@ public class StompComponent implements
             @Override
             public void mouseClicked(MouseEvent e) {
 
+                FilterModel originalFilter = new FilterModel(filterModel);
                 StompFilter stompFilter = new StompFilter(filterModel, lastMethodFocussed);
                 JComponent component = stompFilter.getComponent();
 
@@ -288,6 +289,9 @@ public class StompComponent implements
                     @Override
                     public void onClose(StompFilter component) {
                         unloggedPreferencesPopup.cancel();
+                        if (originalFilter.equals(filterModel)) {
+                            return;
+                        }
                         updateFilterLabel();
                         resetAndReload();
                     }

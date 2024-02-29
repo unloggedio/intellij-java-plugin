@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.stomp;
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 public class FilterModel {
@@ -11,7 +12,7 @@ public class FilterModel {
     private final Set<String> includedMethodNames = new HashSet<>();
     private final Set<String> excludedMethodNames = new HashSet<>();
     boolean followEditor;
-    CandidateFilterType candidateFilterType;
+    CandidateFilterType candidateFilterType = CandidateFilterType.ALL;
 
     public FilterModel(FilterModel filterModel) {
         this.includedMethodNames.addAll(filterModel.includedMethodNames);
@@ -23,6 +24,25 @@ public class FilterModel {
     }
 
     public FilterModel() {
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FilterModel that = (FilterModel) o;
+        return followEditor == that.followEditor && includedClassNames.equals(
+                that.includedClassNames) && excludedClassNames.equals(
+                that.excludedClassNames) && includedMethodNames.equals(
+                that.includedMethodNames) && excludedMethodNames.equals(
+                that.excludedMethodNames) && candidateFilterType == that.candidateFilterType;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(includedClassNames, excludedClassNames, includedMethodNames, excludedMethodNames,
+                followEditor,
+                candidateFilterType);
     }
 
     public boolean isFollowEditor() {

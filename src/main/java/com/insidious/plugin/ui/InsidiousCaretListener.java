@@ -1,10 +1,13 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.adapter.java.JavaClassAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.adapter.kotlin.KotlinMethodAdapter;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -12,7 +15,9 @@ import com.intellij.openapi.editor.event.*;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
@@ -123,7 +128,15 @@ public class InsidiousCaretListener implements EditorMouseListener, CaretListene
 
             PsiMethod method = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiMethod.class, false);
             if (method != null) {
-                MethodAdapter methodAdapter = new JavaMethodAdapter(method);
+                PsiClass containingClass = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiClass.class, false);
+                MethodAdapter methodAdapter = new JavaMethodAdapter(method) {
+                    @Override
+                    public ClassAdapter getContainingClass() {
+                        return ApplicationManager.getApplication().runReadAction(
+                                (Computable<JavaClassAdapter>) () -> new JavaClassAdapter(containingClass));
+                    }
+                };
+
                 insidiousService.methodFocussedHandler(methodAdapter);
 //                return;
             }

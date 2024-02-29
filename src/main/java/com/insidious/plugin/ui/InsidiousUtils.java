@@ -66,9 +66,13 @@ public class InsidiousUtils {
 
             Document newDocument = FileDocumentManager.getInstance().getDocument(finalNewFile);
             if (lineNumber > 0) {
-                int lineOffsetStart = newDocument.getLineStartOffset(lineNumber - 1);
-                editor.getCaretModel().getCurrentCaret().moveToOffset(lineOffsetStart);
-                editor.getScrollingModel().scrollToCaret(ScrollType.CENTER);
+                try {
+                    int lineOffsetStart = newDocument.getLineStartOffset(lineNumber - 1);
+                    editor.getCaretModel().getCurrentCaret().moveToOffset(lineOffsetStart);
+                    editor.getScrollingModel().scrollToCaret(ScrollType.CENTER);
+                }catch (Exception e) {
+                    // failed to focus
+                }
             }
         });
     }
