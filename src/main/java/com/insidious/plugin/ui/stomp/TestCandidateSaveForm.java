@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.stomp;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
@@ -869,7 +870,8 @@ public class TestCandidateSaveForm {
 
             return parentAssertion;
         } else {
-            return new AtomicAssertion(Expression.SELF, AssertionType.EQUAL, key, value.toString());
+            return new AtomicAssertion(Expression.SELF, AssertionType.EQUAL, key,
+                    (value instanceof TextNode) ? value.textValue() : value.toString());
         }
     }
 
