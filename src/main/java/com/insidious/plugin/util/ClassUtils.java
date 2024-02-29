@@ -285,6 +285,14 @@ public class ClassUtils {
                     return dummyValue.toString();
                 }
 
+                if (
+                        rawTypeCanonicalText.equals("java.util.concurrent.CompletableFuture") ||
+                        rawTypeCanonicalText.equals("java.util.concurrent.Future")
+                ) {
+                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
+                    return dummyValue.toString();
+                }
+
                 if (rawTypeCanonicalText.equals("reactor.core.publisher.Mono")) {
                     dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
                     return dummyValue.toString();

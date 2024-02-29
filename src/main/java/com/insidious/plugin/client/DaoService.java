@@ -167,7 +167,7 @@ public class DaoService {
         this.parameterProvider = parameterProvider;
 
         // instantiate the DAO to handle Account with String id
-         testCandidateDao = DaoManager.createDao(connectionSource, TestCandidateMetadata.class);
+        testCandidateDao = DaoManager.createDao(connectionSource, TestCandidateMetadata.class);
         probeInfoDao = DaoManager.createDao(connectionSource, ProbeInfo.class);
 //        parameterDao = DaoManager.createDao(connectionSource, Parameter.class);
         logFilesDao = DaoManager.createDao(connectionSource, LogFile.class);
@@ -566,8 +566,8 @@ public class DaoService {
 
             if (methodCallExpression.isStaticCall() || dbMce.getSubject() == 0) {
                 com.insidious.plugin.pojo.Parameter staticSubject =
-                        parameterMap.get(dbMce.getSubject()) != null ?new com.insidious.plugin.pojo.Parameter(
-                        parameterMap.get(dbMce.getSubject())) : new com.insidious.plugin.pojo.Parameter();
+                        parameterMap.get(dbMce.getSubject()) != null ? new com.insidious.plugin.pojo.Parameter(
+                                parameterMap.get(dbMce.getSubject())) : new com.insidious.plugin.pojo.Parameter();
                 staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
                 methodCallExpression.setSubject(staticSubject);
             } else {
@@ -1244,8 +1244,9 @@ public class DaoService {
             logger.warn("found [" + resultList.size() + "] candidates in " + (end - start) + " ms");
             return resultList;
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
+            logger.warn("failed to getTestCandidatesForAllMethod [" + candidateSearchQuery + "]:  " +
+                            e.getMessage(), e);
+            return new ArrayList<>();
         }
     }
 

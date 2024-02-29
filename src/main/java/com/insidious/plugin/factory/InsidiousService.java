@@ -257,7 +257,7 @@ final public class InsidiousService implements
                     if (!foundIncludePackage) {
                         checkCache.put(mostRecentSession.getSessionId(), false);
                         logger.warn(
-                                "Package not found in the params, marked as session not matching" + mostRecentSession.getLogFilePath());
+                                "Package not found in the params, marked as session not matching: " + mostRecentSession.getLogFilePath());
                         return false;
                     }
 
@@ -270,7 +270,7 @@ final public class InsidiousService implements
                                 "project [" + project.getName() + "]" +
                                 " -> " + mostRecentSession.getLogFilePath());
                         checkCache.put(mostRecentSession.getSessionId(), false);
-//                        return false;
+                        return false;
                     }
                     logger.warn("Package for agent [" + finalIncludedPackagedName + "] FOUND in current " +
                             "project [" + project.getName() + "]" +
@@ -1707,9 +1707,11 @@ final public class InsidiousService implements
                 logger.error("stompWindowContent is null in showMockCreator");
                 return;
             }
-            toolWindow.getContentManager().setSelectedContent(stompWindowContent, true, true);
             stompWindow.onMethodFocussed(method);
             stompWindow.showNewDeclaredMockCreator(method, callExpression);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                toolWindow.getContentManager().setSelectedContent(stompWindowContent, true, true);
+            });
         });
     }
 

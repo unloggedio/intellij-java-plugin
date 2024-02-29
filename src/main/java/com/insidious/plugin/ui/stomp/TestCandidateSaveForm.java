@@ -704,15 +704,13 @@ public class TestCandidateSaveForm {
             List<ThenParameter> thenParameterList = new ArrayList<>();
             Parameter returnValue1 = methodCallExpression.getReturnValue();
             JsonNode value = getValueForParameter(returnValue1);
-            ReturnValue returnValue = new ReturnValue(value.toString(),
-                    returnValue1.getType(),
-                    ReturnValueType.REAL);
+            ReturnValue returnValue = new ReturnValue(value.toString(), returnValue1.getType(), ReturnValueType.REAL);
             ThenParameter thenParam = new ThenParameter(returnValue, MethodExitType.NORMAL);
             thenParameterList.add(thenParam);
             DeclaredMock newMock = new DeclaredMock(
                     "mock response for call to " + callExpression.getText(),
-                    methodCallExpression.getSubject().getType(),
-                    candidateMetadata.getFullyQualifiedClassname(), fieldName, methodCallExpression.getMethodName(),
+                    methodCallExpression.getSubject().getType(), candidateMetadata.getFullyQualifiedClassname(),
+                    fieldName, methodCallExpression.getMethodName(),
                     mut.getMethodHashKey(), whenParameterList, thenParameterList
             );
             mocks.add(newMock);
