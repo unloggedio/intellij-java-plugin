@@ -1,6 +1,5 @@
 package com.insidious.plugin.factory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
@@ -645,17 +644,6 @@ final public class InsidiousService implements
         libraryToolWindow.setLibraryFilterState(libraryFilterState);
     }
 
-    public void showDirectInvoke(MethodAdapter method) {
-        if (stompWindow == null) {
-            InsidiousNotification.notifyMessage(
-                    "Please start the application with unlogged-sdk and open the unlogged tool window to use",
-                    NotificationType.WARNING
-            );
-            return;
-        }
-        stompWindow.showDirectInvoke(method);
-        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
-    }
 
     public void showStompAndFilterForMethod(MethodAdapter method) {
         if (stompWindow == null) {
@@ -673,6 +661,7 @@ final public class InsidiousService implements
         toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
 
     }
+
 
     public void showLibrary() {
         if (stompWindow == null) {
@@ -1266,13 +1255,6 @@ final public class InsidiousService implements
         DaemonCodeAnalyzer.getInstance(project).restart();
     }
 
-    public void focusDirectInvokeTab() {
-        if (toolWindow == null || directMethodInvokeContent == null) {
-            return;
-        }
-        ApplicationManager.getApplication().invokeLater(
-                () -> toolWindow.getContentManager().setSelectedContent(directMethodInvokeContent, false));
-    }
 
     public void removeOnboardingTab() {
         if (toolWindow == null || onboardingWindow == null) {
@@ -1286,16 +1268,6 @@ final public class InsidiousService implements
                 });
     }
 
-    private String getPrettyJsonString(String input) {
-        if (input == null || input.isEmpty()) {
-            return "";
-        }
-        try {
-            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectMapper.readTree(input));
-        } catch (JsonProcessingException e) {
-            return input;
-        }
-    }
 
     public void showDiffEditor(SimpleDiffRequest request) {
         DiffManager.getInstance().showDiff(project, request);
@@ -1691,28 +1663,38 @@ final public class InsidiousService implements
         libraryFilerModel.setShowMocks(true);
         libraryFilerModel.setShowTests(false);
 
+        toolWindow.show();
         libraryToolWindow.setLibraryFilterState(libraryFilerModel);
         toolWindow.getContentManager().setSelectedContent(libraryWindowContent);
 
     }
 
     public void showMockCreator(JavaMethodAdapter method, PsiMethodCallExpression callExpression) {
-        if (toolWindow == null) {
-            InsidiousNotification.notifyMessage("Start your application with unlogged-sdk to create and use runtime " +
-                    "mocks", NotificationType.INFORMATION);
+        if (stompWindow == null) {
+            InsidiousNotification.notifyMessage(
+                    "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                    NotificationType.WARNING
+            );
             return;
         }
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            if (stompWindowContent == null) {
-                logger.error("stompWindowContent is null in showMockCreator");
-                return;
-            }
-            stompWindow.onMethodFocussed(method);
-            stompWindow.showNewDeclaredMockCreator(method, callExpression);
-            ApplicationManager.getApplication().invokeLater(() -> {
-                toolWindow.getContentManager().setSelectedContent(stompWindowContent, true, true);
-            });
-        });
+
+        toolWindow.show();
+        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
+        stompWindow.showNewDeclaredMockCreator(method, callExpression);
+        stompWindow.onMethodFocussed(method);
+
+    }
+
+    public void showDirectInvoke(MethodAdapter method) {
+        if (stompWindow == null) {
+            InsidiousNotification.notifyMessage(
+                    "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                    NotificationType.WARNING
+            );
+            return;
+        }
+        stompWindow.showDirectInvoke(method);
+        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
     }
 
     public void reloadLibrary() {
