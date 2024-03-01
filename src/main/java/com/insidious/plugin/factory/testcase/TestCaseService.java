@@ -303,7 +303,7 @@ public class TestCaseService {
                     testCandidateMetadata.getMainMethod(), project);
             PsiMethod targetMethodPsi = null;
             if (targetMethodPsiPair == null) {
-                return;
+                continue;
             }
             targetMethodPsi = targetMethodPsiPair.getFirst();
             PsiSubstitutor psiSubstitutor = targetMethodPsiPair.getSecond();

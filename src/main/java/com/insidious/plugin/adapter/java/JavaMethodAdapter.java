@@ -3,16 +3,20 @@ package com.insidious.plugin.adapter.java;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.engine.JVMNameUtil;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
 public class JavaMethodAdapter implements MethodAdapter {
+    private final static Logger logger = LoggerUtil.getInstance(JavaMethodAdapter.class);
     private final PsiMethod psiMethod;
 
     public JavaMethodAdapter(PsiMethod methodItem) {
@@ -95,7 +99,41 @@ public class JavaMethodAdapter implements MethodAdapter {
     @Override
     public String getJVMSignature() {
         return ApplicationManager.getApplication()
-                .runReadAction((Computable<String>) () -> JVMNameUtil.getJVMSignature(psiMethod).toString());
+                .runReadAction((Computable<String>) () -> {
+                    StringBuilder signature = new StringBuilder("(");
+                    @NotNull PsiParameterList parameters = psiMethod.getParameterList();
+                    int count = parameters.getParametersCount();
+                    for (int i = 0; i < count; i++) {
+                        PsiParameter param = parameters.getParameter(i);
+                        PsiType type = param.getType();
+                        appendTypeToSignature(signature, type);
+                    }
+                    signature.append(")");
+                    appendTypeToSignature(signature, psiMethod.getReturnType());
+                    return signature.toString();
+                });
+    }
+
+    private void appendTypeToSignature(StringBuilder signature, PsiType type) {
+        if (type instanceof PsiPrimitiveType) {
+            signature.append(JVMNameUtil.getPrimitiveSignature(type.getCanonicalText()));
+        } else if (type instanceof PsiArrayType) {
+            signature.append("[");
+            appendTypeToSignature(signature, ((PsiArrayType) type).getComponentType());
+        } else if (type instanceof PsiClassType) {
+            PsiClassType classType = (PsiClassType) type;
+            int paramCount = classType.getParameterCount();
+            signature.append("L").append(classType.rawType().getCanonicalText().replace('.', '/'));
+            if (paramCount > 0) {
+                signature.append("<");
+                for (int i = 0; i < paramCount; i++) {
+                    PsiType param = classType.getParameters()[i];
+                    appendTypeToSignature(signature, param);
+                }
+                signature.append(">");
+            }
+            signature.append(";");
+        }
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.insidious.plugin.ui.stomp;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.ResponseType;
@@ -1350,7 +1351,14 @@ public class StompComponent implements
             return;
         }
         String newMethodName = method.getName();
-        String newClassName = method.getContainingClass().getQualifiedName();
+        ClassAdapter containingClass = method.getContainingClass();
+        List<String> newClassNameList =  new ArrayList<>();
+        newClassNameList.add(containingClass.getQualifiedName());
+        for (ClassAdapter aSuper : containingClass.getSupers()) {
+            newClassNameList.add(aSuper.getQualifiedName());
+        }
+
+
         MethodUnderTest newMethodAdapter = ApplicationManager.getApplication().runReadAction(
                 (Computable<MethodUnderTest>) () -> MethodUnderTest.fromMethodAdapter(method));
         if (lastMethodFocussed != null) {
@@ -1366,7 +1374,7 @@ public class StompComponent implements
             if (filterModel.getIncludedMethodNames().size() == 1 && filterModel.getIncludedMethodNames()
                     .contains(newMethodName)) {
                 if (filterModel.getIncludedClassNames().size() == 1 && filterModel.getIncludedClassNames()
-                        .contains(newClassName)) {
+                        .containsAll(newClassNameList)) {
                     if (filterModel.getExcludedClassNames().size() == 0 && filterModel.getExcludedMethodNames()
                             .size() == 0) {
                         // already set
@@ -1377,7 +1385,7 @@ public class StompComponent implements
 
             clearFilter();
             filterModel.getIncludedMethodNames().add(newMethodName);
-            filterModel.getIncludedClassNames().add(newClassName);
+            filterModel.getIncludedClassNames().addAll(newClassNameList);
             updateFilterLabel();
             resetAndReload();
         }

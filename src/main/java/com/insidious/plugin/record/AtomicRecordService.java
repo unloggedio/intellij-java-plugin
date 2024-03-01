@@ -530,26 +530,26 @@ public class AtomicRecordService {
     }
 
     //call to sync at session close
-    public void writeAll() {
-        try {
-            if (classAtomicRecordMap.size() == 0) {
-                return;
-            }
-            for (String classname : classAtomicRecordMap.keySet()) {
-                AtomicRecord recordForClass = classAtomicRecordMap.get(classname);
-                try {
-                    writeToFile(new File(getFilenameForClass(classname)), recordForClass,
-                            FileUpdateType.UPDATE_CANDIDATE,
-                            false);
-                } catch (Exception e) {
-                    // class not found... class was renamed
-                    // this record is now orphan
-                }
-            }
-        } catch (Exception e) {
-            logger.info("Failed to sync on exit " + e);
-        }
-    }
+//    public void writeAll() {
+//        try {
+//            if (classAtomicRecordMap.size() == 0) {
+//                return;
+//            }
+//            for (String classname : classAtomicRecordMap.keySet()) {
+//                AtomicRecord recordForClass = classAtomicRecordMap.get(classname);
+//                try {
+//                    writeToFile(new File(getFilenameForClass(classname)), recordForClass,
+//                            FileUpdateType.UPDATE_CANDIDATE,
+//                            false);
+//                } catch (Exception e) {
+//                    // class not found... class was renamed
+//                    // this record is now orphan
+//                }
+//            }
+//        } catch (Exception e) {
+//            logger.info("Failed to sync on exit " + e);
+//        }
+//    }
 
     public void checkPreRequisites() {
         classAtomicRecordMap = updateMap();

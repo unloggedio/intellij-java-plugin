@@ -3,7 +3,6 @@ package com.insidious.plugin.pojo.atomic;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
-import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
@@ -52,13 +51,6 @@ public class MethodUnderTest {
                 methodCallExpression.getSubject().getType());
     }
 
-    public static MethodUnderTest fromMethodCallExpression(MethodCallExpression methodCallExpression,
-                                                           PsiSubstitutor substitutor) {
-        return new MethodUnderTest(
-                methodCallExpression.getMethodName(), buildMethodSignature(methodCallExpression), 0,
-                methodCallExpression.getSubject().getType());
-    }
-
     private static String buildMethodSignature(MethodCallExpression mainMethod) {
         StringBuilder methodSignature = new StringBuilder("(");
 
@@ -74,10 +66,13 @@ public class MethodUnderTest {
         return methodSignature.toString();
     }
 
-    private static String buildMethodSignature(PsiMethodCallExpression mainMethod, PsiSubstitutor substitutor) {
+    public static String buildMethodSignature(PsiMethodCallExpression mainMethod, PsiSubstitutor substitutor) {
 
         PsiMethod targetMethod = mainMethod.resolveMethod();
+        return buildMethodSignature(targetMethod, substitutor);
+    }
 
+    public static String buildMethodSignature(PsiMethod targetMethod, PsiSubstitutor substitutor) {
 
         StringBuilder methodSignature = new StringBuilder("(");
 
@@ -105,11 +100,6 @@ public class MethodUnderTest {
         return methodSignature.toString();
     }
 
-
-    public static MethodUnderTest fromCandidateSearchQuery(CandidateSearchQuery candidateSearchQuery) {
-        return new MethodUnderTest(candidateSearchQuery.getMethodName(),
-                candidateSearchQuery.getMethodSignature(), 0, candidateSearchQuery.getClassName());
-    }
 
     public static MethodUnderTest fromPsiCallExpression(PsiMethodCallExpression methodCallExpression) {
         PsiExpression fieldExpression = methodCallExpression.getMethodExpression().getQualifierExpression();
@@ -155,6 +145,19 @@ public class MethodUnderTest {
             String actualClass = fieldTypeSubstitutor.getCanonicalText();
             methodUnderTest.setClassName(actualClass);
         }
+        return methodUnderTest;
+    }
+
+    public static MethodUnderTest fromPsiCallExpression(PsiMethod method) {
+        PsiType callOnType = PsiTypesUtil.getClassType(Objects.requireNonNull(method.getContainingClass()));
+
+        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(method));
+
+
+        methodUnderTest.setClassName(callOnType.getCanonicalText());
+        String signatureVal = buildMethodSignature(method, new EmptySubstitutor());
+        methodUnderTest.setSignature(signatureVal);
+
         return methodUnderTest;
     }
 

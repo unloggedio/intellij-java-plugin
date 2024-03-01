@@ -852,10 +852,14 @@ final public class InsidiousService implements
                     // TODO: search by signature and remove loop
                     PsiMethod[] methodPsiList = ApplicationManager.getApplication().runReadAction(
                             (Computable<PsiMethod[]>) () -> {
-                                PsiMethod[] list = JavaPsiFacade.getInstance(project)
+                                PsiClass aClass = JavaPsiFacade.getInstance(project)
                                         .findClass(agentCommandRequest.getClassName(),
                                                 GlobalSearchScope.projectScope(project)
-                                        ).findMethodsByName(finalMethodName, true);
+                                        );
+                                if (aClass == null) {
+                                    return new PsiMethod[0];
+                                }
+                                PsiMethod[] list = aClass.findMethodsByName(finalMethodName, true);
                                 for (PsiMethod psiMethod : list) {
                                     if (psiMethod.getName().equals(finalMethodName)) {
                                         updateMethodHashForExecutedMethod(new JavaMethodAdapter(psiMethod));
@@ -1548,10 +1552,6 @@ final public class InsidiousService implements
     }
 
     public void onAgentDisconnected() {
-        AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
-        if (atomicRecordService != null) {
-            atomicRecordService.writeAll();
-        }
         if (stompWindow != null) {
             stompWindow.disconnected();
         }

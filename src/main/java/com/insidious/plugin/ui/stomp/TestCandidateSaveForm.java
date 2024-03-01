@@ -39,6 +39,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -640,7 +641,21 @@ public class TestCandidateSaveForm {
         List<PsiMethodCallExpression> allCallExpressions = ApplicationManager.getApplication().runReadAction(
                 (Computable<List<PsiMethodCallExpression>>) () -> getAllCallExpressions(candidateTargetMethod));
 
-        Map<String, List<PsiMethodCallExpression>> expressionsBySignatureMap = allCallExpressions.stream()
+        MethodUnderTest storedCandidateTargetMethod = storedCandidate.getMethod();
+
+        MethodUnderTest targetMethodWithResolvedSignature = MethodUnderTest.fromPsiCallExpression(candidateTargetMethod);
+
+        storedCandidate.setMethod(targetMethodWithResolvedSignature);
+
+        PsiParameterList parameterList = candidateTargetMethod.getParameterList();
+        int parametersCount = parameterList.getParametersCount();
+
+//        StringBuilder methodSignatureBuilder = new StringBuilder();
+//        for (int i = 0; i < parametersCount; i++) {
+//            @Nullable PsiParameter parameter = parameterList.getParameter(i);
+//        }
+
+        Map<String, List<PsiMethodCallExpression>> expressionsByMethodName = allCallExpressions.stream()
                 .collect(Collectors.groupingBy(e1 -> ApplicationManager.getApplication().runReadAction(
                         (Computable<String>) () -> MethodUnderTest.fromPsiCallExpression(e1).getName())));
         List<DeclaredMock> mocks = new ArrayList<>();
@@ -651,13 +666,13 @@ public class TestCandidateSaveForm {
             if (methodCallExpression.isStaticCall()) {
                 continue;
             }
-            String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
-            PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
-                    GlobalSearchScope.allScope(project));
+//            String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
+//            PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
+//                    GlobalSearchScope.allScope(project));
 
-            String methodName = methodCallExpression.getMethodName();
+            final String methodName = methodCallExpression.getMethodName();
 
-            List<PsiMethodCallExpression> callExpressionByName = expressionsBySignatureMap.get(methodName);
+            List<PsiMethodCallExpression> callExpressionByName = expressionsByMethodName.get(methodName);
             if (callExpressionByName == null) {
                 // no such call
                 continue;
