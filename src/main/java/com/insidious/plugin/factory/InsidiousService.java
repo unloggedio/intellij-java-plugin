@@ -111,7 +111,10 @@ import java.util.List;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
+
 
 import static com.insidious.plugin.Constants.HOSTNAME;
 import static com.insidious.plugin.agent.AgentCommandRequestType.DIRECT_INVOKE;
@@ -124,7 +127,8 @@ final public class InsidiousService implements
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     final static private int TOOL_WINDOW_WIDTH = 400;
-    private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
+    private final ExecutorService connectionCheckerThreadPool = Executors.newFixedThreadPool(2);
+    private ScheduledExecutorService stompComponentThreadPool = Executors.newScheduledThreadPool(2);
     private final UnloggedSdkApiAgent unloggedSdkApiAgent;
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
@@ -299,7 +303,7 @@ final public class InsidiousService implements
 
         unloggedSdkApiAgent = new UnloggedSdkApiAgent("http://localhost:12100");
         ConnectionCheckerService connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgent);
-        threadPoolExecutor.submit(connectionCheckerService);
+        connectionCheckerThreadPool.submit(connectionCheckerService);
         junitTestCaseWriter = new JUnitTestCaseWriter(project, objectMapper);
         configurationState = project.getService(InsidiousConfigurationState.class);
 
@@ -568,7 +572,8 @@ final public class InsidiousService implements
         eventProperties.put("projectName", project.getName());
         UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_DISPOSED", eventProperties);
         logger.warn("Disposing InsidiousService for project: " + project.getName());
-        threadPoolExecutor.shutdownNow();
+        connectionCheckerThreadPool.shutdownNow();
+        stompComponentThreadPool.shutdownNow();
         if (sessionLoader != null) {
             sessionLoader.removeListener(sessionListener);
         }
@@ -1032,12 +1037,18 @@ final public class InsidiousService implements
                     contentManager.removeContent(stompWindowContent, true);
                 }
 
+                if (stompWindow != null) {
+                    stompWindow.dispose();
+                }
+
 
                 stompWindow = new StompComponent(this);
                 if (isAgentConnected()) {
                     stompWindow.setConnectedAndWaiting();
+                    stompComponentThreadPool.shutdownNow();
+                    stompComponentThreadPool = Executors.newScheduledThreadPool(2);
                 }
-                threadPoolExecutor.submit(stompWindow);
+                stompComponentThreadPool.scheduleWithFixedDelay(stompWindow, 0, 1, TimeUnit.MILLISECONDS);
 
                 stompWindowContent =
                         contentFactory.createContent(stompWindow.getComponent(), "Live", false);

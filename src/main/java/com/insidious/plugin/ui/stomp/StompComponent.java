@@ -33,6 +33,7 @@ import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
@@ -74,8 +75,7 @@ public class StompComponent implements
         Consumer<List<TestCandidateMetadata>>,
         TestCandidateLifeListener,
         ComponentLifecycleListener<MethodDirectInvokeComponent>,
-        Runnable,
-        OnExpandListener {
+        Runnable, OnExpandListener, Disposable {
     public static final int COMPONENT_HEIGHT = 93;
     private static final Logger logger = LoggerUtil.getInstance(StompComponent.class);
     private final InsidiousService insidiousService;
@@ -108,7 +108,6 @@ public class StompComponent implements
     private JPanel southPanel;
     private JLabel clearFilterLabel;
     private JLabel filterAppliedLabel;
-    private JLabel clearTimelineLabel;
     private JPanel actionToolbarContainer;
     private long lastEventId = 0;
     private MethodDirectInvokeComponent directInvokeComponent = null;
@@ -199,7 +198,6 @@ public class StompComponent implements
         ActionToolbarImpl actionToolbar = new ActionToolbarImpl("Live View", new DefaultActionGroup(action11),
                 true, false);
         actionToolbar.setMiniMode(false);
-        actionToolbar.addNotify();
         actionToolbar.setForceMinimumSize(true);
         actionToolbar.setTargetComponent(mainPanel);
 
@@ -529,10 +527,6 @@ public class StompComponent implements
         historyStreamScrollPanel.revalidate();
         historyStreamScrollPanel.repaint();
 
-        if (!clearTimelineLabel.isVisible()) {
-            clearTimelineLabel.setVisible(true);
-        }
-
         JScrollBar verticalScrollBar1 = historyStreamScrollPanel.getVerticalScrollBar();
         int max = verticalScrollBar1.getMaximum();
         if (verticalScrollBar1.getValue() != max) {
@@ -542,9 +536,7 @@ public class StompComponent implements
         ApplicationManager.getApplication().invokeLater(() -> {
             verticalScrollBar1.setValue(max);
         });
-        // Restore the scroll position after adding the component
-//        double newPanelSize = component.getSize().getHeight();
-//        verticalScrollBar.setValue(Double.valueOf(newPanelSize).intValue());
+
     }
 
     private GridBagConstraints createGBCForLeftMainComponent(int yIndex) {
@@ -1232,16 +1224,23 @@ public class StompComponent implements
     @Override
     public void run() {
         try {
-            while (true) {
+//            while (true) {
                 final TestCandidateMetadata testCandidateMetadata = incomingQueue.poll(1000, TimeUnit.MILLISECONDS);
                 if (testCandidateMetadata == null) {
-                    continue;
+                    return;
                 }
                 CountDownLatch pollerCDL = new CountDownLatch(1);
                 ApplicationManager.getApplication().invokeLater(() -> {
                     try {
 
                         acceptSingle(testCandidateMetadata);
+
+                        List<TestCandidateMetadata> remainingItems = new ArrayList<>();
+                        incomingQueue.drainTo(remainingItems);
+                        for (TestCandidateMetadata remainingItem : remainingItems) {
+                            acceptSingle(remainingItem);
+                        }
+
                     } catch (Throwable t) {
                         t.printStackTrace();
                     } finally {
@@ -1250,12 +1249,12 @@ public class StompComponent implements
                 });
 
                 pollerCDL.await();
-            }
+//            }
 
 
         } catch (Exception e) {
             // who killed this
-//            e.printStackTrace();
+            e.printStackTrace();
             // just end
         } finally {
         }
@@ -1356,5 +1355,11 @@ public class StompComponent implements
     public void showOnboardingScreen(UnloggedOnboardingScreenV2 screen) {
         mainPanel.removeAll();
         mainPanel.add(screen.getComponent(), BorderLayout.CENTER);
+    }
+
+    public void dispose() {
+        if (candidateQueryLatch != null) {
+            candidateQueryLatch.decrementAndGet();
+        }
     }
 }
