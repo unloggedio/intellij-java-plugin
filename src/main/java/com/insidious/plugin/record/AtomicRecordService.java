@@ -631,7 +631,7 @@ public class AtomicRecordService {
 
     }
 
-    public void saveMockDefinition(DeclaredMock declaredMock) {
+    public String saveMockDefinition(DeclaredMock declaredMock) {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("className", declaredMock.getFieldTypeName());
         jsonObject.put("methodName", declaredMock.getMethodName());
@@ -681,6 +681,7 @@ public class AtomicRecordService {
         File file = new File(getFilenameForClass(className, guessModuleForClassName(declaredMock.getSourceClassName())));
         writeToFile(file, record,
                 updated ? FileUpdateType.UPDATE_MOCK : FileUpdateType.ADD_MOCK, true);
+        return declaredMock.getId();
     }
 
     private boolean isSameMatcher(List<ParameterMatcher> whenParameter, List<ParameterMatcher> whenParameter1) {

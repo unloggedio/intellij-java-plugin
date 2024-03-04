@@ -125,9 +125,8 @@ public class SaveFormListener implements CandidateLifeListener {
     }
 
     @Override
-    public void onSaved(DeclaredMock declaredMock) {
-        atomicRecordService.saveMockDefinition(declaredMock);
-
+    public String onSaved(DeclaredMock declaredMock) {
+        return insidiousService.saveMockDefinition(declaredMock);
     }
 
 }

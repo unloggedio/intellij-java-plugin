@@ -46,5 +46,6 @@ public interface CandidateLifeListener {
 
     Project getProject();
 
-    void onSaved(DeclaredMock declaredMock);
+    // returns id of the saved mock
+    String onSaved(DeclaredMock declaredMock);
 }

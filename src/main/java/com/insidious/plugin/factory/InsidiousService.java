@@ -1465,9 +1465,9 @@ final public class InsidiousService implements
         return atomicRecordService.getAllDeclaredMocks();
     }
 
-    public void saveMockDefinition(DeclaredMock declaredMock) {
+    public String saveMockDefinition(DeclaredMock declaredMock) {
         AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
-        atomicRecordService.saveMockDefinition(declaredMock);
+        String mockId = atomicRecordService.saveMockDefinition(declaredMock);
         reloadLibrary();
 
         if (configurationState.isFieldMockActive("*")) {
@@ -1492,6 +1492,7 @@ final public class InsidiousService implements
                 }
             }
         });
+        return mockId;
     }
 
     public void deleteMockDefinition(DeclaredMock declaredMock) {

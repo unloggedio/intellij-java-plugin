@@ -220,27 +220,31 @@ public class TestCandidateSaveForm {
             @Override
             public void actionPerformed(ActionEvent e) {
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    int mockSavedCount = 0;
                     for (StoredCandidate storedCandidate : candidateList) {
                         if (!unitRadioButton.isSelected()) {
                             storedCandidate.setMockIds(new HashSet<>());
                         } else {
                             List<DeclaredMock> mocks = mocksMap.getOrDefault(storedCandidate, new ArrayList<>());
-                            storedCandidate.setMockIds(
-                                    mocks.stream().map(DeclaredMock::getId).collect(Collectors.toSet()));
+
+                            Set<String> mockIds = new HashSet<>();
+                            for (DeclaredMock declaredMock : mocks) {
+                                String mockId = saveFormListener.onSaved(declaredMock);
+                                mockIds.add(mockId);
+                            }
+                            mockSavedCount += mockIds.size();
+                            storedCandidate.setMockIds(mockIds);
                         }
                         saveFormListener.onSaved(storedCandidate);
                     }
 
-                    Collection<DeclaredMockItemPanel> values = declaredMockPanelMap.values();
-                    for (DeclaredMockItemPanel value : values) {
-                        saveFormListener.onSaved(value.getDeclaredMock());
-                    }
+
                     insidiousService.reloadLibrary();
 
                     InsidiousNotification
                             .notifyMessage(
                                     "Saved " + candidateList.size() + " replay tests and "
-                                            + values.size() + " mock definitions", NotificationType.INFORMATION,
+                                            + mockSavedCount + " mock definitions", NotificationType.INFORMATION,
                                     List.of(
                                             new AnAction(() -> "Go to Library", UIUtils.LIBRARY_ICON) {
                                                 @Override
@@ -641,7 +645,8 @@ public class TestCandidateSaveForm {
 
         MethodUnderTest storedCandidateTargetMethod = storedCandidate.getMethod();
 
-        MethodUnderTest targetMethodWithResolvedSignature = MethodUnderTest.fromPsiCallExpression(candidateTargetMethod);
+        MethodUnderTest targetMethodWithResolvedSignature = MethodUnderTest.fromPsiCallExpression(
+                candidateTargetMethod);
 
         storedCandidate.setMethod(targetMethodWithResolvedSignature);
 

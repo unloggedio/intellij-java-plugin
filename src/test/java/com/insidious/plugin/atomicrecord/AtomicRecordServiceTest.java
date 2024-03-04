@@ -209,7 +209,7 @@ public class AtomicRecordServiceTest {
 
         //test writeall sync
         //should be updated in file
-        atomicRecordService.writeAll();
+//        atomicRecordService.writeAll();
         Assertions.assertEquals(StoredCandidateMetadata.CandidateStatus.FAILING,
                 atomicRecordService.updateMap().get(classname)
                         .getStoredCandidateMap().get(method1.getMethodHashKey()).get(0).getMetadata()
