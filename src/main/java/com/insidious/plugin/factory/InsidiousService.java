@@ -1668,8 +1668,11 @@ final public class InsidiousService implements
         libraryFilerModel.setShowTests(false);
 
         toolWindow.show();
-        libraryToolWindow.setLibraryFilterState(libraryFilerModel);
-        toolWindow.getContentManager().setSelectedContent(libraryWindowContent);
+        showLibrary();
+        if (libraryToolWindow != null) {
+            libraryToolWindow.setLibraryFilterState(libraryFilerModel);
+            toolWindow.getContentManager().setSelectedContent(libraryWindowContent);
+        }
 
     }
 
