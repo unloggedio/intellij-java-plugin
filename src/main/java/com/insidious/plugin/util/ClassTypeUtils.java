@@ -353,24 +353,15 @@ public class ClassTypeUtils {
     private static TypeName getTypeNameFromDescriptor(String descriptor) {
         char firstChar = descriptor.charAt(0);
         switch (firstChar) {
-            case 'V':
-                return TypeName.VOID;
-            case 'Z':
-                return TypeName.BOOLEAN;
-            case 'B':
-                return TypeName.BYTE;
-            case 'C':
-                return TypeName.CHAR;
-            case 'S':
-                return TypeName.SHORT;
-            case 'I':
-                return TypeName.INT;
-            case 'J':
-                return TypeName.LONG;
-            case 'F':
-                return TypeName.FLOAT;
-            case 'D':
-                return TypeName.DOUBLE;
+            case 'V': return TypeName.VOID;
+            case 'Z': return TypeName.BOOLEAN;
+            case 'B': return TypeName.BYTE;
+            case 'C': return TypeName.CHAR;
+            case 'S': return TypeName.SHORT;
+            case 'I': return TypeName.INT;
+            case 'J': return TypeName.LONG;
+            case 'F': return TypeName.FLOAT;
+            case 'D': return TypeName.DOUBLE;
         }
         if (descriptor.startsWith("byte")) {
             return TypeName.BYTE;
