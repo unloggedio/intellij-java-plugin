@@ -700,6 +700,10 @@ public class TestCandidateSaveForm {
 
             String fieldName = callExpression.getMethodExpression()
                     .getQualifierExpression().getText();
+            if (fieldName.startsWith("System.")) {
+                // not mocking any calls on System....
+                continue;
+            }
             PsiSubstitutor substitutor = ClassUtils.getSubstitutorForCallExpression(callExpression);
 
             PsiMethod callTarget = callExpression.resolveMethod();
