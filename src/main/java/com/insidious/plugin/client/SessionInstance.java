@@ -4022,7 +4022,7 @@ public class SessionInstance implements Runnable {
                 long currentAfterEventId = afterEventId;
                 while (true) {
                     attempt++;
-                    if (shutdown || cdl.get() == 0) {
+                    if (cdl.get() == 0) {
                         logger.warn(
                                 "shutting down query started at [" + afterEventId + "] currently at item [" + count +
                                         "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");

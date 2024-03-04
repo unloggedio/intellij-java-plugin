@@ -21,7 +21,7 @@ import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.ui.library.DeclaredMockItemPanel;
 import com.insidious.plugin.ui.library.ItemLifeCycleListener;
 import com.insidious.plugin.ui.library.StoredCandidateItemPanel;
-import com.insidious.plugin.ui.methodscope.OnCloseListener;
+import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.util.*;
 import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
@@ -34,12 +34,10 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Pair;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl;
-import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -94,7 +92,7 @@ public class TestCandidateSaveForm {
     private JPanel voidInfoPanel;
 
     public TestCandidateSaveForm(List<TestCandidateMetadata> sourceCandidates,
-                                 SaveFormListener saveFormListener, OnCloseListener<TestCandidateSaveForm> onCloseListener) {
+                                 SaveFormListener saveFormListener, ComponentLifecycleListener<TestCandidateSaveForm> componentLifecycleListener) {
 
         TOP_ONE.add(AssertionType.ALLOF);
         TOP_ONE.add(AssertionType.ANYOF);
@@ -255,12 +253,12 @@ public class TestCandidateSaveForm {
                                     )
                             );
 
-                    onCloseListener.onClose(TestCandidateSaveForm.this);
+                    componentLifecycleListener.onClose(TestCandidateSaveForm.this);
                 });
             }
         });
 
-        cancelButton.addActionListener(e -> onCloseListener.onClose(TestCandidateSaveForm.this));
+        cancelButton.addActionListener(e -> componentLifecycleListener.onClose(TestCandidateSaveForm.this));
 
 
         List<AtomicAssertion> allAssertions = candidateList.stream()

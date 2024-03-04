@@ -1,7 +1,7 @@
 package com.insidious.plugin.ui.stomp;
 
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
-import com.insidious.plugin.ui.methodscope.OnCloseListener;
+import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.uiDesigner.core.GridConstraints;
 import org.jetbrains.annotations.Nullable;
@@ -55,7 +55,7 @@ public class StompFilter {
     private JButton applyButton;
     private JButton cancelButton;
     private JButton resetToDefaultButton;
-    private OnCloseListener<StompFilter> onCloseListener;
+    private ComponentLifecycleListener<StompFilter> componentLifecycleListener;
     private DefaultListModel<String> modelIncludedClasses;
     private DefaultListModel<String> modelExcludedClasses;
     private DefaultListModel<String> modelIncludedMethods;
@@ -67,8 +67,8 @@ public class StompFilter {
         int stompFilterPanelWidth = 300;
 
         cancelButton.addActionListener(e -> {
-            if (onCloseListener != null) {
-                onCloseListener.onClose(StompFilter.this);
+            if (componentLifecycleListener != null) {
+                componentLifecycleListener.onClose(StompFilter.this);
             }
         });
 
@@ -94,7 +94,7 @@ public class StompFilter {
             originalFilterModel.getExcludedClassNames().addAll(filterModel.getExcludedClassNames());
 
             originalFilterModel.candidateFilterType = filterModel.candidateFilterType;
-            onCloseListener.onClose(StompFilter.this);
+            componentLifecycleListener.onClose(StompFilter.this);
         });
 
         includedClassesList.setFixedCellWidth(stompFilterPanelWidth);
@@ -682,7 +682,7 @@ public class StompFilter {
         return mainPanel;
     }
 
-    public void setOnCloseListener(OnCloseListener<StompFilter> onCloseListener) {
-        this.onCloseListener = onCloseListener;
+    public void setOnCloseListener(ComponentLifecycleListener<StompFilter> componentLifecycleListener) {
+        this.componentLifecycleListener = componentLifecycleListener;
     }
 }

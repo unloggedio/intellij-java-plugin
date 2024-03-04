@@ -26,9 +26,11 @@ import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.search.GlobalSearchScope;
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -331,6 +333,9 @@ public class AtomicRecordService {
                 InsidiousNotification.notifyMessage(getMessageForOperationType(type, file.getPath(), true),
                         NotificationType.INFORMATION);
             }
+            VirtualFile virtialFile = VirtualFileManager.getInstance()
+                    .findFileByNioPath(file.getParentFile().toPath());
+            virtialFile.refresh(false, false);
         } catch (Exception e) {
             logger.info("[ATRS] Failed to write to file : " + e);
             logger.error(e.getMessage(), e);
@@ -674,9 +679,7 @@ public class AtomicRecordService {
         }
         UsageInsightTracker.getInstance().RecordEvent(eventname, jsonObject);
         File file = new File(getFilenameForClass(className, guessModuleForClassName(declaredMock.getSourceClassName())));
-        writeToFile(
-                file,
-                record,
+        writeToFile(file, record,
                 updated ? FileUpdateType.UPDATE_MOCK : FileUpdateType.ADD_MOCK, true);
     }
 

@@ -1,7 +1,7 @@
 package com.insidious.plugin.ui.library;
 
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
-import com.insidious.plugin.ui.methodscope.OnCloseListener;
+import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.uiDesigner.core.GridConstraints;
 import org.jetbrains.annotations.Nullable;
@@ -55,7 +55,7 @@ public class LibraryFilter {
     private JButton applyButton;
     private JButton cancelButton;
     private JButton resetToDefaultButton;
-    private OnCloseListener<LibraryFilter> onCloseListener;
+    private ComponentLifecycleListener<LibraryFilter> componentLifecycleListener;
     private DefaultListModel<String> modelIncludedClasses;
     private DefaultListModel<String> modelExcludedClasses;
     private DefaultListModel<String> modelIncludedMethods;
@@ -67,8 +67,8 @@ public class LibraryFilter {
         int libraryFilterPanelWidth = 300;
 
         cancelButton.addActionListener(e -> {
-            if (onCloseListener != null) {
-                onCloseListener.onClose(LibraryFilter.this);
+            if (componentLifecycleListener != null) {
+                componentLifecycleListener.onClose(LibraryFilter.this);
             }
         });
 
@@ -94,7 +94,7 @@ public class LibraryFilter {
             originalFilterModel.getExcludedClassNames().addAll(filterModel.getExcludedClassNames());
 
             originalFilterModel.candidateFilterType = filterModel.candidateFilterType;
-            onCloseListener.onClose(LibraryFilter.this);
+            componentLifecycleListener.onClose(LibraryFilter.this);
         });
 
         includedClassesList.setFixedCellWidth(libraryFilterPanelWidth);
@@ -681,7 +681,7 @@ public class LibraryFilter {
         return mainPanel;
     }
 
-    public void setOnCloseListener(OnCloseListener<LibraryFilter> onCloseListener) {
-        this.onCloseListener = onCloseListener;
+    public void setOnCloseListener(ComponentLifecycleListener<LibraryFilter> componentLifecycleListener) {
+        this.componentLifecycleListener = componentLifecycleListener;
     }
 }

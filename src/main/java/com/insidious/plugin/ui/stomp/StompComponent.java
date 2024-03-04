@@ -26,13 +26,19 @@ import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.UnloggedOnboardingScreenV2;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
+import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
-import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.Presentation;
+import com.intellij.openapi.actionSystem.impl.ActionButton;
+import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbService;
@@ -47,6 +53,7 @@ import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -61,11 +68,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class StompComponent implements
         Consumer<List<TestCandidateMetadata>>,
         TestCandidateLifeListener,
-        OnCloseListener<MethodDirectInvokeComponent>,
+        ComponentLifecycleListener<MethodDirectInvokeComponent>,
         Runnable,
         OnExpandListener {
     public static final int COMPONENT_HEIGHT = 93;
@@ -87,11 +95,11 @@ public class StompComponent implements
     private JPanel northPanelContainer;
     private JScrollPane historyStreamScrollPanel;
     private JPanel scrollContainer;
-    private JLabel reloadButton;
+//    private JLabel reloadButton;
     private JLabel filterButton;
     private JButton saveReplayButton;
-    private JLabel replayButton;
-    private JLabel generateJUnitButton;
+//    private JLabel replayButton;
+//    private JLabel generateJUnitButton;
     private JPanel controlPanel;
     private JPanel infoPanel;
     private JLabel selectedCountLabel;
@@ -101,6 +109,7 @@ public class StompComponent implements
     private JLabel clearFilterLabel;
     private JLabel filterAppliedLabel;
     private JLabel clearTimelineLabel;
+    private JPanel actionToolbarContainer;
     private long lastEventId = 0;
     private MethodDirectInvokeComponent directInvokeComponent = null;
     private TestCandidateSaveForm saveFormReference;
@@ -135,34 +144,66 @@ public class StompComponent implements
         scrollContainer.setBorder(BorderFactory.createEmptyBorder());
 
 
-        clearTimelineLabel.setToolTipText("Clear the timeline");
-        clearTimelineLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        clearTimelineLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        clearTimelineLabel.addMouseListener(new MouseAdapter() {
+
+        AnAction clearAction = new AnAction(() -> "Clear Timeline", UIUtils.DELETE_BIN_3_LINE) {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                System.err.println("clear timeline");
                 resetTimeline();
             }
+        };
 
+        AnAction reloadAction = new AnAction(() -> "Reload All", UIUtils.REFRESH_TEAL) {
             @Override
-            public void mouseEntered(MouseEvent e) {
-//                clearTimelineLabel.setBorder(
-//                        BorderFactory.createCompoundBorder(
-//                                BorderFactory.createRaisedBevelBorder(),
-//                                BorderFactory.createEmptyBorder(5, 5, 5, 5)
-//                        )
-//                );
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                System.err.println("reload timeline");
+                resetAndReload();
             }
+        };
 
+        AnAction generateJunitTestAction = new AnAction(() -> "Generate JUnit Test", UIUtils.TEST_TUBE_ICON) {
             @Override
-            public void mouseExited(MouseEvent e) {
-//                clearTimelineLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                System.err.println("generate junit test");
+                if (selectedCandidates.size() < 1) {
+                    InsidiousNotification.notifyMessage("Select records to generate JUnit Test",
+                            NotificationType.INFORMATION);
+                    return;
+                }
+
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
+                        onGenerateJunitTestCaseRequest(selectedCandidate);
+                    }
+                });
             }
+        };
 
+        AnAction replaySelectionAction = new AnAction(() -> "Replay Selected", UIUtils.FLASHLIGHT_BLUE) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                System.err.println("replay selected");
+                if (selectedCandidates.size() < 1) {
+                    InsidiousNotification.notifyMessage("Select records to replay", NotificationType.INFORMATION);
+                    return;
+                }
+                InsidiousNotification.notifyMessage("Replayed " + selectedCandidates.size() + " records",
+                        NotificationType.INFORMATION);
+                for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
+                    executeSingleTestCandidate(selectedCandidate);
+                }
+            }
+        };
 
-        });
+        List<AnAction> action11 = List.of(reloadAction, clearAction, generateJunitTestAction, replaySelectionAction);
+        ActionToolbarImpl actionToolbar = new ActionToolbarImpl("Live View", new DefaultActionGroup(action11),
+                true, false);
+        actionToolbar.setMiniMode(false);
+        actionToolbar.addNotify();
+        actionToolbar.setForceMinimumSize(true);
+        actionToolbar.setTargetComponent(mainPanel);
 
+        actionToolbarContainer.add(actionToolbar.getComponent(), BorderLayout.CENTER);
 
         clearSelectionLabel.setVisible(false);
         clearSelectionLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -208,42 +249,6 @@ public class StompComponent implements
 
         });
 
-
-        generateJUnitButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        generateJUnitButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        generateJUnitButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
-                        onGenerateJunitTestCaseRequest(selectedCandidate);
-                    }
-                });
-            }
-        });
-
-        reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        reloadButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        reloadButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                {
-                    resetAndReload();
-                }
-            }
-
-//            @Override
-//            public void mouseEntered(MouseEvent e) {
-//                reloadButton.setBorder(BorderFactory.createRaisedBevelBorder());
-//            }
-//
-//            @Override
-//            public void mouseExited(MouseEvent e) {
-//                reloadButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-//            }
-
-        });
-
         saveReplayButton.addActionListener(e -> {
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
                 ApplicationManager.getApplication().runReadAction(this::saveSelected);
@@ -286,7 +291,7 @@ public class StompComponent implements
                         .createPopup();
 
                 component.setMaximumSize(new Dimension(500, 800));
-                OnCloseListener<StompFilter> onCloseListener = new OnCloseListener<StompFilter>() {
+                ComponentLifecycleListener<StompFilter> componentLifecycleListener = new ComponentLifecycleListener<StompFilter>() {
                     @Override
                     public void onClose(StompFilter component) {
                         unloggedPreferencesPopup.cancel();
@@ -298,7 +303,7 @@ public class StompComponent implements
                     }
                 };
 
-                stompFilter.setOnCloseListener(onCloseListener);
+                stompFilter.setOnCloseListener(componentLifecycleListener);
 
                 unloggedPreferencesPopup.showCenteredInCurrentWindow(project);
 
@@ -353,33 +358,6 @@ public class StompComponent implements
 
 
         saveReplayButton.setEnabled(false);
-        replayButton.setEnabled(false);
-//        replayButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        replayButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (!replayButton.isEnabled()) {
-                    InsidiousNotification.notifyMessage("Select records to replay", NotificationType.INFORMATION);
-                    return;
-                }
-                InsidiousNotification.notifyMessage("Replayed " + selectedCandidates.size() + " records",
-                        NotificationType.INFORMATION);
-                for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
-                    executeSingleTestCandidate(selectedCandidate);
-                }
-            }
-//            @Override
-//            public void mouseEntered(MouseEvent e) {
-//                replayButton.setBorder(BorderFactory.createRaisedBevelBorder());
-//            }
-//
-//            @Override
-//            public void mouseExited(MouseEvent e) {
-//                replayButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-//            }
-        });
-        replayButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
         updateFilterLabel();
     }
 
@@ -815,30 +793,14 @@ public class StompComponent implements
         selectedCountLabel.setForeground(JBColor.DARK_GRAY);
         selectedCountLabel.setText(selectedCandidates.size() + " selected");
         if (selectedCandidates.size() > 0 && !controlPanel.isEnabled()) {
-//            reloadButton.setEnabled(true);
-
             clearSelectionLabel.setVisible(true);
-//            selectAllLabel.setVisible(true);
-
-            generateJUnitButton.setEnabled(true);
-//            saveAsMockButton.setEnabled(true);
-            replayButton.setEnabled(true);
             saveReplayButton.setEnabled(true);
             controlPanel.setEnabled(true);
-//            setLabelsVisible(true);
         } else if (selectedCandidates.size() == 0 && controlPanel.isEnabled()) {
             selectedCountLabel.setText("0 selected");
             clearSelectionLabel.setVisible(false);
-//            selectAllLabel.setVisible(false);
-
-
-//            reloadButton.setEnabled(false);
-            generateJUnitButton.setEnabled(false);
-//            saveAsMockButton.setEnabled(false);
-            replayButton.setEnabled(false);
             saveReplayButton.setEnabled(false);
             controlPanel.setEnabled(false);
-//            setLabelsVisible(false);
         }
     }
 
@@ -1352,7 +1314,7 @@ public class StompComponent implements
         }
         String newMethodName = method.getName();
         ClassAdapter containingClass = method.getContainingClass();
-        List<String> newClassNameList =  new ArrayList<>();
+        List<String> newClassNameList = new ArrayList<>();
         newClassNameList.add(containingClass.getQualifiedName());
         for (ClassAdapter aSuper : containingClass.getSupers()) {
             newClassNameList.add(aSuper.getQualifiedName());

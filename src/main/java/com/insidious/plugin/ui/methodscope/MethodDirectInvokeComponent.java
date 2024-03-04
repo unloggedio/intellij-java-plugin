@@ -78,11 +78,11 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JsonTreeEditor parameterEditor;
 
 
-    public MethodDirectInvokeComponent(InsidiousService insidiousService, OnCloseListener<MethodDirectInvokeComponent> onCloseListener) {
+    public MethodDirectInvokeComponent(InsidiousService insidiousService, ComponentLifecycleListener<MethodDirectInvokeComponent> componentLifecycleListener) {
         this.insidiousService = insidiousService;
         this.objectMapper = ObjectMapperInstance.getInstance();
 
-        configureCloseButton(onCloseListener);
+        configureCloseButton(componentLifecycleListener);
 
 
         methodParameterScrollContainer.addKeyListener(new KeyAdapter() {
@@ -145,7 +145,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
     }
 
-    private void configureCloseButton(OnCloseListener<MethodDirectInvokeComponent> onCloseListener) {
+    private void configureCloseButton(ComponentLifecycleListener<MethodDirectInvokeComponent> componentLifecycleListener) {
         closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         final Border closeButtonOriginalBorder = closeButton.getBorder();
         final Border actuallyOriginalBorder = BorderFactory.createCompoundBorder(
@@ -173,7 +173,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
-                onCloseListener.onClose(MethodDirectInvokeComponent.this);
+                componentLifecycleListener.onClose(MethodDirectInvokeComponent.this);
             }
         });
     }

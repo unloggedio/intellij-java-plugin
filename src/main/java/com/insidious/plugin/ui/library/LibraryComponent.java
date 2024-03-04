@@ -9,7 +9,7 @@ import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.InsidiousUtils;
-import com.insidious.plugin.ui.methodscope.OnCloseListener;
+import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.java.JavaBundle;
@@ -157,7 +157,7 @@ public class LibraryComponent {
                         .setTitleIcon(new ActiveIcon(UIUtils.UNLOGGED_ICON_DARK))
                         .createPopup();
                 component.setMaximumSize(new Dimension(500, 800));
-                OnCloseListener<LibraryFilter> onCloseListener = new OnCloseListener<LibraryFilter>() {
+                ComponentLifecycleListener<LibraryFilter> componentLifecycleListener = new ComponentLifecycleListener<LibraryFilter>() {
                     @Override
                     public void onClose(LibraryFilter component) {
                         unloggedPreferencesPopup.cancel();
@@ -165,7 +165,7 @@ public class LibraryComponent {
                         reloadItems();
                     }
                 };
-                libraryFilter.setOnCloseListener(onCloseListener);
+                libraryFilter.setOnCloseListener(componentLifecycleListener);
                 unloggedPreferencesPopup.showCenteredInCurrentWindow(project);
             }
         });
