@@ -129,7 +129,7 @@ final public class InsidiousService implements
     final static private int TOOL_WINDOW_WIDTH = 400;
     private final ExecutorService connectionCheckerThreadPool = Executors.newFixedThreadPool(2);
     private ScheduledExecutorService stompComponentThreadPool = Executors.newScheduledThreadPool(2);
-    private final UnloggedSdkApiAgent unloggedSdkApiAgent;
+    private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
@@ -301,8 +301,8 @@ final public class InsidiousService implements
         multicaster.addDocumentListener(listener, this);
 
 
-        unloggedSdkApiAgent = new UnloggedSdkApiAgent("http://localhost:12100");
-        ConnectionCheckerService connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgent);
+        unloggedSdkApiAgentClient = new UnloggedSdkApiAgentClient("http://localhost:12100");
+        ConnectionCheckerService connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgentClient);
         connectionCheckerThreadPool.submit(connectionCheckerService);
         junitTestCaseWriter = new JUnitTestCaseWriter(project, objectMapper);
         configurationState = project.getService(InsidiousConfigurationState.class);
@@ -753,7 +753,7 @@ final public class InsidiousService implements
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
             try {
-                AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(
+                AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgentClient.executeCommand(
                         agentCommandRequest);
                 logger.warn("agent command response - " + agentCommandResponse);
                 InsidiousNotification.notifyMessage(
@@ -785,7 +785,7 @@ final public class InsidiousService implements
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
             try {
-                AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(
+                AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgentClient.executeCommand(
                         agentCommandRequest);
                 logger.warn("agent command response - " + agentCommandResponse);
                 InsidiousNotification.notifyMessage(
@@ -848,7 +848,7 @@ final public class InsidiousService implements
         String finalMethodName = methodName;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
-                AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(
+                AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgentClient.executeCommand(
                         agentCommandRequest);
                 logger.warn("agent command response - " + agentCommandResponse);
                 if (executionResponseListener != null) {
@@ -919,7 +919,7 @@ final public class InsidiousService implements
         }
 
         try {
-            AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgent.executeCommand(agentCommandRequest);
+            AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgentClient.executeCommand(agentCommandRequest);
             logger.warn("agent command response - " + agentCommandResponse);
             if (executionResponseListener != null) {
                 cachedGutterState.remove(methodUnderTest.getMethodHashKey());

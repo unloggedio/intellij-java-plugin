@@ -7,11 +7,11 @@ import com.intellij.openapi.diagnostic.Logger;
 public class ConnectionCheckerService implements Runnable {
 
     private final static Logger logger = LoggerUtil.getInstance(ConnectionCheckerService.class);
-    private final UnloggedSdkApiAgent unloggedSdkApiAgent;
+    private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
     private boolean currentState = false;
 
-    public ConnectionCheckerService(UnloggedSdkApiAgent unloggedSdkApiAgent) {
-        this.unloggedSdkApiAgent = unloggedSdkApiAgent;
+    public ConnectionCheckerService(UnloggedSdkApiAgentClient unloggedSdkApiAgentClient) {
+        this.unloggedSdkApiAgentClient = unloggedSdkApiAgentClient;
     }
 
     @Override
@@ -21,7 +21,7 @@ public class ConnectionCheckerService implements Runnable {
                 .getMessageBus()
                 .syncPublisher(AgentConnectionStateNotifier.TOPIC_AGENT_CONNECTION_STATE);
         while (true) {
-            AgentCommandResponse<ServerMetadata> response = unloggedSdkApiAgent.ping();
+            AgentCommandResponse<ServerMetadata> response = unloggedSdkApiAgentClient.ping();
             logger.debug("Agent ping response: " + response.getResponseType());
             boolean newState = response.getResponseType().equals(ResponseType.NORMAL);
             if (newState && !currentState) {

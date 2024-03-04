@@ -13,11 +13,11 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 
-public class UnloggedSdkApiAgent {
+public class UnloggedSdkApiAgentClient {
     public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     public static final String NO_SERVER_CONNECT_ERROR_MESSAGE = "Failed to invoke call to agent server: \n" +
             "Make sure the process is running with java unlogged-sdk\n\n";
-    private static final Logger logger = LoggerUtil.getInstance(UnloggedSdkApiAgent.class);
+    private static final Logger logger = LoggerUtil.getInstance(UnloggedSdkApiAgentClient.class);
     private final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final String agentUrl;
     private final OkHttpClient client = new OkHttpClient.Builder()
@@ -26,7 +26,7 @@ public class UnloggedSdkApiAgent {
             .connectTimeout(Duration.of(500, ChronoUnit.MILLIS)).build();
     private final Request pingRequest;
 
-    public UnloggedSdkApiAgent(String baseUrl) {
+    public UnloggedSdkApiAgentClient(String baseUrl) {
         this.agentUrl = baseUrl;
         pingRequest = new Request.Builder()
                 .url(agentUrl + "/ping")
