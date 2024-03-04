@@ -848,6 +848,11 @@ final public class InsidiousService implements
         String finalMethodName = methodName;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
+                if (DumbService.getInstance(project).isDumb()) {
+                    InsidiousNotification.notifyMessage("Please try after ide indexing is complete", NotificationType.WARNING);
+                    return;
+                }
+
                 AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgentClient.executeCommand(
                         agentCommandRequest);
                 logger.warn("agent command response - " + agentCommandResponse);

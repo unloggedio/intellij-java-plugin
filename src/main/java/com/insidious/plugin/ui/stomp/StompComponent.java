@@ -1254,7 +1254,7 @@ public class StompComponent implements
 
         } catch (Exception e) {
             // who killed this
-            e.printStackTrace();
+//            e.printStackTrace();
             // just end
         } finally {
         }
