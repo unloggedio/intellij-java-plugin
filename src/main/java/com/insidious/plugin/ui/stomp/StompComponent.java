@@ -197,8 +197,11 @@ public class StompComponent implements
         };
 
         List<AnAction> action11 = List.of(reloadAction, clearAction, generateJunitTestAction, replaySelectionAction);
+
+
+
         ActionToolbarImpl actionToolbar = new ActionToolbarImpl("Live View", new DefaultActionGroup(action11),
-                true, false);
+                true, false, false);
         actionToolbar.setMiniMode(false);
         actionToolbar.setForceMinimumSize(true);
         actionToolbar.setTargetComponent(mainPanel);

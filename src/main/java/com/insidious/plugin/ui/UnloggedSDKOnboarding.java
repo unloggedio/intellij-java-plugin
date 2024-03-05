@@ -17,7 +17,7 @@ import java.awt.event.MouseEvent;
 
 public class UnloggedSDKOnboarding {
     public static final Color CIRCLE_BLUE_FILL_COLOR = new Color(53, 116, 240);
-    private final String UNLOGGED_SDK_VERSION = "0.1.48";
+    private final String UNLOGGED_SDK_VERSION = "0.2.10";
     private final String maven_default =
             "<dependency>\n" +
                     "  <artifactId>unlogged-sdk</artifactId>\n" +

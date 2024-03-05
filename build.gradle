@@ -15,7 +15,7 @@ def getGitHash = { ->
 
 
 group 'org.videobug'
-version '1.19.1-' + getGitHash()
+version '1.20.1-' + getGitHash()
 
 
 compileJava {
@@ -137,7 +137,7 @@ runPluginVerifier {
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    version = '2021.3.3'
+    version = '2023.3.4'
     plugins = ['com.intellij.java', 'maven', 'gradle', 'org.jetbrains.kotlin']
     updateSinceUntilBuild = false
     sameSinceUntilBuild = true
@@ -200,8 +200,8 @@ patchPluginXml {
 }
 
 publishPlugin {
-    token = "perm:c2hhcmR1bGxhdmVrYXI=.OTItODk5Mg==.ZZ1bQHA4AD2K7XM3tR0j2PpqwhYool"
-    channels = ['stable']
+    token = "perm:c2hhcmR1bGxhdmVrYXI=.OTItOTUwNA==.LQaLX5e7EeHr4Cvw3l50TdhGMEZAhp"
+    channels = ['alpha']
 }
 
 test {
