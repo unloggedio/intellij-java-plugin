@@ -714,7 +714,7 @@ public class TestCandidateSaveForm {
             TestCaseWriter.setParameterTypeFromPsiType(methodCallExpression.getReturnValue(),
                     callExpressionReturnType, true);
 
-            MethodUnderTest mut = MethodUnderTest.fromMethodCallExpression(methodCallExpression);
+            MethodUnderTest mut = MethodUnderTest.fromPsiCallExpression(callExpression);
 
             List<ParameterMatcher> whenParameterList = new ArrayList<>();
             for (Parameter argument : methodCallExpression.getArguments()) {
@@ -776,95 +776,6 @@ public class TestCandidateSaveForm {
         }
 
         return collectedCalls;
-    }
-
-    private Map<StoredCandidate, List<DeclaredMock>>
-    collectDownstreamMockCalls(List<TestCandidateMetadata> candidateMetadataList,
-                               Map<Long, List<StoredCandidate>> storedCandidateMap) {
-
-        Map<StoredCandidate, List<DeclaredMock>> mocks = new HashMap<>();
-        Project project = saveFormListener.getProject();
-        for (TestCandidateMetadata testCandidateMetadata : candidateMetadataList) {
-            Pair<PsiMethod, PsiSubstitutor> psiMethod = ClassTypeUtils.getPsiMethod(
-                    testCandidateMetadata.getMainMethod(), project);
-            PsiMethod targetMethod = psiMethod.getFirst();
-
-            List<PsiMethodCallExpression> allCallExpressions = getAllCallExpressions(targetMethod);
-
-
-            Map<String, List<PsiMethodCallExpression>> expressionsBySignatureMap = allCallExpressions.stream()
-                    .collect(Collectors.groupingBy(e1 -> MethodUnderTest.fromPsiCallExpression(e1).getMethodHashKey()));
-
-            mocks = new HashMap<>();
-
-            List<MethodCallExpression> callsList = testCandidateMetadata.getCallsList();
-            List<MethodCallExpression> callListCopy = new ArrayList<>(callsList);
-            while (callListCopy.size() > 0) {
-                MethodCallExpression methodCallExpression = callListCopy.remove(0);
-
-                Pair<PsiMethod, PsiSubstitutor> psiMethodPair = ClassTypeUtils.getPsiMethod(
-                        methodCallExpression, project);
-                PsiMethod method = psiMethodPair.getFirst();
-                PsiSubstitutor substitutor = psiMethodPair.getSecond();
-                TestCaseService.normalizeMethodTypes(methodCallExpression, method, substitutor);
-
-                MethodUnderTest mockMethodTarget = MethodUnderTest.fromMethodCallExpression(methodCallExpression);
-                if (method == null) {
-                    logger.warn(
-                            "Failed to resolve method: " + methodCallExpression + ", call will not be mocked");
-                    continue;
-                }
-
-                List<PsiMethodCallExpression> expressionsBySignature = expressionsBySignatureMap.get(
-                        mockMethodTarget.getMethodHashKey());
-
-                if (expressionsBySignature == null) {
-                    // this call is not on a field. it is probably a call to a method in the same class
-                    // not mocking this
-                    logger.warn("Skipping call for mocking: " + mockMethodTarget);
-                    continue;
-                }
-
-                PsiMethodCallExpression methodCallExpression1 = expressionsBySignature.get(0);
-//                    methodCallExpression1.getMethodExpression()
-
-                PsiReferenceExpression methodExpression = methodCallExpression1.getMethodExpression();
-                PsiExpression qualifierExpression1 = methodExpression.getQualifierExpression();
-                if (qualifierExpression1 == null) {
-                    // call to another method in the same class :)
-                    // should never happen
-                    continue;
-                }
-
-                if (!(qualifierExpression1 instanceof PsiReferenceExpression)) {
-                    // what is this ? TODO: add support for chain mocking
-                    continue;
-                }
-                PsiReferenceExpression qualifierExpression = (PsiReferenceExpression) qualifierExpression1;
-                PsiElement qualifierField = qualifierExpression.resolve();
-                if (!(qualifierField instanceof PsiField)) {
-                    // call is not on a field
-                    continue;
-                }
-                DeclaredMock declaredMock = ApplicationManager.getApplication().runReadAction(
-                        (Computable<DeclaredMock>) () -> ClassUtils.createDefaultMock(methodCallExpression1));
-
-                StoredCandidate storedCandidate = storedCandidateMap.get(
-                        testCandidateMetadata.getEntryProbeIndex()).get(0);
-
-                List<DeclaredMock> existingMock = mocks.get(storedCandidate);
-                if (existingMock == null) {
-                    ArrayList<DeclaredMock> value = new ArrayList<>();
-                    value.add(declaredMock);
-                    mocks.put(storedCandidate, value);
-                } else {
-                    existingMock.add(declaredMock);
-                }
-            }
-        }
-
-
-        return mocks;
     }
 
     private AtomicAssertion createAssertions(JsonNode value, String key) {
