@@ -38,14 +38,18 @@ public class JsonTreeEditor {
     private JPanel centralPanel;
     private JPanel southPanel;
     private JButton editButton;
-    private JButton saveButton;
+    private JButton saveJsonModeButton;
     private JButton cancelButton;
+    private JButton saveTreeModeButton;
     JTextArea textArea = new JTextArea();
     private List<OnChangeListener<JsonNode>> listeners = new ArrayList<>();
+    Boolean editable;
 
-    public JsonTreeEditor(JsonNode jsonNode, String title) {
+    public JsonTreeEditor(JsonNode jsonNode, String title, Boolean editable) {
         this.jsonNode = jsonNode;
+        viewStateButton(true);
         treeModel = JsonTreeUtils.jsonToTreeModel(jsonNode, title);
+        this.editable = editable;
 
         valueTree = new Tree(treeModel);
 
@@ -88,6 +92,15 @@ public class JsonTreeEditor {
         });
 
 
+        // JTP is not editable
+        if (!this.editable) {
+            valueTree.setEditable(false);
+            mainPanel.removeAll();
+            mainPanel.add(northPanel);
+            mainPanel.add(centralPanel);
+            mainPanel.revalidate();
+        }
+
         centralPanel.add(valueTree, BorderLayout.CENTER);
         editButton.addActionListener(new ActionListener() {
             @Override
@@ -97,12 +110,13 @@ public class JsonTreeEditor {
                 JSONObject dataJson = new JSONObject(dataVal);
                 textArea.setText(dataJson.toString(4));
                 centralPanel.add(textArea, BorderLayout.CENTER);
+                viewStateButton(false);
                 centralPanel.revalidate();
                 centralPanel.repaint();
             }
         });
 
-        saveButton.addActionListener(new ActionListener() {
+        saveJsonModeButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 centralPanel.removeAll();
@@ -116,6 +130,9 @@ public class JsonTreeEditor {
                 }
                 treeModel = JsonTreeUtils.jsonToTreeModel(jsonNodeNew, title);
                 valueTree = new Tree(treeModel);
+                valueTree.setEditable(true);
+                expandAllNodes();
+                viewStateButton(true);
                 centralPanel.add(valueTree, BorderLayout.CENTER);
                 centralPanel.revalidate();
             }
@@ -127,12 +144,50 @@ public class JsonTreeEditor {
                 centralPanel.removeAll();
                 treeModel = JsonTreeUtils.jsonToTreeModel(jsonNode, title);
                 valueTree = new Tree(treeModel);
+                valueTree.setEditable(true);
+                expandAllNodes();
+                viewStateButton(true);
                 centralPanel.add(valueTree, BorderLayout.CENTER);
                 centralPanel.revalidate();
             }
         });
+        saveTreeModeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                centralPanel.removeAll();
+                ObjectMapper objectMapper = new ObjectMapper();
+                String dataVal = getValue().toString();
+                JsonNode jsonNodeNew = null;
+                try {
+                    jsonNodeNew = objectMapper.readTree(dataVal);
+                } catch (JsonProcessingException ex) {
+                    throw new RuntimeException(ex);
+                }
+                treeModel = JsonTreeUtils.jsonToTreeModel(jsonNodeNew, title);
+                valueTree = new Tree(treeModel);
+                valueTree.setEditable(true);
+                expandAllNodes();
+                centralPanel.add(valueTree, BorderLayout.CENTER);
+                centralPanel.revalidate();
+                expandAllNodes();
+            }
+        });
     }
 
+    public void viewStateButton(Boolean viewState){
+        if (viewState) {
+            saveTreeModeButton.setVisible(true);
+            editButton.setVisible(true);
+            saveJsonModeButton.setVisible(false);
+            cancelButton.setVisible(false);
+        }
+        else {
+            saveTreeModeButton.setVisible(false);
+            editButton.setVisible(false);
+            saveJsonModeButton.setVisible(true);
+            cancelButton.setVisible(true);
+        }
+    }
 
     private static MouseListener getMouseListener(final JTree tree) {
         return new MouseListener() {
