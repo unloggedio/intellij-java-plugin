@@ -200,8 +200,8 @@ public class StompComponent implements
 
 
 
-        ActionToolbarImpl actionToolbar = new ActionToolbarImpl("Live View", new DefaultActionGroup(action11),
-                true, false, false);
+        ActionToolbarImpl actionToolbar = new ActionToolbarImpl(
+                "Live View", new DefaultActionGroup(action11), true);
         actionToolbar.setMiniMode(false);
         actionToolbar.setForceMinimumSize(true);
         actionToolbar.setTargetComponent(mainPanel);
