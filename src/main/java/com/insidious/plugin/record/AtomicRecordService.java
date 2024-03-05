@@ -213,14 +213,21 @@ public class AtomicRecordService {
     }
 
     public Module guessModuleForClassName(String className) {
+        if (DumbService.getInstance(insidiousService.getProject()).isDumb()) {
+            InsidiousNotification.notifyMessage("Please try after ide indexing is complete", NotificationType.WARNING);
+            return null;
+        }
+
         Project project = insidiousService.getProject();
 
         PsiClass psiClass;
         try {
             psiClass = ApplicationManager.getApplication()
                     .executeOnPooledThread(() -> ApplicationManager.getApplication().runReadAction(
-                            (Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
-                                    .findClass(className, GlobalSearchScope.allScope(project)))).get();
+                            (Computable<PsiClass>) () -> {
+                                return JavaPsiFacade.getInstance(project)
+                                        .findClass(className, GlobalSearchScope.allScope(project));
+                            })).get();
             if (psiClass == null) {
                 logger.warn("Class not found [" + className + "] for saving atomic records");
             } else {
