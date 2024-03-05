@@ -9,7 +9,6 @@ import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.Expression;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.mocking.*;
@@ -33,11 +32,11 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Pair;
 import com.intellij.psi.*;
-import com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -691,7 +690,7 @@ public class TestCandidateSaveForm {
             if (callOnSubject instanceof PsiMethodCallExpression) {
                 continue;
             }
-            PsiElement resolvedSubject = ((PsiReferenceExpressionImpl) callOnSubject).resolve();
+            PsiElement resolvedSubject = getCallSubjectElement(callOnSubject);
             if (!(resolvedSubject instanceof PsiField)) {
                 // call on local variable or paramter
                 continue;
@@ -747,6 +746,21 @@ public class TestCandidateSaveForm {
         return mocks;
 
 
+    }
+
+    @Nullable
+    private PsiElement getCallSubjectElement(PsiExpression callOnSubject) {
+        PsiElement resolvedSubject = null;
+        if (callOnSubject instanceof PsiReferenceExpression) {
+            resolvedSubject = ((PsiReferenceExpression) callOnSubject).resolve();
+        } else if (callOnSubject instanceof PsiParenthesizedExpression) {
+            resolvedSubject = getCallSubjectElement(((PsiParenthesizedExpression) callOnSubject).getExpression());
+        } else if (callOnSubject instanceof PsiTypeCastExpression) {
+            resolvedSubject = getCallSubjectElement(((PsiTypeCastExpression) callOnSubject).getOperand());
+        } else if (callOnSubject instanceof PsiMethodCallExpression) {
+            resolvedSubject = getCallSubjectElement(((PsiMethodCallExpression) callOnSubject).getMethodExpression().getQualifierExpression());
+        }
+        return resolvedSubject;
     }
 
     private List<PsiMethodCallExpression> getAllCallExpressions(PsiMethod targetMethod) {
