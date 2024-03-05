@@ -73,7 +73,7 @@ public class ThenParameterInputPanel {
 
         try {
             JsonTreeEditor editor = new JsonTreeEditor(objectMapper.readTree(thenParamValue),
-                    simpleClassName);
+                    simpleClassName, true);
             editor.setEditable(true);
             editor.addChangeListener(object -> thenParameter.getReturnParameter().setValue(object.toString()));
             valueScrollPanel.setViewportView(editor.getContent());

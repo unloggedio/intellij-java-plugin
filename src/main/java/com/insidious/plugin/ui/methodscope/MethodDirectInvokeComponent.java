@@ -307,7 +307,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 throw new RuntimeException(e);
             }
 
-            parameterEditor = new JsonTreeEditor(objectMapper.readTree(source), "Method Arguments");
+            parameterEditor = new JsonTreeEditor(objectMapper.readTree(source), "Method Arguments", true);
             parameterEditor.setEditable(true);
             methodParameterContainer.add(parameterEditor.getContent(), BorderLayout.CENTER);
         } else {
@@ -510,7 +510,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
                                 JsonNode jsonNode = objectMapper.readTree(returnValueString);
 
-                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(jsonNode, responseClassName);
+                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(jsonNode, responseClassName, false);
                                 parameterScrollPanel.setViewportView(jsonTreeEditor.getContent());
 
                             } catch (JsonProcessingException ex) {
