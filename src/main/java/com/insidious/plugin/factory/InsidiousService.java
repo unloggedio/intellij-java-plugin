@@ -862,6 +862,11 @@ final public class InsidiousService implements
                     // TODO: search by signature and remove loop
                     PsiMethod[] methodPsiList = ApplicationManager.getApplication().runReadAction(
                             (Computable<PsiMethod[]>) () -> {
+                                if (DumbService.getInstance(project).isDumb()) {
+                                    InsidiousNotification.notifyMessage("Please try after ide indexing is complete", NotificationType.WARNING);
+                                    return new PsiMethod[0];
+                                }
+
                                 PsiClass aClass = JavaPsiFacade.getInstance(project)
                                         .findClass(agentCommandRequest.getClassName(),
                                                 GlobalSearchScope.projectScope(project)

@@ -56,7 +56,8 @@ public class SaveFormListener implements CandidateLifeListener {
         StoredCandidate existingMatchingStoredCandidate = atomicRecordService.getStoredCandidateFor(
                 loadedTestCandidate);
         if (existingMatchingStoredCandidate != null) {
-            existingMatchingStoredCandidate.setName("saved on " + simpleDateFormat.format(new Date().toInstant()));
+            existingMatchingStoredCandidate.setName(
+                    methodUnderTest.getName() + " saved on " + simpleDateFormat.format(new Date().toInstant()));
             existingMatchingStoredCandidate.setMockIds(storedCandidate.getMockIds());
             existingMatchingStoredCandidate.setTestAssertions(storedCandidate.getTestAssertions());
             existingMatchingStoredCandidate.setLineNumbers(storedCandidate.getLineNumbers());
