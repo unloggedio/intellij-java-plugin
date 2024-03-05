@@ -45,7 +45,7 @@ public class MethodUnderTest {
         return MethodUnderTest.fromMethodCallExpression(testCandidateMetadata.getMainMethod());
     }
 
-    public static MethodUnderTest fromMethodCallExpression(MethodCallExpression methodCallExpression) {
+    private static MethodUnderTest fromMethodCallExpression(MethodCallExpression methodCallExpression) {
         return new MethodUnderTest(
                 methodCallExpression.getMethodName(), buildMethodSignature(methodCallExpression), 0,
                 methodCallExpression.getSubject().getType());

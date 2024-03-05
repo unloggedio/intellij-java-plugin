@@ -30,7 +30,6 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.search.GlobalSearchScope;
-import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -225,6 +224,12 @@ public class AtomicRecordService {
             psiClass = ApplicationManager.getApplication()
                     .executeOnPooledThread(() -> ApplicationManager.getApplication().runReadAction(
                             (Computable<PsiClass>) () -> {
+                                if (DumbService.getInstance(insidiousService.getProject()).isDumb()) {
+                                    InsidiousNotification.notifyMessage("Please try after ide indexing is complete",
+                                            NotificationType.WARNING);
+                                    return null;
+                                }
+
                                 return JavaPsiFacade.getInstance(project)
                                         .findClass(className, GlobalSearchScope.allScope(project));
                             })).get();
@@ -685,7 +690,8 @@ public class AtomicRecordService {
             eventname = "UPDATED_EXISTING_MOCK";
         }
         UsageInsightTracker.getInstance().RecordEvent(eventname, jsonObject);
-        File file = new File(getFilenameForClass(className, guessModuleForClassName(declaredMock.getSourceClassName())));
+        File file = new File(
+                getFilenameForClass(className, guessModuleForClassName(declaredMock.getSourceClassName())));
         writeToFile(file, record,
                 updated ? FileUpdateType.UPDATE_MOCK : FileUpdateType.ADD_MOCK, true);
         return declaredMock.getId();
