@@ -171,7 +171,37 @@ public class ClassTypeUtils {
         if (className.endsWith("[]")) {
             return "[" + getDescriptorName(className.substring(0, className.length() - 2));
         }
-        return "L" + className.replace('.', '/') + ";";
+        String containerClassName = className;
+        if (className.contains("<")) {
+            className = className.replaceAll(" ", "");
+            StringBuilder nameBuilder = new StringBuilder();
+            String[] classNameTemplateParts = className.split("<");
+            nameBuilder.append(classNameTemplateParts[0]);
+            for (int j = 1; j < classNameTemplateParts.length; j++) {
+                String classNameTemplatePart = classNameTemplateParts[j];
+                String[] subParts = classNameTemplatePart.split(",");
+                if (subParts.length > 0) {
+                    nameBuilder.append("<");
+                }
+                for (int i = 0; i < subParts.length; i++) {
+                    String subPart = subParts[i].split(">")[0];
+                    if (subPart.length() > 1) {
+                        subPart = "L" + subPart.replace("/", ".") + ";";
+                    }
+                    if (i > 1) {
+                        nameBuilder.append(", ");
+                    }
+                    nameBuilder.append(subPart);
+                }
+                if (subParts.length > 0) {
+                    nameBuilder.append(">");
+                }
+
+            }
+
+            containerClassName = nameBuilder.toString();
+        }
+        return "L" + containerClassName + ";";
     }
 
     public static String getDottedClassName(String className) {
@@ -353,15 +383,24 @@ public class ClassTypeUtils {
     private static TypeName getTypeNameFromDescriptor(String descriptor) {
         char firstChar = descriptor.charAt(0);
         switch (firstChar) {
-            case 'V': return TypeName.VOID;
-            case 'Z': return TypeName.BOOLEAN;
-            case 'B': return TypeName.BYTE;
-            case 'C': return TypeName.CHAR;
-            case 'S': return TypeName.SHORT;
-            case 'I': return TypeName.INT;
-            case 'J': return TypeName.LONG;
-            case 'F': return TypeName.FLOAT;
-            case 'D': return TypeName.DOUBLE;
+            case 'V':
+                return TypeName.VOID;
+            case 'Z':
+                return TypeName.BOOLEAN;
+            case 'B':
+                return TypeName.BYTE;
+            case 'C':
+                return TypeName.CHAR;
+            case 'S':
+                return TypeName.SHORT;
+            case 'I':
+                return TypeName.INT;
+            case 'J':
+                return TypeName.LONG;
+            case 'F':
+                return TypeName.FLOAT;
+            case 'D':
+                return TypeName.DOUBLE;
         }
         if (descriptor.startsWith("byte")) {
             return TypeName.BYTE;
@@ -457,7 +496,8 @@ public class ClassTypeUtils {
                         TypeName typeInstance = ClassTypeUtils.createTypeFromNameString(expectedArgumentType);
                         if (actualArgumentType instanceof PsiPrimitiveType) {
                             JvmPrimitiveTypeKind kind = ((PsiPrimitiveType) actualArgumentType).getKind();
-                            if (kind.getBinaryName().equals(expectedArgumentType) || kind.getName().equals(expectedArgumentType)) {
+                            if (kind.getBinaryName().equals(expectedArgumentType) || kind.getName()
+                                    .equals(expectedArgumentType)) {
                                 continue;
                             }
                         }
@@ -572,7 +612,8 @@ public class ClassTypeUtils {
                         TypeName typeInstance = ClassTypeUtils.createTypeFromNameString(expectedArgumentType);
                         if (actualArgumentType instanceof PsiPrimitiveType) {
                             JvmPrimitiveTypeKind kind = ((PsiPrimitiveType) actualArgumentType).getKind();
-                            if (kind.getBinaryName().equals(expectedArgumentType) || kind.getName().equals(expectedArgumentType)) {
+                            if (kind.getBinaryName().equals(expectedArgumentType) || kind.getName()
+                                    .equals(expectedArgumentType)) {
                                 continue;
                             }
                         }
