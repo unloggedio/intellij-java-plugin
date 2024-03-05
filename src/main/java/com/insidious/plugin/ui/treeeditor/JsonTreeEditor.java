@@ -1,6 +1,8 @@
 package com.insidious.plugin.ui.treeeditor;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.ui.methodscope.InsidiousCellEditor;
 import com.insidious.plugin.ui.methodscope.InsidiousTreeListener;
@@ -11,6 +13,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.treeStructure.Tree;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.event.TreeModelEvent;
@@ -28,11 +31,16 @@ import java.util.List;
 public class JsonTreeEditor {
     private static final Logger logger = LoggerUtil.getInstance(JsonTreeEditor.class);
     private final JsonNode jsonNode;
-    private final TreeModel treeModel;
-    private final Tree valueTree;
+    private TreeModel treeModel;
+    private Tree valueTree;
     private JPanel mainPanel;
     private JPanel northPanel;
     private JPanel centralPanel;
+    private JPanel southPanel;
+    private JButton editButton;
+    private JButton saveButton;
+    private JButton cancelButton;
+    JTextArea textArea = new JTextArea();
     private List<OnChangeListener<JsonNode>> listeners = new ArrayList<>();
 
     public JsonTreeEditor(JsonNode jsonNode, String title) {
@@ -81,7 +89,48 @@ public class JsonTreeEditor {
 
 
         centralPanel.add(valueTree, BorderLayout.CENTER);
+        editButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                centralPanel.removeAll();
+                String dataVal = getValue().toString();
+                JSONObject dataJson = new JSONObject(dataVal);
+                textArea.setText(dataJson.toString(4));
+                centralPanel.add(textArea, BorderLayout.CENTER);
+                centralPanel.revalidate();
+                centralPanel.repaint();
+            }
+        });
 
+        saveButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                centralPanel.removeAll();
+                ObjectMapper objectMapper = new ObjectMapper();
+                String textAreaData = textArea.getText();
+                JsonNode jsonNodeNew = null;
+                try {
+                    jsonNodeNew = objectMapper.readTree(textAreaData);
+                } catch (JsonProcessingException ex) {
+                    throw new RuntimeException(ex);
+                }
+                treeModel = JsonTreeUtils.jsonToTreeModel(jsonNodeNew, title);
+                valueTree = new Tree(treeModel);
+                centralPanel.add(valueTree, BorderLayout.CENTER);
+                centralPanel.revalidate();
+            }
+        });
+
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                centralPanel.removeAll();
+                treeModel = JsonTreeUtils.jsonToTreeModel(jsonNode, title);
+                valueTree = new Tree(treeModel);
+                centralPanel.add(valueTree, BorderLayout.CENTER);
+                centralPanel.revalidate();
+            }
+        });
     }
 
 

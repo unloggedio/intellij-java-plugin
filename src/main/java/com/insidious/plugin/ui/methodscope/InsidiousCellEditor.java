@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.methodscope;
 
 import com.intellij.ui.KeyStrokeAdapter;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.treeStructure.Tree;
 
@@ -14,6 +15,7 @@ public class InsidiousCellEditor extends DefaultTreeCellEditor {
     private final Tree argumentValueTree;
     private JTextField editor;
     private String key;
+    Boolean JSONnode = false;
 
     public InsidiousCellEditor(Tree argumentValueTree, DefaultTreeCellRenderer renderer) {
         super(argumentValueTree, renderer);
@@ -37,9 +39,18 @@ public class InsidiousCellEditor extends DefaultTreeCellEditor {
         editor = new JBTextField();
         if (value instanceof DefaultMutableTreeNode) {
             Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
-            String[] parts = userObject.toString().split(":");
-            key = parts[0];
-            editor.setText(parts.length < 2 ? "" : parts[1].trim());
+            if (userObject.toString().matches("\\{.*\\}")) {
+                // this is a JSON node
+                JSONnode = true;
+                editor.setText(userObject.toString());
+            }
+            else {
+                // this is a normal data
+                String[] parts = userObject.toString().split(":");
+                key = parts[0];
+                editor.setText(parts.length < 2 ? "" : parts[1].trim());
+            }
+
             editor.addKeyListener(new KeyStrokeAdapter() {
                 @Override
                 public void keyTyped(KeyEvent event) {
@@ -51,7 +62,8 @@ public class InsidiousCellEditor extends DefaultTreeCellEditor {
             });
         }
         editor.setBorder(null);
-        editor.setMinimumSize(new Dimension(100, 40));
+		editor.setMinimumSize(new Dimension(100, 40));
+
         return editor;
     }
 
@@ -61,14 +73,19 @@ public class InsidiousCellEditor extends DefaultTreeCellEditor {
         if (node != null && node.isLeaf()) {
             DefaultTreeModel model = (DefaultTreeModel) argumentValueTree.getModel();
             node.setUserObject(getCellEditorValue());
-            model.nodeChanged(node); // Notify the model that the node has changed
+            // model.nodeChanged(node); // Notify the model that the node has changed
         }
         return super.stopCellEditing();
     }
 
     @Override
     public Object getCellEditorValue() {
-        return key + ": " + editor.getText().trim();
+        if (JSONnode) {
+            return editor.getText().trim();
+        }
+        else {
+            return key + ": " + editor.getText().trim();
+        }
     }
 
 }

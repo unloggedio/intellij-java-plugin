@@ -42,7 +42,17 @@ public class JsonTreeUtils {
                 arrayNode.add(buildJsonFromTree(child));
             }
             return arrayNode;
-        } else {
+        }
+        else if (isJSONnode(treeNode)) {
+            ObjectNode objectNode = mapper.createObjectNode();
+            TreeNode childNode = children.nextElement();
+            try {
+                return mapper.readTree(childNode.toString());
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        else {
             ObjectNode objectNode = mapper.createObjectNode();
             while (children.hasMoreElements()) {
                 DefaultMutableTreeNode child = (DefaultMutableTreeNode) children.nextElement();
@@ -70,6 +80,27 @@ public class JsonTreeUtils {
         return true;
     }
 
+    private static boolean isJSONnode(DefaultMutableTreeNode treeNode) {
+        Enumeration<TreeNode> children = treeNode.children();
+        if (!children.hasMoreElements()) {
+            return false; // Not an json if no children
+        }
+        while (children.hasMoreElements()) {
+            DefaultMutableTreeNode child = (DefaultMutableTreeNode) children.nextElement();
+            if (!child.getUserObject().toString().matches("^\\s*(\\{.*\\}|\\[.*\\])\\s*$")) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+//    public TreeModel addChild(TreeModel treeModel, String childData) {
+//        treeModel.add("smth");
+//
+//
+//        return new DefaultTreeModel(treeModel);
+//    }
+
     public static TreeModel jsonToTreeModel(JsonNode jsonNode, String simpleName) {
         DefaultMutableTreeNode root = new DefaultMutableTreeNode(simpleName);
         buildTreeFromJsonNode(root, jsonNode);
@@ -80,10 +111,22 @@ public class JsonTreeUtils {
         if (jsonNode.isObject()) {
             ObjectNode objectNode = (ObjectNode) jsonNode;
             Iterator<Map.Entry<String, JsonNode>> fields = objectNode.fields();
-            while (fields.hasNext()) {
-                Map.Entry<String, JsonNode> field = fields.next();
-                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(field.getKey());
-                buildTreeFromJsonNode(childNode, field.getValue());
+            if (fields.hasNext()) {
+                while (fields.hasNext()) {
+                    Map.Entry<String, JsonNode> field = fields.next();
+                    DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(field.getKey());
+                    buildTreeFromJsonNode(childNode, field.getValue());
+                    treeNode.add(childNode);
+                }
+            }
+            else {
+                DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(jsonNode);
+                if (jsonNode.asText().length()==0) {
+                    childNode.setUserObject("{}");
+                }
+                else {
+                    childNode.setUserObject("{" + jsonNode.asText() + "}");
+                }
                 treeNode.add(childNode);
             }
         } else if (jsonNode.isArray()) {
