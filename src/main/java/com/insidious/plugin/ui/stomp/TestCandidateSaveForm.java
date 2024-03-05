@@ -820,8 +820,7 @@ public class TestCandidateSaveForm {
 
             return parentAssertion;
         } else {
-            return new AtomicAssertion(Expression.SELF, AssertionType.EQUAL, key,
-                    (value instanceof TextNode) ? value.textValue() : value.toString());
+            return new AtomicAssertion(Expression.SELF, AssertionType.EQUAL, key, value.toString());
         }
     }
 

@@ -152,13 +152,7 @@ public class StompComponent implements
             }
         };
 
-        AnAction reloadAction = new AnAction(() -> "Reload All", UIUtils.REFRESH_TEAL) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                System.err.println("reload timeline");
-                resetAndReload();
-            }
-        };
+
 
         AnAction generateJunitTestAction = new AnAction(() -> "Generate JUnit Test", UIUtils.TEST_TUBE_ICON) {
             @Override
@@ -191,6 +185,14 @@ public class StompComponent implements
                 for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
                     executeSingleTestCandidate(selectedCandidate);
                 }
+            }
+        };
+
+        AnAction reloadAction = new AnAction(() -> "Reload All", UIUtils.REFRESH_TEAL) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                System.err.println("reload timeline");
+                resetAndReload();
             }
         };
 
