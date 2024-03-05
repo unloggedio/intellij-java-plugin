@@ -9,11 +9,16 @@ import com.insidious.plugin.ui.methodscope.InsidiousTreeListener;
 import com.insidious.plugin.ui.mocking.OnChangeListener;
 import com.insidious.plugin.util.JsonTreeUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.treeStructure.Tree;
-import org.json.JSONObject;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.TreeModelEvent;
@@ -30,7 +35,10 @@ import java.util.List;
 
 public class JsonTreeEditor {
     private static final Logger logger = LoggerUtil.getInstance(JsonTreeEditor.class);
+    private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final JsonNode jsonNode;
+    Editor jsonTextEditor;
+    Boolean editable;
     private TreeModel treeModel;
     private Tree valueTree;
     private JPanel mainPanel;
@@ -41,13 +49,13 @@ public class JsonTreeEditor {
     private JButton saveJsonModeButton;
     private JButton cancelButton;
     private JButton saveTreeModeButton;
-    JTextArea textArea = new JTextArea();
     private List<OnChangeListener<JsonNode>> listeners = new ArrayList<>();
-    Boolean editable;
 
     public JsonTreeEditor(JsonNode jsonNode, String title, Boolean editable) {
         this.jsonNode = jsonNode;
         viewStateButton(true);
+
+
         treeModel = JsonTreeUtils.jsonToTreeModel(jsonNode, title);
         this.editable = editable;
 
@@ -107,9 +115,34 @@ public class JsonTreeEditor {
             public void actionPerformed(ActionEvent e) {
                 centralPanel.removeAll();
                 String dataVal = getValue().toString();
-                JSONObject dataJson = new JSONObject(dataVal);
-                textArea.setText(dataJson.toString(4));
-                centralPanel.add(textArea, BorderLayout.CENTER);
+                JsonNode dataJson = null;
+                try {
+                    dataJson = objectMapper.readTree(dataVal);
+                } catch (JsonProcessingException ex) {
+                    dataJson = objectMapper.getNodeFactory().textNode(dataVal);
+
+                }
+
+                if (jsonTextEditor != null) {
+//                    Disposer.dispose(jsonTextEditor);
+                    jsonTextEditor = null;
+                }
+
+                String valueAsString;
+                try {
+                    valueAsString = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(dataJson);
+                } catch (JsonProcessingException ex) {
+                    valueAsString = dataJson.toString();
+                }
+
+                @NotNull Document jsonTextDocument = EditorFactory.getInstance()
+                        .createDocument(valueAsString);
+
+                jsonTextEditor = EditorFactory.getInstance().createEditor(jsonTextDocument);
+
+
+
+                centralPanel.add(jsonTextEditor.getComponent(), BorderLayout.CENTER);
                 viewStateButton(false);
                 centralPanel.revalidate();
                 centralPanel.repaint();
@@ -121,7 +154,7 @@ public class JsonTreeEditor {
             public void actionPerformed(ActionEvent e) {
                 centralPanel.removeAll();
                 ObjectMapper objectMapper = new ObjectMapper();
-                String textAreaData = textArea.getText();
+                String textAreaData = jsonTextEditor.getDocument().getText();
                 JsonNode jsonNodeNew = null;
                 try {
                     jsonNodeNew = objectMapper.readTree(textAreaData);
@@ -174,26 +207,11 @@ public class JsonTreeEditor {
         });
     }
 
-    public void viewStateButton(Boolean viewState){
-        if (viewState) {
-            saveTreeModeButton.setVisible(true);
-            editButton.setVisible(true);
-            saveJsonModeButton.setVisible(false);
-            cancelButton.setVisible(false);
-        }
-        else {
-            saveTreeModeButton.setVisible(false);
-            editButton.setVisible(false);
-            saveJsonModeButton.setVisible(true);
-            cancelButton.setVisible(true);
-        }
-    }
-
     private static MouseListener getMouseListener(final JTree tree) {
         return new MouseListener() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if(tree.getRowForLocation(e.getX(),e.getY()) == -1) {
+                if (tree.getRowForLocation(e.getX(), e.getY()) == -1) {
                     tree.clearSelection();
                 }
             }
@@ -215,11 +233,25 @@ public class JsonTreeEditor {
 
             @Override
             public void mouseExited(MouseEvent e) {
-                if(tree.getRowForLocation(e.getX(),e.getY()) == -1) {
+                if (tree.getRowForLocation(e.getX(), e.getY()) == -1) {
                     tree.clearSelection();
                 }
             }
         };
+    }
+
+    public void viewStateButton(Boolean viewState) {
+        if (viewState) {
+            saveTreeModeButton.setVisible(true);
+            editButton.setVisible(true);
+            saveJsonModeButton.setVisible(false);
+            cancelButton.setVisible(false);
+        } else {
+            saveTreeModeButton.setVisible(false);
+            editButton.setVisible(false);
+            saveJsonModeButton.setVisible(true);
+            cancelButton.setVisible(true);
+        }
     }
 
     private void notifyListeners() {
