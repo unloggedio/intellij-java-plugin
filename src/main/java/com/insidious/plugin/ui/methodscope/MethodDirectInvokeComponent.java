@@ -22,6 +22,8 @@ import com.insidious.plugin.ui.treeeditor.JsonTreeEditor;
 import com.insidious.plugin.util.*;
 import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -36,6 +38,8 @@ import com.intellij.psi.PsiType;
 import com.intellij.psi.search.ProjectAndLibrariesScope;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.treeStructure.Tree;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -60,7 +64,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JPanel mainContainer;
     private Editor returnValueTextArea;
     private JPanel methodParameterScrollContainer;
-    private JButton executeButton;
     //    private JButton modifyArgumentsButton;
     private JLabel closeButton;
     //    private JLabel editValueLabel;
@@ -76,6 +79,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JBScrollPane parameterScrollPanel = null;
     private TestCaseDesignerLite designerLite;
     private JsonTreeEditor parameterEditor;
+    private AnAction executeAction;
 
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService, ComponentLifecycleListener<MethodDirectInvokeComponent> componentLifecycleListener) {
@@ -94,9 +98,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 }
             }
         });
-
-        executeButton.addActionListener(e -> executeMethodWithParameters());
-        executeButton.setIcon(UIUtils.DIRECT_INVOKE_EXECUTE);
 
         modifyArgumentsButton.setVisible(false);
         modifyArgumentsButton.addActionListener(e -> {
@@ -213,8 +214,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
             InsidiousNotification.notifyMessage(message, NotificationType.WARNING);
             return;
         }
-        executeButton.setText("Executing...");
-        executeButton.setEnabled(false);
 //        createBoilerplateButton.setVisible(false);
         ApplicationManager.getApplication().executeOnPooledThread(this::chooseClassAndDirectInvoke);
     }
@@ -234,7 +233,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
         methodNameLabel.setText(className + "." + methodName);
         modifyArgumentsButton.setVisible(false);
-        executeButton.setText("Execute");
 
         logger.warn("render method executor for: " + methodName);
         String methodNameForLabel = methodName.length() > 40 ? methodName.substring(0, 40) + "..." : methodName;
@@ -307,7 +305,14 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 throw new RuntimeException(e);
             }
 
-            parameterEditor = new JsonTreeEditor(objectMapper.readTree(source), "Method Arguments", true);
+            this.executeAction = new AnAction(() -> "Execute Method", UIUtils.DIRECT_INVOKE_EXECUTE) {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    executeMethodWithParameters();
+                }
+            };
+
+            parameterEditor = new JsonTreeEditor(objectMapper.readTree(source), "Method Arguments", true, executeAction);
             parameterEditor.setEditable(true);
             methodParameterContainer.add(parameterEditor.getContent(), BorderLayout.CENTER);
         } else {
@@ -448,8 +453,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
         insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                 (agentCommandRequest1, agentCommandResponse) -> {
                     ApplicationManager.getApplication().invokeLater(() -> {
-                        executeButton.setEnabled(true);
-                        executeButton.setText("Re-execute");
 
                         if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
                             if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
