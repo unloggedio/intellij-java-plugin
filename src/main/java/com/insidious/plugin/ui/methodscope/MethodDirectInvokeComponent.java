@@ -275,6 +275,18 @@ public class MethodDirectInvokeComponent implements ActionListener {
         Project project = methodElement.getProject();
         ProjectAndLibrariesScope projectAndLibrariesScope = new ProjectAndLibrariesScope(project);
 
+        this.executeAction = new AnAction(() -> "Execute Method", UIUtils.DIRECT_INVOKE_EXECUTE) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                executeMethodWithParameters();
+            }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
+
         if (methodParameters.length > 0) {
 //            methodParameterContainer.setLayout(new GridLayout(methodParameters.length, 1));
             BorderLayout boxLayout = new BorderLayout();
@@ -307,24 +319,12 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 throw new RuntimeException(e);
             }
 
-            this.executeAction = new AnAction(() -> "Execute Method", UIUtils.DIRECT_INVOKE_EXECUTE) {
-                @Override
-                public void actionPerformed(@NotNull AnActionEvent e) {
-                    executeMethodWithParameters();
-                }
-
-                @Override
-                public boolean displayTextInToolbar() {
-                    return true;
-                }
-            };
-
             parameterEditor = new JsonTreeEditor(objectMapper.readTree(source), "Method Arguments", true, executeAction);
             parameterEditor.setEditable(true);
             methodParameterContainer.add(parameterEditor.getContent(), BorderLayout.CENTER);
         } else {
-            JBLabel noParametersLabel = new JBLabel("No method arguments");
-            methodParameterContainer.add(noParametersLabel, BorderLayout.CENTER);
+            parameterEditor = new JsonTreeEditor(executeAction);
+            methodParameterContainer.add(parameterEditor.getContent(), BorderLayout.CENTER);
         }
 
         if (parameterScrollPanel == null) {
