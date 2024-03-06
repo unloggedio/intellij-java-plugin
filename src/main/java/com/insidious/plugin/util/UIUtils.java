@@ -120,6 +120,10 @@ public class UIUtils {
     public static Icon BELL_ICON = IconLoader.getIcon("/icons/svg/bell_icon.svg", UIUtils.class);
     public static Icon UNLOGGED_SETUP = IconLoader.getIcon("/icons/svg/unlogged_setup.svg", UIUtils.class);
 
+    public static Icon EDIT = IconLoader.getIcon("/icons/svg/edit.svg", UIUtils.class);
+    public static Icon SAVE = IconLoader.getIcon("/icons/svg/save.svg", UIUtils.class);
+    public static Icon CANCEL = IconLoader.getIcon("/icons/svg/cancel.svg", UIUtils.class);
+
     public static Icon NO_AGENT_GUTTER = IconLoader.getIcon("/icons/svg/no_agent_gutter.svg", UIUtils.class);
     public static Icon EXECUTE_COMPONENT = IconLoader.getIcon("/icons/svg/execute_component.svg", UIUtils.class);
     public static Icon EXCEPTION_CASE = IconLoader.getIcon("/icons/svg/exception_diff_case.svg", UIUtils.class);
