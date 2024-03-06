@@ -147,7 +147,7 @@ public class JsonTreeEditor {
 
 
                 dataPanel.add(jsonTextEditor.getComponent(), BorderLayout.CENTER);
-                viewStateButton(false);
+                viewStateButton(true, false);
                 dataPanel.revalidate();
                 dataPanel.repaint();
             }
@@ -170,7 +170,7 @@ public class JsonTreeEditor {
                 valueTree.setEditable(true);
                 valueTree.setCellEditor(new InsidiousCellEditor(valueTree, null));
                 expandAllNodes();
-                viewStateButton(true);
+                viewStateButton(true, true);
                 dataPanel.add(valueTree, BorderLayout.CENTER);
                 dataPanel.revalidate();
             }
@@ -193,7 +193,7 @@ public class JsonTreeEditor {
                 valueTree.setEditable(true);
                 valueTree.setCellEditor(new InsidiousCellEditor(valueTree, null));
                 expandAllNodes();
-                viewStateButton(true);
+                viewStateButton(true, true);
                 dataPanel.add(valueTree, BorderLayout.CENTER);
                 dataPanel.revalidate();
             }
@@ -222,7 +222,15 @@ public class JsonTreeEditor {
             }
         };
 
-        viewStateButton(true);
+        viewStateButton(true, true);
+    }
+
+    public JsonTreeEditor(AnAction... otherAction) {
+        this.jsonNode = null;
+        this.listAnAction = List.of(otherAction);
+        this.treeModel = null;
+        this.valueTree = null;
+        viewStateButton(false, true);
     }
 
     private static MouseListener getMouseListener(final JTree tree) {
@@ -258,15 +266,17 @@ public class JsonTreeEditor {
         };
     }
 
-    public void viewStateButton(Boolean viewState) {
+    public void viewStateButton(Boolean allButtons, Boolean viewState) {
 
         List<AnAction> localListAction = new ArrayList<>(this.listAnAction);
-        if (viewState) {
-            localListAction.add(this.editAction);
-            localListAction.add(this.buildJsonAction);
-        } else {
-            localListAction.add(this.cancelAction);
-            localListAction.add(this.saveAction);
+        if (allButtons) {
+            if (viewState) {
+                localListAction.add(this.editAction);
+                localListAction.add(this.buildJsonAction);
+            } else {
+                localListAction.add(this.cancelAction);
+                localListAction.add(this.saveAction);
+            }
         }
         ActionToolbarImpl actionToolbar = new ActionToolbarImpl("JTE actionToolbar", new DefaultActionGroup(localListAction),
                 true);
@@ -278,6 +288,7 @@ public class JsonTreeEditor {
         actionPanel.removeAll();
         JComponent component = actionToolbar.getComponent();
 
+        actionPanelMain.setPreferredSize(new Dimension(1000,40));
         actionPanel.add(component, BorderLayout.WEST);
         actionPanel.revalidate();
         actionPanelMain.revalidate();
