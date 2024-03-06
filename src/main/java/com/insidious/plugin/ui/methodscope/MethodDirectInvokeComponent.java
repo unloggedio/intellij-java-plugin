@@ -101,11 +101,13 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
         modifyArgumentsButton.setVisible(false);
         modifyArgumentsButton.addActionListener(e -> {
-            try {
-                renderForMethod(methodElement, null);
-            } catch (JsonProcessingException ex) {
-                throw new RuntimeException(ex);
-            }
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                try {
+                    renderForMethod(methodElement, null);
+                } catch (JsonProcessingException ex) {
+                    throw new RuntimeException(ex);
+                }
+            });
         });
     }
 
@@ -331,7 +333,9 @@ public class MethodDirectInvokeComponent implements ActionListener {
             centerPanel.add(parameterScrollPanel, BorderLayout.CENTER);
             centerPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         } else {
-            parameterScrollPanel.setViewportView(methodParameterContainer);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                parameterScrollPanel.setViewportView(methodParameterContainer);
+            });
         }
 
 

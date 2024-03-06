@@ -20,6 +20,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.PsiFile;
@@ -174,10 +175,12 @@ public class JUnitTestCaseWriter {
             List<VirtualFile> newFile1 = new ArrayList<>();
             newFile1.add(newFile);
 
-            ApplicationManager.getApplication().runWriteAction(() -> {
-                FileContentUtil.reparseFiles(project, newFile1, true);
-                Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
-                FileEditorManager.getInstance(project).openFile(newFile, true, true);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                ApplicationManager.getApplication().runWriteAction(() -> {
+                    FileContentUtil.reparseFiles(project, newFile1, true);
+                    Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
+                    FileEditorManager.getInstance(project).openFile(newFile, true, true);
+                });
             });
 
             logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
@@ -192,8 +195,9 @@ public class JUnitTestCaseWriter {
                 .replaceFirst("Test", ""));
         sb.deleteCharAt(sb.length() - 1);
 
-        PsiFile[] classBase = FilenameIndex.getFilesByName(project, sb + ".java",
-                GlobalSearchScope.projectScope(project));
+        PsiFile[] classBase = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiFile[]>) () -> FilenameIndex.getFilesByName(project, sb + ".java",
+                        GlobalSearchScope.projectScope(project)));
 
         if (classBase.length > 0) {
             if (classBase.length > 1) {
