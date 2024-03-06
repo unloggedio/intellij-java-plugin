@@ -170,6 +170,9 @@ public class PendingStatement {
 
         String nameUsed = testGenerationState.getParameterNameFactory().getNameForUse(parameter, null);
         if (nameUsed != null) {
+            if (nameUsed.contains("$")) {
+                nameUsed =  nameUsed.replace('$', 'D');
+            }
             parameterStringBuilder.append(nameUsed);
             return;
         }

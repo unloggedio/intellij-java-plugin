@@ -8,11 +8,17 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.ClassUtils;
+import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmType;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.NlsSafe;
 import com.intellij.psi.*;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiTypesUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 
@@ -141,8 +147,21 @@ public class MethodUnderTest {
         PsiType fieldTypeSubstitutor = ClassTypeUtils.substituteClassRecursively(callOnType, classSubstitutor);
 
 
-        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(
-                new JavaMethodAdapter(methodCallExpression.resolveMethod()));
+        PsiMethod methodItem = methodCallExpression.resolveMethod();
+
+        MethodUnderTest methodUnderTest;
+        if (methodItem != null) {
+            methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(methodItem));
+        } else {
+            return null;
+//            String methodName = methodCallExpression.getMethodExpression().getReferenceName();
+//            Project project = methodCallExpression.getProject();
+//            PsiClass targetClass = JavaPsiFacade.getInstance(project)
+//                    .findClass(callOnType.getCanonicalText().split("<")[0],
+//                            GlobalSearchScope.allScope(project));
+//            PsiMethod[] methodByName = targetClass.findMethodsByName(methodName, true);
+//            methodUnderTest = MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(methodByName[0]));
+        }
 
 
         methodUnderTest.setClassName(callOnType.getCanonicalText());

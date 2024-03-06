@@ -177,9 +177,9 @@ public class JUnitTestCaseWriter {
 
             ApplicationManager.getApplication().invokeLater(() -> {
                 ApplicationManager.getApplication().runWriteAction(() -> {
-                    FileContentUtil.reparseFiles(project, newFile1, true);
-                    Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
-                    FileEditorManager.getInstance(project).openFile(newFile, true, true);
+//                    FileContentUtil.reparseFiles(project, newFile1, false);
+//                    Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
+                    FileEditorManager.getInstance(project).openFile(newFile, true, false);
                 });
             });
 
@@ -206,7 +206,8 @@ public class JUnitTestCaseWriter {
                     PsiFile file = classBase[i];
                     if (file instanceof PsiJavaFile) {
                         PsiJavaFile psiJavaFile = (PsiJavaFile) file;
-                        String packageName = psiJavaFile.getPackageName();
+                        String packageName = ApplicationManager.getApplication().runReadAction(
+                                (Computable<String>) psiJavaFile::getPackageName);
                         if (testCaseScript.getPackageName()
                                 .equals(packageName)) {
                             return getBasePathForVirtualFile(classBase[i].getVirtualFile());

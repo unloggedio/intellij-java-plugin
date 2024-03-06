@@ -3,7 +3,6 @@ package com.insidious.plugin.ui.stomp;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
@@ -658,8 +657,16 @@ public class TestCandidateSaveForm {
 //        }
 
         Map<String, List<PsiMethodCallExpression>> expressionsByMethodName = allCallExpressions.stream()
-                .collect(Collectors.groupingBy(e1 -> ApplicationManager.getApplication().runReadAction(
-                        (Computable<String>) () -> MethodUnderTest.fromPsiCallExpression(e1).getName())));
+                .collect(Collectors.groupingBy(e1 -> {
+                    return ApplicationManager.getApplication().runReadAction(
+                            (Computable<String>) () -> {
+                                MethodUnderTest methodUnderTest = MethodUnderTest.fromPsiCallExpression(e1);
+                                if (methodUnderTest == null) {
+                                    return "";
+                                }
+                                return methodUnderTest.getName();
+                            });
+                }));
         List<DeclaredMock> mocks = new ArrayList<>();
 
         List<MethodCallExpression> callListCopy = new ArrayList<>(candidateMetadata.getCallsList());
@@ -758,7 +765,8 @@ public class TestCandidateSaveForm {
         } else if (callOnSubject instanceof PsiTypeCastExpression) {
             resolvedSubject = getCallSubjectElement(((PsiTypeCastExpression) callOnSubject).getOperand());
         } else if (callOnSubject instanceof PsiMethodCallExpression) {
-            resolvedSubject = getCallSubjectElement(((PsiMethodCallExpression) callOnSubject).getMethodExpression().getQualifierExpression());
+            resolvedSubject = getCallSubjectElement(
+                    ((PsiMethodCallExpression) callOnSubject).getMethodExpression().getQualifierExpression());
         }
         return resolvedSubject;
     }

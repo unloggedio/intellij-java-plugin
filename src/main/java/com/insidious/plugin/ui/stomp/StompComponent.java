@@ -840,7 +840,8 @@ public class StompComponent implements
             return;
         }
 
-        for (TestCandidateMetadata testCandidateShell : selectedCandidates) {
+        ArrayList<TestCandidateMetadata> selectedCandidatesCopy = new ArrayList<>(selectedCandidates);
+        for (TestCandidateMetadata testCandidateShell : selectedCandidatesCopy) {
 
             try {
 

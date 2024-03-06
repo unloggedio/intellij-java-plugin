@@ -1713,10 +1713,14 @@ final public class InsidiousService implements
             return;
         }
 
-        toolWindow.show();
-        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
-        stompWindow.showNewDeclaredMockCreator(method, callExpression);
-        stompWindow.onMethodFocussed(method);
+        ApplicationManager.getApplication().invokeLater(() -> {
+            toolWindow.show();
+            toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                stompWindow.showNewDeclaredMockCreator(method, callExpression);
+                stompWindow.onMethodFocussed(method);
+            });
+        });
 
     }
 

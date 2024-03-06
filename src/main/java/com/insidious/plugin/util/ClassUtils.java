@@ -111,6 +111,9 @@ public class ClassUtils {
     public static PsiSubstitutor getSubstitutorForCallExpression(PsiMethodCallExpression methodCallExpression) {
         PsiReferenceExpression methodExpression = methodCallExpression.getMethodExpression();
         PsiMethod destinationMethod = (PsiMethod) methodExpression.resolve();
+        if ( destinationMethod == null) {
+            return new EmptySubstitutor();
+        }
         PsiExpression fieldReferenceExpression = methodExpression
                 .getQualifierExpression();
         PsiType type;

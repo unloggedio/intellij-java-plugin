@@ -30,6 +30,7 @@ import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.IndexNotReadyException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
@@ -46,6 +47,7 @@ import org.objectweb.asm.Opcodes;
 import javax.lang.model.element.Modifier;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class TestCaseService {
@@ -193,7 +195,16 @@ public class TestCaseService {
         JvmType returnType = selectedPsiMethod.getReturnType();
         if (returnType != null) {
             if (returnType instanceof PsiType) {
-                returnType = ClassTypeUtils.substituteClassRecursively((PsiType) returnType, substitutor);
+                JvmType finalReturnType = returnType;
+                try {
+                    returnType = ApplicationManager.getApplication().executeOnPooledThread(
+                            () -> ApplicationManager.getApplication()
+                                    .runReadAction((Computable<PsiType>) () ->
+                                            ClassTypeUtils.
+                                                    substituteClassRecursively((PsiType) finalReturnType, substitutor))).get();
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
             }
             TestCaseWriter.setParameterTypeFromPsiType(mainMethod.getReturnValue(),
                     (PsiType) returnType, true);
@@ -251,8 +262,10 @@ public class TestCaseService {
 
         CountDownLatch cdl = new CountDownLatch(1);
         ApplicationManager.getApplication().runReadAction(() -> {
-            normalizeTypeInformationUsingProject(generationConfiguration);
-            cdl.countDown();
+            DumbService.getInstance(project).runWhenSmart(() -> {
+                normalizeTypeInformationUsingProject(generationConfiguration);
+                cdl.countDown();
+            });
         });
         cdl.await();
 

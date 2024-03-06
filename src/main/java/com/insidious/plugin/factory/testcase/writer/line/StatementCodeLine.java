@@ -4,6 +4,8 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.MethodSpec;
 
+import java.util.Arrays;
+
 public class StatementCodeLine implements CodeLine {
     private static final Logger logger = LoggerUtil.getInstance(StatementCodeLine.class);
     private final String statement;
@@ -22,7 +24,7 @@ public class StatementCodeLine implements CodeLine {
         try {
             methodBuilder.addStatement(statement, arguments);
         } catch (java.lang.IllegalArgumentException iae) {
-            logger.error("failed to write statement [" + statement + "] -> [" + arguments + "] ->" + iae.getMessage());
+            logger.error("failed to write statement [" + statement + "] -> [" + Arrays.asList(arguments) + "] ->" + iae.getMessage());
             throw new RuntimeException(iae);
         }
     }

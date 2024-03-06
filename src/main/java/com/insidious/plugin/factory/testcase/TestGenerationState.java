@@ -4,8 +4,8 @@ package com.insidious.plugin.factory.testcase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.openapi.diagnostic.Logger;
@@ -16,9 +16,7 @@ import com.squareup.javapoet.TypeName;
 import org.apache.commons.codec.digest.DigestUtils;
 
 import javax.lang.model.element.Modifier;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -67,6 +65,10 @@ public class TestGenerationState {
 
     public String addObjectToResource(Parameter lhsExpression) {
         String targetObjectName = parameterNameFactory.getNameForUse(lhsExpression, null);
+        if (targetObjectName == null) {
+            targetObjectName = "var" + Math.abs(new Random(new Date().getTime()).nextInt(0, 1000)) + 1;
+            lhsExpression.setName(targetObjectName);
+        }
         Matcher matcher = ENDS_WITH_DIGITS.matcher(targetObjectName);
         if (matcher.matches()) {
             targetObjectName = matcher.group(1);
@@ -128,6 +130,7 @@ public class TestGenerationState {
             }
         } else {
             if (parameterNameFactory.getNameForUse(returnValue, methodName) == null) {
+                variableName = variableName.replaceAll("\\$", "");
                 returnValue.setName(variableName);
                 parameterNameFactory.setNameForParameter(returnValue, variableName);
             }
