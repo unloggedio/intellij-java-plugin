@@ -127,7 +127,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         }
         if (classMethodAggregates == null) {
             if (currentClass != null) {
-                logger.warn("we dont have any class method aggregates for class: " + currentClass.getQualifiedName());
+                logger.debug("we dont have any class method aggregates for class: " + currentClass.getQualifiedName());
             }
 //            return false;
         }
@@ -250,6 +250,9 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     }
 
     private void createInlinePresentationsForMethod(PsiMethod methodPsiElement, Editor editor, InlayHintsSink inlayHintsSink) {
+        if (classMethodAggregates == null) {
+            return;
+        }
         MethodCallAggregate methodAggregate = classMethodAggregates.getMethodAggregate(methodPsiElement.getName());
         if (methodAggregate == null) {
             return;

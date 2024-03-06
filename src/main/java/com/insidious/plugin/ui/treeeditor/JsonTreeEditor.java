@@ -269,14 +269,16 @@ public class JsonTreeEditor {
             localListAction.add(this.saveAction);
         }
         ActionToolbarImpl actionToolbar = new ActionToolbarImpl("JTE actionToolbar", new DefaultActionGroup(localListAction),
-                true, false);
+                true);
         actionToolbar.setMiniMode(false);
         actionToolbar.setForceMinimumSize(true);
         actionToolbar.setTargetComponent(mainPanel);
 
         // make the actionPanel component
         actionPanel.removeAll();
-        actionPanel.add(actionToolbar.getComponent(), BorderLayout.CENTER);
+        JComponent component = actionToolbar.getComponent();
+
+        actionPanel.add(component, BorderLayout.WEST);
         actionPanel.revalidate();
         actionPanelMain.revalidate();
     }

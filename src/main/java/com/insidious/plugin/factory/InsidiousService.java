@@ -112,9 +112,8 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.stream.Collectors;
 import java.util.concurrent.TimeUnit;
-
+import java.util.stream.Collectors;
 
 import static com.insidious.plugin.Constants.HOSTNAME;
 import static com.insidious.plugin.agent.AgentCommandRequestType.DIRECT_INVOKE;
@@ -128,7 +127,6 @@ final public class InsidiousService implements
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     final static private int TOOL_WINDOW_WIDTH = 400;
     private final ExecutorService connectionCheckerThreadPool = Executors.newFixedThreadPool(2);
-    private ScheduledExecutorService stompComponentThreadPool = Executors.newScheduledThreadPool(2);
     private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
@@ -142,6 +140,7 @@ final public class InsidiousService implements
     private final GetProjectSessionsCallback sessionListener;
     private final ActiveSessionManager sessionManager;
     private final CurrentState currentState = new CurrentState();
+    private ScheduledExecutorService stompComponentThreadPool = Executors.newScheduledThreadPool(2);
     private SessionLoader sessionLoader;
     private VideobugClientInterface client;
     private Content singleWindowContent;
@@ -849,7 +848,8 @@ final public class InsidiousService implements
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
                 if (DumbService.getInstance(project).isDumb()) {
-                    InsidiousNotification.notifyMessage("Please try after ide indexing is complete", NotificationType.WARNING);
+                    InsidiousNotification.notifyMessage("Please try after ide indexing is complete",
+                            NotificationType.WARNING);
                     return;
                 }
 
@@ -863,7 +863,8 @@ final public class InsidiousService implements
                     PsiMethod[] methodPsiList = ApplicationManager.getApplication().runReadAction(
                             (Computable<PsiMethod[]>) () -> {
                                 if (DumbService.getInstance(project).isDumb()) {
-                                    InsidiousNotification.notifyMessage("Please try after ide indexing is complete", NotificationType.WARNING);
+                                    InsidiousNotification.notifyMessage("Please try after ide indexing is complete",
+                                            NotificationType.WARNING);
                                     return new PsiMethod[0];
                                 }
 
@@ -929,7 +930,8 @@ final public class InsidiousService implements
         }
 
         try {
-            AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgentClient.executeCommand(agentCommandRequest);
+            AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgentClient.executeCommand(
+                    agentCommandRequest);
             logger.warn("agent command response - " + agentCommandResponse);
             if (executionResponseListener != null) {
                 cachedGutterState.remove(methodUnderTest.getMethodHashKey());
@@ -1506,7 +1508,11 @@ final public class InsidiousService implements
                             () -> FileDocumentManager.getInstance().getDocument(file));
                     final ProgressIndicator daemonIndicator = new DaemonProgressIndicator();
                     ProgressManager.getInstance().runProcess(() -> {
-                        ReadAction.run(() -> codeAnalyzer.runMainPasses(psiFile, document, daemonIndicator));
+                        try {
+                            ReadAction.run(() -> codeAnalyzer.runMainPasses(psiFile, document, daemonIndicator));
+                        } catch (Exception e) {
+
+                        }
 
                     }, daemonIndicator);
                     codeAnalyzer.restart();

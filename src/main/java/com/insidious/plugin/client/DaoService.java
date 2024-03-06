@@ -1245,7 +1245,7 @@ public class DaoService {
             return resultList;
         } catch (Exception e) {
             logger.warn("failed to getTestCandidatesForAllMethod [" + candidateSearchQuery + "]:  " +
-                            e.getMessage(), e);
+                    e.getMessage(), e);
             return new ArrayList<>();
         }
     }
@@ -1594,14 +1594,20 @@ public class DaoService {
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
     getTestCandidatePaginated(long afterEventId, int page, int limit) throws SQLException {
-        List<TestCandidateMetadata> dbCandidateList = testCandidateDao.queryBuilder()
-                .where()
-                .ge("entryProbeIndex", afterEventId)
-                .queryBuilder()
-                .offset((long) page * limit)
-                .limit((long) limit)
-                .orderBy("entryProbeIndex", true)
-                .query();
+        List<TestCandidateMetadata> dbCandidateList;
+        try {
+            dbCandidateList = testCandidateDao.queryBuilder()
+                    .where()
+                    .ge("entryProbeIndex", afterEventId)
+                    .queryBuilder()
+                    .offset((long) page * limit)
+                    .limit((long) limit)
+                    .orderBy("entryProbeIndex", true)
+                    .query();
+        } catch (Exception e) {
+            logger.warn("Failed to query database: " + e.getMessage(), e);
+            return new ArrayList<>();
+        }
 
         return dbCandidateList
                 .stream()

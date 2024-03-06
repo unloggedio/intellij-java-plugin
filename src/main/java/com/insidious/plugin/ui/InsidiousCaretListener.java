@@ -95,60 +95,67 @@ public class InsidiousCaretListener implements EditorMouseListener, CaretListene
     public void caretPositionChanged(@NotNull CaretEvent event) {
         CaretListener.super.caretPositionChanged(event);
 
-        Project project = event.getEditor().getProject();
-        if (project == null) {
-            // non project based mouse event
-            return;
-        }
-
-        if (DumbService.getInstance(project).isDumb()) {
-            return;
-        }
-
-        try {
-            InsidiousService insidiousService = project.getService(InsidiousService.class);
-
-            Editor editor = event.getEditor();
-            int offset = editor.getCaretModel().getOffset();
-            Document document = editor.getDocument();
-            VirtualFile virtualFile = FileDocumentManager.getInstance().getFile(document);
-            if (virtualFile instanceof LightVirtualFile) {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            Project project = event.getEditor().getProject();
+            if (project == null) {
+                // non project based mouse event
                 return;
             }
 
-            PsiFile file = PsiDocumentManager.getInstance(project).getPsiFile(document);
-            if (file == null) {
+            if (DumbService.getInstance(project).isDumb()) {
                 return;
             }
 
-            Matcher fileMatcher = testFileNamePattern.matcher(file.getName());
-            if (fileMatcher.matches()) {
-                return;
-            }
+            try {
+                InsidiousService insidiousService = project.getService(InsidiousService.class);
 
-            PsiMethod method = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiMethod.class, false);
-            if (method != null) {
-                PsiClass containingClass = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiClass.class, false);
-                MethodAdapter methodAdapter = new JavaMethodAdapter(method) {
-                    @Override
-                    public ClassAdapter getContainingClass() {
-                        return ApplicationManager.getApplication().runReadAction(
-                                (Computable<JavaClassAdapter>) () -> new JavaClassAdapter(containingClass));
-                    }
-                };
+                Editor editor = event.getEditor();
+                int offset = ApplicationManager.getApplication().runReadAction(
+                        (Computable<Integer>) () -> editor.getCaretModel().getOffset());
+                Document document = editor.getDocument();
+                VirtualFile virtualFile = ApplicationManager.getApplication().runReadAction(
+                        (Computable<VirtualFile>) () -> FileDocumentManager.getInstance().getFile(document));
+                if (virtualFile instanceof LightVirtualFile) {
+                    return;
+                }
 
-                insidiousService.methodFocussedHandler(methodAdapter);
+                PsiFile file = ApplicationManager.getApplication().runReadAction(
+                        (Computable<PsiFile>) () -> PsiDocumentManager.getInstance(project).getPsiFile(document));
+                if (file == null) {
+                    return;
+                }
+
+                Matcher fileMatcher = testFileNamePattern.matcher(file.getName());
+                if (fileMatcher.matches()) {
+                    return;
+                }
+
+                PsiMethod method = ApplicationManager.getApplication().runReadAction(
+                        (Computable<PsiMethod>)() -> PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiMethod.class, false));
+                if (method != null) {
+                    PsiClass containingClass = ApplicationManager.getApplication()
+                            .runReadAction((Computable<PsiClass>)() -> PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiClass.class, false));
+                    MethodAdapter methodAdapter = new JavaMethodAdapter(method) {
+                        @Override
+                        public ClassAdapter getContainingClass() {
+                            return ApplicationManager.getApplication().runReadAction(
+                                    (Computable<JavaClassAdapter>) () -> new JavaClassAdapter(containingClass));
+                        }
+                    };
+
+                    insidiousService.methodFocussedHandler(methodAdapter);
 //                return;
-            }
+                }
 //            KtNamedFunction kotlinMethod = PsiTreeUtil.findElementOfClassAtOffset(file, offset, KtNamedFunction.class,
 //                    false);
 //            if (kotlinMethod != null) {
 //                insidiousService.methodFocussedHandler(new KotlinMethodAdapter(kotlinMethod));
 //            }
-        } catch (Exception ex) {
-            logger.error("Exception in caret listener (" + ex.getMessage() + "): ", ex);
-        }
+            } catch (Exception ex) {
+                logger.error("Exception in caret listener (" + ex.getMessage() + "): ", ex);
+            }
 
+        });
 
     }
 

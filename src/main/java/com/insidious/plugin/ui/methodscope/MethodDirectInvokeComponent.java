@@ -310,6 +310,11 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     executeMethodWithParameters();
                 }
+
+                @Override
+                public boolean displayTextInToolbar() {
+                    return true;
+                }
             };
 
             parameterEditor = new JsonTreeEditor(objectMapper.readTree(source), "Method Arguments", true, executeAction);

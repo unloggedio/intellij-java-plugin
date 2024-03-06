@@ -14,6 +14,7 @@ import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.TestSuite;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -27,7 +28,6 @@ import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.FileContentUtil;
 import org.apache.commons.io.IOUtils;
-
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -160,7 +160,7 @@ public class JUnitTestCaseWriter {
                 logger.info("[ERROR] Failed to save UnloggedUtils to correct spot.");
             }
 
-             VirtualFile newFile = VirtualFileManager.getInstance()
+            VirtualFile newFile = VirtualFileManager.getInstance()
                     .refreshAndFindFileByUrl(FileSystems.getDefault()
                             .getPath(testcaseFile.getAbsolutePath())
                             .toUri()
@@ -173,10 +173,12 @@ public class JUnitTestCaseWriter {
 
             List<VirtualFile> newFile1 = new ArrayList<>();
             newFile1.add(newFile);
-            FileContentUtil.reparseFiles(project, newFile1, true);
-             Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
 
-            FileEditorManager.getInstance(project).openFile(newFile, true, true);
+            ApplicationManager.getApplication().runWriteAction(() -> {
+                FileContentUtil.reparseFiles(project, newFile1, true);
+                Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
+                FileEditorManager.getInstance(project).openFile(newFile, true, true);
+            });
 
             logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
             return newFile;
@@ -244,7 +246,7 @@ public class JUnitTestCaseWriter {
                     .getPath(oldFilePath)
                     .toFile();
             if (oldUtilFile.exists()) {
-                 VirtualFile oldFileInstance = VirtualFileManager.getInstance()
+                VirtualFile oldFileInstance = VirtualFileManager.getInstance()
                         .refreshAndFindFileByUrl(FileSystems.getDefault()
                                 .getPath(oldUtilFile.getAbsolutePath())
                                 .toUri()
@@ -254,7 +256,7 @@ public class JUnitTestCaseWriter {
                 if (oldFileInstance != null) {
                     oldFileInstance.refresh(true, false);
                 }
-                 VirtualFile oldFolderInstance = VirtualFileManager.getInstance()
+                VirtualFile oldFolderInstance = VirtualFileManager.getInstance()
                         .refreshAndFindFileByUrl(FileSystems.getDefault()
                                 .getPath(oldFolder.getAbsolutePath())
                                 .toUri()
@@ -305,8 +307,9 @@ public class JUnitTestCaseWriter {
             assert testUtilClassCode != null;
             IOUtils.copy(testUtilClassCode, writer);
         }
-         VirtualFile newFile = VirtualFileManager.getInstance()
-                .refreshAndFindFileByUrl(FileSystems.getDefault().getPath(utilFile.getAbsolutePath()).toUri().toString());
+        VirtualFile newFile = VirtualFileManager.getInstance()
+                .refreshAndFindFileByUrl(
+                        FileSystems.getDefault().getPath(utilFile.getAbsolutePath()).toUri().toString());
 
         if (newFile == null) {
             InsidiousNotification.notifyMessage("UnloggedTestUtil file was not created: "
