@@ -71,7 +71,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JLabel methodNameLabel;
     private JPanel directInvokeContainerPanel;
     private JPanel junitBoilerplaceContainerPanel;
-    private JButton modifyArgumentsButton;
     private JPanel boilerplateCustomizerContainer;
     private JPanel centerPanel;
     private JTabbedPane tabbedPane;
@@ -80,6 +79,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private TestCaseDesignerLite designerLite;
     private JsonTreeEditor parameterEditor;
     private AnAction executeAction;
+    private AnAction modifyArgumentsAction;
 
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService, ComponentLifecycleListener<MethodDirectInvokeComponent> componentLifecycleListener) {
@@ -99,16 +99,36 @@ public class MethodDirectInvokeComponent implements ActionListener {
             }
         });
 
-        modifyArgumentsButton.setVisible(false);
-        modifyArgumentsButton.addActionListener(e -> {
-            ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                try {
-                    renderForMethod(methodElement, null);
-                } catch (JsonProcessingException ex) {
-                    throw new RuntimeException(ex);
-                }
-            });
-        });
+
+        this.executeAction = new AnAction(() -> "Execute Method", UIUtils.DIRECT_INVOKE_EXECUTE) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                executeMethodWithParameters();
+            }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
+
+        this.modifyArgumentsAction = new AnAction(() -> "Modify Arguments", UIUtils.EDIT) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    try {
+                        renderForMethod(methodElement, null);
+                    } catch (JsonProcessingException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                });
+            }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
     }
 
     private void configureCreateBoilerplateButton() {
@@ -234,7 +254,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 (Computable<String>) containingClass::getName);
 
         methodNameLabel.setText(className + "." + methodName);
-        modifyArgumentsButton.setVisible(false);
 
         logger.warn("render method executor for: " + methodName);
         String methodNameForLabel = methodName.length() > 40 ? methodName.substring(0, 40) + "..." : methodName;
@@ -274,18 +293,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
         parameterInputComponents.clear();
         Project project = methodElement.getProject();
         ProjectAndLibrariesScope projectAndLibrariesScope = new ProjectAndLibrariesScope(project);
-
-        this.executeAction = new AnAction(() -> "Execute Method", UIUtils.DIRECT_INVOKE_EXECUTE) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                executeMethodWithParameters();
-            }
-
-            @Override
-            public boolean displayTextInToolbar() {
-                return true;
-            }
-        };
 
         if (methodParameters.length > 0) {
 //            methodParameterContainer.setLayout(new GridLayout(methodParameters.length, 1));
@@ -479,7 +486,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
                         //                        TitledBorder panelTitledBoarder = (TitledBorder) scrollerContainer.getBorder();
                         String responseObjectClassName = agentCommandResponse.getResponseClassName();
                         Object methodReturnValue = agentCommandResponse.getMethodReturnValue();
-                        modifyArgumentsButton.setVisible(true);
 
                         String targetClassName = agentCommandResponse.getTargetClassName();
                         if (targetClassName == null) {
@@ -522,7 +528,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
                                 JsonNode jsonNode = objectMapper.readTree(returnValueString);
 
-                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(jsonNode, responseClassName, false);
+                                // pass execute and modify buttons
+                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(jsonNode, responseClassName, false, this.executeAction, this.modifyArgumentsAction);
                                 parameterScrollPanel.setViewportView(jsonTreeEditor.getContent());
 
                             } catch (JsonProcessingException ex) {
