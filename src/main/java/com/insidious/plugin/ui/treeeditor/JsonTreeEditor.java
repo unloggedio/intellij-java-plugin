@@ -104,12 +104,9 @@ public class JsonTreeEditor {
             }
         });
 
-
         // JTP is not editable
         if (!this.editable) {
             valueTree.setEditable(false);
-            mainPanel.removeAll();
-            mainPanel.add(dataPanel);
             mainPanel.revalidate();
         }
         dataPanel.add(valueTree, BorderLayout.CENTER);
@@ -269,7 +266,7 @@ public class JsonTreeEditor {
     public void viewStateButton(Boolean allButtons, Boolean viewState) {
 
         List<AnAction> localListAction = new ArrayList<>(this.listAnAction);
-        if (allButtons) {
+        if (editable && allButtons) {
             if (viewState) {
                 localListAction.add(this.editAction);
                 localListAction.add(this.buildJsonAction);
@@ -288,10 +285,11 @@ public class JsonTreeEditor {
         actionPanel.removeAll();
         JComponent component = actionToolbar.getComponent();
 
-        actionPanelMain.setPreferredSize(new Dimension(1000,40));
         actionPanel.add(component, BorderLayout.WEST);
         actionPanel.revalidate();
         actionPanelMain.revalidate();
+
+        mainPanel.revalidate();
     }
 
     private void notifyListeners() {
