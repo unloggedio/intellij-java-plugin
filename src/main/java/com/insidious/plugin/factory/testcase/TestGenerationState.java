@@ -66,7 +66,8 @@ public class TestGenerationState {
     public String addObjectToResource(Parameter lhsExpression) {
         String targetObjectName = parameterNameFactory.getNameForUse(lhsExpression, null);
         if (targetObjectName == null) {
-            targetObjectName = "var" + Math.abs(new Random(new Date().getTime()).nextInt(0, 1000)) + 1;
+            int a = new Random(new Date().getTime()).nextInt(1000);
+            targetObjectName = "var" + Math.abs(a) + 1;
             lhsExpression.setName(targetObjectName);
         }
         Matcher matcher = ENDS_WITH_DIGITS.matcher(targetObjectName);
