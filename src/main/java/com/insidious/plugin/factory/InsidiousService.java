@@ -1594,6 +1594,7 @@ final public class InsidiousService implements
         if (stompWindow != null) {
             stompWindow.disconnected();
         }
+        libraryToolWindow.setMockStatus(false);
         removeCurrentActiveHighlights();
         triggerGutterIconReload();
         configurationState.clearPermanentFieldMockSetting();

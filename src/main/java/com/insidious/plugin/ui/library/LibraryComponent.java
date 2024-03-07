@@ -78,6 +78,16 @@ public class LibraryComponent {
         atomicRecordService = project.getService(AtomicRecordService.class);
 
         ActionListener mockStatusChangeActionListener = e -> {
+            if (!insidiousService.isAgentConnected()) {
+                InsidiousNotification.notifyMessage(
+                        "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                        NotificationType.WARNING
+                );
+                currentMockInjectStatus = false;
+                mockingEnableRadioButton.setSelected(false);
+                mockingDisableRadioButton.setSelected(true);
+                return;
+            }
             List<DeclaredMock> allDeclaredMocks = insidiousService.getAllDeclaredMocks();
             if (mockingEnableRadioButton.isSelected() && !currentMockInjectStatus) {
                 currentMockInjectStatus = true;
