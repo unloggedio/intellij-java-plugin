@@ -151,10 +151,17 @@ public class StompItem {
 
         pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
         pinLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        new GotItTooltip("Unlogged.Stomp.Item.Replay",
-                "Replay a single method again using this button", insidiousService.getProject())
-                .withPosition(Balloon.Position.above)
-                .show(replaySingle, GotItTooltip.TOP_MIDDLE);
+//        new GotItTooltip("Unlogged.Stomp.Item.Replay",
+//                "Replay a single method again using this button", insidiousService.getProject())
+//                .withPosition(Balloon.Position.above)
+//                .show(replaySingle, GotItTooltip.TOP_MIDDLE);
+
+        new GotItTooltip("Unlogged.Stomp.Item.Checkbox",
+                "<html>Hover and click the checkbox to select a replay record.<br>Quick replay using the pink play " +
+                        "button</html>",
+                insidiousService.getProject())
+                .withPosition(Balloon.Position.below)
+                .show(mainPanel, GotItTooltip.BOTTOM_LEFT);
 
 
         replaySingle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -329,10 +336,6 @@ public class StompItem {
         metadataPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
         selectCandidateCheckbox.setVisible(true);
         pinLabel.setVisible(true);
-        new GotItTooltip("Unlogged.Stomp.Item.Checkbox",
-                "Click the checkbox to select a replay record", insidiousService.getProject())
-                .withPosition(Balloon.Position.above)
-                .show(selectCandidateCheckbox, GotItTooltip.TOP_MIDDLE);
 
     }
 

@@ -127,7 +127,7 @@
                 </constraints>
                 <properties>
                   <font size="11"/>
-                  <foreground color="-7237231"/>
+                  <foreground color="-13273872"/>
                   <icon value="icons/png/information-line.png"/>
                   <text value="mocks calls in live application"/>
                 </properties>

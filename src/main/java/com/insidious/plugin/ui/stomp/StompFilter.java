@@ -79,7 +79,7 @@ public class StompFilter {
         new GotItTooltip("Unlogged.Stomp.Filter.Checkbox",
                 "Make the filter always set to the method focussed in your editor by enabling this", project)
                 .withPosition(Balloon.Position.atRight)
-                .show(followEditorCheckBox, GotItTooltip.RIGHT_MIDDLE);
+                .show((JPanel) followEditorCheckBox.getParent(), GotItTooltip.RIGHT_MIDDLE);
 
 
         applyButton.addActionListener(e -> {
