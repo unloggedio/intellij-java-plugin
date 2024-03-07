@@ -44,8 +44,12 @@ import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
+import com.intellij.psi.JavaPsiFacade;
+import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
+import com.intellij.psi.impl.JavaPsiImplementationHelper;
+import com.intellij.psi.search.searches.ClassInheritorsSearch;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ui.JBUI;
@@ -464,6 +468,10 @@ public class StompComponent implements
     }
 
     private boolean isAcceptable(TestCandidateMetadata testCandidateMetadata) {
+        if (testCandidateMetadata.getMainMethod().getMethodName().contains("$")) {
+            // lambda function
+            return false;
+        }
         if (filterModel.getIncludedClassNames().size() > 0) {
             if (!filterModel.getIncludedClassNames().contains(testCandidateMetadata.getFullyQualifiedClassname())) {
                 return false;
@@ -1350,6 +1358,16 @@ public class StompComponent implements
         newClassNameList.add(containingClass.getQualifiedName());
         for (ClassAdapter aSuper : containingClass.getSupers()) {
             newClassNameList.add(aSuper.getQualifiedName());
+        }
+
+        JavaPsiImplementationHelper jsp = JavaPsiImplementationHelper.getInstance(method.getProject());
+
+        Collection<PsiClass> childClasses = ClassInheritorsSearch.search(
+                ApplicationManager.getApplication().runReadAction(
+                        (Computable<PsiClass>) () -> method.getPsiMethod().getContainingClass())).findAll();
+
+        for (PsiClass childClass : childClasses) {
+            newClassNameList.add(childClass.getQualifiedName());
         }
 
 
