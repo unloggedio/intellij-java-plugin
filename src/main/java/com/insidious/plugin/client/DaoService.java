@@ -8,6 +8,7 @@ import com.insidious.common.weaver.Descriptor;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.MethodSignatureParser;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.TestAssertion;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -649,7 +650,7 @@ public class DaoService {
                 String callDescFromEntryProbe = methodCallExpression.getEntryProbeInfo()
                         .getAttribute("Desc", null);
                 if (callDescFromEntryProbe != null) {
-                    List<String> descriptorData = ClassTypeUtils.splitMethodDescriptor(callDescFromEntryProbe);
+                    List<String> descriptorData = MethodSignatureParser.parseMethodSignature(callDescFromEntryProbe);
                     String returnType = descriptorData.remove(descriptorData.size() - 1);
                     argumentTypesFromMethodDefinition =
                             descriptorData.stream()

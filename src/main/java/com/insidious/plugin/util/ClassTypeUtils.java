@@ -6,6 +6,7 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
+import com.insidious.plugin.MethodSignatureParser;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
@@ -75,10 +76,16 @@ public class ClassTypeUtils {
             PsiType[] checkSuperTypes = typeToBeSubstituted.getSuperTypes();
             if (typeToBeSubstituted instanceof PsiClassReferenceType) {
                 PsiClassReferenceType typeToBeSubstituted1 = (PsiClassReferenceType) typeToBeSubstituted;
-                checkSuperTypes = typeToBeSubstituted1.resolve().getExtendsListTypes();
+                PsiClass resolve = typeToBeSubstituted1.resolve();
+                if (resolve != null) {
+                    checkSuperTypes = resolve.getExtendsListTypes();
+                }
             }
             if (typeToBeSubstituted instanceof PsiClassType) {
-                checkSuperTypes = ((PsiClassType) typeToBeSubstituted).resolve().getExtendsListTypes();
+                PsiClass resolve = ((PsiClassType) typeToBeSubstituted).resolve();
+                if (resolve != null) {
+                    checkSuperTypes = resolve.getExtendsListTypes();
+                }
             }
 
 
@@ -100,36 +107,36 @@ public class ClassTypeUtils {
                 .toLowerCase() + methodName.substring(1);
     }
 
-    /**
-     * parses a method descriptor string and return in a list form where each item is the type
-     *
-     * @param desc method descriptor string
-     * @return a list of strings, last item in the list is the return parameter, and 0 to n-1 items are method arguments
-     */
-    public static List<String> splitMethodDescriptor(String desc) {
-        int beginIndex = desc.indexOf('(');
-        int endIndex = desc.lastIndexOf(')');
-        if ((beginIndex == -1 && endIndex != -1) || (beginIndex != -1 && endIndex == -1)) {
-            System.err.println(beginIndex);
-            System.err.println(endIndex);
-            throw new RuntimeException();
-        }
-        String x0;
-        if (beginIndex == -1 && endIndex == -1) {
-            x0 = desc;
-        } else {
-            x0 = desc.substring(beginIndex + 1, endIndex);
-        }
-        Pattern pattern = Pattern.compile(
-                "\\[*L[^;]+;|\\[[ZBCSIFDJ]|[ZBCSIFDJ]"); //Regex for desc \[*L[^;]+;|\[[ZBCSIFDJ]|[ZBCSIFDJ]
-        Matcher matcher = pattern.matcher(x0);
-        List<String> listMatches = new LinkedList<>();
-        while (matcher.find()) {
-            listMatches.add(matcher.group());
-        }
-        listMatches.add(desc.substring(endIndex + 1));
-        return listMatches;
-    }
+//    /**
+//     * parses a method descriptor string and return in a list form where each item is the type
+//     *
+//     * @param desc method descriptor string
+//     * @return a list of strings, last item in the list is the return parameter, and 0 to n-1 items are method arguments
+//     */
+//    public static List<String> splitMethodDescriptor(String desc) {
+//        int beginIndex = desc.indexOf('(');
+//        int endIndex = desc.lastIndexOf(')');
+//        if ((beginIndex == -1 && endIndex != -1) || (beginIndex != -1 && endIndex == -1)) {
+//            System.err.println(beginIndex);
+//            System.err.println(endIndex);
+//            throw new RuntimeException();
+//        }
+//        String x0;
+//        if (beginIndex == -1 && endIndex == -1) {
+//            x0 = desc;
+//        } else {
+//            x0 = desc.substring(beginIndex + 1, endIndex);
+//        }
+//        Pattern pattern = Pattern.compile(
+//                "\\[*L[^;]+;|\\[[ZBCSIFDJ]|[ZBCSIFDJ]"); //Regex for desc \[*L[^;]+;|\[[ZBCSIFDJ]|[ZBCSIFDJ]
+//        Matcher matcher = pattern.matcher(x0);
+//        List<String> listMatches = new LinkedList<>();
+//        while (matcher.find()) {
+//            listMatches.add(matcher.group());
+//        }
+//        listMatches.add(desc.substring(endIndex + 1));
+//        return listMatches;
+//    }
 
 
     public static String createVariableName(String typeNameRaw) {
@@ -477,7 +484,7 @@ public class ClassTypeUtils {
         for (Pair<PsiMethod, PsiSubstitutor> jvmMethodPair : methodsByNameList) {
 
 
-            List<String> methodDescriptor = ClassTypeUtils.splitMethodDescriptor(methodCallExpression.getSignature());
+            List<String> methodDescriptor = MethodSignatureParser.parseMethodSignature(methodCallExpression.getSignature());
             String returnType = methodDescriptor.remove(methodDescriptor.size() - 1);
 
             PsiMethod jvmMethod = jvmMethodPair.getFirst();

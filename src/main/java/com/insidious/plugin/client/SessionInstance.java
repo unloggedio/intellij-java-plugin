@@ -17,6 +17,7 @@ import com.insidious.common.weaver.TypeInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.MethodSignatureParser;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -429,7 +430,7 @@ public class SessionInstance implements Runnable {
                             || methodName.equals("hashCode")
                             || methodName.startsWith("<")) {
                     } else {
-                        List<String> descriptorItemsList = ClassTypeUtils.splitMethodDescriptor(
+                        List<String> descriptorItemsList = MethodSignatureParser.parseMethodSignature(
                                 methodInfo.getMethodDesc());
                         if (descriptorItemsList.size() > 1) {
                             isPojo = false;

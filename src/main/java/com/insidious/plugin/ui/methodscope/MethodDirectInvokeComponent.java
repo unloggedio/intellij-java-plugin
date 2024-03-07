@@ -66,7 +66,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private Editor returnValueTextArea;
     private JPanel methodParameterScrollContainer;
     //    private JButton modifyArgumentsButton;
-    private JLabel closeButton;
+    private JButton closeButton;
     //    private JLabel editValueLabel;
     private JButton createBoilerplateButton;
     private JLabel methodNameLabel;

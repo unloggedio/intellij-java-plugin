@@ -30,43 +30,16 @@
                   <grid row="5" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
                 </constraints>
               </vspacer>
-              <grid id="19da9" binding="includedClassesPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                <margin top="5" left="5" bottom="5" right="5"/>
+              <grid id="19da9" binding="includedClassesPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
                 <constraints>
                   <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties/>
                 <border type="etched"/>
                 <children>
-                  <grid id="4fe0e" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                    <margin top="0" left="0" bottom="0" right="0"/>
-                    <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false">
-                        <minimum-size width="150" height="-1"/>
-                        <maximum-size width="150" height="-1"/>
-                      </grid>
-                    </constraints>
-                    <properties/>
-                    <border type="none"/>
-                    <children>
-                      <component id="dfa4c" class="javax.swing.JLabel">
-                        <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                        <properties>
-                          <text value="Included classes"/>
-                        </properties>
-                      </component>
-                    </children>
-                  </grid>
                   <grid id="d570e" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                     <margin top="0" left="0" bottom="0" right="0"/>
-                    <constraints>
-                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                        <minimum-size width="300" height="-1"/>
-                        <maximum-size width="300" height="200"/>
-                      </grid>
-                    </constraints>
+                    <constraints border-constraint="Center"/>
                     <properties/>
                     <border type="none"/>
                     <children>
@@ -162,6 +135,26 @@
                       </grid>
                     </children>
                   </grid>
+                  <grid id="a465c" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                    <margin top="5" left="5" bottom="5" right="5"/>
+                    <constraints border-constraint="West"/>
+                    <properties/>
+                    <border type="none"/>
+                    <children>
+                      <component id="5b443" class="javax.swing.JLabel">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false">
+                            <minimum-size width="120" height="-1"/>
+                            <preferred-size width="120" height="-1"/>
+                            <maximum-size width="120" height="-1"/>
+                          </grid>
+                        </constraints>
+                        <properties>
+                          <text value="Included classes"/>
+                        </properties>
+                      </component>
+                    </children>
+                  </grid>
                 </children>
               </grid>
               <grid id="f63a4" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
@@ -194,9 +187,9 @@
                         </constraints>
                         <properties>
                           <font name="Droid Sans Mono" size="10"/>
-                          <foreground color="-7237231"/>
+                          <foreground color="-13273872"/>
                           <icon value="icons/png/information-line.png"/>
-                          <text value="sets the filter to follow the class and method in editor"/>
+                          <text value="Set the filter to the method under your cursor when it moves"/>
                         </properties>
                       </component>
                     </children>
@@ -221,40 +214,16 @@
                   </grid>
                 </children>
               </grid>
-              <grid id="d11e7" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                <margin top="5" left="5" bottom="5" right="5"/>
+              <grid id="d11e7" layout-manager="BorderLayout" hgap="0" vgap="0">
                 <constraints>
                   <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties/>
                 <border type="etched"/>
                 <children>
-                  <grid id="45f52" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                    <margin top="0" left="0" bottom="0" right="0"/>
-                    <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false">
-                        <minimum-size width="150" height="-1"/>
-                        <maximum-size width="150" height="-1"/>
-                      </grid>
-                    </constraints>
-                    <properties/>
-                    <border type="none"/>
-                    <children>
-                      <component id="69a75" class="javax.swing.JLabel">
-                        <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                        <properties>
-                          <text value="Excluded classes"/>
-                        </properties>
-                      </component>
-                    </children>
-                  </grid>
                   <grid id="16e81" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                     <margin top="0" left="0" bottom="0" right="0"/>
-                    <constraints>
-                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-                    </constraints>
+                    <constraints border-constraint="Center"/>
                     <properties/>
                     <border type="none"/>
                     <children>
@@ -350,42 +319,38 @@
                       </grid>
                     </children>
                   </grid>
+                  <grid id="b0af3" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                    <margin top="5" left="5" bottom="5" right="5"/>
+                    <constraints border-constraint="West"/>
+                    <properties/>
+                    <border type="none"/>
+                    <children>
+                      <component id="48b33" class="javax.swing.JLabel">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false">
+                            <minimum-size width="120" height="-1"/>
+                            <preferred-size width="120" height="-1"/>
+                            <maximum-size width="120" height="-1"/>
+                          </grid>
+                        </constraints>
+                        <properties>
+                          <text value="Excluded classes"/>
+                        </properties>
+                      </component>
+                    </children>
+                  </grid>
                 </children>
               </grid>
-              <grid id="c790c" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                <margin top="5" left="5" bottom="5" right="5"/>
+              <grid id="c790c" layout-manager="BorderLayout" hgap="0" vgap="0">
                 <constraints>
                   <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties/>
                 <border type="etched"/>
                 <children>
-                  <grid id="12665" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                    <margin top="0" left="0" bottom="0" right="0"/>
-                    <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false">
-                        <minimum-size width="150" height="-1"/>
-                        <maximum-size width="150" height="-1"/>
-                      </grid>
-                    </constraints>
-                    <properties/>
-                    <border type="none"/>
-                    <children>
-                      <component id="21d7d" class="javax.swing.JLabel">
-                        <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                        <properties>
-                          <text value="Included methods"/>
-                        </properties>
-                      </component>
-                    </children>
-                  </grid>
                   <grid id="14ddb" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                     <margin top="0" left="0" bottom="0" right="0"/>
-                    <constraints>
-                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-                    </constraints>
+                    <constraints border-constraint="Center"/>
                     <properties/>
                     <border type="none"/>
                     <children>
@@ -481,42 +446,38 @@
                       </grid>
                     </children>
                   </grid>
+                  <grid id="162d0" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                    <margin top="5" left="5" bottom="5" right="5"/>
+                    <constraints border-constraint="West"/>
+                    <properties/>
+                    <border type="none"/>
+                    <children>
+                      <component id="7c117" class="javax.swing.JLabel">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false">
+                            <minimum-size width="120" height="-1"/>
+                            <preferred-size width="120" height="-1"/>
+                            <maximum-size width="120" height="-1"/>
+                          </grid>
+                        </constraints>
+                        <properties>
+                          <text value="Included methods"/>
+                        </properties>
+                      </component>
+                    </children>
+                  </grid>
                 </children>
               </grid>
-              <grid id="84fdc" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                <margin top="5" left="5" bottom="5" right="5"/>
+              <grid id="84fdc" layout-manager="BorderLayout" hgap="0" vgap="0">
                 <constraints>
                   <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties/>
                 <border type="etched"/>
                 <children>
-                  <grid id="510b2" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                    <margin top="0" left="0" bottom="0" right="0"/>
-                    <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="9" fill="0" indent="0" use-parent-layout="false">
-                        <minimum-size width="150" height="-1"/>
-                        <maximum-size width="150" height="-1"/>
-                      </grid>
-                    </constraints>
-                    <properties/>
-                    <border type="none"/>
-                    <children>
-                      <component id="3a18" class="javax.swing.JLabel">
-                        <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                        <properties>
-                          <text value="Excluded methods"/>
-                        </properties>
-                      </component>
-                    </children>
-                  </grid>
                   <grid id="8ad3a" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                     <margin top="0" left="0" bottom="0" right="0"/>
-                    <constraints>
-                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-                    </constraints>
+                    <constraints border-constraint="Center"/>
                     <properties/>
                     <border type="none"/>
                     <children>
@@ -610,6 +571,26 @@
                           </grid>
                         </children>
                       </grid>
+                    </children>
+                  </grid>
+                  <grid id="b620" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                    <margin top="5" left="5" bottom="5" right="5"/>
+                    <constraints border-constraint="West"/>
+                    <properties/>
+                    <border type="none"/>
+                    <children>
+                      <component id="d583d" class="javax.swing.JLabel">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false">
+                            <minimum-size width="120" height="-1"/>
+                            <preferred-size width="120" height="-1"/>
+                            <maximum-size width="120" height="-1"/>
+                          </grid>
+                        </constraints>
+                        <properties>
+                          <text value="Excluded methods"/>
+                        </properties>
+                      </component>
                     </children>
                   </grid>
                 </children>

@@ -1,6 +1,8 @@
 package com.insidious.plugin.ui.stomp;
 
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
+import com.intellij.notification.NotificationType;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -51,6 +53,11 @@ public class FilterModel {
 
     public void setFollowEditor(boolean followEditor) {
         this.followEditor = followEditor;
+        if (this.followEditor) {
+            InsidiousNotification.notifyMessage(
+                    "Filter will follow method focussed in editor", NotificationType.INFORMATION
+            );
+        }
     }
 
     public Set<String> getIncludedClassNames() {

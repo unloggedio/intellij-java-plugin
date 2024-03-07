@@ -206,6 +206,9 @@ public class ObjectRoutine {
                     testGenerationState.setSetupNeedsJsonResources(true);
                 }
                 testGenerationState.getValueResourceMap().setResourceFileName(resourceFileName);
+                scriptContainer.addComment(
+                        "fixtures saved as json in: " + "src/test/resources/unlogged-fixtures/" + scriptContainer.getName() + ".json"
+                );
                 scriptContainer.getStatements()
                         .add(0, Pair.create(
                                 CodeLineFactory.StatementCodeLine("LoadResources(this.getClass(), $S)"), new Object[]{

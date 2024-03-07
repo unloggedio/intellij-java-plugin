@@ -44,12 +44,12 @@ import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
-import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.impl.JavaPsiImplementationHelper;
 import com.intellij.psi.search.searches.ClassInheritorsSearch;
+import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ui.JBUI;
@@ -91,7 +91,9 @@ public class StompComponent implements
     private final FilterModel filterModel;
     private final AtomicRecordService atomicRecordService;
     private final Set<Long> pinnedItems = new HashSet<>();
+    private final ActionToolbarImpl actionToolbar;
     BlockingQueue<TestCandidateMetadata> incomingQueue = new ArrayBlockingQueue<>(100);
+    int totalAcceptedCount = 0;
     private JPanel mainPanel;
     private JPanel northPanelContainer;
     private JScrollPane historyStreamScrollPanel;
@@ -193,10 +195,11 @@ public class StompComponent implements
             }
         };
 
+
         List<AnAction> action11 = List.of(reloadAction, clearAction, generateJunitTestAction, replaySelectionAction);
 
 
-        ActionToolbarImpl actionToolbar = new ActionToolbarImpl(
+        actionToolbar = new ActionToolbarImpl(
                 "Live View", new DefaultActionGroup(action11), true);
         actionToolbar.setMiniMode(false);
         actionToolbar.setForceMinimumSize(true);
@@ -263,7 +266,7 @@ public class StompComponent implements
             public void mouseClicked(MouseEvent e) {
 
                 FilterModel originalFilter = new FilterModel(filterModel);
-                StompFilter stompFilter = new StompFilter(filterModel, lastMethodFocussed);
+                StompFilter stompFilter = new StompFilter(filterModel, lastMethodFocussed, project);
                 JComponent component = stompFilter.getComponent();
 
                 ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
@@ -274,6 +277,7 @@ public class StompComponent implements
                         .setShowBorder(true)
                         .setShowShadow(true)
                         .setFocusable(true)
+                        .setResizable(true)
                         .setRequestFocus(true)
                         .setCancelOnClickOutside(false)
                         .setCancelOnOtherWindowOpen(false)
@@ -447,6 +451,8 @@ public class StompComponent implements
     }
 
     public JComponent getComponent() {
+
+
         return mainPanel;
     }
 
@@ -457,6 +463,22 @@ public class StompComponent implements
         if (!welcomePanelRemoved) {
             historyStreamScrollPanel.setVisible(true);
             welcomePanelRemoved = true;
+        }
+
+        totalAcceptedCount++;
+
+        if (totalAcceptedCount > 10) {
+            new GotItTooltip("Unlogged.Stomp.Item.Filter",
+                    "Filter items on the timeline by including and excluding classes so only relevant replays show up",
+                    insidiousService.getProject())
+                    .withHeader("Filter whats visible")
+                    .withIcon(UIUtils.UNLOGGED_ICON_DARK_SVG)
+                    .withLink("Enable Follow Method Filter", () -> {
+                        filterModel.setFollowEditor(true);
+                    })
+                    .withPosition(Balloon.Position.atLeft)
+                    .show(filterButton, GotItTooltip.LEFT_MIDDLE);
+
         }
 
         for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
@@ -498,6 +520,7 @@ public class StompComponent implements
     private synchronized void addCandidateToUi(TestCandidateMetadata testCandidateMetadata, int index) {
         StompItem stompItem = new StompItem(testCandidateMetadata, this, insidiousService);
 
+
         JScrollBar verticalScrollBar = historyStreamScrollPanel.getVerticalScrollBar();
         int scrollPosition = verticalScrollBar.getValue();
 
@@ -536,6 +559,15 @@ public class StompComponent implements
         int max = verticalScrollBar1.getMaximum();
         if (verticalScrollBar1.getValue() != max) {
             return;
+        }
+        if (itemPanel.getComponentCount() > 5) {
+            new GotItTooltip("Unlogged.Stomp.Item.Show",
+                    "<html>Each method execution shows up here. <br>" +
+                            "Hover on and select by clicking the checkbox next to the pink icon<br>"
+                            + "Right click to include/exclude",
+                    insidiousService.getProject())
+                    .withPosition(Balloon.Position.below)
+                    .show(component, GotItTooltip.BOTTOM_MIDDLE);
         }
 
         ApplicationManager.getApplication().invokeLater(() -> {
@@ -801,12 +833,18 @@ public class StompComponent implements
         if (selectedCandidates.size() > 0 && !controlPanel.isEnabled()) {
             clearSelectionLabel.setVisible(true);
             saveReplayButton.setEnabled(true);
-//            controlPanel.setEnabled(true);
+
+            new GotItTooltip("Unlogged.Stomp.ActionToolbar",
+                    "Use the toolbar to replay/save or generate test case for multiple method replays at once",
+                    insidiousService.getProject())
+                    .withPosition(Balloon.Position.above)
+                    .show(actionToolbar.getComponent(), GotItTooltip.TOP_MIDDLE);
+
+
         } else if (selectedCandidates.size() == 0 && controlPanel.isEnabled()) {
             selectedCountLabel.setText("0 selected");
             clearSelectionLabel.setVisible(false);
             saveReplayButton.setEnabled(false);
-//            controlPanel.setEnabled(false);
         }
     }
 
@@ -841,7 +879,7 @@ public class StompComponent implements
         DumbService instance = DumbService.getInstance(insidiousService.getProject());
 
         TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Gson, ResourceEmbedMode.IN_FILE
+                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Jackson, ResourceEmbedMode.IN_CODE
         );
         TestCaseService testCaseService = insidiousService.getTestCaseService();
         if (testCaseService == null) {
@@ -1130,8 +1168,8 @@ public class StompComponent implements
         if (directInvokeComponent == null) {
             directInvokeComponent = new MethodDirectInvokeComponent(insidiousService, this);
             JComponent content = directInvokeComponent.getContent();
-            content.setMinimumSize(new Dimension(-1, 500));
-            content.setMaximumSize(new Dimension(-1, 600));
+            content.setMinimumSize(new Dimension(-1, 400));
+            content.setMaximumSize(new Dimension(-1, 500));
         }
 
         ApplicationManager.getApplication().invokeLater(() -> {
@@ -1367,7 +1405,8 @@ public class StompComponent implements
                         (Computable<PsiClass>) () -> method.getPsiMethod().getContainingClass())).findAll();
 
         for (PsiClass childClass : childClasses) {
-            newClassNameList.add(childClass.getQualifiedName());
+            newClassNameList.add(ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) childClass::getQualifiedName));
         }
 
 

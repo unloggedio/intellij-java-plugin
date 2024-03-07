@@ -3,6 +3,9 @@ package com.insidious.plugin.ui.stomp;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.popup.Balloon;
+import com.intellij.ui.GotItTooltip;
 import com.intellij.uiDesigner.core.GridConstraints;
 import org.jetbrains.annotations.Nullable;
 
@@ -61,7 +64,7 @@ public class StompFilter {
     private DefaultListModel<String> modelIncludedMethods;
     private DefaultListModel<String> modelExcludedMethods;
 
-    public StompFilter(FilterModel filterModel, MethodUnderTest lastMethodFocussed) {
+    public StompFilter(FilterModel filterModel, MethodUnderTest lastMethodFocussed, Project project) {
         originalFilterModel = new FilterModel(filterModel);
         this.filterModel = new FilterModel(originalFilterModel);
         int stompFilterPanelWidth = 300;
@@ -71,6 +74,13 @@ public class StompFilter {
                 componentLifecycleListener.onClose(StompFilter.this);
             }
         });
+
+
+        new GotItTooltip("Unlogged.Stomp.Filter.Checkbox",
+                "Make the filter always set to the method focussed in your editor by enabling this", project)
+                .withPosition(Balloon.Position.atRight)
+                .show(followEditorCheckBox, GotItTooltip.RIGHT_MIDDLE);
+
 
         applyButton.addActionListener(e -> {
             originalFilterModel.setFollowEditor(filterModel.followEditor);

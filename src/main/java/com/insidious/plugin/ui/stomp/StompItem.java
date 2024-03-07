@@ -11,6 +11,8 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.ui.popup.Balloon;
+import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.JBColor;
 
 import javax.swing.*;
@@ -34,6 +36,7 @@ public class StompItem {
     private static final Logger logger = LoggerUtil.getInstance(StompItem.class);
     private final TestCandidateLifeListener testCandidateLifeListener;
     private final Color defaultPanelColor;
+    private final InsidiousService insidiousService;
     private TestCandidateMetadata candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
@@ -59,6 +62,7 @@ public class StompItem {
             InsidiousService insidiousService) {
         this.candidateMetadata = testCandidateMetadata;
         this.testCandidateLifeListener = testCandidateLifeListener;
+        this.insidiousService = insidiousService;
         defaultPanelColor = mainPanel.getBackground();
 
         MouseAdapter methodNameClickListener = new MouseAdapter() {
@@ -147,6 +151,12 @@ public class StompItem {
 
         pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
         pinLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        new GotItTooltip("Unlogged.Stomp.Item.Replay",
+                "Replay a single method again using this button", insidiousService.getProject())
+                .withPosition(Balloon.Position.above)
+                .show(replaySingle, GotItTooltip.TOP_MIDDLE);
+
+
         replaySingle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         replaySingle.addMouseListener(new MouseAdapter() {
             @Override
@@ -254,6 +264,7 @@ public class StompItem {
 
         selectCandidateCheckbox.addMouseListener(labelMouseAdapter);
 
+
         selectCandidateCheckbox.addActionListener(e -> {
             if (selectCandidateCheckbox.isSelected()) {
                 testCandidateLifeListener.onSelected(candidateMetadata);
@@ -263,6 +274,7 @@ public class StompItem {
         });
         selectCandidateCheckbox.setVisible(false);
         pinLabel.setVisible(false);
+
 
     }
 
@@ -317,6 +329,11 @@ public class StompItem {
         metadataPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
         selectCandidateCheckbox.setVisible(true);
         pinLabel.setVisible(true);
+        new GotItTooltip("Unlogged.Stomp.Item.Checkbox",
+                "Click the checkbox to select a replay record", insidiousService.getProject())
+                .withPosition(Balloon.Position.above)
+                .show(selectCandidateCheckbox, GotItTooltip.TOP_MIDDLE);
+
     }
 
     public JPanel getComponent() {

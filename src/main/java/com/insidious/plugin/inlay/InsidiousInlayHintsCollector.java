@@ -14,6 +14,7 @@ import com.intellij.codeInsight.hints.FactoryInlayHintsCollector;
 import com.intellij.codeInsight.hints.InlayHintsSink;
 import com.intellij.codeInsight.hints.InlayPresentationFactory;
 import com.intellij.codeInsight.hints.presentation.*;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -23,6 +24,7 @@ import com.intellij.openapi.editor.impl.EditorImpl;
 import com.intellij.openapi.editor.markup.EffectType;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.ui.popup.ActiveIcon;
+import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.TextRange;
@@ -32,6 +34,7 @@ import com.intellij.psi.impl.source.PsiMethodImpl;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.testFramework.LightVirtualFile;
+import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.containers.JBIterable;
@@ -221,6 +224,22 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         inlayPresentations.add(createMock);
 
         SequencePresentation sequenceOfInlays = new SequencePresentation(inlayPresentations);
+
+        GotItTooltip go = new GotItTooltip("Unlogged.Inlay.Mock",
+                "Mock downstream call by creating mock responses. " +
+                        "Enable mocks in live application",
+                insidiousService.getProject())
+                .withHeader("Mock Downstream Call")
+                .withLink("Go to library", insidiousService::showLibrary)
+                .andShowCloseShortcut()
+                .withPosition(Balloon.Position.above);
+        ApplicationManager.getApplication().invokeLater(() -> {
+            go.show(editor.getContentComponent(), (component, balloon) -> {
+                Point point = editor.offsetToXY(startOffset, true, true);
+                return new Point((int) (point.getX() + column * columnWidth),
+                        (int) point.getY() - editor.getLineHeight());
+            });
+        });
 
 
         inlayHintsSink.addBlockElement(startOffset, true, true, UNLOGGED_APM_GROUP, sequenceOfInlays);
