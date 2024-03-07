@@ -337,8 +337,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
         if (parameterScrollPanel == null) {
             parameterScrollPanel = new JBScrollPane(methodParameterContainer);
             parameterScrollPanel.setBorder(BorderFactory.createEmptyBorder());
-            centerPanel.add(parameterScrollPanel, BorderLayout.CENTER);
             centerPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+            ApplicationManager.getApplication().invokeLater(() -> {
+                centerPanel.add(parameterScrollPanel, BorderLayout.CENTER);
+            });
         } else {
             ApplicationManager.getApplication().invokeLater(() -> {
                 parameterScrollPanel.setViewportView(methodParameterContainer);

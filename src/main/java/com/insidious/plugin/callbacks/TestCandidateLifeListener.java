@@ -32,7 +32,7 @@ public interface TestCandidateLifeListener {
 
     void onUpdateRequest(TestCandidateMetadata storedCandidate);
 
-    void onGenerateJunitTestCaseRequest(TestCandidateMetadata storedCandidate);
+    void onGenerateJunitTestCaseRequest(List<TestCandidateMetadata> storedCandidate);
 
     void onCandidateSelected(TestCandidateMetadata testCandidateMetadata, MouseEvent e);
 

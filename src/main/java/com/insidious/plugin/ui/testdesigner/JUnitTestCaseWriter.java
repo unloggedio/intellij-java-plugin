@@ -35,6 +35,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -175,13 +176,18 @@ public class JUnitTestCaseWriter {
             List<VirtualFile> newFile1 = new ArrayList<>();
             newFile1.add(newFile);
 
+            CountDownLatch countDownLatch = new CountDownLatch(1);
             ApplicationManager.getApplication().invokeLater(() -> {
                 ApplicationManager.getApplication().runWriteAction(() -> {
-//                    FileContentUtil.reparseFiles(project, newFile1, false);
-//                    Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
                     FileEditorManager.getInstance(project).openFile(newFile, true, false);
+                    countDownLatch.countDown();
                 });
             });
+            try {
+                countDownLatch.await();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
 
             logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
             return newFile;

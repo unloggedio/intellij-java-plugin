@@ -160,9 +160,7 @@ public class StompComponent implements
                 }
 
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
-                        onGenerateJunitTestCaseRequest(selectedCandidate);
-                    }
+                    onGenerateJunitTestCaseRequest(selectedCandidates);
                 });
             }
         };
@@ -795,12 +793,12 @@ public class StompComponent implements
         if (selectedCandidates.size() > 0 && !controlPanel.isEnabled()) {
             clearSelectionLabel.setVisible(true);
             saveReplayButton.setEnabled(true);
-            controlPanel.setEnabled(true);
+//            controlPanel.setEnabled(true);
         } else if (selectedCandidates.size() == 0 && controlPanel.isEnabled()) {
             selectedCountLabel.setText("0 selected");
             clearSelectionLabel.setVisible(false);
             saveReplayButton.setEnabled(false);
-            controlPanel.setEnabled(false);
+//            controlPanel.setEnabled(false);
         }
     }
 
@@ -831,7 +829,8 @@ public class StompComponent implements
     }
 
     @Override
-    public void onGenerateJunitTestCaseRequest(TestCandidateMetadata storedCandidate) {
+    public void onGenerateJunitTestCaseRequest(List<TestCandidateMetadata> storedCandidate) {
+        DumbService instance = DumbService.getInstance(insidiousService.getProject());
 
         TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
                 TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Gson, ResourceEmbedMode.IN_FILE
@@ -843,35 +842,30 @@ public class StompComponent implements
             return;
         }
 
-        ArrayList<TestCandidateMetadata> selectedCandidatesCopy = new ArrayList<>(selectedCandidates);
+        ArrayList<TestCandidateMetadata> selectedCandidatesCopy = new ArrayList<>(storedCandidate);
         for (TestCandidateMetadata testCandidateShell : selectedCandidatesCopy) {
 
             try {
 
-                TestCandidateMetadata loadedTestCandidate = ApplicationManager.getApplication().executeOnPooledThread(
-                        () -> insidiousService.getSessionInstance()
-                                .getTestCandidateById(testCandidateShell.getEntryProbeIndex(), true)).get();
-                Parameter testSubject = loadedTestCandidate.getTestSubject();
-                if (testSubject.isException()) {
-                    continue;
-                }
-                MethodCallExpression callExpression = loadedTestCandidate.getMainMethod();
-                String methodName = callExpression.getMethodName();
-                logger.warn(
-                        "Generating test case: " + testSubject.getType() + "." + methodName + "()");
-                generationConfiguration.getTestCandidateMetadataList().clear();
-                generationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
+                CountDownLatch cdl = new CountDownLatch(1);
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    instance.waitForSmartMode();
+                    instance.suspendIndexingAndRun("Generating JUnit Test cases", () -> {
+                        try {
+                            gnerateTestCaseSingle(generationConfiguration, testCaseService, testCandidateShell);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            cdl.countDown();
+                        }
 
-                generationConfiguration.getCallExpressionList().clear();
-                generationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
 
-                generationConfiguration.setTestMethodName(
-                        "test" + methodName.substring(0, 1).toUpperCase(Locale.ROOT) + methodName.substring(1));
-                TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-                List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
-                testCaseUnit1.add(testCaseUnit);
-                TestSuite testSuite = new TestSuite(testCaseUnit1);
-                insidiousService.getJUnitTestCaseWriter().saveTestSuite(testSuite);
+                    });
+
+                });
+
+                cdl.await();
+                instance.waitForSmartMode();
 
             } catch (Exception e) {
                 logger.error("Failed to generate test case", e);
@@ -880,8 +874,37 @@ public class StompComponent implements
                                 .getType() + "] " + e.getMessage(), NotificationType.ERROR);
             }
         }
+        logger.info("completed");
 
 
+    }
+
+    private boolean gnerateTestCaseSingle(TestCaseGenerationConfiguration generationConfiguration, TestCaseService testCaseService, TestCandidateMetadata testCandidateShell) throws Exception {
+        TestCandidateMetadata loadedTestCandidate = ApplicationManager.getApplication().executeOnPooledThread(
+                () -> insidiousService.getSessionInstance()
+                        .getTestCandidateById(testCandidateShell.getEntryProbeIndex(), true)).get();
+        Parameter testSubject = loadedTestCandidate.getTestSubject();
+        if (testSubject.isException()) {
+            return true;
+        }
+        MethodCallExpression callExpression = loadedTestCandidate.getMainMethod();
+        String methodName = callExpression.getMethodName();
+        logger.warn(
+                "Generating test case: " + testSubject.getType() + "." + methodName + "()");
+        generationConfiguration.getTestCandidateMetadataList().clear();
+        generationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
+
+        generationConfiguration.getCallExpressionList().clear();
+        generationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
+
+        generationConfiguration.setTestMethodName(
+                "test" + methodName.substring(0, 1).toUpperCase(Locale.ROOT) + methodName.substring(1));
+        TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+        List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
+        testCaseUnit1.add(testCaseUnit);
+        TestSuite testSuite = new TestSuite(testCaseUnit1);
+        insidiousService.getJUnitTestCaseWriter().saveTestSuite(testSuite);
+        return false;
     }
 
     @Override

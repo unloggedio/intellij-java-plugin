@@ -194,16 +194,8 @@ public class TestCaseService {
         if (returnType != null) {
             if (returnType instanceof PsiType) {
                 JvmType finalReturnType = returnType;
-                try {
-                    returnType = ApplicationManager.getApplication().executeOnPooledThread(
-                                    () -> ApplicationManager.getApplication()
-                                            .runReadAction((Computable<PsiType>) () ->
-                                                    ClassTypeUtils.
-                                                            substituteClassRecursively((PsiType) finalReturnType, substitutor)))
-                            .get();
-                } catch (InterruptedException | ExecutionException e) {
-                    throw new RuntimeException(e);
-                }
+                returnType = ClassTypeUtils.
+                        substituteClassRecursively((PsiType) finalReturnType, substitutor);
             }
             TestCaseWriter.setParameterTypeFromPsiType(mainMethod.getReturnValue(),
                     (PsiType) returnType, true);
@@ -261,7 +253,6 @@ public class TestCaseService {
 //        CountDownLatch cdl = new CountDownLatch(1);
         ApplicationManager.getApplication().runReadAction(() -> {
             normalizeTypeInformationUsingProject(generationConfiguration);
-//                cdl.countDown();
         });
 //        cdl.await();
 

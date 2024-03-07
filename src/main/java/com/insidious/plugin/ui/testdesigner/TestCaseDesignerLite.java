@@ -70,7 +70,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -266,24 +265,9 @@ public class TestCaseDesignerLite {
             InsidiousNotification.notifyMessage("Created test case: " + testcaseFile.getName(),
                     NotificationType.WARNING);
         });
-
-//        this.closeButton.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent e) {
-//                closeEditorWindow();
-//            }
-//        });
-
-        CountDownLatch countDownLatch = new CountDownLatch(1);
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             generateAndPreviewTestCase(currentTestGenerationConfiguration);
-            countDownLatch.countDown();
         });
-        try {
-            countDownLatch.await();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private static int buildMethodAccessModifier(PsiModifierList modifierList) {
@@ -430,7 +414,9 @@ public class TestCaseDesignerLite {
     }
 
     public void updatePreviewTestCase() {
-        generateAndPreviewTestCase(currentTestGenerationConfiguration);
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            generateAndPreviewTestCase(currentTestGenerationConfiguration);
+        });
     }
 
     public void generateAndPreviewTestCase(TestCaseGenerationConfiguration testCaseGenerationConfiguration) {
@@ -458,7 +444,8 @@ public class TestCaseDesignerLite {
 
             String moduleBasePath = insidiousService.guessModuleBasePath(currentClass);
             PsiJavaFileImpl containingFile = currentClass.getContainingFile();
-            String packageName = containingFile.getPackageName();
+            String packageName = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) containingFile::getPackageName);
             String testOutputDirPath = insidiousService.getJUnitTestCaseWriter()
                     .getTestDirectory(packageName, moduleBasePath);
 
@@ -475,12 +462,14 @@ public class TestCaseDesignerLite {
             }
 
             Document document = editorFactory.createDocument(testCaseScriptCode);
-            Editor editor = editorFactory.createEditor(document, methodAdapter.getProject(), JavaFileType.INSTANCE,
-                    false);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                Editor editor = editorFactory.createEditor(document, methodAdapter.getProject(), JavaFileType.INSTANCE,
+                        false);
 
-            testCaseScriptFile.setContent(this, editor.getDocument().getText(), true);
-            saveTestCaseButton.setEnabled(true);
-            bottomControlPanel.setEnabled(true);
+                testCaseScriptFile.setContent(this, editor.getDocument().getText(), true);
+                saveTestCaseButton.setEnabled(true);
+                bottomControlPanel.setEnabled(true);
+            });
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -489,26 +478,33 @@ public class TestCaseDesignerLite {
             e.printStackTrace(stringWriter);
             String exceptionText = out.toString().replace("\r", "");
             Document document = editorFactory.createDocument(exceptionText);
-            Editor editor = editorFactory.createEditor(document, methodAdapter.getProject(), PlainTextFileType.INSTANCE,
-                    true);
 
-            testCaseScriptFile.setContent(this, editor.getDocument().getText(), true);
-            saveTestCaseButton.setEnabled(false);
-            bottomControlPanel.setEnabled(false);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                Editor editor = editorFactory.createEditor(document, methodAdapter.getProject(),
+                        PlainTextFileType.INSTANCE,
+                        true);
+
+                testCaseScriptFile.setContent(this, editor.getDocument().getText(), true);
+                saveTestCaseButton.setEnabled(false);
+                bottomControlPanel.setEnabled(false);
+            });
+
         }
         updateFileContents();
     }
 
     private void updateFileContents() {
-        ApplicationManager.getApplication().runWriteAction(() -> {
-            if (this.editorReference != null) {
-                FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+        if (this.editorReference != null) {
+            FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
 
-                Document document = editorReference.getDocument();
-                document.setText(testCaseScript.getCode());
-                fileEditorManager.openFile(testCaseScriptFile, true);
-            }
-        });
+            ApplicationManager.getApplication().invokeLater(() -> {
+                ApplicationManager.getApplication().runWriteAction(() -> {
+                    Document document = editorReference.getDocument();
+                    document.setText(testCaseScript.getCode());
+                    fileEditorManager.openFile(testCaseScriptFile, true);
+                });
+            });
+        }
     }
 
     private List<TestCandidateMetadata> createTestCandidate() throws ExecutionException, InterruptedException {

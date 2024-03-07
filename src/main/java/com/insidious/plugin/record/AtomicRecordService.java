@@ -208,7 +208,8 @@ public class AtomicRecordService {
 
     private Module getModuleForClass(PsiClass psiClassResult) {
         final ProjectFileIndex index = ProjectRootManager.getInstance(psiClassResult.getProject()).getFileIndex();
-        return index.getModuleForFile(psiClassResult.getContainingFile().getVirtualFile());
+        return ApplicationManager.getApplication().runReadAction(
+                (Computable<Module>) () -> index.getModuleForFile(psiClassResult.getContainingFile().getVirtualFile()));
     }
 
     public Module guessModuleForClassName(String className) {
