@@ -69,7 +69,8 @@ public class SaveFormListener implements CandidateLifeListener {
             atomicRecordService.saveCandidate(methodUnderTest, existingMatchingStoredCandidate);
         } else {
             storedCandidate.setCandidateId(UUID.randomUUID().toString());
-            storedCandidate.setName("saved on " + simpleDateFormat.format(new Date().toInstant()));
+            storedCandidate.setName(
+                    methodUnderTest.getName() + " saved on " + simpleDateFormat.format(new Date().toInstant()));
             atomicRecordService.saveCandidate(methodUnderTest, storedCandidate);
         }
 

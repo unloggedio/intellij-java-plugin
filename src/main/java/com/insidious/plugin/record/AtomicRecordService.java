@@ -348,7 +348,9 @@ public class AtomicRecordService {
             }
             VirtualFile virtialFile = VirtualFileManager.getInstance()
                     .findFileByNioPath(file.getParentFile().toPath());
-            virtialFile.refresh(false, false);
+            if (virtialFile != null) {
+                virtialFile.refresh(false, false);
+            }
         } catch (Exception e) {
             logger.info("[ATRS] Failed to write to file : " + e);
             logger.error(e.getMessage(), e);
