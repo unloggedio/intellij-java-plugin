@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.methodscope;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
@@ -528,7 +529,14 @@ public class MethodDirectInvokeComponent implements ActionListener {
                                     returnValueString = ParameterUtils.getDoubleValue(returnValueString);
                                 }
 
-                                JsonNode jsonNode = objectMapper.readTree(returnValueString);
+                                JsonNode jsonNode = null;
+                                if (responseClassName.equals("java.lang.String")) {
+                                    JsonNodeFactory jsonNodeFactory = objectMapper.getNodeFactory();
+                                    jsonNode = jsonNodeFactory.objectNode().put("String", returnValueString);
+                                }
+                                else {
+                                    jsonNode = objectMapper.readTree(returnValueString);
+                                }
 
                                 // pass execute and modify buttons
                                 JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(jsonNode, responseClassName, false, this.executeAction, this.modifyArgumentsAction);
