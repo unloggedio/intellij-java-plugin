@@ -227,7 +227,9 @@ public class JsonTreeEditor {
         this.listAnAction = List.of(otherAction);
         this.treeModel = null;
         this.valueTree = null;
+        this.editable = true;
         viewStateButton(false, true);
+        mainPanel.setPreferredSize(new Dimension(600,400));
     }
 
     private static MouseListener getMouseListener(final JTree tree) {
@@ -266,7 +268,7 @@ public class JsonTreeEditor {
     public void viewStateButton(Boolean allButtons, Boolean viewState) {
 
         List<AnAction> localListAction = new ArrayList<>(this.listAnAction);
-        if (editable && allButtons) {
+        if (this.editable && allButtons) {
             if (viewState) {
                 localListAction.add(this.editAction);
                 localListAction.add(this.buildJsonAction);
