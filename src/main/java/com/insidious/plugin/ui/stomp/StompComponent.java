@@ -37,8 +37,6 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
-import com.intellij.openapi.actionSystem.Presentation;
-import com.intellij.openapi.actionSystem.impl.ActionButton;
 import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -54,7 +52,6 @@ import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -69,7 +66,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class StompComponent implements
         Consumer<List<TestCandidateMetadata>>,
@@ -95,10 +92,10 @@ public class StompComponent implements
     private JPanel northPanelContainer;
     private JScrollPane historyStreamScrollPanel;
     private JPanel scrollContainer;
-//    private JLabel reloadButton;
+    //    private JLabel reloadButton;
     private JLabel filterButton;
     private JButton saveReplayButton;
-//    private JLabel replayButton;
+    //    private JLabel replayButton;
 //    private JLabel generateJUnitButton;
     private JPanel controlPanel;
     private JPanel infoPanel;
@@ -143,7 +140,6 @@ public class StompComponent implements
         scrollContainer.setBorder(BorderFactory.createEmptyBorder());
 
 
-
         AnAction clearAction = new AnAction(() -> "Clear Timeline", UIUtils.DELETE_BIN_3_LINE) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -151,7 +147,6 @@ public class StompComponent implements
                 resetTimeline();
             }
         };
-
 
 
         AnAction generateJunitTestAction = new AnAction(() -> "Generate JUnit Test", UIUtils.TEST_TUBE_ICON) {
@@ -197,7 +192,6 @@ public class StompComponent implements
         };
 
         List<AnAction> action11 = List.of(reloadAction, clearAction, generateJunitTestAction, replaySelectionAction);
-
 
 
         ActionToolbarImpl actionToolbar = new ActionToolbarImpl(
@@ -763,8 +757,17 @@ public class StompComponent implements
                 return;
             }
 
-            showDirectInvoke(new JavaMethodAdapter(methodPsiElement));
-            directInvokeComponent.triggerExecute();
+            JavaMethodAdapter method = new JavaMethodAdapter(methodPsiElement);
+            showDirectInvoke(method);
+            try {
+                directInvokeComponent.renderForMethod(method,
+                        selectedCandidate.getMainMethod().getArguments()
+                                .stream().map(e -> new String(e.getProb().getSerializedValue()))
+                                .collect(Collectors.toList()));
+                directInvokeComponent.triggerExecute();
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
         }
 
     }
@@ -1099,15 +1102,16 @@ public class StompComponent implements
             content.setMinimumSize(new Dimension(-1, 500));
             content.setMaximumSize(new Dimension(-1, 600));
         }
-        try {
-            directInvokeComponent.renderForMethod(method, null);
-            southPanel.removeAll();
-            southPanel.add(directInvokeComponent.getContent(), BorderLayout.CENTER);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
 
         ApplicationManager.getApplication().invokeLater(() -> {
+            try {
+                directInvokeComponent.renderForMethod(method, null);
+                southPanel.removeAll();
+                southPanel.add(directInvokeComponent.getContent(), BorderLayout.CENTER);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+
             southPanel.revalidate();
             southPanel.repaint();
             historyStreamScrollPanel.revalidate();
@@ -1231,30 +1235,30 @@ public class StompComponent implements
     public void run() {
         try {
 //            while (true) {
-                final TestCandidateMetadata testCandidateMetadata = incomingQueue.poll(1000, TimeUnit.MILLISECONDS);
-                if (testCandidateMetadata == null) {
-                    return;
-                }
-                CountDownLatch pollerCDL = new CountDownLatch(1);
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    try {
+            final TestCandidateMetadata testCandidateMetadata = incomingQueue.poll(1000, TimeUnit.MILLISECONDS);
+            if (testCandidateMetadata == null) {
+                return;
+            }
+            CountDownLatch pollerCDL = new CountDownLatch(1);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                try {
 
-                        acceptSingle(testCandidateMetadata);
+                    acceptSingle(testCandidateMetadata);
 
-                        List<TestCandidateMetadata> remainingItems = new ArrayList<>();
-                        incomingQueue.drainTo(remainingItems);
-                        for (TestCandidateMetadata remainingItem : remainingItems) {
-                            acceptSingle(remainingItem);
-                        }
-
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    } finally {
-                        pollerCDL.countDown();
+                    List<TestCandidateMetadata> remainingItems = new ArrayList<>();
+                    incomingQueue.drainTo(remainingItems);
+                    for (TestCandidateMetadata remainingItem : remainingItems) {
+                        acceptSingle(remainingItem);
                     }
-                });
 
-                pollerCDL.await();
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                } finally {
+                    pollerCDL.countDown();
+                }
+            });
+
+            pollerCDL.await();
 //            }
 
 

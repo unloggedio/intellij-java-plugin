@@ -30,7 +30,6 @@ import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.IndexNotReadyException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
@@ -46,7 +45,6 @@ import org.objectweb.asm.Opcodes;
 
 import javax.lang.model.element.Modifier;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -198,10 +196,11 @@ public class TestCaseService {
                 JvmType finalReturnType = returnType;
                 try {
                     returnType = ApplicationManager.getApplication().executeOnPooledThread(
-                            () -> ApplicationManager.getApplication()
-                                    .runReadAction((Computable<PsiType>) () ->
-                                            ClassTypeUtils.
-                                                    substituteClassRecursively((PsiType) finalReturnType, substitutor))).get();
+                                    () -> ApplicationManager.getApplication()
+                                            .runReadAction((Computable<PsiType>) () ->
+                                                    ClassTypeUtils.
+                                                            substituteClassRecursively((PsiType) finalReturnType, substitutor)))
+                            .get();
                 } catch (InterruptedException | ExecutionException e) {
                     throw new RuntimeException(e);
                 }
@@ -259,15 +258,12 @@ public class TestCaseService {
         if (constructorCandidate != null) {
             generationConfiguration.getTestCandidateMetadataList().add(0, constructorCandidate);
         }
-
-        CountDownLatch cdl = new CountDownLatch(1);
+//        CountDownLatch cdl = new CountDownLatch(1);
         ApplicationManager.getApplication().runReadAction(() -> {
-            DumbService.getInstance(project).runWhenSmart(() -> {
-                normalizeTypeInformationUsingProject(generationConfiguration);
-                cdl.countDown();
-            });
+            normalizeTypeInformationUsingProject(generationConfiguration);
+//                cdl.countDown();
         });
-        cdl.await();
+//        cdl.await();
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
 

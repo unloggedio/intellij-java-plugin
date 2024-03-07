@@ -109,10 +109,7 @@ import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static com.insidious.plugin.Constants.HOSTNAME;
@@ -473,6 +470,9 @@ final public class InsidiousService implements
 
     private synchronized void initiateUI() {
         logger.info("initiate ui");
+        if (toolWindow != null) {
+            return;
+        }
         toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Unlogged");
         toolWindow.setIcon(UIUtils.UNLOGGED_ICON_DARK_SVG);
         try {
@@ -484,11 +484,19 @@ final public class InsidiousService implements
 
         addAllTabs();
 
+        CountDownLatch cdl = new CountDownLatch(1);
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             this.sessionLoader = ApplicationManager.getApplication().getService(SessionLoader.class);
             this.sessionLoader.setClient(this.client);
             this.sessionLoader.addSessionCallbackListener(sessionListener);
+            cdl.countDown();
         });
+        try {
+            cdl.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return;
     }
 
     public void addAllTabs() {
@@ -672,9 +680,11 @@ final public class InsidiousService implements
 
 
     public void showLibrary() {
-        if (stompWindow == null) {
+        if (toolWindow == null) {
+            initiateUI();
+        } else {
             InsidiousNotification.notifyMessage(
-                    "Please start the application with unlogged-sdk to use and open the unlogged tool window to use",
+                    "Please start the application with unlogged-sdk and open the unlogged tool window to use",
                     NotificationType.WARNING
             );
             return;
@@ -1166,7 +1176,8 @@ final public class InsidiousService implements
             boolean loadCalls) {
         return CandidateSearchQuery.fromMethod(currentMethod,
                 getInterfacesWithSameSignature(currentMethod),
-                getMethodArgsDescriptor(currentMethod),
+                ApplicationManager.getApplication().runReadAction(
+                        (Computable<String>) () -> getMethodArgsDescriptor(currentMethod)),
                 candidateFilterType,
                 loadCalls
         );
@@ -1706,34 +1717,56 @@ final public class InsidiousService implements
 
     public void showMockCreator(JavaMethodAdapter method, PsiMethodCallExpression callExpression) {
         if (stompWindow == null) {
-            InsidiousNotification.notifyMessage(
-                    "Please start the application with unlogged-sdk and open the unlogged tool window to use",
-                    NotificationType.WARNING
-            );
-            return;
+            if (toolWindow == null) {
+                initiateUI();
+            } else {
+                InsidiousNotification.notifyMessage(
+                        "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                        NotificationType.WARNING
+                );
+                return;
+            }
         }
+
 
         ApplicationManager.getApplication().invokeLater(() -> {
             toolWindow.show();
-            toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
-            ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                stompWindow.showNewDeclaredMockCreator(method, callExpression);
-                stompWindow.onMethodFocussed(method);
-            });
+            if (stompWindowContent != null) {
+                toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    stompWindow.showNewDeclaredMockCreator(method, callExpression);
+                    stompWindow.onMethodFocussed(method);
+                });
+            }
         });
 
     }
 
     public void showDirectInvoke(MethodAdapter method) {
         if (stompWindow == null) {
-            InsidiousNotification.notifyMessage(
-                    "Please start the application with unlogged-sdk and open the unlogged tool window to use",
-                    NotificationType.WARNING
-            );
-            return;
+            if (toolWindow == null) {
+                initiateUI();
+            } else {
+                InsidiousNotification.notifyMessage(
+                        "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                        NotificationType.WARNING
+                );
+                return;
+            }
         }
-        stompWindow.showDirectInvoke(method);
-        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            toolWindow.show();
+            if (stompWindowContent != null) {
+                stompWindow.showDirectInvoke(method);
+                toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    stompWindow.onMethodFocussed(method);
+                });
+            }
+        });
+
+
     }
 
     public void reloadLibrary() {

@@ -70,6 +70,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -273,7 +274,16 @@ public class TestCaseDesignerLite {
 //            }
 //        });
 
-        generateAndPreviewTestCase(currentTestGenerationConfiguration);
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            generateAndPreviewTestCase(currentTestGenerationConfiguration);
+            countDownLatch.countDown();
+        });
+        try {
+            countDownLatch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static int buildMethodAccessModifier(PsiModifierList modifierList) {

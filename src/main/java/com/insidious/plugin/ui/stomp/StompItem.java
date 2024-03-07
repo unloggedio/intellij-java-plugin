@@ -156,7 +156,7 @@ public class StompItem {
                             new ClassUnderTest(candidateMetadata.getFullyQualifiedClassname()),
                             ExecutionRequestSourceType.Single,
                             (testCandidate, agentCommandResponse, diffResult) -> {
-
+                                // do something with the response.
                             });
                 });
             }
