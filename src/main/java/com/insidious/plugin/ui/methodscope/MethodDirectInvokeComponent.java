@@ -37,9 +37,7 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.search.ProjectAndLibrariesScope;
-import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
-import com.intellij.ui.treeStructure.Tree;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
@@ -254,7 +252,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
         String className = ApplicationManager.getApplication().runReadAction(
                 (Computable<String>) containingClass::getName);
 
-        methodNameLabel.setText(className + "." + methodName);
+        String text = className + "." + methodName;
+        methodNameLabel.setText(text.substring(0, Math.min(text.length(), 40)) +
+                (text.length() > 40 ? "..." : ""));
+        methodNameLabel.setToolTipText(methodName);
 
         logger.warn("render method executor for: " + methodName);
         String methodNameForLabel = methodName.length() > 40 ? methodName.substring(0, 40) + "..." : methodName;
@@ -327,7 +328,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 throw new RuntimeException(e);
             }
 
-            parameterEditor = new JsonTreeEditor(objectMapper.readTree(source), "Method Arguments", true, executeAction);
+            parameterEditor = new JsonTreeEditor(objectMapper.readTree(source), "Method Arguments", true,
+                    executeAction);
             parameterEditor.setEditable(true);
             methodParameterContainer.add(parameterEditor.getContent(), BorderLayout.CENTER);
         } else {
@@ -533,13 +535,13 @@ public class MethodDirectInvokeComponent implements ActionListener {
                                 if (responseClassName.equals("java.lang.String")) {
                                     JsonNodeFactory jsonNodeFactory = objectMapper.getNodeFactory();
                                     jsonNode = jsonNodeFactory.objectNode().put("String", returnValueString);
-                                }
-                                else {
+                                } else {
                                     jsonNode = objectMapper.readTree(returnValueString);
                                 }
 
                                 // pass execute and modify buttons
-                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(jsonNode, responseClassName, false, this.executeAction, this.modifyArgumentsAction);
+                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(jsonNode, responseClassName, false,
+                                        this.executeAction, this.modifyArgumentsAction);
                                 parameterScrollPanel.setViewportView(jsonTreeEditor.getContent());
 
                             } catch (JsonProcessingException ex) {
