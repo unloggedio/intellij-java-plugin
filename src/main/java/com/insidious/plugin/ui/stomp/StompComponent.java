@@ -118,6 +118,7 @@ public class StompComponent implements
     private boolean welcomePanelRemoved = false;
     private AtomicInteger candidateQueryLatch;
     private MethodUnderTest lastMethodFocussed;
+    private boolean shownGotItNofiticaton = false;
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -300,6 +301,10 @@ public class StompComponent implements
                         unloggedPreferencesPopup.cancel();
                         if (originalFilter.equals(filterModel)) {
                             return;
+                        }
+                        if (filterModel.followEditor) {
+                            lastMethodFocussed = null;
+                            onMethodFocussed(insidiousService.getCurrentMethod());
                         }
                         updateFilterLabel();
                         resetAndReload();
@@ -565,11 +570,12 @@ public class StompComponent implements
         if (verticalScrollBar1.getValue() != max) {
             return;
         }
-        if (itemPanel.getComponentCount() > 5) {
+        if (itemPanel.getComponentCount() > 5 && !shownGotItNofiticaton) {
+            shownGotItNofiticaton = true;
             new GotItTooltip("Unlogged.Stomp.Item.Show",
                     "<html>Each method execution shows up here. <br>" +
                             "Hover on and select by clicking the checkbox next to the pink icon<br>"
-                            + "Right click to include/exclude",
+                            + "Right click to include/exclude </html>",
                     insidiousService.getProject())
                     .withPosition(Balloon.Position.below)
                     .show(component, GotItTooltip.BOTTOM_MIDDLE);

@@ -80,17 +80,17 @@ public class StompFilter {
 
         new GotItTooltip("Unlogged.Stomp.Filter.Checkbox",
                 "Make the filter always set to the method focussed in your editor by enabling this", project)
-                .withPosition(Balloon.Position.atRight)
-                .show((JPanel) followEditorCheckBox.getParent(), GotItTooltip.RIGHT_MIDDLE);
+                .withPosition(Balloon.Position.above)
+                .show((JPanel) followEditorCheckBox.getParent().getParent(), GotItTooltip.RIGHT_MIDDLE);
 
 
         applyButton.addActionListener(e -> {
             originalFilterModel.setFollowEditor(filterModel.followEditor);
-            if (filterModel.followEditor) {
-                InsidiousNotification.notifyMessage(
-                        "Filter will follow method focussed in editor", NotificationType.INFORMATION
-                );
-            }
+//            if (filterModel.followEditor) {
+//                InsidiousNotification.notifyMessage(
+//                        "Filter will follow method focussed in editor", NotificationType.INFORMATION
+//                );
+//            }
 
             originalFilterModel.getIncludedClassNames().clear();
             originalFilterModel.getIncludedClassNames().addAll(filterModel.getIncludedClassNames());
@@ -652,11 +652,6 @@ public class StompFilter {
 
         followEditorCheckBox.addActionListener(e -> {
             filterModel.setFollowEditor(followEditorCheckBox.isSelected());
-            if (followEditorCheckBox.isSelected()) {
-                InsidiousNotification.notifyMessage(
-                        "Filter will follow method focussed in editor", NotificationType.INFORMATION
-                );
-            }
         });
 
 
