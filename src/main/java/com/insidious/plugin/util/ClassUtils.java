@@ -164,8 +164,7 @@ public class ClassUtils {
         if (parameterType == null) {
             return "null";
         }
-        String parameterTypeCanonicalText =
-                parameterType.getCanonicalText();
+        String parameterTypeCanonicalText = parameterType.getCanonicalText();
         if (creationStack.contains(parameterTypeCanonicalText)) {
             return "null";
         }

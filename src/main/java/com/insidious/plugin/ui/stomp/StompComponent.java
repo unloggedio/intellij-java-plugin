@@ -468,16 +468,21 @@ public class StompComponent implements
         totalAcceptedCount++;
 
         if (totalAcceptedCount > 10) {
-            new GotItTooltip("Unlogged.Stomp.Item.Filter",
-                    "Filter items on the timeline by including and excluding classes so only relevant replays show up",
-                    insidiousService.getProject())
-                    .withHeader("Filter whats visible")
-                    .withIcon(UIUtils.UNLOGGED_ICON_DARK_SVG)
-                    .withLink("Enable Follow Method Filter", () -> {
-                        filterModel.setFollowEditor(true);
-                    })
-                    .withPosition(Balloon.Position.atLeft)
-                    .show(filterButton, GotItTooltip.LEFT_MIDDLE);
+            if (!insidiousService.getProject().isDisposed()) {
+                new GotItTooltip("Unlogged.Stomp.Item.Filter",
+                        "Filter items on the timeline by including and excluding classes so only relevant replays show up",
+                        insidiousService.getProject())
+                        .withHeader("Filter whats visible")
+                        .withIcon(UIUtils.UNLOGGED_ICON_DARK_SVG)
+                        .withLink("Enable Follow Method Filter", () -> {
+                            filterModel.setFollowEditor(true);
+                            InsidiousNotification.notifyMessage(
+                                    "Filter will follow method focussed in editor", NotificationType.INFORMATION
+                            );
+                        })
+                        .withPosition(Balloon.Position.atLeft)
+                        .show(filterButton, GotItTooltip.LEFT_MIDDLE);
+            }
 
         }
 
@@ -1172,14 +1177,16 @@ public class StompComponent implements
             content.setMaximumSize(new Dimension(-1, 500));
         }
 
-        ApplicationManager.getApplication().invokeLater(() -> {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
                 directInvokeComponent.renderForMethod(method, null);
-                southPanel.removeAll();
-                southPanel.add(directInvokeComponent.getContent(), BorderLayout.CENTER);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
+        });
+        ApplicationManager.getApplication().invokeLater(() -> {
+            southPanel.removeAll();
+            southPanel.add(directInvokeComponent.getContent(), BorderLayout.CENTER);
 
             southPanel.revalidate();
             southPanel.repaint();

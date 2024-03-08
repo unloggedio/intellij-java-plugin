@@ -1,7 +1,9 @@
 package com.insidious.plugin.ui.stomp;
 
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.Balloon;
@@ -84,6 +86,11 @@ public class StompFilter {
 
         applyButton.addActionListener(e -> {
             originalFilterModel.setFollowEditor(filterModel.followEditor);
+            if (filterModel.followEditor) {
+                InsidiousNotification.notifyMessage(
+                        "Filter will follow method focussed in editor", NotificationType.INFORMATION
+                );
+            }
 
             originalFilterModel.getIncludedClassNames().clear();
             originalFilterModel.getIncludedClassNames().addAll(filterModel.getIncludedClassNames());
@@ -643,7 +650,14 @@ public class StompFilter {
             }
         });
 
-        followEditorCheckBox.addActionListener(e -> filterModel.setFollowEditor(followEditorCheckBox.isSelected()));
+        followEditorCheckBox.addActionListener(e -> {
+            filterModel.setFollowEditor(followEditorCheckBox.isSelected());
+            if (followEditorCheckBox.isSelected()) {
+                InsidiousNotification.notifyMessage(
+                        "Filter will follow method focussed in editor", NotificationType.INFORMATION
+                );
+            }
+        });
 
 
     }

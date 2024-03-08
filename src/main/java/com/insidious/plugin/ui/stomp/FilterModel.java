@@ -53,11 +53,6 @@ public class FilterModel {
 
     public void setFollowEditor(boolean followEditor) {
         this.followEditor = followEditor;
-        if (this.followEditor) {
-            InsidiousNotification.notifyMessage(
-                    "Filter will follow method focussed in editor", NotificationType.INFORMATION
-            );
-        }
     }
 
     public Set<String> getIncludedClassNames() {

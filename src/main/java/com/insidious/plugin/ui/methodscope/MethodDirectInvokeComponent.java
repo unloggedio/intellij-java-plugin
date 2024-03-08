@@ -310,8 +310,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 if (methodArgumentValues != null && i < methodArgumentValues.size()) {
                     parameterValue = methodArgumentValues.get(i);
                 } else {
-                    parameterValue = ClassUtils.createDummyValue(methodParameterType, new ArrayList<>(4),
-                            insidiousService.getProject());
+                    parameterValue = ApplicationManager.getApplication()
+                            .runReadAction((Computable<String>) () ->
+                                    ClassUtils.createDummyValue(methodParameterType, new ArrayList<>(4),
+                            insidiousService.getProject()));
                 }
                 try {
                     methodArgumentsMap.put(methodParameter.getName(), objectMapper.readTree(parameterValue));
