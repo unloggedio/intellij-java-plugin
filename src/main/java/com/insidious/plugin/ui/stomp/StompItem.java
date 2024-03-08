@@ -156,12 +156,6 @@ public class StompItem {
 //                .withPosition(Balloon.Position.above)
 //                .show(replaySingle, GotItTooltip.TOP_MIDDLE);
 
-        new GotItTooltip("Unlogged.Stomp.Item.Checkbox",
-                "<html>Hover and click the checkbox to select a replay record.<br>Quick replay using the pink play " +
-                        "button</html>",
-                insidiousService.getProject())
-                .withPosition(Balloon.Position.below)
-                .show(mainPanel, GotItTooltip.BOTTOM_LEFT);
 
 
         replaySingle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));

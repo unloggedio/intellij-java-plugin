@@ -567,9 +567,9 @@ public class StompComponent implements
 
         JScrollBar verticalScrollBar1 = historyStreamScrollPanel.getVerticalScrollBar();
         int max = verticalScrollBar1.getMaximum();
-        if (verticalScrollBar1.getValue() != max) {
-            return;
-        }
+//        if (verticalScrollBar1.getValue() != max) {
+//            return;
+//        }
         if (itemPanel.getComponentCount() > 5 && !shownGotItNofiticaton) {
             shownGotItNofiticaton = true;
             new GotItTooltip("Unlogged.Stomp.Item.Show",
@@ -579,11 +579,19 @@ public class StompComponent implements
                     insidiousService.getProject())
                     .withPosition(Balloon.Position.below)
                     .show(component, GotItTooltip.BOTTOM_MIDDLE);
+
+            new GotItTooltip("Unlogged.Stomp.Item.Checkbox",
+                    "<html>Hover and click the checkbox to select a replay record.<br>Quick replay using the pink play " +
+                            "button</html>",
+                    insidiousService.getProject())
+                    .withPosition(Balloon.Position.below)
+                    .show(component, GotItTooltip.BOTTOM_LEFT);
+
         }
 
-        ApplicationManager.getApplication().invokeLater(() -> {
-            verticalScrollBar1.setValue(max);
-        });
+//        ApplicationManager.getApplication().invokeLater(() -> {
+//            verticalScrollBar1.setValue(max);
+//        });
 
     }
 
