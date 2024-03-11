@@ -22,15 +22,14 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.event.TreeModelEvent;
 import javax.swing.plaf.basic.BasicTreeUI;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreeModel;
-import javax.swing.tree.TreeNode;
-import javax.swing.tree.TreePath;
+import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
@@ -64,10 +63,8 @@ public class JsonTreeEditor {
         treeModel = JsonTreeUtils.jsonToTreeModel(jsonNode, title);
         this.editable = editable;
 
-        valueTree = new Tree(treeModel);
+        valueTree = createTreeFromTreeModel(treeModel);
 
-
-        valueTree.setCellEditor(new InsidiousCellEditor(valueTree, null));
         valueTree.getModel().addTreeModelListener(new InsidiousTreeListener() {
 
             @Override
@@ -90,9 +87,6 @@ public class JsonTreeEditor {
             }
         });
 
-        valueTree.setBackground(JBColor.WHITE);
-        valueTree.setUI(new BasicTreeUI());
-//            valueTree.setBorder(BorderFactory.createLineBorder(new Color(97, 97, 97, 255)));
         valueTree.setInvokesStopCellEditing(true);
         valueTree.addMouseListener(getMouseListener(valueTree));
 
@@ -163,9 +157,8 @@ public class JsonTreeEditor {
                     throw new RuntimeException(ex);
                 }
                 treeModel = JsonTreeUtils.jsonToTreeModel(jsonNodeNew, title);
-                valueTree = new Tree(treeModel);
+                valueTree = createTreeFromTreeModel(treeModel);
                 valueTree.setEditable(true);
-                valueTree.setCellEditor(new InsidiousCellEditor(valueTree, null));
                 expandAllNodes();
                 viewStateButton(true, true);
                 dataPanel.add(valueTree, BorderLayout.CENTER);
@@ -186,9 +179,8 @@ public class JsonTreeEditor {
                     throw new RuntimeException(ex);
                 }
                 treeModel = JsonTreeUtils.jsonToTreeModel(jsonNodeNew, title);
-                valueTree = new Tree(treeModel);
+                valueTree = createTreeFromTreeModel(treeModel);
                 valueTree.setEditable(true);
-                valueTree.setCellEditor(new InsidiousCellEditor(valueTree, null));
                 expandAllNodes();
                 viewStateButton(true, true);
                 dataPanel.add(valueTree, BorderLayout.CENTER);
@@ -209,10 +201,8 @@ public class JsonTreeEditor {
                     throw new RuntimeException(ex);
                 }
                 treeModel = JsonTreeUtils.jsonToTreeModel(jsonNodeNew, title);
-                valueTree = new Tree(treeModel);
+                valueTree = createTreeFromTreeModel(treeModel);
                 valueTree.setEditable(true);
-                valueTree.setCellEditor(new InsidiousCellEditor(valueTree, null));
-                expandAllNodes();
                 dataPanel.add(valueTree, BorderLayout.CENTER);
                 dataPanel.revalidate();
                 expandAllNodes();
@@ -220,6 +210,30 @@ public class JsonTreeEditor {
         };
 
         viewStateButton(true, true);
+    }
+
+    @NotNull
+    private Tree createTreeFromTreeModel(TreeModel treeModel1) {
+        Tree tree = new Tree(treeModel1);
+        DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer(){
+            @Override
+            public Border getBorder() {
+                return BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(JBColor.BLACK), super.getBorder());
+            }
+
+            @Override
+            public Insets getInsets() {
+                return JBUI.insets(5);
+            }
+        };
+        InsidiousCellEditor cellEditor = new InsidiousCellEditor(tree, renderer);
+        tree.setCellEditor(cellEditor);
+        BasicTreeUI ui = new BasicTreeUI();
+        tree.setUI(ui);
+        tree.setOpaque(true);
+        tree.setBackground(JBColor.WHITE);
+        tree.setForeground(JBColor.BLACK);
+        return tree;
     }
 
     public JsonTreeEditor(AnAction... otherAction) {

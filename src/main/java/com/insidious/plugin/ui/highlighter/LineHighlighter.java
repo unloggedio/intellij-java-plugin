@@ -52,6 +52,10 @@ public class LineHighlighter implements LineMarkerProvider {
                 return null;
             }
 
+            if (element.getContainingFile().getContainingDirectory() == null) {
+                return null;
+            }
+
             Matcher pathFileMatcher =
                     testPathFilePattern.matcher(element.getContainingFile().getContainingDirectory().toString());
             if (pathFileMatcher.matches()) {

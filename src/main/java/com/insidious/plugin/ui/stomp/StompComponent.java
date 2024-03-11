@@ -129,6 +129,7 @@ public class StompComponent implements
         configurationState = project.getService(InsidiousConfigurationState.class);
 
         filterAppliedLabel.setVisible(false);
+        filterAppliedLabel.setForeground(JBColor.BLACK);
         filterModel = configurationState.getFilterModel();
 
 
@@ -630,7 +631,7 @@ public class StompComponent implements
 //        gbc1.gridheight = 1;
 //
 //        gbc1.weightx = 0.1;
-//        gbc1.weighty = 0.3;
+//        gbc1.weighty = 0." ";
 //        gbc1.anchor = GridBagConstraints.LINE_START;
 //        gbc1.fill = GridBagConstraints.BOTH;
 //
