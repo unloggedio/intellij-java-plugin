@@ -11,8 +11,6 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.ui.popup.Balloon;
-import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.JBColor;
 
 import javax.swing.*;
@@ -26,17 +24,19 @@ import java.util.Collections;
 public class StompItem {
     public static final JBColor TAG_LABEL_BACKGROUND_GREY = new JBColor(new Color(235, 235, 238),
             new Color(235, 235, 238));
-    public static final JBColor TAG_LABEL_TEXT_GREY = new JBColor(new Color(113, 128, 150, 255),
+    public static final JBColor TAG_LABEL_TEXT_GREY = new JBColor(
+            new Color(113, 128, 150, 255),
             new Color(113, 128, 150, 255));
     public static final int MAX_METHOD_NAME_LABEL_LENGTH = 25;
     public static final JBColor HOVER_HIGHLIGHT_COLOR = new JBColor(
-            new Color(221, 245, 238),
-            new Color(221, 245, 238)
+            new Color(121, 64, 64),
+            new Color(147, 125, 125)
     );
     private static final Logger logger = LoggerUtil.getInstance(StompItem.class);
     private final TestCandidateLifeListener testCandidateLifeListener;
     private final Color defaultPanelColor;
     private final InsidiousService insidiousService;
+    private final JCheckBox selectCandidateCheckbox;
     private TestCandidateMetadata candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
@@ -50,7 +50,6 @@ public class StompItem {
     private JPanel infoPanel;
     private JPanel titleLabelContainer;
     private JPanel metadataPanel;
-    private JCheckBox selectCandidateCheckbox;
     private JLabel replaySingle;
     private JPanel controlPanel;
     private JPanel controlContainer;
@@ -59,7 +58,8 @@ public class StompItem {
     public StompItem(
             TestCandidateMetadata testCandidateMetadata,
             TestCandidateLifeListener testCandidateLifeListener,
-            InsidiousService insidiousService) {
+            InsidiousService insidiousService, JCheckBox selectCandidateCheckbox) {
+        this.selectCandidateCheckbox = selectCandidateCheckbox;
         this.candidateMetadata = testCandidateMetadata;
         this.testCandidateLifeListener = testCandidateLifeListener;
         this.insidiousService = insidiousService;
@@ -273,7 +273,6 @@ public class StompItem {
                 testCandidateLifeListener.unSelected(candidateMetadata);
             }
         });
-        selectCandidateCheckbox.setVisible(false);
         pinLabel.setVisible(false);
 
 
@@ -302,34 +301,34 @@ public class StompItem {
     }
 
     private void hoverOff() {
-        mainPanel.setBackground(defaultPanelColor);
-        detailPanel.setBackground(defaultPanelColor);
-        infoPanel.setBackground(defaultPanelColor);
-        titleLabelContainer.setBackground(defaultPanelColor);
-        controlPanel.setBackground(defaultPanelColor);
-        controlContainer.setBackground(defaultPanelColor);
-        selectCandidateCheckbox.setBackground(defaultPanelColor);
-        metadataPanel.setBackground(defaultPanelColor);
+//        mainPanel.setBackground(defaultPanelColor);
+//        detailPanel.setBackground(defaultPanelColor);
+//        infoPanel.setBackground(defaultPanelColor);
+//        titleLabelContainer.setBackground(defaultPanelColor);
+//        controlPanel.setBackground(defaultPanelColor);
+//        controlContainer.setBackground(defaultPanelColor);
+//        selectCandidateCheckbox.setBackground(defaultPanelColor);
+//        metadataPanel.setBackground(defaultPanelColor);
 
-        if (!selectCandidateCheckbox.isSelected()) {
-            selectCandidateCheckbox.setVisible(false);
-        }
-        if (!isPinned) {
-            pinLabel.setVisible(false);
-        }
+//        if (!selectCandidateCheckbox.isSelected()) {
+//            selectCandidateCheckbox.setVisible(false);
+//        }
+//        if (!isPinned) {
+//            pinLabel.setVisible(false);
+//        }
     }
 
     private void hoverOn() {
-        mainPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-        detailPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-        infoPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-        titleLabelContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
-        controlPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-        controlContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
-        selectCandidateCheckbox.setBackground(HOVER_HIGHLIGHT_COLOR);
-        metadataPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-        selectCandidateCheckbox.setVisible(true);
-        pinLabel.setVisible(true);
+//        mainPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        detailPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        infoPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        titleLabelContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        controlPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        controlContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        selectCandidateCheckbox.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        metadataPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        selectCandidateCheckbox.setVisible(true);
+//        pinLabel.setVisible(true);
 
     }
 
@@ -353,7 +352,6 @@ public class StompItem {
 
     public void setSelected(boolean b) {
         selectCandidateCheckbox.setSelected(b);
-        selectCandidateCheckbox.setVisible(b);
     }
 
     public boolean isPinned() {

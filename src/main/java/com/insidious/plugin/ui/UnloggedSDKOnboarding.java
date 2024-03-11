@@ -213,7 +213,7 @@ public class UnloggedSDKOnboarding {
 
         doneButton.addActionListener(e -> {
             mainPanel.removeAll();
-            insidiousService.showCallYourApplicationScreen();
+            insidiousService.showCallYourApplicationScreen(this);
         });
 
     }

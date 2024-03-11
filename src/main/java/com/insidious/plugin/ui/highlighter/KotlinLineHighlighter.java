@@ -63,9 +63,7 @@ public class KotlinLineHighlighter implements LineMarkerProvider {
 
     public Icon getIconForState(KtNamedFunction method) {
         Project project = method.getProject();
-        GutterState state = project
-                .getService(InsidiousService.class)
-                .getGutterStateFor(new KotlinMethodAdapter(method));
+        GutterState state = GutterState.PROCESS_RUNNING;
 //        logger.warn("Get unlogged gutter icon for: " + method.getName() + " at state [" + state + "]");
         switch (state) {
             case NO_DIFF:

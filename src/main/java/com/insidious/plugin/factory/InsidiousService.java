@@ -118,8 +118,7 @@ import static com.intellij.psi.PsiModifier.ABSTRACT;
 
 @Storage("insidious.xml")
 final public class InsidiousService implements
-        Disposable, NewTestCandidateIdentifiedListener,
-        GutterStateProvider {
+        Disposable, NewTestCandidateIdentifiedListener {
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     final static private int TOOL_WINDOW_WIDTH = 400;
@@ -1203,11 +1202,6 @@ final public class InsidiousService implements
         return currentState.getSessionInstance();
     }
 
-    @Override
-    public GutterState getGutterStateFor(MethodAdapter method) {
-        return GutterState.PROCESS_RUNNING;
-    }
-
     public List<String> getInterfacesWithSameSignature(MethodAdapter method) {
         String methodName = method.getName();
         ClassAdapter containingClass = method.getContainingClass();
@@ -1776,8 +1770,10 @@ final public class InsidiousService implements
         libraryToolWindow.reloadItems();
     }
 
-    public void showCallYourApplicationScreen() {
-        UnloggedOnboardingScreenV2 screen = new UnloggedOnboardingScreenV2();
-        onboardingWindow.showStep2(screen);
+    public void showCallYourApplicationScreen(UnloggedSDKOnboarding unloggedSDKOnboarding) {
+        if (onboardingWindow != null) {
+            UnloggedOnboardingScreenV2 screen = new UnloggedOnboardingScreenV2();
+            unloggedSDKOnboarding.showStep2(screen);
+        }
     }
 }

@@ -82,12 +82,6 @@
                               <text value=""/>
                             </properties>
                           </component>
-                          <component id="638ab" class="javax.swing.JCheckBox" binding="selectCandidateCheckbox">
-                            <constraints/>
-                            <properties>
-                              <text value=""/>
-                            </properties>
-                          </component>
                           <component id="1e1e6" class="javax.swing.JLabel" binding="replaySingle">
                             <constraints/>
                             <properties>

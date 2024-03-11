@@ -25,6 +25,7 @@ import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.UnloggedOnboardingScreenV2;
+import com.insidious.plugin.ui.UnloggedSDKOnboarding;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
@@ -92,6 +93,7 @@ public class StompComponent implements
     private final AtomicRecordService atomicRecordService;
     private final Set<Long> pinnedItems = new HashSet<>();
     private final ActionToolbarImpl actionToolbar;
+    private final UnloggedSDKOnboarding unloggedSDKOnboarding;
     BlockingQueue<TestCandidateMetadata> incomingQueue = new ArrayBlockingQueue<>(100);
     int totalAcceptedCount = 0;
     private JPanel mainPanel;
@@ -365,6 +367,9 @@ public class StompComponent implements
         mainPanel.add(stompStatusComponent.getComponent(), BorderLayout.SOUTH);
 
 
+        unloggedSDKOnboarding = new UnloggedSDKOnboarding(insidiousService);
+        itemPanel.add(unloggedSDKOnboarding.getComponent(), createGBCForProcessStartedComponent());
+
         saveReplayButton.setEnabled(false);
         updateFilterLabel();
     }
@@ -469,6 +474,7 @@ public class StompComponent implements
             historyStreamScrollPanel.setVisible(true);
             welcomePanelRemoved = true;
         }
+        itemPanel.remove(unloggedSDKOnboarding.getComponent());
 
         totalAcceptedCount++;
 
@@ -528,7 +534,8 @@ public class StompComponent implements
     }
 
     private synchronized void addCandidateToUi(TestCandidateMetadata testCandidateMetadata, int index) {
-        StompItem stompItem = new StompItem(testCandidateMetadata, this, insidiousService);
+        JCheckBox comp1 = new JCheckBox();
+        StompItem stompItem = new StompItem(testCandidateMetadata, this, insidiousService, comp1);
 
 
         JScrollBar verticalScrollBar = historyStreamScrollPanel.getVerticalScrollBar();
@@ -552,7 +559,7 @@ public class StompComponent implements
 
         rowPanel.add(component, BorderLayout.CENTER);
 
-        JPanel dateAndTimePanel = createDateAndTimePanel(createTimeLineComponent(),
+        JPanel dateAndTimePanel = createDateAndTimePanel(createTimeLineComponent(comp1),
                 Date.from(Instant.ofEpochMilli(testCandidateMetadata.getCreatedAt())));
         rowPanel.add(dateAndTimePanel, BorderLayout.EAST);
 
@@ -717,7 +724,7 @@ public class StompComponent implements
         comp1.setUI(new VerticalLabelUI(true));
 
 //        comp.add(comp1, BorderLayout.CENTER);
-        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 16, 0, 4));
+        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 17, 0, 4));
         comp.add(lineContainer, BorderLayout.WEST);
         comp.setSize(new Dimension(50, -1));
         comp.setPreferredSize(new Dimension(50, -1));
@@ -741,21 +748,19 @@ public class StompComponent implements
         return lineContainer;
     }
 
-    private JPanel createTimeLineComponent() {
+    private JPanel createTimeLineComponent(JCheckBox comp1) {
         JPanel lineContainer = new JPanel();
         lineContainer.setLayout(new GridBagLayout());
-        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 2));
+        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 0));
 
-        JLabel comp1 = new JLabel();
-        comp1.setIcon(UIUtils.CIRCLE_EMPTY);
-        comp1.setMaximumSize(new Dimension(16, 16));
-        comp1.setMinimumSize(new Dimension(16, 16));
-        comp1.setPreferredSize(new Dimension(16, 16));
+        comp1.setMaximumSize(new Dimension(18, 18));
+        comp1.setMinimumSize(new Dimension(18, 18));
+        comp1.setPreferredSize(new Dimension(18, 18));
 
         JPanel comp2 = new JPanel();
         comp2.add(comp1);
 
-        comp2.setBorder(BorderFactory.createEmptyBorder(1, 0, 1, 0));
+        comp2.setBorder(BorderFactory.createEmptyBorder(1, 1, 1, 0));
 
         GridBagConstraints constraints = new GridBagConstraints();
         constraints.gridx = 0;
@@ -1114,6 +1119,7 @@ public class StompComponent implements
         GridBagConstraints gbcForFakeComponent = createGBCForFakeComponent();
         gbcForFakeComponent.gridy = itemPanel.getComponentCount();
         itemPanel.add(new JPanel(), gbcForFakeComponent, itemPanel.getComponentCount());
+        itemPanel.add(unloggedSDKOnboarding.getComponent(), createGBCForProcessStartedComponent());
 
         selectedCandidates.clear();
         updateControlPanel();
@@ -1362,7 +1368,7 @@ public class StompComponent implements
     }
 
     private void acceptSingle(TestCandidateMetadata testCandidateMetadata) {
-        logger.warn("entr acceptSingle: " + testCandidateMetadata);
+//        logger.warn("entr acceptSingle: " + testCandidateMetadata);
         if (testCandidateMetadata.getExitProbeIndex() > lastEventId) {
             lastEventId = testCandidateMetadata.getExitProbeIndex();
         }
@@ -1395,7 +1401,7 @@ public class StompComponent implements
         itemPanel.revalidate();
         scrollContainer.revalidate();
         scrollContainer.repaint();
-        logger.warn("exit acceptSingle: " + testCandidateMetadata);
+//        logger.warn("exit acceptSingle: " + testCandidateMetadata);
 
     }
 

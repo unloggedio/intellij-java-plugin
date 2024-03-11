@@ -23,6 +23,7 @@ public class LineHighlighter implements LineMarkerProvider {
     private static final Logger logger = LoggerUtil.getInstance(LineHighlighter.class);
     private static final Pattern testFileNamePattern = Pattern.compile("^Test.*V.java$");
     private static final Pattern testPreviewFilePattern = Pattern.compile("^.*_Unlogged_Preview.java$");
+    private static final Pattern testPathFilePattern = Pattern.compile(".*src/test/java/.*");
     private static final Pattern testMethodNamePattern = Pattern.compile("^test.*");
     private static final Supplier<String> accessibleNameProvider = () -> "Execute method";
     private final Map<GutterState, UnloggedGutterNavigationHandler> navHandlerMap = new HashMap<>();
@@ -51,6 +52,12 @@ public class LineHighlighter implements LineMarkerProvider {
                 return null;
             }
 
+            Matcher pathFileMatcher =
+                    testPathFilePattern.matcher(element.getContainingFile().getContainingDirectory().toString());
+            if (pathFileMatcher.matches()) {
+                return null;
+            }
+
             PsiMethod psiMethod = (PsiMethod) element.getParent();
             if (psiMethod.isConstructor()) {
                 return null;
@@ -72,9 +79,5 @@ public class LineHighlighter implements LineMarkerProvider {
                     navHandlerMap.get(gutterStateForMethod), GutterIconRenderer.Alignment.LEFT);
         }
         return null;
-    }
-
-    public GutterState getGutterStateForMethod(PsiMethod method) {
-        return method.getProject().getService(InsidiousService.class).getGutterStateFor(new JavaMethodAdapter(method));
     }
 }
