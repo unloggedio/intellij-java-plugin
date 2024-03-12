@@ -1579,6 +1579,12 @@ final public class InsidiousService implements
         if (stompWindow != null) {
             stompWindow.resetTimeline();
             stompWindow.setConnectedAndWaiting();
+            SemanticVersion currentVersion = new SemanticVersion(serverMetadata.getAgentVersion());
+            SemanticVersion requiredVersion = new SemanticVersion(Constants.AGENT_VERSION);
+            if (currentVersion.isBelow(requiredVersion)) {
+                stompWindow.showVersionBadge(currentVersion, requiredVersion);
+            }
+
         }
 
         triggerGutterIconReload();

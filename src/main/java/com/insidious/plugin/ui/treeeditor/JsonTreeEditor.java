@@ -227,7 +227,7 @@ public class JsonTreeEditor {
         tree.setInvokesStopCellEditing(true);
         tree.addMouseListener(getMouseListener(valueTree));
 
-        expandAllNodes();
+        expandAllNodes(tree);
         valueTree.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -317,16 +317,16 @@ public class JsonTreeEditor {
 
     }
 
-    public int expandAllNodes() {
-        TreeNode root = (TreeNode) valueTree.getModel().getRoot();
-        return 1 + expandAll(valueTree, new TreePath(root));
+    public int expandAllNodes(Tree tree) {
+        TreeNode root = (TreeNode) tree.getModel().getRoot();
+        return 1 + expandAll(tree, new TreePath(root));
     }
 
     private int expandAll(JTree tree, TreePath parent) {
         TreeNode node = (TreeNode) parent.getLastPathComponent();
         if (node.getChildCount() >= 0) {
-            for (Enumeration e = node.children(); e.hasMoreElements(); ) {
-                TreeNode n = (TreeNode) e.nextElement();
+            for (Enumeration<? extends TreeNode> e = node.children(); e.hasMoreElements(); ) {
+                TreeNode n = e.nextElement();
                 TreePath path = parent.pathByAddingChild(n);
                 expandAll(tree, path);
             }

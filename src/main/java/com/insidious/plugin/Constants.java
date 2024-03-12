@@ -33,6 +33,6 @@ public class Constants {
             .getPath(HOME_PATH.toAbsolutePath().toString(),"sessions");
     public static final String COMPLETED = "completed";
     public static final String PENDING = "pending";
-    public static final String AGENT_VERSION = "1.14.3";
+    public static final String AGENT_VERSION = "0.2.13";
     public static final String HOSTNAME = getHostname();
 }

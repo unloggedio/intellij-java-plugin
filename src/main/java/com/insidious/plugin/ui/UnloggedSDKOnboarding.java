@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -17,7 +18,7 @@ import java.awt.event.MouseEvent;
 
 public class UnloggedSDKOnboarding {
     public static final Color CIRCLE_BLUE_FILL_COLOR = new Color(53, 116, 240);
-    private final String UNLOGGED_SDK_VERSION = "0.2.12";
+    private final String UNLOGGED_SDK_VERSION = Constants.AGENT_VERSION;
     private final String maven_default =
             "<dependency>\n" +
                     "  <artifactId>unlogged-sdk</artifactId>\n" +

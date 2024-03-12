@@ -13,6 +13,7 @@ import com.insidious.plugin.client.SessionScanEventListener;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.SemanticVersion;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
@@ -33,7 +34,9 @@ import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -94,6 +97,7 @@ public class StompComponent implements
     private final Set<Long> pinnedItems = new HashSet<>();
     private final ActionToolbarImpl actionToolbar;
     private final UnloggedSDKOnboarding unloggedSDKOnboarding;
+    private final Map<String, AtomicInteger> countByMethodName = new HashMap<>();
     BlockingQueue<TestCandidateMetadata> incomingQueue = new ArrayBlockingQueue<>(100);
     int totalAcceptedCount = 0;
     private JPanel mainPanel;
@@ -573,11 +577,6 @@ public class StompComponent implements
         historyStreamScrollPanel.revalidate();
         historyStreamScrollPanel.repaint();
 
-        JScrollBar verticalScrollBar1 = historyStreamScrollPanel.getVerticalScrollBar();
-        int max = verticalScrollBar1.getMaximum();
-//        if (verticalScrollBar1.getValue() != max) {
-//            return;
-//        }
         if (itemPanel.getComponentCount() > 5 && !shownGotItNofiticaton) {
             shownGotItNofiticaton = true;
             new GotItTooltip("Unlogged.Stomp.Item.Show",
@@ -596,10 +595,10 @@ public class StompComponent implements
                     .show(component, GotItTooltip.BOTTOM_LEFT);
 
         }
-
 //        ApplicationManager.getApplication().invokeLater(() -> {
 //            verticalScrollBar1.setValue(max);
 //        });
+//        logger.warn("Component count is - " +itemPanel.getComponentCount());
 
     }
 
@@ -1102,6 +1101,7 @@ public class StompComponent implements
     public void clear() {
         List<Component> itemsToNotDelete = new ArrayList<>();
         List<StompItem> pinnedStomps = new ArrayList<>();
+        countByMethodName.clear();
         for (StompItem stompItem : stompItems) {
             if (stompItem.isPinned()) {
                 pinnedStomps.add(stompItem);
@@ -1340,13 +1340,20 @@ public class StompComponent implements
             ApplicationManager.getApplication().invokeLater(() -> {
                 try {
 
-                    acceptSingle(testCandidateMetadata);
-
                     List<TestCandidateMetadata> remainingItems = new ArrayList<>();
+                    remainingItems.add(testCandidateMetadata);
                     incomingQueue.drainTo(remainingItems);
+//                    while (remainingItems.size() > 100) {
+//                        remainingItems.remove(0);
+//                    }
+
                     for (TestCandidateMetadata remainingItem : remainingItems) {
                         acceptSingle(remainingItem);
                     }
+                    while (itemPanel.getComponentCount() > 100) {
+                        itemPanel.remove(0);
+                    }
+
 
                 } catch (Throwable t) {
                     t.printStackTrace();
@@ -1370,34 +1377,58 @@ public class StompComponent implements
 
     private void acceptSingle(TestCandidateMetadata testCandidateMetadata) {
 //        logger.warn("entr acceptSingle: " + testCandidateMetadata);
-        if (testCandidateMetadata.getExitProbeIndex() > lastEventId) {
-            lastEventId = testCandidateMetadata.getExitProbeIndex();
+        String className = testCandidateMetadata.getFullyQualifiedClassname();
+        String methodName = testCandidateMetadata.getMainMethod().getMethodName();
+        String key = className + "." +
+                methodName;
+        AtomicInteger countAtomic = countByMethodName.get(key);
+        if (countAtomic == null) {
+            countAtomic = new AtomicInteger(0);
+            countByMethodName.put(key, countAtomic);
         }
-        if (stompItems.size() > 0) {
 
-            StompItem last = stompItems.get(stompItems.size() - 1);
-            long gapStartIndex = last.getTestCandidate().getExitProbeIndex();
-            long gapEndIndex = testCandidateMetadata.getEntryProbeIndex();
-            int count = insidiousService.getMethodCallCountBetween(gapStartIndex, gapEndIndex);
-            if (count > 0) {
-                AFewCallsLater aFewCallsLater = new AFewCallsLater(gapStartIndex, gapEndIndex, count,
-                        this);
-
-                JScrollBar verticalScrollBar = historyStreamScrollPanel.getVerticalScrollBar();
-                int scrollPosition = verticalScrollBar.getValue();
-
-                JPanel labelPanel = aFewCallsLater.getComponent();
-
-                JPanel rowPanel = new JPanel(new BorderLayout());
-                rowPanel.add(labelPanel, BorderLayout.CENTER);
-                rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
-                GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent(
-                        itemPanel.getComponentCount());
-//                makeSpace(0);
-                itemPanel.add(rowPanel, gbcForLeftMainComponent, 0);
+        int count = countAtomic.incrementAndGet();
+        if (count > 40) {
+            if (!filterModel.getIncludedClassNames().contains(className) ||
+                    !filterModel.getIncludedMethodNames().contains(methodName)) {
+                filterModel.getExcludedMethodNames().add(methodName);
+                filterModel.getExcludedClassNames().add(className);
+                InsidiousNotification.notifyMessage("Excluded [" + key + "] from live view. If you want to see them " +
+                                "include the class [" + className + "] and method [" + methodName + "] in filters.",
+                        NotificationType.INFORMATION);
+                return;
 
             }
         }
+
+        if (testCandidateMetadata.getExitProbeIndex() > lastEventId) {
+            lastEventId = testCandidateMetadata.getExitProbeIndex();
+        }
+//        if (stompItems.size() > 0) {
+//
+////            StompItem last = stompItems.get(stompItems.size() - 1);
+////            long gapStartIndex = last.getTestCandidate().getExitProbeIndex();
+////            long gapEndIndex = testCandidateMetadata.getEntryProbeIndex();
+////            int count = insidiousService.getMethodCallCountBetween(gapStartIndex, gapEndIndex);
+////            if (count > 0) {
+////                AFewCallsLater aFewCallsLater = new AFewCallsLater(gapStartIndex, gapEndIndex, count,
+////                        this);
+////
+////                JScrollBar verticalScrollBar = historyStreamScrollPanel.getVerticalScrollBar();
+////                int scrollPosition = verticalScrollBar.getValue();
+////
+////                JPanel labelPanel = aFewCallsLater.getComponent();
+////
+////                JPanel rowPanel = new JPanel(new BorderLayout());
+////                rowPanel.add(labelPanel, BorderLayout.CENTER);
+////                rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
+////                GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent(
+////                        itemPanel.getComponentCount());
+//////                makeSpace(0);
+////                itemPanel.add(rowPanel, gbcForLeftMainComponent, 0);
+////
+////            }
+//        }
         addCandidateToUi(testCandidateMetadata, itemPanel.getComponentCount());
         itemPanel.revalidate();
         scrollContainer.revalidate();
@@ -1479,5 +1510,17 @@ public class StompComponent implements
         if (candidateQueryLatch != null) {
             candidateQueryLatch.decrementAndGet();
         }
+    }
+
+    public void showVersionBadge(SemanticVersion currentVersion, SemanticVersion requiredVersion) {
+        Notification notification = new Notification(InsidiousNotification.DISPLAY_ID, "Update unlogged-sdk Version",
+                "You are using version " + currentVersion.toString() + " which is older than recommended version for" +
+                        " this plugin" + requiredVersion + ". Please update the unlogged-sdk version in your pom" +
+                        ".xml/build.gradle",
+                NotificationType.ERROR);
+        notification.setImportant(true);
+        notification.setSubtitle("Use unlogged-sdk:" + requiredVersion.toString());
+        notification.setIcon(UIUtils.UNLOGGED_ICON_DARK_SVG);
+        Notifications.Bus.notify(notification);
     }
 }
