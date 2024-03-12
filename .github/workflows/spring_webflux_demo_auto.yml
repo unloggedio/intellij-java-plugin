@@ -1,4 +1,4 @@
-name: AutoExecutor Pipeline
+name: AutoExecutor - Unlogged-spring-maven-demo Pipeline
 
 on:
   push:
@@ -29,7 +29,7 @@ jobs:
             docker compose -f unlogged-spring-maven-demo/conf/docker-compose.yml up -d
 
       - name: Gradle Test
-        run: gradle test --tests com.insidious.plugin.auto.AutoExecutorCITest --scan --info
+        run: gradle test --tests com.insidious.plugin.auto.AutoExecutorCITest.startUnloggedMavenDemoTest --scan --info
 
       - name: Store reports
         if: failure()

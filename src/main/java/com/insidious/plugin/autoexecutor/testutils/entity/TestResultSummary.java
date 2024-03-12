@@ -5,6 +5,8 @@ public class TestResultSummary {
     private int passingCasesCount;
     private int failingCasesCount;
 
+    private String mode;
+
     public TestResultSummary(int numberOfCases, int passingCasesCount, int failingCasesCount) {
         this.numberOfCases = numberOfCases;
         this.passingCasesCount = passingCasesCount;
@@ -21,5 +23,13 @@ public class TestResultSummary {
 
     public int getFailingCasesCount() {
         return failingCasesCount;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode;
     }
 }

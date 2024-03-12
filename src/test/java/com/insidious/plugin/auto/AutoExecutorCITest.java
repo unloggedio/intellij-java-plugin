@@ -21,49 +21,68 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class AutoExecutorCITest {
 
     final private String testResourcesPath = "auto-test-resources/";
     final private boolean printOnlyFailing = false;
 
+    //gradle test --tests com.insidious.plugin.auto.AutoExecutorCITest.startUnloggedMavenDemoTest
     @Test
-    public void runTests() {
+    public void startUnloggedMavenDemoTest() {
+        TreeMap<String, URL> testConfig = new TreeMap<>();
+        URL pathToIntegrationResources = Thread.currentThread().getContextClassLoader()
+                .getResource(testResourcesPath + "maven-demo-integration-resources.xlsx");
+        URL pathToMockResources = Thread.currentThread().getContextClassLoader()
+                .getResource(testResourcesPath + "maven-demo-mocked-resources.xlsx");
+        testConfig.put("Integration", pathToIntegrationResources);
+        testConfig.put("Unit", pathToMockResources);
+        runTests(testConfig);
+    }
+
+    //gradle test --tests com.insidious.plugin.auto.AutoExecutorCITest.startWebfluxDemoTest
+    @Test
+    public void startWebfluxDemoTest() {
+        TreeMap<String, URL> testConfig = new TreeMap<>();
+        URL pathToIntegrationResources = Thread.currentThread().getContextClassLoader()
+                .getResource(testResourcesPath + "webflux-demo-integration-resources.xlsx");
+        testConfig.put("Integration", pathToIntegrationResources);
+        runTests(testConfig);
+    }
+
+
+    public void runTests(TreeMap<String, URL> testConfigs) {
         AgentClientLite agentClientLite = new AgentClientLite();
         if (!agentClientLite.isConnected()) {
             System.out.println("Stopping AutoExecutor test as agent is not connected");
             return;
         }
-        URL pathToIntegrationResources = Thread.currentThread().getContextClassLoader()
-                .getResource(testResourcesPath + "maven-demo-integration-resources.xlsx");
-        URL pathToMockResources = Thread.currentThread().getContextClassLoader()
-                .getResource(testResourcesPath + "maven-demo-mocked-resources.xlsx");
 
-        System.out.println("\n-----Integration mode testing-----\n");
-        TestResultSummary integrationResult = runAutoExecutorCI(pathToIntegrationResources, agentClientLite);
-        System.out.println("\n-----Unit mode testing-----\n");
-        TestResultSummary unitResult = runAutoExecutorCI(pathToMockResources, agentClientLite);
+        List<TestResultSummary> resultSummaries = new ArrayList<>();
+
+        for (String testMode : testConfigs.keySet()) {
+            System.out.println("\n-----" + testMode + " mode testing-----\n");
+            TestResultSummary summary = executeMethods(testConfigs.get(testMode), agentClientLite);
+            summary.setMode(testMode);
+            resultSummaries.add(summary);
+        }
 
         System.out.println("\n-----Test Summary-----\n");
-        System.out.println("    Integration Mode ->");
-        System.out.println("    Total number of cases run : " + integrationResult.getNumberOfCases());
-        System.out.println("    Number of Passing cases : " + integrationResult.getPassingCasesCount());
-        System.out.println("    Number of Failing cases : " + integrationResult.getFailingCasesCount());
-
-        System.out.println("\n    Unit Mode ->");
-        System.out.println("    Total number of cases run : " + unitResult.getNumberOfCases());
-        System.out.println("    Number of Passing cases : " + unitResult.getPassingCasesCount());
-        System.out.println("    Number of Failing cases : " + unitResult.getFailingCasesCount());
-
-        boolean overallStatus = (integrationResult.getFailingCasesCount() + unitResult.getFailingCasesCount()) == 0;
+        boolean overallStatus = true;
+        for (TestResultSummary resultSummary : resultSummaries) {
+            System.out.println("    " + resultSummary.getMode() + " Mode ->");
+            System.out.println("    Total number of cases run : " + resultSummary.getNumberOfCases());
+            System.out.println("    Number of Passing cases : " + resultSummary.getPassingCasesCount());
+            System.out.println("    Number of Failing cases : " + resultSummary.getFailingCasesCount());
+            if (resultSummary.getFailingCasesCount() > 0) {
+                overallStatus = false;
+            }
+        }
         Assertions.assertTrue(overallStatus);
     }
 
-    public TestResultSummary runAutoExecutorCI(URL pathToUrl, AgentClientLite agentClientLite) {
+    public TestResultSummary executeMethods(URL pathToUrl, AgentClientLite agentClientLite) {
         XSSFWorkbook workbook = XlsxUtils.getWorkbook(pathToUrl);
         assert workbook != null;
 

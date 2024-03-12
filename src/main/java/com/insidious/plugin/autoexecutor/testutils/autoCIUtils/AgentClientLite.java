@@ -14,7 +14,7 @@ import java.time.temporal.ChronoUnit;
 
 public class AgentClientLite {
     private final OkHttpClient client = new OkHttpClient.Builder()
-            .callTimeout(Duration.of(5, ChronoUnit.MINUTES))
+            .callTimeout(Duration.of(30, ChronoUnit.SECONDS))
             .readTimeout(Duration.of(5, ChronoUnit.MINUTES))
             .connectTimeout(Duration.of(500, ChronoUnit.MILLIS)).build();
     private final ObjectMapper objectMapper = new ObjectMapper();
