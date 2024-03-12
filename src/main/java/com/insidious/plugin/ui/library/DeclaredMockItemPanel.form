@@ -75,7 +75,7 @@
                         <constraints/>
                         <properties>
                           <enabled value="true"/>
-                          <icon value="icons/png/delete-bin-2-line-red.png"/>
+                          <icon value="icons/svg/delete-bin-2-line.svg"/>
                           <text value=""/>
                           <visible value="false"/>
                         </properties>

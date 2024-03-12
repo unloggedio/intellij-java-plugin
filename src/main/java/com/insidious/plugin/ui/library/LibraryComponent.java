@@ -76,6 +76,7 @@ public class LibraryComponent {
     public LibraryComponent(Project project) {
         insidiousService = project.getService(InsidiousService.class);
         atomicRecordService = project.getService(AtomicRecordService.class);
+        deleteButton.setIcon(UIUtils.DELETE_BIN_2_LINE);
 
         ActionListener mockStatusChangeActionListener = e -> {
             if (!insidiousService.isAgentConnected()) {

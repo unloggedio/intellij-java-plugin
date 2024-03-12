@@ -156,7 +156,7 @@
         <projectService serviceImplementation="com.insidious.plugin.record.AtomicRecordService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
         <applicationService serviceImplementation="com.insidious.plugin.factory.ApplicationConfigurationState"/>
-        <testFinder implementation="com.insidious.plugin.tester.testfinder.UnloggedTestFinder"/>
+<!--        <testFinder implementation="com.insidious.plugin.tester.testfinder.UnloggedTestFinder"/>-->
 
 
         <codeInsight.lineMarkerProvider

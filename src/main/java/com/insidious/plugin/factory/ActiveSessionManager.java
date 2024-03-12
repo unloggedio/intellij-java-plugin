@@ -47,26 +47,27 @@ public class ActiveSessionManager {
     private final Map<String, Boolean> isDeletedSession = new HashMap<>();
 
     public synchronized void cleanUpSessionDirectory(ExecutionSession executionSession) {
-        if (isDeletedSession.containsKey(executionSession.getPath())) {
+        String sessionPath = executionSession.getPath();
+        if (isDeletedSession.containsKey(sessionPath)) {
             return;
         }
 
         SessionInstance sessionInstance = sessionInstanceMap.get(executionSession.getSessionId());
         if (sessionInstance == null) {
             logger.warn("called to delete unknown session id: " + executionSession.getSessionId()
-                    + " -> " + executionSession.getPath());
+                    + " -> " + sessionPath);
         } else {
             closeSession(sessionInstance);
         }
         File directoryToBeDeleted = FileSystems.getDefault()
-                .getPath(executionSession.getPath())
+                .getPath(sessionPath)
                 .toFile();
         if (!directoryToBeDeleted.exists()) {
             return;
         }
         logger.warn("Deleting directory: " + directoryToBeDeleted);
+        isDeletedSession.put(sessionPath, true);
         deleteDirectory(directoryToBeDeleted);
-        isDeletedSession.put(executionSession.getPath(), true);
     }
 
     void deleteDirectory(File directoryToBeDeleted) {
@@ -77,7 +78,10 @@ public class ActiveSessionManager {
             }
         }
 //        logger.warn("[1] Delete file: " + directoryToBeDeleted.getAbsolutePath());
-        directoryToBeDeleted.delete();
+        boolean wasDeleted = directoryToBeDeleted.delete();
+        if (!wasDeleted) {
+            logger.warn("Failed to deleted [" + directoryToBeDeleted.getAbsolutePath() + "]");
+        }
     }
 
     public void closeSession(SessionInstance sessionInstance) {

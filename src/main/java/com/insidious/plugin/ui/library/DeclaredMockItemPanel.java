@@ -5,6 +5,7 @@ import com.insidious.plugin.mocking.ParameterMatcher;
 import com.insidious.plugin.mocking.ParameterMatcherType;
 import com.insidious.plugin.mocking.ThenParameter;
 import com.insidious.plugin.ui.stomp.StompItem;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.JBColor;
 
@@ -43,6 +44,7 @@ public class DeclaredMockItemPanel {
                 itemLifeCycleListener.onClick(declaredMock);
             }
         });
+        deleteButton.setIcon(UIUtils.DELETE_BIN_2_LINE);
         TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
         String simpleClassName = declaredMock.getFieldTypeName();
         if (simpleClassName.contains(".")) {
