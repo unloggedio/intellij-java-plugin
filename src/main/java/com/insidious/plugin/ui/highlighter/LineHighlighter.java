@@ -1,8 +1,6 @@
 package com.insidious.plugin.ui.highlighter;
 
-import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.factory.GutterState;
-import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
@@ -55,9 +53,16 @@ public class LineHighlighter implements LineMarkerProvider {
             if (element.getContainingFile().getContainingDirectory() == null) {
                 return null;
             }
+            PsiFile containingFile = element.getContainingFile();
+            if (containingFile == null) {
+                return null;
+            }
 
-            Matcher pathFileMatcher =
-                    testPathFilePattern.matcher(element.getContainingFile().getContainingDirectory().toString());
+            PsiDirectory containingDirectory = containingFile.getContainingDirectory();
+            if (containingDirectory == null) {
+                return null;
+            }
+            Matcher pathFileMatcher = testPathFilePattern.matcher(containingDirectory.toString());
             if (pathFileMatcher.matches()) {
                 return null;
             }
@@ -71,7 +76,8 @@ public class LineHighlighter implements LineMarkerProvider {
             ) {
                 return null;
             }
-            if (psiMethod.getContainingClass() instanceof PsiAnonymousClass) {
+            PsiClass containingClass = psiMethod.getContainingClass();
+            if (containingClass instanceof PsiAnonymousClass) {
                 return null;
             }
             GutterState gutterStateForMethod = GutterState.PROCESS_RUNNING;

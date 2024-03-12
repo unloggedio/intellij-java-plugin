@@ -18,6 +18,8 @@ import java.util.Objects;
 public class JavaMethodAdapter implements MethodAdapter {
     private final static Logger logger = LoggerUtil.getInstance(JavaMethodAdapter.class);
     private final PsiMethod psiMethod;
+    private String cachedSignature;
+    private String cachedName;
 
     public JavaMethodAdapter(PsiMethod methodItem) {
         assert methodItem != null;
@@ -45,7 +47,11 @@ public class JavaMethodAdapter implements MethodAdapter {
 
     @Override
     public String getName() {
-        return ApplicationManager.getApplication().runReadAction((Computable<String>) psiMethod::getName);
+        if (cachedName != null) {
+            return cachedName;
+        }
+        cachedName = ApplicationManager.getApplication().runReadAction((Computable<String>) psiMethod::getName);
+        return cachedName;
     }
 
     @Override
@@ -98,7 +104,10 @@ public class JavaMethodAdapter implements MethodAdapter {
 
     @Override
     public String getJVMSignature() {
-        return ApplicationManager.getApplication()
+        if (cachedSignature != null) {
+            return cachedSignature;
+        }
+        cachedSignature = ApplicationManager.getApplication()
                 .runReadAction((Computable<String>) () -> {
                     StringBuilder signature = new StringBuilder("(");
                     @NotNull PsiParameterList parameters = psiMethod.getParameterList();
@@ -112,6 +121,7 @@ public class JavaMethodAdapter implements MethodAdapter {
                     appendTypeToSignature(signature, psiMethod.getReturnType());
                     return signature.toString();
                 });
+        return cachedSignature;
     }
 
     private void appendTypeToSignature(StringBuilder signature, PsiType type) {

@@ -45,8 +45,7 @@ public class UnloggedSdkApiAgentClient {
         try (Response response = client.newCall(request).execute()) {
             String responseBody = response.body().string();
             AgentCommandResponse<String> agentCommandResponse = objectMapper.readValue(responseBody,
-                    new TypeReference<AgentCommandResponse<String>>() {
-                    });
+                    new TypeReference<>() {});
             JSONObject eventProperties = new JSONObject();
             if (
                     agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION) ||
@@ -64,6 +63,7 @@ public class UnloggedSdkApiAgentClient {
             JSONObject properties = new JSONObject();
             properties.put("exception", e.getClass());
             properties.put("message", e.getMessage());
+            properties.put("stacktrace", objectMapper.writeValueAsString(e.getStackTrace()));
             UsageInsightTracker.getInstance().RecordEvent("AGENT_RESPONSE_THROW", properties);
 
             logger.warn("Failed to invoke call to agent server: " + e.getMessage());

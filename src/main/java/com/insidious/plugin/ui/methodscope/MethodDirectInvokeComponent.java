@@ -427,6 +427,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("className", psiClass.getQualifiedClassName());
         eventProperties.put("methodName", methodElement.getName());
+        eventProperties.put("methodSignature", methodElement.getJVMSignature());
 
         UsageInsightTracker.getInstance().RecordEvent("DIRECT_INVOKE", eventProperties);
         List<String> methodArgumentValues = new ArrayList<>();
