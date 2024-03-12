@@ -28,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.event.TreeModelEvent;
+import javax.swing.event.TreeModelListener;
 import javax.swing.plaf.basic.BasicTreeUI;
 import javax.swing.tree.*;
 import java.awt.*;
@@ -54,6 +55,7 @@ public class JsonTreeEditor {
     private AnAction saveAction;
     private AnAction buildJsonAction;
     private List<OnChangeListener<JsonNode>> listeners = new ArrayList<>();
+    private InsidiousTreeListener insidiousTreeListener;
 
     public JsonTreeEditor(JsonNode jsonNode, String title, Boolean editable, AnAction... otherAction) {
         this.jsonNode = jsonNode;
@@ -62,10 +64,7 @@ public class JsonTreeEditor {
 
         treeModel = JsonTreeUtils.jsonToTreeModel(jsonNode, title);
         this.editable = editable;
-
-        valueTree = createTreeFromTreeModel(treeModel);
-
-        valueTree.getModel().addTreeModelListener(new InsidiousTreeListener() {
+        insidiousTreeListener = new InsidiousTreeListener() {
 
             @Override
             public void treeNodesChanged(TreeModelEvent e) {
@@ -85,18 +84,9 @@ public class JsonTreeEditor {
                             NotificationType.ERROR);
                 }
             }
-        });
+        };
 
-        valueTree.setInvokesStopCellEditing(true);
-        valueTree.addMouseListener(getMouseListener(valueTree));
-
-        int nodeCount = expandAllNodes();
-        valueTree.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                valueTree.startEditingAtPath(valueTree.getSelectionPath());
-            }
-        });
+        valueTree = createTreeFromTreeModel(treeModel, insidiousTreeListener);
 
         // JTP is not editable
         if (!this.editable) {
@@ -105,7 +95,12 @@ public class JsonTreeEditor {
         }
         dataPanel.add(valueTree, BorderLayout.CENTER);
 
-        this.editAction = new AnAction(() -> "Edit", UIUtils.EDIT) {
+        this.editAction = new AnAction(() -> "Edit As JSON", UIUtils.EDIT) {
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 dataPanel.removeAll();
@@ -119,7 +114,6 @@ public class JsonTreeEditor {
                 }
 
                 if (jsonTextEditor != null) {
-//                    Disposer.dispose(jsonTextEditor);
                     jsonTextEditor = null;
                 }
 
@@ -157,9 +151,8 @@ public class JsonTreeEditor {
                     throw new RuntimeException(ex);
                 }
                 treeModel = JsonTreeUtils.jsonToTreeModel(jsonNodeNew, title);
-                valueTree = createTreeFromTreeModel(treeModel);
+                valueTree = createTreeFromTreeModel(treeModel, insidiousTreeListener);
                 valueTree.setEditable(true);
-                expandAllNodes();
                 viewStateButton(true, true);
                 dataPanel.add(valueTree, BorderLayout.CENTER);
                 dataPanel.revalidate();
@@ -179,9 +172,8 @@ public class JsonTreeEditor {
                     throw new RuntimeException(ex);
                 }
                 treeModel = JsonTreeUtils.jsonToTreeModel(jsonNodeNew, title);
-                valueTree = createTreeFromTreeModel(treeModel);
+                valueTree = createTreeFromTreeModel(treeModel, insidiousTreeListener);
                 valueTree.setEditable(true);
-                expandAllNodes();
                 viewStateButton(true, true);
                 dataPanel.add(valueTree, BorderLayout.CENTER);
                 dataPanel.revalidate();
@@ -201,19 +193,17 @@ public class JsonTreeEditor {
                     throw new RuntimeException(ex);
                 }
                 treeModel = JsonTreeUtils.jsonToTreeModel(jsonNodeNew, title);
-                valueTree = createTreeFromTreeModel(treeModel);
+                valueTree = createTreeFromTreeModel(treeModel, insidiousTreeListener);
                 valueTree.setEditable(true);
                 dataPanel.add(valueTree, BorderLayout.CENTER);
                 dataPanel.revalidate();
-                expandAllNodes();
             }
         };
 
         viewStateButton(true, true);
     }
 
-    @NotNull
-    private Tree createTreeFromTreeModel(TreeModel treeModel1) {
+    private Tree createTreeFromTreeModel(TreeModel treeModel1, TreeModelListener insidiousTreeListener) {
         Tree tree = new Tree(treeModel1);
         DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer(){
             @Override
@@ -233,6 +223,18 @@ public class JsonTreeEditor {
         tree.setOpaque(true);
         tree.setBackground(JBColor.WHITE);
         tree.setForeground(JBColor.BLACK);
+        tree.getModel().addTreeModelListener(insidiousTreeListener);
+        tree.setInvokesStopCellEditing(true);
+        tree.addMouseListener(getMouseListener(valueTree));
+
+        expandAllNodes();
+        valueTree.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                valueTree.startEditingAtPath(valueTree.getSelectionPath());
+            }
+        });
+
         return tree;
     }
 
@@ -246,7 +248,7 @@ public class JsonTreeEditor {
         mainPanel.setPreferredSize(new Dimension(600,400));
     }
 
-    private static MouseListener getMouseListener(final JTree tree) {
+    private MouseListener getMouseListener(final JTree tree) {
         return new MouseListener() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -279,7 +281,7 @@ public class JsonTreeEditor {
         };
     }
 
-    public void viewStateButton(Boolean allButtons, Boolean viewState) {
+    private void viewStateButton(Boolean allButtons, Boolean viewState) {
 
         List<AnAction> localListAction = new ArrayList<>(this.listAnAction);
         if (this.editable && allButtons) {

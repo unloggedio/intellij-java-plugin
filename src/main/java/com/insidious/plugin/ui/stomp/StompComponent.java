@@ -150,7 +150,7 @@ public class StompComponent implements
         scrollContainer.setBorder(BorderFactory.createEmptyBorder());
 
 
-        AnAction clearAction = new AnAction(() -> "Clear Timeline", UIUtils.DELETE_BIN_3_LINE) {
+        AnAction clearAction = new AnAction(() -> "Clear Timeline", UIUtils.DELETE_BIN_PARALLEL_RED) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 System.err.println("clear timeline");

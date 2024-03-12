@@ -327,7 +327,7 @@ public class StompItem {
 //        controlContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
 //        selectCandidateCheckbox.setBackground(HOVER_HIGHLIGHT_COLOR);
 //        metadataPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        selectCandidateCheckbox.setVisible(true);
+        selectCandidateCheckbox.setVisible(true);
 //        pinLabel.setVisible(true);
 
     }

@@ -6,14 +6,20 @@ import com.insidious.plugin.mocking.ParameterMatcherType;
 import com.insidious.plugin.mocking.ThenParameter;
 import com.insidious.plugin.ui.stomp.StompItem;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.JBColor;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -22,20 +28,42 @@ import static com.insidious.plugin.ui.stomp.StompItem.TAG_LABEL_TEXT_GREY;
 
 public class DeclaredMockItemPanel {
     private final DeclaredMock declaredMock;
+    private final ActionToolbarImpl actionToolbar;
     private JLabel nameLabel;
     private JPanel mainPanel;
     private JPanel tagsContainerPanel;
     private JPanel controlPanel;
     private JPanel controlContainer;
     private JCheckBox selectCandidateCheckbox;
-    private JLabel deleteButton;
+    private JLabel deleteButton1;
     private JPanel mainPanelSub;
     private JPanel topContainerPanel;
     private JPanel nameContainerPanel;
+    private JPanel actionPanel;
 
     public DeclaredMockItemPanel(DeclaredMock declaredMock, ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener, Project project) {
         this.declaredMock = declaredMock;
         this.nameLabel.setText(declaredMock.getMethodName());
+
+        AnAction editAction = new AnAction(() -> "Edit", UIUtils.EDIT) {
+
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                itemLifeCycleListener.onEdit(declaredMock);
+            }
+        };
+
+        java.util.List<AnAction> action11 = new ArrayList<>();
+//        action11.add(deleteAction);
+        action11.add(editAction);
+        actionToolbar = new ActionToolbarImpl(
+                "Live View", new DefaultActionGroup(action11), true);
+        actionToolbar.setMiniMode(false);
+        actionToolbar.setForceMinimumSize(true);
+        actionToolbar.setTargetComponent(mainPanel);
+        actionPanel.add(actionToolbar.getComponent(), BorderLayout.CENTER);
+
+
         nameLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         nameLabel.addMouseListener(new MouseAdapter() {
             @Override
@@ -81,6 +109,9 @@ public class DeclaredMockItemPanel {
         int thenParameterSize = declaredMock.getThenParameter().size();
         ThenParameter thenParameter = declaredMock.getThenParameter().get(0);
         String className = thenParameter.getReturnParameter().getClassName();
+        if (className.contains("<")) {
+            className = className.substring(0, className.indexOf("<"));
+        }
         if (className.contains(".")) {
             className = className.substring(className.lastIndexOf(".") + 1);
         }
@@ -141,34 +172,29 @@ public class DeclaredMockItemPanel {
         MouseAdapter showDeleteButtonListener = new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                deleteButton.setVisible(true);
+//                controlPanel.setVisible(true);
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                deleteButton.setVisible(false);
+//                controlPanel.setVisible(false);
             }
         };
 
-        deleteButton.addMouseListener(showDeleteButtonListener);
-        deleteButton.setIcon(UIUtils.DELETE_BIN_2_LINE);
-        deleteButton.setVisible(false);
-        deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        deleteButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                itemLifeCycleListener.onDelete(declaredMock);
-            }
-        });
+//        controlPanel.setVisible(false);
 
 
-        mainPanel.addMouseListener(showDeleteButtonListener);
-        mainPanelSub.addMouseListener(showDeleteButtonListener);
-        nameContainerPanel.addMouseListener(showDeleteButtonListener);
-        nameLabel.addMouseListener(showDeleteButtonListener);
-        controlPanel.addMouseListener(showDeleteButtonListener);
-        controlContainer.addMouseListener(showDeleteButtonListener);
-        selectCandidateCheckbox.addMouseListener(showDeleteButtonListener);
+//        mainPanel.addMouseListener(showDeleteButtonListener);
+//        mainPanelSub.addMouseListener(showDeleteButtonListener);
+//        nameContainerPanel.addMouseListener(showDeleteButtonListener);
+//        actionPanel.addMouseListener(showDeleteButtonListener);
+//        actionToolbar.getComponent().addMouseListener(showDeleteButtonListener);
+//        nameLabel.addMouseListener(showDeleteButtonListener);
+//        controlPanel.addMouseListener(showDeleteButtonListener);
+//        controlContainer.addMouseListener(showDeleteButtonListener);
+//        selectCandidateCheckbox.addMouseListener(showDeleteButtonListener);
+
+
 
     }
 

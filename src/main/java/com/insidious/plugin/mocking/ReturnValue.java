@@ -2,6 +2,7 @@ package com.insidious.plugin.mocking;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class ReturnValue {
@@ -10,6 +11,20 @@ public class ReturnValue {
 
     public void setValue(String value) {
         this.value = value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ReturnValue that = (ReturnValue) o;
+        return Objects.equals(declaredMocks, that.declaredMocks) && value.equals(
+                that.value) && returnValueType == that.returnValueType && className.equals(that.className);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(declaredMocks, value, returnValueType, className);
     }
 
     public void setReturnValueType(ReturnValueType returnValueType) {
