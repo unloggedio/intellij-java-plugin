@@ -44,7 +44,6 @@ public class DeclaredMockItemPanel {
                 itemLifeCycleListener.onClick(declaredMock);
             }
         });
-        deleteButton.setIcon(UIUtils.DELETE_BIN_2_LINE);
         TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
         String simpleClassName = declaredMock.getFieldTypeName();
         if (simpleClassName.contains(".")) {
@@ -78,14 +77,6 @@ public class DeclaredMockItemPanel {
         }
 
 
-        deleteButton.setVisible(false);
-        deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        deleteButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                itemLifeCycleListener.onDelete(declaredMock);
-            }
-        });
 
         int thenParameterSize = declaredMock.getThenParameter().size();
         ThenParameter thenParameter = declaredMock.getThenParameter().get(0);
@@ -146,6 +137,7 @@ public class DeclaredMockItemPanel {
 
         timer.start();
 
+
         MouseAdapter showDeleteButtonListener = new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
@@ -157,6 +149,19 @@ public class DeclaredMockItemPanel {
                 deleteButton.setVisible(false);
             }
         };
+
+        deleteButton.addMouseListener(showDeleteButtonListener);
+        deleteButton.setIcon(UIUtils.DELETE_BIN_2_LINE);
+        deleteButton.setVisible(false);
+        deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        deleteButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                itemLifeCycleListener.onDelete(declaredMock);
+            }
+        });
+
+
         mainPanel.addMouseListener(showDeleteButtonListener);
         mainPanelSub.addMouseListener(showDeleteButtonListener);
         nameContainerPanel.addMouseListener(showDeleteButtonListener);
@@ -164,7 +169,6 @@ public class DeclaredMockItemPanel {
         controlPanel.addMouseListener(showDeleteButtonListener);
         controlContainer.addMouseListener(showDeleteButtonListener);
         selectCandidateCheckbox.addMouseListener(showDeleteButtonListener);
-        deleteButton.addMouseListener(showDeleteButtonListener);
 
     }
 

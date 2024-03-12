@@ -14,6 +14,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.java.JavaBundle;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -76,7 +77,6 @@ public class LibraryComponent {
     public LibraryComponent(Project project) {
         insidiousService = project.getService(InsidiousService.class);
         atomicRecordService = project.getService(AtomicRecordService.class);
-        deleteButton.setIcon(UIUtils.DELETE_BIN_2_LINE);
 
         ActionListener mockStatusChangeActionListener = e -> {
             if (!insidiousService.isAgentConnected()) {
@@ -181,70 +181,7 @@ public class LibraryComponent {
             }
         });
 
-        deleteButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (filterModel.isShowMocks()) {
-                    int selectedCount = selectedMocks.size();
-                    if (selectedCount < 1) {
-                        // shouldnt happen
-                        return;
-                    }
-                    DialogBuilder builder = new DialogBuilder(project);
-                    builder.okActionEnabled(true);
-                    builder.setTitle("Confirm Delete");
 
-                    JPanel deletePanel = LibraryComponent.deletePromptPanelBuilder(
-                            "Are you sure you want to delete " + selectedCount + " mock definition" + (selectedCount == 1 ? "s" : "")
-                    );
-                    builder.setCenterPanel(deletePanel);
-
-                    builder.setOkOperation(() -> {
-                        for (DeclaredMock selectedMock : selectedMocks) {
-                            atomicRecordService.deleteMockDefinition(selectedMock);
-                        }
-                        clearSelection();
-                        InsidiousNotification.notifyMessage(
-                                "Deleted " + selectedCount + " mock definition" + (selectedCount == 1 ? "s" : ""),
-                                NotificationType.INFORMATION);
-                        builder.getDialogWrapper().close(0);
-                        builder.dispose();
-                        reloadItems();
-
-                    });
-                    builder.showModal(true);
-
-                } else if (filterModel.isShowTests()) {
-                    int selectedCount = selectedCandidates.size();
-                    DialogBuilder builder = new DialogBuilder(project);
-                    builder.addOkAction();
-                    builder.addCancelAction();
-                    builder.setTitle("Confirm Delete");
-
-                    JPanel deletePanel = LibraryComponent.deletePromptPanelBuilder(
-                            "Are you sure you want to delete " + selectedCount + " replay test" + (selectedCount == 1 ? "s" : "") + "?"
-                    );
-                    builder.setCenterPanel(deletePanel);
-
-                    builder.setOkOperation(() -> {
-                        for (StoredCandidate storedCandidate : selectedCandidates) {
-                            atomicRecordService.deleteStoredCandidate(storedCandidate.getMethod(),
-                                    storedCandidate.getCandidateId());
-                        }
-                        selectedMocks.clear();
-                        InsidiousNotification.notifyMessage("Deleted " + selectedCount + " relay test"
-                                        + (selectedCount == 1 ? "s" : ""),
-                                NotificationType.INFORMATION);
-                        builder.getDialogWrapper().close(0);
-                        builder.dispose();
-                        reloadItems();
-                    });
-                    builder.showModal(true);
-
-                }
-
-            }
-        });
 
         MOCK_ITEM_LIFE_CYCLE_LISTENER = new ItemLifeCycleListener<>() {
             @Override
@@ -374,14 +311,7 @@ public class LibraryComponent {
 
         atomicRecordService.checkPreRequisites();
 
-        reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        reloadButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
                 reloadItems();
-            }
-        });
-        reloadItems();
 
         includeMocksCheckBox.addActionListener(e -> {
             boolean reload = false;
@@ -438,6 +368,83 @@ public class LibraryComponent {
 
         updateFilterLabel();
 
+        reloadAction = new AnAction(UIUtils.REFACTOR_GREY){
+
+        };
+
+        reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        reloadButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                reloadItems();
+            }
+        });
+
+        deleteButton.setIcon(UIUtils.DELETE_BIN_2_LINE);
+        deleteButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (filterModel.isShowMocks()) {
+                    int selectedCount = selectedMocks.size();
+                    if (selectedCount < 1) {
+                        // shouldnt happen
+                        return;
+                    }
+                    DialogBuilder builder = new DialogBuilder(project);
+                    builder.okActionEnabled(true);
+                    builder.setTitle("Confirm Delete");
+
+                    JPanel deletePanel = LibraryComponent.deletePromptPanelBuilder(
+                            "Are you sure you want to delete " + selectedCount + " mock definition" + (selectedCount == 1 ? "s" : "")
+                    );
+                    builder.setCenterPanel(deletePanel);
+
+                    builder.setOkOperation(() -> {
+                        for (DeclaredMock selectedMock : selectedMocks) {
+                            atomicRecordService.deleteMockDefinition(selectedMock);
+                        }
+                        clearSelection();
+                        InsidiousNotification.notifyMessage(
+                                "Deleted " + selectedCount + " mock definition" + (selectedCount == 1 ? "s" : ""),
+                                NotificationType.INFORMATION);
+                        builder.getDialogWrapper().close(0);
+                        builder.dispose();
+                        reloadItems();
+
+                    });
+                    builder.showModal(true);
+
+                } else if (filterModel.isShowTests()) {
+                    int selectedCount = selectedCandidates.size();
+                    DialogBuilder builder = new DialogBuilder(project);
+                    builder.addOkAction();
+                    builder.addCancelAction();
+                    builder.setTitle("Confirm Delete");
+
+                    JPanel deletePanel = LibraryComponent.deletePromptPanelBuilder(
+                            "Are you sure you want to delete " + selectedCount + " replay test" + (selectedCount == 1 ? "s" : "") + "?"
+                    );
+                    builder.setCenterPanel(deletePanel);
+
+                    builder.setOkOperation(() -> {
+                        for (StoredCandidate storedCandidate : selectedCandidates) {
+                            atomicRecordService.deleteStoredCandidate(storedCandidate.getMethod(),
+                                    storedCandidate.getCandidateId());
+                        }
+                        selectedMocks.clear();
+                        InsidiousNotification.notifyMessage("Deleted " + selectedCount + " relay test"
+                                        + (selectedCount == 1 ? "s" : ""),
+                                NotificationType.INFORMATION);
+                        builder.getDialogWrapper().close(0);
+                        builder.dispose();
+                        reloadItems();
+                    });
+                    builder.showModal(true);
+
+                }
+
+            }
+        });
     }
 
     static JPanel deletePromptPanelBuilder(String deletePrompt) {
@@ -530,8 +537,9 @@ public class LibraryComponent {
             selectedCountLabel.setText(count + " selected");
         }
         deleteButton.setVisible(count > 0);
-        clearSelectionLabel.setVisible(count > 0);
         deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        clearSelectionLabel.setVisible(count > 0);
     }
 
     private GridBagConstraints createGBCForFakeComponent(int yIndex) {
