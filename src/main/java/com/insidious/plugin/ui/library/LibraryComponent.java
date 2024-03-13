@@ -4,6 +4,7 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -12,6 +13,7 @@ import com.insidious.plugin.ui.ImagePanel;
 import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
+import com.insidious.plugin.util.AtomicAssertionUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.java.JavaBundle;
@@ -32,6 +34,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -334,6 +337,9 @@ public class LibraryComponent {
                 }
             }
             if (reload) {
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("filter", filterModel.toString());
+                UsageInsightTracker.getInstance().RecordEvent("TCSF_CONFIRM", eventProperties);
                 updateFilterLabel();
                 reloadItems();
             }
@@ -350,6 +356,10 @@ public class LibraryComponent {
                 }
             }
             if (reload) {
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("filter", filterModel.toString());
+                UsageInsightTracker.getInstance().RecordEvent("TCSF_CONFIRM", eventProperties);
+
                 updateFilterLabel();
                 reloadItems();
             }

@@ -8,6 +8,7 @@ import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.Expression;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.mocking.*;
@@ -37,6 +38,7 @@ import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
@@ -218,6 +220,16 @@ public class TestCandidateSaveForm {
             @Override
             public void actionPerformed(ActionEvent e) {
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    JSONObject eventProperties = new JSONObject();
+                    eventProperties.put("count", candidateMetadataList.size());
+                    eventProperties.put("inUnit", unitRadioButton.isSelected());
+                    eventProperties.put("mockCount", mocksMap.values()
+                            .stream().mapToLong(Collection::size).sum());
+                    eventProperties.put("assertionCount", candidateList
+                            .stream().mapToInt(e2 -> AtomicAssertionUtils.countAssertions(e2.getTestAssertions()))
+                            .sum());
+                    UsageInsightTracker.getInstance().RecordEvent("TCSF_CONFIRM", eventProperties);
+
                     int mockSavedCount = 0;
                     for (StoredCandidate storedCandidate : candidateList) {
                         if (!unitRadioButton.isSelected()) {
@@ -261,7 +273,13 @@ public class TestCandidateSaveForm {
         });
 
         cancelButton.setIcon(AllIcons.Actions.Cancel);
-        cancelButton.addActionListener(e -> componentLifecycleListener.onClose(TestCandidateSaveForm.this));
+        cancelButton.addActionListener(e -> {
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("count", candidateMetadataList.size());
+            UsageInsightTracker.getInstance().RecordEvent("TCSF_CLOSED", eventProperties);
+
+            componentLifecycleListener.onClose(TestCandidateSaveForm.this);
+        });
 
 
         List<AtomicAssertion> allAssertions = candidateList.stream()

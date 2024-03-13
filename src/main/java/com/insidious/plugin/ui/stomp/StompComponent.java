@@ -14,6 +14,7 @@ import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.SemanticVersion;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
@@ -62,6 +63,7 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
@@ -162,6 +164,7 @@ public class StompComponent implements
         AnAction clearAction = new AnAction(() -> "Clear", AllIcons.Actions.GC) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
+                UsageInsightTracker.getInstance().RecordEvent("RESET_TIMELINE", null);
                 System.err.println("clear timeline");
                 resetTimeline();
             }
@@ -171,6 +174,10 @@ public class StompComponent implements
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    JSONObject eventProperties = new JSONObject();
+                    eventProperties.put("count", selectedCandidates.size());
+                    UsageInsightTracker.getInstance().RecordEvent("ACTION_SAVE", eventProperties);
+
                     ApplicationManager.getApplication().runReadAction(StompComponent.this::saveSelected);
                 });
             }
@@ -193,6 +200,10 @@ public class StompComponent implements
                 }
 
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    JSONObject eventProperties = new JSONObject();
+                    eventProperties.put("count", selectedCandidates.size());
+                    UsageInsightTracker.getInstance().RecordEvent("ACTION_GENERATE_JUNIT", eventProperties);
+
                     onGenerateJunitTestCaseRequest(selectedCandidates);
                 });
             }
@@ -211,6 +222,10 @@ public class StompComponent implements
                     InsidiousNotification.notifyMessage("Select records to replay", NotificationType.INFORMATION);
                     return;
                 }
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("count", selectedCandidates.size());
+                UsageInsightTracker.getInstance().RecordEvent("ACTION_REPLAY_SELECT", eventProperties);
+
                 InsidiousNotification.notifyMessage("Replayed " + selectedCandidates.size() + " records",
                         NotificationType.INFORMATION);
                 for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
@@ -236,6 +251,10 @@ public class StompComponent implements
         filterAction = new AnAction(() -> "Filter", AllIcons.General.Filter) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("count", selectedCandidates.size());
+                UsageInsightTracker.getInstance().RecordEvent("ACTION_FILTER", eventProperties);
+
                 showFiltersComponentPopup(project, insidiousService);
             }
 
@@ -314,6 +333,10 @@ public class StompComponent implements
         clearFilterLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("filter", filterModel.toString());
+                UsageInsightTracker.getInstance().RecordEvent("CLEAR_FILTER", eventProperties);
+
                 clearFilter();
                 updateFilterLabel();
                 resetAndReload();
@@ -423,6 +446,10 @@ public class StompComponent implements
                     lastMethodFocussed = null;
                     onMethodFocussed(insidiousService.getCurrentMethod());
                 }
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("filter", filterModel.toString());
+                UsageInsightTracker.getInstance().RecordEvent("FILTER_UPDATED", eventProperties);
+
                 updateFilterLabel();
                 resetAndReload();
             }
