@@ -1,14 +1,18 @@
 package com.insidious.plugin.ui.stomp;
 
-import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
-import com.intellij.notification.NotificationType;
+import com.intellij.icons.AllIcons;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.ui.GotItTooltip;
 import com.intellij.uiDesigner.core.GridConstraints;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -17,6 +21,7 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.*;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.intellij.uiDesigner.core.GridConstraints.ALIGN_FILL;
@@ -65,6 +70,7 @@ public class StompFilter {
     private DefaultListModel<String> modelExcludedClasses;
     private DefaultListModel<String> modelIncludedMethods;
     private DefaultListModel<String> modelExcludedMethods;
+
 
     public StompFilter(FilterModel filterModel, MethodUnderTest lastMethodFocussed, Project project) {
         originalFilterModel = new FilterModel(filterModel);
@@ -653,6 +659,46 @@ public class StompFilter {
         followEditorCheckBox.addActionListener(e -> {
             filterModel.setFollowEditor(followEditorCheckBox.isSelected());
         });
+
+
+    }
+
+    public ActionToolbarImpl createActionToolbar(StompToolbarActionListener actionListner) {
+
+
+
+
+        List<AnAction> action11 = new ArrayList<>();
+
+
+        action11.add(new AnAction(() -> "Add", AllIcons.General.Add) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                actionListner.onAdd();
+            }
+        });
+
+        action11.add(new AnAction(() -> "Remove Selected", AllIcons.General.Add) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                actionListner.onRemove();
+            }
+        });
+
+        action11.add(new AnAction(() -> "Copy Selected", AllIcons.General.Add) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                actionListner.onCopy();
+            }
+        });
+
+        ActionToolbarImpl actionToolbar = new ActionToolbarImpl(
+                "", new DefaultActionGroup(action11), true);
+        actionToolbar.setMiniMode(false);
+        actionToolbar.setForceMinimumSize(true);
+        actionToolbar.setTargetComponent(mainPanel);
+
+        return actionToolbar;
 
 
     }

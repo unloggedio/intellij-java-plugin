@@ -164,7 +164,7 @@ public class StompComponent implements
         };
 
 
-        AnAction generateJunitTestAction = new AnAction(() -> "Generate JUnit", AllIcons.Scope.Tests) {
+        AnAction generateJunitTestAction = new AnAction(() -> "JUnit", AllIcons.Scope.Tests) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 System.err.println("generate junit test");
@@ -214,7 +214,7 @@ public class StompComponent implements
         };
 
 
-        filterAction = new AnAction(() -> "Filters", AllIcons.General.Filter) {
+        filterAction = new AnAction(() -> "Filter", AllIcons.General.Filter) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 showFiltersComponentPopup(project, insidiousService);
@@ -1537,7 +1537,7 @@ public class StompComponent implements
     public void showVersionBadge(SemanticVersion currentVersion, SemanticVersion requiredVersion) {
         Notification notification = new Notification(InsidiousNotification.DISPLAY_ID, "Update unlogged-sdk Version",
                 "You are using version " + currentVersion.toString() + " which is older than recommended version for" +
-                        " this plugin" + requiredVersion + ". Please update the unlogged-sdk version in your pom" +
+                        " this plugin " + requiredVersion + ". Please update the unlogged-sdk version in your pom" +
                         ".xml/build.gradle",
                 NotificationType.ERROR);
         notification.setImportant(true);

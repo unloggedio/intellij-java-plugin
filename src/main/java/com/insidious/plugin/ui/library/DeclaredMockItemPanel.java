@@ -212,6 +212,6 @@ public class DeclaredMockItemPanel {
     }
 
     public void setIsSelectable(boolean b) {
-        controlContainer.setVisible(b);
+        selectCandidateCheckbox.setVisible(b);
     }
 }
