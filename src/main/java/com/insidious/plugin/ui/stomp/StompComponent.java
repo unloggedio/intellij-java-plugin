@@ -455,6 +455,7 @@ public class StompComponent implements
         }
 
         ProgressIndicator progressIndicator = new DaemonProgressIndicator();
+        progressIndicator.setFraction(0.25);
         ProgressManager.getInstance()
                 .executeProcessUnderProgress(() -> {
                     CountDownLatch cdl = new CountDownLatch(1);
@@ -471,6 +472,7 @@ public class StompComponent implements
                                     scrollContainer.repaint();
                                 });
                             });
+                    cdl.countDown();
 
                     ApplicationManager.getApplication().invokeLater(() -> {
                         JPanel component = saveFormReference.getComponent();

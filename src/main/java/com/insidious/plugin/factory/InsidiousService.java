@@ -821,8 +821,7 @@ final public class InsidiousService implements
 
         methodArgumentValueCache.addArgumentSet(agentCommandRequest);
         agentCommandRequest.setRequestAuthentication(
-                ApplicationManager.getApplication().runReadAction(
-                (Computable<RequestAuthentication>) this::getRequestAuthentication));
+                this.getRequestAuthentication());
 
         String methodName = agentCommandRequest.getMethodName();
         if (methodName.startsWith("lambda$")) {
@@ -989,7 +988,8 @@ final public class InsidiousService implements
                 if (implementsListType.getName().endsWith("UserDetails")) {
                     // yes match
                     match = true;
-                    String qualifiedName = implementsPsi.getQualifiedName();
+                    String qualifiedName = ApplicationManager.getApplication().runReadAction(
+                            (Computable<String>) implementsPsi::getQualifiedName);
                     if (qualifiedName == null) {
                         continue;
                     }
