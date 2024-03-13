@@ -68,28 +68,14 @@
                     <properties/>
                     <border type="none"/>
                     <children>
-                      <grid id="9ac89" binding="controlContainer" layout-manager="FlowLayout" hgap="5" vgap="5" flow-align="1">
+                      <grid id="9ac89" binding="controlContainer" layout-manager="BorderLayout" hgap="0" vgap="0">
                         <constraints>
                           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
                           <gridbag weightx="1.0" weighty="1.0"/>
                         </constraints>
                         <properties/>
                         <border type="empty"/>
-                        <children>
-                          <component id="a1d9e" class="javax.swing.JLabel" binding="pinLabel">
-                            <constraints/>
-                            <properties>
-                              <text value=""/>
-                            </properties>
-                          </component>
-                          <component id="1e1e6" class="javax.swing.JLabel" binding="replaySingle">
-                            <constraints/>
-                            <properties>
-                              <icon value="icons/png/replay.png"/>
-                              <text value=""/>
-                            </properties>
-                          </component>
-                        </children>
+                        <children/>
                       </grid>
                     </children>
                   </grid>

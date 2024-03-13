@@ -23,6 +23,7 @@ import com.intellij.openapi.editor.ex.util.EditorUtil;
 import com.intellij.openapi.editor.impl.EditorImpl;
 import com.intellij.openapi.editor.markup.EffectType;
 import com.intellij.openapi.editor.markup.TextAttributes;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.ui.popup.ActiveIcon;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
@@ -419,10 +420,16 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
                             .show(new RelativePoint(mouseEvent));
 
                 } else {
-                    PsiMethodCallExpression methodCallExpression = mockableCallExpressions.get(0);
-                    PsiMethod psiMethod = (PsiMethod) methodCallExpression.getMethodExpression()
-                            .resolve();
-                    insidiousService.showMockCreator(new JavaMethodAdapter(psiMethod), methodCallExpression);
+                    ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                        DumbService.getInstance(insidiousService.getProject())
+                                .runReadActionInSmartMode(() -> {
+                                    PsiMethodCallExpression methodCallExpression = mockableCallExpressions.get(0);
+                                    PsiMethod psiMethod = (PsiMethod) methodCallExpression.getMethodExpression()
+                                            .resolve();
+                                    insidiousService.showMockCreator(new JavaMethodAdapter(psiMethod),
+                                            methodCallExpression);
+                                });
+                    });
                 }
             } else {
                 insidiousService.onMethodCallExpressionInlayClick(mockableCallExpressions, mouseEvent, point);

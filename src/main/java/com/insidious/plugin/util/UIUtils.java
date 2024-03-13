@@ -18,10 +18,11 @@ public class UIUtils {
     public static final Icon DELETE_BIN_3_LINE = IconLoader.getIcon("icons/png/delete-bin-3-line.png", UIUtils.class);
     public static final Icon DELETE_BIN_CROSS_BLACK = IconLoader.getIcon("icons/svg/delete-bin-2-line.svg", UIUtils.class);
     public static final Icon DELETE_BIN_PARALLEL_RED = IconLoader.getIcon("icons/svg/delete-bin-6-line.svg", UIUtils.class);
-    public static final Icon REFRESH_TEAL = IconLoader.getIcon("icons/png/refresh_icon_teal.png", UIUtils.class);
-    public static final Icon REFRESH_SVG = IconLoader.getIcon("icons/svg/refresh-line-16.svg", UIUtils.class);
-    public static final Icon TEST_TUBE_ICON = IconLoader.getIcon("icons/png/test.png", UIUtils.class);
-    public static final Icon FLASHLIGHT_BLUE = IconLoader.getIcon("icons/png/flashlight-line-blue.png", UIUtils.class);
+//    public static final Icon REFRESH_TEAL = IconLoader.getIcon("icons/png/refresh_icon_teal.png", UIUtils.class);
+//    public static final Icon REFRESH_SVG = IconLoader.getIcon("icons/svg/refresh-line-16.svg", UIUtils.class);
+    public static final Icon REFRESH_SVG = IconLoader.getIcon("icons/svg/refresh-line-gray.svg", UIUtils.class);
+    public static final Icon TEST_TUBE_ICON = IconLoader.getIcon("icons/svg/test-tube-line-pink.svg", UIUtils.class);
+    public static final Icon FLASHLIGHT_BLUE = IconLoader.getIcon("icons/svg/flashlight-line-blue.svg", UIUtils.class);
     public static final Icon NEW_LOGS_TO_PROCESS_ICON = IconLoader.getIcon("/icons/png/new_logs_to_process_icon.png",
             UIUtils.class);
     public static final Icon NO_NEW_LOGS_TO_PROCESS_ICON = IconLoader.getIcon("/icons/png/assert-not-equals.png",
@@ -35,7 +36,7 @@ public class UIUtils {
     public static final Icon FIND_BUGS_TEAL = IconLoader.getIcon("/icons/png/findBugsTeal.png", UIUtils.class);
     public static final Icon OPTIMIZE_TEAL = IconLoader.getIcon("/icons/png/optimizeTeal.png", UIUtils.class);
     public static final Icon EXPAND_UP_DOWN = IconLoader.getIcon("/icons/png/expand-up-down-line.png", UIUtils.class);
-    public static final Icon EQUALIZER = IconLoader.getIcon("/icons/png/equalizer-line.png", UIUtils.class);
+    public static final Icon EQUALIZER = IconLoader.getIcon("/icons/svg/equalizer-3-line.svg", UIUtils.class);
     public static final Icon DISCONNECTED_ICON = IconLoader.getIcon("/icons/png/record-circle-fill-black.png",
             UIUtils.class);
     public static final Icon CIRCLE_EMPTY = IconLoader.getIcon("/icons/png/checkbox-blank-circle-line.png",
@@ -46,8 +47,8 @@ public class UIUtils {
     public static final Icon SAVE_CANDIDATE_GREY = IconLoader.getIcon("/icons/png/save_candidate.png", UIUtils.class);
     public static final Icon SAVE_CANDIDATE_PINK = IconLoader.getIcon("/icons/png/save-line-pink.png", UIUtils.class);
     public static final Icon CLOSE_LINE_PNG = IconLoader.getIcon("/icons/png/close-line.png", UIUtils.class);
-    public static final Icon CLOSE_LINE_BLACK_PNG = IconLoader.getIcon("/icons/png/close-line-black.png",
-            UIUtils.class);
+    public static final Icon CLOSE_LINE_SVG = IconLoader.getIcon("/icons/svg/close-fill.svg", UIUtils.class);
+    public static final Icon CLOSE_LINE_BLACK_PNG = IconLoader.getIcon("/icons/png/close-line-black.png", UIUtils.class);
     public static final Icon TRASH_PROMPT = IconLoader.getIcon("/icons/svg/trash_prompt.svg", UIUtils.class);
     public static final Icon SAVE_CANDIDATE_GREEN_SVG = IconLoader.getIcon("/icons/svg/save-line.svg", UIUtils.class);
     public static final Icon CLOSE_FILE_RED_SVG = IconLoader.getIcon("/icons/svg/close_case_preview.svg",

@@ -25,6 +25,8 @@ import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -42,7 +44,6 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.tree.TreeNode;
@@ -64,7 +65,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private Editor returnValueTextArea;
     private JPanel methodParameterScrollContainer;
     //    private JButton modifyArgumentsButton;
-    private JButton closeButton;
     //    private JLabel editValueLabel;
     private JButton createBoilerplateButton;
     private JLabel methodNameLabel;
@@ -73,6 +73,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JPanel boilerplateCustomizerContainer;
     private JPanel centerPanel;
     private JTabbedPane tabbedPane;
+    private JPanel controlPanel;
     private MethodAdapter methodElement;
     private JBScrollPane parameterScrollPanel = null;
     private TestCaseDesignerLite designerLite;
@@ -85,8 +86,38 @@ public class MethodDirectInvokeComponent implements ActionListener {
         this.insidiousService = insidiousService;
         this.objectMapper = ObjectMapperInstance.getInstance();
 
-        configureCloseButton(componentLifecycleListener);
+//        configureCloseButton(componentLifecycleListener);
 
+        AnAction closeAction = new AnAction(() -> "Close", UIUtils.CLOSE_LINE_SVG) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                componentLifecycleListener.onClose(MethodDirectInvokeComponent.this);
+            }
+
+            @Override
+            public boolean isDumbAware() {
+                return false;
+            }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+
+        };
+
+        List<AnAction> action11 = new ArrayList<>();
+        action11.add(closeAction);
+
+        ActionToolbarImpl actionToolbar = new ActionToolbarImpl(
+                "Live View", new DefaultActionGroup(action11), true);
+        actionToolbar.setMiniMode(false);
+        actionToolbar.setForceMinimumSize(true);
+        actionToolbar.setTargetComponent(mainContainer);
+        controlPanel.add(actionToolbar.getComponent(), BorderLayout.EAST);
+
+
+//        closeButton.setIcon(UIUtils.CLOSE_LINE_SVG);
 
         methodParameterScrollContainer.addKeyListener(new KeyAdapter() {
 
@@ -138,21 +169,9 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 if (designerLite != null) {
                     return;
                 }
-                designerLite = new TestCaseDesignerLite(methodElement,
-                        null, true, insidiousService.getProject());
+                designerLite = new TestCaseDesignerLite(methodElement, null, true, insidiousService);
 
                 boilerplateCustomizerContainer.add(designerLite.getComponent(), BorderLayout.CENTER);
-                designerLite.getCreateButton().addMouseListener(new MouseAdapter() {
-                    @Override
-                    public void mouseClicked(MouseEvent e) {
-                        super.mouseClicked(e);
-                        FileEditorManager fileEditorManager = insidiousService.previewTestCase(
-                                designerLite.getLightVirtualFile());
-                        Editor selectedTextEditor = fileEditorManager.getSelectedTextEditor();
-                        FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
-                        designerLite.setEditorReferences(selectedTextEditor, selectedEditor);
-                    }
-                });
                 ApplicationManager.getApplication().invokeLater(() -> {
 
                     boilerplateCustomizerContainer.getParent().revalidate();
@@ -167,38 +186,38 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
     }
 
-    private void configureCloseButton(ComponentLifecycleListener<MethodDirectInvokeComponent> componentLifecycleListener) {
-        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        final Border closeButtonOriginalBorder = closeButton.getBorder();
-        final Border actuallyOriginalBorder = BorderFactory.createCompoundBorder(
-                BorderFactory.createEmptyBorder(2, 2, 2, 2),
-                closeButtonOriginalBorder);
-        closeButton.setBorder(actuallyOriginalBorder);
-        closeButton.setToolTipText("Hide direct invoke");
-        closeButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                super.mouseEntered(e);
-                closeButton.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createRaisedBevelBorder(),
-                        closeButtonOriginalBorder));
-//                closeButton.setIcon(UIUtils.CLOSE_LINE_BLACK_PNG);
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                super.mouseExited(e);
-                closeButton.setBorder(actuallyOriginalBorder);
-//                closeButton.setIcon(UIUtils.CLOSE_LINE_PNG);
-            }
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
-                componentLifecycleListener.onClose(MethodDirectInvokeComponent.this);
-            }
-        });
-    }
+//    private void configureCloseButton(ComponentLifecycleListener<MethodDirectInvokeComponent> componentLifecycleListener) {
+//        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        final Border closeButtonOriginalBorder = closeButton.getBorder();
+//        final Border actuallyOriginalBorder = BorderFactory.createCompoundBorder(
+//                BorderFactory.createEmptyBorder(2, 2, 2, 2),
+//                closeButtonOriginalBorder);
+//        closeButton.setBorder(actuallyOriginalBorder);
+//        closeButton.setToolTipText("Hide direct invoke");
+//        closeButton.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseEntered(MouseEvent e) {
+//                super.mouseEntered(e);
+//                closeButton.setBorder(BorderFactory.createCompoundBorder(
+//                        BorderFactory.createRaisedBevelBorder(),
+//                        closeButtonOriginalBorder));
+////                closeButton.setIcon(UIUtils.CLOSE_LINE_BLACK_PNG);
+//            }
+//
+//            @Override
+//            public void mouseExited(MouseEvent e) {
+//                super.mouseExited(e);
+//                closeButton.setBorder(actuallyOriginalBorder);
+////                closeButton.setIcon(UIUtils.CLOSE_LINE_PNG);
+//            }
+//
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                super.mouseClicked(e);
+//                componentLifecycleListener.onClose(MethodDirectInvokeComponent.this);
+//            }
+//        });
+//    }
 
     private int expandAll(JTree tree, TreePath parent) {
         TreeNode node = (TreeNode) parent.getLastPathComponent();
@@ -313,7 +332,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                     parameterValue = ApplicationManager.getApplication()
                             .runReadAction((Computable<String>) () ->
                                     ClassUtils.createDummyValue(methodParameterType, new ArrayList<>(4),
-                            insidiousService.getProject()));
+                                            insidiousService.getProject()));
                 }
                 try {
                     methodArgumentsMap.put(methodParameter.getName(), objectMapper.readTree(parameterValue));
@@ -360,20 +379,9 @@ public class MethodDirectInvokeComponent implements ActionListener {
             // refresh it as well
             designerLite.closeEditorWindow();
             designerLite = new TestCaseDesignerLite(methodElement,
-                    null, true, insidiousService.getProject());
+                    null, true, insidiousService);
 
             boilerplateCustomizerContainer.add(designerLite.getComponent(), BorderLayout.CENTER);
-            designerLite.getCreateButton().addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    super.mouseClicked(e);
-                    FileEditorManager fileEditorManager = insidiousService.previewTestCase(
-                            designerLite.getLightVirtualFile());
-                    Editor selectedTextEditor = fileEditorManager.getSelectedTextEditor();
-                    FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
-                    designerLite.setEditorReferences(selectedTextEditor, selectedEditor);
-                }
-            });
             ApplicationManager.getApplication().invokeLater(() -> {
                 boilerplateCustomizerContainer.getParent().revalidate();
                 boilerplateCustomizerContainer.getParent().repaint();

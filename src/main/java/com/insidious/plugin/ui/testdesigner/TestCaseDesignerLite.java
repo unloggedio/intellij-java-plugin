@@ -37,6 +37,10 @@ import com.insidious.plugin.util.*;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -60,11 +64,14 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.util.FileContentUtil;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -79,19 +86,18 @@ public class TestCaseDesignerLite {
     private final LightVirtualFile testCaseScriptFile;
     private final MethodAdapter methodAdapter;
     private final Project project;
+    private final InsidiousService insidiousService;
     Random random = new Random(new Date().getTime());
     private JPanel mainPanel;
     private JPanel configurationPanel;
     private JPanel bottomControlPanel;
     private JTextField saveLocationTextField;
-    private JButton saveTestCaseButton;
     private JCheckBox addFieldMocksCheckBox;
     private JCheckBox useMockitoAnnotationsMockCheckBox;
     private JComboBox<TestFramework> testFrameworkComboBox;
     private JComboBox<MockFramework> mockFrameworkComboBox;
     private JComboBox<JsonFramework> jsonFrameworkComboBox;
     private JComboBox<ResourceEmbedMode> resourceEmberModeComboBox;
-    private JButton createButton;
     private JPanel testFrameWorkPanel;
     private JLabel testFrameworkLabel;
     private JPanel mockFrameworkPanel;
@@ -101,6 +107,7 @@ public class TestCaseDesignerLite {
     private JPanel useMockitoConfigPanel;
     private JPanel mockDownstreamContainerPanel;
     private JPanel saveDetailsPanel;
+    private JPanel controlPanel;
     private TestCaseGenerationConfiguration currentTestGenerationConfiguration;
     private TestCaseUnit testCaseScript;
     private List<String> methodChecked;
@@ -111,21 +118,20 @@ public class TestCaseDesignerLite {
     public TestCaseDesignerLite(MethodAdapter currentMethod,
                                 TestCaseGenerationConfiguration configuration,
                                 boolean generateOnlyBoilerPlate,
-                                Project project) {
+                                InsidiousService insidiousService) {
+
         this.methodAdapter = currentMethod;
         this.mainPanel.setMaximumSize(new Dimension(-1, 300));
         this.currentTestGenerationConfiguration = configuration;
-        this.project = project;
+        this.insidiousService = insidiousService;
+        this.project = insidiousService.getProject();
         testCaseScriptFile = new LightVirtualFile(currentMethod.getName() + "_Unlogged_Preview.java");
 
-        saveTestCaseButton.setEnabled(false);
-        saveTestCaseButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
 //        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 //        closeButton.setIcon(UIUtils.CLOSE_FILE_RED_SVG);
 //        closeButton.setForeground(UIUtils.defaultForeground);
 
-        saveTestCaseButton.setForeground(UIUtils.defaultForeground);
 
         testFrameworkComboBox.setModel(new DefaultComboBoxModel<>(TestFramework.values()));
         mockFrameworkComboBox.setModel(new DefaultComboBoxModel<>(MockFramework.values()));
@@ -172,102 +178,141 @@ public class TestCaseDesignerLite {
             updatePreviewTestCase();
         });
 
-        saveTestCaseButton.addActionListener(e -> {
-            UsageInsightTracker.getInstance().RecordEvent(
-                    "SAVE_JUNIT_TEST_CASE",
-                    null
-            );
 
-            ClassAdapter currentClass = methodAdapter.getContainingClass();
-            String saveLocation = saveLocationTextField.getText();
-            InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
-            String basePath = insidiousService.guessModuleBasePath(currentMethod.getContainingClass());
-            try {
-                insidiousService.getJUnitTestCaseWriter().ensureTestUtilClass(basePath);
-            } catch (IOException ex) {
-                JSONObject properties = new JSONObject();
-                properties.put("message", ex.getMessage());
-                UsageInsightTracker.getInstance().RecordEvent(
-                        "FAIL_SAVE_TEST_CASE",
-                        properties
-                );
-                throw new RuntimeException(ex);
+        List<AnAction> action11 = new ArrayList<>();
+
+        action11.add(new AnAction(() -> "Preview") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                FileEditorManager fileEditorManager = insidiousService.previewTestCase(
+                        getLightVirtualFile());
+                Editor selectedTextEditor = fileEditorManager.getSelectedTextEditor();
+                FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
+                setEditorReferences(selectedTextEditor, selectedEditor);
+
             }
 
-            File testcaseFile = new File(saveLocation);
-            testcaseFile.getParentFile().mkdirs();
-
-            logger.info("[TEST CASE SAVE] testcaseFile : " + testcaseFile.getAbsolutePath());
-            UsageInsightTracker.getInstance().RecordEvent("TestCaseSaved", new JSONObject());
-
-            TestCaseGenerationConfiguration generationConfig = currentTestGenerationConfiguration;
-            if (generationConfig.getResourceEmbedMode() == ResourceEmbedMode.IN_FILE) {
-                String resourceDirectory = insidiousService.getJUnitTestCaseWriter()
-                        .getTestResourcesDirectory(basePath) + "unlogged-fixtures" + File.separator;
-
-                ValueResourceContainer valueResourceContainer = testCaseScript.getTestGenerationState()
-                        .getValueResourceMap();
-                String resourceFileName = valueResourceContainer.getResourceFileName();
-                new File(resourceDirectory).mkdirs();
-                File resourceFile = new File(resourceDirectory + resourceFileName);
-
-                try (FileOutputStream resourceFileOutput = new FileOutputStream(resourceFile)) {
-                    resourceFileOutput.write(
-                            objectMapper.writerWithDefaultPrettyPrinter()
-                                    .writeValueAsBytes(valueResourceContainer)
-                    );
-                } catch (Exception e1) {
-
-                    JSONObject properties = new JSONObject();
-                    properties.put("message", e1.getMessage());
-                    UsageInsightTracker.getInstance().RecordEvent(
-                            "FAIL_SAVE_TEST_CASE_RESOURCE",
-                            properties
-                    );
-
-                    InsidiousNotification.notifyMessage(
-                            "Failed to write test resource case: " + e1.getMessage(), NotificationType.ERROR
-                    );
-                    return;
-                }
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
             }
-            String fileContents = testCaseScriptFile.getContent().toString();
-            if (!testcaseFile.exists()) {
-                try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
-                    out.write(fileContents.getBytes());
-                } catch (Exception e1) {
-                    InsidiousNotification.notifyMessage(
-                            "Failed to write test case: " + e1.getMessage(), NotificationType.ERROR
-                    );
-                }
-            } else {
-                saveMethodToExistingFile(testcaseFile);
-            }
-
-            closeEditorWindow();
-
-            VirtualFile newFile = VirtualFileManager.getInstance()
-                    .refreshAndFindFileByUrl(FileSystems.getDefault()
-                            .getPath(testcaseFile.getAbsolutePath())
-                            .toUri()
-                            .toString());
-            if (newFile == null) {
-                return;
-            }
-            newFile.refresh(true, false);
-
-            List<VirtualFile> newFile1 = new ArrayList<>();
-            newFile1.add(newFile);
-            FileContentUtil.reparseFiles(currentClass.getProject(), newFile1, true);
-
-            FileEditorManager.getInstance(currentClass.getProject())
-                    .openFile(newFile, true, true);
-            InsidiousNotification.notifyMessage("Created test case: " + testcaseFile.getName(),
-                    NotificationType.WARNING);
         });
+
+        action11.add(new AnAction(() -> "Save", UIUtils.SAVE_CANDIDATE_GREEN_SVG) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                saveFinal(currentMethod, insidiousService);
+            }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        });
+
+        ActionToolbarImpl actionToolbar = new ActionToolbarImpl(
+                "JUnit Test Generator", new DefaultActionGroup(action11), true);
+        actionToolbar.setMiniMode(false);
+        actionToolbar.setForceMinimumSize(true);
+        actionToolbar.setTargetComponent(mainPanel);
+        controlPanel.add(actionToolbar.getComponent(), BorderLayout.WEST);
+
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             generateAndPreviewTestCase(currentTestGenerationConfiguration);
         });
+    }
+
+    private void saveFinal(MethodAdapter currentMethod, InsidiousService insidiousService) {
+        UsageInsightTracker.getInstance().RecordEvent(
+                "SAVE_JUNIT_TEST_CASE",
+                null
+        );
+
+        ClassAdapter currentClass = methodAdapter.getContainingClass();
+        String saveLocation = saveLocationTextField.getText();
+        String basePath = insidiousService.guessModuleBasePath(currentMethod.getContainingClass());
+        try {
+            insidiousService.getJUnitTestCaseWriter().ensureTestUtilClass(basePath);
+        } catch (IOException ex) {
+            JSONObject properties = new JSONObject();
+            properties.put("message", ex.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent(
+                    "FAIL_SAVE_TEST_CASE",
+                    properties
+            );
+            throw new RuntimeException(ex);
+        }
+
+        File testcaseFile = new File(saveLocation);
+        testcaseFile.getParentFile().mkdirs();
+
+        logger.info("[TEST CASE SAVE] testcaseFile : " + testcaseFile.getAbsolutePath());
+        UsageInsightTracker.getInstance().RecordEvent("TestCaseSaved", new JSONObject());
+
+        TestCaseGenerationConfiguration generationConfig = currentTestGenerationConfiguration;
+        if (generationConfig.getResourceEmbedMode() == ResourceEmbedMode.IN_FILE) {
+            String resourceDirectory = insidiousService.getJUnitTestCaseWriter()
+                    .getTestResourcesDirectory(basePath) + "unlogged-fixtures" + File.separator;
+
+            ValueResourceContainer valueResourceContainer = testCaseScript.getTestGenerationState()
+                    .getValueResourceMap();
+            String resourceFileName = valueResourceContainer.getResourceFileName();
+            new File(resourceDirectory).mkdirs();
+            File resourceFile = new File(resourceDirectory + resourceFileName);
+
+            try (FileOutputStream resourceFileOutput = new FileOutputStream(resourceFile)) {
+                resourceFileOutput.write(
+                        objectMapper.writerWithDefaultPrettyPrinter()
+                                .writeValueAsBytes(valueResourceContainer)
+                );
+            } catch (Exception e1) {
+
+                JSONObject properties = new JSONObject();
+                properties.put("message", e1.getMessage());
+                UsageInsightTracker.getInstance().RecordEvent(
+                        "FAIL_SAVE_TEST_CASE_RESOURCE",
+                        properties
+                );
+
+                InsidiousNotification.notifyMessage(
+                        "Failed to write test resource case: " + e1.getMessage(), NotificationType.ERROR
+                );
+                return;
+            }
+        }
+        String fileContents = testCaseScriptFile.getContent().toString();
+        if (!testcaseFile.exists()) {
+            try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
+                out.write(fileContents.getBytes());
+            } catch (Exception e1) {
+                InsidiousNotification.notifyMessage(
+                        "Failed to write test case: " + e1.getMessage(), NotificationType.ERROR
+                );
+            }
+        } else {
+            saveMethodToExistingFile(testcaseFile);
+        }
+
+        closeEditorWindow();
+
+        VirtualFile newFile = VirtualFileManager.getInstance()
+                .refreshAndFindFileByUrl(FileSystems.getDefault()
+                        .getPath(testcaseFile.getAbsolutePath())
+                        .toUri()
+                        .toString());
+        if (newFile == null) {
+            return;
+        }
+        newFile.refresh(true, false);
+
+        List<VirtualFile> newFile1 = new ArrayList<>();
+        newFile1.add(newFile);
+        FileContentUtil.reparseFiles(currentClass.getProject(), newFile1, true);
+
+        FileEditorManager.getInstance(currentClass.getProject())
+                .openFile(newFile, true, true);
+        InsidiousNotification.notifyMessage("Created test case: " + testcaseFile.getName(),
+                NotificationType.WARNING);
     }
 
     private static int buildMethodAccessModifier(PsiModifierList modifierList) {
@@ -298,9 +343,6 @@ public class TestCaseDesignerLite {
         return methodAccess;
     }
 
-    public JButton getCreateButton() {
-        return createButton;
-    }
 
     public JComponent getComponent() {
         return mainPanel;
@@ -467,7 +509,6 @@ public class TestCaseDesignerLite {
                         false);
 
                 testCaseScriptFile.setContent(this, editor.getDocument().getText(), true);
-                saveTestCaseButton.setEnabled(true);
                 bottomControlPanel.setEnabled(true);
             });
 
@@ -485,7 +526,6 @@ public class TestCaseDesignerLite {
                         true);
 
                 testCaseScriptFile.setContent(this, editor.getDocument().getText(), true);
-                saveTestCaseButton.setEnabled(false);
                 bottomControlPanel.setEnabled(false);
             });
 

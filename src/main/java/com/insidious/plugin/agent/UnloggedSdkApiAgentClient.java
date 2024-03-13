@@ -66,7 +66,8 @@ public class UnloggedSdkApiAgentClient {
             properties.put("stacktrace", objectMapper.writeValueAsString(e.getStackTrace()));
             UsageInsightTracker.getInstance().RecordEvent("AGENT_RESPONSE_THROW", properties);
 
-            logger.warn("Failed to invoke call to agent server: " + e.getMessage());
+            String message = e.getMessage();
+            logger.warn("Failed to invoke call to agent server: " + message);
             AgentCommandResponse<String> agentCommandResponse = new AgentCommandResponse<String>(ResponseType.FAILED);
             agentCommandResponse.setMessage(NO_SERVER_CONNECT_ERROR_MESSAGE + e.getMessage());
             return agentCommandResponse;

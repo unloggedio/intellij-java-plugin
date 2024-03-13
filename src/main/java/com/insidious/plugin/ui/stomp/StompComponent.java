@@ -34,6 +34,7 @@ import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.icons.AllIcons;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
@@ -98,6 +99,7 @@ public class StompComponent implements
     private final ActionToolbarImpl actionToolbar;
     private final UnloggedSDKOnboarding unloggedSDKOnboarding;
     private final Map<String, AtomicInteger> countByMethodName = new HashMap<>();
+    private final AnAction filterAction;
     BlockingQueue<TestCandidateMetadata> incomingQueue = new ArrayBlockingQueue<>(100);
     int totalAcceptedCount = 0;
     private JPanel mainPanel;
@@ -105,7 +107,6 @@ public class StompComponent implements
     private JScrollPane historyStreamScrollPanel;
     private JPanel scrollContainer;
     //    private JLabel reloadButton;
-    private JLabel filterButton;
     private JButton saveReplayButton;
     //    private JLabel replayButton;
 //    private JLabel generateJUnitButton;
@@ -154,7 +155,7 @@ public class StompComponent implements
         scrollContainer.setBorder(BorderFactory.createEmptyBorder());
 
 
-        AnAction clearAction = new AnAction(() -> "Clear Timeline", UIUtils.DELETE_BIN_PARALLEL_RED) {
+        AnAction clearAction = new AnAction(() -> "Clear", AllIcons.Actions.GC) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 System.err.println("clear timeline");
@@ -163,7 +164,7 @@ public class StompComponent implements
         };
 
 
-        AnAction generateJunitTestAction = new AnAction(() -> "Generate JUnit Test", UIUtils.TEST_TUBE_ICON) {
+        AnAction generateJunitTestAction = new AnAction(() -> "Generate JUnit", AllIcons.Scope.Tests) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 System.err.println("generate junit test");
@@ -177,9 +178,14 @@ public class StompComponent implements
                     onGenerateJunitTestCaseRequest(selectedCandidates);
                 });
             }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
         };
 
-        AnAction replaySelectionAction = new AnAction(() -> "Replay Selected", UIUtils.FLASHLIGHT_BLUE) {
+        AnAction replaySelectionAction = new AnAction(() -> "Replay", AllIcons.Actions.RestartFrame) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 System.err.println("replay selected");
@@ -193,9 +199,13 @@ public class StompComponent implements
                     executeSingleTestCandidate(selectedCandidate);
                 }
             }
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
         };
 
-        AnAction reloadAction = new AnAction(() -> "Reload All", UIUtils.REFRESH_TEAL) {
+        AnAction reloadAction = new AnAction(() -> "Reload", AllIcons.Actions.Refresh) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 System.err.println("reload timeline");
@@ -204,7 +214,26 @@ public class StompComponent implements
         };
 
 
-        List<AnAction> action11 = List.of(reloadAction, clearAction, generateJunitTestAction, replaySelectionAction);
+        filterAction = new AnAction(() -> "Filters", AllIcons.General.Filter) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                showFiltersComponentPopup(project, insidiousService);
+            }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
+
+
+        List<AnAction> action11 = List.of(
+                filterAction,
+                replaySelectionAction,
+                generateJunitTestAction,
+                reloadAction,
+                clearAction
+        );
 
 
         actionToolbar = new ActionToolbarImpl(
@@ -266,66 +295,6 @@ public class StompComponent implements
         });
 
 
-        filterButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        filterButton.addMouseListener(new MouseAdapter() {
-
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-
-                FilterModel originalFilter = new FilterModel(filterModel);
-                StompFilter stompFilter = new StompFilter(filterModel, lastMethodFocussed, project);
-                JComponent component = stompFilter.getComponent();
-
-                ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
-                        .createComponentPopupBuilder(component, null);
-
-                JBPopup unloggedPreferencesPopup = gutterMethodComponentPopup
-                        .setProject(project)
-                        .setShowBorder(true)
-                        .setShowShadow(true)
-                        .setFocusable(true)
-                        .setResizable(true)
-                        .setRequestFocus(true)
-                        .setCancelOnClickOutside(false)
-                        .setCancelOnOtherWindowOpen(false)
-                        .setCancelKeyEnabled(false)
-                        .setBelongsToGlobalPopupStack(false)
-                        .setTitle("Unlogged Preferences")
-//                        .setCancelCallback(new Computable<Boolean>() {
-//                            @Override
-//                            public Boolean compute() {
-//                                return null;
-//                            }
-//                        })
-                        .setTitleIcon(new ActiveIcon(UIUtils.UNLOGGED_ICON_DARK))
-                        .createPopup();
-
-                component.setMaximumSize(new Dimension(500, 800));
-                ComponentLifecycleListener<StompFilter> componentLifecycleListener = new ComponentLifecycleListener<StompFilter>() {
-                    @Override
-                    public void onClose(StompFilter component) {
-                        unloggedPreferencesPopup.cancel();
-                        if (originalFilter.equals(filterModel)) {
-                            return;
-                        }
-                        if (filterModel.followEditor) {
-                            lastMethodFocussed = null;
-                            onMethodFocussed(insidiousService.getCurrentMethod());
-                        }
-                        updateFilterLabel();
-                        resetAndReload();
-                    }
-                };
-
-                stompFilter.setOnCloseListener(componentLifecycleListener);
-
-                unloggedPreferencesPopup.showCenteredInCurrentWindow(project);
-
-
-            }
-        });
-
 
         ConnectedAndWaiting connectedAndWaiting = new ConnectedAndWaiting();
         JPanel component = (JPanel) connectedAndWaiting.getComponent();
@@ -379,6 +348,57 @@ public class StompComponent implements
         updateFilterLabel();
     }
 
+    private void showFiltersComponentPopup(Project project, InsidiousService insidiousService) {
+        FilterModel originalFilter = new FilterModel(filterModel);
+        StompFilter stompFilter = new StompFilter(filterModel, lastMethodFocussed, project);
+        JComponent component = stompFilter.getComponent();
+
+        ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+                .createComponentPopupBuilder(component, null);
+
+        JBPopup unloggedPreferencesPopup = gutterMethodComponentPopup
+                .setProject(project)
+                .setShowBorder(true)
+                .setShowShadow(true)
+                .setFocusable(true)
+                .setResizable(true)
+                .setRequestFocus(true)
+                .setCancelOnClickOutside(false)
+                .setCancelOnOtherWindowOpen(false)
+                .setCancelKeyEnabled(false)
+                .setBelongsToGlobalPopupStack(false)
+                .setTitle("Unlogged Preferences")
+//                        .setCancelCallback(new Computable<Boolean>() {
+//                            @Override
+//                            public Boolean compute() {
+//                                return null;
+//                            }
+//                        })
+                .setTitleIcon(new ActiveIcon(UIUtils.UNLOGGED_ICON_DARK))
+                .createPopup();
+
+        component.setMaximumSize(new Dimension(500, 800));
+        ComponentLifecycleListener<StompFilter> componentLifecycleListener = new ComponentLifecycleListener<StompFilter>() {
+            @Override
+            public void onClose(StompFilter component) {
+                unloggedPreferencesPopup.cancel();
+                if (originalFilter.equals(filterModel)) {
+                    return;
+                }
+                if (filterModel.followEditor) {
+                    lastMethodFocussed = null;
+                    onMethodFocussed(insidiousService.getCurrentMethod());
+                }
+                updateFilterLabel();
+                resetAndReload();
+            }
+        };
+
+        stompFilter.setOnCloseListener(componentLifecycleListener);
+
+        unloggedPreferencesPopup.showCenteredInCurrentWindow(project);
+    }
+
     private void clearFilter() {
         filterModel.getIncludedMethodNames().clear();
         filterModel.getExcludedMethodNames().clear();
@@ -422,16 +442,18 @@ public class StompComponent implements
     }
 
     private void resetAndReload() {
-        resetTimeline();
-        if (candidateQueryLatch != null) {
-            candidateQueryLatch.decrementAndGet();
-        }
-        candidateQueryLatch = null;
-        loadNewCandidates();
-        itemPanel.revalidate();
-        itemPanel.repaint();
-        historyStreamScrollPanel.revalidate();
-        historyStreamScrollPanel.repaint();
+        ApplicationManager.getApplication().invokeLater(() -> {
+            resetTimeline();
+            if (candidateQueryLatch != null) {
+                candidateQueryLatch.decrementAndGet();
+            }
+            candidateQueryLatch = null;
+            loadNewCandidates();
+            itemPanel.revalidate();
+            itemPanel.repaint();
+            historyStreamScrollPanel.revalidate();
+            historyStreamScrollPanel.repaint();
+        });
     }
 
     private void executeSingleTestCandidate(TestCandidateMetadata selectedCandidate) {
@@ -497,7 +519,7 @@ public class StompComponent implements
                             );
                         })
                         .withPosition(Balloon.Position.atLeft)
-                        .show(filterButton, GotItTooltip.LEFT_MIDDLE);
+                        .show(actionToolbarContainer, GotItTooltip.LEFT_MIDDLE);
             }
 
         }
@@ -809,8 +831,8 @@ public class StompComponent implements
 
         if (source == ExecutionRequestSourceType.Single) {
             TestCandidateMetadata selectedCandidate = metadata.get(0);
-            PsiMethod methodPsiElement = ApplicationManager.getApplication()
-                    .runReadAction(
+            PsiMethod methodPsiElement = ApplicationManager
+                    .getApplication().runReadAction(
                             (Computable<PsiMethod>) () -> ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
                                     insidiousService.getProject()).getFirst());
             if (methodPsiElement == null) {
