@@ -8,6 +8,7 @@ import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.record.AtomicRecordService;
+import com.insidious.plugin.ui.ImagePanel;
 import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
@@ -32,6 +33,7 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -39,6 +41,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -704,6 +708,7 @@ public class LibraryComponent {
         atomicRecordService.checkPreRequisites();
         int count = 1;
         if (filterModel.isShowMocks()) {
+            int countMocks = 0;
             Map<String, List<DeclaredMock>> mocksByClass = atomicRecordService.getAllDeclaredMocks()
                     .stream().collect(Collectors.groupingBy(DeclaredMock::getFieldTypeName));
             Set<String> classNamesList = mocksByClass.keySet();
@@ -717,11 +722,31 @@ public class LibraryComponent {
                     if (!isAcceptable(declaredMock)) {
                         continue;
                     }
+                    countMocks++;
                     DeclaredMockItemPanel mockPanel = new DeclaredMockItemPanel(declaredMock,
                             MOCK_ITEM_LIFE_CYCLE_LISTENER, insidiousService.getProject());
                     listedMockItems.add(mockPanel);
                     JComponent component = mockPanel.getComponent();
                     itemsContainer.add(component, createGBCForLeftMainComponent(count++));
+                }
+            }
+            if (countMocks == 0) {
+                try {
+                    ImagePanel imagePanel = null;
+
+                    BufferedImage myPicture = ImageIO.read(
+                            this.getClass().getClassLoader().getResourceAsStream(
+                                    "images/mocks-introduction-scaled.png"
+                            )
+                    );
+                    JLabel picLabel = new JLabel(new ImageIcon(myPicture));
+                    Dimension maximumSize = new Dimension(400, 504);
+                    picLabel.setMaximumSize(maximumSize);
+                    picLabel.setMinimumSize(maximumSize);
+                    picLabel.setPreferredSize(maximumSize);
+                    itemsContainer.add(picLabel, createGBCForLeftMainComponent(count++));
+                } catch (IOException e) {
+                    //
                 }
             }
         }
@@ -730,6 +755,7 @@ public class LibraryComponent {
 
             List<StoredCandidate> testCandidates = atomicRecordService.getAllTestCandidates();
 
+            int countReplay = 0;
             Map<String, List<StoredCandidate>> candidatesByClassName = testCandidates.stream()
                     .collect(Collectors.groupingBy(e -> e.getMethod().getClassName()));
 
@@ -750,7 +776,29 @@ public class LibraryComponent {
                     listedCandidateItems.add(candidatePanel);
                     JComponent component = candidatePanel.getComponent();
                     itemsContainer.add(component, createGBCForLeftMainComponent(count++));
+                    countReplay++;
 
+                }
+
+            }
+
+            if (countReplay == 0) {
+                try {
+                    ImagePanel imagePanel = null;
+
+                    BufferedImage myPicture = ImageIO.read(
+                            this.getClass().getClassLoader().getResourceAsStream(
+                                    "images/tests-introduction-scaled.png"
+                            )
+                    );
+                    JLabel picLabel = new JLabel(new ImageIcon(myPicture));
+                    Dimension maximumSize = new Dimension(400, 691);
+                    picLabel.setMaximumSize(maximumSize);
+                    picLabel.setMinimumSize(maximumSize);
+                    picLabel.setPreferredSize(maximumSize);
+                    itemsContainer.add(picLabel, createGBCForLeftMainComponent(count++));
+                } catch (IOException e) {
+                    //
                 }
 
             }
