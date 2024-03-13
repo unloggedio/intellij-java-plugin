@@ -107,7 +107,7 @@ public class StompComponent implements
     private JScrollPane historyStreamScrollPanel;
     private JPanel scrollContainer;
     //    private JLabel reloadButton;
-    private JButton saveReplayButton;
+//    private JButton saveReplayButton;
     //    private JLabel replayButton;
 //    private JLabel generateJUnitButton;
     private JPanel controlPanel;
@@ -119,6 +119,7 @@ public class StompComponent implements
     private JLabel clearFilterLabel;
     private JLabel filterAppliedLabel;
     private JPanel actionToolbarContainer;
+    private JPanel timelineControlPanel;
     private long lastEventId = 0;
     private MethodDirectInvokeComponent directInvokeComponent = null;
     private TestCandidateSaveForm saveFormReference;
@@ -163,6 +164,19 @@ public class StompComponent implements
             }
         };
 
+        AnAction saveAction = new AnAction(() -> "Save", AllIcons.Actions.MenuSaveall) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    ApplicationManager.getApplication().runReadAction(StompComponent.this::saveSelected);
+                });
+            }
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
+
 
         AnAction generateJunitTestAction = new AnAction(() -> "JUnit", AllIcons.Scope.Tests) {
             @Override
@@ -199,6 +213,7 @@ public class StompComponent implements
                     executeSingleTestCandidate(selectedCandidate);
                 }
             }
+
             @Override
             public boolean displayTextInToolbar() {
                 return true;
@@ -231,8 +246,7 @@ public class StompComponent implements
                 filterAction,
                 replaySelectionAction,
                 generateJunitTestAction,
-                reloadAction,
-                clearAction
+                saveAction
         );
 
 
@@ -241,6 +255,23 @@ public class StompComponent implements
         actionToolbar.setMiniMode(false);
         actionToolbar.setForceMinimumSize(true);
         actionToolbar.setTargetComponent(mainPanel);
+
+
+        List<AnAction> action22 = List.of(
+                reloadAction,
+                clearAction
+        );
+
+
+        ActionToolbarImpl timelineToolbar = new ActionToolbarImpl(
+                "Timeline", new DefaultActionGroup(action22), true);
+        timelineToolbar.setMiniMode(false);
+        timelineToolbar.setForceMinimumSize(true);
+        timelineToolbar.setTargetComponent(mainPanel);
+
+        timelineControlPanel.add(timelineToolbar.getComponent(), BorderLayout.CENTER);
+
+
 
         actionToolbarContainer.add(actionToolbar.getComponent(), BorderLayout.CENTER);
 
@@ -288,12 +319,11 @@ public class StompComponent implements
 
         });
 
-        saveReplayButton.addActionListener(e -> {
-            ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                ApplicationManager.getApplication().runReadAction(this::saveSelected);
-            });
-        });
-
+//        saveReplayButton.addActionListener(e -> {
+//            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+//                ApplicationManager.getApplication().runReadAction(this::saveSelected);
+//            });
+//        });
 
 
         ConnectedAndWaiting connectedAndWaiting = new ConnectedAndWaiting();
@@ -344,7 +374,7 @@ public class StompComponent implements
         unloggedSDKOnboarding = new UnloggedSDKOnboarding(insidiousService);
         itemPanel.add(unloggedSDKOnboarding.getComponent(), createGBCForProcessStartedComponent());
 
-        saveReplayButton.setEnabled(false);
+//        saveReplayButton.setEnabled(false);
         updateFilterLabel();
     }
 
@@ -362,6 +392,7 @@ public class StompComponent implements
                 .setShowShadow(true)
                 .setFocusable(true)
                 .setResizable(true)
+                .setMovable(true)
                 .setRequestFocus(true)
                 .setCancelOnClickOutside(false)
                 .setCancelOnOtherWindowOpen(false)
@@ -878,7 +909,8 @@ public class StompComponent implements
         selectedCountLabel.setText(selectedCandidates.size() + " selected");
         if (selectedCandidates.size() > 0 && !controlPanel.isEnabled()) {
             clearSelectionLabel.setVisible(true);
-            saveReplayButton.setEnabled(true);
+            selectAllLabel.setVisible(false);
+//            saveReplayButton.setEnabled(true);
 
             new GotItTooltip("Unlogged.Stomp.ActionToolbar",
                     "Use the toolbar to replay/save or generate test case for multiple method replays at once",
@@ -890,7 +922,8 @@ public class StompComponent implements
         } else if (selectedCandidates.size() == 0 && controlPanel.isEnabled()) {
             selectedCountLabel.setText("0 selected");
             clearSelectionLabel.setVisible(false);
-            saveReplayButton.setEnabled(false);
+            selectAllLabel.setVisible(true);
+//            saveReplayButton.setEnabled(false);
         }
     }
 
@@ -944,7 +977,7 @@ public class StompComponent implements
                     instance.waitForSmartMode();
                     instance.suspendIndexingAndRun("Generating JUnit Test cases", () -> {
                         try {
-                            gnerateTestCaseSingle(generationConfiguration, testCaseService, testCandidateShell);
+                            generateTestCaseSingle(generationConfiguration, testCaseService, testCandidateShell);
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         } finally {
@@ -971,7 +1004,7 @@ public class StompComponent implements
 
     }
 
-    private boolean gnerateTestCaseSingle(TestCaseGenerationConfiguration generationConfiguration, TestCaseService testCaseService, TestCandidateMetadata testCandidateShell) throws Exception {
+    private boolean generateTestCaseSingle(TestCaseGenerationConfiguration generationConfiguration, TestCaseService testCaseService, TestCandidateMetadata testCandidateShell) throws Exception {
         TestCandidateMetadata loadedTestCandidate = ApplicationManager.getApplication().executeOnPooledThread(
                 () -> insidiousService.getSessionInstance()
                         .getTestCandidateById(testCandidateShell.getEntryProbeIndex(), true)).get();
