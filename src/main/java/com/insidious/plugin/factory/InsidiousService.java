@@ -820,7 +820,9 @@ final public class InsidiousService implements
         }
 
         methodArgumentValueCache.addArgumentSet(agentCommandRequest);
-        agentCommandRequest.setRequestAuthentication(getRequestAuthentication());
+        agentCommandRequest.setRequestAuthentication(
+                ApplicationManager.getApplication().runReadAction(
+                (Computable<RequestAuthentication>) this::getRequestAuthentication));
 
         String methodName = agentCommandRequest.getMethodName();
         if (methodName.startsWith("lambda$")) {

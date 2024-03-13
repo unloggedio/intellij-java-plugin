@@ -34,6 +34,7 @@ import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.*;
+import com.intellij.icons.AllIcons;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
@@ -181,7 +182,7 @@ public class TestCaseDesignerLite {
 
         List<AnAction> action11 = new ArrayList<>();
 
-        action11.add(new AnAction(() -> "Preview") {
+        action11.add(new AnAction(() -> "Preview", AllIcons.Actions.Preview) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 FileEditorManager fileEditorManager = insidiousService.previewTestCase(
@@ -198,7 +199,7 @@ public class TestCaseDesignerLite {
             }
         });
 
-        action11.add(new AnAction(() -> "Save", UIUtils.SAVE_CANDIDATE_GREEN_SVG) {
+        action11.add(new AnAction(() -> "Save", AllIcons.Actions.MenuSaveall) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 saveFinal(currentMethod, insidiousService);

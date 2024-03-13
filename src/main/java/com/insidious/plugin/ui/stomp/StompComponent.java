@@ -34,6 +34,7 @@ import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.codeInsight.daemon.impl.DaemonProgressIndicator;
 import com.intellij.icons.AllIcons;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
@@ -45,6 +46,8 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.*;
@@ -171,6 +174,7 @@ public class StompComponent implements
                     ApplicationManager.getApplication().runReadAction(StompComponent.this::saveSelected);
                 });
             }
+
             @Override
             public boolean displayTextInToolbar() {
                 return true;
@@ -270,7 +274,6 @@ public class StompComponent implements
         timelineToolbar.setTargetComponent(mainPanel);
 
         timelineControlPanel.add(timelineToolbar.getComponent(), BorderLayout.CENTER);
-
 
 
         actionToolbarContainer.add(actionToolbar.getComponent(), BorderLayout.CENTER);
@@ -443,31 +446,48 @@ public class StompComponent implements
                     NotificationType.INFORMATION);
             return;
         }
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
-            saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener,
-                    component -> {
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            southPanel.removeAll();
-                            scrollContainer.revalidate();
-                            scrollContainer.repaint();
-                        });
+
+        if (selectedCandidates.size() == 0) {
+            InsidiousNotification.notifyMessage("Select items on the timeline to save",
+                    NotificationType.INFORMATION);
+            return;
+
+        }
+
+        ProgressIndicator progressIndicator = new DaemonProgressIndicator();
+        ProgressManager.getInstance()
+                .executeProcessUnderProgress(() -> {
+                    CountDownLatch cdl = new CountDownLatch(1);
+                    progressIndicator.setText(
+                            "Gathering type information for " + selectedCandidates.size() + " replays");
+//                            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
+
+                    saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener,
+                            component -> {
+                                ApplicationManager.getApplication().invokeLater(() -> {
+                                    southPanel.removeAll();
+                                    scrollContainer.revalidate();
+                                    scrollContainer.repaint();
+                                });
+                            });
+
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        JPanel component = saveFormReference.getComponent();
+                        southPanel.removeAll();
+                        component.setMaximumSize(new Dimension(600, 800));
+                        southPanel.add(component, BorderLayout.SOUTH);
+                        southPanel.revalidate();
+                        southPanel.repaint();
+                        southPanel.getParent().revalidate();
+                        southPanel.getParent().repaint();
+                        scrollContainer.revalidate();
+                        scrollContainer.repaint();
                     });
-            ApplicationManager.getApplication().invokeLater(() -> {
-                JPanel component = saveFormReference.getComponent();
-                southPanel.removeAll();
-                component.setMaximumSize(new Dimension(600, 800));
-                southPanel.add(component, BorderLayout.SOUTH);
-                southPanel.revalidate();
-                southPanel.repaint();
-                southPanel.getParent().revalidate();
-                southPanel.getParent().repaint();
-                scrollContainer.revalidate();
-                scrollContainer.repaint();
-            });
 
 
-        });
+//                            });
+                }, progressIndicator);
 
 
     }
@@ -907,7 +927,7 @@ public class StompComponent implements
 
         selectedCountLabel.setForeground(JBColor.DARK_GRAY);
         selectedCountLabel.setText(selectedCandidates.size() + " selected");
-        if (selectedCandidates.size() > 0 && !controlPanel.isEnabled()) {
+        if (selectedCandidates.size() > 0) {
             clearSelectionLabel.setVisible(true);
             selectAllLabel.setVisible(false);
 //            saveReplayButton.setEnabled(true);
@@ -919,7 +939,7 @@ public class StompComponent implements
                     .show(actionToolbar.getComponent(), GotItTooltip.TOP_MIDDLE);
 
 
-        } else if (selectedCandidates.size() == 0 && controlPanel.isEnabled()) {
+        } else {
             selectedCountLabel.setText("0 selected");
             clearSelectionLabel.setVisible(false);
             selectAllLabel.setVisible(true);

@@ -21,6 +21,7 @@ import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.ui.treeeditor.JsonTreeEditor;
 import com.insidious.plugin.util.*;
+import com.intellij.icons.AllIcons;
 import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -32,8 +33,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
-import com.intellij.openapi.fileEditor.FileEditor;
-import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
@@ -49,7 +48,10 @@ import javax.swing.event.ChangeListener;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.*;
@@ -88,7 +90,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
 //        configureCloseButton(componentLifecycleListener);
 
-        AnAction closeAction = new AnAction(() -> "Close", UIUtils.CLOSE_LINE_SVG) {
+        AnAction closeAction = new AnAction(() -> "Close", AllIcons.Actions.Close) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 componentLifecycleListener.onClose(MethodDirectInvokeComponent.this);
@@ -381,8 +383,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
             designerLite = new TestCaseDesignerLite(methodElement,
                     null, true, insidiousService);
 
-            boilerplateCustomizerContainer.add(designerLite.getComponent(), BorderLayout.CENTER);
             ApplicationManager.getApplication().invokeLater(() -> {
+                boilerplateCustomizerContainer.add(designerLite.getComponent(), BorderLayout.CENTER);
                 boilerplateCustomizerContainer.getParent().revalidate();
                 boilerplateCustomizerContainer.getParent().repaint();
                 boilerplateCustomizerContainer.getParent().getParent().revalidate();
@@ -396,8 +398,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
         configureCreateBoilerplateButton();
         parameterScrollPanel.setBorder(BorderFactory.createEmptyBorder());
 
-        mainContainer.revalidate();
-        mainContainer.repaint();
+        ApplicationManager.getApplication().invokeLater(() -> {
+            mainContainer.revalidate();
+            mainContainer.repaint();
+        });
 
     }
 

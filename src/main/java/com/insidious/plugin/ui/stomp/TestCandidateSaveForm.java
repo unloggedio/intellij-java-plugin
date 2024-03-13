@@ -21,6 +21,7 @@ import com.insidious.plugin.ui.library.ItemLifeCycleListener;
 import com.insidious.plugin.ui.library.StoredCandidateItemPanel;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.util.*;
+import com.intellij.icons.AllIcons;
 import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -90,7 +91,8 @@ public class TestCandidateSaveForm {
     private JPanel voidInfoPanel;
 
     public TestCandidateSaveForm(List<TestCandidateMetadata> sourceCandidates,
-                                 SaveFormListener saveFormListener, ComponentLifecycleListener<TestCandidateSaveForm> componentLifecycleListener) {
+                                 SaveFormListener saveFormListener,
+                                 ComponentLifecycleListener<TestCandidateSaveForm> componentLifecycleListener) {
 
         TOP_ONE.add(AssertionType.ALLOF);
         TOP_ONE.add(AssertionType.ANYOF);
@@ -107,9 +109,6 @@ public class TestCandidateSaveForm {
 
         List<TestCandidateMetadata> list = new ArrayList<>();
         for (TestCandidateMetadata sourceCandidate : sourceCandidates) {
-//            if (progressIndicator.isCanceled()) {
-//                throw new RuntimeException("saving cancelled");
-//            }
             TestCandidateMetadata testCandidateById = insidiousService.getTestCandidateById(
                     sourceCandidate.getEntryProbeIndex(),
                     true);
@@ -214,6 +213,7 @@ public class TestCandidateSaveForm {
                 .collect(Collectors.toList());
         mockCallCountLabel.setText(declaredMockList.size() + " downstream call mocks");
 
+        confirmButton.setIcon(AllIcons.Actions.MenuSaveall);
         confirmButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -260,6 +260,7 @@ public class TestCandidateSaveForm {
             }
         });
 
+        cancelButton.setIcon(AllIcons.Actions.Cancel);
         cancelButton.addActionListener(e -> componentLifecycleListener.onClose(TestCandidateSaveForm.this));
 
 
