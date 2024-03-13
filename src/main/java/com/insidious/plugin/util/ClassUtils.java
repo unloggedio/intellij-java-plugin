@@ -111,7 +111,7 @@ public class ClassUtils {
     public static PsiSubstitutor getSubstitutorForCallExpression(PsiMethodCallExpression methodCallExpression) {
         PsiReferenceExpression methodExpression = methodCallExpression.getMethodExpression();
         PsiMethod destinationMethod = (PsiMethod) methodExpression.resolve();
-        if ( destinationMethod == null) {
+        if (destinationMethod == null) {
             return new EmptySubstitutor();
         }
         PsiExpression fieldReferenceExpression = methodExpression
@@ -165,6 +165,9 @@ public class ClassUtils {
             return "null";
         }
         String parameterTypeCanonicalText = parameterType.getCanonicalText();
+        if (parameterType instanceof PsiWildcardType) {
+            parameterTypeCanonicalText = ((PsiWildcardType) parameterType).getExtendsBound().getCanonicalText();
+        }
         if (creationStack.contains(parameterTypeCanonicalText)) {
             return "null";
         }
@@ -213,7 +216,9 @@ public class ClassUtils {
             if (parameterTypeCanonicalText.equals("org.joda.time.DateTime")) {
                 return String.valueOf(new Date().getTime());
             }
-            if (parameterTypeCanonicalText.equals("org.springframework.security.core.GrantedAuthority")) {
+            if (
+                    parameterTypeCanonicalText.equals("org.springframework.security.core.GrantedAuthority")
+            ) {
                 // SimpleGrantedAuthority
                 return "\"USER\"";
             }
@@ -223,15 +228,24 @@ public class ClassUtils {
                 PsiClassType psiClassRawType =
                         classReferenceType.rawType();
 
+                PsiClass collectionPsiClass = JavaPsiFacade.getInstance(project)
+                        .findClass("java.lang.Iterable", GlobalSearchScope.allScope(project));
+                boolean isCollectionType = false;
+                if (collectionPsiClass != null) {
+                    isCollectionType = PsiTypesUtil.getClassType(collectionPsiClass).isAssignableFrom(psiClassRawType);
+                }
+
                 String rawTypeCanonicalText =
                         psiClassRawType.getCanonicalText();
-                if (
-                        rawTypeCanonicalText.equals("java.util.List") ||
-                                rawTypeCanonicalText.equals("java.util.ArrayList") ||
-                                rawTypeCanonicalText.equals("java.util.LinkedList") ||
-                                rawTypeCanonicalText.equals("java.util.TreeSet") ||
-                                rawTypeCanonicalText.equals("java.util.SortedSet") ||
-                                rawTypeCanonicalText.equals("java.util.Set")
+                if (isCollectionType ||
+                        rawTypeCanonicalText.startsWith("java.util.List") ||
+                        rawTypeCanonicalText.startsWith("java.util.ArrayList") ||
+                        rawTypeCanonicalText.startsWith("java.util.LinkedList") ||
+                        rawTypeCanonicalText.startsWith("java.util.TreeSet") ||
+                        rawTypeCanonicalText.startsWith("java.util.Collection") ||
+                        rawTypeCanonicalText.startsWith("java.util.Iterable") ||
+                        rawTypeCanonicalText.startsWith("java.util.SortedSet") ||
+                        rawTypeCanonicalText.startsWith("java.util.Set")
                 ) {
                     dummyValue.append("[");
                     PsiType type =
@@ -289,7 +303,7 @@ public class ClassUtils {
 
                 if (
                         rawTypeCanonicalText.equals("java.util.concurrent.CompletableFuture") ||
-                        rawTypeCanonicalText.equals("java.util.concurrent.Future")
+                                rawTypeCanonicalText.equals("java.util.concurrent.Future")
                 ) {
                     dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
                     return dummyValue.toString();
@@ -363,7 +377,8 @@ public class ClassUtils {
                     dummyValue.append("}");
                 }
 
-            } else if (parameterType instanceof PsiPrimitiveType) {
+            }
+            else if (parameterType instanceof PsiPrimitiveType) {
                 PsiPrimitiveType primitiveType = (PsiPrimitiveType) parameterType;
                 if ("boolean".equals(primitiveType.getName())) {
                     return "true";

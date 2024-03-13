@@ -204,7 +204,7 @@ public class JsonTreeEditor {
     }
 
     private Tree createTreeFromTreeModel(TreeModel treeModel1, TreeModelListener insidiousTreeListener) {
-        Tree tree = new Tree(treeModel1);
+        final Tree tree = new Tree(treeModel1);
         DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer(){
             @Override
             public Border getBorder() {
@@ -225,13 +225,13 @@ public class JsonTreeEditor {
         tree.setForeground(JBColor.BLACK);
         tree.getModel().addTreeModelListener(insidiousTreeListener);
         tree.setInvokesStopCellEditing(true);
-        tree.addMouseListener(getMouseListener(valueTree));
+        tree.addMouseListener(getMouseListener(tree));
 
         expandAllNodes(tree);
-        valueTree.addMouseListener(new MouseAdapter() {
+        tree.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                valueTree.startEditingAtPath(valueTree.getSelectionPath());
+                tree.startEditingAtPath(tree.getSelectionPath());
             }
         });
 
