@@ -1594,7 +1594,7 @@ public class StompComponent implements
                 "You are using version " + currentVersion.toString() + " which is older than recommended version for" +
                         " this plugin " + requiredVersion + ". Please update the unlogged-sdk version in your pom" +
                         ".xml/build.gradle",
-                NotificationType.ERROR);
+                NotificationType.WARNING);
         notification.setImportant(true);
         notification.setSubtitle("Use unlogged-sdk:" + requiredVersion.toString());
         notification.setIcon(UIUtils.UNLOGGED_ICON_DARK_SVG);
