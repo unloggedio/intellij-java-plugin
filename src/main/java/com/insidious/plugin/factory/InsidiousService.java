@@ -984,7 +984,9 @@ final public class InsidiousService implements
         for (PsiElement implementation : implementations) {
             boolean match = false;
             PsiClass implementsPsi = (PsiClass) implementation;
-            for (PsiClassType implementsListType : implementsPsi.getImplementsListTypes()) {
+            PsiClassType[] implementsListTypes = ApplicationManager.getApplication().runReadAction(
+                    (Computable<PsiClassType[]>) implementsPsi::getImplementsListTypes);
+            for (PsiClassType implementsListType : implementsListTypes) {
                 if (implementsListType.getName().endsWith("UserDetails")) {
                     // yes match
                     match = true;
