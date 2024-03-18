@@ -118,13 +118,13 @@ public class StompComponent implements
     private JPanel controlPanel;
     private JPanel infoPanel;
     private JLabel selectedCountLabel;
-    private JLabel selectAllLabel;
     private JLabel clearSelectionLabel;
     private JPanel southPanel;
     private JLabel clearFilterLabel;
     private JLabel filterAppliedLabel;
     private JPanel actionToolbarContainer;
     private JPanel timelineControlPanel;
+    private JPanel topContainerPanel;
     private long lastEventId = 0;
     private MethodDirectInvokeComponent directInvokeComponent = null;
     private TestCandidateSaveForm saveFormReference;
@@ -140,7 +140,6 @@ public class StompComponent implements
         configurationState = project.getService(InsidiousConfigurationState.class);
 
         filterAppliedLabel.setVisible(false);
-        filterAppliedLabel.setForeground(JBColor.BLACK);
         filterModel = configurationState.getFilterModel();
 
 
@@ -159,16 +158,6 @@ public class StompComponent implements
         historyStreamScrollPanel.setBorder(BorderFactory.createEmptyBorder());
 
         scrollContainer.setBorder(BorderFactory.createEmptyBorder());
-
-
-        AnAction clearAction = new AnAction(() -> "Clear", AllIcons.Actions.GC) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                UsageInsightTracker.getInstance().RecordEvent("RESET_TIMELINE", null);
-                System.err.println("clear timeline");
-                resetTimeline();
-            }
-        };
 
         AnAction saveAction = new AnAction(() -> "Save", AllIcons.Actions.MenuSaveall) {
             @Override
@@ -239,14 +228,6 @@ public class StompComponent implements
             }
         };
 
-        AnAction reloadAction = new AnAction(() -> "Reload", AllIcons.Actions.Refresh) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                System.err.println("reload timeline");
-                resetAndReload();
-            }
-        };
-
 
         filterAction = new AnAction(() -> "Filter", AllIcons.General.Filter) {
             @Override
@@ -280,9 +261,40 @@ public class StompComponent implements
         actionToolbar.setTargetComponent(mainPanel);
 
 
+        AnAction reloadAction = new AnAction(() -> "Reload", AllIcons.Actions.Refresh) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                System.err.println("reload timeline");
+                resetAndReload();
+            }
+        };
+
+        AnAction clearAction = new AnAction(() -> "Clear", AllIcons.Actions.GC) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                UsageInsightTracker.getInstance().RecordEvent("RESET_TIMELINE", null);
+                System.err.println("clear timeline");
+                resetTimeline();
+            }
+        };
+
+        AnAction selectAllAction = new AnAction(() -> "Select All", AllIcons.Actions.Selectall) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                selectedCandidates.clear();
+                for (StompItem stompItem : stompItems) {
+                    stompItem.setSelected(true);
+                    selectedCandidates.add(stompItem.getTestCandidate());
+                }
+                updateControlPanel();
+            }
+        };
+
+
         List<AnAction> action22 = List.of(
                 reloadAction,
-                clearAction
+                clearAction,
+                selectAllAction
         );
 
 
@@ -313,23 +325,8 @@ public class StompComponent implements
             }
         });
 
-//        selectAllLabel.setVisible(false);
-        selectAllLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        selectAllLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                selectedCandidates.clear();
-                for (StompItem stompItem : stompItems) {
-                    stompItem.setSelected(true);
-                    selectedCandidates.add(stompItem.getTestCandidate());
-                }
-                updateControlPanel();
-            }
-        });
-
 
         clearFilterLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        clearFilterLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2))
         clearFilterLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -344,12 +341,6 @@ public class StompComponent implements
             }
 
         });
-
-//        saveReplayButton.addActionListener(e -> {
-//            ApplicationManager.getApplication().executeOnPooledThread(() -> {
-//                ApplicationManager.getApplication().runReadAction(this::saveSelected);
-//            });
-//        });
 
 
         ConnectedAndWaiting connectedAndWaiting = new ConnectedAndWaiting();
@@ -956,14 +947,11 @@ public class StompComponent implements
 
         selectedCountLabel.setForeground(JBColor.DARK_GRAY);
         selectedCountLabel.setText(selectedCandidates.size() + " selected");
-        if (selectedCandidates.size() > 0) {
+        if (!selectedCandidates.isEmpty()) {
             clearSelectionLabel.setVisible(true);
-            selectAllLabel.setVisible(false);
-//            saveReplayButton.setEnabled(true);
-
             new GotItTooltip("Unlogged.Stomp.ActionToolbar",
                     "Use the toolbar to replay/save or generate test case for multiple method replays at once",
-                    insidiousService.getProject())
+                    this)
                     .withPosition(Balloon.Position.above)
                     .show(actionToolbar.getComponent(), GotItTooltip.TOP_MIDDLE);
 
@@ -971,8 +959,6 @@ public class StompComponent implements
         } else {
             selectedCountLabel.setText("0 selected");
             clearSelectionLabel.setVisible(false);
-            selectAllLabel.setVisible(true);
-//            saveReplayButton.setEnabled(false);
         }
     }
 

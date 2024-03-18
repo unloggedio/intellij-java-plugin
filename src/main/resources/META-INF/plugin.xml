@@ -161,7 +161,10 @@
 
         <codeInsight.lineMarkerProvider
                 language="JAVA"
-                implementationClass="com.insidious.plugin.ui.highlighter.LineHighlighter"/>
+                implementationClass="com.insidious.plugin.ui.highlighter.UnloggedGutterStateProvider"/>
+        <codeInsight.lineMarkerProvider
+                language="JAVA"
+                implementationClass="com.insidious.plugin.ui.highlighter.MockMethodLineHighlighter"/>
         <codeInsight.lineMarkerProvider
                 language="kotlin"
                 implementationClass="com.insidious.plugin.ui.highlighter.KotlinLineHighlighter"/>

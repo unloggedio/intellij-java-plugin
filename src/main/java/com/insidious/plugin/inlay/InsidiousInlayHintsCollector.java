@@ -286,7 +286,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
         Integer count = methodAggregate.getCount();
         InlayPresentation inlayShowingCount = createInlayPresentation(count + (count < 2 ? " call" : " calls"),
-                "<html>Show mocks in Unlogged tool window</html>", (mouseEvent, point) -> {
+                "<html>Show mocks in Unlogged Library</html>", (mouseEvent, point) -> {
                     insidiousService.showStompAndFilterForMethod(new JavaMethodAdapter(methodPsiElement));
                     logger.warn("inlay clicked: " + count + (count < 2 ? " call" : " calls"));
                 });

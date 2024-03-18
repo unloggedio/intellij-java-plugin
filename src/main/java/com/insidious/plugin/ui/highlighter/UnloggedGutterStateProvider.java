@@ -16,9 +16,9 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class LineHighlighter implements LineMarkerProvider {
+public class UnloggedGutterStateProvider implements LineMarkerProvider {
 
-    private static final Logger logger = LoggerUtil.getInstance(LineHighlighter.class);
+    private static final Logger logger = LoggerUtil.getInstance(UnloggedGutterStateProvider.class);
     private static final Pattern testFileNamePattern = Pattern.compile("^Test.*V.java$");
     private static final Pattern testPreviewFilePattern = Pattern.compile("^.*_Unlogged_Preview.java$");
     private static final Pattern testPathFilePattern = Pattern.compile(".*src/test/java/.*");
@@ -27,7 +27,7 @@ public class LineHighlighter implements LineMarkerProvider {
     private final Map<GutterState, UnloggedGutterNavigationHandler> navHandlerMap = new HashMap<>();
     private final Map<Integer, Boolean> mockCallIdentifierOnLineNumber = new HashMap<>();
 
-    public LineHighlighter() {
+    public UnloggedGutterStateProvider() {
         for (GutterState value : GutterState.values()) {
             navHandlerMap.put(value, new UnloggedGutterNavigationHandler(value));
         }

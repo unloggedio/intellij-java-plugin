@@ -32,7 +32,6 @@ public class DeclaredMockItemPanel {
     private JLabel nameLabel;
     private JPanel mainPanel;
     private JPanel tagsContainerPanel;
-    private JPanel controlPanel;
     private JPanel controlContainer;
     private JCheckBox selectCandidateCheckbox;
     private JLabel deleteButton1;

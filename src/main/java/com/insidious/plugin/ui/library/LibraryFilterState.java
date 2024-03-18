@@ -12,16 +12,24 @@ public class LibraryFilterState {
     private final Set<String> excludedMethodNames = new HashSet<>();
     public boolean followEditor;
     public CandidateFilterType candidateFilterType;
-    boolean showTests = true;
-    boolean showMocks = false;
+    public ItemFilterType itemFilterType = ItemFilterType.SavedReplay;
 
-	public LibraryFilterState(LibraryFilterState libraryFilterState) {
+    public ItemFilterType getItemFilterType() {
+        return itemFilterType;
+    }
+
+    public void setItemFilterType(ItemFilterType itemFilterType) {
+        this.itemFilterType = itemFilterType;
+    }
+
+    public LibraryFilterState(LibraryFilterState libraryFilterState) {
         this.includedMethodNames.addAll(libraryFilterState.includedMethodNames);
         this.includedClassNames.addAll(libraryFilterState.includedClassNames);
         this.excludedMethodNames.addAll(libraryFilterState.excludedMethodNames);
         this.excludedClassNames.addAll(libraryFilterState.excludedClassNames);
         this.followEditor = libraryFilterState.followEditor;
         this.candidateFilterType = libraryFilterState.candidateFilterType;
+        this.itemFilterType = libraryFilterState.itemFilterType;
     }
 
     public LibraryFilterState() {
@@ -35,21 +43,10 @@ public class LibraryFilterState {
         this.candidateFilterType = candidateFilterType;
     }
 
-    public boolean isShowTests() {
-        return showTests;
+    public ItemFilterType selectedItemType() {
+        return itemFilterType;
     }
 
-    public void setShowTests(boolean showTests) {
-        this.showTests = showTests;
-    }
-
-    public boolean isShowMocks() {
-        return showMocks;
-    }
-
-    public void setShowMocks(boolean showMocks) {
-        this.showMocks = showMocks;
-    }
 
     public boolean isFollowEditor() {
         return followEditor;

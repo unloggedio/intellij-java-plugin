@@ -145,10 +145,11 @@ public class MockDefinitionEditor {
             MethodUnderTest methodUnderTest,
             DeclaredMock declaredMock,
             Project project,
-            OnSaveListener onSaveListener
-    ) {
+            OnSaveListener onSaveListener,
+            ComponentLifecycleListener<Void> componentLifecycleListener) {
         this.onSaveListener = onSaveListener;
         this.methodUnderTest = methodUnderTest;
+        this.componentLifecycleListener = componentLifecycleListener;
         this.project = project;
         this.declaredMock = declaredMock;
         callExpressionLabel.setText(declaredMock.getSourceClassName() + "." + declaredMock.getMethodName() + "()");

@@ -2,71 +2,46 @@
 <form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="com.insidious.plugin.ui.library.LibraryComponent">
   <grid id="27dc6" binding="mainPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
     <constraints>
-      <xy x="20" y="20" width="379" height="579"/>
+      <xy x="20" y="20" width="417" height="579"/>
     </constraints>
     <properties/>
     <border type="none"/>
     <children>
-      <grid id="52b04" binding="northPanelContainer" layout-manager="BorderLayout" hgap="0" vgap="0">
+      <grid id="52b04" binding="northPanelContainer" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="0" left="0" bottom="0" right="0"/>
         <constraints border-constraint="North"/>
         <properties/>
         <border type="none"/>
         <children>
-          <grid id="f3b86" binding="topContainerPanel" layout-manager="GridLayoutManager" row-count="1" column-count="5" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="5" bottom="0" right="5"/>
-            <constraints border-constraint="South"/>
+          <grid id="2b487" binding="topContainerPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                <minimum-size width="-1" height="48"/>
+                <preferred-size width="-1" height="48"/>
+                <maximum-size width="-1" height="48"/>
+              </grid>
+            </constraints>
             <properties/>
             <border type="none"/>
             <children>
-              <grid id="dd105" binding="controlPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
-                <constraints>
-                  <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="4" fill="2" indent="0" use-parent-layout="false">
-                    <minimum-size width="-1" height="48"/>
-                    <preferred-size width="-1" height="48"/>
-                    <maximum-size width="-1" height="48"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <enabled value="false"/>
-                </properties>
-                <border type="none"/>
-                <children/>
-              </grid>
-              <grid id="7aec0" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                <margin top="0" left="0" bottom="0" right="0"/>
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="3" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false"/>
-                </constraints>
+              <grid id="8910" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                <margin top="0" left="0" bottom="0" right="5"/>
+                <constraints border-constraint="East"/>
                 <properties/>
                 <border type="none"/>
                 <children>
-                  <component id="27099" class="javax.swing.JLabel" binding="showOptionsButton">
+                  <component id="475d7" class="javax.swing.JRadioButton" binding="includeMocksCheckBox">
                     <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false">
-                        <minimum-size width="-1" height="38"/>
-                        <preferred-size width="-1" height="38"/>
-                        <maximum-size width="-1" height="38"/>
-                      </grid>
-                    </constraints>
-                    <properties>
-                      <font style="1"/>
-                      <foreground color="-10395295"/>
-                      <icon value="icons/png/equalizer-line.png"/>
-                      <text value="Options"/>
-                    </properties>
-                  </component>
-                  <component id="48cb8" class="javax.swing.JRadioButton" binding="includeMocksCheckBox">
-                    <constraints>
-                      <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                     </constraints>
                     <properties>
                       <selected value="false"/>
                       <text value="Mocks"/>
                     </properties>
                   </component>
-                  <component id="e134c" class="javax.swing.JRadioButton" binding="includeTestsCheckBox">
+                  <component id="deee7" class="javax.swing.JRadioButton" binding="includeTestsCheckBox">
                     <constraints>
-                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                     </constraints>
                     <properties>
                       <selected value="true"/>
@@ -75,73 +50,12 @@
                   </component>
                 </children>
               </grid>
-              <hspacer id="c5914">
-                <constraints>
-                  <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                </constraints>
-              </hspacer>
-            </children>
-          </grid>
-          <grid id="8c214" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="5" left="5" bottom="5" right="5"/>
-            <constraints border-constraint="North"/>
-            <properties/>
-            <border type="bevel-lowered" title="Call Mocking">
-              <font size="12" style="1"/>
-            </border>
-            <children>
-              <component id="c9ff1" class="javax.swing.JLabel">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <font size="11"/>
-                  <foreground color="-13273872"/>
-                  <icon value="icons/png/information-line.png"/>
-                  <text value="mocks calls in live application"/>
-                </properties>
-              </component>
-              <grid id="76fd4" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                <margin top="0" left="0" bottom="0" right="0"/>
-                <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="4" fill="2" indent="0" use-parent-layout="false"/>
-                </constraints>
+              <grid id="c015e" binding="preferencesButtonContainer" layout-manager="BorderLayout" hgap="0" vgap="0">
+                <constraints border-constraint="West"/>
                 <properties/>
                 <border type="none"/>
-                <children>
-                  <component id="96785" class="javax.swing.JRadioButton" binding="mockingDisableRadioButton">
-                    <constraints>
-                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
-                    </constraints>
-                    <properties>
-                      <selected value="true"/>
-                      <text value="Disable"/>
-                    </properties>
-                  </component>
-                  <component id="8a712" class="javax.swing.JRadioButton" binding="mockingEnableRadioButton">
-                    <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
-                    </constraints>
-                    <properties>
-                      <text value="Enable"/>
-                    </properties>
-                  </component>
-                </children>
+                <children/>
               </grid>
-            </children>
-          </grid>
-          <grid id="4adab" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="3" left="0" bottom="3" right="0"/>
-            <constraints border-constraint="Center"/>
-            <properties/>
-            <border type="none"/>
-            <children>
-              <component id="4b09f" class="javax.swing.JSeparator">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties/>
-              </component>
             </children>
           </grid>
         </children>
@@ -165,76 +79,110 @@
             </border>
             <children/>
           </scrollpane>
-          <grid id="e0d30" binding="infoPanel" layout-manager="GridLayoutManager" row-count="1" column-count="6" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="5" bottom="0" right="5"/>
+          <grid id="e0d30" binding="infoPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
             <constraints>
               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false">
                 <minimum-size width="-1" height="25"/>
-                <preferred-size width="-1" height="25"/>
-                <maximum-size width="-1" height="25"/>
+                <maximum-size width="-1" height="90"/>
               </grid>
             </constraints>
             <properties/>
             <border type="none"/>
             <children>
-              <component id="64ba7" class="javax.swing.JLabel" binding="selectAllLabel">
-                <constraints>
-                  <grid row="0" column="5" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <font size="13"/>
-                  <foreground color="-11236617"/>
-                  <text value="&lt;html&gt;&lt;u&gt;&lt;small&gt;Select all&lt;/small&gt;&lt;/u&gt;&lt;/html&gt;"/>
-                </properties>
-              </component>
-              <component id="e4084" class="javax.swing.JLabel" binding="clearSelectionLabel">
-                <constraints>
-                  <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <font size="11"/>
-                  <foreground color="-11236617"/>
-                  <text value="&lt;html&gt;&lt;u&gt;&lt;small&gt;Clear selection&lt;/small&gt;&lt;/u&gt;&lt;/html&gt;"/>
-                  <visible value="false"/>
-                </properties>
-              </component>
-              <hspacer id="23d1e">
-                <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                </constraints>
-              </hspacer>
-              <component id="8145e" class="javax.swing.JLabel" binding="clearFilterLabel">
-                <constraints>
-                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <font size="11"/>
-                  <foreground color="-11236617"/>
-                  <text value="&lt;html&gt;&lt;u&gt;&lt;small&gt;Clear filters&lt;/small&gt;&lt;/u&gt;&lt;/html&gt;"/>
-                  <visible value="false"/>
-                </properties>
-              </component>
-              <component id="37f0e" class="javax.swing.JLabel" binding="filterAppliedLabel">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <font size="11"/>
-                  <foreground color="-10395295"/>
-                  <text value="0 filters applied"/>
-                  <visible value="false"/>
-                </properties>
-              </component>
-              <component id="85922" class="javax.swing.JLabel" binding="selectedCountLabel">
-                <constraints>
-                  <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <font size="11"/>
-                  <foreground color="-10395295"/>
-                  <text value="0 selected"/>
-                </properties>
-              </component>
+              <grid id="9bd35" binding="infoInsideScrollerPanel" layout-manager="GridLayoutManager" row-count="1" column-count="6" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                <margin top="3" left="5" bottom="3" right="0"/>
+                <constraints border-constraint="North"/>
+                <properties/>
+                <border type="none"/>
+                <children>
+                  <hspacer id="23d1e">
+                    <constraints>
+                      <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                  </hspacer>
+                  <component id="37f0e" class="javax.swing.JLabel" binding="filterAppliedLabel">
+                    <constraints>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                    <properties>
+                      <font size="11"/>
+                      <foreground color="-10395295"/>
+                      <text value="0 filters applied"/>
+                      <visible value="true"/>
+                    </properties>
+                  </component>
+                  <component id="85922" class="javax.swing.JLabel" binding="selectedCountLabel">
+                    <constraints>
+                      <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                    <properties>
+                      <font size="11"/>
+                      <foreground color="-10395295"/>
+                      <text value="0 selected"/>
+                    </properties>
+                  </component>
+                  <grid id="eaa1c" binding="controlPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
+                    <constraints>
+                      <grid row="0" column="5" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="4" fill="2" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                    <properties>
+                      <enabled value="false"/>
+                    </properties>
+                    <border type="none"/>
+                    <children/>
+                  </grid>
+                  <component id="cf6a4" class="javax.swing.JLabel" binding="clearFilterLabel">
+                    <constraints>
+                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                    <properties>
+                      <font size="11"/>
+                      <foreground color="-11236617"/>
+                      <text value="&lt;html&gt;&lt;u&gt;&lt;small&gt;Clear filters&lt;/small&gt;&lt;/u&gt;&lt;/html&gt;"/>
+                      <visible value="true"/>
+                    </properties>
+                  </component>
+                  <component id="3c0d" class="javax.swing.JLabel" binding="clearSelectionLabel">
+                    <constraints>
+                      <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                    <properties>
+                      <font size="13"/>
+                      <foreground color="-11236617"/>
+                      <text value="&lt;html&gt;&lt;u&gt;&lt;small&gt;Clear selection&lt;/small&gt;&lt;/u&gt;&lt;/html&gt;"/>
+                    </properties>
+                  </component>
+                </children>
+              </grid>
+              <grid id="365f2" binding="callMockingControlPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                <margin top="5" left="5" bottom="5" right="5"/>
+                <constraints border-constraint="South"/>
+                <properties/>
+                <border type="empty" title="Call Mocking">
+                  <font size="12" style="1"/>
+                </border>
+                <children>
+                  <component id="9c9b9" class="javax.swing.JLabel" binding="mockDescriptionLabel">
+                    <constraints>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                    <properties>
+                      <font size="11"/>
+                      <foreground color="-13273872"/>
+                      <icon value="icons/png/information-line.png"/>
+                      <text value="mocks calls in live application"/>
+                    </properties>
+                  </component>
+                  <grid id="2523d" binding="selectedMocksControlPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
+                    <constraints>
+                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="4" fill="2" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                    <properties/>
+                    <border type="none"/>
+                    <children/>
+                  </grid>
+                </children>
+              </grid>
             </children>
           </grid>
         </children>
@@ -251,10 +199,14 @@
     <group name="buttonGroup1">
       <member id="48cb8"/>
       <member id="e134c"/>
+      <member id="475d7"/>
+      <member id="deee7"/>
     </group>
     <group name="buttonGroup2">
       <member id="8a712"/>
       <member id="96785"/>
+      <member id="d28ac"/>
+      <member id="74c57"/>
     </group>
   </buttonGroups>
 </form>

@@ -13,9 +13,9 @@ import com.insidious.plugin.ui.ImagePanel;
 import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
-import com.insidious.plugin.util.AtomicAssertionUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.icons.AllIcons;
 import com.intellij.java.JavaBundle;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -32,6 +32,7 @@ import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
+import com.intellij.ui.JBColor;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
@@ -41,7 +42,6 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -69,21 +69,25 @@ public class LibraryComponent {
     private JPanel controlPanel;
     //    private JLabel reloadButton;
 //    private JLabel deleteButton;
-    private JLabel showOptionsButton;
+//    private JLabel showOptionsButton;
     private JPanel scrollContainer;
     private JScrollPane itemScrollPanel;
     private JPanel infoPanel;
     private JLabel selectedCountLabel;
-    private JLabel selectAllLabel;
     private JLabel clearSelectionLabel;
     private JLabel clearFilterLabel;
     private JLabel filterAppliedLabel;
     private JRadioButton includeMocksCheckBox;
     private JRadioButton includeTestsCheckBox;
-    private JPanel topContainerPanel;
-    private JRadioButton mockingEnableRadioButton;
-    private JRadioButton mockingDisableRadioButton;
+    //    private JButton mockingEnableRadioButton;
+//    private JButton mockingDisableRadioButton;
     private JPanel southPanel;
+    private JPanel infoInsideScrollerPanel;
+    private JPanel callMockingControlPanel;
+    private JPanel topContainerPanel;
+    private JPanel preferencesButtonContainer;
+    private JPanel selectedMocksControlPanel;
+    private JLabel mockDescriptionLabel;
     private MethodUnderTest lastMethodFocussed;
     private boolean currentMockInjectStatus = false;
 
@@ -92,32 +96,68 @@ public class LibraryComponent {
         insidiousService = project.getService(InsidiousService.class);
         atomicRecordService = project.getService(AtomicRecordService.class);
 
-        ActionListener mockStatusChangeActionListener = e -> {
-            if (!insidiousService.isAgentConnected()) {
-                InsidiousNotification.notifyMessage(
-                        "Please start the application with unlogged-sdk and open the unlogged tool window to use",
-                        NotificationType.WARNING
-                );
-                currentMockInjectStatus = false;
-                mockingEnableRadioButton.setSelected(false);
-                mockingDisableRadioButton.setSelected(true);
-                return;
+        mockDescriptionLabel.setIcon(AllIcons.General.Information);
+        AnAction enableMocksAction = new AnAction(() -> "Enable", UIUtils.LINK_ICON) {
+
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                if (!insidiousService.isAgentConnected()) {
+                    InsidiousNotification.notifyMessage(
+                            "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                            NotificationType.WARNING
+                    );
+                    currentMockInjectStatus = false;
+                    return;
+                }
+                insidiousService.injectMocksInRunningProcess(selectedMocks);
             }
-            List<DeclaredMock> allDeclaredMocks = insidiousService.getAllDeclaredMocks();
-            if (mockingEnableRadioButton.isSelected() && !currentMockInjectStatus) {
-                currentMockInjectStatus = true;
-                insidiousService.injectMocksInRunningProcess(allDeclaredMocks);
-            } else {
-                currentMockInjectStatus = false;
-                insidiousService.removeMocksInRunningProcess(allDeclaredMocks);
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+
+        };
+
+        AnAction disableMocksAction = new AnAction(() -> "Disable", UIUtils.UNLINK_ICON) {
+
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                if (!insidiousService.isAgentConnected()) {
+                    InsidiousNotification.notifyMessage(
+                            "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                            NotificationType.WARNING
+                    );
+                    currentMockInjectStatus = false;
+                    return;
+                }
+                insidiousService.removeMocksInRunningProcess(selectedMocks);
+            }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
             }
         };
-        mockingDisableRadioButton.addActionListener(mockStatusChangeActionListener);
-        mockingEnableRadioButton.addActionListener(mockStatusChangeActionListener);
 
 
+        List<AnAction> action33 = new ArrayList<>();
+        action33.add(enableMocksAction);
+        action33.add(disableMocksAction);
+
+        ActionToolbarImpl actionToolbar33 = new ActionToolbarImpl(
+                "Live View", new DefaultActionGroup(action33), true);
+        actionToolbar33.setMiniMode(false);
+        actionToolbar33.setForceMinimumSize(true);
+        actionToolbar33.setTargetComponent(mainPanel);
+
+        selectedMocksControlPanel.add(actionToolbar33.getComponent(), BorderLayout.CENTER);
+
+
+        clearSelectionLabel.setVisible(false);
         clearSelectionLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        clearSelectionLabel.setForeground(new Color(84, 138, 247));
+        clearSelectionLabel.setForeground(new JBColor(new Color(84, 138, 247),
+                new Color(84, 138, 247)));
         clearSelectionLabel.setFont(new Font("SF Pro Text", Font.PLAIN, 13));
         clearSelectionLabel.addMouseListener(new MouseAdapter() {
             @Override
@@ -125,23 +165,6 @@ public class LibraryComponent {
                 super.mouseClicked(e);
                 clearSelection();
                 reloadItems();
-            }
-        });
-
-
-        selectAllLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        selectAllLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                for (DeclaredMockItemPanel listedMockItem : listedMockItems) {
-                    selectedMocks.add(listedMockItem.getDeclaredMock());
-                    listedMockItem.setSelected(true);
-                }
-                for (StoredCandidateItemPanel listedMockItem : listedCandidateItems) {
-                    selectedCandidates.add(listedMockItem.getStoredCandidate());
-                    listedMockItem.setSelected(true);
-                }
-                updateSelectionLabel();
             }
         });
 
@@ -159,41 +182,15 @@ public class LibraryComponent {
             }
         });
 
-        showOptionsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        showOptionsButton.addMouseListener(new MouseAdapter() {
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                LibraryFilter libraryFilter = new LibraryFilter(filterModel, lastMethodFocussed);
-                JComponent component = libraryFilter.getComponent();
-                ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
-                        .createComponentPopupBuilder(component, null);
-                JBPopup unloggedPreferencesPopup = gutterMethodComponentPopup
-                        .setProject(project)
-                        .setShowBorder(true)
-                        .setShowShadow(true)
-                        .setFocusable(true)
-                        .setRequestFocus(true)
-                        .setCancelOnClickOutside(false)
-                        .setCancelOnOtherWindowOpen(false)
-                        .setCancelKeyEnabled(false)
-                        .setBelongsToGlobalPopupStack(false)
-                        .setTitle("Unlogged Preferences")
-                        .setTitleIcon(new ActiveIcon(UIUtils.UNLOGGED_ICON_DARK))
-                        .createPopup();
-                component.setMaximumSize(new Dimension(500, 800));
-                ComponentLifecycleListener<LibraryFilter> componentLifecycleListener = new ComponentLifecycleListener<LibraryFilter>() {
-                    @Override
-                    public void onClose(LibraryFilter component) {
-                        unloggedPreferencesPopup.cancel();
-                        updateFilterLabel();
-                        reloadItems();
-                    }
-                };
-                libraryFilter.setOnCloseListener(componentLifecycleListener);
-                unloggedPreferencesPopup.showCenteredInCurrentWindow(project);
-            }
-        });
+//        showOptionsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        MouseAdapter showOptionsMouseAdapter = new MouseAdapter() {
+//
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                showOptionsWindowPopup();
+//            }
+//        };
+//        showOptionsButton.addMouseListener(showOptionsMouseAdapter);
 
 
         MOCK_ITEM_LIFE_CYCLE_LISTENER = new ItemLifeCycleListener<>() {
@@ -329,9 +326,8 @@ public class LibraryComponent {
         includeMocksCheckBox.addActionListener(e -> {
             boolean reload = false;
             if (includeMocksCheckBox.isSelected()) {
-                if (filterModel.isShowTests()) {
-                    filterModel.setShowMocks(true);
-                    filterModel.setShowTests(false);
+                if (filterModel.getItemFilterType().equals(ItemFilterType.SavedReplay)) {
+                    filterModel.setItemFilterType(ItemFilterType.SavedMocks);
                     updateSelectionLabel();
                     reload = true;
                 }
@@ -348,9 +344,8 @@ public class LibraryComponent {
         includeTestsCheckBox.addActionListener(e -> {
             boolean reload = false;
             if (includeTestsCheckBox.isSelected()) {
-                if (filterModel.isShowMocks()) {
-                    filterModel.setShowMocks(false);
-                    filterModel.setShowTests(true);
+                if (filterModel.getItemFilterType().equals(ItemFilterType.SavedMocks)) {
+                    filterModel.setItemFilterType(ItemFilterType.SavedReplay);
                     updateSelectionLabel();
                     reload = true;
                 }
@@ -365,30 +360,11 @@ public class LibraryComponent {
             }
         });
 
-        updateMocksOrTestsRadioBox();
-
-        selectAllLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                for (StoredCandidateItemPanel storedCandidateItemPanel : listedCandidateItems) {
-                    selectedCandidates.add(storedCandidateItemPanel.getStoredCandidate());
-                }
-                for (DeclaredMockItemPanel listedMockItem : listedMockItems) {
-                    selectedMocks.add(listedMockItem.getDeclaredMock());
-                }
-                for (StoredCandidateItemPanel storedCandidateItemPanel : listedCandidateItems) {
-                    storedCandidateItemPanel.setSelected(true);
-                }
-                for (DeclaredMockItemPanel listedMockItem : listedMockItems) {
-                    listedMockItem.setSelected(true);
-                }
-
-            }
-        });
+        updateItemTypeFilter();
 
         updateFilterLabel();
 
-        AnAction reloadAction = new AnAction(() -> "Reload", UIUtils.REFRESH_SVG) {
+        AnAction reloadAction = new AnAction(() -> "Reload", AllIcons.Actions.Refresh) {
 
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -396,7 +372,7 @@ public class LibraryComponent {
             }
         };
 
-        AnAction deleteAction = new AnAction(() -> "Delete", UIUtils.DELETE_BIN_PARALLEL_RED) {
+        AnAction deleteAction = new AnAction(() -> "Delete", AllIcons.Actions.GC) {
 
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -404,9 +380,18 @@ public class LibraryComponent {
             }
         };
 
+        AnAction selectAllAction = new AnAction(() -> "Select All", AllIcons.Actions.Selectall) {
+
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                selectAll();
+            }
+        };
+
         List<AnAction> action11 = new ArrayList<>();
         action11.add(reloadAction);
         action11.add(deleteAction);
+        action11.add(selectAllAction);
         actionToolbar = new ActionToolbarImpl(
                 "Live View", new DefaultActionGroup(action11), true);
         actionToolbar.setMiniMode(false);
@@ -416,21 +401,36 @@ public class LibraryComponent {
         controlPanel.add(actionToolbar.getComponent(), BorderLayout.CENTER);
 
 
-//        reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        reloadButton.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                reloadItems();
-//            }
-//        });
-//
-//        deleteButton.setIcon(UIUtils.DELETE_BIN_2_LINE);
-//        deleteButton.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                deleteSelectedItem();
-//            }
-//        });
+        AnAction filterAction = new AnAction(() -> "Filter", AllIcons.General.Filter) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("count", selectedCandidates.size());
+                UsageInsightTracker.getInstance().RecordEvent("ACTION_FILTER", eventProperties);
+                showOptionsWindowPopup();
+            }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
+
+
+        List<AnAction> action22 = List.of(
+                filterAction
+        );
+
+
+        ActionToolbarImpl actionToolbar2 = new ActionToolbarImpl(
+                "Library Control Panel", new DefaultActionGroup(action22), true);
+        actionToolbar2.setMiniMode(false);
+        actionToolbar2.setForceMinimumSize(true);
+        actionToolbar2.setTargetComponent(mainPanel);
+
+
+        preferencesButtonContainer.add(actionToolbar2.getComponent(), BorderLayout.CENTER);
+
     }
 
     static JPanel deletePromptPanelBuilder(String deletePrompt) {
@@ -465,8 +465,51 @@ public class LibraryComponent {
         return deletePanel;
     }
 
+    private void selectAll() {
+        for (DeclaredMockItemPanel listedMockItem : listedMockItems) {
+            selectedMocks.add(listedMockItem.getDeclaredMock());
+            listedMockItem.setSelected(true);
+        }
+        for (StoredCandidateItemPanel listedMockItem : listedCandidateItems) {
+            selectedCandidates.add(listedMockItem.getStoredCandidate());
+            listedMockItem.setSelected(true);
+        }
+        updateSelectionLabel();
+    }
+
+    private void showOptionsWindowPopup() {
+        LibraryFilter libraryFilter = new LibraryFilter(filterModel, lastMethodFocussed);
+        JComponent component = libraryFilter.getComponent();
+        ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+                .createComponentPopupBuilder(component, null);
+        JBPopup unloggedPreferencesPopup = gutterMethodComponentPopup
+                .setProject(project)
+                .setShowBorder(true)
+                .setShowShadow(true)
+                .setFocusable(true)
+                .setRequestFocus(true)
+                .setCancelOnClickOutside(false)
+                .setCancelOnOtherWindowOpen(false)
+                .setCancelKeyEnabled(false)
+                .setBelongsToGlobalPopupStack(false)
+                .setTitle("Unlogged Preferences")
+                .setTitleIcon(new ActiveIcon(UIUtils.UNLOGGED_ICON_DARK))
+                .createPopup();
+        component.setMaximumSize(new Dimension(500, 800));
+        ComponentLifecycleListener<LibraryFilter> componentLifecycleListener = new ComponentLifecycleListener<LibraryFilter>() {
+            @Override
+            public void onClose(LibraryFilter component) {
+                unloggedPreferencesPopup.cancel();
+                updateFilterLabel();
+                reloadItems();
+            }
+        };
+        libraryFilter.setOnCloseListener(componentLifecycleListener);
+        unloggedPreferencesPopup.showCenteredInCurrentWindow(project);
+    }
+
     private void deleteSelectedItem() {
-        if (filterModel.isShowMocks()) {
+        if (filterModel.getItemFilterType().equals(ItemFilterType.SavedMocks)) {
             int selectedCount = selectedMocks.size();
             if (selectedCount < 1) {
                 InsidiousNotification.notifyMessage("Nothing selected to delete", NotificationType.INFORMATION);
@@ -496,7 +539,7 @@ public class LibraryComponent {
             });
             builder.showModal(true);
 
-        } else if (filterModel.isShowTests()) {
+        } else if (filterModel.getItemFilterType().equals(ItemFilterType.SavedReplay)) {
             int selectedCount = selectedCandidates.size();
             if (selectedCount < 1) {
                 InsidiousNotification.notifyMessage("Nothing selected to delete", NotificationType.INFORMATION);
@@ -530,8 +573,8 @@ public class LibraryComponent {
         }
     }
 
-    private void updateMocksOrTestsRadioBox() {
-        if (filterModel.isShowMocks()) {
+    private void updateItemTypeFilter() {
+        if (filterModel.getItemFilterType().equals(ItemFilterType.SavedMocks)) {
             includeMocksCheckBox.setSelected(true);
             includeTestsCheckBox.setSelected(false);
         } else {
@@ -546,23 +589,12 @@ public class LibraryComponent {
         filterModel.getIncludedMethodNames().addAll(lfs.getIncludedMethodNames());
         filterModel.getExcludedClassNames().addAll(lfs.getExcludedClassNames());
         filterModel.getExcludedMethodNames().addAll(lfs.getExcludedMethodNames());
-        filterModel.setShowTests(lfs.isShowTests());
-        filterModel.setShowMocks(lfs.isShowMocks());
+        filterModel.setItemFilterType(lfs.selectedItemType());
         filterModel.setFollowEditor(lfs.isFollowEditor());
 
-        updateMocksOrTestsRadioBox();
+        updateItemTypeFilter();
         updateFilterLabel();
         reloadItems();
-    }
-
-    public void setMockStatus(boolean status) {
-        if (status) {
-            mockingEnableRadioButton.setSelected(true);
-            mockingDisableRadioButton.setSelected(false);
-        } else {
-            mockingEnableRadioButton.setSelected(false);
-            mockingDisableRadioButton.setSelected(true);
-        }
     }
 
     private void clearSelection() {
@@ -580,16 +612,13 @@ public class LibraryComponent {
 
     private void updateSelectionLabel() {
         int count;
-        if (filterModel.isShowMocks()) {
+        if (filterModel.getItemFilterType().equals(ItemFilterType.SavedMocks)) {
             count = selectedMocks.size();
             selectedCountLabel.setText(count + " selected");
         } else {
             count = selectedCandidates.size();
             selectedCountLabel.setText(count + " selected");
         }
-//        deleteButton.setVisible(count > 0);
-//        deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
         clearSelectionLabel.setVisible(count > 0);
     }
 
@@ -625,6 +654,12 @@ public class LibraryComponent {
             clearFilterLabel.setVisible(true);
             filterAppliedLabel.setVisible(true);
             filterAppliedLabel.setText(total + (total == 1 ? " filter" : " filters"));
+        }
+
+        if (filterModel.getItemFilterType().equals(ItemFilterType.SavedReplay)) {
+            callMockingControlPanel.setVisible(false);
+        } else {
+            callMockingControlPanel.setVisible(true);
         }
 
     }
@@ -717,7 +752,7 @@ public class LibraryComponent {
         itemScrollPanel.setViewportView(itemsContainer);
         atomicRecordService.checkPreRequisites();
         int count = 1;
-        if (filterModel.isShowMocks()) {
+        if (filterModel.getItemFilterType().equals(ItemFilterType.SavedMocks)) {
             int countMocks = 0;
             Map<String, List<DeclaredMock>> mocksByClass = atomicRecordService.getAllDeclaredMocks()
                     .stream().collect(Collectors.groupingBy(DeclaredMock::getFieldTypeName));
@@ -761,7 +796,7 @@ public class LibraryComponent {
             }
         }
 
-        if (filterModel.isShowTests()) {
+        if (filterModel.selectedItemType().equals(ItemFilterType.SavedReplay)) {
 
             List<StoredCandidate> testCandidates = atomicRecordService.getAllTestCandidates();
 
@@ -844,6 +879,8 @@ public class LibraryComponent {
             southPanel.removeAll();
             scrollContainer.revalidate();
             scrollContainer.repaint();
+        }, component -> {
+
         });
         JComponent content = mockEditor.getComponent();
         GraphicsDevice gd = MouseInfo.getPointerInfo().getDevice();
@@ -901,5 +938,9 @@ public class LibraryComponent {
         filterModel.getExcludedMethodNames().clear();
         filterModel.getIncludedClassNames().clear();
         filterModel.getExcludedClassNames().clear();
+    }
+
+    public void setMockStatus(boolean status) {
+
     }
 }

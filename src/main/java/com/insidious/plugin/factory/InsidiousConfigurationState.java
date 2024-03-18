@@ -66,15 +66,15 @@ public class InsidiousConfigurationState
         mockActiveStatus.put(id, true);
     }
 
-    public boolean isActiveMock(String declaredMockIds) {
+    public boolean isMockActive(String declaredMockIds) {
         return mockActiveStatus.containsKey(declaredMockIds);
     }
 
-    public void removeFieldMock(String key) {
+    public void markMockDisable(String key) {
         classFieldMockActiveStatus.remove(key);
     }
 
-    public void addFieldMock(String key) {
+    public void markMockActive(String key) {
         classFieldMockActiveStatus.put(key, true);
     }
 

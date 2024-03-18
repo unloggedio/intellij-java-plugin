@@ -15,6 +15,8 @@ public class UIUtils {
 
     public static final String gifPath = "/icons/gif/";
     public static final Icon DISCORD_ICON = IconLoader.getIcon("/icons/png/discordIcon.png", UIUtils.class);
+    public static final Icon LINK_ICON = IconLoader.getIcon("/icons/svg/link.svg", UIUtils.class);
+    public static final Icon UNLINK_ICON = IconLoader.getIcon("/icons/svg/link-unlink-m.svg", UIUtils.class);
     public static final Icon DELETE_BIN_3_LINE = IconLoader.getIcon("icons/png/delete-bin-3-line.png", UIUtils.class);
     public static final Icon DELETE_BIN_CROSS_BLACK = IconLoader.getIcon("icons/svg/delete-bin-2-line.svg", UIUtils.class);
     public static final Icon DELETE_BIN_PARALLEL_RED = IconLoader.getIcon("icons/svg/delete-bin-6-line.svg", UIUtils.class);
