@@ -89,6 +89,7 @@ public class IdeaFrame extends CommonContainerFixture {
         List<ComponentFixture> fixtureList = UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.REPLAY_EXECUTE_BUTTON);
         return fixtureList.get(0);
     }
+
     public ComponentFixture getFirstJtextFiled() {
         List<ComponentFixture> fixtureList = UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.TEST_NAME_TF);
         return fixtureList.get(0);
@@ -100,5 +101,43 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public ComponentFixture getSaveAndClose() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.SAVE_AND_CLOSE_SAVE_FORM);
+    }
+
+    public ComponentFixture getDirectInvokeExecuteButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.DIRECT_INVOKE_EXECUTE_NEW);
+    }
+
+    public ComponentFixture getFilterButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.FILTER_BUTTON_NEW);
+    }
+
+    public ComponentFixture getDICloseButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.CLOSE_DI_COMPONENT_BUTTON);
+    }
+
+    public ComponentFixture getReplayButtonNew() {
+        List<ComponentFixture> fixtureList = UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.REPLAY_CANDIDATE_BUTTON);
+        return fixtureList.get(0);
+    }
+
+    public ComponentFixture getFilterFollowCheckbox() {
+        List<ComponentFixture> fixtureList = UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.FILTER_FOLLOW_CHECK_BOX);
+        return fixtureList.get(0);
+    }
+
+    public ComponentFixture getFilterApplyButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.FILTER_APPLY);
+    }
+
+    public ComponentFixture getSelectAllText() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.SELECT_ALL_FILTER);
+    }
+
+    public ComponentFixture getSaveGlobalButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.SAVE_GLOBAL);
+    }
+
+    public ComponentFixture getSaveFromConfirmButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.SAVE_FORM_CONFIRM);
     }
 }

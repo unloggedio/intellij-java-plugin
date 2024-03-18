@@ -74,6 +74,20 @@ public class UiTest {
         boolean multiModule = false;
         final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
 
+        final ComponentFixture filterEntryPoint = idea.getFilterButton();
+        filterEntryPoint.click();
+
+        pause(ofSeconds(2).toMillis());
+
+        final ComponentFixture followCheckBox = idea.getFilterFollowCheckbox();
+        followCheckBox.click();
+
+        idea.getFilterApplyButton().click();
+
+        //disable this after testing
+        tryToSaveAll(idea);
+
+
         String startWith = "PatientCaseAuditService";
         boolean startFrom = false;
         ContainerFixture projectView;
@@ -204,16 +218,14 @@ public class UiTest {
                         System.out.println("Icon info : " + iconAsString);
                     }
 
-                    if (true) {
-                        return;
-                    }
+//                    if (true) {
+//                        return;
+//                    }
 
                     for (Integer key : iconTreeMap.keySet()) {
                         GutterIcon icon = iconTreeMap.get(key);
                         String iconAsString = icon.toString();
-                        if (iconAsString.contains("name=Unlogged")
-                                && (iconAsString.contains("process_running.svg")
-                                || iconAsString.contains("data_available_v2.svg"))) {
+                        if (iconAsString.contains("profileBlue.svg")) {
                             //unlogged icon found, click it.
                             scrollDownToIcon(editor, icon);
                             pause(ofSeconds(1).toMillis());
@@ -224,26 +236,29 @@ public class UiTest {
                                 icon.click();
                             }
 
-                            if (icon.toString().contains("overriddenPath='/icons/svg/execute_v2.svg'")) {
-                                //skip if execute all, no need to hot reload as this test is for
-                                //Direct Invoke only
-                                continue;
-                            }
-
                             step("Direct Invoke method", () -> {
                                 pause(ofSeconds(1).toMillis());
-                                idea.getDirectInvokeTabHeader().click();
                                 try {
-                                    idea.getExecuteMethodButton().click();
+                                    idea.getDirectInvokeExecuteButton().click();
                                 } catch (Exception exception) {
                                     //atomic window in focus right after button click
-                                    System.out.println("Atomic window in view when trying to click direct Invoke");
-                                    idea.getDirectInvokeTabHeader().click();
-                                    idea.getExecuteMethodButton().click();
+                                    System.out.println("Direct Invoke click failed");
+//                                    idea.getDirectInvokeTabHeader().click();
+//                                    idea.getExecuteMethodButton().click();
                                 }
                                 //wait for response
                                 pause(ofSeconds(5).toMillis());
                             });
+                            pause(ofSeconds(10).toMillis());
+
+                            //try to replay
+                            idea.getDICloseButton().click();
+                            try {
+                                idea.getReplayButtonNew().click();
+                                pause(ofSeconds(10).toMillis());
+                            } catch (Exception e) {
+                                //no candidate found
+                            }
                         }
                     }
                     currentFile = editor.getEditor().getFileName();
@@ -269,7 +284,16 @@ public class UiTest {
                 toVisit = updateToVisit(toVisit, text, idea, projectView);
             }
         }
+        followCheckBox.click();
 
+        tryToSaveAll(idea);
+    }
+
+    private void tryToSaveAll(IdeaFrame idea) {
+        idea.getSelectAllText().click();
+        idea.getSaveGlobalButton().click();
+        pause(ofSeconds(30).toMillis());
+        idea.getSaveFromConfirmButton().click();
     }
 
     //To be run after clean, will fail in other cases

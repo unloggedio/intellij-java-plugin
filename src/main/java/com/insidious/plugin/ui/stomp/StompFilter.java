@@ -56,6 +56,7 @@ public class StompFilter {
     private JButton applyButton;
     private JButton cancelButton;
     private JButton resetToDefaultButton;
+    private JPanel followCheckBoxParent;
     private ComponentLifecycleListener<StompFilter> componentLifecycleListener;
     private DefaultListModel<String> modelIncludedClasses;
     private DefaultListModel<String> modelExcludedClasses;

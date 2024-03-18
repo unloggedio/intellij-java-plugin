@@ -32,7 +32,16 @@ public class UITestUtils {
         REPLAY_EXECUTE_BUTTON("//div[@defaulticon='execute-button-outlined.svg']"),
         SAVE_REPLAY_BUTTON("//div[@text='Save Replay']"),
         SAVE_AND_CLOSE_SAVE_FORM("//div[@text='Save and close']"),
+        DIRECT_INVOKE_EXECUTE_NEW("//div[@visible_text='Execute Method']"),
         TEST_NAME_TF("//div[@class='JTextField']"),
+        FILTER_BUTTON_NEW("//div[@myicon='filter.svg']"),
+        FILTER_FOLLOW_CHECK_BOX("//div[@class='JTabbedPane']//div[@class='JCheckBox']"),
+        FILTER_APPLY("//div[@text='Apply']"),
+        SELECT_ALL_FILTER("//div[@visible_text='Select all']"),
+        SAVE_FORM_CONFIRM("//div[@text='Confirm']"),
+        SAVE_GLOBAL("//div[@visible_text='Save']"),
+        CLOSE_DI_COMPONENT_BUTTON("//div[@visible_text='Close']"),
+        REPLAY_CANDIDATE_BUTTON("//div[@myicon='replay-all-pink.svg']"),
         EDITOR_SCROLL_BAR("//div[@class='MyScrollPane']");
 
         private String value;
