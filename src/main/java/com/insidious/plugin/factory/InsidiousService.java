@@ -1714,6 +1714,12 @@ final public class InsidiousService implements
 
     }
 
+    public void showMockEditor(DeclaredMock declaredMock) {
+        showLibrary();
+        libraryToolWindow.showMockEditor(declaredMock);
+    }
+
+
     public void showMockCreator(JavaMethodAdapter method, PsiMethodCallExpression callExpression) {
         if (stompWindow == null) {
             if (toolWindow == null) {

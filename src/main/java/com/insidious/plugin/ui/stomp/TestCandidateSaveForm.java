@@ -427,7 +427,7 @@ public class TestCandidateSaveForm {
         for (int i = 0; i < declaredMockList.size(); i++) {
             DeclaredMock declaredMock = declaredMockList.get(i);
             DeclaredMockItemPanel declaredMockItemPanel = new DeclaredMockItemPanel(declaredMock,
-                    itemLifeCycleListener, project);
+                    itemLifeCycleListener, insidiousService);
             declaredMockItemPanel.setIsSelectable(false);
             declaredMockPanelMap.put(declaredMock, declaredMockItemPanel);
             mockItemContainer.add(declaredMockItemPanel.getComponent(), createGBCForLeftMainComponent(i));

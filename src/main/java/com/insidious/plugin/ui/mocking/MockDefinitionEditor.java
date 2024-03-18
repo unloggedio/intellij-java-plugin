@@ -152,7 +152,11 @@ public class MockDefinitionEditor {
         this.componentLifecycleListener = componentLifecycleListener;
         this.project = project;
         this.declaredMock = declaredMock;
-        callExpressionLabel.setText(declaredMock.getSourceClassName() + "." + declaredMock.getMethodName() + "()");
+        String fieldTypeName = declaredMock.getFieldTypeName();
+        if (fieldTypeName.contains(".")) {
+            fieldTypeName = fieldTypeName.substring(fieldTypeName.lastIndexOf(".") + 1);
+        }
+        callExpressionLabel.setText(fieldTypeName + "." + declaredMock.getMethodName() + "()");
 
         updateUiValues();
         addListeners();

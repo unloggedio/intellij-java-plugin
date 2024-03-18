@@ -5,11 +5,9 @@ import com.insidious.plugin.ui.mocking.MockDefinitionListPanel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.ui.popup.ActiveIcon;
-import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
-import com.intellij.openapi.ui.popup.JBPopup;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.ui.popup.*;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.awt.RelativePoint;
@@ -142,15 +140,15 @@ public class MethodMockGutterNavigationHandler implements GutterIconNavigationHa
                     .setShowBorder(true)
                     .setShowShadow(true)
                     .setFocusable(true)
-                    .setMinSize(new Dimension(600, -1))
+                    .setCancelButton(new IconButton("Close", AllIcons.Actions.CloseDarkGrey))
+                    .setCancelKeyEnabled(true)
+                    .setMovable(true)
                     .setRequestFocus(true)
                     .setResizable(true)
-                    .setCancelOnClickOutside(true)
-                    .setCancelOnOtherWindowOpen(true)
-                    .setCancelKeyEnabled(true)
-//                .setCancelButton(gutterMethodPanel.getCloseButton())
+                    .setCancelOnClickOutside(false)
+                    .setCancelOnOtherWindowOpen(false)
                     .setBelongsToGlobalPopupStack(false)
-                    .setTitle("Manage Mocks")
+                    .setTitle("Unlogged Mocks")
                     .setTitleIcon(new ActiveIcon(UIUtils.GHOST_MOCK))
                     .createPopup();
             componentPopUp.show(new RelativePoint(mouseEvent));

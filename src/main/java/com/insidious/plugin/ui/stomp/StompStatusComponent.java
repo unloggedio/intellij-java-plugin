@@ -1,6 +1,8 @@
 package com.insidious.plugin.ui.stomp;
 
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.icons.AllIcons;
+import com.intellij.ui.AnimatedIcon;
 import com.intellij.ui.Gray;
 import com.intellij.ui.JBColor;
 import com.intellij.util.ui.JBUI;
@@ -33,10 +35,23 @@ public class StompStatusComponent {
         setDisconnected();
     }
 
+    AnimatedIcon connectedIconAnimated = new AnimatedIcon(
+            125,
+            AllIcons.Process.Step_1,
+            AllIcons.Process.Step_2,
+            AllIcons.Process.Step_3,
+            AllIcons.Process.Step_4,
+            AllIcons.Process.Step_5,
+            AllIcons.Process.Step_6,
+            AllIcons.Process.Step_7,
+            AllIcons.Process.Step_8
+    );
+
+
     public synchronized void setConnected() {
         connectionStatusLabel.setText("Connected");
         connectionStatusLabel.setForeground(new Color(31, 138, 60));
-        connectionStatusLabel.setIcon(UIUtils.CONNECTED_ICON);
+        connectionStatusLabel.setIcon(connectedIconAnimated);
     }
 
     public synchronized void setDisconnected() {

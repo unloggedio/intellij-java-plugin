@@ -64,6 +64,8 @@ public class LibraryComponent {
     private final List<StoredCandidateItemPanel> listedCandidateItems = new ArrayList<>();
     private final Project project;
     private final ActionToolbarImpl actionToolbar;
+    private final AnAction addAction;
+    private final ActionToolbarImpl timelineActionToolbar;
     private JPanel mainPanel;
     private JPanel northPanelContainer;
     private JPanel controlPanel;
@@ -97,7 +99,16 @@ public class LibraryComponent {
         atomicRecordService = project.getService(AtomicRecordService.class);
 
         mockDescriptionLabel.setIcon(AllIcons.General.Information);
-        AnAction enableMocksAction = new AnAction(() -> "Enable", UIUtils.LINK_ICON) {
+
+        addAction = new AnAction(() -> "Add", AllIcons.General.Add) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent anActionEvent) {
+
+            }
+        };
+
+
+        AnAction enableMocksAction = new AnAction(() -> "Inject", UIUtils.LINK_ICON) {
 
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -112,6 +123,8 @@ public class LibraryComponent {
                 insidiousService.injectMocksInRunningProcess(selectedMocks);
             }
 
+
+
             @Override
             public boolean displayTextInToolbar() {
                 return true;
@@ -119,7 +132,8 @@ public class LibraryComponent {
 
         };
 
-        AnAction disableMocksAction = new AnAction(() -> "Disable", UIUtils.UNLINK_ICON) {
+
+        AnAction disableMocksAction = new AnAction(() -> "Remove", UIUtils.UNLINK_ICON) {
 
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -140,18 +154,17 @@ public class LibraryComponent {
             }
         };
 
-
         List<AnAction> action33 = new ArrayList<>();
         action33.add(enableMocksAction);
         action33.add(disableMocksAction);
 
-        ActionToolbarImpl actionToolbar33 = new ActionToolbarImpl(
-                "Live View", new DefaultActionGroup(action33), true);
-        actionToolbar33.setMiniMode(false);
-        actionToolbar33.setForceMinimumSize(true);
-        actionToolbar33.setTargetComponent(mainPanel);
+        timelineActionToolbar = new ActionToolbarImpl(
+                "Library View Timeline Toolbar", new DefaultActionGroup(action33), true);
+        timelineActionToolbar.setMiniMode(false);
+        timelineActionToolbar.setForceMinimumSize(true);
+        timelineActionToolbar.setTargetComponent(mainPanel);
 
-        selectedMocksControlPanel.add(actionToolbar33.getComponent(), BorderLayout.CENTER);
+        selectedMocksControlPanel.add(timelineActionToolbar.getComponent(), BorderLayout.CENTER);
 
 
         clearSelectionLabel.setVisible(false);
@@ -769,7 +782,7 @@ public class LibraryComponent {
                     }
                     countMocks++;
                     DeclaredMockItemPanel mockPanel = new DeclaredMockItemPanel(declaredMock,
-                            MOCK_ITEM_LIFE_CYCLE_LISTENER, insidiousService.getProject());
+                            MOCK_ITEM_LIFE_CYCLE_LISTENER, insidiousService);
                     listedMockItems.add(mockPanel);
                     JComponent component = mockPanel.getComponent();
                     itemsContainer.add(component, createGBCForLeftMainComponent(count++));
@@ -880,7 +893,9 @@ public class LibraryComponent {
             scrollContainer.revalidate();
             scrollContainer.repaint();
         }, component -> {
-
+            southPanel.removeAll();
+            scrollContainer.revalidate();
+            scrollContainer.repaint();
         });
         JComponent content = mockEditor.getComponent();
         GraphicsDevice gd = MouseInfo.getPointerInfo().getDevice();

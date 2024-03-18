@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.library;
 
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.mocking.ParameterMatcher;
 import com.insidious.plugin.mocking.ParameterMatcherType;
@@ -10,7 +11,6 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
-import com.intellij.openapi.project.Project;
 import com.intellij.ui.JBColor;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,6 +29,7 @@ import static com.insidious.plugin.ui.stomp.StompItem.TAG_LABEL_TEXT_GREY;
 public class DeclaredMockItemPanel {
     private final DeclaredMock declaredMock;
     private final ActionToolbarImpl actionToolbar;
+    private final InsidiousService insidiousService;
     private JLabel nameLabel;
     private JPanel mainPanel;
     private JPanel tagsContainerPanel;
@@ -40,8 +41,11 @@ public class DeclaredMockItemPanel {
     private JPanel nameContainerPanel;
     private JPanel actionPanel;
 
-    public DeclaredMockItemPanel(DeclaredMock declaredMock, ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener, Project project) {
+    public DeclaredMockItemPanel(DeclaredMock declaredMock, ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener
+            , InsidiousService insidiousService) {
         this.declaredMock = declaredMock;
+        this.insidiousService = insidiousService;
+
         this.nameLabel.setText(declaredMock.getMethodName());
 
         AnAction editAction = new AnAction(() -> "Edit", UIUtils.EDIT) {
