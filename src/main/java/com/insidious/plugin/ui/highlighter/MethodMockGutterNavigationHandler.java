@@ -6,6 +6,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler;
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.popup.*;
 import com.intellij.psi.*;
@@ -156,6 +157,10 @@ public class MethodMockGutterNavigationHandler implements GutterIconNavigationHa
                     .createPopup();
             componentPopUp.showCenteredInCurrentWindow(insidiousService.getProject());
             gutterMethodPanel.setPopupHandle(componentPopUp);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                Dimension size = componentPopUp.getSize();
+                componentPopUp.setSize(new Dimension((int) size.getWidth(), (int) Math.min(650, size.getHeight())));
+            });
 
 
         }

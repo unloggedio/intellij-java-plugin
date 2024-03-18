@@ -46,7 +46,6 @@ import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl;
-import com.intellij.codeInsight.daemon.impl.DaemonProgressIndicator;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
 import com.intellij.debugger.DebuggerManagerEx;
@@ -59,7 +58,6 @@ import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.compiler.CompileStatusNotification;
 import com.intellij.openapi.compiler.CompilerManager;
 import com.intellij.openapi.components.Storage;
@@ -72,16 +70,14 @@ import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
@@ -772,7 +768,41 @@ final public class InsidiousService implements
                 logger.warn("agent command response - " + agentCommandResponse);
                 InsidiousNotification.notifyMessage(
                         agentCommandResponse.getMessage(), NotificationType.INFORMATION
+
                 );
+
+
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    ApplicationManager.getApplication().runWriteAction(() -> {
+                        final FileEditor selectedEditor = FileEditorManager.getInstance(project).getSelectedEditor();
+                        selectedEditor.putUserData(Key.create("inlay.psi.modification.stamp"), null);
+                        ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
+                        DaemonCodeAnalyzerImpl codeAnalyzer = (DaemonCodeAnalyzerImpl) DaemonCodeAnalyzer.getInstance(
+                                project);
+                        codeAnalyzer.restart();
+
+                    });
+                });
+
+//                if (selectedEditor != null) {
+////                    selectedEditor.putUserData(new GlobalContextKey<>("inlay.psi.modification.stamp"), null);
+////                    codeAnalyzer.restart();
+//////                    final VirtualFile file = selectedEditor.getFile();
+//////                    if (file != null) {
+//////                        final PsiFile psiFile = ReadAction.compute(
+//////                                () -> PsiManager.getInstance(project).findFile(file));
+//////                        final Document document = ReadAction.compute(
+//////                                () -> FileDocumentManager.getInstance().getDocument(file));
+//////                        final ProgressIndicator daemonIndicator = new DaemonProgressIndicator();
+//////                        logger.warn("trigger for " + psiFile.getName());
+//////                        ProgressManager.getInstance().runProcess(() -> {
+//////                            ReadAction.run(() -> codeAnalyzer.runMainPasses(psiFile, document, daemonIndicator));
+//////
+//////                        }, daemonIndicator);
+//////                        codeAnalyzer.restart();
+//////                    }
+//                }
+
             } catch (IOException e) {
                 logger.warn("failed to execute command - " + e.getMessage(), e);
                 InsidiousNotification.notifyMessage(
@@ -788,7 +818,7 @@ final public class InsidiousService implements
         agentCommandRequest.setCommand(AgentCommand.REMOVE_MOCKS);
         agentCommandRequest.setDeclaredMocks(declaredMocks);
 
-        if (declaredMocks == null || declaredMocks.size() == 0) {
+        if (declaredMocks == null || declaredMocks.isEmpty()) {
             List<DeclaredMock> existingMocks = getAllDeclaredMocks();
             existingMocks.stream()
                     .map(e -> e.getSourceClassName() + "." + e.getFieldName())
@@ -1506,33 +1536,7 @@ final public class InsidiousService implements
         AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         String mockId = atomicRecordService.saveMockDefinition(declaredMock);
         reloadLibrary();
-
-        if (configurationState.isFieldMockActive("*")) {
-            injectMocksInRunningProcess(List.of(declaredMock));
-        }
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
-            DaemonCodeAnalyzerImpl codeAnalyzer = (DaemonCodeAnalyzerImpl) DaemonCodeAnalyzer.getInstance(project);
-            final FileEditor selectedEditor = FileEditorManager.getInstance(project).getSelectedEditor();
-            if (selectedEditor != null) {
-                final VirtualFile file = selectedEditor.getFile();
-                if (file != null) {
-                    final PsiFile psiFile = ReadAction.compute(() -> PsiManager.getInstance(project).findFile(file));
-                    final Document document = ReadAction.compute(
-                            () -> FileDocumentManager.getInstance().getDocument(file));
-                    final ProgressIndicator daemonIndicator = new DaemonProgressIndicator();
-                    ProgressManager.getInstance().runProcess(() -> {
-                        try {
-                            ReadAction.run(() -> codeAnalyzer.runMainPasses(psiFile, document, daemonIndicator));
-                        } catch (Exception e) {
-
-                        }
-
-                    }, daemonIndicator);
-                    codeAnalyzer.restart();
-                }
-            }
-        });
+        enableMock(declaredMock);
         return mockId;
     }
 
@@ -1540,32 +1544,25 @@ final public class InsidiousService implements
         disableMock(declaredMock);
         AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         atomicRecordService.deleteMockDefinition(declaredMock);
-        if (mockManager.isMockActive(declaredMock)) {
-            removeMocksInRunningProcess(List.of(declaredMock));
-        }
     }
 
 
     public void disableMock(DeclaredMock declaredMock) {
         configurationState.removeMock(declaredMock.getId());
-        if (mockManager.isMockActive(declaredMock)) {
-            removeMocksInRunningProcess(List.of(declaredMock));
-        }
+        removeMocksInRunningProcess(List.of(declaredMock));
     }
 
 
     public void disableMock(Collection<DeclaredMock> declaredMock) {
+        removeMocksInRunningProcess(declaredMock);
         for (DeclaredMock mock : declaredMock) {
             configurationState.removeMock(mock.getId());
         }
-        removeMocksInRunningProcess(declaredMock);
     }
 
     public void enableMock(DeclaredMock declaredMock) {
         configurationState.addMock(declaredMock.getId());
-        if (mockManager.isMockActive(declaredMock)) {
-            injectMocksInRunningProcess(List.of(declaredMock));
-        }
+        injectMocksInRunningProcess(List.of(declaredMock));
     }
 
     public void enableMock(Collection<DeclaredMock> declaredMock) {

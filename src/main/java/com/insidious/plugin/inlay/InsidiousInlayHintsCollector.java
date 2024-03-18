@@ -14,6 +14,7 @@ import com.intellij.codeInsight.hints.FactoryInlayHintsCollector;
 import com.intellij.codeInsight.hints.InlayHintsSink;
 import com.intellij.codeInsight.hints.InlayPresentationFactory;
 import com.intellij.codeInsight.hints.presentation.*;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -38,6 +39,7 @@ import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
+import com.intellij.util.IconUtil;
 import com.intellij.util.containers.JBIterable;
 import org.jetbrains.annotations.NotNull;
 
@@ -57,8 +59,20 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     public static final @NotNull TextAttributesKey INSIDIOUS_CREATE_MOCK_ATTRIBUTES = TextAttributesKey
             .createTextAttributesKey("INSIDIOUS_CREATE_MOCK",
                     new TextAttributes(new JBColor(
-                            new Color(204, 154, 137),
-                            new Color(204, 154, 137)
+                            new Color(213, 186, 172),
+                            new Color(213, 186, 172)
+                    ), new JBColor(
+                            new Color(44, 161, 184),
+                            new Color(44, 161, 184)
+                    ), new JBColor(
+                                    new Color(48, 121, 38),
+                                    new Color(48, 121, 38)
+                            ), EffectType.LINE_UNDERSCORE, Font.PLAIN));
+    public static final @NotNull TextAttributesKey INSIDIOUS_ACTIVE_MOCK_ATTRIBUTES = TextAttributesKey
+            .createTextAttributesKey("INSIDIOUS_MOCK_ACTIVE",
+                    new TextAttributes(new JBColor(
+                            new Color(37, 152, 0),
+                            new Color(37, 152, 0)
                     ), new JBColor(
                             new Color(44, 161, 184),
                             new Color(44, 161, 184)
@@ -70,8 +84,8 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     public static final @NotNull TextAttributesKey INSIDIOUS_BROWSE_MOCK_ATTRIBUTES = TextAttributesKey
             .createTextAttributesKey("INSIDIOUS_BROWSE_MOCK",
                     new TextAttributes(new JBColor(
-                            new Color(48, 121, 38),
-                            new Color(48, 121, 38)
+                            new Color(171, 121, 224),
+                            new Color(171, 121, 224)
                     ), new JBColor(
                             new Color(44, 161, 184),
                             new Color(44, 161, 184)
@@ -169,6 +183,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         TextRange range = getTextRangeWithoutLeadingCommentsAndWhitespaces(methodCallExpression);
 
 
+        int activeMockCount = 0;
         int savedMockCount = 0;
         List<PsiMethodCallExpression> mockableCalls = getMockableCalls(methodCallExpression);
 
@@ -177,6 +192,11 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         for (PsiMethodCallExpression mockableCall : mockableCalls) {
             MethodUnderTest methodUnderTest = MethodUnderTest.fromPsiCallExpression(mockableCall);
             List<DeclaredMock> declaredMocks = insidiousService.getDeclaredMocksOf(methodUnderTest);
+            for (DeclaredMock declaredMock : declaredMocks) {
+                if (insidiousService.isMockEnabled(declaredMock)) {
+                    activeMockCount++;
+                }
+            }
             savedMockCount += declaredMocks.size();
             declaredMockMap.put(mockableCall, declaredMocks);
         }
@@ -215,13 +235,23 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
 
         int callExpressionCount = declaredMockMap.keySet().size();
-        if (savedMockCount > 0) {
-            InlayPresentation mockInlayPresentation = createMockInlayPresentation(mockableCalls, savedMockCount,
+        if (activeMockCount > 0) {
+            InlayPresentation mockInlayPresentation = createMockInlayPresentation(mockableCalls,
+                    savedMockCount, activeMockCount,
                     callExpressionCount);
+            inlayPresentations.add(getFactory().icon(
+                    IconUtil.toSize(UIUtils.CHECK_ICON, 10, 10)
+            ));
+            inlayPresentations.add(new SpacePresentation(4, 0));
+            inlayPresentations.add(mockInlayPresentation);
+            inlayPresentations.add(new SpacePresentation(1 * columnWidth, 0));
+        } else if (savedMockCount > 0) {
+            InlayPresentation mockInlayPresentation = createMockInlayPresentation(mockableCalls, savedMockCount,
+                    activeMockCount, callExpressionCount);
             inlayPresentations.add(mockInlayPresentation);
             inlayPresentations.add(new SpacePresentation(1 * columnWidth, 0));
         } else {
-            InlayPresentation createMock = createMockInlayPresentation(mockableCalls, 0, callExpressionCount);
+            InlayPresentation createMock = createMockInlayPresentation(mockableCalls, 0, 0, callExpressionCount);
             inlayPresentations.add(createMock);
         }
 
@@ -340,23 +370,27 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
 
     private InlayPresentation createMockInlayPresentation(List<PsiMethodCallExpression> mockableCallExpressions,
-                                                          int savedMockCount, int callExpressionCount) {
+                                                          int savedMockCount, int activeMockCount,
+                                                          int callExpressionCount) {
 
         PresentationFactory factory = getFactory();
         InlayPresentation text;
 
-        boolean mockingEnabled = insidiousService.isMockingEnabled();
-
         StringBuilder inlayTextBuilder = new StringBuilder();
 
         TextAttributesKey inlayAttributes;
-        if (savedMockCount == 0) {
-            inlayTextBuilder.append("create mock");
+        String inlayText;
+        if (activeMockCount > 0) {
+            inlayText = activeMockCount + " active mock" + (savedMockCount == 1 ? "" : "s");
+            inlayAttributes = INSIDIOUS_ACTIVE_MOCK_ATTRIBUTES;
+        } else if (savedMockCount == 0) {
+            inlayText = "create mock";
             inlayAttributes = INSIDIOUS_CREATE_MOCK_ATTRIBUTES;
         } else {
             inlayAttributes = INSIDIOUS_BROWSE_MOCK_ATTRIBUTES;
-            inlayTextBuilder.append(savedMockCount).append(" saved mock").append(savedMockCount == 1 ? "" : "s");
+            inlayText = savedMockCount + " saved mock" + (savedMockCount == 1 ? "" : "s");
         }
+        inlayTextBuilder.append(inlayText);
 
 
         text = factory.smallText(inlayTextBuilder.toString());
