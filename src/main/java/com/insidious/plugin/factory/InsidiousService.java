@@ -45,8 +45,6 @@ import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
-import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl;
-import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
 import com.intellij.debugger.DebuggerManagerEx;
 import com.intellij.debugger.impl.DebuggerSession;
@@ -58,6 +56,7 @@ import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.compiler.CompileStatusNotification;
 import com.intellij.openapi.compiler.CompilerManager;
 import com.intellij.openapi.components.Storage;
@@ -66,6 +65,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.EditorEventMulticaster;
+import com.intellij.openapi.editor.impl.EditorFactoryImpl;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
@@ -77,7 +77,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
-import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
@@ -772,36 +771,7 @@ final public class InsidiousService implements
                 );
 
 
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    ApplicationManager.getApplication().runWriteAction(() -> {
-                        final FileEditor selectedEditor = FileEditorManager.getInstance(project).getSelectedEditor();
-                        selectedEditor.putUserData(Key.create("inlay.psi.modification.stamp"), null);
-                        ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
-                        DaemonCodeAnalyzerImpl codeAnalyzer = (DaemonCodeAnalyzerImpl) DaemonCodeAnalyzer.getInstance(
-                                project);
-                        codeAnalyzer.restart();
-
-                    });
-                });
-
-//                if (selectedEditor != null) {
-////                    selectedEditor.putUserData(new GlobalContextKey<>("inlay.psi.modification.stamp"), null);
-////                    codeAnalyzer.restart();
-//////                    final VirtualFile file = selectedEditor.getFile();
-//////                    if (file != null) {
-//////                        final PsiFile psiFile = ReadAction.compute(
-//////                                () -> PsiManager.getInstance(project).findFile(file));
-//////                        final Document document = ReadAction.compute(
-//////                                () -> FileDocumentManager.getInstance().getDocument(file));
-//////                        final ProgressIndicator daemonIndicator = new DaemonProgressIndicator();
-//////                        logger.warn("trigger for " + psiFile.getName());
-//////                        ProgressManager.getInstance().runProcess(() -> {
-//////                            ReadAction.run(() -> codeAnalyzer.runMainPasses(psiFile, document, daemonIndicator));
-//////
-//////                        }, daemonIndicator);
-//////                        codeAnalyzer.restart();
-//////                    }
-//                }
+                forceRedrawInlayHints();
 
             } catch (IOException e) {
                 logger.warn("failed to execute command - " + e.getMessage(), e);
@@ -811,6 +781,21 @@ final public class InsidiousService implements
             }
         });
 
+    }
+
+    private void forceRedrawInlayHints() {
+        final FileEditor selectedEditor = FileEditorManager.getInstance(project).getSelectedEditor();
+
+        if (selectedEditor != null) {
+            final VirtualFile file = selectedEditor.getFile();
+            if (file != null) {
+                final PsiFile psiFile = ReadAction.compute(
+                        () -> PsiManager.getInstance(project).findFile(file));
+                logger.warn("trigger for " + psiFile.getName());
+                InlayHintsFactoryBridge.refreshInlayHints(psiFile, EditorFactoryImpl.getInstance()
+                        .getAllEditors(), false);
+            }
+        }
     }
 
     private void removeMocksInRunningProcess(Collection<DeclaredMock> declaredMocks) {
@@ -834,6 +819,7 @@ final public class InsidiousService implements
                 InsidiousNotification.notifyMessage(
                         agentCommandResponse.getMessage(), NotificationType.INFORMATION
                 );
+                forceRedrawInlayHints();
             } catch (IOException e) {
                 logger.warn("failed to execute command - " + e.getMessage(), e);
                 InsidiousNotification.notifyMessage(
