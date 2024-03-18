@@ -132,6 +132,8 @@ public class MethodMockGutterNavigationHandler implements GutterIconNavigationHa
             MockDefinitionListPanel gutterMethodPanel = new MockDefinitionListPanel(methodCallExpression);
 
             JComponent gutterMethodComponent = gutterMethodPanel.getComponent();
+            Dimension max = gutterMethodComponent.getMaximumSize();
+            gutterMethodComponent.setMaximumSize(new Dimension((int) max.getWidth(), 650));
 
             ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
                     .createComponentPopupBuilder(gutterMethodComponent, null);
@@ -152,7 +154,7 @@ public class MethodMockGutterNavigationHandler implements GutterIconNavigationHa
                     .setTitle("Unlogged Mocks")
                     .setTitleIcon(new ActiveIcon(UIUtils.GHOST_MOCK))
                     .createPopup();
-            componentPopUp.show(new RelativePoint(mouseEvent));
+            componentPopUp.showCenteredInCurrentWindow(insidiousService.getProject());
             gutterMethodPanel.setPopupHandle(componentPopUp);
 
 

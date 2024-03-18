@@ -92,6 +92,8 @@ public class MockDefinitionListPanel implements OnSaveListener {
     private List<DeclaredMock> declaredMockList;
     public MockDefinitionListPanel(PsiMethodCallExpression methodCallExpression) {
         this.methodCallExpression = methodCallExpression;
+        this.insidiousService = methodCallExpression.getProject().getService(InsidiousService.class);
+
         infoPanelTitleLabel.setIcon(AllIcons.General.Information);
         enabledMockInfoLabel.setIcon(AllIcons.General.Information);
         infoItemLine1.setIcon(AllIcons.General.Modified);
@@ -99,11 +101,10 @@ public class MockDefinitionListPanel implements OnSaveListener {
         infoItemLine3.setIcon(AllIcons.General.Modified);
 
 
-        PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
-        insidiousService = methodCallExpression.getProject().getService(InsidiousService.class);
-        String parentClassName = parentOfType.getQualifiedName();
-        PsiExpression fieldExpression = methodCallExpression.getMethodExpression().getQualifierExpression();
-        String fieldName = fieldExpression.getText();
+//        PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
+//        String parentClassName = parentOfType.getQualifiedName();
+//        PsiExpression fieldExpression = methodCallExpression.getMethodExpression().getQualifierExpression();
+//        String fieldName = fieldExpression.getText();
         targetMethod = methodCallExpression.resolveMethod();
         assert targetMethod != null;
 
@@ -143,7 +144,7 @@ public class MockDefinitionListPanel implements OnSaveListener {
             }
         };
 
-        AnAction enableMocksAction = new AnAction(() -> "Inject", UIUtils.LINK_ICON) {
+        AnAction enableMocksAction = new AnAction(() -> "Mock", UIUtils.LINK_ICON) {
 
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -174,7 +175,7 @@ public class MockDefinitionListPanel implements OnSaveListener {
         };
 
 
-        AnAction disableMocksAction = new AnAction(() -> "Remove", UIUtils.UNLINK_ICON) {
+        AnAction disableMocksAction = new AnAction(() -> "Un-Mock", UIUtils.UNLINK_ICON) {
 
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -218,11 +219,7 @@ public class MockDefinitionListPanel implements OnSaveListener {
         controlPanel.add(actionToolbar.getComponent(), BorderLayout.CENTER);
 
 
-//        addNewMockButton.setIcon(AllIcons.General.Add);
-//        addNewMockButton.addActionListener(e -> {
-//            insidiousService.showMockCreator(new JavaMethodAdapter(targetMethod), methodCallExpression);
-//        });
-        loadDefinitions(true, true);
+        loadDefinitions(true, false);
 
 
     }
@@ -252,11 +249,12 @@ public class MockDefinitionListPanel implements OnSaveListener {
         mockCountLabel.setText("<html><small>" + mockCountLabelText + "</html></small>");
         final int PANEL_HEIGHT = 108;
         if (savedCandidateCount == 0 && showAddNewIfEmpty) {
+            savedMocksListParent.setVisible(false);
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
                 insidiousService.showMockCreator(new JavaMethodAdapter(targetMethod), methodCallExpression);
             });
         } else {
-
+            savedMocksListParent.setVisible(true);
 
             for (int i = 0; i < savedCandidateCount; i++) {
                 DeclaredMock declaredMock = declaredMockList.get(i);
