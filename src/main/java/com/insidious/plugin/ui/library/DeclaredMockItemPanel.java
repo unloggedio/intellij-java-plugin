@@ -45,6 +45,12 @@ public class DeclaredMockItemPanel {
             , InsidiousService insidiousService) {
         this.declaredMock = declaredMock;
         this.insidiousService = insidiousService;
+        boolean isMockActive = insidiousService.isMockEnabled(declaredMock);
+        if (isMockActive) {
+            mainPanel.setBorder(
+                    BorderFactory.createTitledBorder(BorderFactory.createLineBorder(JBColor.GREEN))
+            );
+        }
 
         this.nameLabel.setText(declaredMock.getMethodName());
 

@@ -36,14 +36,14 @@ import java.util.Set;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
 
-public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, OnSaveListener {
+public class MockDefinitionListPanel implements OnSaveListener {
     private static final Logger logger = LoggerUtil.getInstance(MockDefinitionListPanel.class);
     private final InsidiousService insidiousService;
     private final MethodUnderTest methodUnderTest;
     private final PsiMethodCallExpression methodCallExpression;
     //    private final OnOffButton fieldMockSwitch;
     private final PsiMethod targetMethod;
-    private final ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener = new ItemLifeCycleListener<>() {
+    private final Set<DeclaredMock> selectedMocks = new HashSet<>();    private final ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener = new ItemLifeCycleListener<>() {
         @Override
         public void onSelect(DeclaredMock item) {
             selectedMocks.add(item);
@@ -63,7 +63,7 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
         @Override
         public void onDelete(DeclaredMock item) {
             insidiousService.deleteMockDefinition(item);
-            loadDefinitions(false);
+            loadDefinitions(false, true);
         }
 
         @Override
@@ -90,8 +90,6 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     private JLabel enabledMockInfoLabel;
     private JBPopup componentPopUp;
     private List<DeclaredMock> declaredMockList;
-    private final Set<DeclaredMock> selectedMocks = new HashSet<>();
-
     public MockDefinitionListPanel(PsiMethodCallExpression methodCallExpression) {
         this.methodCallExpression = methodCallExpression;
         infoPanelTitleLabel.setIcon(AllIcons.General.Information);
@@ -99,7 +97,6 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
         infoItemLine1.setIcon(AllIcons.General.Modified);
         infoItemLine2.setIcon(AllIcons.General.Modified);
         infoItemLine3.setIcon(AllIcons.General.Modified);
-
 
 
         PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
@@ -125,7 +122,7 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
         );
 
 
-        AnAction addAction = new AnAction(() -> "Add", AllIcons.General.Add) {
+        AnAction addAction = new AnAction(() -> "Create New", AllIcons.General.Add) {
 
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -142,7 +139,7 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
 
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                loadDefinitions(false);
+                loadDefinitions(false, false);
             }
         };
 
@@ -164,9 +161,9 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
                     );
                     return;
                 }
-                insidiousService.injectMocksInRunningProcess(selectedMocks);
+                insidiousService.enableMock(selectedMocks);
+                loadDefinitions(false, false);
             }
-
 
 
             @Override
@@ -195,8 +192,8 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
                     );
                     return;
                 }
-
-                insidiousService.removeMocksInRunningProcess(selectedMocks);
+                insidiousService.disableMock(selectedMocks);
+                loadDefinitions(false, false);
             }
 
             @Override
@@ -225,12 +222,12 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
 //        addNewMockButton.addActionListener(e -> {
 //            insidiousService.showMockCreator(new JavaMethodAdapter(targetMethod), methodCallExpression);
 //        });
-        loadDefinitions(true);
+        loadDefinitions(true, true);
 
 
     }
 
-    private void loadDefinitions(boolean showAddNewIfEmpty) {
+    private void loadDefinitions(boolean showAddNewIfEmpty, boolean resizePanel) {
         declaredMockList = insidiousService.getDeclaredMocksOf(methodUnderTest);
 
         int savedCandidateCount = declaredMockList.size();
@@ -267,6 +264,9 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
                 DeclaredMockItemPanel declaredMockItemPanel = new DeclaredMockItemPanel(declaredMock,
                         itemLifeCycleListener, insidiousService);
 
+                if (selectedMocks.contains(declaredMock)) {
+                    declaredMockItemPanel.setSelected(true);
+                }
 
                 GridConstraints constraints = new GridConstraints(
                         i, 0, 1, 1, ANCHOR_NORTH,
@@ -282,10 +282,12 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
             itemListPanel.add(new JPanel(), createGBCForFakeComponent(itemListPanel.getComponentCount()));
 
             savedItemScrollPanel.setBorder(BorderFactory.createEmptyBorder());
-            int containerHeight = Math.min(300, savedCandidateCount * PANEL_HEIGHT);
 
-            savedItemScrollPanel.setPreferredSize(new Dimension(-1, containerHeight));
-            savedItemScrollPanel.setSize(new Dimension(-1, containerHeight));
+            int containerHeight = Math.min(300, savedCandidateCount * PANEL_HEIGHT);
+            if (resizePanel) {
+                savedItemScrollPanel.setPreferredSize(new Dimension(-1, containerHeight));
+                savedItemScrollPanel.setSize(new Dimension(-1, containerHeight));
+            }
 
 
             itemListPanel.revalidate();
@@ -296,11 +298,15 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
             mainPanel.revalidate();
             if (componentPopUp != null) {
                 Dimension currentSize = componentPopUp.getSize();
-                if (currentSize != null) {
+                if (currentSize != null && resizePanel) {
                     componentPopUp.setSize(new Dimension((int) currentSize.getWidth(), containerHeight + 140));
                 }
             }
         }
+    }
+
+    public JComponent getComponent() {
+        return mainPanel;
     }
 
 //    public void showMockEditor(DeclaredMock declaredMock) {
@@ -355,36 +361,6 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
 //
 //    }
 
-    public JComponent getComponent() {
-        return mainPanel;
-    }
-
-    @Override
-    public void onUpdateRequest(DeclaredMock declaredMock) {
-        insidiousService.showMockCreator(new JavaMethodAdapter(targetMethod), methodCallExpression);
-    }
-
-    @Override
-    public void onDeleteRequest(DeclaredMock declaredMock) {
-        insidiousService.deleteMockDefinition(declaredMock);
-        ApplicationManager.getApplication().invokeLater(() -> {
-            loadDefinitions(false);
-        });
-    }
-
-    @Override
-    public void onEnable(DeclaredMock declaredMock) {
-        insidiousService.enableMock(declaredMock);
-//        if (!fieldMockSwitch.isSelected()) {
-//            fieldMockSwitch.setSelected(true);
-//        }
-    }
-
-    @Override
-    public void onDisable(DeclaredMock declaredMock) {
-        insidiousService.disableMock(declaredMock);
-    }
-
     public void setPopupHandle(JBPopup componentPopUp) {
         this.componentPopUp = componentPopUp;
     }
@@ -393,8 +369,6 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
     public void onSaveDeclaredMock(DeclaredMock declaredMock) {
         insidiousService.saveMockDefinition(declaredMock);
         insidiousService.enableMock(declaredMock);
-//        insidiousService.enableFieldMock(parentClassName, fieldName);
-//        fieldMockSwitch.setSelected(true);
     }
 
     private GridBagConstraints createGBCForFakeComponent(int yIndex) {
@@ -434,6 +408,8 @@ public class MockDefinitionListPanel implements DeclaredMockLifecycleListener, O
         gbc.ipady = 0;
         return gbc;
     }
+
+
 
 
 }

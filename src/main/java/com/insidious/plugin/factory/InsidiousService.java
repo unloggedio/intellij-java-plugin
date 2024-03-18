@@ -758,7 +758,7 @@ final public class InsidiousService implements
         return methodArgumentValueCache.getArgumentSets(agentCommandRequest);
     }
 
-    public void injectMocksInRunningProcess(Collection<DeclaredMock> allDeclaredMocks) {
+    private void injectMocksInRunningProcess(Collection<DeclaredMock> allDeclaredMocks) {
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.INJECT_MOCKS);
         agentCommandRequest.setDeclaredMocks(allDeclaredMocks);
@@ -783,7 +783,7 @@ final public class InsidiousService implements
 
     }
 
-    public void removeMocksInRunningProcess(Collection<DeclaredMock> declaredMocks) {
+    private void removeMocksInRunningProcess(Collection<DeclaredMock> declaredMocks) {
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.REMOVE_MOCKS);
         agentCommandRequest.setDeclaredMocks(declaredMocks);
@@ -1553,11 +1553,26 @@ final public class InsidiousService implements
         }
     }
 
+
+    public void disableMock(Collection<DeclaredMock> declaredMock) {
+        for (DeclaredMock mock : declaredMock) {
+            configurationState.removeMock(mock.getId());
+        }
+        removeMocksInRunningProcess(declaredMock);
+    }
+
     public void enableMock(DeclaredMock declaredMock) {
         configurationState.addMock(declaredMock.getId());
         if (mockManager.isMockActive(declaredMock)) {
             injectMocksInRunningProcess(List.of(declaredMock));
         }
+    }
+
+    public void enableMock(Collection<DeclaredMock> declaredMock) {
+        for (DeclaredMock mock : declaredMock) {
+            configurationState.addMock(mock.getId());
+        }
+        injectMocksInRunningProcess(declaredMock);
     }
 
     public boolean isMockEnabled(DeclaredMock declaredMock) {

@@ -120,7 +120,7 @@ public class LibraryComponent {
                     currentMockInjectStatus = false;
                     return;
                 }
-                insidiousService.injectMocksInRunningProcess(selectedMocks);
+                insidiousService.enableMock(selectedMocks);
             }
 
 
@@ -145,7 +145,7 @@ public class LibraryComponent {
                     currentMockInjectStatus = false;
                     return;
                 }
-                insidiousService.removeMocksInRunningProcess(selectedMocks);
+                insidiousService.disableMock(selectedMocks);
             }
 
             @Override
@@ -230,34 +230,34 @@ public class LibraryComponent {
             @Override
             public void onDelete(DeclaredMock item) {
 
-                DialogWrapper dialogWrapper = new DialogWrapper(project) {
-                    {
-                        init();
-                        setTitle(JavaBundle.message("dialog.title.configure.annotations"));
-                    }
-
-                    @Override
-                    protected JComponent createCenterPanel() {
-                        final JPanel panel = new JPanel(new GridBagLayout());
-                        panel.add(new JTextField("this is a message"));
-                        return panel;
-                    }
-
-                    @Override
-                    protected void doOKAction() {
-                        super.doOKAction();
-                    }
-
-                    @Override
-                    protected @NotNull Action getOKAction() {
-                        return new AbstractAction() {
-                            @Override
-                            public void actionPerformed(ActionEvent e) {
-
-                            }
-                        };
-                    }
-                };
+//                DialogWrapper dialogWrapper = new DialogWrapper(project) {
+//                    {
+//                        init();
+//                        setTitle(JavaBundle.message("dialog.title.configure.annotations"));
+//                    }
+//
+//                    @Override
+//                    protected JComponent createCenterPanel() {
+//                        final JPanel panel = new JPanel(new GridBagLayout());
+//                        panel.add(new JTextField("this is a message"));
+//                        return panel;
+//                    }
+//
+//                    @Override
+//                    protected void doOKAction() {
+//                        super.doOKAction();
+//                    }
+//
+//                    @Override
+//                    protected @NotNull Action getOKAction() {
+//                        return new AbstractAction() {
+//                            @Override
+//                            public void actionPerformed(ActionEvent e) {
+//
+//                            }
+//                        };
+//                    }
+//                };
                 DialogBuilder builder = new DialogBuilder(project);
                 builder.addOkAction();
                 builder.addCancelAction();

@@ -12,6 +12,7 @@ import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ArrayUtil;
+import com.intellij.util.Processor;
 
 import javax.swing.*;
 import javax.swing.border.Border;
