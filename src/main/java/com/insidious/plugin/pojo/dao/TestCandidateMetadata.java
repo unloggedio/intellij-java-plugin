@@ -26,8 +26,8 @@ public class TestCandidateMetadata {
     private long entryProbeIndex;
     @DatabaseField
     private long exitProbeIndex;
-    @DatabaseField(columnDefinition = "DATE DEFAULT CURRENT_TIMESTAMP")
-    private long createdAt;
+    @DatabaseField
+    private long createdAt = new Date().getTime();
     @DatabaseField
     private String variables;
 

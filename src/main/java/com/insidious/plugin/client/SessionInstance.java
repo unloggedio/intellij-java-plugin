@@ -13,10 +13,10 @@ import com.insidious.common.cqengine.StringInfoDocument;
 import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.common.parser.KaitaiInsidiousEventParser;
-import com.insidious.common.weaver.TypeInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.MethodSignatureParser;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -36,7 +36,9 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
-import com.insidious.plugin.pojo.dao.*;
+import com.insidious.plugin.pojo.dao.ClassDefinition;
+import com.insidious.plugin.pojo.dao.LogFile;
+import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.util.*;
 import com.intellij.notification.NotificationType;
@@ -46,7 +48,6 @@ import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
-import com.j256.ormlite.table.TableUtils;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import io.kaitai.struct.RandomAccessFileKaitaiStream;
 import net.openhft.chronicle.map.ChronicleMap;
@@ -116,43 +117,6 @@ public class SessionInstance implements Runnable {
     private boolean hasShownCorruptedNotification = false;
     private BlockingQueue<Integer> scanLock;
     private boolean shutdown = false;
-
-    private void publishEvent(ScanEventType scanEventType) {
-        switch (scanEventType) {
-
-            case START:
-                sessionScanEventListeners.
-                        parallelStream()
-                        .forEach(SessionScanEventListener::started);
-                break;
-            case PAUSED:
-                sessionScanEventListeners.
-                        parallelStream()
-                        .forEach(SessionScanEventListener::paused);
-                break;
-            case WAITING:
-                sessionScanEventListeners.
-                        parallelStream()
-                        .forEach(SessionScanEventListener::waiting);
-                break;
-            case ENDED:
-                sessionScanEventListeners.
-                        parallelStream()
-                        .forEach(SessionScanEventListener::ended);
-                break;
-            case PROGRESS:
-                sessionScanEventListeners.
-                        parallelStream()
-                        .forEach(SessionScanEventListener::started);
-                break;
-        }
-    }
-
-    private void publishProgressEvent(ScanProgress scanProgress) {
-        sessionScanEventListeners.
-                parallelStream()
-                .forEach(e -> e.progress(scanProgress));
-    }
 
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
@@ -236,6 +200,42 @@ public class SessionInstance implements Runnable {
         return dataEvent;
     }
 
+    private void publishEvent(ScanEventType scanEventType) {
+        switch (scanEventType) {
+
+            case START:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::started);
+                break;
+            case PAUSED:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::paused);
+                break;
+            case WAITING:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::waiting);
+                break;
+            case ENDED:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::ended);
+                break;
+            case PROGRESS:
+                sessionScanEventListeners.
+                        parallelStream()
+                        .forEach(SessionScanEventListener::started);
+                break;
+        }
+    }
+
+    private void publishProgressEvent(ScanProgress scanProgress) {
+        sessionScanEventListeners.
+                parallelStream()
+                .forEach(e -> e.progress(scanProgress));
+    }
 
     private Map<String, LogFile> getLogFileMap() {
         Map<String, LogFile> logFileMap = new HashMap<>();
@@ -429,7 +429,7 @@ public class SessionInstance implements Runnable {
                             || methodName.equals("hashCode")
                             || methodName.startsWith("<")) {
                     } else {
-                        List<String> descriptorItemsList = ClassTypeUtils.splitMethodDescriptor(
+                        List<String> descriptorItemsList = MethodSignatureParser.parseMethodSignature(
                                 methodInfo.getMethodDesc());
                         if (descriptorItemsList.size() > 1) {
                             isPojo = false;
@@ -1779,7 +1779,7 @@ public class SessionInstance implements Runnable {
 //        return events;
 //    }
 
-    private String getFileStreamFromArchive(File sessionArchive, String archiveFile) throws IOException, FailedToReadClassWeaveException {
+    private String getFileStreamFromArchive(File sessionArchive, String archiveFile) throws FailedToReadClassWeaveException {
         long start = new Date().getTime();
         String eventFile = createFileOnDiskFromSessionArchiveFileV2(sessionArchive, archiveFile);
         if (eventFile == null) {
@@ -4022,7 +4022,7 @@ public class SessionInstance implements Runnable {
                 long currentAfterEventId = afterEventId;
                 while (true) {
                     attempt++;
-                    if (shutdown || cdl.get() == 0) {
+                    if (cdl.get() == 0) {
                         logger.warn(
                                 "shutting down query started at [" + afterEventId + "] currently at item [" + count +
                                         "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
@@ -4030,9 +4030,9 @@ public class SessionInstance implements Runnable {
                     }
                     List<TestCandidateMetadata> testCandidateMetadataList = daoService
                             .getTestCandidatePaginated(currentAfterEventId, 0, limit);
-                    testCandidateReceiver.accept(testCandidateMetadataList);
-                    count += testCandidateMetadataList.size();
                     if (testCandidateMetadataList.size() > 0) {
+                        count += testCandidateMetadataList.size();
+                        testCandidateReceiver.accept(testCandidateMetadataList);
                         currentAfterEventId =
                                 testCandidateMetadataList.get(testCandidateMetadataList.size() - 1)
                                         .getEntryProbeIndex() + 1;
@@ -4075,11 +4075,12 @@ public class SessionInstance implements Runnable {
                     publishEvent(ScanEventType.WAITING);
                 }
             } catch (InterruptedException ie) {
+//                ie.printStackTrace();
                 logger.warn("scan checker interrupted");
-                return;
+//                return;
             } catch (Exception e) {
                 logger.warn("scan checker interruption", e);
-                e.printStackTrace();
+//                e.printStackTrace();
                 //
             }
         }

@@ -6,6 +6,7 @@ import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.DumbService;
 
 import java.util.ArrayList;
 import java.util.List;

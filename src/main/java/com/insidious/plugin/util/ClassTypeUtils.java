@@ -6,9 +6,12 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
+import com.insidious.plugin.MethodSignatureParser;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.intellij.lang.jvm.JvmParameter;
+import com.intellij.lang.jvm.types.JvmPrimitiveTypeKind;
 import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -32,6 +35,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class ClassTypeUtils {
 
@@ -72,10 +76,16 @@ public class ClassTypeUtils {
             PsiType[] checkSuperTypes = typeToBeSubstituted.getSuperTypes();
             if (typeToBeSubstituted instanceof PsiClassReferenceType) {
                 PsiClassReferenceType typeToBeSubstituted1 = (PsiClassReferenceType) typeToBeSubstituted;
-                checkSuperTypes = typeToBeSubstituted1.resolve().getExtendsListTypes();
+                PsiClass resolve = typeToBeSubstituted1.resolve();
+                if (resolve != null) {
+                    checkSuperTypes = resolve.getExtendsListTypes();
+                }
             }
             if (typeToBeSubstituted instanceof PsiClassType) {
-                checkSuperTypes = ((PsiClassType) typeToBeSubstituted).resolve().getExtendsListTypes();
+                PsiClass resolve = ((PsiClassType) typeToBeSubstituted).resolve();
+                if (resolve != null) {
+                    checkSuperTypes = resolve.getExtendsListTypes();
+                }
             }
 
 
@@ -97,36 +107,36 @@ public class ClassTypeUtils {
                 .toLowerCase() + methodName.substring(1);
     }
 
-    /**
-     * parses a method descriptor string and return in a list form where each item is the type
-     *
-     * @param desc method descriptor string
-     * @return a list of strings, last item in the list is the return parameter, and 0 to n-1 items are method arguments
-     */
-    public static List<String> splitMethodDescriptor(String desc) {
-        int beginIndex = desc.indexOf('(');
-        int endIndex = desc.lastIndexOf(')');
-        if ((beginIndex == -1 && endIndex != -1) || (beginIndex != -1 && endIndex == -1)) {
-            System.err.println(beginIndex);
-            System.err.println(endIndex);
-            throw new RuntimeException();
-        }
-        String x0;
-        if (beginIndex == -1 && endIndex == -1) {
-            x0 = desc;
-        } else {
-            x0 = desc.substring(beginIndex + 1, endIndex);
-        }
-        Pattern pattern = Pattern.compile(
-                "\\[*L[^;]+;|\\[[ZBCSIFDJ]|[ZBCSIFDJ]"); //Regex for desc \[*L[^;]+;|\[[ZBCSIFDJ]|[ZBCSIFDJ]
-        Matcher matcher = pattern.matcher(x0);
-        List<String> listMatches = new LinkedList<>();
-        while (matcher.find()) {
-            listMatches.add(matcher.group());
-        }
-        listMatches.add(desc.substring(endIndex + 1));
-        return listMatches;
-    }
+//    /**
+//     * parses a method descriptor string and return in a list form where each item is the type
+//     *
+//     * @param desc method descriptor string
+//     * @return a list of strings, last item in the list is the return parameter, and 0 to n-1 items are method arguments
+//     */
+//    public static List<String> splitMethodDescriptor(String desc) {
+//        int beginIndex = desc.indexOf('(');
+//        int endIndex = desc.lastIndexOf(')');
+//        if ((beginIndex == -1 && endIndex != -1) || (beginIndex != -1 && endIndex == -1)) {
+//            System.err.println(beginIndex);
+//            System.err.println(endIndex);
+//            throw new RuntimeException();
+//        }
+//        String x0;
+//        if (beginIndex == -1 && endIndex == -1) {
+//            x0 = desc;
+//        } else {
+//            x0 = desc.substring(beginIndex + 1, endIndex);
+//        }
+//        Pattern pattern = Pattern.compile(
+//                "\\[*L[^;]+;|\\[[ZBCSIFDJ]|[ZBCSIFDJ]"); //Regex for desc \[*L[^;]+;|\[[ZBCSIFDJ]|[ZBCSIFDJ]
+//        Matcher matcher = pattern.matcher(x0);
+//        List<String> listMatches = new LinkedList<>();
+//        while (matcher.find()) {
+//            listMatches.add(matcher.group());
+//        }
+//        listMatches.add(desc.substring(endIndex + 1));
+//        return listMatches;
+//    }
 
 
     public static String createVariableName(String typeNameRaw) {
@@ -165,7 +175,40 @@ public class ClassTypeUtils {
         if (className.length() < 2) {
             return className;
         }
-        return "L" + className.replace('.', '/') + ";";
+        if (className.endsWith("[]")) {
+            return "[" + getDescriptorName(className.substring(0, className.length() - 2));
+        }
+        String containerClassName = className;
+        if (className.contains("<")) {
+            className = className.replaceAll(" ", "");
+            StringBuilder nameBuilder = new StringBuilder();
+            String[] classNameTemplateParts = className.split("<");
+            nameBuilder.append(classNameTemplateParts[0]);
+            for (int j = 1; j < classNameTemplateParts.length; j++) {
+                String classNameTemplatePart = classNameTemplateParts[j];
+                String[] subParts = classNameTemplatePart.split(",");
+                if (subParts.length > 0) {
+                    nameBuilder.append("<");
+                }
+                for (int i = 0; i < subParts.length; i++) {
+                    String subPart = subParts[i].split(">")[0];
+                    if (subPart.length() > 1) {
+                        subPart = "L" + subPart.replace("/", ".") + ";";
+                    }
+                    if (i > 1) {
+                        nameBuilder.append(", ");
+                    }
+                    nameBuilder.append(subPart);
+                }
+                if (subParts.length > 0) {
+                    nameBuilder.append(">");
+                }
+
+            }
+
+            containerClassName = nameBuilder.toString();
+        }
+        return "L" + containerClassName + ";";
     }
 
     public static String getDottedClassName(String className) {
@@ -419,12 +462,12 @@ public class ClassTypeUtils {
 
     }
 
-    public static PsiMethod getPsiMethod(MethodCallExpression methodCallExpression, Project project) {
-        String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
+    public static Pair<PsiMethod, PsiSubstitutor> getPsiMethod(MethodUnderTest methodCallExpression, Project project) {
+        String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getClassName());
         PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
                 GlobalSearchScope.allScope(project));
 
-        String methodName = methodCallExpression.getMethodName();
+        String methodName = methodCallExpression.getName();
         boolean isLambda = false;
         if (methodName.startsWith("lambda$")) {
             methodName = methodName.split("\\$")[1];
@@ -435,26 +478,42 @@ public class ClassTypeUtils {
 
         if (methodsByNameList.size() == 1 && isLambda) {
             // should we verify parameters ?
-            return methodsByNameList.get(0).getFirst();
+            return new Pair<>(methodsByNameList.get(0).getFirst(), EmptySubstitutor.getInstance());
         }
 
         for (Pair<PsiMethod, PsiSubstitutor> jvmMethodPair : methodsByNameList) {
 
-            List<Parameter> expectedArguments = methodCallExpression.getArguments();
+
+            List<String> methodDescriptor = MethodSignatureParser.parseMethodSignature(methodCallExpression.getSignature());
+            String returnType = methodDescriptor.remove(methodDescriptor.size() - 1);
+
             PsiMethod jvmMethod = jvmMethodPair.getFirst();
+            PsiSubstitutor substitutor = jvmMethodPair.getSecond();
             JvmParameter[] actualArguments = jvmMethod.getParameters();
 
-            if (expectedArguments.size() == actualArguments.length) {
+            if (methodDescriptor.size() == actualArguments.length) {
 
                 boolean mismatch = false;
-                for (int i = 0; i < expectedArguments.size(); i++) {
-                    Parameter expectedArgument = expectedArguments.get(i);
+                for (int i = 0; i < methodDescriptor.size(); i++) {
+                    String expectedArgument = ClassTypeUtils.getDottedClassName(methodDescriptor.get(i));
                     JvmParameter actualArgument = actualArguments[i];
                     JvmType actualArgumentType = actualArgument.getType();
                     if (actualArgumentType instanceof PsiType) {
-                        String expectedArgumentType = expectedArgument.getType();
+                        String expectedArgumentType = expectedArgument;
                         TypeName typeInstance = ClassTypeUtils.createTypeFromNameString(expectedArgumentType);
-                        String actualTypeCanonicalName = ((PsiType) actualArgumentType).getCanonicalText();
+                        if (actualArgumentType instanceof PsiPrimitiveType) {
+                            JvmPrimitiveTypeKind kind = ((PsiPrimitiveType) actualArgumentType).getKind();
+                            if (kind.getBinaryName().equals(expectedArgumentType) || kind.getName()
+                                    .equals(expectedArgumentType)) {
+                                continue;
+                            }
+                        }
+
+                        PsiType actualArgumentPsiType = (PsiType) actualArgumentType;
+                        actualArgumentType = ClassTypeUtils.substituteClassRecursively(actualArgumentPsiType,
+                                substitutor);
+
+                        String actualTypeCanonicalName = actualArgumentPsiType.getCanonicalText();
                         if (actualTypeCanonicalName.contains("...")) {
                             actualTypeCanonicalName = actualTypeCanonicalName.replace("...", "[]");
                         }
@@ -464,8 +523,7 @@ public class ClassTypeUtils {
                                 GlobalSearchScope.allScope(project));
                         PsiClassType expectedType = PsiType.getTypeByName(expectedArgumentType,
                                 project, GlobalSearchScope.allScope(project));
-                        boolean isNotOkay = !actualTypeCanonicalName.contains(expectedTypeName.toString())
-                                && !((PsiType) actualArgumentType).isAssignableFrom(expectedType);
+                        boolean isNotOkay = isTypeClassesSame(actualArgumentPsiType, expectedType);
                         if (isNotOkay) {
 
                             // TODO FIXME RIGHTNOW
@@ -480,13 +538,13 @@ public class ClassTypeUtils {
                                             ((PsiClassReferenceType) actualArgumentType).resolve(),
                                             expectedClassPsi, true);
                                     if (ok) {
-                                        return (PsiMethod) jvmMethod.getSourceElement();
+                                        return jvmMethodPair;
                                     }
                                 } else if (actualArgumentType instanceof PsiClass) {
                                     boolean ok = InheritanceImplUtil.isInheritor(((PsiClass) actualArgumentType),
                                             expectedClassPsi, true);
                                     if (ok) {
-                                        return (PsiMethod) jvmMethod.getSourceElement();
+                                        return jvmMethodPair;
                                     }
                                 }
 
@@ -503,13 +561,140 @@ public class ClassTypeUtils {
                     continue;
                 }
 
-                return (PsiMethod) jvmMethod.getSourceElement();
+                return jvmMethodPair;
 
 
             }
 
         }
         return null;
+    }
+
+
+    public static Pair<PsiMethod, PsiSubstitutor> getPsiMethod(MethodCallExpression methodCallExpression, Project project) {
+        String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
+        PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
+                GlobalSearchScope.allScope(project));
+
+        String methodName = methodCallExpression.getMethodName();
+        boolean isLambda = false;
+        if (methodName.startsWith("lambda$")) {
+            methodName = methodName.split("\\$")[1];
+            isLambda = true;
+        }
+        List<Pair<PsiMethod, PsiSubstitutor>> methodsByNameList = classPsiElement.findMethodsAndTheirSubstitutorsByName(
+                methodName, true);
+
+        if (methodsByNameList.size() == 1) {
+            // should we verify parameters ?
+            return new Pair<>(methodsByNameList.get(0).getFirst(), EmptySubstitutor.getInstance());
+        }
+
+        int expectedParameterSize = methodCallExpression.getArguments().size();
+        List<Pair<PsiMethod, PsiSubstitutor>> matching = methodsByNameList.stream()
+                .filter(e -> e.getFirst().getParameters().length == expectedParameterSize).collect(
+                        Collectors.toList());
+        if (matching.size() == 1) {
+            return matching.get(0);
+        }
+
+        for (Pair<PsiMethod, PsiSubstitutor> jvmMethodPair : methodsByNameList) {
+
+
+            List<Parameter> expectedArguments = methodCallExpression.getArguments();
+
+            PsiMethod jvmMethod = jvmMethodPair.getFirst();
+            PsiSubstitutor substitutor = jvmMethodPair.getSecond();
+            JvmParameter[] actualArguments = jvmMethod.getParameters();
+
+            if (expectedArguments.size() == actualArguments.length) {
+
+                boolean mismatch = false;
+                for (int i = 0; i < expectedArguments.size(); i++) {
+                    Parameter expectedArgument = expectedArguments.get(i);
+                    JvmParameter actualArgument = actualArguments[i];
+                    JvmType actualArgumentType = actualArgument.getType();
+                    if (actualArgumentType instanceof PsiType) {
+                        String expectedArgumentType = expectedArgument.getType();
+                        TypeName typeInstance = ClassTypeUtils.createTypeFromNameString(expectedArgumentType);
+                        if (actualArgumentType instanceof PsiPrimitiveType) {
+                            JvmPrimitiveTypeKind kind = ((PsiPrimitiveType) actualArgumentType).getKind();
+                            if (kind.getBinaryName().equals(expectedArgumentType) || kind.getName()
+                                    .equals(expectedArgumentType)) {
+                                continue;
+                            }
+                        }
+
+                        PsiType actualArgumentPsiType = (PsiType) actualArgumentType;
+                        actualArgumentType = ClassTypeUtils.substituteClassRecursively(actualArgumentPsiType,
+                                substitutor);
+
+                        String actualTypeCanonicalName = actualArgumentPsiType.getCanonicalText();
+                        if (actualTypeCanonicalName.contains("...")) {
+                            actualTypeCanonicalName = actualTypeCanonicalName.replace("...", "[]");
+                        }
+                        TypeName expectedTypeName = constructClassName(expectedArgumentType);
+                        PsiClass expectedTypePsiClass = JavaPsiFacade.getInstance(
+                                project).findClass(expectedTypeName.toString(),
+                                GlobalSearchScope.allScope(project));
+                        PsiClassType expectedType = PsiType.getTypeByName(expectedArgumentType,
+                                project, GlobalSearchScope.allScope(project));
+                        boolean isNotOkay = isTypeClassesSame(actualArgumentPsiType, expectedType);
+                        if (isNotOkay) {
+
+                            // TODO FIXME RIGHTNOW
+                            PsiClass expectedClassPsi = ApplicationManager.getApplication().runReadAction(
+                                    (Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
+                                            .findClass(typeInstance.toString(),
+                                                    GlobalSearchScope.allScope(project)));
+
+                            if (expectedClassPsi != null) {
+                                if (actualArgumentType instanceof PsiClassReferenceType) {
+                                    boolean ok = InheritanceImplUtil.isInheritor(
+                                            ((PsiClassReferenceType) actualArgumentType).resolve(),
+                                            expectedClassPsi, true);
+                                    if (ok) {
+                                        return jvmMethodPair;
+                                    }
+                                } else if (actualArgumentType instanceof PsiClass) {
+                                    boolean ok = InheritanceImplUtil.isInheritor(((PsiClass) actualArgumentType),
+                                            expectedClassPsi, true);
+                                    if (ok) {
+                                        return jvmMethodPair;
+                                    }
+                                }
+
+                            }
+
+
+                            mismatch = true;
+                            break;
+                        }
+                    }
+
+                }
+                if (mismatch) {
+                    continue;
+                }
+
+                return jvmMethodPair;
+
+
+            }
+
+        }
+        return null;
+    }
+
+    private static boolean isTypeClassesSame(PsiType actualArgumentType, PsiType expectedType) {
+        if (actualArgumentType instanceof PsiArrayType) {
+            if (!(expectedType instanceof PsiArrayType)) {
+                return false;
+            }
+        }
+        boolean nameContainsTrue = !actualArgumentType.getCanonicalText().contains(expectedType.getCanonicalText());
+        boolean isAssignable = !actualArgumentType.isAssignableFrom(expectedType);
+        return nameContainsTrue && isAssignable;
     }
 
     // method call expressions are in the form
@@ -528,8 +713,7 @@ public class ClassTypeUtils {
         }
         String expressionParentClass = parentClass.getQualifiedName();
 
-        PsiClass fieldParentPsiClass = (PsiClass) ((PsiReferenceExpression) qualifier).resolve()
-                .getParent();
+        PsiClass fieldParentPsiClass = (PsiClass) ((PsiReferenceExpression) qualifier).resolve().getParent();
         String fieldParentClass = fieldParentPsiClass.getQualifiedName();
         if (!Objects.equals(fieldParentClass, expressionParentClass) &&
                 !IsImplementedBy(fieldParentPsiClass, parentClass)) {

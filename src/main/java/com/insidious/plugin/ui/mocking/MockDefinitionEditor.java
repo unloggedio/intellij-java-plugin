@@ -5,7 +5,7 @@ import com.insidious.plugin.mocking.MethodExitType;
 import com.insidious.plugin.mocking.ParameterMatcher;
 import com.insidious.plugin.mocking.ThenParameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
-import com.insidious.plugin.ui.methodscope.OnCloseListener;
+import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.application.ApplicationManager;
@@ -16,9 +16,11 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiMethodCallExpression;
+import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -47,7 +49,6 @@ public class MockDefinitionEditor {
     private JButton saveButton;
     private JLabel callExpressionLabel;
     private JPanel nameAndSettingPanel;
-    private JPanel bottomControlPanel;
     private JPanel nameContainerPanel;
     private JPanel whenThenParentPanel;
     private JPanel whenPanel;
@@ -59,20 +60,21 @@ public class MockDefinitionEditor {
     private JButton cancelButton;
     private JLabel thenTextLabel;
     private JLabel returnValueLabel;
+    private JPanel bottomControlPanel;
     private String returnDummyValue;
     private String methodReturnTypeName;
     private JBPopup yeditorPopup;
-    private OnCloseListener<Void> onCloseListener;
+    private ComponentLifecycleListener<Void> componentLifecycleListener;
 
     public MockDefinitionEditor(
             MethodUnderTest methodUnderTest,
             PsiMethodCallExpression methodCallExpression,
-            Project project, OnSaveListener onSaveListener, OnCloseListener<Void> onCloseListener) {
+            Project project, OnSaveListener onSaveListener, ComponentLifecycleListener<Void> componentLifecycleListener) {
         this.onSaveListener = onSaveListener;
-        this.onCloseListener = onCloseListener;
+        this.componentLifecycleListener = componentLifecycleListener;
         this.methodUnderTest = methodUnderTest;
         this.project = project;
-        cancelButton.addActionListener(e -> onCloseListener.onClose(null));
+        cancelButton.addActionListener(e -> componentLifecycleListener.onClose(null));
 //        mockTypeParentPanel.setVisible(false);
 
         String expressionText = ApplicationManager.getApplication().runReadAction(
@@ -182,7 +184,7 @@ public class MockDefinitionEditor {
 
         saveButton.addActionListener(e -> {
             onSaveListener.onSaveDeclaredMock(declaredMock);
-            onCloseListener.onClose(null);
+            componentLifecycleListener.onClose(null);
         });
     }
 
@@ -190,6 +192,9 @@ public class MockDefinitionEditor {
         parameterListContainerPanel.removeAll();
         whenPanelList.clear();
         thenPanelList.clear();
+
+        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
+        titledBorder.setTitleColor(JBColor.BLACK);
 
 
         nameTextField.setText(declaredMock.getName());

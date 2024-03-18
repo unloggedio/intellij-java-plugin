@@ -35,11 +35,13 @@ public class StompStatusComponent {
 
     public synchronized void setConnected() {
         connectionStatusLabel.setText("Connected");
+        connectionStatusLabel.setForeground(new Color(31, 138, 60));
         connectionStatusLabel.setIcon(UIUtils.CONNECTED_ICON);
     }
 
     public synchronized void setDisconnected() {
         connectionStatusLabel.setText("Disconnected");
+        connectionStatusLabel.setForeground(new Color(160, 174, 192));
         connectionStatusLabel.setIcon(UIUtils.DISCONNECTED_ICON);
     }
 

@@ -53,6 +53,9 @@ public class ThenParameterInputPanel {
         this.thenParameter = thenParameter;
         this.originalBackgroundColor = valueScrollPanel.getBackground();
         String simpleClassName = thenParameter.getReturnParameter().getClassName();
+        if (simpleClassName.contains("<")) {
+            simpleClassName = simpleClassName.substring(0, simpleClassName.indexOf("<"));
+        }
         if (simpleClassName.contains(".")) {
             simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
         }
@@ -70,7 +73,8 @@ public class ThenParameterInputPanel {
 
         try {
             JsonTreeEditor editor = new JsonTreeEditor(objectMapper.readTree(thenParamValue),
-                    simpleClassName);
+                    simpleClassName, true);
+            editor.setEditable(true);
             editor.addChangeListener(object -> thenParameter.getReturnParameter().setValue(object.toString()));
             valueScrollPanel.setViewportView(editor.getContent());
 

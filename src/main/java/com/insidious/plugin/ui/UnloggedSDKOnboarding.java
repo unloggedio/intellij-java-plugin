@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -17,7 +18,7 @@ import java.awt.event.MouseEvent;
 
 public class UnloggedSDKOnboarding {
     public static final Color CIRCLE_BLUE_FILL_COLOR = new Color(53, 116, 240);
-    private final String UNLOGGED_SDK_VERSION = "0.1.48";
+    private final String UNLOGGED_SDK_VERSION = Constants.AGENT_VERSION;
     private final String maven_default =
             "<dependency>\n" +
                     "  <artifactId>unlogged-sdk</artifactId>\n" +
@@ -81,12 +82,18 @@ public class UnloggedSDKOnboarding {
 
     public UnloggedSDKOnboarding(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
+
+        headingLabel.setFont(new Font("SF Pro Text", Font.BOLD, 16));
+
         extraMavenTextAreaScrollPanel.setBorder(BorderFactory.createEmptyBorder());
         extraMavenTextAreaScrollPanel.setVisible(false);
-        doneButton.setOpaque(true);
+
+		doneButton.setOpaque(true);
         doneButton.setBorderPainted(true);
         doneButton.setContentAreaFilled(true);
+
         copyCodeButtonMaven.addActionListener(e -> copyCode(PROJECT_TYPE.MAVEN));
+
         discordButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         discordButton.addMouseListener(new MouseAdapter() {
             @Override
@@ -94,7 +101,6 @@ public class UnloggedSDKOnboarding {
                 routeToDiscord();
             }
         });
-
 
         emailButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         emailButton.addMouseListener(new MouseAdapter() {
@@ -104,7 +110,6 @@ public class UnloggedSDKOnboarding {
             }
         });
 
-
         githubButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         githubButton.addMouseListener(new MouseAdapter() {
             @Override
@@ -112,7 +117,6 @@ public class UnloggedSDKOnboarding {
                 routeToGithub();
             }
         });
-
 
         gradleCopyButton.addActionListener(e -> copyCode(PROJECT_TYPE.GRADLE));
 
@@ -210,8 +214,7 @@ public class UnloggedSDKOnboarding {
 
         doneButton.addActionListener(e -> {
             mainPanel.removeAll();
-            mainPanel.add(new JLabel("Start calling your application"), new GridConstraints());
-//            insidiousService.showS
+            insidiousService.showCallYourApplicationScreen(this);
         });
 
     }
@@ -279,6 +282,14 @@ public class UnloggedSDKOnboarding {
 
     public JPanel getComponent() {
         return this.mainPanel;
+    }
+
+    public void showStep2(UnloggedOnboardingScreenV2 screen) {
+        mainPanel.removeAll();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.add(screen.getComponent(), new GridConstraints());
+        mainPanel.revalidate();
+        mainPanel.repaint();
     }
 
     private enum PROJECT_TYPE {MAVEN, GRADLE}

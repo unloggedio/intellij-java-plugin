@@ -5,19 +5,35 @@ import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.record.AtomicRecordService;
+import com.insidious.plugin.ui.InsidiousUtils;
+import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
+import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.java.JavaBundle;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.popup.ActiveIcon;
+import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
+import com.intellij.openapi.ui.popup.JBPopup;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.util.Computable;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -28,6 +44,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class LibraryComponent {
+
     private static final Logger logger = LoggerUtil.getInstance(LibraryComponent.class);
     public final ItemLifeCycleListener<DeclaredMock> MOCK_ITEM_LIFE_CYCLE_LISTENER;
     public final ItemLifeCycleListener<StoredCandidate> STORED_CANDIDATE_ITEM_LIFE_CYCLE_LISTENER;
@@ -38,11 +55,13 @@ public class LibraryComponent {
     private final Set<StoredCandidate> selectedCandidates = new HashSet<>();
     private final List<DeclaredMockItemPanel> listedMockItems = new ArrayList<>();
     private final List<StoredCandidateItemPanel> listedCandidateItems = new ArrayList<>();
+    private final Project project;
+    private final ActionToolbarImpl actionToolbar;
     private JPanel mainPanel;
     private JPanel northPanelContainer;
     private JPanel controlPanel;
-    private JLabel reloadButton;
-    private JLabel deleteButton;
+    //    private JLabel reloadButton;
+//    private JLabel deleteButton;
     private JLabel showOptionsButton;
     private JPanel scrollContainer;
     private JScrollPane itemScrollPanel;
@@ -52,25 +71,37 @@ public class LibraryComponent {
     private JLabel clearSelectionLabel;
     private JLabel clearFilterLabel;
     private JLabel filterAppliedLabel;
-    private JPanel southPanel;
     private JRadioButton includeMocksCheckBox;
     private JRadioButton includeTestsCheckBox;
     private JPanel topContainerPanel;
     private JRadioButton mockingEnableRadioButton;
     private JRadioButton mockingDisableRadioButton;
-    private MethodAdapter lastFocussedMethod;
+    private JPanel southPanel;
+    private MethodUnderTest lastMethodFocussed;
     private boolean currentMockInjectStatus = false;
 
     public LibraryComponent(Project project) {
+        this.project = project;
         insidiousService = project.getService(InsidiousService.class);
         atomicRecordService = project.getService(AtomicRecordService.class);
 
         ActionListener mockStatusChangeActionListener = e -> {
+            if (!insidiousService.isAgentConnected()) {
+                InsidiousNotification.notifyMessage(
+                        "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                        NotificationType.WARNING
+                );
+                currentMockInjectStatus = false;
+                mockingEnableRadioButton.setSelected(false);
+                mockingDisableRadioButton.setSelected(true);
+                return;
+            }
             List<DeclaredMock> allDeclaredMocks = insidiousService.getAllDeclaredMocks();
             if (mockingEnableRadioButton.isSelected() && !currentMockInjectStatus) {
                 currentMockInjectStatus = true;
                 insidiousService.injectMocksInRunningProcess(allDeclaredMocks);
             } else {
+                currentMockInjectStatus = false;
                 insidiousService.removeMocksInRunningProcess(allDeclaredMocks);
             }
         };
@@ -79,6 +110,8 @@ public class LibraryComponent {
 
 
         clearSelectionLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        clearSelectionLabel.setForeground(new Color(84, 138, 247));
+        clearSelectionLabel.setFont(new Font("SF Pro Text", Font.PLAIN, 13));
         clearSelectionLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -119,72 +152,56 @@ public class LibraryComponent {
             }
         });
 
+        showOptionsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        showOptionsButton.addMouseListener(new MouseAdapter() {
 
-        deleteButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (filterModel.isShowMocks()) {
-                    int selectedCount = selectedMocks.size();
-                    if (selectedCount < 1) {
-                        // shouldnt happen
-                        return;
-                    }
-                    DialogBuilder builder = new DialogBuilder(project);
-                    builder.okActionEnabled(true);
-                    builder.setTitle("Confirm Delete");
-
-                    builder.setCenterPanel(new JLabel(
-                            "Are you sure you want to delete " + selectedCount + " mock definition" + (selectedCount == 1 ? "s" : "")));
-
-                    builder.setOkOperation(() -> {
-                        for (DeclaredMock selectedMock : selectedMocks) {
-                            atomicRecordService.deleteMockDefinition(selectedMock);
-                        }
-                        clearSelection();
-                        InsidiousNotification.notifyMessage(
-                                "Deleted " + selectedCount + " mock definition" + (selectedCount == 1 ? "s" : ""),
-                                NotificationType.INFORMATION);
-                        builder.getDialogWrapper().close(0);
-                        builder.dispose();
+                LibraryFilter libraryFilter = new LibraryFilter(filterModel, lastMethodFocussed);
+                JComponent component = libraryFilter.getComponent();
+                ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+                        .createComponentPopupBuilder(component, null);
+                JBPopup unloggedPreferencesPopup = gutterMethodComponentPopup
+                        .setProject(project)
+                        .setShowBorder(true)
+                        .setShowShadow(true)
+                        .setFocusable(true)
+                        .setRequestFocus(true)
+                        .setCancelOnClickOutside(false)
+                        .setCancelOnOtherWindowOpen(false)
+                        .setCancelKeyEnabled(false)
+                        .setBelongsToGlobalPopupStack(false)
+                        .setTitle("Unlogged Preferences")
+                        .setTitleIcon(new ActiveIcon(UIUtils.UNLOGGED_ICON_DARK))
+                        .createPopup();
+                component.setMaximumSize(new Dimension(500, 800));
+                ComponentLifecycleListener<LibraryFilter> componentLifecycleListener = new ComponentLifecycleListener<LibraryFilter>() {
+                    @Override
+                    public void onClose(LibraryFilter component) {
+                        unloggedPreferencesPopup.cancel();
+                        updateFilterLabel();
                         reloadItems();
-
-                    });
-                    builder.showModal(true);
-
-                } else if (filterModel.isShowTests()) {
-                    int selectedCount = selectedCandidates.size();
-                    DialogBuilder builder = new DialogBuilder(project);
-                    builder.addOkAction();
-                    builder.addCancelAction();
-                    builder.setTitle("Confirm Delete");
-
-                    builder.setCenterPanel(new JLabel(
-                            "Are you sure you want to delete " + selectedCount + " relay test" + (selectedCount == 1 ? "s" : "")));
-
-                    builder.setOkOperation(() -> {
-                        for (StoredCandidate storedCandidate : selectedCandidates) {
-                            atomicRecordService.deleteStoredCandidate(storedCandidate.getMethod(),
-                                    storedCandidate.getCandidateId());
-                        }
-                        selectedMocks.clear();
-                        InsidiousNotification.notifyMessage("Deleted " + selectedCount + " relay test"
-                                        + (selectedCount == 1 ? "s" : ""),
-                                NotificationType.INFORMATION);
-                        builder.getDialogWrapper().close(0);
-                        builder.dispose();
-                    });
-                    builder.showModal(true);
-
-                }
-
+                    }
+                };
+                libraryFilter.setOnCloseListener(componentLifecycleListener);
+                unloggedPreferencesPopup.showCenteredInCurrentWindow(project);
             }
         });
+
 
         MOCK_ITEM_LIFE_CYCLE_LISTENER = new ItemLifeCycleListener<>() {
             @Override
             public void onSelect(DeclaredMock item) {
                 selectedMocks.add(item);
                 updateSelectionLabel();
+            }
+
+            @Override
+            public void onClick(DeclaredMock item) {
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    InsidiousUtils.focusInEditor(item.getFieldTypeName(),
+                            item.getMethodName(), project);
+                });
             }
 
             @Override
@@ -228,7 +245,11 @@ public class LibraryComponent {
                 builder.addOkAction();
                 builder.addCancelAction();
                 builder.setTitle("Confirm Delete");
-                builder.setCenterPanel(new JLabel("Are you sure you want to delete " + "mock definition"));
+
+                JPanel deletePanel = LibraryComponent.deletePromptPanelBuilder(
+                        "Are you sure you want to delete mock definition"
+                );
+                builder.setCenterPanel(deletePanel);
 
                 builder.setOkOperation(() -> {
                     atomicRecordService.deleteMockDefinition(item);
@@ -243,7 +264,7 @@ public class LibraryComponent {
 
             @Override
             public void onEdit(DeclaredMock item) {
-
+                showMockEditor(item);
             }
         };
         STORED_CANDIDATE_ITEM_LIFE_CYCLE_LISTENER = new ItemLifeCycleListener<>() {
@@ -251,6 +272,11 @@ public class LibraryComponent {
             public void onSelect(StoredCandidate item) {
                 selectedCandidates.add(item);
                 updateSelectionLabel();
+            }
+
+            @Override
+            public void onClick(StoredCandidate item) {
+
             }
 
             @Override
@@ -266,7 +292,11 @@ public class LibraryComponent {
                 builder.addOkAction();
                 builder.addCancelAction();
                 builder.setTitle("Confirm Delete");
-                builder.setCenterPanel(new JLabel("Are you sure you want to delete " + "replay test"));
+                JPanel deletePanel = LibraryComponent.deletePromptPanelBuilder(
+                        "Are you sure you want to delete replay test"
+                );
+                builder.setCenterPanel(deletePanel);
+
                 builder.setOkOperation(() -> {
                     atomicRecordService.deleteStoredCandidate(item.getMethod(), item.getCandidateId());
                     InsidiousNotification.notifyMessage(
@@ -287,13 +317,6 @@ public class LibraryComponent {
 
         atomicRecordService.checkPreRequisites();
 
-        reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        reloadButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                reloadItems();
-            }
-        });
         reloadItems();
 
         includeMocksCheckBox.addActionListener(e -> {
@@ -328,14 +351,7 @@ public class LibraryComponent {
             }
         });
 
-        if (filterModel.isShowMocks()) {
-            includeMocksCheckBox.setSelected(true);
-            includeTestsCheckBox.setSelected(false);
-        } else {
-            includeMocksCheckBox.setSelected(false);
-            includeTestsCheckBox.setSelected(true);
-        }
-
+        updateMocksOrTestsRadioBox();
 
         selectAllLabel.addMouseListener(new MouseAdapter() {
             @Override
@@ -358,6 +374,171 @@ public class LibraryComponent {
 
         updateFilterLabel();
 
+        AnAction reloadAction = new AnAction(() -> "Reload", UIUtils.REFRESH_SVG) {
+
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                reloadItems();
+            }
+        };
+
+        AnAction deleteAction = new AnAction(() -> "Delete", UIUtils.DELETE_BIN_PARALLEL_RED) {
+
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                deleteSelectedItem();
+            }
+        };
+
+        List<AnAction> action11 = new ArrayList<>();
+        action11.add(reloadAction);
+        action11.add(deleteAction);
+        actionToolbar = new ActionToolbarImpl(
+                "Live View", new DefaultActionGroup(action11), true);
+        actionToolbar.setMiniMode(false);
+        actionToolbar.setForceMinimumSize(true);
+        actionToolbar.setTargetComponent(mainPanel);
+
+        controlPanel.add(actionToolbar.getComponent(), BorderLayout.CENTER);
+
+
+//        reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        reloadButton.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                reloadItems();
+//            }
+//        });
+//
+//        deleteButton.setIcon(UIUtils.DELETE_BIN_2_LINE);
+//        deleteButton.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                deleteSelectedItem();
+//            }
+//        });
+    }
+
+    static JPanel deletePromptPanelBuilder(String deletePrompt) {
+        // deletePrompt
+        // deletePanelLeft
+        JLabel deletePanelLeft = new JLabel();
+        deletePanelLeft.setIcon(UIUtils.TRASH_PROMPT);
+
+        // deletePromptUpper
+        JLabel deletePromptUpper = new JLabel();
+        deletePromptUpper.setText(deletePrompt);
+
+        // deletePromptLower
+        JLabel deletePromptLower = new JLabel("<html> Use git to track and restore later. </html>");
+        deletePromptLower.setForeground(Color.GRAY);
+        String defaultFont = UIManager.getFont("Label.font").getFontName();
+        deletePromptLower.setFont(new Font("", Font.PLAIN, 12));
+        deletePromptLower.setBorder(new EmptyBorder(5, 5, 5, 5));
+
+        // deletePanelRight
+        JPanel deletePanelRight = new JPanel();
+        deletePanelRight.setLayout(new BoxLayout(deletePanelRight, BoxLayout.Y_AXIS));
+        deletePanelRight.add(deletePromptUpper);
+        deletePanelRight.add(deletePromptLower);
+
+        // configure
+        JPanel deletePanel = new JPanel();
+        deletePanel.setLayout(new BoxLayout(deletePanel, BoxLayout.X_AXIS));
+        deletePanel.add(deletePanelLeft);
+        deletePanel.add(deletePanelRight);
+
+        return deletePanel;
+    }
+
+    private void deleteSelectedItem() {
+        if (filterModel.isShowMocks()) {
+            int selectedCount = selectedMocks.size();
+            if (selectedCount < 1) {
+                InsidiousNotification.notifyMessage("Nothing selected to delete", NotificationType.INFORMATION);
+                return;
+            }
+            DialogBuilder builder = new DialogBuilder(project);
+            builder.okActionEnabled(true);
+            builder.setTitle("Confirm Delete");
+
+            JPanel deletePanel = LibraryComponent.deletePromptPanelBuilder(
+                    "Are you sure you want to delete " + selectedCount + " mock definition" + (selectedCount == 1 ? "s" : "")
+            );
+            builder.setCenterPanel(deletePanel);
+
+            builder.setOkOperation(() -> {
+                for (DeclaredMock selectedMock : selectedMocks) {
+                    atomicRecordService.deleteMockDefinition(selectedMock);
+                }
+                clearSelection();
+                InsidiousNotification.notifyMessage(
+                        "Deleted " + selectedCount + " mock definition" + (selectedCount == 1 ? "s" : ""),
+                        NotificationType.INFORMATION);
+                builder.getDialogWrapper().close(0);
+                builder.dispose();
+                reloadItems();
+
+            });
+            builder.showModal(true);
+
+        } else if (filterModel.isShowTests()) {
+            int selectedCount = selectedCandidates.size();
+            if (selectedCount < 1) {
+                InsidiousNotification.notifyMessage("Nothing selected to delete", NotificationType.INFORMATION);
+                return;
+            }
+            DialogBuilder builder = new DialogBuilder(project);
+            builder.addOkAction();
+            builder.addCancelAction();
+            builder.setTitle("Confirm Delete");
+
+            JPanel deletePanel = LibraryComponent.deletePromptPanelBuilder(
+                    "Are you sure you want to delete " + selectedCount + " replay test" + (selectedCount == 1 ? "s" : "") + "?"
+            );
+            builder.setCenterPanel(deletePanel);
+
+            builder.setOkOperation(() -> {
+                for (StoredCandidate storedCandidate : selectedCandidates) {
+                    atomicRecordService.deleteStoredCandidate(storedCandidate.getMethod(),
+                            storedCandidate.getCandidateId());
+                }
+                selectedMocks.clear();
+                InsidiousNotification.notifyMessage("Deleted " + selectedCount + " relay test"
+                                + (selectedCount == 1 ? "s" : ""),
+                        NotificationType.INFORMATION);
+                builder.getDialogWrapper().close(0);
+                builder.dispose();
+                reloadItems();
+            });
+            builder.showModal(true);
+
+        }
+    }
+
+    private void updateMocksOrTestsRadioBox() {
+        if (filterModel.isShowMocks()) {
+            includeMocksCheckBox.setSelected(true);
+            includeTestsCheckBox.setSelected(false);
+        } else {
+            includeMocksCheckBox.setSelected(false);
+            includeTestsCheckBox.setSelected(true);
+        }
+    }
+
+    public void setLibraryFilterState(LibraryFilterState lfs) {
+        clearFilter();
+        filterModel.getIncludedClassNames().addAll(lfs.getIncludedClassNames());
+        filterModel.getIncludedMethodNames().addAll(lfs.getIncludedMethodNames());
+        filterModel.getExcludedClassNames().addAll(lfs.getExcludedClassNames());
+        filterModel.getExcludedMethodNames().addAll(lfs.getExcludedMethodNames());
+        filterModel.setShowTests(lfs.isShowTests());
+        filterModel.setShowMocks(lfs.isShowMocks());
+        filterModel.setFollowEditor(lfs.isFollowEditor());
+
+        updateMocksOrTestsRadioBox();
+        updateFilterLabel();
+        reloadItems();
     }
 
     public void setMockStatus(boolean status) {
@@ -392,9 +573,10 @@ public class LibraryComponent {
             count = selectedCandidates.size();
             selectedCountLabel.setText(count + " selected");
         }
-        deleteButton.setVisible(count > 0);
+//        deleteButton.setVisible(count > 0);
+//        deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
         clearSelectionLabel.setVisible(count > 0);
-        deleteButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
     private GridBagConstraints createGBCForFakeComponent(int yIndex) {
@@ -519,7 +701,7 @@ public class LibraryComponent {
         clearSelection();
 
         itemScrollPanel.setViewportView(itemsContainer);
-
+        atomicRecordService.checkPreRequisites();
         int count = 1;
         if (filterModel.isShowMocks()) {
             Map<String, List<DeclaredMock>> mocksByClass = atomicRecordService.getAllDeclaredMocks()
@@ -577,8 +759,12 @@ public class LibraryComponent {
 
         itemsContainer.add(new JPanel(), createGBCForFakeComponent(count++));
 
-        itemScrollPanel.revalidate();
-        itemScrollPanel.repaint();
+        ApplicationManager.getApplication().invokeLater(() -> {
+            itemScrollPanel.revalidate();
+            itemScrollPanel.repaint();
+            itemScrollPanel.getParent().revalidate();
+            itemScrollPanel.getParent().repaint();
+        });
 
 
     }
@@ -588,24 +774,74 @@ public class LibraryComponent {
     }
 
 
-//    public void showMockCreator(MethodUnderTest method, PsiMethodCallExpression callExpression) {
-//        MockDefinitionEditor mockEditor = new MockDefinitionEditor(method, callExpression,
-//                insidiousService.getProject(), declaredMock -> {
-//                    atomicRecordService.saveMockDefinition(declaredMock);
-//                    InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
-//                    southPanel.removeAll();
-//                    scrollContainer.revalidate();
-//                    scrollContainer.repaint();
-//                });
-//        JComponent content = mockEditor.getComponent();
-//        content.setMinimumSize(new Dimension(-1, 400));
-//        content.setMaximumSize(new Dimension(-1, 400));
-//        southPanel.removeAll();
-//        southPanel.add(content, BorderLayout.CENTER);
-//
-//    }
+    public void showMockEditor(DeclaredMock declaredMock) {
+        MethodUnderTest methodUnderTest = new MethodUnderTest(
+                declaredMock.getMethodName(), declaredMock.getMethodHashKey().split("#")[2], 0,
+                declaredMock.getFieldTypeName()
+        );
+        MockDefinitionEditor mockEditor = new MockDefinitionEditor(methodUnderTest, declaredMock,
+                insidiousService.getProject(), declaredMockUpdated -> {
+            atomicRecordService.saveMockDefinition(declaredMockUpdated);
+            InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
+            southPanel.removeAll();
+            scrollContainer.revalidate();
+            scrollContainer.repaint();
+        });
+        JComponent content = mockEditor.getComponent();
+        GraphicsDevice gd = MouseInfo.getPointerInfo().getDevice();
+        int height = gd.getDisplayMode().getHeight();
+        content.setMinimumSize(new Dimension(-1, height / 3));
+        content.setPreferredSize(new Dimension(-1, height / 2));
+        content.setMaximumSize(new Dimension(-1, height / 2));
+        southPanel.removeAll();
+        southPanel.add(content, BorderLayout.CENTER);
+        ApplicationManager.getApplication().invokeLater(() -> {
+            southPanel.revalidate();
+            southPanel.repaint();
+            southPanel.getParent().revalidate();
+            southPanel.getParent().repaint();
+        });
+
+    }
+
 
     public void onMethodFocussed(MethodAdapter method) {
-        this.lastFocussedMethod = method;
+        String newMethodName = method.getName();
+        String newClassName = method.getContainingClass().getQualifiedName();
+        MethodUnderTest newMethodAdapter = ApplicationManager.getApplication().runReadAction(
+                (Computable<MethodUnderTest>) () -> MethodUnderTest.fromMethodAdapter(method));
+        if (lastMethodFocussed != null) {
+            if (lastMethodFocussed.getMethodHashKey().equals(newMethodAdapter.getMethodHashKey())) {
+                // same method focussed again
+                return;
+            }
+        }
+
+        lastMethodFocussed = newMethodAdapter;
+        if (filterModel.isFollowEditor()) {
+            if (filterModel.getIncludedMethodNames().size() == 1 && filterModel.getIncludedMethodNames()
+                    .contains(newMethodName)) {
+                if (filterModel.getIncludedClassNames().size() == 1 && filterModel.getIncludedClassNames()
+                        .contains(newClassName)) {
+                    if (filterModel.getExcludedClassNames().size() == 0 && filterModel.getExcludedMethodNames()
+                            .size() == 0) {
+                        // already set
+                        return;
+                    }
+                }
+            }
+            clearFilter();
+            filterModel.getIncludedMethodNames().add(newMethodName);
+            filterModel.getIncludedClassNames().add(newClassName);
+            updateFilterLabel();
+            reloadItems();
+        }
+    }
+
+    private void clearFilter() {
+        filterModel.getIncludedMethodNames().clear();
+        filterModel.getExcludedMethodNames().clear();
+        filterModel.getIncludedClassNames().clear();
+        filterModel.getExcludedClassNames().clear();
     }
 }

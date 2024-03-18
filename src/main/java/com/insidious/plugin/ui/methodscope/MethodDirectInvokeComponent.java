@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.methodscope;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
@@ -20,32 +21,37 @@ import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.ui.treeeditor.JsonTreeEditor;
 import com.insidious.plugin.util.*;
+import com.intellij.icons.AllIcons;
 import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
-import com.intellij.openapi.fileEditor.FileEditor;
-import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.search.ProjectAndLibrariesScope;
-import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.*;
@@ -60,30 +66,60 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JPanel mainContainer;
     private Editor returnValueTextArea;
     private JPanel methodParameterScrollContainer;
-    private JButton executeButton;
     //    private JButton modifyArgumentsButton;
-    private JLabel closeButton;
     //    private JLabel editValueLabel;
     private JButton createBoilerplateButton;
     private JLabel methodNameLabel;
     private JPanel directInvokeContainerPanel;
     private JPanel junitBoilerplaceContainerPanel;
-    private JButton modifyArgumentsButton;
     private JPanel boilerplateCustomizerContainer;
     private JPanel centerPanel;
     private JTabbedPane tabbedPane;
+    private JPanel controlPanel;
     private MethodAdapter methodElement;
     private JBScrollPane parameterScrollPanel = null;
     private TestCaseDesignerLite designerLite;
     private JsonTreeEditor parameterEditor;
+    private AnAction executeAction;
+    private AnAction modifyArgumentsAction;
 
 
-    public MethodDirectInvokeComponent(InsidiousService insidiousService, OnCloseListener<MethodDirectInvokeComponent> onCloseListener) {
+    public MethodDirectInvokeComponent(InsidiousService insidiousService, ComponentLifecycleListener<MethodDirectInvokeComponent> componentLifecycleListener) {
         this.insidiousService = insidiousService;
         this.objectMapper = ObjectMapperInstance.getInstance();
 
-        configureCloseButton(onCloseListener);
+//        configureCloseButton(componentLifecycleListener);
 
+        AnAction closeAction = new AnAction(() -> "Close", AllIcons.Actions.Close) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                componentLifecycleListener.onClose(MethodDirectInvokeComponent.this);
+            }
+
+            @Override
+            public boolean isDumbAware() {
+                return false;
+            }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+
+        };
+
+        List<AnAction> action11 = new ArrayList<>();
+        action11.add(closeAction);
+
+        ActionToolbarImpl actionToolbar = new ActionToolbarImpl(
+                "Live View", new DefaultActionGroup(action11), true);
+        actionToolbar.setMiniMode(false);
+        actionToolbar.setForceMinimumSize(true);
+        actionToolbar.setTargetComponent(mainContainer);
+        controlPanel.add(actionToolbar.getComponent(), BorderLayout.EAST);
+
+
+//        closeButton.setIcon(UIUtils.CLOSE_LINE_SVG);
 
         methodParameterScrollContainer.addKeyListener(new KeyAdapter() {
 
@@ -95,17 +131,36 @@ public class MethodDirectInvokeComponent implements ActionListener {
             }
         });
 
-        executeButton.addActionListener(e -> executeMethodWithParameters());
-        executeButton.setIcon(UIUtils.DIRECT_INVOKE_EXECUTE);
 
-        modifyArgumentsButton.setVisible(false);
-        modifyArgumentsButton.addActionListener(e -> {
-            try {
-                renderForMethod(methodElement, null);
-            } catch (JsonProcessingException ex) {
-                throw new RuntimeException(ex);
+        this.executeAction = new AnAction(() -> "Execute Method", UIUtils.DIRECT_INVOKE_EXECUTE) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                executeMethodWithParameters();
             }
-        });
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
+
+        this.modifyArgumentsAction = new AnAction(() -> "Modify Arguments", UIUtils.EDIT) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    try {
+                        renderForMethod(methodElement, null);
+                    } catch (JsonProcessingException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                });
+            }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
     }
 
     private void configureCreateBoilerplateButton() {
@@ -116,20 +171,16 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 if (designerLite != null) {
                     return;
                 }
-                designerLite = new TestCaseDesignerLite(methodElement,
-                        null, true, insidiousService.getProject());
+                designerLite = new TestCaseDesignerLite(methodElement, null, true, insidiousService);
 
                 boilerplateCustomizerContainer.add(designerLite.getComponent(), BorderLayout.CENTER);
-                designerLite.getCreateButton().addMouseListener(new MouseAdapter() {
-                    @Override
-                    public void mouseClicked(MouseEvent e) {
-                        super.mouseClicked(e);
-                        FileEditorManager fileEditorManager = insidiousService.previewTestCase(
-                                designerLite.getLightVirtualFile());
-                        Editor selectedTextEditor = fileEditorManager.getSelectedTextEditor();
-                        FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
-                        designerLite.setEditorReferences(selectedTextEditor, selectedEditor);
-                    }
+                ApplicationManager.getApplication().invokeLater(() -> {
+
+                    boilerplateCustomizerContainer.getParent().revalidate();
+                    boilerplateCustomizerContainer.getParent().repaint();
+
+                    boilerplateCustomizerContainer.getParent().getParent().revalidate();
+                    boilerplateCustomizerContainer.getParent().getParent().repaint();
                 });
 
             }
@@ -137,38 +188,38 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
     }
 
-    private void configureCloseButton(OnCloseListener<MethodDirectInvokeComponent> onCloseListener) {
-        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        final Border closeButtonOriginalBorder = closeButton.getBorder();
-        final Border actuallyOriginalBorder = BorderFactory.createCompoundBorder(
-                BorderFactory.createEmptyBorder(2, 2, 2, 2),
-                closeButtonOriginalBorder);
-        closeButton.setBorder(actuallyOriginalBorder);
-        closeButton.setToolTipText("Hide direct invoke");
-        closeButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                super.mouseEntered(e);
-                closeButton.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createRaisedBevelBorder(),
-                        closeButtonOriginalBorder));
-//                closeButton.setIcon(UIUtils.CLOSE_LINE_BLACK_PNG);
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                super.mouseExited(e);
-                closeButton.setBorder(actuallyOriginalBorder);
-//                closeButton.setIcon(UIUtils.CLOSE_LINE_PNG);
-            }
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
-                onCloseListener.onClose(MethodDirectInvokeComponent.this);
-            }
-        });
-    }
+//    private void configureCloseButton(ComponentLifecycleListener<MethodDirectInvokeComponent> componentLifecycleListener) {
+//        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        final Border closeButtonOriginalBorder = closeButton.getBorder();
+//        final Border actuallyOriginalBorder = BorderFactory.createCompoundBorder(
+//                BorderFactory.createEmptyBorder(2, 2, 2, 2),
+//                closeButtonOriginalBorder);
+//        closeButton.setBorder(actuallyOriginalBorder);
+//        closeButton.setToolTipText("Hide direct invoke");
+//        closeButton.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseEntered(MouseEvent e) {
+//                super.mouseEntered(e);
+//                closeButton.setBorder(BorderFactory.createCompoundBorder(
+//                        BorderFactory.createRaisedBevelBorder(),
+//                        closeButtonOriginalBorder));
+////                closeButton.setIcon(UIUtils.CLOSE_LINE_BLACK_PNG);
+//            }
+//
+//            @Override
+//            public void mouseExited(MouseEvent e) {
+//                super.mouseExited(e);
+//                closeButton.setBorder(actuallyOriginalBorder);
+////                closeButton.setIcon(UIUtils.CLOSE_LINE_PNG);
+//            }
+//
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                super.mouseClicked(e);
+//                componentLifecycleListener.onClose(MethodDirectInvokeComponent.this);
+//            }
+//        });
+//    }
 
     private int expandAll(JTree tree, TreePath parent) {
         TreeNode node = (TreeNode) parent.getLastPathComponent();
@@ -205,8 +256,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
             InsidiousNotification.notifyMessage(message, NotificationType.WARNING);
             return;
         }
-        executeButton.setText("Executing...");
-        executeButton.setEnabled(false);
 //        createBoilerplateButton.setVisible(false);
         ApplicationManager.getApplication().executeOnPooledThread(this::chooseClassAndDirectInvoke);
     }
@@ -224,9 +273,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
         String className = ApplicationManager.getApplication().runReadAction(
                 (Computable<String>) containingClass::getName);
 
-        methodNameLabel.setText(className + "." + methodName);
-        modifyArgumentsButton.setVisible(false);
-        executeButton.setText("Execute");
+        String text = className + "." + methodName;
+        methodNameLabel.setText(text.substring(0, Math.min(text.length(), 40)) +
+                (text.length() > 40 ? "..." : ""));
+        methodNameLabel.setToolTipText(methodName);
 
         logger.warn("render method executor for: " + methodName);
         String methodNameForLabel = methodName.length() > 40 ? methodName.substring(0, 40) + "..." : methodName;
@@ -254,7 +304,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(query);
                 int candidateCount = methodTestCandidates.size();
                 if (candidateCount > 0) {
-                    TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(candidateCount - 1);
+                    TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(0);
                     methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
                             mostRecentTestCandidate);
                 }
@@ -281,8 +331,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 if (methodArgumentValues != null && i < methodArgumentValues.size()) {
                     parameterValue = methodArgumentValues.get(i);
                 } else {
-                    parameterValue = ClassUtils.createDummyValue(methodParameterType, new ArrayList<>(4),
-                            insidiousService.getProject());
+                    parameterValue = ApplicationManager.getApplication()
+                            .runReadAction((Computable<String>) () ->
+                                    ClassUtils.createDummyValue(methodParameterType, new ArrayList<>(4),
+                                            insidiousService.getProject()));
                 }
                 try {
                     methodArgumentsMap.put(methodParameter.getName(), objectMapper.readTree(parameterValue));
@@ -299,27 +351,57 @@ public class MethodDirectInvokeComponent implements ActionListener {
                 throw new RuntimeException(e);
             }
 
-            parameterEditor = new JsonTreeEditor(objectMapper.readTree(source), "Method Arguments");
+            parameterEditor = new JsonTreeEditor(objectMapper.readTree(source), "Method Arguments", true,
+                    executeAction);
+            parameterEditor.setEditable(true);
             methodParameterContainer.add(parameterEditor.getContent(), BorderLayout.CENTER);
         } else {
-            JBLabel noParametersLabel = new JBLabel("No method arguments");
-            methodParameterContainer.add(noParametersLabel, BorderLayout.CENTER);
+            parameterEditor = new JsonTreeEditor(executeAction);
+            methodParameterContainer.add(parameterEditor.getContent(), BorderLayout.CENTER);
         }
 
         if (parameterScrollPanel == null) {
             parameterScrollPanel = new JBScrollPane(methodParameterContainer);
             parameterScrollPanel.setBorder(BorderFactory.createEmptyBorder());
-            centerPanel.add(parameterScrollPanel, BorderLayout.CENTER);
             centerPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+            ApplicationManager.getApplication().invokeLater(() -> {
+                centerPanel.add(parameterScrollPanel, BorderLayout.CENTER);
+            });
         } else {
-            parameterScrollPanel.setViewportView(methodParameterContainer);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                parameterScrollPanel.setViewportView(methodParameterContainer);
+            });
         }
+
+
+        //////////////////
+
+        if (designerLite != null) {
+            // previewing boilerplate test case
+            // refresh it as well
+            designerLite.closeEditorWindow();
+            designerLite = new TestCaseDesignerLite(methodElement,
+                    null, true, insidiousService);
+
+            ApplicationManager.getApplication().invokeLater(() -> {
+                boilerplateCustomizerContainer.add(designerLite.getComponent(), BorderLayout.CENTER);
+                boilerplateCustomizerContainer.getParent().revalidate();
+                boilerplateCustomizerContainer.getParent().repaint();
+                boilerplateCustomizerContainer.getParent().getParent().revalidate();
+                boilerplateCustomizerContainer.getParent().getParent().repaint();
+            });
+        }
+
+        //////////////////
+
 
         configureCreateBoilerplateButton();
         parameterScrollPanel.setBorder(BorderFactory.createEmptyBorder());
 
-        mainContainer.revalidate();
-        mainContainer.repaint();
+        ApplicationManager.getApplication().invokeLater(() -> {
+            mainContainer.revalidate();
+            mainContainer.repaint();
+        });
 
     }
 
@@ -357,6 +439,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("className", psiClass.getQualifiedClassName());
         eventProperties.put("methodName", methodElement.getName());
+        eventProperties.put("methodSignature", methodElement.getJVMSignature());
 
         UsageInsightTracker.getInstance().RecordEvent("DIRECT_INVOKE", eventProperties);
         List<String> methodArgumentValues = new ArrayList<>();
@@ -406,8 +489,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
         insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                 (agentCommandRequest1, agentCommandResponse) -> {
                     ApplicationManager.getApplication().invokeLater(() -> {
-                        executeButton.setEnabled(true);
-                        executeButton.setText("Re-execute");
 
                         if (ResponseType.EXCEPTION.equals(agentCommandResponse.getResponseType())) {
                             if (agentCommandResponse.getMessage() == null && agentCommandResponse.getResponseClassName() == null) {
@@ -425,7 +506,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
                         //                        TitledBorder panelTitledBoarder = (TitledBorder) scrollerContainer.getBorder();
                         String responseObjectClassName = agentCommandResponse.getResponseClassName();
                         Object methodReturnValue = agentCommandResponse.getMethodReturnValue();
-                        modifyArgumentsButton.setVisible(true);
 
                         String targetClassName = agentCommandResponse.getTargetClassName();
                         if (targetClassName == null) {
@@ -466,9 +546,17 @@ public class MethodDirectInvokeComponent implements ActionListener {
                                     returnValueString = ParameterUtils.getDoubleValue(returnValueString);
                                 }
 
-                                JsonNode jsonNode = objectMapper.readTree(returnValueString);
+                                JsonNode jsonNode = null;
+                                if (responseClassName.equals("java.lang.String")) {
+                                    JsonNodeFactory jsonNodeFactory = objectMapper.getNodeFactory();
+                                    jsonNode = jsonNodeFactory.objectNode().put("String", returnValueString);
+                                } else {
+                                    jsonNode = objectMapper.readTree(returnValueString);
+                                }
 
-                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(jsonNode, responseClassName);
+                                // pass execute and modify buttons
+                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(jsonNode, responseClassName, false,
+                                        this.executeAction, this.modifyArgumentsAction);
                                 parameterScrollPanel.setViewportView(jsonTreeEditor.getContent());
 
                             } catch (JsonProcessingException ex) {

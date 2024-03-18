@@ -2,6 +2,7 @@ package com.insidious.plugin.pojo.dao;
 
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.MethodInfo;
+import com.insidious.plugin.MethodSignatureParser;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.StringUtils;
 import com.j256.ormlite.field.DatabaseField;
@@ -77,7 +78,7 @@ public class MethodDefinition implements Comparable<MethodDefinition> {
         methodDefinition.setSourceFileName(methodInfo.getSourceFileName());
         methodDefinition.setOwnerType(ClassTypeUtils.getJavaClassName(methodInfo.getClassName()));
 
-        List<String> descriptorParsed = ClassTypeUtils.splitMethodDescriptor(methodInfo.getMethodDesc());
+        List<String> descriptorParsed = MethodSignatureParser.parseMethodSignature(methodInfo.getMethodDesc());
 
         methodDefinition.setReturnType(
                 ClassTypeUtils.getJavaClassName(descriptorParsed.get(descriptorParsed.size() - 1)));

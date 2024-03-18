@@ -2,6 +2,7 @@ package com.insidious.plugin.ui.stomp;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.ResponseType;
@@ -12,6 +13,7 @@ import com.insidious.plugin.client.SessionScanEventListener;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.SemanticVersion;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
@@ -23,21 +25,39 @@ import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.ui.UnloggedOnboardingScreenV2;
+import com.insidious.plugin.ui.UnloggedSDKOnboarding;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
+import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
-import com.insidious.plugin.ui.methodscope.OnCloseListener;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.codeInsight.daemon.impl.DaemonProgressIndicator;
+import com.intellij.icons.AllIcons;
+import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
+import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
+import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
+import com.intellij.psi.impl.JavaPsiImplementationHelper;
+import com.intellij.psi.search.searches.ClassInheritorsSearch;
+import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ui.JBUI;
@@ -55,15 +75,16 @@ import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class StompComponent implements
         Consumer<List<TestCandidateMetadata>>,
         TestCandidateLifeListener,
-        OnCloseListener<MethodDirectInvokeComponent>,
-        Runnable,
-        OnExpandListener {
+        ComponentLifecycleListener<MethodDirectInvokeComponent>,
+        Runnable, OnExpandListener, Disposable {
     public static final int COMPONENT_HEIGHT = 93;
     private static final Logger logger = LoggerUtil.getInstance(StompComponent.class);
     private final InsidiousService insidiousService;
@@ -78,16 +99,20 @@ public class StompComponent implements
     private final FilterModel filterModel;
     private final AtomicRecordService atomicRecordService;
     private final Set<Long> pinnedItems = new HashSet<>();
+    private final ActionToolbarImpl actionToolbar;
+    private final UnloggedSDKOnboarding unloggedSDKOnboarding;
+    private final Map<String, AtomicInteger> countByMethodName = new HashMap<>();
+    private final AnAction filterAction;
     BlockingQueue<TestCandidateMetadata> incomingQueue = new ArrayBlockingQueue<>(100);
+    int totalAcceptedCount = 0;
     private JPanel mainPanel;
     private JPanel northPanelContainer;
     private JScrollPane historyStreamScrollPanel;
     private JPanel scrollContainer;
-    private JLabel reloadButton;
-    private JLabel filterButton;
-    private JButton saveReplayButton;
-    private JLabel replayButton;
-    private JLabel generateJUnitButton;
+    //    private JLabel reloadButton;
+//    private JButton saveReplayButton;
+    //    private JLabel replayButton;
+//    private JLabel generateJUnitButton;
     private JPanel controlPanel;
     private JPanel infoPanel;
     private JLabel selectedCountLabel;
@@ -96,13 +121,15 @@ public class StompComponent implements
     private JPanel southPanel;
     private JLabel clearFilterLabel;
     private JLabel filterAppliedLabel;
-    private JLabel clearTimelineLabel;
+    private JPanel actionToolbarContainer;
+    private JPanel timelineControlPanel;
     private long lastEventId = 0;
     private MethodDirectInvokeComponent directInvokeComponent = null;
     private TestCandidateSaveForm saveFormReference;
     private boolean welcomePanelRemoved = false;
     private AtomicInteger candidateQueryLatch;
     private MethodUnderTest lastMethodFocussed;
+    private boolean shownGotItNofiticaton = false;
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -111,6 +138,7 @@ public class StompComponent implements
         configurationState = project.getService(InsidiousConfigurationState.class);
 
         filterAppliedLabel.setVisible(false);
+        filterAppliedLabel.setForeground(JBColor.BLACK);
         filterModel = configurationState.getFilterModel();
 
 
@@ -131,39 +159,130 @@ public class StompComponent implements
         scrollContainer.setBorder(BorderFactory.createEmptyBorder());
 
 
-        clearTimelineLabel.setToolTipText("Clear the timeline");
-        clearTimelineLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        clearTimelineLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        clearTimelineLabel.addMouseListener(new MouseAdapter() {
+        AnAction clearAction = new AnAction(() -> "Clear", AllIcons.Actions.GC) {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                System.err.println("clear timeline");
                 resetTimeline();
             }
+        };
 
+        AnAction saveAction = new AnAction(() -> "Save", AllIcons.Actions.MenuSaveall) {
             @Override
-            public void mouseEntered(MouseEvent e) {
-//                clearTimelineLabel.setBorder(
-//                        BorderFactory.createCompoundBorder(
-//                                BorderFactory.createRaisedBevelBorder(),
-//                                BorderFactory.createEmptyBorder(5, 5, 5, 5)
-//                        )
-//                );
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    ApplicationManager.getApplication().runReadAction(StompComponent.this::saveSelected);
+                });
             }
 
             @Override
-            public void mouseExited(MouseEvent e) {
-//                clearTimelineLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
+
+
+        AnAction generateJunitTestAction = new AnAction(() -> "JUnit", AllIcons.Scope.Tests) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                System.err.println("generate junit test");
+                if (selectedCandidates.size() < 1) {
+                    InsidiousNotification.notifyMessage("Select records to generate JUnit Test",
+                            NotificationType.INFORMATION);
+                    return;
+                }
+
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    onGenerateJunitTestCaseRequest(selectedCandidates);
+                });
             }
 
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
 
-        });
+        AnAction replaySelectionAction = new AnAction(() -> "Replay", AllIcons.Actions.RestartFrame) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                System.err.println("replay selected");
+                if (selectedCandidates.size() < 1) {
+                    InsidiousNotification.notifyMessage("Select records to replay", NotificationType.INFORMATION);
+                    return;
+                }
+                InsidiousNotification.notifyMessage("Replayed " + selectedCandidates.size() + " records",
+                        NotificationType.INFORMATION);
+                for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
+                    executeSingleTestCandidate(selectedCandidate);
+                }
+            }
 
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
+
+        AnAction reloadAction = new AnAction(() -> "Reload", AllIcons.Actions.Refresh) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                System.err.println("reload timeline");
+                resetAndReload();
+            }
+        };
+
+
+        filterAction = new AnAction(() -> "Filter", AllIcons.General.Filter) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                showFiltersComponentPopup(project, insidiousService);
+            }
+
+            @Override
+            public boolean displayTextInToolbar() {
+                return true;
+            }
+        };
+
+
+        List<AnAction> action11 = List.of(
+                filterAction,
+                replaySelectionAction,
+                generateJunitTestAction,
+                saveAction
+        );
+
+
+        actionToolbar = new ActionToolbarImpl(
+                "Live View", new DefaultActionGroup(action11), true);
+        actionToolbar.setMiniMode(false);
+        actionToolbar.setForceMinimumSize(true);
+        actionToolbar.setTargetComponent(mainPanel);
+
+
+        List<AnAction> action22 = List.of(
+                reloadAction,
+                clearAction
+        );
+
+
+        ActionToolbarImpl timelineToolbar = new ActionToolbarImpl(
+                "Timeline", new DefaultActionGroup(action22), true);
+        timelineToolbar.setMiniMode(false);
+        timelineToolbar.setForceMinimumSize(true);
+        timelineToolbar.setTargetComponent(mainPanel);
+
+        timelineControlPanel.add(timelineToolbar.getComponent(), BorderLayout.CENTER);
+
+
+        actionToolbarContainer.add(actionToolbar.getComponent(), BorderLayout.CENTER);
 
         clearSelectionLabel.setVisible(false);
         clearSelectionLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         clearSelectionLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
+        clearSelectionLabel.setForeground(new Color(84, 138, 247));
         clearSelectionLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -180,17 +299,18 @@ public class StompComponent implements
         selectAllLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
+                selectedCandidates.clear();
                 for (StompItem stompItem : stompItems) {
                     stompItem.setSelected(true);
                     selectedCandidates.add(stompItem.getTestCandidate());
                 }
                 updateControlPanel();
-
             }
         });
 
+
         clearFilterLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        clearFilterLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
+//        clearFilterLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2))
         clearFilterLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -202,95 +322,11 @@ public class StompComponent implements
 
         });
 
-
-        generateJUnitButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        generateJUnitButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        generateJUnitButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
-                    onGenerateJunitTestCaseRequest(selectedCandidate);
-                }
-
-            }
-//            @Override
-//            public void mouseEntered(MouseEvent e) {
-//                generateJUnitButton.setBorder(BorderFactory.createRaisedBevelBorder());
-//            }
-//
-//            @Override
-//            public void mouseExited(MouseEvent e) {
-//                generateJUnitButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-//            }
-        });
-
-        reloadButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        reloadButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        reloadButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                {
-                    resetAndReload();
-                }
-            }
-
-//            @Override
-//            public void mouseEntered(MouseEvent e) {
-//                reloadButton.setBorder(BorderFactory.createRaisedBevelBorder());
-//            }
-//
-//            @Override
-//            public void mouseExited(MouseEvent e) {
-//                reloadButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-//            }
-
-        });
-
-        saveReplayButton.addActionListener(e -> {
-            ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                ApplicationManager.getApplication().runReadAction(this::saveSelected);
-            });
-        });
-
-
-        filterButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        filterButton.addMouseListener(new MouseAdapter() {
-
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-
-                StompFilter stompFilter = new StompFilter(filterModel, lastMethodFocussed);
-                JComponent component = stompFilter.getComponent();
-
-                ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
-                        .createComponentPopupBuilder(component, null);
-
-                JBPopup unloggedPreferencesPopup = gutterMethodComponentPopup
-                        .setProject(project)
-                        .setShowBorder(true)
-                        .setShowShadow(true)
-                        .setFocusable(true)
-                        .setRequestFocus(true)
-                        .setCancelOnClickOutside(false)
-                        .setCancelOnOtherWindowOpen(false)
-                        .setCancelKeyEnabled(false)
-                        .setBelongsToGlobalPopupStack(false)
-                        .setTitle("Unlogged Preferences")
-                        .setTitleIcon(new ActiveIcon(UIUtils.UNLOGGED_ICON_DARK))
-                        .createPopup();
-
-                component.setMaximumSize(new Dimension(500, 800));
-
-                OnCloseListener<StompFilter> onCloseListener = component1 -> unloggedPreferencesPopup.cancel();
-
-                stompFilter.setOnCloseListener(onCloseListener);
-
-                unloggedPreferencesPopup.showCenteredInCurrentWindow(project);
-
-
-            }
-        });
+//        saveReplayButton.addActionListener(e -> {
+//            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+//                ApplicationManager.getApplication().runReadAction(this::saveSelected);
+//            });
+//        });
 
 
         ConnectedAndWaiting connectedAndWaiting = new ConnectedAndWaiting();
@@ -338,35 +374,63 @@ public class StompComponent implements
         mainPanel.add(stompStatusComponent.getComponent(), BorderLayout.SOUTH);
 
 
-        saveReplayButton.setEnabled(false);
-        replayButton.setEnabled(false);
-//        replayButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        replayButton.addMouseListener(new MouseAdapter() {
+        unloggedSDKOnboarding = new UnloggedSDKOnboarding(insidiousService);
+        itemPanel.add(unloggedSDKOnboarding.getComponent(), createGBCForProcessStartedComponent());
+
+//        saveReplayButton.setEnabled(false);
+        updateFilterLabel();
+    }
+
+    private void showFiltersComponentPopup(Project project, InsidiousService insidiousService) {
+        FilterModel originalFilter = new FilterModel(filterModel);
+        StompFilter stompFilter = new StompFilter(filterModel, lastMethodFocussed, project);
+        JComponent component = stompFilter.getComponent();
+
+        ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
+                .createComponentPopupBuilder(component, null);
+
+        JBPopup unloggedPreferencesPopup = gutterMethodComponentPopup
+                .setProject(project)
+                .setShowBorder(true)
+                .setShowShadow(true)
+                .setFocusable(true)
+                .setResizable(true)
+                .setMovable(true)
+                .setRequestFocus(true)
+                .setCancelOnClickOutside(false)
+                .setCancelOnOtherWindowOpen(false)
+                .setCancelKeyEnabled(false)
+                .setBelongsToGlobalPopupStack(false)
+                .setTitle("Unlogged Preferences")
+//                        .setCancelCallback(new Computable<Boolean>() {
+//                            @Override
+//                            public Boolean compute() {
+//                                return null;
+//                            }
+//                        })
+                .setTitleIcon(new ActiveIcon(UIUtils.UNLOGGED_ICON_DARK))
+                .createPopup();
+
+        component.setMaximumSize(new Dimension(500, 800));
+        ComponentLifecycleListener<StompFilter> componentLifecycleListener = new ComponentLifecycleListener<StompFilter>() {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                if (!replayButton.isEnabled()) {
-                    InsidiousNotification.notifyMessage("Select records to replay", NotificationType.INFORMATION);
+            public void onClose(StompFilter component) {
+                unloggedPreferencesPopup.cancel();
+                if (originalFilter.equals(filterModel)) {
                     return;
                 }
-                InsidiousNotification.notifyMessage("Replayed " + selectedCandidates.size() + " records",
-                        NotificationType.INFORMATION);
-                for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
-                    executeSingleTestCandidate(selectedCandidate);
+                if (filterModel.followEditor) {
+                    lastMethodFocussed = null;
+                    onMethodFocussed(insidiousService.getCurrentMethod());
                 }
+                updateFilterLabel();
+                resetAndReload();
             }
-//            @Override
-//            public void mouseEntered(MouseEvent e) {
-//                replayButton.setBorder(BorderFactory.createRaisedBevelBorder());
-//            }
-//
-//            @Override
-//            public void mouseExited(MouseEvent e) {
-//                replayButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-//            }
-        });
-        replayButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        };
 
-        updateFilterLabel();
+        stompFilter.setOnCloseListener(componentLifecycleListener);
+
+        unloggedPreferencesPopup.showCenteredInCurrentWindow(project);
     }
 
     private void clearFilter() {
@@ -377,54 +441,84 @@ public class StompComponent implements
     }
 
     private void saveSelected() {
+        if (DumbService.getInstance(insidiousService.getProject()).isDumb()) {
+            InsidiousNotification.notifyMessage("Please wait for IDE indexing to complete",
+                    NotificationType.INFORMATION);
+            return;
+        }
 
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
-            saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener,
-                    component -> {
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            southPanel.removeAll();
-                            scrollContainer.revalidate();
-                            scrollContainer.repaint();
-                        });
+        if (selectedCandidates.size() == 0) {
+            InsidiousNotification.notifyMessage("Select items on the timeline to save",
+                    NotificationType.INFORMATION);
+            return;
+
+        }
+
+        ProgressIndicator progressIndicator = new DaemonProgressIndicator();
+        progressIndicator.setFraction(0.25);
+        ProgressManager.getInstance()
+                .executeProcessUnderProgress(() -> {
+                    CountDownLatch cdl = new CountDownLatch(1);
+                    progressIndicator.setText(
+                            "Gathering type information for " + selectedCandidates.size() + " replays");
+//                            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
+
+                    saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener,
+                            component -> {
+                                ApplicationManager.getApplication().invokeLater(() -> {
+                                    southPanel.removeAll();
+                                    scrollContainer.revalidate();
+                                    scrollContainer.repaint();
+                                });
+                            });
+                    cdl.countDown();
+
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        JPanel component = saveFormReference.getComponent();
+                        southPanel.removeAll();
+                        component.setMaximumSize(new Dimension(600, 800));
+                        southPanel.add(component, BorderLayout.SOUTH);
+                        southPanel.revalidate();
+                        southPanel.repaint();
+                        southPanel.getParent().revalidate();
+                        southPanel.getParent().repaint();
+                        scrollContainer.revalidate();
+                        scrollContainer.repaint();
                     });
-            ApplicationManager.getApplication().invokeLater(() -> {
-                JPanel component = saveFormReference.getComponent();
-                southPanel.removeAll();
-                component.setMaximumSize(new Dimension(600, 800));
-                southPanel.add(component, BorderLayout.SOUTH);
-                southPanel.revalidate();
-                southPanel.repaint();
-                southPanel.getParent().revalidate();
-                southPanel.getParent().repaint();
-                scrollContainer.revalidate();
-                scrollContainer.repaint();
-            });
 
 
-        });
+//                            });
+                }, progressIndicator);
 
 
     }
 
     private void resetAndReload() {
-        resetTimeline();
-        if (candidateQueryLatch != null) {
-            candidateQueryLatch.decrementAndGet();
-        }
-        candidateQueryLatch = null;
-        loadNewCandidates();
-        itemPanel.revalidate();
-        itemPanel.repaint();
-        historyStreamScrollPanel.revalidate();
-        historyStreamScrollPanel.repaint();
+        ApplicationManager.getApplication().invokeLater(() -> {
+            resetTimeline();
+            if (candidateQueryLatch != null) {
+                candidateQueryLatch.decrementAndGet();
+            }
+            candidateQueryLatch = null;
+            loadNewCandidates();
+            itemPanel.revalidate();
+            itemPanel.repaint();
+            historyStreamScrollPanel.revalidate();
+            historyStreamScrollPanel.repaint();
+        });
     }
 
     private void executeSingleTestCandidate(TestCandidateMetadata selectedCandidate) {
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             PsiMethod methodPsiElement = ApplicationManager.getApplication().runReadAction(
                     (Computable<PsiMethod>) () -> ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
-                            insidiousService.getProject()));
+                            insidiousService.getProject()).getFirst());
+            if (methodPsiElement == null) {
+                InsidiousNotification.notifyMessage("Failed to identify method in source for " +
+                        selectedCandidate.getMainMethod().getMethodName(), NotificationType.WARNING);
+                return;
+            }
             long batchTime = System.currentTimeMillis();
 
             insidiousService.executeSingleCandidate(
@@ -447,6 +541,8 @@ public class StompComponent implements
     }
 
     public JComponent getComponent() {
+
+
         return mainPanel;
     }
 
@@ -458,6 +554,28 @@ public class StompComponent implements
             historyStreamScrollPanel.setVisible(true);
             welcomePanelRemoved = true;
         }
+        itemPanel.remove(unloggedSDKOnboarding.getComponent());
+
+        totalAcceptedCount++;
+
+        if (totalAcceptedCount > 10) {
+            if (!insidiousService.getProject().isDisposed()) {
+                new GotItTooltip("Unlogged.Stomp.Item.Filter",
+                        "Filter items on the timeline by including and excluding classes so only relevant replays show up",
+                        insidiousService.getProject())
+                        .withHeader("Filter whats visible")
+                        .withIcon(UIUtils.UNLOGGED_ICON_DARK_SVG)
+                        .withLink("Enable Follow Method Filter", () -> {
+                            filterModel.setFollowEditor(true);
+                            InsidiousNotification.notifyMessage(
+                                    "Filter will follow method focussed in editor", NotificationType.INFORMATION
+                            );
+                        })
+                        .withPosition(Balloon.Position.atLeft)
+                        .show(actionToolbarContainer, GotItTooltip.LEFT_MIDDLE);
+            }
+
+        }
 
         for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
             if (isAcceptable(testCandidateMetadata)) {
@@ -468,6 +586,10 @@ public class StompComponent implements
     }
 
     private boolean isAcceptable(TestCandidateMetadata testCandidateMetadata) {
+        if (testCandidateMetadata.getMainMethod().getMethodName().contains("$")) {
+            // lambda function
+            return false;
+        }
         if (filterModel.getIncludedClassNames().size() > 0) {
             if (!filterModel.getIncludedClassNames().contains(testCandidateMetadata.getFullyQualifiedClassname())) {
                 return false;
@@ -492,7 +614,9 @@ public class StompComponent implements
     }
 
     private synchronized void addCandidateToUi(TestCandidateMetadata testCandidateMetadata, int index) {
-        StompItem stompItem = new StompItem(testCandidateMetadata, this, insidiousService);
+        JCheckBox comp1 = new JCheckBox();
+        StompItem stompItem = new StompItem(testCandidateMetadata, this, insidiousService, comp1);
+
 
         JScrollBar verticalScrollBar = historyStreamScrollPanel.getVerticalScrollBar();
         int scrollPosition = verticalScrollBar.getValue();
@@ -515,37 +639,49 @@ public class StompComponent implements
 
         rowPanel.add(component, BorderLayout.CENTER);
 
-        JPanel dateAndTimePanel = createDateAndTimePanel(createTimeLineComponent(),
+        JPanel dateAndTimePanel = createDateAndTimePanel(createTimeLineComponent(comp1),
                 Date.from(Instant.ofEpochMilli(testCandidateMetadata.getCreatedAt())));
         rowPanel.add(dateAndTimePanel, BorderLayout.EAST);
 
 
-        makeSpace(index);
-        GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent();
-        gbcForLeftMainComponent.gridy = index;
+//        makeSpace(index);
+        GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent(index);
         itemPanel.add(rowPanel, gbcForLeftMainComponent);
         itemPanel.revalidate();
         itemPanel.repaint();
         historyStreamScrollPanel.revalidate();
         historyStreamScrollPanel.repaint();
 
-        if (!clearTimelineLabel.isVisible()) {
-            clearTimelineLabel.setVisible(true);
-        }
+        if (itemPanel.getComponentCount() > 5 && !shownGotItNofiticaton) {
+            shownGotItNofiticaton = true;
+            new GotItTooltip("Unlogged.Stomp.Item.Show",
+                    "<html>Each method execution shows up here. <br>" +
+                            "Hover on and select by clicking the checkbox next to the pink icon<br>"
+                            + "Right click to include/exclude </html>",
+                    insidiousService.getProject())
+                    .withPosition(Balloon.Position.below)
+                    .show(component, GotItTooltip.BOTTOM_MIDDLE);
 
-        // Restore the scroll position after adding the component
-//        double newPanelSize = component.getSize().getHeight();
-//        int newScrollPosition = (int) (scrollPosition + newPanelSize);
-//        logger.warn("setting scroll position to [1]" + scrollPosition + "+" + newPanelSize
-//                + " => " + newScrollPosition);
-//        verticalScrollBar.setValue(newScrollPosition);
+            new GotItTooltip("Unlogged.Stomp.Item.Checkbox",
+                    "<html>Hover and click the checkbox to select a replay record.<br>Quick replay using the pink play " +
+                            "button</html>",
+                    insidiousService.getProject())
+                    .withPosition(Balloon.Position.below)
+                    .show(component, GotItTooltip.BOTTOM_LEFT);
+
+        }
+//        ApplicationManager.getApplication().invokeLater(() -> {
+//            verticalScrollBar1.setValue(max);
+//        });
+//        logger.warn("Component count is - " +itemPanel.getComponentCount());
+
     }
 
-    private GridBagConstraints createGBCForLeftMainComponent() {
+    private GridBagConstraints createGBCForLeftMainComponent(int yIndex) {
         GridBagConstraints gbc = new GridBagConstraints();
 
         gbc.gridx = 0;
-        gbc.gridy = 0;
+        gbc.gridy = yIndex;
         gbc.gridwidth = 1;
         gbc.gridheight = 1;
 
@@ -569,7 +705,7 @@ public class StompComponent implements
 //        gbc1.gridheight = 1;
 //
 //        gbc1.weightx = 0.1;
-//        gbc1.weighty = 0.3;
+//        gbc1.weighty = 0." ";
 //        gbc1.anchor = GridBagConstraints.LINE_START;
 //        gbc1.fill = GridBagConstraints.BOTH;
 //
@@ -663,7 +799,7 @@ public class StompComponent implements
         comp1.setUI(new VerticalLabelUI(true));
 
 //        comp.add(comp1, BorderLayout.CENTER);
-        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 16, 0, 4));
+        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 17, 0, 4));
         comp.add(lineContainer, BorderLayout.WEST);
         comp.setSize(new Dimension(50, -1));
         comp.setPreferredSize(new Dimension(50, -1));
@@ -687,21 +823,19 @@ public class StompComponent implements
         return lineContainer;
     }
 
-    private JPanel createTimeLineComponent() {
+    private JPanel createTimeLineComponent(JCheckBox comp1) {
         JPanel lineContainer = new JPanel();
         lineContainer.setLayout(new GridBagLayout());
-        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 2));
+        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 0));
 
-        JLabel comp1 = new JLabel();
-        comp1.setIcon(UIUtils.CIRCLE_EMPTY);
-        comp1.setMaximumSize(new Dimension(16, 16));
-        comp1.setMinimumSize(new Dimension(16, 16));
-        comp1.setPreferredSize(new Dimension(16, 16));
+        comp1.setMaximumSize(new Dimension(18, 18));
+        comp1.setMinimumSize(new Dimension(18, 18));
+        comp1.setPreferredSize(new Dimension(18, 18));
 
         JPanel comp2 = new JPanel();
         comp2.add(comp1);
 
-        comp2.setBorder(BorderFactory.createEmptyBorder(1, 0, 1, 0));
+        comp2.setBorder(BorderFactory.createEmptyBorder(1, 1, 1, 0));
 
         GridBagConstraints constraints = new GridBagConstraints();
         constraints.gridx = 0;
@@ -750,12 +884,27 @@ public class StompComponent implements
 
         if (source == ExecutionRequestSourceType.Single) {
             TestCandidateMetadata selectedCandidate = metadata.get(0);
-            PsiMethod methodPsiElement = ApplicationManager.getApplication()
-                    .runReadAction(
+            PsiMethod methodPsiElement = ApplicationManager
+                    .getApplication().runReadAction(
                             (Computable<PsiMethod>) () -> ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
-                                    insidiousService.getProject()));
-            showDirectInvoke(new JavaMethodAdapter(methodPsiElement));
-            directInvokeComponent.triggerExecute();
+                                    insidiousService.getProject()).getFirst());
+            if (methodPsiElement == null) {
+                InsidiousNotification.notifyMessage("Failed to identify method in source for " +
+                        selectedCandidate.getMainMethod().getMethodName(), NotificationType.WARNING);
+                return;
+            }
+
+            JavaMethodAdapter method = new JavaMethodAdapter(methodPsiElement);
+            showDirectInvoke(method);
+            try {
+                directInvokeComponent.renderForMethod(method,
+                        selectedCandidate.getMainMethod().getArguments()
+                                .stream().map(e -> new String(e.getProb().getSerializedValue()))
+                                .collect(Collectors.toList()));
+                directInvokeComponent.triggerExecute();
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
         }
 
     }
@@ -778,33 +927,25 @@ public class StompComponent implements
 
     private void updateControlPanel() {
 
+        selectedCountLabel.setForeground(JBColor.DARK_GRAY);
         selectedCountLabel.setText(selectedCandidates.size() + " selected");
-        if (selectedCandidates.size() > 0 && !controlPanel.isEnabled()) {
-//            reloadButton.setEnabled(true);
-
+        if (selectedCandidates.size() > 0) {
             clearSelectionLabel.setVisible(true);
-//            selectAllLabel.setVisible(true);
+            selectAllLabel.setVisible(false);
+//            saveReplayButton.setEnabled(true);
+
+            new GotItTooltip("Unlogged.Stomp.ActionToolbar",
+                    "Use the toolbar to replay/save or generate test case for multiple method replays at once",
+                    insidiousService.getProject())
+                    .withPosition(Balloon.Position.above)
+                    .show(actionToolbar.getComponent(), GotItTooltip.TOP_MIDDLE);
 
 
-            generateJUnitButton.setEnabled(true);
-//            saveAsMockButton.setEnabled(true);
-            replayButton.setEnabled(true);
-            saveReplayButton.setEnabled(true);
-            controlPanel.setEnabled(true);
-//            setLabelsVisible(true);
-        } else if (selectedCandidates.size() == 0 && controlPanel.isEnabled()) {
+        } else {
             selectedCountLabel.setText("0 selected");
             clearSelectionLabel.setVisible(false);
-//            selectAllLabel.setVisible(false);
-
-
-//            reloadButton.setEnabled(false);
-            generateJUnitButton.setEnabled(false);
-//            saveAsMockButton.setEnabled(false);
-            replayButton.setEnabled(false);
-            saveReplayButton.setEnabled(false);
-            controlPanel.setEnabled(false);
-//            setLabelsVisible(false);
+            selectAllLabel.setVisible(true);
+//            saveReplayButton.setEnabled(false);
         }
     }
 
@@ -835,10 +976,11 @@ public class StompComponent implements
     }
 
     @Override
-    public void onGenerateJunitTestCaseRequest(TestCandidateMetadata storedCandidate) {
+    public void onGenerateJunitTestCaseRequest(List<TestCandidateMetadata> storedCandidate) {
+        DumbService instance = DumbService.getInstance(insidiousService.getProject());
 
         TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Gson, ResourceEmbedMode.IN_FILE
+                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Jackson, ResourceEmbedMode.IN_CODE
         );
         TestCaseService testCaseService = insidiousService.getTestCaseService();
         if (testCaseService == null) {
@@ -847,34 +989,30 @@ public class StompComponent implements
             return;
         }
 
-        for (TestCandidateMetadata testCandidateShell : selectedCandidates) {
+        ArrayList<TestCandidateMetadata> selectedCandidatesCopy = new ArrayList<>(storedCandidate);
+        for (TestCandidateMetadata testCandidateShell : selectedCandidatesCopy) {
 
             try {
 
-                TestCandidateMetadata loadedTestCandidate = ApplicationManager.getApplication().executeOnPooledThread(
-                        () -> insidiousService.getSessionInstance()
-                                .getTestCandidateById(testCandidateShell.getEntryProbeIndex(), true)).get();
-                Parameter testSubject = loadedTestCandidate.getTestSubject();
-                if (testSubject.isException()) {
-                    continue;
-                }
-                MethodCallExpression callExpression = loadedTestCandidate.getMainMethod();
-                String methodName = callExpression.getMethodName();
-                logger.warn(
-                        "Generating test case: " + testSubject.getType() + "." + methodName + "()");
-                generationConfiguration.getTestCandidateMetadataList().clear();
-                generationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
+                CountDownLatch cdl = new CountDownLatch(1);
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    instance.waitForSmartMode();
+                    instance.suspendIndexingAndRun("Generating JUnit Test cases", () -> {
+                        try {
+                            generateTestCaseSingle(generationConfiguration, testCaseService, testCandidateShell);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            cdl.countDown();
+                        }
 
-                generationConfiguration.getCallExpressionList().clear();
-                generationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
 
-                generationConfiguration.setTestMethodName(
-                        "test" + methodName.substring(0, 1).toUpperCase(Locale.ROOT) + methodName.substring(1));
-                TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-                List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
-                testCaseUnit1.add(testCaseUnit);
-                TestSuite testSuite = new TestSuite(testCaseUnit1);
-                insidiousService.getJUnitTestCaseWriter().saveTestSuite(testSuite);
+                    });
+
+                });
+
+                cdl.await();
+                instance.waitForSmartMode();
 
             } catch (Exception e) {
                 logger.error("Failed to generate test case", e);
@@ -883,8 +1021,37 @@ public class StompComponent implements
                                 .getType() + "] " + e.getMessage(), NotificationType.ERROR);
             }
         }
+        logger.info("completed");
 
 
+    }
+
+    private boolean generateTestCaseSingle(TestCaseGenerationConfiguration generationConfiguration, TestCaseService testCaseService, TestCandidateMetadata testCandidateShell) throws Exception {
+        TestCandidateMetadata loadedTestCandidate = ApplicationManager.getApplication().executeOnPooledThread(
+                () -> insidiousService.getSessionInstance()
+                        .getTestCandidateById(testCandidateShell.getEntryProbeIndex(), true)).get();
+        Parameter testSubject = loadedTestCandidate.getTestSubject();
+        if (testSubject.isException()) {
+            return true;
+        }
+        MethodCallExpression callExpression = loadedTestCandidate.getMainMethod();
+        String methodName = callExpression.getMethodName();
+        logger.warn(
+                "Generating test case: " + testSubject.getType() + "." + methodName + "()");
+        generationConfiguration.getTestCandidateMetadataList().clear();
+        generationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
+
+        generationConfiguration.getCallExpressionList().clear();
+        generationConfiguration.getCallExpressionList().addAll(loadedTestCandidate.getCallsList());
+
+        generationConfiguration.setTestMethodName(
+                "test" + methodName.substring(0, 1).toUpperCase(Locale.ROOT) + methodName.substring(1));
+        TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+        List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
+        testCaseUnit1.add(testCaseUnit);
+        TestSuite testSuite = new TestSuite(testCaseUnit1);
+        insidiousService.getJUnitTestCaseWriter().saveTestSuite(testSuite);
+        return false;
     }
 
     @Override
@@ -1011,6 +1178,7 @@ public class StompComponent implements
     public void clear() {
         List<Component> itemsToNotDelete = new ArrayList<>();
         List<StompItem> pinnedStomps = new ArrayList<>();
+        countByMethodName.clear();
         for (StompItem stompItem : stompItems) {
             if (stompItem.isPinned()) {
                 pinnedStomps.add(stompItem);
@@ -1029,6 +1197,7 @@ public class StompComponent implements
         GridBagConstraints gbcForFakeComponent = createGBCForFakeComponent();
         gbcForFakeComponent.gridy = itemPanel.getComponentCount();
         itemPanel.add(new JPanel(), gbcForFakeComponent, itemPanel.getComponentCount());
+        itemPanel.add(unloggedSDKOnboarding.getComponent(), createGBCForProcessStartedComponent());
 
         selectedCandidates.clear();
         updateControlPanel();
@@ -1102,19 +1271,27 @@ public class StompComponent implements
         if (directInvokeComponent == null) {
             directInvokeComponent = new MethodDirectInvokeComponent(insidiousService, this);
             JComponent content = directInvokeComponent.getContent();
-            content.setMinimumSize(new Dimension(-1, 500));
-            content.setMaximumSize(new Dimension(-1, 600));
-            southPanel.removeAll();
-            southPanel.add(content, BorderLayout.CENTER);
-        }
-        try {
-            directInvokeComponent.renderForMethod(method, null);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            content.setMinimumSize(new Dimension(-1, 400));
+            content.setMaximumSize(new Dimension(-1, 500));
         }
 
-        historyStreamScrollPanel.revalidate();
-        historyStreamScrollPanel.repaint();
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try {
+                directInvokeComponent.renderForMethod(method, null);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        ApplicationManager.getApplication().invokeLater(() -> {
+            southPanel.removeAll();
+            southPanel.add(directInvokeComponent.getContent(), BorderLayout.CENTER);
+
+            southPanel.revalidate();
+            southPanel.repaint();
+            historyStreamScrollPanel.revalidate();
+            historyStreamScrollPanel.repaint();
+        });
+
     }
 
     public void showNewDeclaredMockCreator(JavaMethodAdapter javaMethodAdapter,
@@ -1122,7 +1299,7 @@ public class StompComponent implements
         onMethodFocussed(javaMethodAdapter);
         MockDefinitionEditor mockEditor = new MockDefinitionEditor(MethodUnderTest.fromMethodAdapter(javaMethodAdapter),
                 psiMethodCallExpression, insidiousService.getProject(), declaredMock -> {
-            insidiousService.saveMockDefinition(declaredMock);
+            String newMockId = insidiousService.saveMockDefinition(declaredMock);
             InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
             mainPanel.revalidate();
             mainPanel.repaint();
@@ -1134,10 +1311,10 @@ public class StompComponent implements
         JComponent content = mockEditor.getComponent();
         content.setMinimumSize(new Dimension(-1, 500));
         content.setMaximumSize(new Dimension(-1, 600));
-        southPanel.removeAll();
-        southPanel.add(content, BorderLayout.CENTER);
 
         ApplicationManager.getApplication().invokeLater(() -> {
+            southPanel.removeAll();
+            southPanel.add(content, BorderLayout.CENTER);
             scrollContainer.revalidate();
             scrollContainer.repaint();
             historyStreamScrollPanel.revalidate();
@@ -1147,38 +1324,6 @@ public class StompComponent implements
         });
     }
 
-//    public void showNewTestCandidateCreator(MethodUnderTest methodUnderTest,
-//                                            PsiMethodCallExpression psiMethodCallExpression) {
-//        MockDefinitionEditor mockEditor = new MockDefinitionEditor(methodUnderTest, psiMethodCallExpression,
-//                insidiousService.getProject(), new OnSaveListener() {
-//            @Override
-//            public void onSaveDeclaredMock(DeclaredMock declaredMock) {
-//                atomicRecordService.saveMockDefinition(declaredMock);
-//                InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
-//            }
-//        }, new OnCloseListener<Void>() {
-//            @Override
-//            public void onClose(Void component) {
-//                southPanel.removeAll();
-//            }
-//        });
-//        JComponent content = mockEditor.getComponent();
-//        content.setMinimumSize(new Dimension(-1, 500));
-//        content.setMaximumSize(new Dimension(-1, 600));
-//        southPanel.add(content, BorderLayout.CENTER);
-//    }
-
-    void makeSpace(int position) {
-        Component[] components = itemPanel.getComponents();
-        for (Component component : components) {
-            GridBagConstraints gbc = ((GridBagLayout) itemPanel.getLayout()).getConstraints(component);
-            if (gbc.gridy < position) {
-                continue;
-            }
-            gbc.gridy += 1;
-            itemPanel.add(component, gbc);
-        }
-    }
 
     public void removeDirectInvoke() {
         southPanel.remove(directInvokeComponent.getContent());
@@ -1195,19 +1340,15 @@ public class StompComponent implements
             welcomePanelRemoved = true;
         }
 
-        JLabel process_started = new JLabel("Process started");
-        process_started.setIcon(UIUtils.LIBRARY_ICON);
+        JLabel process_started = new JLabel("<html><font color='#548AF7'><b> Process started... </b></font></html>");
+//        process_started.setIcon(UIUtils.LIBRARY_ICON);
         JPanel startedPanel = new JPanel();
         startedPanel.setLayout(new BorderLayout());
         process_started.setBorder(
-                BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new JBColor(
-                                new Color(35, 103, 30),
-                                new Color(35, 103, 30)), 2, true),
-                        BorderFactory.createEmptyBorder(6, 6, 6, 6)
-                )
+                BorderFactory.createEmptyBorder(6, 6, 6, 6)
         );
-        startedPanel.add(process_started, BorderLayout.EAST);
+//        process_started.setForeground(new Color(84, 138, 247));
+//        startedPanel.add(process_started, BorderLayout.EAST);
 
         JPanel rowPanel = new JPanel();
         rowPanel.setLayout(new BorderLayout());
@@ -1215,7 +1356,7 @@ public class StompComponent implements
 
         rowPanel.add(startedPanel, BorderLayout.CENTER);
         rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
-        makeSpace(0);
+//        makeSpace(0);
         rowPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
         itemPanel.add(rowPanel, createGBCForProcessStartedComponent());
 
@@ -1267,19 +1408,44 @@ public class StompComponent implements
     @Override
     public void run() {
         try {
-            while (true) {
-                final TestCandidateMetadata testCandidateMetadata = incomingQueue.take();
-                CountDownLatch pollerCDL = new CountDownLatch(1);
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    acceptSingle(testCandidateMetadata);
-                    pollerCDL.countDown();
-                });
-
-                pollerCDL.await();
+//            while (true) {
+            final TestCandidateMetadata testCandidateMetadata = incomingQueue.poll(1000, TimeUnit.MILLISECONDS);
+            if (testCandidateMetadata == null) {
+                return;
             }
+            CountDownLatch pollerCDL = new CountDownLatch(1);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                try {
+
+                    List<TestCandidateMetadata> remainingItems = new ArrayList<>();
+                    remainingItems.add(testCandidateMetadata);
+                    incomingQueue.drainTo(remainingItems);
+//                    while (remainingItems.size() > 100) {
+//                        remainingItems.remove(0);
+//                    }
+
+                    for (TestCandidateMetadata remainingItem : remainingItems) {
+                        acceptSingle(remainingItem);
+                    }
+                    while (itemPanel.getComponentCount() > 100) {
+                        itemPanel.remove(0);
+                    }
 
 
-        } catch (InterruptedException e) {
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                } finally {
+                    pollerCDL.countDown();
+                }
+            });
+
+            pollerCDL.await();
+//            }
+
+
+        } catch (Exception e) {
+            // who killed this
+//            e.printStackTrace();
             // just end
         } finally {
         }
@@ -1287,37 +1453,65 @@ public class StompComponent implements
     }
 
     private void acceptSingle(TestCandidateMetadata testCandidateMetadata) {
-        if (testCandidateMetadata.getExitProbeIndex() > lastEventId) {
-            lastEventId = testCandidateMetadata.getExitProbeIndex();
+//        logger.warn("entr acceptSingle: " + testCandidateMetadata);
+        String className = testCandidateMetadata.getFullyQualifiedClassname();
+        String methodName = testCandidateMetadata.getMainMethod().getMethodName();
+        String key = className + "." +
+                methodName;
+        AtomicInteger countAtomic = countByMethodName.get(key);
+        if (countAtomic == null) {
+            countAtomic = new AtomicInteger(0);
+            countByMethodName.put(key, countAtomic);
         }
-        if (stompItems.size() > 0) {
 
-            StompItem last = stompItems.get(stompItems.size() - 1);
-            long gapStartIndex = last.getTestCandidate().getExitProbeIndex();
-            long gapEndIndex = testCandidateMetadata.getEntryProbeIndex();
-            int count = insidiousService.getMethodCallCountBetween(gapStartIndex, gapEndIndex);
-            if (count > 0) {
-                AFewCallsLater aFewCallsLater = new AFewCallsLater(gapStartIndex, gapEndIndex, count,
-                        this);
-
-                JScrollBar verticalScrollBar = historyStreamScrollPanel.getVerticalScrollBar();
-                int scrollPosition = verticalScrollBar.getValue();
-
-                JPanel labelPanel = aFewCallsLater.getComponent();
-
-                JPanel rowPanel = new JPanel(new BorderLayout());
-                rowPanel.add(labelPanel, BorderLayout.CENTER);
-                rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
-                GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent();
-                makeSpace(0);
-                itemPanel.add(rowPanel, gbcForLeftMainComponent, 0);
+        int count = countAtomic.incrementAndGet();
+        if (count > 40) {
+            if (!filterModel.getIncludedClassNames().contains(className) ||
+                    !filterModel.getIncludedMethodNames().contains(methodName)) {
+                filterModel.getExcludedMethodNames().add(methodName);
+                filterModel.getExcludedClassNames().add(className);
+                InsidiousNotification.notifyMessage("Excluded [" + key + "] from live view. If you want to see them " +
+                                "include the class [" + className + "] and method [" + methodName + "] in filters.",
+                        NotificationType.INFORMATION);
+                return;
 
             }
         }
-        addCandidateToUi(testCandidateMetadata, 0);
+
+        if (testCandidateMetadata.getExitProbeIndex() > lastEventId) {
+            lastEventId = testCandidateMetadata.getExitProbeIndex();
+        }
+//        if (stompItems.size() > 0) {
+//
+////            StompItem last = stompItems.get(stompItems.size() - 1);
+////            long gapStartIndex = last.getTestCandidate().getExitProbeIndex();
+////            long gapEndIndex = testCandidateMetadata.getEntryProbeIndex();
+////            int count = insidiousService.getMethodCallCountBetween(gapStartIndex, gapEndIndex);
+////            if (count > 0) {
+////                AFewCallsLater aFewCallsLater = new AFewCallsLater(gapStartIndex, gapEndIndex, count,
+////                        this);
+////
+////                JScrollBar verticalScrollBar = historyStreamScrollPanel.getVerticalScrollBar();
+////                int scrollPosition = verticalScrollBar.getValue();
+////
+////                JPanel labelPanel = aFewCallsLater.getComponent();
+////
+////                JPanel rowPanel = new JPanel(new BorderLayout());
+////                rowPanel.add(labelPanel, BorderLayout.CENTER);
+////                rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
+////                GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent(
+////                        itemPanel.getComponentCount());
+//////                makeSpace(0);
+////                itemPanel.add(rowPanel, gbcForLeftMainComponent, 0);
+////
+////            }
+//        }
+        addCandidateToUi(testCandidateMetadata, itemPanel.getComponentCount());
         itemPanel.revalidate();
         scrollContainer.revalidate();
         scrollContainer.repaint();
+//        logger.warn("exit acceptSingle: " + testCandidateMetadata);
+
     }
 
     public void setSession(ExecutionSession executionSession) {
@@ -1328,8 +1522,30 @@ public class StompComponent implements
     }
 
     public void onMethodFocussed(MethodAdapter method) {
+        if (method == null) {
+            lastMethodFocussed = null;
+            return;
+        }
         String newMethodName = method.getName();
-        String newClassName = method.getContainingClass().getQualifiedName();
+        ClassAdapter containingClass = method.getContainingClass();
+        List<String> newClassNameList = new ArrayList<>();
+        newClassNameList.add(containingClass.getQualifiedName());
+        for (ClassAdapter aSuper : containingClass.getSupers()) {
+            newClassNameList.add(aSuper.getQualifiedName());
+        }
+
+        JavaPsiImplementationHelper jsp = JavaPsiImplementationHelper.getInstance(method.getProject());
+
+        Collection<PsiClass> childClasses = ClassInheritorsSearch.search(
+                ApplicationManager.getApplication().runReadAction(
+                        (Computable<PsiClass>) () -> method.getPsiMethod().getContainingClass())).findAll();
+
+        for (PsiClass childClass : childClasses) {
+            newClassNameList.add(ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) childClass::getQualifiedName));
+        }
+
+
         MethodUnderTest newMethodAdapter = ApplicationManager.getApplication().runReadAction(
                 (Computable<MethodUnderTest>) () -> MethodUnderTest.fromMethodAdapter(method));
         if (lastMethodFocussed != null) {
@@ -1345,7 +1561,7 @@ public class StompComponent implements
             if (filterModel.getIncludedMethodNames().size() == 1 && filterModel.getIncludedMethodNames()
                     .contains(newMethodName)) {
                 if (filterModel.getIncludedClassNames().size() == 1 && filterModel.getIncludedClassNames()
-                        .contains(newClassName)) {
+                        .containsAll(newClassNameList)) {
                     if (filterModel.getExcludedClassNames().size() == 0 && filterModel.getExcludedMethodNames()
                             .size() == 0) {
                         // already set
@@ -1356,10 +1572,32 @@ public class StompComponent implements
 
             clearFilter();
             filterModel.getIncludedMethodNames().add(newMethodName);
-            filterModel.getIncludedClassNames().add(newClassName);
+            filterModel.getIncludedClassNames().addAll(newClassNameList);
             updateFilterLabel();
             resetAndReload();
         }
     }
 
+    public void showOnboardingScreen(UnloggedOnboardingScreenV2 screen) {
+        mainPanel.removeAll();
+        mainPanel.add(screen.getComponent(), BorderLayout.CENTER);
+    }
+
+    public void dispose() {
+        if (candidateQueryLatch != null) {
+            candidateQueryLatch.decrementAndGet();
+        }
+    }
+
+    public void showVersionBadge(SemanticVersion currentVersion, SemanticVersion requiredVersion) {
+        Notification notification = new Notification(InsidiousNotification.DISPLAY_ID, "Update unlogged-sdk Version",
+                "You are using version " + currentVersion.toString() + " which is older than recommended version for" +
+                        " this plugin " + requiredVersion + ". Please update the unlogged-sdk version in your pom" +
+                        ".xml/build.gradle",
+                NotificationType.ERROR);
+        notification.setImportant(true);
+        notification.setSubtitle("Use unlogged-sdk:" + requiredVersion.toString());
+        notification.setIcon(UIUtils.UNLOGGED_ICON_DARK_SVG);
+        Notifications.Bus.notify(notification);
+    }
 }

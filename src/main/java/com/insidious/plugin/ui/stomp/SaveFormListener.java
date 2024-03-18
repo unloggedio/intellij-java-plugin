@@ -4,12 +4,12 @@ import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.callbacks.CandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.ReplayAllExecutionContext;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.record.AtomicRecordService;
-import com.insidious.plugin.ui.library.DeclaredMockItemPanel;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -53,13 +53,26 @@ public class SaveFormListener implements CandidateLifeListener {
         TestCandidateMetadata loadedTestCandidate = insidiousService.getTestCandidateById(
                 storedCandidate.getEntryProbeIndex(), false);
 
-        StoredCandidate existingMatchingStoredCandidate = atomicRecordService
-                .getStoredCandidateFor(loadedTestCandidate);
-        if (existingMatchingStoredCandidate.getCandidateId() == null) {
-            existingMatchingStoredCandidate.setCandidateId(UUID.randomUUID().toString());
-            existingMatchingStoredCandidate.setName("saved on " + simpleDateFormat.format(new Date().toInstant()));
+        StoredCandidate existingMatchingStoredCandidate = atomicRecordService.getStoredCandidateFor(
+                loadedTestCandidate);
+        if (existingMatchingStoredCandidate != null) {
+            existingMatchingStoredCandidate.setName(
+                    methodUnderTest.getName() + " saved on " + simpleDateFormat.format(new Date().toInstant()));
+            existingMatchingStoredCandidate.setMockIds(storedCandidate.getMockIds());
+            existingMatchingStoredCandidate.setTestAssertions(storedCandidate.getTestAssertions());
+            existingMatchingStoredCandidate.setLineNumbers(storedCandidate.getLineNumbers());
+            existingMatchingStoredCandidate.setMetadata(storedCandidate.getMetadata());
+            existingMatchingStoredCandidate.setException(storedCandidate.isException());
+            existingMatchingStoredCandidate.setMethodArguments(storedCandidate.getMethodArguments());
+            existingMatchingStoredCandidate.setReturnValue(storedCandidate.getReturnValue());
+            existingMatchingStoredCandidate.setProbSerializedValue(storedCandidate.getProbSerializedValue());
+            atomicRecordService.saveCandidate(methodUnderTest, existingMatchingStoredCandidate);
+        } else {
+            storedCandidate.setCandidateId(UUID.randomUUID().toString());
+            storedCandidate.setName(
+                    methodUnderTest.getName() + " saved on " + simpleDateFormat.format(new Date().toInstant()));
+            atomicRecordService.saveCandidate(methodUnderTest, storedCandidate);
         }
-        atomicRecordService.saveCandidate(methodUnderTest, existingMatchingStoredCandidate);
 
     }
 
@@ -114,8 +127,8 @@ public class SaveFormListener implements CandidateLifeListener {
     }
 
     @Override
-    public void onSaved(DeclaredMockItemPanel value) {
-
+    public String onSaved(DeclaredMock declaredMock) {
+        return insidiousService.saveMockDefinition(declaredMock);
     }
 
 }

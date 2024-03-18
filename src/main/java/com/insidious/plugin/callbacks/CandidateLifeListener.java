@@ -2,6 +2,7 @@ package com.insidious.plugin.callbacks;
 
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.ReplayAllExecutionContext;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -45,5 +46,6 @@ public interface CandidateLifeListener {
 
     Project getProject();
 
-    void onSaved(DeclaredMockItemPanel value);
+    // returns id of the saved mock
+    String onSaved(DeclaredMock declaredMock);
 }

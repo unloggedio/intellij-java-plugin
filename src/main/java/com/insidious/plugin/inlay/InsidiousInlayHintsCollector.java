@@ -12,22 +12,30 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.hints.FactoryInlayHintsCollector;
 import com.intellij.codeInsight.hints.InlayHintsSink;
+import com.intellij.codeInsight.hints.InlayPresentationFactory;
 import com.intellij.codeInsight.hints.presentation.*;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.editor.ex.util.EditorUtil;
+import com.intellij.openapi.editor.impl.EditorImpl;
 import com.intellij.openapi.editor.markup.EffectType;
 import com.intellij.openapi.editor.markup.TextAttributes;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.ui.popup.ActiveIcon;
+import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiMethodImpl;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.testFramework.LightVirtualFile;
+import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.containers.JBIterable;
@@ -106,6 +114,16 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
     @Override
     public boolean collect(PsiElement element, Editor editor, InlayHintsSink inlayHintsSink) {
+        if (!(editor instanceof EditorImpl)) {
+            return true;
+        } else {
+            VirtualFile vf = ((EditorImpl) editor).getVirtualFile();
+            if (vf instanceof LightVirtualFile) {
+                // no inlay hints for light virtual files, which are in memory files like snippets
+                return true;
+            }
+        }
+
         if (element instanceof PsiClass) {
             currentClass = (PsiClass) element;
             classMethodAggregates = insidiousService.getClassMethodAggregates(currentClass.getQualifiedName());
@@ -113,7 +131,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         }
         if (classMethodAggregates == null) {
             if (currentClass != null) {
-                logger.warn("we dont have any class method aggregates for class: " + currentClass.getQualifiedName());
+                logger.debug("we dont have any class method aggregates for class: " + currentClass.getQualifiedName());
             }
 //            return false;
         }
@@ -170,20 +188,16 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         }
         if (mockableCallCount == 1) {
             PsiMethodCallExpression theCall = mockableCalls.get(0);
-            PsiExpression qualifierTextExpression = theCall.getMethodExpression()
-                    .getQualifierExpression();
+            PsiExpression qualifierTextExpression = theCall.getMethodExpression().getQualifierExpression();
             if (qualifierTextExpression == null) {
                 return;
             }
             String qualifierText = qualifierTextExpression.getText();
-            String typeCanonicalName = qualifierTextExpression.getType()
-                    .getCanonicalText();
+            String typeCanonicalName = qualifierTextExpression.getType().getCanonicalText();
             if (qualifierText.equals("log") || qualifierText.equals("logger")) {
                 return;
             }
-            if (
-                    typeCanonicalName.startsWith("com.fasterxml.jackson")
-            ) {
+            if (typeCanonicalName.startsWith("com.fasterxml.jackson")) {
                 return;
             }
         }
@@ -211,6 +225,22 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         inlayPresentations.add(createMock);
 
         SequencePresentation sequenceOfInlays = new SequencePresentation(inlayPresentations);
+
+        GotItTooltip go = new GotItTooltip("Unlogged.Inlay.Mock",
+                "Mock downstream call by creating mock responses. " +
+                        "Enable mocks in live application",
+                insidiousService.getProject())
+                .withHeader("Mock Downstream Call")
+                .withLink("Go to library", insidiousService::showLibrary)
+                .andShowCloseShortcut()
+                .withPosition(Balloon.Position.above);
+        ApplicationManager.getApplication().invokeLater(() -> {
+            go.show(editor.getContentComponent(), (component, balloon) -> {
+                Point point = editor.offsetToXY(startOffset, true, true);
+                return new Point((int) (point.getX() + column * columnWidth),
+                        (int) point.getY() - editor.getLineHeight());
+            });
+        });
 
 
         inlayHintsSink.addBlockElement(startOffset, true, true, UNLOGGED_APM_GROUP, sequenceOfInlays);
@@ -240,6 +270,9 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     }
 
     private void createInlinePresentationsForMethod(PsiMethod methodPsiElement, Editor editor, InlayHintsSink inlayHintsSink) {
+        if (classMethodAggregates == null) {
+            return;
+        }
         MethodCallAggregate methodAggregate = classMethodAggregates.getMethodAggregate(methodPsiElement.getName());
         if (methodAggregate == null) {
             return;
@@ -253,11 +286,17 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
         Integer count = methodAggregate.getCount();
         InlayPresentation inlayShowingCount = createInlayPresentation(count + (count < 2 ? " call" : " calls"),
-                "click to filter in timeline");
+                "<html>Show mocks in Unlogged tool window</html>", (mouseEvent, point) -> {
+                    insidiousService.showStompAndFilterForMethod(new JavaMethodAdapter(methodPsiElement));
+                    logger.warn("inlay clicked: " + count + (count < 2 ? " call" : " calls"));
+                });
+
         String avgStringText = String.format(formatTimeDuration(methodAggregate.getAverage()));
-        InlayPresentation inlayShowingAverage = createInlayPresentation(avgStringText, "mean");
+        InlayPresentation inlayShowingAverage = createInlayPresentation(avgStringText, "mean",
+                (mouseEvent, point) -> logger.warn("inlay clicked: " + avgStringText));
         String stdDevStringText = String.format(formatTimeDuration(methodAggregate.getStdDev()));
-        InlayPresentation inlayShowingStdDev = createInlayPresentation(stdDevStringText, "stdDev");
+        InlayPresentation inlayShowingStdDev = createInlayPresentation(stdDevStringText, "stdDev",
+                (mouseEvent, point) -> logger.warn("inlay clicked: " + stdDevStringText));
 
 
         int offset = range.getStartOffset();
@@ -296,15 +335,6 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         PsiElement start = elementChildren.filter(e -> !(e instanceof PsiComment) && !(e instanceof PsiWhiteSpace))
                 .first();
         return TextRange.create(start.getTextRange().getStartOffset(), element.getTextRange().getEndOffset());
-    }
-
-    private InlayPresentation createCommaInlayPresentation() {
-
-        PresentationFactory factory = getFactory();
-        InlayPresentation text;
-
-        text = factory.smallText(", ");
-        return text;
     }
 
 
@@ -390,17 +420,23 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
                             .show(new RelativePoint(mouseEvent));
 
                 } else {
-                    PsiMethodCallExpression methodCallExpression = mockableCallExpressions.get(0);
-                    PsiMethod psiMethod = (PsiMethod) methodCallExpression.getMethodExpression()
-                            .resolve();
-                    insidiousService.showMockCreator(new JavaMethodAdapter(psiMethod), methodCallExpression);
+                    ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                        DumbService.getInstance(insidiousService.getProject())
+                                .runReadActionInSmartMode(() -> {
+                                    PsiMethodCallExpression methodCallExpression = mockableCallExpressions.get(0);
+                                    PsiMethod psiMethod = (PsiMethod) methodCallExpression.getMethodExpression()
+                                            .resolve();
+                                    insidiousService.showMockCreator(new JavaMethodAdapter(psiMethod),
+                                            methodCallExpression);
+                                });
+                    });
                 }
             } else {
                 insidiousService.onMethodCallExpressionInlayClick(mockableCallExpressions, mouseEvent, point);
             }
         });
 
-        text = factory.withTooltip("<html>Click to browse mocks\n\nMultiline<br /> <b>bold</b></html>", text);
+        text = factory.withTooltip("<html>Show mocks in Unlogged tool window</html>", text);
 
         text = new WithCursorOnHoverPresentation(text, Cursor.getPredefinedCursor(Cursor.HAND_CURSOR), editor);
 
@@ -408,7 +444,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     }
 
 
-    private InlayPresentation createInlayPresentation(final String inlayText, String hoverText) {
+    private InlayPresentation createInlayPresentation(final String inlayText, String hoverText, InlayPresentationFactory.ClickListener clickListener) {
 
         PresentationFactory factory = getFactory();
         InlayPresentation text;
@@ -416,12 +452,9 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         text = factory.smallText(inlayText);
         text = factory.withReferenceAttributes(text);
 
-        text = new OnClickPresentation(text, (mouseEvent, point) -> {
-            logger.warn("inlay clicked: " + inlayText);
-        });
+        text = new OnClickPresentation(text, clickListener);
 
-        InlayPresentation onHover = factory.roundWithBackground(text);
-
+//        InlayPresentation onHover = factory.roundWithBackground(text);
 //        text = new ChangeOnHoverPresentation(text, () -> onHover, mouseEvent -> true);
 
 

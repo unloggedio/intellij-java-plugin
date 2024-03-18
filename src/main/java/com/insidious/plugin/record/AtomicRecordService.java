@@ -8,6 +8,7 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.mocking.ParameterMatcher;
+import com.insidious.plugin.mocking.ThenParameter;
 import com.insidious.plugin.pojo.atomic.AtomicRecord;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
@@ -26,6 +27,7 @@ import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -179,20 +181,27 @@ public class AtomicRecordService {
 
 
     private String getFilenameForClass(String classname, Module module) {
-        String destinationFileName = separator + classname + ".json";
 
+        String destinationFileName = separator + classname + ".json";
+        String defaultPath = projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
         if (module == null) {
-            return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
+            return defaultPath;
         }
 
         VirtualFile moduleDirectoryFile = ProjectUtil.guessModuleDir(module);
-
         if (moduleDirectoryFile == null) {
-            return projectBasePath + separator + TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME + destinationFileName;
+            return defaultPath;
+        }
+        String testContentPathFromModule = buildModuleBasePath(moduleDirectoryFile);
+
+        // sometimes returned virtual file is a location in build
+        // artifact this removes it from file location
+        int indexBuild = testContentPathFromModule.indexOf("/build/generated/sources");
+        if (indexBuild != -1) {
+            testContentPathFromModule = testContentPathFromModule.substring(0, indexBuild);
         }
 
-        String testContentPathFromModule = buildModuleBasePath(moduleDirectoryFile);
-        String testResourcesPathFromModulePath = testContentPathFromModule +
+        String testResourcesPathFromModulePath = testContentPathFromModule + separator +
                 TEST_RESOURCES_PATH + UNLOGGED_RESOURCE_FOLDER_NAME;
 
         return testResourcesPathFromModulePath + destinationFileName;
@@ -200,18 +209,32 @@ public class AtomicRecordService {
 
     private Module getModuleForClass(PsiClass psiClassResult) {
         final ProjectFileIndex index = ProjectRootManager.getInstance(psiClassResult.getProject()).getFileIndex();
-        return index.getModuleForFile(psiClassResult.getContainingFile().getVirtualFile());
+        return ApplicationManager.getApplication().runReadAction(
+                (Computable<Module>) () -> index.getModuleForFile(psiClassResult.getContainingFile().getVirtualFile()));
     }
 
     public Module guessModuleForClassName(String className) {
+        if (DumbService.getInstance(insidiousService.getProject()).isDumb()) {
+            InsidiousNotification.notifyMessage("Please try after ide indexing is complete", NotificationType.WARNING);
+            return null;
+        }
+
         Project project = insidiousService.getProject();
 
         PsiClass psiClass;
         try {
             psiClass = ApplicationManager.getApplication()
                     .executeOnPooledThread(() -> ApplicationManager.getApplication().runReadAction(
-                            (Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project)
-                                    .findClass(className, GlobalSearchScope.allScope(project)))).get();
+                            (Computable<PsiClass>) () -> {
+                                if (DumbService.getInstance(insidiousService.getProject()).isDumb()) {
+                                    InsidiousNotification.notifyMessage("Please try after ide indexing is complete",
+                                            NotificationType.WARNING);
+                                    return null;
+                                }
+
+                                return JavaPsiFacade.getInstance(project)
+                                        .findClass(className, GlobalSearchScope.allScope(project));
+                            })).get();
             if (psiClass == null) {
                 logger.warn("Class not found [" + className + "] for saving atomic records");
             } else {
@@ -323,6 +346,11 @@ public class AtomicRecordService {
             if (notify) {
                 InsidiousNotification.notifyMessage(getMessageForOperationType(type, file.getPath(), true),
                         NotificationType.INFORMATION);
+            }
+            VirtualFile virtialFile = VirtualFileManager.getInstance()
+                    .findFileByNioPath(file.getParentFile().toPath());
+            if (virtialFile != null) {
+                virtialFile.refresh(false, false);
             }
         } catch (Exception e) {
             logger.info("[ATRS] Failed to write to file : " + e);
@@ -523,26 +551,26 @@ public class AtomicRecordService {
     }
 
     //call to sync at session close
-    public void writeAll() {
-        try {
-            if (classAtomicRecordMap.size() == 0) {
-                return;
-            }
-            for (String classname : classAtomicRecordMap.keySet()) {
-                AtomicRecord recordForClass = classAtomicRecordMap.get(classname);
-                try {
-                    writeToFile(new File(getFilenameForClass(classname)), recordForClass,
-                            FileUpdateType.UPDATE_CANDIDATE,
-                            false);
-                } catch (Exception e) {
-                    // class not found... class was renamed
-                    // this record is now orphan
-                }
-            }
-        } catch (Exception e) {
-            logger.info("Failed to sync on exit " + e);
-        }
-    }
+//    public void writeAll() {
+//        try {
+//            if (classAtomicRecordMap.size() == 0) {
+//                return;
+//            }
+//            for (String classname : classAtomicRecordMap.keySet()) {
+//                AtomicRecord recordForClass = classAtomicRecordMap.get(classname);
+//                try {
+//                    writeToFile(new File(getFilenameForClass(classname)), recordForClass,
+//                            FileUpdateType.UPDATE_CANDIDATE,
+//                            false);
+//                } catch (Exception e) {
+//                    // class not found... class was renamed
+//                    // this record is now orphan
+//                }
+//            }
+//        } catch (Exception e) {
+//            logger.info("Failed to sync on exit " + e);
+//        }
+//    }
 
     public void checkPreRequisites() {
         classAtomicRecordMap = updateMap();
@@ -619,7 +647,7 @@ public class AtomicRecordService {
 
     }
 
-    public void saveMockDefinition(DeclaredMock declaredMock) {
+    public String saveMockDefinition(DeclaredMock declaredMock) {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("className", declaredMock.getFieldTypeName());
         jsonObject.put("methodName", declaredMock.getMethodName());
@@ -652,7 +680,10 @@ public class AtomicRecordService {
                 existingMocks.remove(existingMock);
                 break;
             }
-            if (isSameMatcher(existingMock.getWhenParameter(), declaredMock.getWhenParameter())) {
+            if (
+                    isSameWhenMatcher(existingMock.getWhenParameter(), declaredMock.getWhenParameter())
+                    && isSameThenMatcher(existingMock.getThenParameter(), declaredMock.getThenParameter())
+            ) {
                 updated = true;
                 existingMocks.remove(existingMock);
                 declaredMock.setId(existingMock.getId());
@@ -666,13 +697,14 @@ public class AtomicRecordService {
             eventname = "UPDATED_EXISTING_MOCK";
         }
         UsageInsightTracker.getInstance().RecordEvent(eventname, jsonObject);
-        writeToFile(
-                new File(getFilenameForClass(className, guessModuleForClassName(declaredMock.getSourceClassName()))),
-                record,
+        File file = new File(
+                getFilenameForClass(className, guessModuleForClassName(declaredMock.getSourceClassName())));
+        writeToFile(file, record,
                 updated ? FileUpdateType.UPDATE_MOCK : FileUpdateType.ADD_MOCK, true);
+        return declaredMock.getId();
     }
 
-    private boolean isSameMatcher(List<ParameterMatcher> whenParameter, List<ParameterMatcher> whenParameter1) {
+    private boolean isSameWhenMatcher(List<ParameterMatcher> whenParameter, List<ParameterMatcher> whenParameter1) {
         if (whenParameter.size() != whenParameter1.size()) {
             return false;
         }
@@ -680,6 +712,22 @@ public class AtomicRecordService {
         for (int i = 0; i < whenParameter.size(); i++) {
             ParameterMatcher left = whenParameter.get(i);
             ParameterMatcher right = whenParameter1.get(i);
+            if (!left.equals(right)) {
+                return false;
+            }
+
+        }
+        return true;
+
+    }
+    private boolean isSameThenMatcher(List<ThenParameter> thenParameterList, List<ThenParameter> thenParameterListNew) {
+        if (thenParameterList.size() != thenParameterListNew.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < thenParameterList.size(); i++) {
+            ThenParameter left = thenParameterList.get(i);
+            ThenParameter right = thenParameterListNew.get(i);
             if (!left.equals(right)) {
                 return false;
             }
@@ -744,13 +792,13 @@ public class AtomicRecordService {
         MethodUnderTest methodUnderTest = potentialCandidate.getMethod();
         AtomicRecord ars = classAtomicRecordMap.get(potentialCandidate.getMethod().getClassName());
         if (ars == null) {
-            return potentialCandidate;
+            return null;
         }
 
         List<StoredCandidate> methodStoredCandidates = ars.getStoredCandidateMap()
                 .get(methodUnderTest.getMethodHashKey());
         if (methodStoredCandidates == null || methodStoredCandidates.size() == 0) {
-            return potentialCandidate;
+            return null;
         }
 
         for (StoredCandidate methodStoredCandidate : methodStoredCandidates) {
@@ -774,7 +822,7 @@ public class AtomicRecordService {
         }
 
 
-        return potentialCandidate;
+        return null;
     }
 
     public enum FileUpdateType {

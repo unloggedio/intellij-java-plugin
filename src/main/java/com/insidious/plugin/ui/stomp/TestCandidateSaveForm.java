@@ -4,22 +4,24 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.Expression;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
+import com.insidious.plugin.mocking.*;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
+import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.ui.library.DeclaredMockItemPanel;
 import com.insidious.plugin.ui.library.ItemLifeCycleListener;
 import com.insidious.plugin.ui.library.StoredCandidateItemPanel;
-import com.insidious.plugin.ui.methodscope.OnCloseListener;
+import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.util.*;
+import com.intellij.icons.AllIcons;
 import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -28,11 +30,13 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.util.Pair;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -42,7 +46,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.*;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class TestCandidateSaveForm {
@@ -54,6 +57,7 @@ public class TestCandidateSaveForm {
     private final Map<StoredCandidate, StoredCandidateItemPanel> candidatePanelMap = new HashMap<>();
     private final Map<DeclaredMock, DeclaredMockItemPanel> declaredMockPanelMap = new HashMap<>();
     private final Map<AtomicAssertion, AtomicAssertionItemPanel> atomicAssertionPanelMap = new HashMap<>();
+    Set<AssertionType> TOP_ONE = new HashSet<>();
     private JPanel mainPanel;
     private JLabel assertionCountLabel;
     private JLabel linesCountLabel;
@@ -87,8 +91,17 @@ public class TestCandidateSaveForm {
     private JPanel voidInfoPanel;
 
     public TestCandidateSaveForm(List<TestCandidateMetadata> sourceCandidates,
-                                 SaveFormListener saveFormListener, OnCloseListener<TestCandidateSaveForm> onCloseListener) {
-        InsidiousService service = saveFormListener.getProject().getService(InsidiousService.class);
+                                 SaveFormListener saveFormListener,
+                                 ComponentLifecycleListener<TestCandidateSaveForm> componentLifecycleListener) {
+
+        TOP_ONE.add(AssertionType.ALLOF);
+        TOP_ONE.add(AssertionType.ANYOF);
+        TOP_ONE.add(AssertionType.NOTALLOF);
+        TOP_ONE.add(AssertionType.NOTANYOF);
+
+
+        Project project1 = saveFormListener.getProject();
+        InsidiousService insidiousService = project1.getService(InsidiousService.class);
 
 //        ProgressManager instance = ProgressManager.getInstance();
 //        ProgressIndicator progressIndicator = instance.getProgressIndicator();
@@ -96,10 +109,8 @@ public class TestCandidateSaveForm {
 
         List<TestCandidateMetadata> list = new ArrayList<>();
         for (TestCandidateMetadata sourceCandidate : sourceCandidates) {
-//            if (progressIndicator.isCanceled()) {
-//                throw new RuntimeException("saving cancelled");
-//            }
-            TestCandidateMetadata testCandidateById = service.getTestCandidateById(sourceCandidate.getEntryProbeIndex(),
+            TestCandidateMetadata testCandidateById = insidiousService.getTestCandidateById(
+                    sourceCandidate.getEntryProbeIndex(),
                     true);
             list.add(testCandidateById);
         }
@@ -143,100 +154,42 @@ public class TestCandidateSaveForm {
 
 
         long voidMethodCount = candidateMetadataList.stream().filter(e ->
-                        e.getMainMethod().getReturnValue() == null ||
+                e.getMainMethod().getReturnValue() == null ||
                         e.getMainMethod().getReturnValue().getType() == null ||
-                e.getMainMethod().getReturnValue().getType().equalsIgnoreCase("void")).count();
+                        e.getMainMethod().getReturnValue().getType().equalsIgnoreCase("void")).count();
 
-        if (voidMethodCount > 0 ) {
+        if (voidMethodCount > 0) {
             voidInfoPanel.setVisible(true);
             methodReturningVoidLabel.setText(voidMethodCount + " method return void");
         } else {
             voidInfoPanel.setVisible(false);
         }
 
+        Map<Long, List<TestCandidateMetadata>> mapByEntryProbe = candidateMetadataList.stream()
+                .collect(Collectors.groupingBy(TestCandidateMetadata::getEntryProbeIndex));
 
-        List<DeclaredMock> mocksList = ApplicationManager.getApplication().runReadAction(
-                (Computable<List<DeclaredMock>>) () -> collectDownstreamMockCalls(candidateMetadataList));
-
-        mockCallCountLabel.setText(mocksList.size() + " downstream call mocks");
-
-
-        confirmButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    for (StoredCandidate storedCandidate : candidateList) {
-                        if (!unitRadioButton.isSelected()) {
-                            storedCandidate.setMockIds(new HashSet<>());
-                        }
-                        saveFormListener.onSaved(storedCandidate);
-                    }
-
-                    Collection<DeclaredMockItemPanel> values = declaredMockPanelMap.values();
-                    for (DeclaredMockItemPanel value : values) {
-                        saveFormListener.onSaved(value);
-                    }
-
-
-                    InsidiousNotification
-                            .notifyMessage(
-                                    "Saved " + candidateList.size() + " replay tests and "
-                                            + values.size() + " mock definitions", NotificationType.INFORMATION,
-                                    List.of(
-                                            new AnAction(new Supplier<String>() {
-                                                @Override
-                                                public String get() {
-                                                    return "Show Library";
-                                                }
-                                            }, UIUtils.LIBRARY_ICON) {
-                                                @Override
-                                                public void actionPerformed(@NotNull AnActionEvent e) {
-                                                    saveFormListener.getProject()
-                                                            .getService(InsidiousService.class)
-                                                            .showLibrary();
-                                                }
-                                            }
-                                    )
-                            );
-
-                    onCloseListener.onClose(TestCandidateSaveForm.this);
-                });
-            }
-        });
-
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                onCloseListener.onClose(TestCandidateSaveForm.this);
-            }
-        });
-
-
+        Map<StoredCandidate, List<DeclaredMock>> mocksMap = new HashMap<>();
 
         candidateList = candidateMetadataList.stream()
                 .map(candidateMetadata -> {
                     StoredCandidate storedCandidate = new StoredCandidate(candidateMetadata);
 
-                    JsonNode returnValue;
+
+                    List<DeclaredMock> mocks = ApplicationManager.getApplication()
+                            .runReadAction((Computable<List<DeclaredMock>>) () -> patchCandidate(candidateMetadata,
+                                    storedCandidate, project1));
+
+                    mocksMap.put(storedCandidate, mocks);
+
+
                     MethodCallExpression mainMethod = candidateMetadata.getMainMethod();
                     if (mainMethod.getReturnValue().getValue() == 0 || mainMethod.getReturnValue().getType() == null) {
+                        storedCandidate.setTestAssertions(new AtomicAssertion());
                         return storedCandidate;
                     }
+
                     Parameter returnValue1 = mainMethod.getReturnValue();
-                    if (returnValue1.getProb().getSerializedValue().length == 0) {
-                        return storedCandidate;
-                    }
-                    String stringValue = new String(returnValue1.getProb().getSerializedValue());
-                    if (stringValue.length() == 0) {
-                        return storedCandidate;
-                    }
-                    try {
-                        returnValue = objectMapper.readTree(stringValue);
-                    } catch (JsonProcessingException e) {
-                        logger.warn("Failed to parse response value as a json object: " + e.getMessage());
-                        returnValue =
-                                objectMapper.getNodeFactory().textNode(stringValue);
-                    }
+                    JsonNode returnValue = getValueForParameter(returnValue1);
 
 
                     AtomicAssertion assertion;
@@ -251,6 +204,64 @@ public class TestCandidateSaveForm {
                     storedCandidate.setTestAssertions(assertion);
                     return storedCandidate;
                 }).collect(Collectors.toList());
+
+//        Map<Long, List<StoredCandidate>> storedCandidateByEntryProbe = candidateList.stream()
+//                .collect(Collectors.groupingBy(StoredCandidate::getEntryProbeIndex));
+
+
+        List<DeclaredMock> declaredMockList = mocksMap.values().stream().flatMap(Collection::stream)
+                .collect(Collectors.toList());
+        mockCallCountLabel.setText(declaredMockList.size() + " downstream call mocks");
+
+        confirmButton.setIcon(AllIcons.Actions.MenuSaveall);
+        confirmButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    int mockSavedCount = 0;
+                    for (StoredCandidate storedCandidate : candidateList) {
+                        if (!unitRadioButton.isSelected()) {
+                            storedCandidate.setMockIds(new HashSet<>());
+                        } else {
+                            List<DeclaredMock> mocks = mocksMap.getOrDefault(storedCandidate, new ArrayList<>());
+
+                            Set<String> mockIds = new HashSet<>();
+                            for (DeclaredMock declaredMock : mocks) {
+                                String mockId = saveFormListener.onSaved(declaredMock);
+                                mockIds.add(mockId);
+                            }
+                            mockSavedCount += mockIds.size();
+                            storedCandidate.setMockIds(mockIds);
+                        }
+                        saveFormListener.onSaved(storedCandidate);
+                    }
+
+
+                    insidiousService.reloadLibrary();
+
+                    InsidiousNotification
+                            .notifyMessage(
+                                    "Saved " + candidateList.size() + " replay tests and "
+                                            + mockSavedCount + " mock definitions", NotificationType.INFORMATION,
+                                    List.of(
+                                            new AnAction(() -> "Go to Library", UIUtils.LIBRARY_ICON) {
+                                                @Override
+                                                public void actionPerformed(@NotNull AnActionEvent e) {
+                                                    saveFormListener.getProject()
+                                                            .getService(InsidiousService.class)
+                                                            .showLibrary();
+                                                }
+                                            }
+                                    )
+                            );
+
+                    componentLifecycleListener.onClose(TestCandidateSaveForm.this);
+                });
+            }
+        });
+
+        cancelButton.setIcon(AllIcons.Actions.Cancel);
+        cancelButton.addActionListener(e -> componentLifecycleListener.onClose(TestCandidateSaveForm.this));
 
 
         List<AtomicAssertion> allAssertions = candidateList.stream()
@@ -311,6 +322,11 @@ public class TestCandidateSaveForm {
             }
 
             @Override
+            public void onClick(StoredCandidate item) {
+
+            }
+
+            @Override
             public void onUnSelect(StoredCandidate item) {
 
             }
@@ -338,7 +354,6 @@ public class TestCandidateSaveForm {
         candidateItemContainer.setAlignmentX(0);
 
 
-
         Project project = saveFormListener.getProject();
         for (int i = 0; i < candidateList.size(); i++) {
             StoredCandidate storedCandidate = candidateList.get(i);
@@ -354,7 +369,15 @@ public class TestCandidateSaveForm {
         ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener = new ItemLifeCycleListener<>() {
             @Override
             public void onSelect(DeclaredMock item) {
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    InsidiousUtils.focusInEditor(item.getFieldTypeName(),
+                            item.getMethodName(), project);
+                });
 
+            }
+
+            @Override
+            public void onClick(DeclaredMock item) {
             }
 
             @Override
@@ -383,8 +406,8 @@ public class TestCandidateSaveForm {
         mockItemContainer.setAlignmentY(0);
         mockItemContainer.setAlignmentX(0);
 
-        for (int i = 0; i < mocksList.size(); i++) {
-            DeclaredMock declaredMock = mocksList.get(i);
+        for (int i = 0; i < declaredMockList.size(); i++) {
+            DeclaredMock declaredMock = declaredMockList.get(i);
             DeclaredMockItemPanel declaredMockItemPanel = new DeclaredMockItemPanel(declaredMock,
                     itemLifeCycleListener, project);
             declaredMockItemPanel.setIsSelectable(false);
@@ -393,7 +416,7 @@ public class TestCandidateSaveForm {
         }
 
 
-        mockItemContainer.add(new JPanel(), createGBCForFakeComponent(mocksList.size()));
+        mockItemContainer.add(new JPanel(), createGBCForFakeComponent(declaredMockList.size()));
 
 
         MouseAdapter showMocksAdapter = new MouseAdapter() {
@@ -425,6 +448,11 @@ public class TestCandidateSaveForm {
         ItemLifeCycleListener<AtomicAssertion> atomicAssertionLifeListener = new ItemLifeCycleListener<>() {
             @Override
             public void onSelect(AtomicAssertion item) {
+
+            }
+
+            @Override
+            public void onClick(AtomicAssertion item) {
 
             }
 
@@ -481,8 +509,12 @@ public class TestCandidateSaveForm {
             assertionItemContainer.add(atomicAssertionItemPanel.getComponent(),
                     createGBCForLeftMainComponent(assertionPanelCount));
             int count = AtomicAssertionUtils.countAssertions(atomicAssertion);
+            String returnValueClassname = storedCandidate.getReturnValueClassname();
             atomicAssertionItemPanel.setTitle(count + " assertions for " +
-                    ClassTypeUtils.getSimpleClassName(storedCandidate.getReturnValueClassname()));
+                    ClassTypeUtils.getSimpleClassName(returnValueClassname == null ? "Void" : returnValueClassname) +
+                    " from " + ClassTypeUtils.getSimpleClassName(
+                    storedCandidate.getMethod().getClassName()) + "." + storedCandidate.getMethod()
+                    .getName());
             assertionPanelCount++;
         }
         assertionItemContainer.add(new JPanel(), createGBCForFakeComponent(assertionPanelCount));
@@ -520,6 +552,226 @@ public class TestCandidateSaveForm {
 
     }
 
+    private JsonNode getValueForParameter(Parameter returnValue1) {
+        JsonNode returnValue;
+        if (returnValue1.getProb().getSerializedValue().length == 0) {
+
+
+            switch (returnValue1.getType()) {
+                case "I":
+                case "java.lang.Integer":
+                    returnValue = objectMapper.getNodeFactory()
+                            .numberNode(Math.toIntExact(returnValue1.getProb().getValue()));
+                    break;
+                case "L":
+                case "java.lang.Long":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode(Long.valueOf(returnValue1.getProb().getValue()));
+                    break;
+                case "F":
+                case "java.lang.Float":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode(Float.valueOf(returnValue1.getProb().getValue()));
+                    break;
+                case "B":
+                case "java.lang.Byte":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode(Byte.valueOf((byte) returnValue1.getProb().getValue()));
+                    break;
+                case "D":
+                case "java.lang.Double":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode(Double.valueOf(returnValue1.getProb().getValue()));
+                    break;
+                case "C":
+                case "java.lang.Character":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode((char) returnValue1.getProb().getValue());
+                    break;
+                case "Z":
+                case "java.lang.Boolean":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .booleanNode(returnValue1.getProb().getValue() != 0);
+                    break;
+                case "S":
+                case "java.lang.Short":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode((short) returnValue1.getProb().getValue());
+                    break;
+
+                default:
+                    returnValue = objectMapper.getNodeFactory()
+                            .numberNode(returnValue1.getProb().getValue());
+                    break;
+
+            }
+
+        } else {
+            String stringValue = new String(returnValue1.getProb().getSerializedValue());
+            if (stringValue.length() == 0) {
+                returnValue = objectMapper.getNodeFactory().nullNode();
+            } else {
+                try {
+                    returnValue = objectMapper.readTree(stringValue);
+                } catch (JsonProcessingException e) {
+                    logger.warn("Failed to parse response value as a json object: " + e.getMessage());
+                    returnValue = objectMapper.getNodeFactory().textNode(stringValue);
+                }
+            }
+        }
+        return returnValue;
+    }
+
+    private List<DeclaredMock> patchCandidate(
+            TestCandidateMetadata candidateMetadata,
+            StoredCandidate storedCandidate,
+            Project project
+    ) {
+
+        Pair<PsiMethod, PsiSubstitutor> psiMethod = ClassTypeUtils.getPsiMethod(
+                candidateMetadata.getMainMethod(), project);
+        PsiMethod candidateTargetMethod = psiMethod.getFirst();
+
+        List<PsiMethodCallExpression> allCallExpressions = ApplicationManager.getApplication().runReadAction(
+                (Computable<List<PsiMethodCallExpression>>) () -> getAllCallExpressions(candidateTargetMethod));
+
+        MethodUnderTest storedCandidateTargetMethod = storedCandidate.getMethod();
+
+        MethodUnderTest targetMethodWithResolvedSignature = MethodUnderTest.fromPsiCallExpression(
+                candidateTargetMethod);
+
+        storedCandidate.setMethod(targetMethodWithResolvedSignature);
+
+        PsiParameterList parameterList = candidateTargetMethod.getParameterList();
+        int parametersCount = parameterList.getParametersCount();
+
+//        StringBuilder methodSignatureBuilder = new StringBuilder();
+//        for (int i = 0; i < parametersCount; i++) {
+//            @Nullable PsiParameter parameter = parameterList.getParameter(i);
+//        }
+
+        Map<String, List<PsiMethodCallExpression>> expressionsByMethodName = allCallExpressions.stream()
+                .collect(Collectors.groupingBy(e1 -> {
+                    return ApplicationManager.getApplication().runReadAction(
+                            (Computable<String>) () -> {
+                                MethodUnderTest methodUnderTest = MethodUnderTest.fromPsiCallExpression(e1);
+                                if (methodUnderTest == null) {
+                                    return "";
+                                }
+                                return methodUnderTest.getName();
+                            });
+                }));
+        List<DeclaredMock> mocks = new ArrayList<>();
+
+        List<MethodCallExpression> callListCopy = new ArrayList<>(candidateMetadata.getCallsList());
+        while (callListCopy.size() > 0) {
+            MethodCallExpression methodCallExpression = callListCopy.remove(0);
+            if (methodCallExpression.isStaticCall()) {
+                continue;
+            }
+//            String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
+//            PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
+//                    GlobalSearchScope.allScope(project));
+
+            final String methodName = methodCallExpression.getMethodName();
+
+            List<PsiMethodCallExpression> callExpressionByName = expressionsByMethodName.get(methodName);
+            if (callExpressionByName == null) {
+                // no such call
+                continue;
+            }
+            if (callExpressionByName.size() != 1) {
+                //
+//                throw new RuntimeException("please");
+            }
+
+            PsiMethodCallExpression callExpression = callExpressionByName.get(0);
+
+            PsiExpression callOnSubject = callExpression.getMethodExpression().getQualifierExpression();
+            if (callOnSubject instanceof PsiMethodCallExpression) {
+                continue;
+            }
+            PsiElement resolvedSubject = getCallSubjectElement(callOnSubject);
+            if (!(resolvedSubject instanceof PsiField)) {
+                // call on local variable or paramter
+                continue;
+            }
+
+
+            String fieldName = callExpression.getMethodExpression()
+                    .getQualifierExpression().getText();
+            if (fieldName.startsWith("System.")) {
+                // not mocking any calls on System....
+                continue;
+            }
+            PsiSubstitutor substitutor = ClassUtils.getSubstitutorForCallExpression(callExpression);
+
+            PsiMethod callTarget = callExpression.resolveMethod();
+
+            PsiType callExpressionReturnType = ClassTypeUtils.substituteClassRecursively(callTarget.getReturnType(),
+                    substitutor);
+
+            TestCaseWriter.setParameterTypeFromPsiType(methodCallExpression.getReturnValue(),
+                    callExpressionReturnType, true);
+
+            MethodUnderTest mut = MethodUnderTest.fromPsiCallExpression(callExpression);
+
+            List<ParameterMatcher> whenParameterList = new ArrayList<>();
+            for (Parameter argument : methodCallExpression.getArguments()) {
+                ParameterMatcher parameterMatcher = new ParameterMatcher(argument.getName(),
+                        ParameterMatcherType.ANY_OF_TYPE, argument.getType());
+                whenParameterList.add(parameterMatcher);
+            }
+
+
+            List<ThenParameter> thenParameterList = new ArrayList<>();
+            Parameter returnValue1 = methodCallExpression.getReturnValue();
+            JsonNode value = getValueForParameter(returnValue1);
+
+            String returnValueClassName = callExpressionReturnType.getCanonicalText(); // returnValue1.getType();
+            ReturnValue returnValue = new ReturnValue(value.toString(), returnValueClassName, ReturnValueType.REAL);
+            ThenParameter thenParam = new ThenParameter(returnValue, MethodExitType.NORMAL);
+
+            thenParameterList.add(thenParam);
+            DeclaredMock newMock = new DeclaredMock(
+                    "mock response for call to " + callExpression.getText(),
+                    methodCallExpression.getSubject().getType(), candidateMetadata.getFullyQualifiedClassname(),
+                    fieldName, methodCallExpression.getMethodName(),
+                    mut.getMethodHashKey(), whenParameterList, thenParameterList
+            );
+            mocks.add(newMock);
+            storedCandidate.getMockIds().add(newMock.getId());
+
+        }
+
+        return mocks;
+
+
+    }
+
+    @Nullable
+    private PsiElement getCallSubjectElement(PsiExpression callOnSubject) {
+        PsiElement resolvedSubject = null;
+        if (callOnSubject instanceof PsiReferenceExpression) {
+            resolvedSubject = ((PsiReferenceExpression) callOnSubject).resolve();
+        } else if (callOnSubject instanceof PsiParenthesizedExpression) {
+            resolvedSubject = getCallSubjectElement(((PsiParenthesizedExpression) callOnSubject).getExpression());
+        } else if (callOnSubject instanceof PsiTypeCastExpression) {
+            resolvedSubject = getCallSubjectElement(((PsiTypeCastExpression) callOnSubject).getOperand());
+        } else if (callOnSubject instanceof PsiMethodCallExpression) {
+            resolvedSubject = getCallSubjectElement(
+                    ((PsiMethodCallExpression) callOnSubject).getMethodExpression().getQualifierExpression());
+        }
+        return resolvedSubject;
+    }
+
     private List<PsiMethodCallExpression> getAllCallExpressions(PsiMethod targetMethod) {
 //        @Nullable PsiClass containingClass = targetMethod.getContainingClass();
         List<PsiMethodCallExpression> psiMethodCallExpressions = new ArrayList<>(PsiTreeUtil.findChildrenOfType(
@@ -528,8 +780,8 @@ public class TestCandidateSaveForm {
         List<PsiMethodCallExpression> collectedCalls = new ArrayList<>();
 
         for (PsiMethodCallExpression psiMethodCallExpression : psiMethodCallExpressions) {
-            PsiExpression qualifierExpression = psiMethodCallExpression.getMethodExpression()
-                    .getQualifierExpression();
+            PsiExpression qualifierExpression = psiMethodCallExpression.getMethodExpression().getQualifierExpression();
+
             if (qualifierExpression == null) {
                 // this call needs to be scanned
                 PsiMethod subTargetMethod = (PsiMethod) psiMethodCallExpression.getMethodExpression().resolve();
@@ -547,92 +799,6 @@ public class TestCandidateSaveForm {
         }
 
         return collectedCalls;
-    }
-
-    private List<DeclaredMock> collectDownstreamMockCalls(List<TestCandidateMetadata> candidateMetadataList) {
-
-        Map<String, DeclaredMock> mocks = new HashMap<>();
-        for (TestCandidateMetadata testCandidateMetadata : candidateMetadataList) {
-            PsiMethod targetMethod = ClassTypeUtils.getPsiMethod(testCandidateMetadata.getMainMethod(),
-                    saveFormListener.getProject());
-
-            List<PsiMethodCallExpression> allCallExpressions = getAllCallExpressions(targetMethod);
-
-
-            Map<String, List<PsiMethodCallExpression>> expressionsBySignatureMap = allCallExpressions.stream()
-                    .collect(Collectors.groupingBy(e1 -> {
-                        PsiMethod method = e1.resolveMethod();
-                        return MethodUnderTest.fromMethodAdapter(new JavaMethodAdapter(method))
-                                .getMethodHashKey();
-                    }));
-
-
-            mocks = new HashMap<>();
-
-            List<MethodCallExpression> callsList = testCandidateMetadata.getCallsList();
-            List<MethodCallExpression> callListCopy = new ArrayList<>(callsList);
-            while (callListCopy.size() > 0) {
-                MethodCallExpression methodCallExpression = callListCopy.remove(0);
-
-                PsiMethod psiMethod = ClassTypeUtils.getPsiMethod(methodCallExpression, saveFormListener.getProject());
-                if (psiMethod == null) {
-                    logger.warn(
-                            "Failed to resolve method: " + methodCallExpression + ", call will not be mocked");
-                    continue;
-                }
-                MethodUnderTest mockMethodTarget = MethodUnderTest.fromMethodAdapter(
-                        new JavaMethodAdapter(psiMethod));
-
-                List<PsiMethodCallExpression> expressionsBySignature = expressionsBySignatureMap.get(
-                        mockMethodTarget.getMethodHashKey());
-
-                if (expressionsBySignature == null) {
-                    // this call is not on a field. it is probably a call to a method in the same class
-                    // not mocking this
-                    logger.warn("Skipping call for mocking: " + mockMethodTarget);
-                    continue;
-                }
-
-                PsiMethodCallExpression methodCallExpression1 = expressionsBySignature.get(0);
-//                    methodCallExpression1.getMethodExpression()
-
-                PsiReferenceExpression methodExpression = methodCallExpression1.getMethodExpression();
-                PsiExpression qualifierExpression1 = methodExpression.getQualifierExpression();
-                if (qualifierExpression1 == null) {
-                    // call to another method in the same class :)
-                    // should never happen
-                    continue;
-                }
-
-                if (!(qualifierExpression1 instanceof PsiReferenceExpression)) {
-                    // what is this ? TODO: add support for chain mocking
-                    continue;
-                }
-                PsiReferenceExpression qualifierExpression = (PsiReferenceExpression) qualifierExpression1;
-                PsiElement qualifierField = qualifierExpression.resolve();
-                if (!(qualifierField instanceof PsiField)) {
-                    // call is not on a field
-                    continue;
-                }
-                DeclaredMock declaredMock = ApplicationManager.getApplication().runReadAction(
-                        (Computable<DeclaredMock>) () -> ClassUtils.createDefaultMock(methodCallExpression1));
-
-                DeclaredMock existingMock = mocks.get(mockMethodTarget.getMethodHashKey());
-                if (existingMock == null) {
-                    mocks.put(mockMethodTarget.getMethodHashKey(), declaredMock);
-                } else {
-                    existingMock.getThenParameter().addAll(declaredMock.getThenParameter());
-                }
-
-
-            }
-
-
-        }
-
-
-        return new ArrayList<>(mocks.values());
-
     }
 
     private AtomicAssertion createAssertions(JsonNode value, String key) {
@@ -668,7 +834,11 @@ public class TestCandidateSaveForm {
     }
 
     private AtomicAssertion createAssertions(JsonNode returnValue) {
-        return createAssertions(returnValue, "/");
+        AtomicAssertion assertions = createAssertions(returnValue, "/");
+        if (!TOP_ONE.contains(assertions.getAssertionType())) {
+            assertions = new AtomicAssertion(AssertionType.ALLOF, List.of(assertions));
+        }
+        return assertions;
     }
 
     public JPanel getComponent() {

@@ -28,6 +28,7 @@ import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.impl.source.tree.java.*;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.PsiTypesUtil;
 import com.intellij.psi.util.TypeConversionUtil;
 
 import java.util.*;
@@ -102,7 +103,7 @@ public class ClassUtils {
 
         String expressionText = methodCallExpression.getMethodExpression().getText();
         return new DeclaredMock(
-                "mock response for call to" + expressionText, mut.getClassName(), parentClass.getQualifiedName(),
+                "mock response for call to " + expressionText, mut.getClassName(), parentClass.getQualifiedName(),
                 fieldName, mut.getName(), mut.getMethodHashKey(), parameterList, thenParameterList
         );
     }
@@ -110,25 +111,42 @@ public class ClassUtils {
     public static PsiSubstitutor getSubstitutorForCallExpression(PsiMethodCallExpression methodCallExpression) {
         PsiReferenceExpression methodExpression = methodCallExpression.getMethodExpression();
         PsiMethod destinationMethod = (PsiMethod) methodExpression.resolve();
+        if (destinationMethod == null) {
+            return new EmptySubstitutor();
+        }
         PsiExpression fieldReferenceExpression = methodExpression
                 .getQualifierExpression();
-        if (fieldReferenceExpression == null) {
-            // this shouldnt be null
-            throw new RuntimeException("should be not null");
+        PsiType type;
+        if (fieldReferenceExpression == null || fieldReferenceExpression.getReference() == null) {
+            // a call to a methid in the same class, so
+            type =
+                    PsiTypesUtil.getClassType(
+                            ((PsiMethod) methodCallExpression.getMethodExpression().resolve()).getContainingClass());
+        } else {
+            PsiElement fieldExpression = fieldReferenceExpression.getReference().resolve();
+            if (fieldExpression instanceof PsiField) {
+                PsiField callOnField = (PsiField) fieldExpression;
+                type = callOnField.getType();
+            } else if (fieldExpression instanceof PsiLocalVariable) {
+                PsiLocalVariable callOnField = (PsiLocalVariable) fieldExpression;
+                type = callOnField.getType();
+            } else {
+                type = fieldReferenceExpression.getType();
+            }
         }
 
-        PsiElement fieldExpression = fieldReferenceExpression.getReference().resolve();
-        if (!(fieldExpression instanceof PsiField)) {
-            // we shouldn't be mocking this
-            throw new RuntimeException("should be psifield");
-        }
-        PsiField callOnField = (PsiField) fieldExpression;
         PsiClass containingClass = destinationMethod.getContainingClass();
         PsiSubstitutor classSubstitutor = null;
 
-        if (callOnField.getType() instanceof PsiClassReferenceType) {
-            classSubstitutor = TypeConversionUtil.getClassSubstitutor(
-                    containingClass, ((PsiClassReferenceType) callOnField.getType()).resolve(), PsiSubstitutor.EMPTY);
+        if (type instanceof PsiClassReferenceType) {
+            PsiClass resolveChildClass = ((PsiClassReferenceType) type).resolve();
+            if (((PsiClassReferenceType) type).resolve().equals(containingClass)) {
+                classSubstitutor = TypeConversionUtil.getSuperClassSubstitutor(containingClass,
+                        (PsiClassType) type);
+            } else {
+                classSubstitutor = TypeConversionUtil.getClassSubstitutor(
+                        containingClass, resolveChildClass, PsiSubstitutor.EMPTY);
+            }
         }
         return classSubstitutor;
     }
@@ -146,8 +164,10 @@ public class ClassUtils {
         if (parameterType == null) {
             return "null";
         }
-        String parameterTypeCanonicalText =
-                parameterType.getCanonicalText();
+        String parameterTypeCanonicalText = parameterType.getCanonicalText();
+        if (parameterType instanceof PsiWildcardType) {
+            parameterTypeCanonicalText = ((PsiWildcardType) parameterType).getExtendsBound().getCanonicalText();
+        }
         if (creationStack.contains(parameterTypeCanonicalText)) {
             return "null";
         }
@@ -196,7 +216,9 @@ public class ClassUtils {
             if (parameterTypeCanonicalText.equals("org.joda.time.DateTime")) {
                 return String.valueOf(new Date().getTime());
             }
-            if (parameterTypeCanonicalText.equals("org.springframework.security.core.GrantedAuthority")) {
+            if (
+                    parameterTypeCanonicalText.equals("org.springframework.security.core.GrantedAuthority")
+            ) {
                 // SimpleGrantedAuthority
                 return "\"USER\"";
             }
@@ -206,15 +228,24 @@ public class ClassUtils {
                 PsiClassType psiClassRawType =
                         classReferenceType.rawType();
 
+                PsiClass collectionPsiClass = JavaPsiFacade.getInstance(project)
+                        .findClass("java.lang.Iterable", GlobalSearchScope.allScope(project));
+                boolean isCollectionType = false;
+                if (collectionPsiClass != null) {
+                    isCollectionType = PsiTypesUtil.getClassType(collectionPsiClass).isAssignableFrom(psiClassRawType);
+                }
+
                 String rawTypeCanonicalText =
                         psiClassRawType.getCanonicalText();
-                if (
-                        rawTypeCanonicalText.equals("java.util.List") ||
-                                rawTypeCanonicalText.equals("java.util.ArrayList") ||
-                                rawTypeCanonicalText.equals("java.util.LinkedList") ||
-                                rawTypeCanonicalText.equals("java.util.TreeSet") ||
-                                rawTypeCanonicalText.equals("java.util.SortedSet") ||
-                                rawTypeCanonicalText.equals("java.util.Set")
+                if (isCollectionType ||
+                        rawTypeCanonicalText.startsWith("java.util.List") ||
+                        rawTypeCanonicalText.startsWith("java.util.ArrayList") ||
+                        rawTypeCanonicalText.startsWith("java.util.LinkedList") ||
+                        rawTypeCanonicalText.startsWith("java.util.TreeSet") ||
+                        rawTypeCanonicalText.startsWith("java.util.Collection") ||
+                        rawTypeCanonicalText.startsWith("java.util.Iterable") ||
+                        rawTypeCanonicalText.startsWith("java.util.SortedSet") ||
+                        rawTypeCanonicalText.startsWith("java.util.Set")
                 ) {
                     dummyValue.append("[");
                     PsiType type =
@@ -267,6 +298,14 @@ public class ClassUtils {
                     dummyValue.append("[");
                     dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
                     dummyValue.append("]");
+                    return dummyValue.toString();
+                }
+
+                if (
+                        rawTypeCanonicalText.equals("java.util.concurrent.CompletableFuture") ||
+                                rawTypeCanonicalText.equals("java.util.concurrent.Future")
+                ) {
+                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0], creationStack, project));
                     return dummyValue.toString();
                 }
 
@@ -338,7 +377,8 @@ public class ClassUtils {
                     dummyValue.append("}");
                 }
 
-            } else if (parameterType instanceof PsiPrimitiveType) {
+            }
+            else if (parameterType instanceof PsiPrimitiveType) {
                 PsiPrimitiveType primitiveType = (PsiPrimitiveType) parameterType;
                 if ("boolean".equals(primitiveType.getName())) {
                     return "true";

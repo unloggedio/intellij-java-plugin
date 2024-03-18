@@ -55,20 +55,6 @@ public class CandidateSearchQuery {
         );
     }
 
-    public static CandidateSearchQuery cloneWithNewClassName(CandidateSearchQuery candidateSearchQuery, String interfaceName) {
-        MethodUnderTest existingMethodUnderTest = candidateSearchQuery.methodUnderTest;
-        MethodUnderTest newMethodUnderTest = new MethodUnderTest(existingMethodUnderTest.getName(),
-                existingMethodUnderTest.getSignature(),
-                existingMethodUnderTest.getMethodHash(), interfaceName);
-        return new CandidateSearchQuery(
-                newMethodUnderTest,
-                candidateSearchQuery.argumentsDescriptor,
-                candidateSearchQuery.interfaceNames,
-                candidateSearchQuery.candidateFilterType,
-                candidateSearchQuery.loadCalls
-        );
-
-    }
 
     public boolean isLoadCalls() {
         return loadCalls;

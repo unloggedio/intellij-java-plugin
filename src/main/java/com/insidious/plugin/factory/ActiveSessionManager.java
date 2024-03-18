@@ -22,17 +22,9 @@ public class ActiveSessionManager {
 
     private static final Logger logger = LoggerUtil.getInstance(ActiveSessionManager.class);
     private final Map<String, SessionInstance> sessionInstanceMap = new HashMap<>();
-    private final ExecutionSession defaultSessionInstance;
 
     public ActiveSessionManager() {
         String pathToSessions = Constants.HOME_PATH + "/sessions/na";
-
-        defaultSessionInstance = new ExecutionSession();
-        defaultSessionInstance.setPath(pathToSessions);
-        defaultSessionInstance.setSessionId("na");
-        defaultSessionInstance.setCreatedAt(new Date());
-        defaultSessionInstance.setLastUpdateAt(new Date().getTime());
-
     }
 
     public synchronized SessionInstance createSessionInstance(ExecutionSession executionSession, Project project) {
@@ -52,27 +44,29 @@ public class ActiveSessionManager {
         return sessionInstance;
     }
 
-    public ExecutionSession loadDefaultSession() {
-        return defaultSessionInstance;
-    }
+    private final Map<String, Boolean> isDeletedSession = new HashMap<>();
 
+    public synchronized void cleanUpSessionDirectory(ExecutionSession executionSession) {
+        String sessionPath = executionSession.getPath();
+        if (isDeletedSession.containsKey(sessionPath)) {
+            return;
+        }
 
-    public void cleanUpSessionDirectory(ExecutionSession executionSession) {
         SessionInstance sessionInstance = sessionInstanceMap.get(executionSession.getSessionId());
         if (sessionInstance == null) {
             logger.warn("called to delete unknown session id: " + executionSession.getSessionId()
-                    + " -> " + executionSession.getPath());
+                    + " -> " + sessionPath);
         } else {
-            sessionInstance.close();
-            sessionInstanceMap.remove(executionSession.getSessionId());
+            closeSession(sessionInstance);
         }
         File directoryToBeDeleted = FileSystems.getDefault()
-                .getPath(executionSession.getPath())
+                .getPath(sessionPath)
                 .toFile();
         if (!directoryToBeDeleted.exists()) {
             return;
         }
         logger.warn("Deleting directory: " + directoryToBeDeleted);
+        isDeletedSession.put(sessionPath, true);
         deleteDirectory(directoryToBeDeleted);
     }
 
@@ -84,7 +78,14 @@ public class ActiveSessionManager {
             }
         }
 //        logger.warn("[1] Delete file: " + directoryToBeDeleted.getAbsolutePath());
-        directoryToBeDeleted.delete();
+        boolean wasDeleted = directoryToBeDeleted.delete();
+        if (!wasDeleted) {
+            logger.warn("Failed to deleted [" + directoryToBeDeleted.getAbsolutePath() + "]");
+        }
     }
 
+    public void closeSession(SessionInstance sessionInstance) {
+        sessionInstanceMap.remove(sessionInstance.getExecutionSession().getSessionId());
+        sessionInstance.close();
+    }
 }

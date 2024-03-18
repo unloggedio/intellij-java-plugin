@@ -9,9 +9,16 @@ import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.DumbService;
+import com.intellij.ui.Gray;
 import com.intellij.ui.JBColor;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -19,24 +26,30 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.Collections;
 
 public class StompItem {
     public static final JBColor TAG_LABEL_BACKGROUND_GREY = new JBColor(new Color(235, 235, 238),
             new Color(235, 235, 238));
-    public static final JBColor TAG_LABEL_TEXT_GREY = new JBColor(new Color(113, 128, 150, 255),
+    public static final JBColor TAG_LABEL_TEXT_GREY = new JBColor(
+            new Color(113, 128, 150, 255),
             new Color(113, 128, 150, 255));
     public static final int MAX_METHOD_NAME_LABEL_LENGTH = 25;
     public static final JBColor HOVER_HIGHLIGHT_COLOR = new JBColor(
-            new Color(221, 245, 238),
-            new Color(221, 245, 238));
+            new Color(121, 64, 64),
+            new Color(147, 125, 125)
+    );
     private static final Logger logger = LoggerUtil.getInstance(StompItem.class);
     private final TestCandidateLifeListener testCandidateLifeListener;
     private final Color defaultPanelColor;
+    private final InsidiousService insidiousService;
+    private final JCheckBox selectCandidateCheckbox;
+    private final ActionToolbarImpl actionToolbar;
     private TestCandidateMetadata candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
-    private JLabel pinLabel;
+//    private JLabel pinLabel;
     private JLabel timeTakenMsLabel;
     private JLabel lineCoverageLabel;
     private JLabel candidateTitleLabel;
@@ -46,8 +59,6 @@ public class StompItem {
     private JPanel infoPanel;
     private JPanel titleLabelContainer;
     private JPanel metadataPanel;
-    private JCheckBox selectCandidateCheckbox;
-    private JLabel replaySingle;
     private JPanel controlPanel;
     private JPanel controlContainer;
     private boolean isPinned = false;
@@ -55,9 +66,11 @@ public class StompItem {
     public StompItem(
             TestCandidateMetadata testCandidateMetadata,
             TestCandidateLifeListener testCandidateLifeListener,
-            InsidiousService insidiousService) {
+            InsidiousService insidiousService, JCheckBox selectCandidateCheckbox) {
+        this.selectCandidateCheckbox = selectCandidateCheckbox;
         this.candidateMetadata = testCandidateMetadata;
         this.testCandidateLifeListener = testCandidateLifeListener;
+        this.insidiousService = insidiousService;
         defaultPanelColor = mainPanel.getBackground();
 
         MouseAdapter methodNameClickListener = new MouseAdapter() {
@@ -108,70 +121,107 @@ public class StompItem {
 
         mainPanel.revalidate();
 
-        pinLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (isPinned) {
-                    isPinned = false;
-                    pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
-                } else {
-                    isPinned = true;
-                    pinLabel.setIcon(UIUtils.PUSHPIN_2_FILL);
-                }
-            }
+//        pinLabel.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                if (isPinned) {
+//                    isPinned = false;
+//                    pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
+//                } else {
+//                    isPinned = true;
+//                    pinLabel.setIcon(UIUtils.PUSHPIN_2_FILL);
+//                }
+//            }
+//
+//            @Override
+//            public void mouseEntered(MouseEvent e) {
+//                hoverOn();
+//                if (isPinned) {
+//                    pinLabel.setIcon(UIUtils.UNPIN_LINE);
+//                } else {
+//                    pinLabel.setIcon(UIUtils.PUSHPIN_2_LINE);
+//                }
+//                super.mouseEntered(e);
+//            }
+//
+//            @Override
+//            public void mouseExited(MouseEvent e) {
+//                hoverOff();
+//                if (isPinned) {
+//                    pinLabel.setIcon(UIUtils.PUSHPIN_2_FILL);
+//                } else {
+//                    pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
+//                }
+//                super.mouseExited(e);
+//            }
+//        });
+
+
+//        pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
+//        pinLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        new GotItTooltip("Unlogged.Stomp.Item.Replay",
+//                "Replay a single method again using this button", insidiousService.getProject())
+//                .withPosition(Balloon.Position.above)
+//                .show(replaySingle, GotItTooltip.TOP_MIDDLE);
+
+
+        AnAction replayAction = new AnAction(() -> "Replay", UIUtils.REPLAY_PINK) {
 
             @Override
-            public void mouseEntered(MouseEvent e) {
-                hoverOn();
-                if (isPinned) {
-                    pinLabel.setIcon(UIUtils.UNPIN_LINE);
-                } else {
-                    pinLabel.setIcon(UIUtils.PUSHPIN_2_LINE);
-                }
-                super.mouseEntered(e);
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                hoverOff();
-                if (isPinned) {
-                    pinLabel.setIcon(UIUtils.PUSHPIN_2_FILL);
-                } else {
-                    pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
-                }
-                super.mouseExited(e);
-            }
-        });
-
-
-        pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
-        pinLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        replaySingle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        replaySingle.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
+            public void actionPerformed(@NotNull AnActionEvent e) {
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    testCandidateLifeListener.executeCandidate(Collections.singletonList(candidateMetadata),
-                            new ClassUnderTest(candidateMetadata.getFullyQualifiedClassname()),
-                            ExecutionRequestSourceType.Single,
-                            (testCandidate, agentCommandResponse, diffResult) -> {
-
+                    DumbService.getInstance(insidiousService.getProject())
+                            .runReadActionInSmartMode(() -> {
+                                testCandidateLifeListener.executeCandidate(Collections.singletonList(candidateMetadata),
+                                        new ClassUnderTest(candidateMetadata.getFullyQualifiedClassname()),
+                                        ExecutionRequestSourceType.Single,
+                                        (testCandidate, agentCommandResponse, diffResult) -> {
+                                            // do something with the response.
+                                        });
                             });
                 });
             }
+        };
 
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                hoverOn();
-                super.mouseEntered(e);
-            }
+        ArrayList<AnAction> action11 = new ArrayList<>();
+        action11.add(replayAction);
+        actionToolbar = new ActionToolbarImpl(
+                "Live View", new DefaultActionGroup(action11), true);
+        actionToolbar.setMiniMode(false);
+        actionToolbar.setForceMinimumSize(true);
+        actionToolbar.setTargetComponent(mainPanel);
 
-            @Override
-            public void mouseExited(MouseEvent e) {
-                hoverOff();
-                super.mouseExited(e);
-            }
-        });
+
+        controlContainer.add(actionToolbar.getComponent(), BorderLayout.CENTER);
+//        replaySingle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        replaySingle.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+//                    DumbService.getInstance(insidiousService.getProject())
+//                            .runReadActionInSmartMode(() -> {
+//                                testCandidateLifeListener.executeCandidate(Collections.singletonList(candidateMetadata),
+//                                        new ClassUnderTest(candidateMetadata.getFullyQualifiedClassname()),
+//                                        ExecutionRequestSourceType.Single,
+//                                        (testCandidate, agentCommandResponse, diffResult) -> {
+//                                            // do something with the response.
+//                                        });
+//                            });
+//                });
+//            }
+//
+//            @Override
+//            public void mouseEntered(MouseEvent e) {
+//                hoverOn();
+//                super.mouseEntered(e);
+//            }
+//
+//            @Override
+//            public void mouseExited(MouseEvent e) {
+//                hoverOff();
+//                super.mouseExited(e);
+//            }
+//        });
 
 
         MethodUnderTest methodUnderTest = new MethodUnderTest(
@@ -220,7 +270,7 @@ public class StompItem {
         };
 
         timeTakenMsLabel = createTagLabel("%s", new Object[]{timeTakenMsString}, Color.decode(category.getColorHex()),
-                JBColor.WHITE,
+                new JBColor(Gray._255, Gray._255),
                 labelMouseAdapter);
         metadataPanel.add(timeTakenMsLabel);
 
@@ -253,6 +303,7 @@ public class StompItem {
 
         selectCandidateCheckbox.addMouseListener(labelMouseAdapter);
 
+
         selectCandidateCheckbox.addActionListener(e -> {
             if (selectCandidateCheckbox.isSelected()) {
                 testCandidateLifeListener.onSelected(candidateMetadata);
@@ -260,8 +311,8 @@ public class StompItem {
                 testCandidateLifeListener.unSelected(candidateMetadata);
             }
         });
-        selectCandidateCheckbox.setVisible(false);
-        pinLabel.setVisible(false);
+//        pinLabel.setVisible(false);
+
 
     }
 
@@ -288,34 +339,35 @@ public class StompItem {
     }
 
     private void hoverOff() {
-        mainPanel.setBackground(defaultPanelColor);
-        detailPanel.setBackground(defaultPanelColor);
-        infoPanel.setBackground(defaultPanelColor);
-        titleLabelContainer.setBackground(defaultPanelColor);
-        controlPanel.setBackground(defaultPanelColor);
-        controlContainer.setBackground(defaultPanelColor);
-        selectCandidateCheckbox.setBackground(defaultPanelColor);
-        metadataPanel.setBackground(defaultPanelColor);
+//        mainPanel.setBackground(defaultPanelColor);
+//        detailPanel.setBackground(defaultPanelColor);
+//        infoPanel.setBackground(defaultPanelColor);
+//        titleLabelContainer.setBackground(defaultPanelColor);
+//        controlPanel.setBackground(defaultPanelColor);
+//        controlContainer.setBackground(defaultPanelColor);
+//        selectCandidateCheckbox.setBackground(defaultPanelColor);
+//        metadataPanel.setBackground(defaultPanelColor);
 
-        if (!selectCandidateCheckbox.isSelected()) {
-            selectCandidateCheckbox.setVisible(false);
-        }
-        if (!isPinned) {
-            pinLabel.setVisible(false);
-        }
+//        if (!selectCandidateCheckbox.isSelected()) {
+//            selectCandidateCheckbox.setVisible(false);
+//        }
+//        if (!isPinned) {
+//            pinLabel.setVisible(false);
+//        }
     }
 
     private void hoverOn() {
-        mainPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-        detailPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-        infoPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-        titleLabelContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
-        controlPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-        controlContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
-        selectCandidateCheckbox.setBackground(HOVER_HIGHLIGHT_COLOR);
-        metadataPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        mainPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        detailPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        infoPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        titleLabelContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        controlPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        controlContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        selectCandidateCheckbox.setBackground(HOVER_HIGHLIGHT_COLOR);
+//        metadataPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
         selectCandidateCheckbox.setVisible(true);
-        pinLabel.setVisible(true);
+//        pinLabel.setVisible(true);
+
     }
 
     public JPanel getComponent() {
@@ -338,7 +390,6 @@ public class StompItem {
 
     public void setSelected(boolean b) {
         selectCandidateCheckbox.setSelected(b);
-        selectCandidateCheckbox.setVisible(b);
     }
 
     public boolean isPinned() {

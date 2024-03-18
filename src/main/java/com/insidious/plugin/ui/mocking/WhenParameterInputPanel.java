@@ -149,6 +149,9 @@ public class WhenParameterInputPanel {
     }
 
     private void setParameterName(String name) {
+        if (name == null) {
+            return;
+        }
         if (name.length() > 12) {
             name = name.substring(0, 12) + "...";
         }

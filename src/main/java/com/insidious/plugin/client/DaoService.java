@@ -8,6 +8,7 @@ import com.insidious.common.weaver.Descriptor;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.MethodSignatureParser;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.TestAssertion;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -167,7 +168,7 @@ public class DaoService {
         this.parameterProvider = parameterProvider;
 
         // instantiate the DAO to handle Account with String id
-         testCandidateDao = DaoManager.createDao(connectionSource, TestCandidateMetadata.class);
+        testCandidateDao = DaoManager.createDao(connectionSource, TestCandidateMetadata.class);
         probeInfoDao = DaoManager.createDao(connectionSource, ProbeInfo.class);
 //        parameterDao = DaoManager.createDao(connectionSource, Parameter.class);
         logFilesDao = DaoManager.createDao(connectionSource, LogFile.class);
@@ -566,8 +567,8 @@ public class DaoService {
 
             if (methodCallExpression.isStaticCall() || dbMce.getSubject() == 0) {
                 com.insidious.plugin.pojo.Parameter staticSubject =
-                        parameterMap.get(dbMce.getSubject()) != null ?new com.insidious.plugin.pojo.Parameter(
-                        parameterMap.get(dbMce.getSubject())) : new com.insidious.plugin.pojo.Parameter();
+                        parameterMap.get(dbMce.getSubject()) != null ? new com.insidious.plugin.pojo.Parameter(
+                                parameterMap.get(dbMce.getSubject())) : new com.insidious.plugin.pojo.Parameter();
                 staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
                 methodCallExpression.setSubject(staticSubject);
             } else {
@@ -649,7 +650,7 @@ public class DaoService {
                 String callDescFromEntryProbe = methodCallExpression.getEntryProbeInfo()
                         .getAttribute("Desc", null);
                 if (callDescFromEntryProbe != null) {
-                    List<String> descriptorData = ClassTypeUtils.splitMethodDescriptor(callDescFromEntryProbe);
+                    List<String> descriptorData = MethodSignatureParser.parseMethodSignature(callDescFromEntryProbe);
                     String returnType = descriptorData.remove(descriptorData.size() - 1);
                     argumentTypesFromMethodDefinition =
                             descriptorData.stream()
@@ -1244,8 +1245,9 @@ public class DaoService {
             logger.warn("found [" + resultList.size() + "] candidates in " + (end - start) + " ms");
             return resultList;
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
+            logger.warn("failed to getTestCandidatesForAllMethod [" + candidateSearchQuery + "]:  " +
+                    e.getMessage(), e);
+            return new ArrayList<>();
         }
     }
 
@@ -1593,14 +1595,20 @@ public class DaoService {
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
     getTestCandidatePaginated(long afterEventId, int page, int limit) throws SQLException {
-        List<TestCandidateMetadata> dbCandidateList = testCandidateDao.queryBuilder()
-                .where()
-                .ge("entryProbeIndex", afterEventId)
-                .queryBuilder()
-                .offset((long) page * limit)
-                .limit((long) limit)
-                .orderBy("entryProbeIndex", true)
-                .query();
+        List<TestCandidateMetadata> dbCandidateList;
+        try {
+            dbCandidateList = testCandidateDao.queryBuilder()
+                    .where()
+                    .ge("entryProbeIndex", afterEventId)
+                    .queryBuilder()
+                    .offset((long) page * limit)
+                    .limit((long) limit)
+                    .orderBy("entryProbeIndex", true)
+                    .query();
+        } catch (Exception e) {
+            logger.warn("Failed to query database: " + e.getMessage(), e);
+            return new ArrayList<>();
+        }
 
         return dbCandidateList
                 .stream()
@@ -1608,9 +1616,11 @@ public class DaoService {
                     try {
                         return convertTestCandidateMetadata(e, false);
                     } catch (Exception ex) {
-                        throw new RuntimeException(ex);
+                        logger.warn("failed to convert test candidate: " + ex.getMessage());
+                        return null;
                     }
                 })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 

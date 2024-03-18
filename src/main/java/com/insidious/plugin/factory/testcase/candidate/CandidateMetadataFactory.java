@@ -276,12 +276,13 @@ public class CandidateMetadataFactory {
             if (mainMethod.isMethodPublic() && mainMethod.getReturnValue() != null) {
                 mainMethod.writeTo(objectRoutineScript, testConfiguration, testGenerationState);
             } else {
-                objectRoutineScript.addComment("Testing private methods in not a recommended practice");
+                objectRoutineScript.addComment("Testing non-public methods in not a recommended practice");
                 objectRoutineScript.addComment("Cannot invoke private method directly, but we can use reflection");
                 MethodCallExpression reflectedMethod = new MethodCallExpression();
 
                 List<Object> argsList = new ArrayList<>();
-                StringBuilder statement = new StringBuilder("$T $L = $T.forName($S).getMethod($S)");
+                // note that getMethod bracket isnt closed. it will be closed after parameters
+                StringBuilder statement = new StringBuilder("$T $L = $T.forName($S).getMethod($S");
                 argsList.add(ClassTypeUtils.createTypeFromNameString("java.lang.reflect.Method"));
                 argsList.add("methodInstance");
                 argsList.add(ClassTypeUtils.createTypeFromNameString("java.lang.Class"));
@@ -344,10 +345,12 @@ public class CandidateMetadataFactory {
 
 
                 List<Object> argsList2 = new ArrayList<>();
-                StringBuilder methodExecuteBuilder = new StringBuilder("$T $L = $L.invoke($L");
+                StringBuilder methodExecuteBuilder = new StringBuilder("$T $L = ($T) $L.invoke($L");
 
                 argsList2.add(ClassTypeUtils.createTypeFromNameString(returnParameter.getType()));
                 argsList2.add(returnParameter.getName());
+                // will need to cast object
+                argsList2.add(ClassTypeUtils.createTypeFromNameString(returnParameter.getType()));
 
 
                 argsList2.add("methodInstance");
