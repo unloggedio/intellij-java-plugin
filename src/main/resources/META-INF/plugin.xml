@@ -117,7 +117,7 @@
         </action>
 
         <action class="com.insidious.plugin.actions.AutoExecutorOptions">
-            <keyboard-shortcut keymap="$default" first-keystroke="alt F8"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F8"/>
         </action>
 
         <!--        <action icon="AllIcons.Actions.Back" text="Step Back" id="Debugger.ReverseResume"-->
@@ -156,7 +156,7 @@
         <projectService serviceImplementation="com.insidious.plugin.record.AtomicRecordService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
         <applicationService serviceImplementation="com.insidious.plugin.factory.ApplicationConfigurationState"/>
-<!--        <testFinder implementation="com.insidious.plugin.tester.testfinder.UnloggedTestFinder"/>-->
+        <!--        <testFinder implementation="com.insidious.plugin.tester.testfinder.UnloggedTestFinder"/>-->
 
 
         <codeInsight.lineMarkerProvider
