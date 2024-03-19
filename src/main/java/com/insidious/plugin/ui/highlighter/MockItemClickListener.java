@@ -2,6 +2,8 @@ package com.insidious.plugin.ui.highlighter;
 
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -37,8 +39,12 @@ public class MockItemClickListener extends MouseAdapter {
                     .showMockCreator(
                             new JavaMethodAdapter(ApplicationManager.getApplication().runReadAction(
                                     (Computable<PsiMethod>) () -> (PsiMethod) methodCallExpression.getMethodExpression().resolve())),
-                            methodCallExpression
-                    );
+                            methodCallExpression,
+                            new OnSaveListener() {
+                                @Override
+                                public void onSaveDeclaredMock(DeclaredMock declaredMock) {
+                                }
+                            });
         });
 
     }

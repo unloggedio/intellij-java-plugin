@@ -1,6 +1,5 @@
 package com.insidious.plugin.ui.stomp;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
@@ -191,7 +190,7 @@ public class TestCandidateSaveForm {
                     }
 
                     Parameter returnValue1 = mainMethod.getReturnValue();
-                    JsonNode returnValue = getValueForParameter(returnValue1);
+                    JsonNode returnValue = ClassTypeUtils.getValueForParameter(returnValue1);
 
 
                     AtomicAssertion assertion;
@@ -570,83 +569,6 @@ public class TestCandidateSaveForm {
 
     }
 
-    private static JsonNode getValueForParameter(Parameter returnValue1) {
-        JsonNode returnValue;
-        if (returnValue1.getProb().getSerializedValue().length == 0) {
-
-
-            switch (returnValue1.getType()) {
-                case "I":
-                case "java.lang.Integer":
-                    returnValue = objectMapper.getNodeFactory()
-                            .numberNode(Math.toIntExact(returnValue1.getProb().getValue()));
-                    break;
-                case "L":
-                case "java.lang.Long":
-                    returnValue =
-                            objectMapper.getNodeFactory()
-                                    .numberNode(Long.valueOf(returnValue1.getProb().getValue()));
-                    break;
-                case "F":
-                case "java.lang.Float":
-                    returnValue =
-                            objectMapper.getNodeFactory()
-                                    .numberNode(Float.valueOf(returnValue1.getProb().getValue()));
-                    break;
-                case "B":
-                case "java.lang.Byte":
-                    returnValue =
-                            objectMapper.getNodeFactory()
-                                    .numberNode(Byte.valueOf((byte) returnValue1.getProb().getValue()));
-                    break;
-                case "D":
-                case "java.lang.Double":
-                    returnValue =
-                            objectMapper.getNodeFactory()
-                                    .numberNode(Double.valueOf(returnValue1.getProb().getValue()));
-                    break;
-                case "C":
-                case "java.lang.Character":
-                    returnValue =
-                            objectMapper.getNodeFactory()
-                                    .numberNode((char) returnValue1.getProb().getValue());
-                    break;
-                case "Z":
-                case "java.lang.Boolean":
-                    returnValue =
-                            objectMapper.getNodeFactory()
-                                    .booleanNode(returnValue1.getProb().getValue() != 0);
-                    break;
-                case "S":
-                case "java.lang.Short":
-                    returnValue =
-                            objectMapper.getNodeFactory()
-                                    .numberNode((short) returnValue1.getProb().getValue());
-                    break;
-
-                default:
-                    returnValue = objectMapper.getNodeFactory()
-                            .numberNode(returnValue1.getProb().getValue());
-                    break;
-
-            }
-
-        } else {
-            String stringValue = new String(returnValue1.getProb().getSerializedValue());
-            if (stringValue.isEmpty()) {
-                returnValue = objectMapper.getNodeFactory().nullNode();
-            } else {
-                try {
-                    returnValue = objectMapper.readTree(stringValue);
-                } catch (JsonProcessingException e) {
-                    logger.warn("Failed to parse response value as a json object: " + e.getMessage());
-                    returnValue = objectMapper.getNodeFactory().textNode(stringValue);
-                }
-            }
-        }
-        return returnValue;
-    }
-
     private List<DeclaredMock> patchCandidate(
             TestCandidateMetadata candidateMetadata,
             StoredCandidate storedCandidate,
@@ -655,6 +577,9 @@ public class TestCandidateSaveForm {
 
         Pair<PsiMethod, PsiSubstitutor> psiMethod = ClassTypeUtils.getPsiMethod(
                 candidateMetadata.getMainMethod(), project);
+        if (psiMethod == null) {
+            return new ArrayList<>();
+        }
         PsiMethod candidateTargetMethod = psiMethod.getFirst();
 
         List<PsiMethodCallExpression> allCallExpressions = ApplicationManager.getApplication().runReadAction(
@@ -759,7 +684,7 @@ public class TestCandidateSaveForm {
 
         List<ParameterMatcher> whenParameterList = new ArrayList<>();
         for (Parameter argument : methodCallExpression.getArguments()) {
-            JsonNode argumentValue = getValueForParameter(argument);
+            JsonNode argumentValue = ClassTypeUtils.getValueForParameter(argument);
             ParameterMatcher parameterMatcher = new ParameterMatcher(argument.getName(),
                     ParameterMatcherType.EQUAL, argumentValue.toString());
             whenParameterList.add(parameterMatcher);
@@ -768,7 +693,7 @@ public class TestCandidateSaveForm {
 
         List<ThenParameter> thenParameterList = new ArrayList<>();
         Parameter returnValue1 = methodCallExpression.getReturnValue();
-        JsonNode value = getValueForParameter(returnValue1);
+        JsonNode value = ClassTypeUtils.getValueForParameter(returnValue1);
 
         String returnValueClassName = callExpressionReturnType.getCanonicalText(); // returnValue1.getType();
         ReturnValue returnValue = new ReturnValue(value.toString(), returnValueClassName, ReturnValueType.REAL);

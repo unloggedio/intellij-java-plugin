@@ -27,7 +27,6 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -38,8 +37,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import static com.intellij.uiDesigner.core.GridConstraints.*;
 
 public class MockDefinitionListPanel implements OnSaveListener {
     private static final Logger logger = LoggerUtil.getInstance(MockDefinitionListPanel.class);
@@ -159,7 +156,9 @@ public class MockDefinitionListPanel implements OnSaveListener {
 
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                insidiousService.showMockCreator(new JavaMethodAdapter(targetMethod), methodCallExpression);
+                insidiousService.showMockCreator(
+                        new JavaMethodAdapter(targetMethod),
+                        methodCallExpression, declaredMock -> loadDefinitions(false, true));
             }
 
             @Override
@@ -172,7 +171,7 @@ public class MockDefinitionListPanel implements OnSaveListener {
 
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                loadDefinitions(false, false);
+                loadDefinitions(false, true);
             }
         };
 
@@ -251,7 +250,7 @@ public class MockDefinitionListPanel implements OnSaveListener {
         controlPanel.add(actionToolbar.getComponent(), BorderLayout.CENTER);
 
 
-        loadDefinitions(true, false);
+        loadDefinitions(true, true);
 
 
     }
@@ -281,11 +280,12 @@ public class MockDefinitionListPanel implements OnSaveListener {
             mockCountLabelText = savedCandidateCount + " declared mocks";
         }
         mockCountLabel.setText("<html><small>" + mockCountLabelText + "</html></small>");
-        final int PANEL_HEIGHT = 108;
+        final int PANEL_HEIGHT = 135;
         if (savedCandidateCount == 0 && showAddNewIfEmpty) {
             savedMocksListParent.setVisible(false);
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                insidiousService.showMockCreator(new JavaMethodAdapter(targetMethod), methodCallExpression);
+                insidiousService.showMockCreator(new JavaMethodAdapter(targetMethod), methodCallExpression,
+                        declaredMock -> loadDefinitions(false, true));
             });
         } else {
             savedMocksListParent.setVisible(true);
@@ -303,14 +303,6 @@ public class MockDefinitionListPanel implements OnSaveListener {
                     declaredMockItemPanel.setUnsaved(true);
                 }
 
-//                GridConstraints constraints = new GridConstraints(
-//                        i, 0, 1, 1, ANCHOR_NORTH,
-//                        GridConstraints.FILL_HORIZONTAL, SIZEPOLICY_CAN_GROW | SIZEPOLICY_CAN_SHRINK,
-//                        SIZEPOLICY_FIXED,
-//                        new Dimension(-1, PANEL_HEIGHT),
-//                        new Dimension(-1, PANEL_HEIGHT),
-//                        new Dimension(-1, PANEL_HEIGHT)
-//                );
                 Component component = declaredMockItemPanel.getComponent();
                 itemListPanel.add(component, createGBCForLeftMainComponent(itemListPanel.getComponentCount()));
             }
@@ -318,7 +310,7 @@ public class MockDefinitionListPanel implements OnSaveListener {
 
             savedItemScrollPanel.setBorder(BorderFactory.createEmptyBorder());
 
-            int containerHeight = Math.min(300, savedCandidateCount * PANEL_HEIGHT);
+            int containerHeight = Math.min(500, itemListPanel.getComponentCount() * PANEL_HEIGHT);
             if (resizePanel) {
                 Dimension currentSize = savedItemScrollPanel.getSize();
                 if (currentSize.getHeight() <  containerHeight) {

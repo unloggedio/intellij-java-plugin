@@ -1164,32 +1164,6 @@ public class DaoService {
 
     }
 
-//    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-//    getTestCandidatesForPublicMethod(String className, String methodName, boolean loadCalls) {
-//
-//        try {
-//
-//            GenericRawResults<TestCandidateMetadata> parameterIds = testCandidateDao
-//                    .queryRaw(QUERY_TEST_CANDIDATE_BY_PUBLIC_METHOD_SELECT, testCandidateDao.getRawRowMapper(),
-//                            className,
-//                            methodName);
-//
-//            List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> resultList = new LinkedList<>();
-//
-//            List<TestCandidateMetadata> testCandidates = parameterIds.getResults();
-//            for (TestCandidateMetadata testCandidate : testCandidates) {
-//                com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
-//                        convertTestCandidateMetadata(testCandidate, loadCalls);
-//                resultList.add(converted);
-//            }
-//
-//            parameterIds.close();
-//            return resultList;
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            throw new RuntimeException(e);
-//        }
-//    }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
     getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {

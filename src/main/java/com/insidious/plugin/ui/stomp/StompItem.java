@@ -1,14 +1,23 @@
 package com.insidious.plugin.ui.stomp;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.TestCandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.InsidiousUtils;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
@@ -28,6 +37,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 public class StompItem {
     public static final JBColor TAG_LABEL_BACKGROUND_GREY = new JBColor(new Color(235, 235, 238),
@@ -49,7 +59,7 @@ public class StompItem {
     private TestCandidateMetadata candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
-//    private JLabel pinLabel;
+    //    private JLabel pinLabel;
     private JLabel timeTakenMsLabel;
     private JLabel lineCoverageLabel;
     private JLabel candidateTitleLabel;
@@ -72,6 +82,7 @@ public class StompItem {
         this.testCandidateLifeListener = testCandidateLifeListener;
         this.insidiousService = insidiousService;
         defaultPanelColor = mainPanel.getBackground();
+        candidateTitleLabel.setIcon(AllIcons.Actions.RunToCursor);
 
         MouseAdapter methodNameClickListener = new MouseAdapter() {
             @Override
@@ -224,8 +235,9 @@ public class StompItem {
 //        });
 
 
+        MethodCallExpression mainMethod = candidateMetadata.getMainMethod();
         MethodUnderTest methodUnderTest = new MethodUnderTest(
-                candidateMetadata.getMainMethod().getMethodName(), "",
+                mainMethod.getMethodName(), "",
                 0, candidateMetadata.getFullyQualifiedClassname()
         );
 
@@ -234,8 +246,8 @@ public class StompItem {
             className = className.substring(className.lastIndexOf(".") + 1);
         }
 //        setTitledBorder("[" + candidateMetadata.getEntryProbeIndex() + "] " + className);
-        long timeTakenMs = (candidateMetadata.getMainMethod().getReturnValue().getProb().getRecordedAt() -
-                candidateMetadata.getMainMethod().getEntryProbe().getRecordedAt()) / (1000 * 1000);
+        long timeTakenMs = (mainMethod.getReturnValue().getProb().getRecordedAt() -
+                mainMethod.getEntryProbe().getRecordedAt()) / (1000 * 1000);
         String itemLabel = String.format("%s", className);
         if (itemLabel.length() > MAX_METHOD_NAME_LABEL_LENGTH) {
             itemLabel = itemLabel.substring(0, MAX_METHOD_NAME_LABEL_LENGTH - 3) + "...";
@@ -269,7 +281,7 @@ public class StompItem {
             }
         };
 
-        timeTakenMsLabel = createTagLabel("%s", new Object[]{timeTakenMsString}, Color.decode(category.getColorHex()),
+        timeTakenMsLabel = createTagLabel("⏱ %s", new Object[]{timeTakenMsString}, Color.decode(category.getColorHex()),
                 new JBColor(Gray._255, Gray._255),
                 labelMouseAdapter);
         metadataPanel.add(timeTakenMsLabel);
@@ -281,25 +293,86 @@ public class StompItem {
             metadataPanel.add(lineCoverageLabel);
         }
 
+        List<Parameter> argumentProbes = mainMethod.getArguments();
         parameterCountLabel = createTagLabel("%d Argument" + (
-                        candidateMetadata.getMainMethod().getArgumentProbes().size() > 1 ? "s" : ""
-                ), new Object[]{candidateMetadata.getMainMethod().getArgumentProbes().size()}, TAG_LABEL_BACKGROUND_GREY,
+                        argumentProbes.size() > 1 ? "s" : ""
+                ), new Object[]{argumentProbes.size()}, TAG_LABEL_BACKGROUND_GREY,
                 TAG_LABEL_TEXT_GREY, labelMouseAdapter);
-        metadataPanel.add(parameterCountLabel);
 
-        callsCountLabel = createTagLabel("%d Downstream", new Object[]{candidateMetadata.getCallsList().size()},
-                TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, labelMouseAdapter);
-        metadataPanel.add(callsCountLabel);
+        ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
+        ObjectNode parametersNode = objectMapper.getNodeFactory()
+                .objectNode();
+        List<Parameter> arguments = mainMethod.getArguments();
+        for (int i = 0; i < arguments.size(); i++) {
+            Parameter argument = arguments.get(i);
+            JsonNode value = ClassTypeUtils.getValueForParameter(argument);
+            String name = argument.getName();
+            if (name == null) {
+                name = "Arg" + i;
+            }
+            parametersNode.set(name, value);
+        }
+        try {
+            String prettyPrintedArguments = objectMapper.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(parametersNode);
+            prettyPrintedArguments  = prettyPrintedArguments.replaceAll("\\n", "<br/>");
+            prettyPrintedArguments  = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
+            String prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments+ "</html>";
+            parameterCountLabel.setToolTipText(prettyPrintedArgumentsHtml);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            //
+        }
 
-        callsCountLabel.setToolTipText("Click to show downstream calls");
-        callsCountLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        callsCountLabel.addMouseListener(new MouseAdapter() {
+
+        parameterCountLabel.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                testCandidateLifeListener.onExpandChildren(candidateMetadata);
-                super.mouseClicked(e);
+            public void mouseEntered(MouseEvent e) {
+                super.mouseEntered(e);
             }
         });
+
+        metadataPanel.add(parameterCountLabel);
+
+        String returnValueClassName = mainMethod.getReturnValue().getType();
+        if (returnValueClassName != null && returnValueClassName.contains(".")) {
+            returnValueClassName = returnValueClassName.substring(returnValueClassName.lastIndexOf(".") + 1);
+        }
+        JLabel returnValueTag = createTagLabel("ᐊ " + returnValueClassName, new Object[]{argumentProbes.size()},
+                TAG_LABEL_BACKGROUND_GREY,
+                TAG_LABEL_TEXT_GREY, labelMouseAdapter);
+
+
+        try {
+            String prettyPrintedArguments = objectMapper.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(ClassTypeUtils.getValueForParameter(mainMethod.getReturnValue()));
+            prettyPrintedArguments  = prettyPrintedArguments.replaceAll("\\n", "<br/>");
+            prettyPrintedArguments  = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
+            String prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments+ "</html>";
+            returnValueTag.setToolTipText(prettyPrintedArgumentsHtml);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            //
+        }
+
+        metadataPanel.add(returnValueTag);
+
+        int size = candidateMetadata.getCallsList().size();
+        if (size > 0) {
+            callsCountLabel = createTagLabel("%d Downstream", new Object[]{size},
+                    TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, labelMouseAdapter);
+//            callsCountLabel.setToolTipText("Click to show downstream calls");
+//            callsCountLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//            callsCountLabel.addMouseListener(new MouseAdapter() {
+//                @Override
+//                public void mouseClicked(MouseEvent e) {
+//                    testCandidateLifeListener.onExpandChildren(candidateMetadata);
+//                    super.mouseClicked(e);
+//                }
+//            });
+            metadataPanel.add(callsCountLabel);
+        }
+
 
         selectCandidateCheckbox.addMouseListener(labelMouseAdapter);
 
@@ -311,7 +384,6 @@ public class StompItem {
                 testCandidateLifeListener.unSelected(candidateMetadata);
             }
         });
-//        pinLabel.setVisible(false);
 
 
     }

@@ -7,6 +7,7 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.highlighter.MockItemClickListener;
+import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
@@ -14,7 +15,6 @@ import com.intellij.codeInsight.hints.FactoryInlayHintsCollector;
 import com.intellij.codeInsight.hints.InlayHintsSink;
 import com.intellij.codeInsight.hints.InlayPresentationFactory;
 import com.intellij.codeInsight.hints.presentation.*;
-import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -462,7 +462,11 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
                                     PsiMethod psiMethod = (PsiMethod) methodCallExpression.getMethodExpression()
                                             .resolve();
                                     insidiousService.showMockCreator(new JavaMethodAdapter(psiMethod),
-                                            methodCallExpression);
+                                            methodCallExpression, new OnSaveListener() {
+                                                @Override
+                                                public void onSaveDeclaredMock(DeclaredMock declaredMock) {
+                                                }
+                                            });
                                 });
                     });
                 }
@@ -471,7 +475,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
             }
         });
 
-        text = factory.withTooltip("<html>Show mocks in Unlogged tool window</html>", text);
+        text = factory.withTooltip("<html>Show mocks in Unlogged Library</html>", text);
 
         text = new WithCursorOnHoverPresentation(text, Cursor.getPredefinedCursor(Cursor.HAND_CURSOR), editor);
 

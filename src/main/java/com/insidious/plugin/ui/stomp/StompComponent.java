@@ -32,6 +32,7 @@ import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
+import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
@@ -1308,12 +1309,13 @@ public class StompComponent implements
     }
 
     public void showNewDeclaredMockCreator(JavaMethodAdapter javaMethodAdapter,
-                                           PsiMethodCallExpression psiMethodCallExpression) {
+                                           PsiMethodCallExpression psiMethodCallExpression, OnSaveListener onSaveListener) {
         onMethodFocussed(javaMethodAdapter);
         MockDefinitionEditor mockEditor = new MockDefinitionEditor(MethodUnderTest.fromMethodAdapter(javaMethodAdapter),
                 psiMethodCallExpression, insidiousService.getProject(), declaredMock -> {
             String newMockId = insidiousService.saveMockDefinition(declaredMock);
             InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
+            onSaveListener.onSaveDeclaredMock(declaredMock);
             mainPanel.revalidate();
             mainPanel.repaint();
         }, component -> {

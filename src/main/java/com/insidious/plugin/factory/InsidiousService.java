@@ -1705,7 +1705,7 @@ final public class InsidiousService implements
     }
 
 
-    public void showMockCreator(JavaMethodAdapter method, PsiMethodCallExpression callExpression) {
+    public void showMockCreator(JavaMethodAdapter method, PsiMethodCallExpression callExpression, OnSaveListener onSaveListener) {
         if (stompWindow == null) {
             if (toolWindow == null) {
                 initiateUI();
@@ -1726,7 +1726,7 @@ final public class InsidiousService implements
             if (stompWindowContent != null) {
                 toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    stompWindow.showNewDeclaredMockCreator(method, callExpression);
+                    stompWindow.showNewDeclaredMockCreator(method, callExpression, onSaveListener);
                     stompWindow.onMethodFocussed(method);
                 });
             }
