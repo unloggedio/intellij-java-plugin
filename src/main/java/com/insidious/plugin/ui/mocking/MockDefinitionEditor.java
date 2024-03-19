@@ -74,7 +74,6 @@ public class MockDefinitionEditor {
         this.componentLifecycleListener = componentLifecycleListener;
         this.methodUnderTest = methodUnderTest;
         this.project = project;
-        cancelButton.addActionListener(e -> componentLifecycleListener.onClose(null));
 //        mockTypeParentPanel.setVisible(false);
 
         String expressionText = ApplicationManager.getApplication().runReadAction(
@@ -191,6 +190,10 @@ public class MockDefinitionEditor {
             onSaveListener.onSaveDeclaredMock(declaredMock);
             componentLifecycleListener.onClose(null);
         });
+        cancelButton.addActionListener(e -> {
+            componentLifecycleListener.onClose(null);
+        });
+
     }
 
     private void updateUiValues() {

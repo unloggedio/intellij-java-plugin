@@ -208,6 +208,9 @@ public class ClassTypeUtils {
 
             containerClassName = nameBuilder.toString();
         }
+        if (containerClassName.contains(".")) {
+            containerClassName = containerClassName.replace('.', '/');
+        }
         return "L" + containerClassName + ";";
     }
 
@@ -827,5 +830,31 @@ public class ClassTypeUtils {
             }
         }
         return result;
+    }
+
+    public static String getDescriptorName(PsiSubstitutor substitutor, JvmType type1) {
+        String descriptorName = null;
+        if (type1 instanceof PsiWildcardType) {
+            type1 = substituteClassRecursively((PsiWildcardType) type1, substitutor);
+            String type = ((PsiWildcardType) type1).getCanonicalText();
+            descriptorName = getDescriptorName(type);
+        } else if (type1 instanceof PsiClassType) {
+            type1 = substituteClassRecursively((PsiType) type1, substitutor);
+            String type = ((PsiType) type1).getCanonicalText();
+            descriptorName = getDescriptorName(type);
+        } else if (type1 instanceof PsiPrimitiveType) {
+            PsiPrimitiveType psiType = (PsiPrimitiveType) type1;
+            descriptorName = psiType.getKind().getBinaryName();
+        } else if (type1 instanceof PsiEllipsisType) {
+            PsiType componentType = ((PsiEllipsisType) type1).getComponentType();
+            return "[" + getDescriptorName(substitutor, componentType);
+        } else if (type1 instanceof PsiArrayType) {
+            PsiType componentType = ((PsiArrayType) type1).getComponentType();
+            return "[" + getDescriptorName(substitutor, componentType);
+        }
+        if (descriptorName == null) {
+            return null;
+        }
+        return descriptorName.replace('.', '/');
     }
 }

@@ -55,7 +55,7 @@ public class TestCandidateSaveForm {
     private final List<TestCandidateMetadata> candidateMetadataList;
     private final SaveFormListener saveFormListener;
     private final List<StoredCandidate> candidateList;
-    private final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
+    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final Map<StoredCandidate, StoredCandidateItemPanel> candidatePanelMap = new HashMap<>();
     private final Map<DeclaredMock, DeclaredMockItemPanel> declaredMockPanelMap = new HashMap<>();
     private final Map<AtomicAssertion, AtomicAssertionItemPanel> atomicAssertionPanelMap = new HashMap<>();
@@ -570,7 +570,7 @@ public class TestCandidateSaveForm {
 
     }
 
-    private JsonNode getValueForParameter(Parameter returnValue1) {
+    private static JsonNode getValueForParameter(Parameter returnValue1) {
         JsonNode returnValue;
         if (returnValue1.getProb().getSerializedValue().length == 0) {
 
@@ -633,7 +633,7 @@ public class TestCandidateSaveForm {
 
         } else {
             String stringValue = new String(returnValue1.getProb().getSerializedValue());
-            if (stringValue.length() == 0) {
+            if (stringValue.isEmpty()) {
                 returnValue = objectMapper.getNodeFactory().nullNode();
             } else {
                 try {
@@ -689,81 +689,26 @@ public class TestCandidateSaveForm {
         List<DeclaredMock> mocks = new ArrayList<>();
 
         List<MethodCallExpression> callListCopy = new ArrayList<>(candidateMetadata.getCallsList());
-        while (callListCopy.size() > 0) {
-            MethodCallExpression methodCallExpression = callListCopy.remove(0);
-            if (methodCallExpression.isStaticCall()) {
-                continue;
-            }
-//            String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
-//            PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
-//                    GlobalSearchScope.allScope(project));
+        while (!callListCopy.isEmpty()) {
 
+            MethodCallExpression methodCallExpression = callListCopy.remove(0);
             final String methodName = methodCallExpression.getMethodName();
 
             List<PsiMethodCallExpression> callExpressionByName = expressionsByMethodName.get(methodName);
             if (callExpressionByName == null) {
                 // no such call
-                continue;
+                return null;
             }
             if (callExpressionByName.size() != 1) {
-                //
 //                throw new RuntimeException("please");
             }
 
             PsiMethodCallExpression callExpression = callExpressionByName.get(0);
 
-            PsiExpression callOnSubject = callExpression.getMethodExpression().getQualifierExpression();
-            if (callOnSubject instanceof PsiMethodCallExpression) {
-                continue;
-            }
-            PsiElement resolvedSubject = getCallSubjectElement(callOnSubject);
-            if (!(resolvedSubject instanceof PsiField)) {
-                // call on local variable or paramter
-                continue;
-            }
 
-
-            String fieldName = callExpression.getMethodExpression()
-                    .getQualifierExpression().getText();
-            if (fieldName.startsWith("System.")) {
-                // not mocking any calls on System....
-                continue;
-            }
-            PsiSubstitutor substitutor = ClassUtils.getSubstitutorForCallExpression(callExpression);
-
-            PsiMethod callTarget = callExpression.resolveMethod();
-
-            PsiType callExpressionReturnType = ClassTypeUtils.substituteClassRecursively(callTarget.getReturnType(),
-                    substitutor);
-
-            TestCaseWriter.setParameterTypeFromPsiType(methodCallExpression.getReturnValue(),
-                    callExpressionReturnType, true);
-
-            MethodUnderTest mut = MethodUnderTest.fromPsiCallExpression(callExpression);
-
-            List<ParameterMatcher> whenParameterList = new ArrayList<>();
-            for (Parameter argument : methodCallExpression.getArguments()) {
-                ParameterMatcher parameterMatcher = new ParameterMatcher(argument.getName(),
-                        ParameterMatcherType.ANY_OF_TYPE, argument.getType());
-                whenParameterList.add(parameterMatcher);
-            }
-
-
-            List<ThenParameter> thenParameterList = new ArrayList<>();
-            Parameter returnValue1 = methodCallExpression.getReturnValue();
-            JsonNode value = getValueForParameter(returnValue1);
-
-            String returnValueClassName = callExpressionReturnType.getCanonicalText(); // returnValue1.getType();
-            ReturnValue returnValue = new ReturnValue(value.toString(), returnValueClassName, ReturnValueType.REAL);
-            ThenParameter thenParam = new ThenParameter(returnValue, MethodExitType.NORMAL);
-
-            thenParameterList.add(thenParam);
-            DeclaredMock newMock = new DeclaredMock(
-                    "mock response for call to " + callExpression.getText(),
-                    methodCallExpression.getSubject().getType(), candidateMetadata.getFullyQualifiedClassname(),
-                    fieldName, methodCallExpression.getMethodName(),
-                    mut.getMethodHashKey(), whenParameterList, thenParameterList
-            );
+            DeclaredMock newMock = getDeclaredMock(
+                    methodCallExpression, callExpression, candidateMetadata.getFullyQualifiedClassname());
+            if (newMock == null) continue;
             mocks.add(newMock);
             storedCandidate.getMockIds().add(newMock.getId());
 
@@ -775,7 +720,72 @@ public class TestCandidateSaveForm {
     }
 
     @Nullable
-    private PsiElement getCallSubjectElement(PsiExpression callOnSubject) {
+    public static DeclaredMock getDeclaredMock(MethodCallExpression methodCallExpression,
+                                        PsiMethodCallExpression callExpression,
+                                        String sourceClassName) {
+        if (methodCallExpression.isStaticCall()) {
+            return null;
+        }
+
+
+        PsiReferenceExpression methodExpression = callExpression.getMethodExpression();
+        PsiExpression callOnSubject = methodExpression.getQualifierExpression();
+        if (callOnSubject instanceof PsiMethodCallExpression) {
+            return null;
+        }
+        PsiElement resolvedSubject = getCallSubjectElement(callOnSubject);
+        if (!(resolvedSubject instanceof PsiField)) {
+            // call on local variable or paramter
+            return null;
+        }
+
+
+        String fieldName = methodExpression.getQualifierExpression().getText();
+        if (fieldName.startsWith("System.")) {
+            // not mocking any calls on System....
+            return null;
+        }
+        PsiSubstitutor substitutor = ClassUtils.getSubstitutorForCallExpression(callExpression);
+
+        PsiMethod callTarget = callExpression.resolveMethod();
+
+        PsiType callExpressionReturnType = ClassTypeUtils.substituteClassRecursively(callTarget.getReturnType(),
+                substitutor);
+
+        TestCaseWriter.setParameterTypeFromPsiType(methodCallExpression.getReturnValue(),
+                callExpressionReturnType, true);
+
+        MethodUnderTest mut = MethodUnderTest.fromPsiCallExpression(callExpression);
+
+        List<ParameterMatcher> whenParameterList = new ArrayList<>();
+        for (Parameter argument : methodCallExpression.getArguments()) {
+            JsonNode argumentValue = getValueForParameter(argument);
+            ParameterMatcher parameterMatcher = new ParameterMatcher(argument.getName(),
+                    ParameterMatcherType.EQUAL, argumentValue.toString());
+            whenParameterList.add(parameterMatcher);
+        }
+
+
+        List<ThenParameter> thenParameterList = new ArrayList<>();
+        Parameter returnValue1 = methodCallExpression.getReturnValue();
+        JsonNode value = getValueForParameter(returnValue1);
+
+        String returnValueClassName = callExpressionReturnType.getCanonicalText(); // returnValue1.getType();
+        ReturnValue returnValue = new ReturnValue(value.toString(), returnValueClassName, ReturnValueType.REAL);
+        ThenParameter thenParam = new ThenParameter(returnValue, MethodExitType.NORMAL);
+
+        thenParameterList.add(thenParam);
+        DeclaredMock newMock = new DeclaredMock(
+                "mock response for call to " + callExpression.getText(),
+                methodCallExpression.getSubject().getType(), sourceClassName,
+                fieldName, methodCallExpression.getMethodName(),
+                mut.getMethodHashKey(), whenParameterList, thenParameterList
+        );
+        return newMock;
+    }
+
+    @Nullable
+    private static PsiElement getCallSubjectElement(PsiExpression callOnSubject) {
         PsiElement resolvedSubject = null;
         if (callOnSubject instanceof PsiReferenceExpression) {
             resolvedSubject = ((PsiReferenceExpression) callOnSubject).resolve();

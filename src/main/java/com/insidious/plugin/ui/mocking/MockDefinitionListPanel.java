@@ -2,11 +2,16 @@ package com.insidious.plugin.ui.mocking;
 
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
+import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.library.DeclaredMockItemPanel;
 import com.insidious.plugin.ui.library.ItemLifeCycleListener;
+import com.insidious.plugin.ui.methodscope.CandidateFilterType;
+import com.insidious.plugin.ui.stomp.TestCandidateSaveForm;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.icons.AllIcons;
@@ -19,13 +24,13 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiExpression;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -43,7 +48,11 @@ public class MockDefinitionListPanel implements OnSaveListener {
     private final PsiMethodCallExpression methodCallExpression;
     //    private final OnOffButton fieldMockSwitch;
     private final PsiMethod targetMethod;
-    private final Set<DeclaredMock> selectedMocks = new HashSet<>();    private final ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener = new ItemLifeCycleListener<>() {
+    private final Set<DeclaredMock> selectedMocks = new HashSet<>();
+    private final List<DeclaredMock> unsavedMocks = new ArrayList<>();
+    private JLabel mockedMethodText;
+    //    private JButton addNewMockButton;
+    private JPanel savedMocksListParent;    private final ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener = new ItemLifeCycleListener<>() {
         @Override
         public void onSelect(DeclaredMock item) {
             selectedMocks.add(item);
@@ -68,12 +77,12 @@ public class MockDefinitionListPanel implements OnSaveListener {
 
         @Override
         public void onEdit(DeclaredMock item) {
-            insidiousService.showMockEditor(item);
+            insidiousService.showMockEditor(item, declaredMock -> {
+                unsavedMocks.remove(item);
+                loadDefinitions(false, true);
+            });
         }
     };
-    private JLabel mockedMethodText;
-    //    private JButton addNewMockButton;
-    private JPanel savedMocksListParent;
     private JPanel controlPanel;
     private JPanel mainPanel;
     private JScrollPane savedItemScrollPanel;
@@ -101,15 +110,38 @@ public class MockDefinitionListPanel implements OnSaveListener {
         infoItemLine3.setIcon(AllIcons.General.Modified);
 
 
-//        PsiClass parentOfType = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
-//        String parentClassName = parentOfType.getQualifiedName();
-//        PsiExpression fieldExpression = methodCallExpression.getMethodExpression().getQualifierExpression();
-//        String fieldName = fieldExpression.getText();
         targetMethod = methodCallExpression.resolveMethod();
         assert targetMethod != null;
 
 
         methodUnderTest = MethodUnderTest.fromPsiCallExpression(methodCallExpression);
+
+        CandidateSearchQuery query = new CandidateSearchQuery(
+                methodUnderTest, methodUnderTest.getSignature(), new ArrayList<>(),
+                CandidateFilterType.METHOD, false
+        );
+        List<TestCandidateMetadata> candidates = insidiousService.getSessionInstance()
+                .getTestCandidatesForAllMethod(query);
+
+        @Nullable PsiClass containingClass = PsiTreeUtil.getParentOfType(methodCallExpression,
+                PsiClass.class);
+        if (containingClass == null) {
+            InsidiousNotification.notifyMessage("Failed to locate parent class for method call expression: " + methodCallExpression.getText()
+            , NotificationType.ERROR);
+            throw new IllegalArgumentException(methodCallExpression.getText());
+        }
+        String sourceClassName = containingClass.getQualifiedName();
+        for (TestCandidateMetadata candidate : candidates) {
+            MethodCallExpression mce = candidate.getMainMethod();
+            @Nullable DeclaredMock unsavedMock = TestCandidateSaveForm.getDeclaredMock(
+                    mce, methodCallExpression, sourceClassName
+            );
+            if (unsavedMock == null) {
+                continue;
+            }
+            unsavedMock.setName("#unsaved - " + unsavedMock.getName());
+            unsavedMocks.add(unsavedMock);
+        }
 
 
         targetMethod.getParameterList();
@@ -227,7 +259,9 @@ public class MockDefinitionListPanel implements OnSaveListener {
     private void loadDefinitions(boolean showAddNewIfEmpty, boolean resizePanel) {
         declaredMockList = insidiousService.getDeclaredMocksOf(methodUnderTest);
 
-        int savedCandidateCount = declaredMockList.size();
+        List<DeclaredMock> allMocks = new ArrayList<>(declaredMockList);
+        allMocks.addAll(unsavedMocks);
+        int savedCandidateCount = allMocks.size();
 
 
         JPanel itemListPanel = new JPanel();
@@ -257,7 +291,7 @@ public class MockDefinitionListPanel implements OnSaveListener {
             savedMocksListParent.setVisible(true);
 
             for (int i = 0; i < savedCandidateCount; i++) {
-                DeclaredMock declaredMock = declaredMockList.get(i);
+                DeclaredMock declaredMock = allMocks.get(i);
 
                 DeclaredMockItemPanel declaredMockItemPanel = new DeclaredMockItemPanel(declaredMock,
                         itemLifeCycleListener, insidiousService);
@@ -265,15 +299,18 @@ public class MockDefinitionListPanel implements OnSaveListener {
                 if (selectedMocks.contains(declaredMock)) {
                     declaredMockItemPanel.setSelected(true);
                 }
+                if (unsavedMocks.contains(declaredMock)) {
+                    declaredMockItemPanel.setUnsaved(true);
+                }
 
-                GridConstraints constraints = new GridConstraints(
-                        i, 0, 1, 1, ANCHOR_NORTH,
-                        GridConstraints.FILL_HORIZONTAL, SIZEPOLICY_CAN_GROW | SIZEPOLICY_CAN_SHRINK,
-                        SIZEPOLICY_FIXED,
-                        new Dimension(-1, PANEL_HEIGHT),
-                        new Dimension(-1, PANEL_HEIGHT),
-                        new Dimension(-1, PANEL_HEIGHT)
-                );
+//                GridConstraints constraints = new GridConstraints(
+//                        i, 0, 1, 1, ANCHOR_NORTH,
+//                        GridConstraints.FILL_HORIZONTAL, SIZEPOLICY_CAN_GROW | SIZEPOLICY_CAN_SHRINK,
+//                        SIZEPOLICY_FIXED,
+//                        new Dimension(-1, PANEL_HEIGHT),
+//                        new Dimension(-1, PANEL_HEIGHT),
+//                        new Dimension(-1, PANEL_HEIGHT)
+//                );
                 Component component = declaredMockItemPanel.getComponent();
                 itemListPanel.add(component, createGBCForLeftMainComponent(itemListPanel.getComponentCount()));
             }
@@ -283,8 +320,11 @@ public class MockDefinitionListPanel implements OnSaveListener {
 
             int containerHeight = Math.min(300, savedCandidateCount * PANEL_HEIGHT);
             if (resizePanel) {
-                savedItemScrollPanel.setPreferredSize(new Dimension(-1, containerHeight));
-                savedItemScrollPanel.setSize(new Dimension(-1, containerHeight));
+                Dimension currentSize = savedItemScrollPanel.getSize();
+                if (currentSize.getHeight() <  containerHeight) {
+                    savedItemScrollPanel.setPreferredSize(new Dimension(-1, containerHeight));
+                    savedItemScrollPanel.setSize(new Dimension(-1, containerHeight));
+                }
             }
 
 
@@ -296,7 +336,7 @@ public class MockDefinitionListPanel implements OnSaveListener {
             mainPanel.revalidate();
             if (componentPopUp != null) {
                 Dimension currentSize = componentPopUp.getSize();
-                if (currentSize != null && resizePanel) {
+                if (currentSize != null && resizePanel && currentSize.getHeight() < (containerHeight + 140)) {
                     componentPopUp.setSize(new Dimension((int) currentSize.getWidth(), containerHeight + 140));
                 }
             }
@@ -306,58 +346,6 @@ public class MockDefinitionListPanel implements OnSaveListener {
     public JComponent getComponent() {
         return mainPanel;
     }
-
-//    public void showMockEditor(DeclaredMock declaredMock) {
-//        JBPopup editorPopup = null;
-//
-//        MockDefinitionEditor mockDefinitionEditor;
-//        if (declaredMock == null) {
-//            mockDefinitionEditor = ApplicationManager.getApplication().runReadAction(
-//                    (Computable<MockDefinitionEditor>) () -> new MockDefinitionEditor(methodUnderTest,
-//                            methodCallExpression, methodCallExpression.getProject(), this,
-//                            component -> {
-//
-//                            }));
-//        } else {
-//            mockDefinitionEditor = ApplicationManager.getApplication().runReadAction(
-//                    (Computable<MockDefinitionEditor>) () -> new MockDefinitionEditor(methodUnderTest,
-//                            new DeclaredMock(declaredMock), methodCallExpression.getProject(), this));
-//        }
-//
-//        JComponent gutterMethodComponent = mockDefinitionEditor.getComponent();
-//
-//        ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
-//                .createComponentPopupBuilder(gutterMethodComponent, null);
-//
-//        editorPopup = gutterMethodComponentPopup
-//                .setProject(methodCallExpression.getProject())
-//                .setShowBorder(true)
-//                .setShowShadow(true)
-//                .setFocusable(true)
-//                .setRequestFocus(true)
-//                .setResizable(true)
-//                .setCancelOnClickOutside(true)
-//                .setCancelOnOtherWindowOpen(true)
-//                .setCancelKeyEnabled(true)
-//                .setBelongsToGlobalPopupStack(false)
-//                .setTitle("Mock Editor")
-//                .addListener(new JBPopupListener() {
-//                    @Override
-//                    public void onClosed(LightweightWindowEvent event) {
-//                        JBPopupListener.super.onClosed(event);
-//                        ApplicationManager.getApplication().invokeLater(() -> {
-//                            loadDefinitions(false);
-//                        });
-//                    }
-//                })
-//                .setTitleIcon(new ActiveIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER))
-//                .createPopup();
-//        JBPopup finalEditorPopup = editorPopup;
-//        ApplicationManager.getApplication().invokeLater(() -> {
-//            finalEditorPopup.showUnderneathOf(addNewMockButton);
-//        });
-//
-//    }
 
     public void setPopupHandle(JBPopup componentPopUp) {
         this.componentPopUp = componentPopUp;

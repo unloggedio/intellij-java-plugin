@@ -13,10 +13,10 @@ import com.insidious.plugin.ui.ImagePanel;
 import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
+import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.icons.AllIcons;
-import com.intellij.java.JavaBundle;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -26,7 +26,6 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
-import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.popup.ActiveIcon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopup;
@@ -41,7 +40,6 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -74,7 +72,6 @@ public class LibraryComponent {
 //    private JLabel showOptionsButton;
     private JPanel scrollContainer;
     private JScrollPane itemScrollPanel;
-    private JPanel infoPanel;
     private JLabel selectedCountLabel;
     private JLabel clearSelectionLabel;
     private JLabel clearFilterLabel;
@@ -84,12 +81,13 @@ public class LibraryComponent {
     //    private JButton mockingEnableRadioButton;
 //    private JButton mockingDisableRadioButton;
     private JPanel southPanel;
-    private JPanel infoInsideScrollerPanel;
     private JPanel callMockingControlPanel;
     private JPanel topContainerPanel;
     private JPanel preferencesButtonContainer;
     private JPanel selectedMocksControlPanel;
     private JLabel mockDescriptionLabel;
+    private JPanel infoPanel;
+    private JPanel infoInsideScrollerPanel;
     private MethodUnderTest lastMethodFocussed;
     private boolean currentMockInjectStatus = false;
 
@@ -108,7 +106,7 @@ public class LibraryComponent {
         };
 
 
-        AnAction enableMocksAction = new AnAction(() -> "Inject", UIUtils.LINK_ICON) {
+        AnAction enableMocksAction = new AnAction(() -> "Mock", UIUtils.LINK_ICON) {
 
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -133,7 +131,7 @@ public class LibraryComponent {
         };
 
 
-        AnAction disableMocksAction = new AnAction(() -> "Remove", UIUtils.UNLINK_ICON) {
+        AnAction disableMocksAction = new AnAction(() -> "Un-Mock", UIUtils.UNLINK_ICON) {
 
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -281,7 +279,12 @@ public class LibraryComponent {
 
             @Override
             public void onEdit(DeclaredMock item) {
-                showMockEditor(item);
+                showMockEditor(item, new OnSaveListener() {
+                    @Override
+                    public void onSaveDeclaredMock(DeclaredMock declaredMock) {
+                        //
+                    }
+                });
             }
         };
         STORED_CANDIDATE_ITEM_LIFE_CYCLE_LISTENER = new ItemLifeCycleListener<>() {
@@ -880,7 +883,7 @@ public class LibraryComponent {
     }
 
 
-    public void showMockEditor(DeclaredMock declaredMock) {
+    public void showMockEditor(DeclaredMock declaredMock, OnSaveListener onSaveListener) {
         MethodUnderTest methodUnderTest = new MethodUnderTest(
                 declaredMock.getMethodName(), declaredMock.getMethodHashKey().split("#")[2], 0,
                 declaredMock.getFieldTypeName()
@@ -892,6 +895,7 @@ public class LibraryComponent {
             southPanel.removeAll();
             scrollContainer.revalidate();
             scrollContainer.repaint();
+            onSaveListener.onSaveDeclaredMock(declaredMockUpdated);
         }, component -> {
             southPanel.removeAll();
             scrollContainer.revalidate();

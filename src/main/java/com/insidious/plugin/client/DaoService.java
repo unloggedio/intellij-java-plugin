@@ -102,7 +102,7 @@ public class DaoService {
             "join method_definition md on md.id = mc.methodDefinitionId\n" +
             "where md.ownerType = ?\n" +
             "  and md.methodName = ?\n" +
-            "  and md.argumentTypes = ?\n" +
+            "  and md.methodDescriptor = ?\n" +
             "order by tc.entryProbeIndex desc limit 10;";
     public static final String QUERY_TEST_CANDIDATE_BY_CLASS_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +

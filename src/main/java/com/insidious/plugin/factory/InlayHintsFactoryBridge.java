@@ -23,6 +23,7 @@ import java.util.stream.Stream;
  *     <li>with old version (< 2024.1): com.intellij.codeInsight.hints.InlayHintsPassFactory</li>
  *     <li>with new version (>= 2024.1): com.intellij.codeInsight.hints.InlayHintsFactory</li>
  * </ul>
+ * https://github.com/redhat-developer/lsp4ij/blob/a5f2f64d92b8a91c10449a4972143c5cf62d8c17/src/main/java/com/redhat/devtools/lsp4ij/internal/InlayHintsFactoryBridge.java#L38
  */
 public class InlayHintsFactoryBridge {
 

@@ -2898,6 +2898,7 @@ public class SessionInstance implements Runnable {
                             0, threadState.getCallStackSize());
                     methodCall.setThreadId(threadId);
                     methodCall.setId(currentCallId);
+                    methodCall.setEnterNanoTime(dataEvent.getRecordedAt());
                     methodCallMap.put(currentCallId, methodCall);
                     methodCallSubjectTypeMap.put(currentCallId, ClassTypeUtils.getJavaClassName(
                             probeInfo.getAttribute("Owner", null)));
@@ -3074,6 +3075,7 @@ public class SessionInstance implements Runnable {
                         methodCall.setThreadId(threadId);
                         methodCall.setEntryProbeInfoId(probeInfo.getDataId());
                         methodCall.setEntryProbeId(dataEvent.getEventId());
+                        methodCall.setEnterNanoTime(dataEvent.getRecordedAt());
                         methodCall.setMethodDefinitionId(probeInfo.getMethodId());
                         methodCall.setStaticCall((methodInfo.getAccess() & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC);
 
@@ -3164,38 +3166,6 @@ public class SessionInstance implements Runnable {
                         threadState.setSkipTillNextMethodExit(true);
                         continue;
                     }
-//
-//                    ClassInfo probeClassInfo = classInfoIndex.get(probeInfo.getClassId());
-//                    String topCallSubjectType = methodCallSubjectTypeMap.get(threadState.getTopCall().getId());
-////                            parameterContainer.getParameterByValue(threadState.getTopCall().getSubject()).getType();
-////                    String topCallSubjectType = topCallSubject.getType();
-//                    String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(probeClassInfo.getClassName());
-//
-//
-//                    boolean isMethodClassSameAsProbedClass =
-//                            topCallSubjectType.equals(currentProbeClassOwner) ||
-//                                    "java.lang.Object".equals(topCallSubjectType);
-//
-//                    ClassInfo topCallClassInfo = classInfoIndexByName.get(topCallSubjectType);
-//                    while (topCallClassInfo != null && !isMethodClassSameAsProbedClass) {
-//                        if (probeClassInfo.getClassName().equals(topCallClassInfo.getSuperName())) {
-//                            isMethodClassSameAsProbedClass = true;
-//                            break;
-//                        }
-//                        topCallClassInfo = classInfoIndexByName.get(
-//                                ClassTypeUtils.getDottedClassName(topCallClassInfo.getSuperName()));
-//                    }
-//
-//                    ClassInfo probeClassInfoCurrent = probeClassInfo;
-//                    while (probeClassInfoCurrent != null && !isMethodClassSameAsProbedClass) {
-//                        if (topCallSubjectType.equals(
-//                                ClassTypeUtils.getDottedClassName(probeClassInfoCurrent.getClassName()))) {
-//                            isMethodClassSameAsProbedClass = true;
-//                            break;
-//                        }
-//                        probeClassInfoCurrent = classInfoIndexByName.get(
-//                                ClassTypeUtils.getDottedClassName(probeClassInfoCurrent.getSuperName()));
-//                    }
 
                     if (threadState.candidateSize() < threadState.getCallStackSize()
                             && threadState.getTopCandidate().getMainMethod() != threadState.getTopCall().getId()) {
@@ -3203,19 +3173,13 @@ public class SessionInstance implements Runnable {
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
                                 existingParameter);
-//                        if (existingParameter.getType() == null) {
-//                            ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
-//                            if (objectInfoDocument != null) {
-//                                TypeInfoDocument typeInfoDocument = typeInfoIndex.get(objectInfoDocument.getTypeId());
-//                                String typeName = ClassTypeUtils.getDottedClassName(typeInfoDocument.getTypeName());
-//                                existingParameter.setType(typeName);
-//                            }
-//                        }
                         saveProbe = true;
                         existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         topCall = threadState.popCall();
                         topCall.setReturnValue_id(existingParameter.getValue());
                         topCall.setReturnDataEvent(dataEvent.getEventId());
+
+                        topCall.setReturnNanoTime(existingParameter.getProb().getRecordedAt());
                         callsToSave.add(topCall);
                         methodCallMap.remove(topCall.getId());
                         methodCallSubjectTypeMap.remove(topCall.getId());
@@ -3273,6 +3237,7 @@ public class SessionInstance implements Runnable {
                     topCall = threadState.popCall();
                     topCall.setReturnValue_id(existingParameter.getValue());
                     topCall.setReturnDataEvent(dataEvent.getEventId());
+                    topCall.setReturnNanoTime(existingParameter.getProb().getRecordedAt());
                     callsToSave.add(topCall);
                     threadState.setMostRecentReturnedCall(topCall);
 //                    }
@@ -3286,6 +3251,7 @@ public class SessionInstance implements Runnable {
 
                     if (completedMainMethod != null) {
                         completedExceptional.setTestSubject(completedMainMethod.getSubject());
+                        completedExceptional.setCallTimeNanoSecond(completedMainMethod.getCallTimeNano());
                     } else {
                         logger.error("completedMainMethod is null");
                     }
@@ -3395,6 +3361,7 @@ public class SessionInstance implements Runnable {
                             topCall.setReturnValue_id(existingParameter.getValue());
                         }
                         topCall.setReturnDataEvent(dataEvent.getEventId());
+                        topCall.setReturnNanoTime(dataEvent.getRecordedAt());
                         callsToSave.add(topCall);
 
                         threadState.setMostRecentReturnedCall(topCall);
@@ -3409,7 +3376,10 @@ public class SessionInstance implements Runnable {
 
                     completed.setExitProbeIndex(eventBlock.eventId());
                     if (completed.getMainMethod() != 0) {
-                        completed.setTestSubject(methodCallMap.get(completed.getMainMethod()).getSubject());
+                        com.insidious.plugin.pojo.dao.MethodCallExpression methodCallExpression = methodCallMap.get(
+                                completed.getMainMethod());
+                        completed.setCallTimeNanoSecond(methodCallExpression.getCallTimeNano());
+                        completed.setTestSubject(methodCallExpression.getSubject());
                     }
 
                     if (threadState.candidateSize() > 0) {

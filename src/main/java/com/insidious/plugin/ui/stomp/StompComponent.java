@@ -1443,6 +1443,7 @@ public class StompComponent implements
                     while (itemPanel.getComponentCount() > 100) {
                         itemPanel.remove(0);
                     }
+                    insidiousService.forceRedrawInlayHints();
 
 
                 } catch (Throwable t) {

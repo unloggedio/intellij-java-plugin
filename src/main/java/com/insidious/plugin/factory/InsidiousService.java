@@ -40,6 +40,7 @@ import com.insidious.plugin.ui.library.ItemFilterType;
 import com.insidious.plugin.ui.library.LibraryComponent;
 import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
+import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.ui.stomp.FilterModel;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
@@ -783,7 +784,7 @@ final public class InsidiousService implements
 
     }
 
-    private void forceRedrawInlayHints() {
+    public void forceRedrawInlayHints() {
         final FileEditor selectedEditor = FileEditorManager.getInstance(project).getSelectedEditor();
 
         if (selectedEditor != null) {
@@ -1250,20 +1251,6 @@ final public class InsidiousService implements
         return interfaceQualifiedNamesWithSameMethod;
     }
 
-    public List<StoredCandidate> getStoredCandidatesFor(CandidateSearchQuery candidateSearchQuery) {
-        if (candidateSearchQuery == null) {
-            logger.warn("get stored candidates query is null");
-            return List.of();
-        }
-        if (DumbService.getInstance(project).isDumb()) {
-            logger.warn("get stored candidates project is in dumb mode [" + project.getName() + "]");
-            return List.of();
-        }
-        return List.of();
-
-
-    }
-
     public String getMethodArgsDescriptor(MethodAdapter method) {
         ParameterAdapter[] methodParams = method.getParameters();
         StringBuilder methodArgumentsClassnames = new StringBuilder();
@@ -1712,9 +1699,9 @@ final public class InsidiousService implements
 
     }
 
-    public void showMockEditor(DeclaredMock declaredMock) {
+    public void showMockEditor(DeclaredMock declaredMock, OnSaveListener onSaveListener) {
         showLibrary();
-        libraryToolWindow.showMockEditor(declaredMock);
+        libraryToolWindow.showMockEditor(declaredMock, onSaveListener);
     }
 
 

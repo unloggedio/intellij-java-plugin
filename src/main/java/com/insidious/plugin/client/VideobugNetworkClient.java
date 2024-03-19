@@ -10,7 +10,6 @@ import com.insidious.plugin.client.pojo.*;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
@@ -45,6 +44,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     public static final String TRACE_BY_EXCEPTION = "/traceByException";
     public static final String TRACE_BY_STRING = "/traceByString";
     public static final String GENERATE_PROJECT_TOKEN_URL = "/api/auth/generateAgentToken";
+    public static final String TOKEN = "token";
+    public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private final Logger logger = LoggerUtil.getInstance(VideobugNetworkClient.class);
     private final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<DataResponse<DataEventWithSessionId>>() {
@@ -128,7 +129,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                                 JSONObject jsonObject = new JSONObject(
                                         Objects.requireNonNull(response.body())
                                                 .string());
-                                VideobugNetworkClient.this.token = jsonObject.getString(Constants.TOKEN);
+                                VideobugNetworkClient.this.token = jsonObject.getString(TOKEN);
                                 VideobugNetworkClient.this.endpoint = signinRequest.getEndpoint();
                                 signInCallback.success(token);
                             }
@@ -145,7 +146,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     public void getProjectByName(String projectName, GetProjectCallback getProjectCallback) {
         logger.info("Get project by name => " + projectName);
 
-        get(Constants.PROJECT_URL + "?name=" + projectName, new Callback() {
+        get(PROJECT_URL + "?name=" + projectName, new Callback() {
             @Override
             public void onFailure( Call call,  IOException e) {
                 getProjectCallback.error(e.getMessage());
@@ -179,10 +180,9 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         logger.info("Get project by name => " + projectName);
         TypeReference<DataResponse<ProjectItem>> typeReference = new TypeReference<DataResponse<ProjectItem>>() {
         };
-        DataResponse<ProjectItem> projectList = get(Constants.PROJECT_URL + "?name=" + projectName, typeReference);
+        DataResponse<ProjectItem> projectList = get(PROJECT_URL + "?name=" + projectName, typeReference);
 
-        if (projectList.getItems()
-                .size() == 0) {
+        if (projectList.getItems().isEmpty()) {
             throw new ProjectDoesNotExistException(projectName);
         }
 
@@ -233,13 +233,13 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                         .string();
                 logger.info("project token response - " + responseBody);
                 JSONObject jsonObject = new JSONObject(responseBody);
-                projectTokenCallback.success(jsonObject.getString(Constants.TOKEN));
+                projectTokenCallback.success(jsonObject.getString(TOKEN));
             }
         });
     }
 
     private void post(String url, String json, Callback callback) {
-        RequestBody body = RequestBody.create(json, Constants.JSON); // new
+        RequestBody body = RequestBody.create(json, JSON); // new
 
         Request.Builder builder = new Request.Builder();
 
@@ -254,7 +254,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     private Response postSync(String url, String json) throws IOException {
-        RequestBody body = RequestBody.create(json, Constants.JSON); // new
+        RequestBody body = RequestBody.create(json, JSON); // new
 
         Request.Builder builder = new Request.Builder();
 

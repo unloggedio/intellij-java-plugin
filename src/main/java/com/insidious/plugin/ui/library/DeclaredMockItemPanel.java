@@ -40,6 +40,7 @@ public class DeclaredMockItemPanel {
     private JPanel topContainerPanel;
     private JPanel nameContainerPanel;
     private JPanel actionPanel;
+    private boolean isUnsaved;
 
     public DeclaredMockItemPanel(DeclaredMock declaredMock, ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener
             , InsidiousService insidiousService) {
@@ -86,7 +87,7 @@ public class DeclaredMockItemPanel {
         if (simpleClassName.contains(".")) {
             simpleClassName = simpleClassName.substring(simpleClassName.lastIndexOf(".") + 1);
         }
-        titledBorder.setTitle("Declared mock definition");
+        titledBorder.setTitle(declaredMock.getName());
         titledBorder.setTitleColor(JBColor.BLACK);
 
 
@@ -147,48 +148,48 @@ public class DeclaredMockItemPanel {
         });
 
         // Timer to update the border title
-        String finalSimpleClassName = simpleClassName;
-        Timer timer = new Timer(100, e -> {
-            String currentTitle = titledBorder.getTitle();
-            String targetTitle = finalSimpleClassName;
+//        String finalSimpleClassName = simpleClassName;
+//        Timer timer = new Timer(100, e -> {
+//            String currentTitle = titledBorder.getTitle();
+//            String targetTitle = finalSimpleClassName;
+//
+//            // Logic to animate from currentTitle to targetTitle
+//            if (!currentTitle.equals(targetTitle)) {
+//                StringBuilder newTitle = new StringBuilder(currentTitle);
+//                int minLength = Math.min(currentTitle.length(), targetTitle.length());
+//                for (int i = 0; i < minLength; i++) {
+//                    if (currentTitle.charAt(i) != targetTitle.charAt(i)) {
+//                        newTitle.setCharAt(i, targetTitle.charAt(i));
+//                        break; // Change one character at a time
+//                    }
+//                }
+//                if (currentTitle.length() < targetTitle.length()) {
+//                    newTitle.append(targetTitle.charAt(currentTitle.length()));
+//                } else if (currentTitle.length() > targetTitle.length()) {
+//                    newTitle.deleteCharAt(currentTitle.length() - 1);
+//                }
+//
+//                titledBorder.setTitle(newTitle.toString());
+//                mainPanel.repaint();
+//            } else {
+//                ((Timer) e.getSource()).stop(); // Stop the timer when animation is complete
+//            }
+//        });
 
-            // Logic to animate from currentTitle to targetTitle
-            if (!currentTitle.equals(targetTitle)) {
-                StringBuilder newTitle = new StringBuilder(currentTitle);
-                int minLength = Math.min(currentTitle.length(), targetTitle.length());
-                for (int i = 0; i < minLength; i++) {
-                    if (currentTitle.charAt(i) != targetTitle.charAt(i)) {
-                        newTitle.setCharAt(i, targetTitle.charAt(i));
-                        break; // Change one character at a time
-                    }
-                }
-                if (currentTitle.length() < targetTitle.length()) {
-                    newTitle.append(targetTitle.charAt(currentTitle.length()));
-                } else if (currentTitle.length() > targetTitle.length()) {
-                    newTitle.deleteCharAt(currentTitle.length() - 1);
-                }
-
-                titledBorder.setTitle(newTitle.toString());
-                mainPanel.repaint();
-            } else {
-                ((Timer) e.getSource()).stop(); // Stop the timer when animation is complete
-            }
-        });
-
-        timer.start();
+//        timer.start();
 
 
-        MouseAdapter showDeleteButtonListener = new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-//                controlPanel.setVisible(true);
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-//                controlPanel.setVisible(false);
-            }
-        };
+//        MouseAdapter showDeleteButtonListener = new MouseAdapter() {
+//            @Override
+//            public void mouseEntered(MouseEvent e) {
+////                controlPanel.setVisible(true);
+//            }
+//
+//            @Override
+//            public void mouseExited(MouseEvent e) {
+////                controlPanel.setVisible(false);
+//            }
+//        };
 
 //        controlPanel.setVisible(false);
 
@@ -222,5 +223,23 @@ public class DeclaredMockItemPanel {
 
     public void setIsSelectable(boolean b) {
         selectCandidateCheckbox.setVisible(b);
+    }
+
+    public void setUnsaved(boolean isUnsaved) {
+        this.isUnsaved = isUnsaved;
+        if (isUnsaved) {
+            TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
+            String title = titledBorder.getTitle();
+//            title = "[unsaved] " + title;
+            TitledBorder titledBorder1 = BorderFactory.createTitledBorder(BorderFactory.createLineBorder(JBColor.ORANGE));
+            titledBorder1.setTitle(title);
+            mainPanel.setBorder(
+                    titledBorder1
+            );
+        }
+    }
+
+    public boolean isUnsaved() {
+        return isUnsaved;
     }
 }

@@ -9,6 +9,7 @@ import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.util.Computable;
+import com.intellij.psi.EmptySubstitutor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -39,7 +40,9 @@ public class MethodUtils {
                     String[] parameterCanonicalStrings = new String[methodParameters.length];
                     for (int i = 0; i < methodParameters.length; i++) {
                         ParameterAdapter methodParameter = methodParameters[i];
-                        parameterCanonicalStrings[i] = methodParameter.getType().getCanonicalText();
+                        parameterCanonicalStrings[i] =
+                                ClassTypeUtils.getDescriptorName(EmptySubstitutor.getInstance(),
+                                        methodParameter.getType());
                     }
                     agentCommandRequest.setParameterTypes(List.of(parameterCanonicalStrings));
 

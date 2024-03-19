@@ -151,7 +151,8 @@ public class MethodMockGutterNavigationHandler implements GutterIconNavigationHa
                     .setResizable(true)
                     .setCancelOnClickOutside(false)
                     .setCancelOnOtherWindowOpen(false)
-                    .setBelongsToGlobalPopupStack(false)
+                    .setCancelOnWindowDeactivation(false)
+                    .setBelongsToGlobalPopupStack(true)
                     .setTitle("Unlogged Mocks")
                     .setTitleIcon(new ActiveIcon(UIUtils.GHOST_MOCK))
                     .createPopup();
