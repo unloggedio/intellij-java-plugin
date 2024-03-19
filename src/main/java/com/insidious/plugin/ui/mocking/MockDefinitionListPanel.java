@@ -2,6 +2,7 @@ package com.insidious.plugin.ui.mocking;
 
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -117,7 +118,14 @@ public class MockDefinitionListPanel implements OnSaveListener {
                 methodUnderTest, methodUnderTest.getSignature(), new ArrayList<>(),
                 CandidateFilterType.METHOD, false
         );
-        List<TestCandidateMetadata> candidates = insidiousService.getSessionInstance()
+        SessionInstance sessionInstance = insidiousService.getSessionInstance();
+        if (sessionInstance == null) {
+            InsidiousNotification.notifyMessage("" +
+                    "No session found. Please start your application with unlogged-sdk to create a session",
+                    NotificationType.ERROR);
+            return;
+        }
+        List<TestCandidateMetadata> candidates = sessionInstance
                 .getTestCandidatesForAllMethod(query);
 
         @Nullable PsiClass containingClass = PsiTreeUtil.getParentOfType(methodCallExpression,

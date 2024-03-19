@@ -869,7 +869,11 @@ public class ClassTypeUtils {
         if (returnValue1.getProb().getSerializedValue().length == 0) {
 
 
-            switch (returnValue1.getType()) {
+            String type = returnValue1.getType();
+            if (type == null) {
+                type = "V";
+            }
+            switch (type) {
                 case "I":
                 case "java.lang.Integer":
                     returnValue = ObjectMapperInstance.getInstance().getNodeFactory()

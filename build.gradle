@@ -210,7 +210,7 @@ publishPlugin {
 test {
     useJUnitPlatform()
     jvmArgs = [
-            "-Xmx512G"
+            "-Xmx2G"
     ]
 }
 //sourceCompatibility = JavaVersion.VERSION_17

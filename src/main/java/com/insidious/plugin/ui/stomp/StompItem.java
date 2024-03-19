@@ -17,7 +17,6 @@ import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
-import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
@@ -82,7 +81,7 @@ public class StompItem {
         this.testCandidateLifeListener = testCandidateLifeListener;
         this.insidiousService = insidiousService;
         defaultPanelColor = mainPanel.getBackground();
-        candidateTitleLabel.setIcon(AllIcons.Actions.RunToCursor);
+//        candidateTitleLabel.setIcon(AllIcons.Actions.RunToCursor);
 
         MouseAdapter methodNameClickListener = new MouseAdapter() {
             @Override
@@ -264,7 +263,7 @@ public class StompItem {
         if (methodNameText.length() > 21) {
             methodNameText = methodNameText.substring(0, 17) + "..()";
         }
-        candidateTitleLabel.setText(methodNameText);
+        candidateTitleLabel.setText("⬁" + methodNameText);
         candidateTitleLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         MouseAdapter labelMouseAdapter = new MouseAdapter() {
@@ -284,83 +283,95 @@ public class StompItem {
         timeTakenMsLabel = createTagLabel("⏱ %s", new Object[]{timeTakenMsString}, Color.decode(category.getColorHex()),
                 new JBColor(Gray._255, Gray._255),
                 labelMouseAdapter);
+        int tagCount = 1;
         metadataPanel.add(timeTakenMsLabel);
 
         if (candidateMetadata.getLineNumbers().size() > 1) {
             lineCoverageLabel = createTagLabel("+%d lines", new Object[]{candidateMetadata.getLineNumbers().size()},
                     TAG_LABEL_BACKGROUND_GREY, Color.decode(ExecutionTimeCategory.INSTANTANEOUS.getColorHex()),
                     labelMouseAdapter);
+            tagCount++;
             metadataPanel.add(lineCoverageLabel);
         }
+        ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
 
         List<Parameter> argumentProbes = mainMethod.getArguments();
-        parameterCountLabel = createTagLabel("%d Argument" + (
-                        argumentProbes.size() > 1 ? "s" : ""
-                ), new Object[]{argumentProbes.size()}, TAG_LABEL_BACKGROUND_GREY,
-                TAG_LABEL_TEXT_GREY, labelMouseAdapter);
+        if (!argumentProbes.isEmpty()) {
 
-        ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
-        ObjectNode parametersNode = objectMapper.getNodeFactory()
-                .objectNode();
-        List<Parameter> arguments = mainMethod.getArguments();
-        for (int i = 0; i < arguments.size(); i++) {
-            Parameter argument = arguments.get(i);
-            JsonNode value = ClassTypeUtils.getValueForParameter(argument);
-            String name = argument.getName();
-            if (name == null) {
-                name = "Arg" + i;
+
+            parameterCountLabel = createTagLabel("%d Argument" + (
+                            argumentProbes.size() > 1 ? "s" : ""
+                    ), new Object[]{argumentProbes.size()}, TAG_LABEL_BACKGROUND_GREY,
+                    TAG_LABEL_TEXT_GREY, labelMouseAdapter);
+
+            ObjectNode parametersNode = objectMapper.getNodeFactory().objectNode();
+            List<Parameter> arguments = mainMethod.getArguments();
+            for (int i = 0; i < arguments.size(); i++) {
+                Parameter argument = arguments.get(i);
+                JsonNode value = ClassTypeUtils.getValueForParameter(argument);
+                String name = argument.getName();
+                if (name == null) {
+                    name = "Arg" + i;
+                }
+                parametersNode.set(name, value);
             }
-            parametersNode.set(name, value);
-        }
-        try {
-            String prettyPrintedArguments = objectMapper.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(parametersNode);
-            prettyPrintedArguments  = prettyPrintedArguments.replaceAll("\\n", "<br/>");
-            prettyPrintedArguments  = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
-            String prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments+ "</html>";
-            parameterCountLabel.setToolTipText(prettyPrintedArgumentsHtml);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            //
-        }
-
-
-        parameterCountLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                super.mouseEntered(e);
+            try {
+                String prettyPrintedArguments = objectMapper.writerWithDefaultPrettyPrinter()
+                        .writeValueAsString(parametersNode);
+                prettyPrintedArguments = prettyPrintedArguments.replaceAll("\\n", "<br/>");
+                prettyPrintedArguments = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
+                String prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments + "</html>";
+                parameterCountLabel.setToolTipText(prettyPrintedArgumentsHtml);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+                //
             }
-        });
-
-        metadataPanel.add(parameterCountLabel);
-
-        String returnValueClassName = mainMethod.getReturnValue().getType();
-        if (returnValueClassName != null && returnValueClassName.contains(".")) {
-            returnValueClassName = returnValueClassName.substring(returnValueClassName.lastIndexOf(".") + 1);
-        }
-        JLabel returnValueTag = createTagLabel("ᐊ " + returnValueClassName, new Object[]{argumentProbes.size()},
-                TAG_LABEL_BACKGROUND_GREY,
-                TAG_LABEL_TEXT_GREY, labelMouseAdapter);
 
 
-        try {
-            String prettyPrintedArguments = objectMapper.writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(ClassTypeUtils.getValueForParameter(mainMethod.getReturnValue()));
-            prettyPrintedArguments  = prettyPrintedArguments.replaceAll("\\n", "<br/>");
-            prettyPrintedArguments  = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
-            String prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments+ "</html>";
-            returnValueTag.setToolTipText(prettyPrintedArgumentsHtml);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            //
+            parameterCountLabel.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    super.mouseEntered(e);
+                }
+            });
+
+            tagCount++;
+            metadataPanel.add(parameterCountLabel);
         }
 
-        metadataPanel.add(returnValueTag);
+        if (tagCount < 4) {
 
-        int size = candidateMetadata.getCallsList().size();
-        if (size > 0) {
-            callsCountLabel = createTagLabel("%d Downstream", new Object[]{size},
-                    TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, labelMouseAdapter);
+
+            String returnValueClassName = mainMethod.getReturnValue().getType();
+            if (returnValueClassName != null && returnValueClassName.contains(".")) {
+                returnValueClassName = returnValueClassName.substring(returnValueClassName.lastIndexOf(".") + 1);
+            }
+            JLabel returnValueTag = createTagLabel("ᐊ " + returnValueClassName, new Object[]{argumentProbes.size()},
+                    TAG_LABEL_BACKGROUND_GREY,
+                    TAG_LABEL_TEXT_GREY, labelMouseAdapter);
+
+
+            try {
+                String prettyPrintedArguments = objectMapper.writerWithDefaultPrettyPrinter()
+                        .writeValueAsString(ClassTypeUtils.getValueForParameter(mainMethod.getReturnValue()));
+                prettyPrintedArguments = prettyPrintedArguments.replaceAll("\\n", "<br/>");
+                prettyPrintedArguments = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
+                String prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments + "</html>";
+                returnValueTag.setToolTipText(prettyPrintedArgumentsHtml);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+                //
+            }
+
+            tagCount++;
+            metadataPanel.add(returnValueTag);
+        }
+
+        if (tagCount < 4) {
+            int size = candidateMetadata.getCallsList().size();
+            if (size > 0) {
+                callsCountLabel = createTagLabel("%d Downstream", new Object[]{size},
+                        TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, labelMouseAdapter);
 //            callsCountLabel.setToolTipText("Click to show downstream calls");
 //            callsCountLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 //            callsCountLabel.addMouseListener(new MouseAdapter() {
@@ -370,8 +381,11 @@ public class StompItem {
 //                    super.mouseClicked(e);
 //                }
 //            });
-            metadataPanel.add(callsCountLabel);
+                metadataPanel.add(callsCountLabel);
+            }
         }
+
+
 
 
         selectCandidateCheckbox.addMouseListener(labelMouseAdapter);

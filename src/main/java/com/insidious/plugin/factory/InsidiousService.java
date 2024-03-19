@@ -690,6 +690,7 @@ final public class InsidiousService implements
                 return;
             }
         }
+        toolWindow.show();
         toolWindow.getContentManager().setSelectedContent(libraryWindowContent, true);
     }
 
@@ -1679,6 +1680,9 @@ final public class InsidiousService implements
     public void onMethodCallExpressionInlayClick(List<PsiMethodCallExpression> mockableCallExpressions, MouseEvent mouseEvent, Point point) {
 
         logger.warn("inlay clicked create mock");
+        if (toolWindow == null) {
+            initiateUI();
+        }
 
         LibraryFilterState libraryFilerModel = new LibraryFilterState();
 
@@ -1690,7 +1694,6 @@ final public class InsidiousService implements
 
         libraryFilerModel.setItemFilterType(ItemFilterType.SavedMocks);
 
-        toolWindow.show();
         showLibrary();
         if (libraryToolWindow != null) {
             libraryToolWindow.setLibraryFilterState(libraryFilerModel);
