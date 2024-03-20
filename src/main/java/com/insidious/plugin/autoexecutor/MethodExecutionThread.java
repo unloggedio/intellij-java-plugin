@@ -13,6 +13,8 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.util.Computable;
 
+import java.util.ArrayList;
+
 public class MethodExecutionThread implements Runnable {
 
     private ExecutionUnit parentUnit;
@@ -70,7 +72,7 @@ public class MethodExecutionThread implements Runnable {
                     AutoExecutorReportRecord record = new AutoExecutorReportRecord(diffResult,
                             0,
                             0,
-                            agentCommandRequest1.getDeclaredMocks());
+                            new ArrayList<>(agentCommandRequest1.getDeclaredMocks()));
                     record.setSource(parentUnit.getConfiguration().getExecutorId());
                     String cannonText = ApplicationManager.getApplication()
                             .runReadAction((Computable<String>) () -> methodAdapter.getReturnType().getCanonicalText());

@@ -222,7 +222,8 @@ public class ExecutionUnit implements Runnable {
                         diffResult.setResponse(response);
                         diffResult.setCommand(agentCommandRequest);
 
-                        AutoExecutorReportRecord record = new AutoExecutorReportRecord(diffResult, 0, 0, agentCommandRequest.getDeclaredMocks());
+                        AutoExecutorReportRecord record = new AutoExecutorReportRecord(diffResult, 0, 0,
+                                new ArrayList<>(agentCommandRequest.getDeclaredMocks()));
                         record.setSource(configuration.getExecutorId());
                         String cannonText = ApplicationManager.getApplication()
                                 .runReadAction((Computable<String>) () -> methodAdapter.getReturnType().getCanonicalText());
