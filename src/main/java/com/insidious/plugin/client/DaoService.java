@@ -1301,9 +1301,10 @@ public class DaoService {
             return false;
         }
 
-        if (!returnType.startsWith(methodCallExpression.getReturnValue().getType())) {
-            return false;
-        }
+        //
+//        if (!returnType.startsWith(methodCallExpression.getReturnValue().getType())) {
+//            return false;
+//        }
 
         for (int i = 0; i < actualArgumentCount; i++) {
             String expectedType = expectedTypes.get(i);

@@ -152,59 +152,29 @@ intellij {
 patchPluginXml {
     changeNotes = """
 
+<h3 id="release-notes-unlogged-io-s-latest-gem-a-10x-java-developer-s-dream-come-true">Release Notes: Unlogged.io&#39;s Latest Gem 💎 - A 10x Java Developer&#39;s Dream Come True</h3>
+<h4 id="granular-performance-tracking-because-every-millisecond-counts-">Granular Performance Tracking: Because Every Millisecond Counts ⏱️</h4>
+<p>Gone are the days when performance tracking was just a distant, API-level dream. With our newest spectacle, you can now see precisely what time each method takes, down to the most minuscule detail. It&#39;s like having a microscope for your code, but instead of looking at germs, you&#39;re watching your methods dance in real-time. Welcome to the future, where every millisecond is accounted for, and every performance hiccup is spotted faster than you can say &quot;Java&quot;.</p>
+<h4 id="ghost-icon-spookily-simple-mocking-">Ghost Icon: Spookily Simple Mocking 👻</h4>
+<p>Clicking on our ghost icon allows you to mock db calls, API calls, Redis calls, downstream services, and file operations with the recorded data. Yes, you read that right. One click. No more wrestling with bloated containers that eat up your system resources like there&#39;s no tomorrow. It&#39;s so easy, it&#39;s almost scary. Our ghost icon is here to make your developer life a breeze, not to haunt your nightmares.</p>
+<h4 id="save-replays-with-a-snap-auto-magical-assertions-">Save Replays with a Snap: Auto-Magical Assertions ✨</h4>
+<p>Imagine saving replays of all methods at once, with a mere selection. That&#39;s not just imagination now; it&#39;s reality. Unlogged auto-defines assertions for you, because who has the time to manually do that? Not you, busy Java developers. Our platform automatically saves and maps mocks to replays, making your testing workflow smoother than a hot knife through butter.</p>
+<h4 id="integration-or-unit-we-don-t-discriminate-test-your-heart-out-">Integration or Unit, We Don&#39;t Discriminate: Test Your Heart Out ❤️</h4>
+<p>Run your replays in unit or integration mode using mvn test or ./gradlew test. Getting a test report has never been easier. It&#39;s like choosing between chocolate and vanilla — regardless of your pick, the outcome is sweet. With Unlogged, testing becomes less of a chore and more of a choice.</p>
+<h4 id="commit-like-a-pro-replay-tests-at-your-fingertips-">Commit Like a Pro: Replay Tests at Your Fingertips 🏆</h4>
+<p>The replay tests we create reside cozily inside the /test/resources/unlogged folder. This means you can commit and push these tests to your repo with the swagger of a cowboy at high noon. Show off your testing prowess and make your team members green with envy. Or better yet, share the love and let them in on the secret to your success.</p>
+<h4 id="context-reading-because-we-care-about-the-details-">Context Reading: Because We Care About the Details 🔍</h4>
+<p>Unlogged can now read the saved context for authentication and other headers, because we understand that the devil is in the details. No more manual tinkering or guessing games. It&#39;s like we&#39;ve handed you the keys to the kingdom of efficiency.</p>
+<p>Java development can sometimes feel like a battle, but Unlogged.io&#39;s latest release is the cavalry coming over the hill. </p>
+<p>So saddle up, developers! With our tool, you&#39;re not just coding; you&#39;re crafting a masterpiece with the precision of a watchmaker and the vision of an artist. </p>
+<p>Happy coding!  </p>
 
-
-    <h4>Unlogged.io Empowering Developer Efficiency and Testing Precision</h4>
-
-    <p>Greetings Java Developers! We're thrilled to announce the latest Unlogged.io release, 
-    packed with powerful features designed to supercharge your development workflow and testing capabilities.
-    Let's dive into the exciting updates:</p>
-    
-    <h5>Dynamic Mocks for Comprehensive Testing</h5>
-    
-    <p>Unleash the potential of your testing scenarios with dynamic mocks! Now, developers can effortlessly 
-    create mocks for APIs, database calls, file operations, and downstream services. Tailor your mocks to 
-    simulate real-world situations and enhance the precision of your testing.</p>
-    
-    <h5>Swift Workflow with Saved Mocks</h5>
-    
-    <p>Time is of the essence, and we understand that. With Unlogged.io's latest release, 
-    save your meticulously crafted mocks for future use. Experience an accelerated workflow 
-    as you reuse saved mocks, ensuring consistency and efficiency in your development process.</p>
-    
-    <h5>Permanent Mocking for External Testing</h5>
-    
-    <p>Extend your testing capabilities beyond Unlogged.io. Our new release enables permanent mocking, 
-    allowing developers to seamlessly test their code with external tools like Postman or Swagger. Enjoy 
-    the flexibility of choice without compromising on the precision of your tests.</p>
-    
-    <h5>CI Integration for Automated Replays</h5>
-    
-    <p>Effortlessly integrate Unlogged.io into your CI/CD pipeline with our CI runner, a seamless part of 
-    the Unlogged SDK. Associate your replays with mock definitions by utilizing the unlogged plugin. Your CI 
-    process becomes a breeze as the runner picks up files, ensuring thorough testing with every build.</p>
-    
-    <h5>Enhanced Association with Unlogged Plugin</h5>
-    
-    <p>Take control of your replays and mock definitions with the Unlogged plugin. Easily create associations 
-    between your replays and mock definitions, providing a unified and organized testing environment for your 
-    projects.</p>
-    
-    <p>Upgrade to Unlogged.io's latest release today and revolutionize your development and testing experience. 
-    Stay ahead of the curve, boost efficiency, and ensure the robustness of your code.</p>
-    <br />
-    <p>Happy coding!</p>
-
-
-
-    <h4>Version: 1.18.12</h4>
-    <p><strong>#Unlogged #JavaDevelopers #CodingExcellence #DeveloperTools #Innovation #CodeCoverage #UnitTesting</strong></p>    
     """
 }
 
 publishPlugin {
     token = "perm:c2hhcmR1bGxhdmVrYXI=.OTItOTUwNA==.LQaLX5e7EeHr4Cvw3l50TdhGMEZAhp"
-    channels = ['alpha']
+    channels = ['stable']
 }
 
 test {
