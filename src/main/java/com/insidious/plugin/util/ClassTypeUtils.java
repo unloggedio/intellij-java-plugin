@@ -1,5 +1,9 @@
 package com.insidious.plugin.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
@@ -10,6 +14,7 @@ import com.insidious.plugin.MethodSignatureParser;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
+import com.insidious.plugin.ui.stomp.TestCandidateSaveForm;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmPrimitiveTypeKind;
 import com.intellij.lang.jvm.types.JvmType;
@@ -41,6 +46,7 @@ public class ClassTypeUtils {
 
     private static final JavaParser javaParser = new JavaParser(new ParserConfiguration());
     private static final Logger logger = LoggerUtil.getInstance(ClassTypeUtils.class);
+    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
 
     public static String upperInstanceName(String methodName) {
         return methodName.substring(0, 1)
@@ -207,6 +213,9 @@ public class ClassTypeUtils {
             }
 
             containerClassName = nameBuilder.toString();
+        }
+        if (containerClassName.contains(".")) {
+            containerClassName = containerClassName.replace('.', '/');
         }
         return "L" + containerClassName + ";";
     }
@@ -827,5 +836,112 @@ public class ClassTypeUtils {
             }
         }
         return result;
+    }
+
+    public static String getDescriptorName(PsiSubstitutor substitutor, JvmType type1) {
+        String descriptorName = null;
+        if (type1 instanceof PsiWildcardType) {
+            type1 = substituteClassRecursively((PsiWildcardType) type1, substitutor);
+            String type = ((PsiWildcardType) type1).getCanonicalText();
+            descriptorName = getDescriptorName(type);
+        } else if (type1 instanceof PsiClassType) {
+            type1 = substituteClassRecursively((PsiType) type1, substitutor);
+            String type = ((PsiType) type1).getCanonicalText();
+            descriptorName = getDescriptorName(type);
+        } else if (type1 instanceof PsiPrimitiveType) {
+            PsiPrimitiveType psiType = (PsiPrimitiveType) type1;
+            descriptorName = psiType.getKind().getBinaryName();
+        } else if (type1 instanceof PsiEllipsisType) {
+            PsiType componentType = ((PsiEllipsisType) type1).getComponentType();
+            return "[" + getDescriptorName(substitutor, componentType);
+        } else if (type1 instanceof PsiArrayType) {
+            PsiType componentType = ((PsiArrayType) type1).getComponentType();
+            return "[" + getDescriptorName(substitutor, componentType);
+        }
+        if (descriptorName == null) {
+            return null;
+        }
+        return descriptorName.replace('.', '/');
+    }
+
+    public static JsonNode getValueForParameter(Parameter returnValue1) {
+        JsonNode returnValue;
+        if (returnValue1.getProb().getSerializedValue().length == 0) {
+
+
+            String type = returnValue1.getType();
+            if (type == null) {
+                type = "V";
+            }
+            switch (type) {
+                case "I":
+                case "java.lang.Integer":
+                    returnValue = ObjectMapperInstance.getInstance().getNodeFactory()
+                            .numberNode(Math.toIntExact(returnValue1.getProb().getValue()));
+                    break;
+                case "L":
+                case "java.lang.Long":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode(Long.valueOf(returnValue1.getProb().getValue()));
+                    break;
+                case "F":
+                case "java.lang.Float":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode(Float.valueOf(returnValue1.getProb().getValue()));
+                    break;
+                case "B":
+                case "java.lang.Byte":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode(Byte.valueOf((byte) returnValue1.getProb().getValue()));
+                    break;
+                case "D":
+                case "java.lang.Double":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode(Double.valueOf(returnValue1.getProb().getValue()));
+                    break;
+                case "C":
+                case "java.lang.Character":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode((char) returnValue1.getProb().getValue());
+                    break;
+                case "Z":
+                case "java.lang.Boolean":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .booleanNode(returnValue1.getProb().getValue() != 0);
+                    break;
+                case "S":
+                case "java.lang.Short":
+                    returnValue =
+                            objectMapper.getNodeFactory()
+                                    .numberNode((short) returnValue1.getProb().getValue());
+                    break;
+
+                default:
+                    returnValue = objectMapper.getNodeFactory()
+                            .numberNode(returnValue1.getProb().getValue());
+                    break;
+
+            }
+
+        } else {
+            String stringValue = new String(returnValue1.getProb().getSerializedValue());
+            if (stringValue.isEmpty()) {
+                returnValue = objectMapper.getNodeFactory().nullNode();
+            } else {
+                try {
+                    returnValue = objectMapper.readTree(stringValue);
+                } catch (JsonProcessingException e) {
+                    logger.warn("Failed to parse response value as a json object: " + e.getMessage());
+                    returnValue = objectMapper.getNodeFactory().textNode(stringValue);
+                }
+            }
+        }
+        return returnValue;
     }
 }

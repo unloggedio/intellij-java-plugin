@@ -74,7 +74,6 @@ public class MockDefinitionEditor {
         this.componentLifecycleListener = componentLifecycleListener;
         this.methodUnderTest = methodUnderTest;
         this.project = project;
-        cancelButton.addActionListener(e -> componentLifecycleListener.onClose(null));
 //        mockTypeParentPanel.setVisible(false);
 
         String expressionText = ApplicationManager.getApplication().runReadAction(
@@ -145,13 +144,18 @@ public class MockDefinitionEditor {
             MethodUnderTest methodUnderTest,
             DeclaredMock declaredMock,
             Project project,
-            OnSaveListener onSaveListener
-    ) {
+            OnSaveListener onSaveListener,
+            ComponentLifecycleListener<Void> componentLifecycleListener) {
         this.onSaveListener = onSaveListener;
         this.methodUnderTest = methodUnderTest;
+        this.componentLifecycleListener = componentLifecycleListener;
         this.project = project;
         this.declaredMock = declaredMock;
-        callExpressionLabel.setText(declaredMock.getSourceClassName() + "." + declaredMock.getMethodName() + "()");
+        String fieldTypeName = declaredMock.getFieldTypeName();
+        if (fieldTypeName.contains(".")) {
+            fieldTypeName = fieldTypeName.substring(fieldTypeName.lastIndexOf(".") + 1);
+        }
+        callExpressionLabel.setText(fieldTypeName + "." + declaredMock.getMethodName() + "()");
 
         updateUiValues();
         addListeners();
@@ -186,6 +190,10 @@ public class MockDefinitionEditor {
             onSaveListener.onSaveDeclaredMock(declaredMock);
             componentLifecycleListener.onClose(null);
         });
+        cancelButton.addActionListener(e -> {
+            componentLifecycleListener.onClose(null);
+        });
+
     }
 
     private void updateUiValues() {

@@ -1,6 +1,5 @@
 package com.insidious.plugin.ui.stomp;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
@@ -8,6 +7,7 @@ import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.Expression;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.mocking.*;
@@ -37,6 +37,7 @@ import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
@@ -53,7 +54,7 @@ public class TestCandidateSaveForm {
     private final List<TestCandidateMetadata> candidateMetadataList;
     private final SaveFormListener saveFormListener;
     private final List<StoredCandidate> candidateList;
-    private final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
+    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final Map<StoredCandidate, StoredCandidateItemPanel> candidatePanelMap = new HashMap<>();
     private final Map<DeclaredMock, DeclaredMockItemPanel> declaredMockPanelMap = new HashMap<>();
     private final Map<AtomicAssertion, AtomicAssertionItemPanel> atomicAssertionPanelMap = new HashMap<>();
@@ -189,7 +190,7 @@ public class TestCandidateSaveForm {
                     }
 
                     Parameter returnValue1 = mainMethod.getReturnValue();
-                    JsonNode returnValue = getValueForParameter(returnValue1);
+                    JsonNode returnValue = ClassTypeUtils.getValueForParameter(returnValue1);
 
 
                     AtomicAssertion assertion;
@@ -218,6 +219,16 @@ public class TestCandidateSaveForm {
             @Override
             public void actionPerformed(ActionEvent e) {
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    JSONObject eventProperties = new JSONObject();
+                    eventProperties.put("count", candidateMetadataList.size());
+                    eventProperties.put("inUnit", unitRadioButton.isSelected());
+                    eventProperties.put("mockCount", mocksMap.values()
+                            .stream().mapToLong(Collection::size).sum());
+                    eventProperties.put("assertionCount", candidateList
+                            .stream().mapToInt(e2 -> AtomicAssertionUtils.countAssertions(e2.getTestAssertions()))
+                            .sum());
+                    UsageInsightTracker.getInstance().RecordEvent("TCSF_CONFIRM", eventProperties);
+
                     int mockSavedCount = 0;
                     for (StoredCandidate storedCandidate : candidateList) {
                         if (!unitRadioButton.isSelected()) {
@@ -261,7 +272,13 @@ public class TestCandidateSaveForm {
         });
 
         cancelButton.setIcon(AllIcons.Actions.Cancel);
-        cancelButton.addActionListener(e -> componentLifecycleListener.onClose(TestCandidateSaveForm.this));
+        cancelButton.addActionListener(e -> {
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("count", candidateMetadataList.size());
+            UsageInsightTracker.getInstance().RecordEvent("TCSF_CLOSED", eventProperties);
+
+            componentLifecycleListener.onClose(TestCandidateSaveForm.this);
+        });
 
 
         List<AtomicAssertion> allAssertions = candidateList.stream()
@@ -409,7 +426,7 @@ public class TestCandidateSaveForm {
         for (int i = 0; i < declaredMockList.size(); i++) {
             DeclaredMock declaredMock = declaredMockList.get(i);
             DeclaredMockItemPanel declaredMockItemPanel = new DeclaredMockItemPanel(declaredMock,
-                    itemLifeCycleListener, project);
+                    itemLifeCycleListener, insidiousService);
             declaredMockItemPanel.setIsSelectable(false);
             declaredMockPanelMap.put(declaredMock, declaredMockItemPanel);
             mockItemContainer.add(declaredMockItemPanel.getComponent(), createGBCForLeftMainComponent(i));
@@ -552,83 +569,6 @@ public class TestCandidateSaveForm {
 
     }
 
-    private JsonNode getValueForParameter(Parameter returnValue1) {
-        JsonNode returnValue;
-        if (returnValue1.getProb().getSerializedValue().length == 0) {
-
-
-            switch (returnValue1.getType()) {
-                case "I":
-                case "java.lang.Integer":
-                    returnValue = objectMapper.getNodeFactory()
-                            .numberNode(Math.toIntExact(returnValue1.getProb().getValue()));
-                    break;
-                case "L":
-                case "java.lang.Long":
-                    returnValue =
-                            objectMapper.getNodeFactory()
-                                    .numberNode(Long.valueOf(returnValue1.getProb().getValue()));
-                    break;
-                case "F":
-                case "java.lang.Float":
-                    returnValue =
-                            objectMapper.getNodeFactory()
-                                    .numberNode(Float.valueOf(returnValue1.getProb().getValue()));
-                    break;
-                case "B":
-                case "java.lang.Byte":
-                    returnValue =
-                            objectMapper.getNodeFactory()
-                                    .numberNode(Byte.valueOf((byte) returnValue1.getProb().getValue()));
-                    break;
-                case "D":
-                case "java.lang.Double":
-                    returnValue =
-                            objectMapper.getNodeFactory()
-                                    .numberNode(Double.valueOf(returnValue1.getProb().getValue()));
-                    break;
-                case "C":
-                case "java.lang.Character":
-                    returnValue =
-                            objectMapper.getNodeFactory()
-                                    .numberNode((char) returnValue1.getProb().getValue());
-                    break;
-                case "Z":
-                case "java.lang.Boolean":
-                    returnValue =
-                            objectMapper.getNodeFactory()
-                                    .booleanNode(returnValue1.getProb().getValue() != 0);
-                    break;
-                case "S":
-                case "java.lang.Short":
-                    returnValue =
-                            objectMapper.getNodeFactory()
-                                    .numberNode((short) returnValue1.getProb().getValue());
-                    break;
-
-                default:
-                    returnValue = objectMapper.getNodeFactory()
-                            .numberNode(returnValue1.getProb().getValue());
-                    break;
-
-            }
-
-        } else {
-            String stringValue = new String(returnValue1.getProb().getSerializedValue());
-            if (stringValue.length() == 0) {
-                returnValue = objectMapper.getNodeFactory().nullNode();
-            } else {
-                try {
-                    returnValue = objectMapper.readTree(stringValue);
-                } catch (JsonProcessingException e) {
-                    logger.warn("Failed to parse response value as a json object: " + e.getMessage());
-                    returnValue = objectMapper.getNodeFactory().textNode(stringValue);
-                }
-            }
-        }
-        return returnValue;
-    }
-
     private List<DeclaredMock> patchCandidate(
             TestCandidateMetadata candidateMetadata,
             StoredCandidate storedCandidate,
@@ -637,6 +577,9 @@ public class TestCandidateSaveForm {
 
         Pair<PsiMethod, PsiSubstitutor> psiMethod = ClassTypeUtils.getPsiMethod(
                 candidateMetadata.getMainMethod(), project);
+        if (psiMethod == null) {
+            return new ArrayList<>();
+        }
         PsiMethod candidateTargetMethod = psiMethod.getFirst();
 
         List<PsiMethodCallExpression> allCallExpressions = ApplicationManager.getApplication().runReadAction(
@@ -658,28 +601,20 @@ public class TestCandidateSaveForm {
 //        }
 
         Map<String, List<PsiMethodCallExpression>> expressionsByMethodName = allCallExpressions.stream()
-                .collect(Collectors.groupingBy(e1 -> {
-                    return ApplicationManager.getApplication().runReadAction(
-                            (Computable<String>) () -> {
-                                MethodUnderTest methodUnderTest = MethodUnderTest.fromPsiCallExpression(e1);
-                                if (methodUnderTest == null) {
-                                    return "";
-                                }
-                                return methodUnderTest.getName();
-                            });
-                }));
+                .collect(Collectors.groupingBy(e1 -> ApplicationManager.getApplication().runReadAction(
+                        (Computable<String>) () -> {
+                            MethodUnderTest methodUnderTest = MethodUnderTest.fromPsiCallExpression(e1);
+                            if (methodUnderTest == null) {
+                                return "";
+                            }
+                            return methodUnderTest.getName();
+                        })));
         List<DeclaredMock> mocks = new ArrayList<>();
 
         List<MethodCallExpression> callListCopy = new ArrayList<>(candidateMetadata.getCallsList());
-        while (callListCopy.size() > 0) {
-            MethodCallExpression methodCallExpression = callListCopy.remove(0);
-            if (methodCallExpression.isStaticCall()) {
-                continue;
-            }
-//            String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
-//            PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
-//                    GlobalSearchScope.allScope(project));
+        while (!callListCopy.isEmpty()) {
 
+            MethodCallExpression methodCallExpression = callListCopy.remove(0);
             final String methodName = methodCallExpression.getMethodName();
 
             List<PsiMethodCallExpression> callExpressionByName = expressionsByMethodName.get(methodName);
@@ -688,64 +623,15 @@ public class TestCandidateSaveForm {
                 continue;
             }
             if (callExpressionByName.size() != 1) {
-                //
 //                throw new RuntimeException("please");
             }
 
             PsiMethodCallExpression callExpression = callExpressionByName.get(0);
 
-            PsiExpression callOnSubject = callExpression.getMethodExpression().getQualifierExpression();
-            if (callOnSubject instanceof PsiMethodCallExpression) {
-                continue;
-            }
-            PsiElement resolvedSubject = getCallSubjectElement(callOnSubject);
-            if (!(resolvedSubject instanceof PsiField)) {
-                // call on local variable or paramter
-                continue;
-            }
 
-
-            String fieldName = callExpression.getMethodExpression()
-                    .getQualifierExpression().getText();
-            if (fieldName.startsWith("System.")) {
-                // not mocking any calls on System....
-                continue;
-            }
-            PsiSubstitutor substitutor = ClassUtils.getSubstitutorForCallExpression(callExpression);
-
-            PsiMethod callTarget = callExpression.resolveMethod();
-
-            PsiType callExpressionReturnType = ClassTypeUtils.substituteClassRecursively(callTarget.getReturnType(),
-                    substitutor);
-
-            TestCaseWriter.setParameterTypeFromPsiType(methodCallExpression.getReturnValue(),
-                    callExpressionReturnType, true);
-
-            MethodUnderTest mut = MethodUnderTest.fromPsiCallExpression(callExpression);
-
-            List<ParameterMatcher> whenParameterList = new ArrayList<>();
-            for (Parameter argument : methodCallExpression.getArguments()) {
-                ParameterMatcher parameterMatcher = new ParameterMatcher(argument.getName(),
-                        ParameterMatcherType.ANY_OF_TYPE, argument.getType());
-                whenParameterList.add(parameterMatcher);
-            }
-
-
-            List<ThenParameter> thenParameterList = new ArrayList<>();
-            Parameter returnValue1 = methodCallExpression.getReturnValue();
-            JsonNode value = getValueForParameter(returnValue1);
-
-            String returnValueClassName = callExpressionReturnType.getCanonicalText(); // returnValue1.getType();
-            ReturnValue returnValue = new ReturnValue(value.toString(), returnValueClassName, ReturnValueType.REAL);
-            ThenParameter thenParam = new ThenParameter(returnValue, MethodExitType.NORMAL);
-
-            thenParameterList.add(thenParam);
-            DeclaredMock newMock = new DeclaredMock(
-                    "mock response for call to " + callExpression.getText(),
-                    methodCallExpression.getSubject().getType(), candidateMetadata.getFullyQualifiedClassname(),
-                    fieldName, methodCallExpression.getMethodName(),
-                    mut.getMethodHashKey(), whenParameterList, thenParameterList
-            );
+            DeclaredMock newMock = getDeclaredMock(
+                    methodCallExpression, callExpression, candidateMetadata.getFullyQualifiedClassname());
+            if (newMock == null) continue;
             mocks.add(newMock);
             storedCandidate.getMockIds().add(newMock.getId());
 
@@ -757,7 +643,72 @@ public class TestCandidateSaveForm {
     }
 
     @Nullable
-    private PsiElement getCallSubjectElement(PsiExpression callOnSubject) {
+    public static DeclaredMock getDeclaredMock(MethodCallExpression methodCallExpression,
+                                        PsiMethodCallExpression callExpression,
+                                        String sourceClassName) {
+        if (methodCallExpression.isStaticCall()) {
+            return null;
+        }
+
+
+        PsiReferenceExpression methodExpression = callExpression.getMethodExpression();
+        PsiExpression callOnSubject = methodExpression.getQualifierExpression();
+        if (callOnSubject instanceof PsiMethodCallExpression) {
+            return null;
+        }
+        PsiElement resolvedSubject = getCallSubjectElement(callOnSubject);
+        if (!(resolvedSubject instanceof PsiField)) {
+            // call on local variable or paramter
+            return null;
+        }
+
+
+        String fieldName = methodExpression.getQualifierExpression().getText();
+        if (fieldName.startsWith("System.")) {
+            // not mocking any calls on System....
+            return null;
+        }
+        PsiSubstitutor substitutor = ClassUtils.getSubstitutorForCallExpression(callExpression);
+
+        PsiMethod callTarget = callExpression.resolveMethod();
+
+        PsiType callExpressionReturnType = ClassTypeUtils.substituteClassRecursively(callTarget.getReturnType(),
+                substitutor);
+
+        TestCaseWriter.setParameterTypeFromPsiType(methodCallExpression.getReturnValue(),
+                callExpressionReturnType, true);
+
+        MethodUnderTest mut = MethodUnderTest.fromPsiCallExpression(callExpression);
+
+        List<ParameterMatcher> whenParameterList = new ArrayList<>();
+        for (Parameter argument : methodCallExpression.getArguments()) {
+            JsonNode argumentValue = ClassTypeUtils.getValueForParameter(argument);
+            ParameterMatcher parameterMatcher = new ParameterMatcher(argument.getName(),
+                    ParameterMatcherType.EQUAL, argumentValue.toString());
+            whenParameterList.add(parameterMatcher);
+        }
+
+
+        List<ThenParameter> thenParameterList = new ArrayList<>();
+        Parameter returnValue1 = methodCallExpression.getReturnValue();
+        JsonNode value = ClassTypeUtils.getValueForParameter(returnValue1);
+
+        String returnValueClassName = callExpressionReturnType.getCanonicalText(); // returnValue1.getType();
+        ReturnValue returnValue = new ReturnValue(value.toString(), returnValueClassName, ReturnValueType.REAL);
+        ThenParameter thenParam = new ThenParameter(returnValue, MethodExitType.NORMAL);
+
+        thenParameterList.add(thenParam);
+        DeclaredMock newMock = new DeclaredMock(
+                "mock response for call to " + callExpression.getText(),
+                methodCallExpression.getSubject().getType(), sourceClassName,
+                fieldName, methodCallExpression.getMethodName(),
+                mut.getMethodHashKey(), whenParameterList, thenParameterList
+        );
+        return newMock;
+    }
+
+    @Nullable
+    private static PsiElement getCallSubjectElement(PsiExpression callOnSubject) {
         PsiElement resolvedSubject = null;
         if (callOnSubject instanceof PsiReferenceExpression) {
             resolvedSubject = ((PsiReferenceExpression) callOnSubject).resolve();

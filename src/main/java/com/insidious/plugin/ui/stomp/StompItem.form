@@ -47,7 +47,6 @@
                     </constraints>
                     <properties>
                       <font name="JetBrains Mono"/>
-                      <icon value="icons/png/arrow-left-up-line.png"/>
                       <text value=""/>
                     </properties>
                   </component>

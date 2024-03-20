@@ -474,8 +474,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
         AgentCommandRequest agentCommandRequest =
                 MethodUtils.createExecuteRequestWithParameters(methodElement, psiClass,
-                        methodArgumentValues,
-                        false, null);
+                        methodArgumentValues, false, null);
         agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
 
         if (returnValueTextArea != null) {

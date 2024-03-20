@@ -37,17 +37,16 @@ import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.*;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
+import com.insidious.plugin.ui.library.ItemFilterType;
 import com.insidious.plugin.ui.library.LibraryComponent;
 import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
+import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.ui.stomp.FilterModel;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
-import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl;
-import com.intellij.codeInsight.daemon.impl.DaemonProgressIndicator;
-import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
 import com.intellij.debugger.DebuggerManagerEx;
 import com.intellij.debugger.impl.DebuggerSession;
@@ -68,15 +67,13 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.EditorEventMulticaster;
+import com.intellij.openapi.editor.impl.EditorFactoryImpl;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
@@ -137,6 +134,7 @@ final public class InsidiousService implements
     private final GetProjectSessionsCallback sessionListener;
     private final ActiveSessionManager sessionManager;
     private final CurrentState currentState = new CurrentState();
+    private final MockManager mockManager;
     private ScheduledExecutorService stompComponentThreadPool = Executors.newScheduledThreadPool(2);
     private SessionLoader sessionLoader;
     private VideobugClientInterface client;
@@ -302,6 +300,8 @@ final public class InsidiousService implements
         connectionCheckerThreadPool.submit(connectionCheckerService);
         junitTestCaseWriter = new JUnitTestCaseWriter(project, objectMapper);
         configurationState = project.getService(InsidiousConfigurationState.class);
+
+        mockManager = new MockManager(configurationState);
 
     }
 
@@ -687,12 +687,15 @@ final public class InsidiousService implements
         if (toolWindow == null) {
             initiateUI();
         } else {
-            InsidiousNotification.notifyMessage(
-                    "Please start the application with unlogged-sdk and open the unlogged tool window to use",
-                    NotificationType.WARNING
-            );
-            return;
+            if (libraryWindowContent == null) {
+                InsidiousNotification.notifyMessage(
+                        "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                        NotificationType.WARNING
+                );
+                return;
+            }
         }
+        toolWindow.show();
         toolWindow.getContentManager().setSelectedContent(libraryWindowContent, true);
     }
 
@@ -757,7 +760,7 @@ final public class InsidiousService implements
         return methodArgumentValueCache.getArgumentSets(agentCommandRequest);
     }
 
-    public void injectMocksInRunningProcess(List<DeclaredMock> allDeclaredMocks) {
+    private void injectMocksInRunningProcess(Collection<DeclaredMock> allDeclaredMocks) {
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.INJECT_MOCKS);
         agentCommandRequest.setDeclaredMocks(allDeclaredMocks);
@@ -771,28 +774,47 @@ final public class InsidiousService implements
                 logger.warn("agent command response - " + agentCommandResponse);
                 InsidiousNotification.notifyMessage(
                         agentCommandResponse.getMessage(), NotificationType.INFORMATION
+
                 );
+
+
+                forceRedrawInlayHints();
+
             } catch (IOException e) {
                 logger.warn("failed to execute command - " + e.getMessage(), e);
                 InsidiousNotification.notifyMessage(
                         "Failed to inject mocks [" + e.getMessage() + "]", NotificationType.ERROR
                 );
-                libraryToolWindow.setMockStatus(false);
             }
         });
 
     }
 
-    public void removeMocksInRunningProcess(List<DeclaredMock> declaredMocks) {
+    public void forceRedrawInlayHints() {
+        final FileEditor selectedEditor = FileEditorManager.getInstance(project).getSelectedEditor();
+
+        if (selectedEditor != null) {
+            final VirtualFile file = selectedEditor.getFile();
+            if (file != null) {
+                final PsiFile psiFile = ReadAction.compute(
+                        () -> PsiManager.getInstance(project).findFile(file));
+                logger.warn("trigger for " + psiFile.getName());
+                InlayHintsFactoryBridge.refreshInlayHints(psiFile, EditorFactoryImpl.getInstance()
+                        .getAllEditors(), false);
+            }
+        }
+    }
+
+    private void removeMocksInRunningProcess(Collection<DeclaredMock> declaredMocks) {
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.REMOVE_MOCKS);
         agentCommandRequest.setDeclaredMocks(declaredMocks);
 
-        if (declaredMocks == null || declaredMocks.size() == 0) {
+        if (declaredMocks == null || declaredMocks.isEmpty()) {
             List<DeclaredMock> existingMocks = getAllDeclaredMocks();
             existingMocks.stream()
                     .map(e -> e.getSourceClassName() + "." + e.getFieldName())
-                    .forEach(configurationState::removeFieldMock);
+                    .forEach(configurationState::markMockDisable);
         }
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -804,6 +826,7 @@ final public class InsidiousService implements
                 InsidiousNotification.notifyMessage(
                         agentCommandResponse.getMessage(), NotificationType.INFORMATION
                 );
+                forceRedrawInlayHints();
             } catch (IOException e) {
                 logger.warn("failed to execute command - " + e.getMessage(), e);
                 InsidiousNotification.notifyMessage(
@@ -848,7 +871,7 @@ final public class InsidiousService implements
 
             agentCommandRequest.setDeclaredMocks(activeMocks);
         } else {
-            List<DeclaredMock> enabledMock = agentCommandRequest.getDeclaredMocks();
+            Collection<DeclaredMock> enabledMock = agentCommandRequest.getDeclaredMocks();
             ArrayList<DeclaredMock> setMock = new ArrayList<>();
 
             for (DeclaredMock localMock : enabledMock) {
@@ -933,7 +956,7 @@ final public class InsidiousService implements
 
             agentCommandRequest.setDeclaredMocks(activeMocks);
         } else {
-            List<DeclaredMock> enabledMock = agentCommandRequest.getDeclaredMocks();
+            Collection<DeclaredMock> enabledMock = agentCommandRequest.getDeclaredMocks();
             ArrayList<DeclaredMock> setMock = new ArrayList<>();
 
             for (DeclaredMock localMock : enabledMock) {
@@ -1234,20 +1257,6 @@ final public class InsidiousService implements
         return interfaceQualifiedNamesWithSameMethod;
     }
 
-    public List<StoredCandidate> getStoredCandidatesFor(CandidateSearchQuery candidateSearchQuery) {
-        if (candidateSearchQuery == null) {
-            logger.warn("get stored candidates query is null");
-            return List.of();
-        }
-        if (DumbService.getInstance(project).isDumb()) {
-            logger.warn("get stored candidates project is in dumb mode [" + project.getName() + "]");
-            return List.of();
-        }
-        return List.of();
-
-
-    }
-
     public String getMethodArgsDescriptor(MethodAdapter method) {
         ParameterAdapter[] methodParams = method.getParameters();
         StringBuilder methodArgumentsClassnames = new StringBuilder();
@@ -1503,33 +1512,7 @@ final public class InsidiousService implements
         AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         String mockId = atomicRecordService.saveMockDefinition(declaredMock);
         reloadLibrary();
-
-        if (configurationState.isFieldMockActive("*")) {
-            injectMocksInRunningProcess(List.of(declaredMock));
-        }
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
-            DaemonCodeAnalyzerImpl codeAnalyzer = (DaemonCodeAnalyzerImpl) DaemonCodeAnalyzer.getInstance(project);
-            final FileEditor selectedEditor = FileEditorManager.getInstance(project).getSelectedEditor();
-            if (selectedEditor != null) {
-                final VirtualFile file = selectedEditor.getFile();
-                if (file != null) {
-                    final PsiFile psiFile = ReadAction.compute(() -> PsiManager.getInstance(project).findFile(file));
-                    final Document document = ReadAction.compute(
-                            () -> FileDocumentManager.getInstance().getDocument(file));
-                    final ProgressIndicator daemonIndicator = new DaemonProgressIndicator();
-                    ProgressManager.getInstance().runProcess(() -> {
-                        try {
-                            ReadAction.run(() -> codeAnalyzer.runMainPasses(psiFile, document, daemonIndicator));
-                        } catch (Exception e) {
-
-                        }
-
-                    }, daemonIndicator);
-                    codeAnalyzer.restart();
-                }
-            }
-        });
+        enableMock(declaredMock);
         return mockId;
     }
 
@@ -1537,40 +1520,36 @@ final public class InsidiousService implements
         disableMock(declaredMock);
         AtomicRecordService atomicRecordService = project.getService(AtomicRecordService.class);
         atomicRecordService.deleteMockDefinition(declaredMock);
-        if (isFieldMockActive(declaredMock.getSourceClassName(), declaredMock.getFieldName())) {
-            removeMocksInRunningProcess(List.of(declaredMock));
-        }
     }
 
-
-    public void disableFieldMock(String className, String fieldName) {
-        configurationState.removeFieldMock(className + "." + fieldName);
-    }
-
-    public void enableFieldMock(String className, String fieldName) {
-        configurationState.addFieldMock(className + "." + fieldName);
-    }
-
-    public boolean isFieldMockActive(String className, String fieldName) {
-        return configurationState.isFieldMockActive(className + "." + fieldName);
-    }
 
     public void disableMock(DeclaredMock declaredMock) {
         configurationState.removeMock(declaredMock.getId());
-        if (isFieldMockActive(declaredMock.getSourceClassName(), declaredMock.getFieldName())) {
-            removeMocksInRunningProcess(List.of(declaredMock));
+        removeMocksInRunningProcess(List.of(declaredMock));
+    }
+
+
+    public void disableMock(Collection<DeclaredMock> declaredMock) {
+        removeMocksInRunningProcess(declaredMock);
+        for (DeclaredMock mock : declaredMock) {
+            configurationState.removeMock(mock.getId());
         }
     }
 
     public void enableMock(DeclaredMock declaredMock) {
         configurationState.addMock(declaredMock.getId());
-        if (isFieldMockActive(declaredMock.getSourceClassName(), declaredMock.getFieldName())) {
-            injectMocksInRunningProcess(List.of(declaredMock));
+        injectMocksInRunningProcess(List.of(declaredMock));
+    }
+
+    public void enableMock(Collection<DeclaredMock> declaredMock) {
+        for (DeclaredMock mock : declaredMock) {
+            configurationState.addMock(mock.getId());
         }
+        injectMocksInRunningProcess(declaredMock);
     }
 
     public boolean isMockEnabled(DeclaredMock declaredMock) {
-        return configurationState.isActiveMock(declaredMock.getId());
+        return configurationState.isMockActive(declaredMock.getId());
     }
 
     public void executeAllMethodsInCurrentClass(AutoExecutorRunOptions options) {
@@ -1703,6 +1682,9 @@ final public class InsidiousService implements
     public void onMethodCallExpressionInlayClick(List<PsiMethodCallExpression> mockableCallExpressions, MouseEvent mouseEvent, Point point) {
 
         logger.warn("inlay clicked create mock");
+        if (toolWindow == null) {
+            initiateUI();
+        }
 
         LibraryFilterState libraryFilerModel = new LibraryFilterState();
 
@@ -1712,10 +1694,8 @@ final public class InsidiousService implements
             libraryFilerModel.getIncludedClassNames().add(mut.getClassName());
         }
 
-        libraryFilerModel.setShowMocks(true);
-        libraryFilerModel.setShowTests(false);
+        libraryFilerModel.setItemFilterType(ItemFilterType.SavedMocks);
 
-        toolWindow.show();
         showLibrary();
         if (libraryToolWindow != null) {
             libraryToolWindow.setLibraryFilterState(libraryFilerModel);
@@ -1724,16 +1704,24 @@ final public class InsidiousService implements
 
     }
 
-    public void showMockCreator(JavaMethodAdapter method, PsiMethodCallExpression callExpression) {
+    public void showMockEditor(DeclaredMock declaredMock, OnSaveListener onSaveListener) {
+        showLibrary();
+        libraryToolWindow.showMockEditor(declaredMock, onSaveListener);
+    }
+
+
+    public void showMockCreator(JavaMethodAdapter method, PsiMethodCallExpression callExpression, OnSaveListener onSaveListener) {
         if (stompWindow == null) {
             if (toolWindow == null) {
                 initiateUI();
             } else {
-                InsidiousNotification.notifyMessage(
-                        "Please start the application with unlogged-sdk and open the unlogged tool window to use",
-                        NotificationType.WARNING
-                );
-                return;
+                if (stompWindowContent == null) {
+                    InsidiousNotification.notifyMessage(
+                            "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                            NotificationType.WARNING
+                    );
+                    return;
+                }
             }
         }
 
@@ -1743,7 +1731,7 @@ final public class InsidiousService implements
             if (stompWindowContent != null) {
                 toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    stompWindow.showNewDeclaredMockCreator(method, callExpression);
+                    stompWindow.showNewDeclaredMockCreator(method, callExpression, onSaveListener);
                     stompWindow.onMethodFocussed(method);
                 });
             }
@@ -1756,11 +1744,13 @@ final public class InsidiousService implements
             if (toolWindow == null) {
                 initiateUI();
             } else {
-                InsidiousNotification.notifyMessage(
-                        "Please start the application with unlogged-sdk and open the unlogged tool window to use",
-                        NotificationType.WARNING
-                );
-                return;
+                if (stompWindowContent == null) {
+                    InsidiousNotification.notifyMessage(
+                            "Please start the application with unlogged-sdk and open the unlogged tool window to use",
+                            NotificationType.WARNING
+                    );
+                    return;
+                }
             }
         }
 

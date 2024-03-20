@@ -8,17 +8,11 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.ClassUtils;
-import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmType;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.NlsSafe;
 import com.intellij.psi.*;
-import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiTypesUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 
@@ -85,33 +79,16 @@ public class MethodUnderTest {
         for (JvmParameter argument : targetMethod.getParameters()) {
             JvmType type1 = argument.getType();
             String descriptorName;
-            descriptorName = getDescriptorName(substitutor, type1);
+            descriptorName = ClassTypeUtils.getDescriptorName(substitutor, type1);
             methodSignature.append(descriptorName);
         }
 
         methodSignature.append(")");
         PsiType returnType = targetMethod.getReturnType();
-        String returnTypeDescriptor = getDescriptorName(substitutor, returnType);
+        String returnTypeDescriptor = ClassTypeUtils.getDescriptorName(substitutor, returnType);
         methodSignature.append(returnTypeDescriptor);
 
         return methodSignature.toString();
-    }
-
-    private static String getDescriptorName(PsiSubstitutor substitutor, JvmType type1) {
-        String descriptorName = null;
-        if (type1 instanceof PsiWildcardType) {
-            type1 = ClassTypeUtils.substituteClassRecursively((PsiWildcardType) type1, substitutor);
-            String type = ((PsiWildcardType) type1).getCanonicalText();
-            descriptorName = ClassTypeUtils.getDescriptorName(type);
-        } else if (type1 instanceof PsiClassType) {
-            type1 = ClassTypeUtils.substituteClassRecursively((PsiType) type1, substitutor);
-            String type = ((PsiType) type1).getCanonicalText();
-            descriptorName = ClassTypeUtils.getDescriptorName(type);
-        } else if (type1 instanceof PsiPrimitiveType) {
-            PsiPrimitiveType psiType = (PsiPrimitiveType) type1;
-            descriptorName = psiType.getKind().getBinaryName();
-        }
-        return descriptorName;
     }
 
 

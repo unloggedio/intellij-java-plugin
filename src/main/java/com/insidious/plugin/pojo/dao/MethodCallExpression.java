@@ -74,45 +74,6 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         this.callStack = callStack;
     }
 
-    public static MethodCallExpression FromMCE(com.insidious.plugin.pojo.MethodCallExpression methodCallExpression) {
-        if (methodCallExpression == null) {
-            return null;
-        }
-
-        Parameter returnValue1 = methodCallExpression.getReturnValue();
-        long returnParameterValue = returnValue1 != null ? returnValue1.getValue() : 0L;
-        Parameter subject1 = methodCallExpression.getSubject();
-        long subjectParameterValue = subject1 != null ? subject1.getValue() : 0L;
-        MethodCallExpression methodCallExpression1 = new MethodCallExpression(
-                methodCallExpression.getMethodName(),
-                subjectParameterValue,
-                methodCallExpression.getArguments()
-                        .stream()
-                        .map(Parameter::getValue)
-                        .collect(Collectors.toList()),
-                returnParameterValue,
-                methodCallExpression.getCallStack()
-        );
-        methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
-        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe().getEventId());
-        methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
-        methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
-        methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo().getDataId());
-        methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
-        methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
-        methodCallExpression1.setId(methodCallExpression.getId());
-        methodCallExpression1.setParentId(methodCallExpression.getParentId());
-        methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-        methodCallExpression1.setArgumentProbes(StringUtils.join(methodCallExpression.getArgumentProbes()
-                .stream()
-                .map(DataEventWithSessionId::getEventId)
-                .collect(Collectors.toList()), ","));
-        if (methodCallExpression.getReturnDataEvent() != null) {
-            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent().getEventId());
-        }
-        return methodCallExpression1;
-    }
-
     public static MethodCallExpression FromMCE(IncompleteMethodCallExpression methodCallExpression) {
         if (methodCallExpression == null) {
             return null;
@@ -139,6 +100,8 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbesString());
         methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent());
+        methodCallExpression1.setEnterNanoTime(methodCallExpression.getEnterNanoTime());
+        methodCallExpression1.setReturnNanoTime(methodCallExpression.getReturnNanoTime());
         return methodCallExpression1;
     }
 
@@ -167,6 +130,9 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbesString());
         methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent());
+        methodCallExpression1.setEnterNanoTime(methodCallExpression.getEnterNanoTime());
+        methodCallExpression1.setReturnNanoTime(methodCallExpression.getReturnNanoTime());
+
         return methodCallExpression1;
     }
 
@@ -182,6 +148,9 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
+        methodCallExpression1.setEnterNanoTime(methodCallExpression.getEnterNanoTime());
+        methodCallExpression1.setReturnNanoTime(methodCallExpression.getReturnNanoTime());
+
         return methodCallExpression1;
     }
 

@@ -14,6 +14,7 @@ import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.SemanticVersion;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
@@ -31,6 +32,7 @@ import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
+import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
@@ -62,6 +64,7 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
@@ -116,13 +119,13 @@ public class StompComponent implements
     private JPanel controlPanel;
     private JPanel infoPanel;
     private JLabel selectedCountLabel;
-    private JLabel selectAllLabel;
     private JLabel clearSelectionLabel;
     private JPanel southPanel;
     private JLabel clearFilterLabel;
     private JLabel filterAppliedLabel;
     private JPanel actionToolbarContainer;
     private JPanel timelineControlPanel;
+    private JPanel topContainerPanel;
     private long lastEventId = 0;
     private MethodDirectInvokeComponent directInvokeComponent = null;
     private TestCandidateSaveForm saveFormReference;
@@ -138,7 +141,6 @@ public class StompComponent implements
         configurationState = project.getService(InsidiousConfigurationState.class);
 
         filterAppliedLabel.setVisible(false);
-        filterAppliedLabel.setForeground(JBColor.BLACK);
         filterModel = configurationState.getFilterModel();
 
 
@@ -158,19 +160,14 @@ public class StompComponent implements
 
         scrollContainer.setBorder(BorderFactory.createEmptyBorder());
 
-
-        AnAction clearAction = new AnAction(() -> "Clear", AllIcons.Actions.GC) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                System.err.println("clear timeline");
-                resetTimeline();
-            }
-        };
-
         AnAction saveAction = new AnAction(() -> "Save", AllIcons.Actions.MenuSaveall) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    JSONObject eventProperties = new JSONObject();
+                    eventProperties.put("count", selectedCandidates.size());
+                    UsageInsightTracker.getInstance().RecordEvent("ACTION_SAVE", eventProperties);
+
                     ApplicationManager.getApplication().runReadAction(StompComponent.this::saveSelected);
                 });
             }
@@ -193,6 +190,10 @@ public class StompComponent implements
                 }
 
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    JSONObject eventProperties = new JSONObject();
+                    eventProperties.put("count", selectedCandidates.size());
+                    UsageInsightTracker.getInstance().RecordEvent("ACTION_GENERATE_JUNIT", eventProperties);
+
                     onGenerateJunitTestCaseRequest(selectedCandidates);
                 });
             }
@@ -211,6 +212,10 @@ public class StompComponent implements
                     InsidiousNotification.notifyMessage("Select records to replay", NotificationType.INFORMATION);
                     return;
                 }
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("count", selectedCandidates.size());
+                UsageInsightTracker.getInstance().RecordEvent("ACTION_REPLAY_SELECT", eventProperties);
+
                 InsidiousNotification.notifyMessage("Replayed " + selectedCandidates.size() + " records",
                         NotificationType.INFORMATION);
                 for (TestCandidateMetadata selectedCandidate : selectedCandidates) {
@@ -224,18 +229,14 @@ public class StompComponent implements
             }
         };
 
-        AnAction reloadAction = new AnAction(() -> "Reload", AllIcons.Actions.Refresh) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                System.err.println("reload timeline");
-                resetAndReload();
-            }
-        };
-
 
         filterAction = new AnAction(() -> "Filter", AllIcons.General.Filter) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("count", selectedCandidates.size());
+                UsageInsightTracker.getInstance().RecordEvent("ACTION_FILTER", eventProperties);
+
                 showFiltersComponentPopup(project, insidiousService);
             }
 
@@ -261,9 +262,40 @@ public class StompComponent implements
         actionToolbar.setTargetComponent(mainPanel);
 
 
+        AnAction reloadAction = new AnAction(() -> "Reload", AllIcons.Actions.Refresh) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                System.err.println("reload timeline");
+                resetAndReload();
+            }
+        };
+
+        AnAction clearAction = new AnAction(() -> "Clear", AllIcons.Actions.GC) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                UsageInsightTracker.getInstance().RecordEvent("RESET_TIMELINE", null);
+                System.err.println("clear timeline");
+                resetTimeline();
+            }
+        };
+
+        AnAction selectAllAction = new AnAction(() -> "Select All", AllIcons.Actions.Selectall) {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                selectedCandidates.clear();
+                for (StompItem stompItem : stompItems) {
+                    stompItem.setSelected(true);
+                    selectedCandidates.add(stompItem.getTestCandidate());
+                }
+                updateControlPanel();
+            }
+        };
+
+
         List<AnAction> action22 = List.of(
                 reloadAction,
-                clearAction
+                clearAction,
+                selectAllAction
         );
 
 
@@ -294,26 +326,15 @@ public class StompComponent implements
             }
         });
 
-//        selectAllLabel.setVisible(false);
-        selectAllLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        selectAllLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                selectedCandidates.clear();
-                for (StompItem stompItem : stompItems) {
-                    stompItem.setSelected(true);
-                    selectedCandidates.add(stompItem.getTestCandidate());
-                }
-                updateControlPanel();
-            }
-        });
-
 
         clearFilterLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        clearFilterLabel.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2))
         clearFilterLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("filter", filterModel.toString());
+                UsageInsightTracker.getInstance().RecordEvent("CLEAR_FILTER", eventProperties);
+
                 clearFilter();
                 updateFilterLabel();
                 resetAndReload();
@@ -321,12 +342,6 @@ public class StompComponent implements
             }
 
         });
-
-//        saveReplayButton.addActionListener(e -> {
-//            ApplicationManager.getApplication().executeOnPooledThread(() -> {
-//                ApplicationManager.getApplication().runReadAction(this::saveSelected);
-//            });
-//        });
 
 
         ConnectedAndWaiting connectedAndWaiting = new ConnectedAndWaiting();
@@ -423,6 +438,10 @@ public class StompComponent implements
                     lastMethodFocussed = null;
                     onMethodFocussed(insidiousService.getCurrentMethod());
                 }
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("filter", filterModel.toString());
+                UsageInsightTracker.getInstance().RecordEvent("FILTER_UPDATED", eventProperties);
+
                 updateFilterLabel();
                 resetAndReload();
             }
@@ -929,14 +948,11 @@ public class StompComponent implements
 
         selectedCountLabel.setForeground(JBColor.DARK_GRAY);
         selectedCountLabel.setText(selectedCandidates.size() + " selected");
-        if (selectedCandidates.size() > 0) {
+        if (!selectedCandidates.isEmpty()) {
             clearSelectionLabel.setVisible(true);
-            selectAllLabel.setVisible(false);
-//            saveReplayButton.setEnabled(true);
-
             new GotItTooltip("Unlogged.Stomp.ActionToolbar",
                     "Use the toolbar to replay/save or generate test case for multiple method replays at once",
-                    insidiousService.getProject())
+                    this)
                     .withPosition(Balloon.Position.above)
                     .show(actionToolbar.getComponent(), GotItTooltip.TOP_MIDDLE);
 
@@ -944,8 +960,6 @@ public class StompComponent implements
         } else {
             selectedCountLabel.setText("0 selected");
             clearSelectionLabel.setVisible(false);
-            selectAllLabel.setVisible(true);
-//            saveReplayButton.setEnabled(false);
         }
     }
 
@@ -1295,12 +1309,13 @@ public class StompComponent implements
     }
 
     public void showNewDeclaredMockCreator(JavaMethodAdapter javaMethodAdapter,
-                                           PsiMethodCallExpression psiMethodCallExpression) {
+                                           PsiMethodCallExpression psiMethodCallExpression, OnSaveListener onSaveListener) {
         onMethodFocussed(javaMethodAdapter);
         MockDefinitionEditor mockEditor = new MockDefinitionEditor(MethodUnderTest.fromMethodAdapter(javaMethodAdapter),
                 psiMethodCallExpression, insidiousService.getProject(), declaredMock -> {
             String newMockId = insidiousService.saveMockDefinition(declaredMock);
             InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
+            onSaveListener.onSaveDeclaredMock(declaredMock);
             mainPanel.revalidate();
             mainPanel.repaint();
         }, component -> {
@@ -1430,6 +1445,7 @@ public class StompComponent implements
                     while (itemPanel.getComponentCount() > 100) {
                         itemPanel.remove(0);
                     }
+                    insidiousService.forceRedrawInlayHints();
 
 
                 } catch (Throwable t) {
@@ -1594,7 +1610,7 @@ public class StompComponent implements
                 "You are using version " + currentVersion.toString() + " which is older than recommended version for" +
                         " this plugin " + requiredVersion + ". Please update the unlogged-sdk version in your pom" +
                         ".xml/build.gradle",
-                NotificationType.ERROR);
+                NotificationType.WARNING);
         notification.setImportant(true);
         notification.setSubtitle("Use unlogged-sdk:" + requiredVersion.toString());
         notification.setIcon(UIUtils.UNLOGGED_ICON_DARK_SVG);

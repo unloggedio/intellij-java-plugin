@@ -120,13 +120,6 @@
             <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F7"/>
         </action>
 
-        <action class="com.insidious.plugin.actions.AutoExecutorNonMock">
-            <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F8"/>
-        </action>
-
-        <action class="com.insidious.plugin.actions.EnableAutoExecutor">
-            <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F4"/>
-        </action>
 
         <!--        <action icon="AllIcons.Actions.Back" text="Step Back" id="Debugger.ReverseResume"-->
         <!--                class="com.insidious.plugin.actions.JumpBack">-->
@@ -164,12 +157,15 @@
         <projectService serviceImplementation="com.insidious.plugin.record.AtomicRecordService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
         <applicationService serviceImplementation="com.insidious.plugin.factory.ApplicationConfigurationState"/>
-<!--        <testFinder implementation="com.insidious.plugin.tester.testfinder.UnloggedTestFinder"/>-->
+        <!--        <testFinder implementation="com.insidious.plugin.tester.testfinder.UnloggedTestFinder"/>-->
 
 
         <codeInsight.lineMarkerProvider
                 language="JAVA"
-                implementationClass="com.insidious.plugin.ui.highlighter.LineHighlighter"/>
+                implementationClass="com.insidious.plugin.ui.highlighter.UnloggedGutterStateProvider"/>
+        <codeInsight.lineMarkerProvider
+                language="JAVA"
+                implementationClass="com.insidious.plugin.ui.highlighter.MockMethodLineHighlighter"/>
         <codeInsight.lineMarkerProvider
                 language="kotlin"
                 implementationClass="com.insidious.plugin.ui.highlighter.KotlinLineHighlighter"/>
