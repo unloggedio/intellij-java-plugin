@@ -1294,9 +1294,10 @@ public class DaoService {
     private boolean IsSignatureMatch(com.insidious.plugin.pojo.MethodCallExpression methodCallExpression, String argumentsDescriptor) {
         List<String> expectedTypes = MethodSignatureParser.parseMethodSignature(argumentsDescriptor);
         String returnType = expectedTypes.remove(0);
-        int actualArgumentCount = methodCallExpression.getArguments().size();
+        List<com.insidious.plugin.pojo.Parameter> arguments = methodCallExpression.getArguments();
+        int actualArgumentCount = arguments.size();
         int expectedArgumentCount = expectedTypes.size();
-        if (actualArgumentCount != expectedArgumentCount ) {
+        if (actualArgumentCount != expectedArgumentCount) {
             return false;
         }
 
@@ -1306,6 +1307,11 @@ public class DaoService {
 
         for (int i = 0; i < actualArgumentCount; i++) {
             String expectedType = expectedTypes.get(i);
+            com.insidious.plugin.pojo.Parameter parameter = arguments.get(i);
+            if (parameter.getType() == null || !parameter.getType().startsWith(expectedType)) {
+                return false;
+            }
+
         }
 
 

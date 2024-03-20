@@ -13,6 +13,7 @@ import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.InsidiousUtils;
+import com.insidious.plugin.ui.methodscope.HighlightedRequest;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
@@ -36,6 +37,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 
 public class StompItem {
@@ -71,6 +73,8 @@ public class StompItem {
     private JPanel controlPanel;
     private JPanel controlContainer;
     private boolean isPinned = false;
+
+    private boolean requestedHighlight = false;
 
     public StompItem(
             TestCandidateMetadata testCandidateMetadata,
@@ -291,6 +295,23 @@ public class StompItem {
                     TAG_LABEL_BACKGROUND_GREY, Color.decode(ExecutionTimeCategory.INSTANTANEOUS.getColorHex()),
                     labelMouseAdapter);
             tagCount++;
+            lineCoverageLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            lineCoverageLabel.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (!requestedHighlight) {
+                        requestedHighlight = true;
+                        MethodUnderTest mut = MethodUnderTest.fromTestCandidateMetadata(candidateMetadata);
+                        HighlightedRequest highlightRequest = new HighlightedRequest(
+                                mut, new HashSet<>(candidateMetadata.getLineNumbers())
+                        );
+                        insidiousService.highlightLines(highlightRequest);
+                    } else {
+                        requestedHighlight = false;
+                        insidiousService.removeCurrentActiveHighlights();
+                    }
+                }
+            });
             metadataPanel.add(lineCoverageLabel);
         }
         ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
