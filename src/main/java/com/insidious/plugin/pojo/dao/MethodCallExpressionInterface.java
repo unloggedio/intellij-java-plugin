@@ -67,4 +67,8 @@ public interface MethodCallExpressionInterface {
 
     int getThreadId();
     void setThreadId(int threadId);
+
+    long getEnterNanoTime();
+
+    long getReturnNanoTime();
 }

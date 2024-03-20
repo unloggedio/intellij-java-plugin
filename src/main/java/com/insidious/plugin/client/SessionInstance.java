@@ -2904,7 +2904,6 @@ public class SessionInstance implements Runnable {
                             probeInfo.getAttribute("Owner", null)));
                     methodCall.setEntryProbeInfoId(probeInfo.getDataId());
                     methodCall.setEntryProbeId(dataEvent.getEventId());
-                    methodCall.setEnterNanoTime(dataEvent.getRecordedAt());
 
                     MethodInfo methodDescription = methodInfoByNameIndex.get(
                             probeInfo.getAttribute("Owner", null) + probeInfo.getAttribute("Name",
@@ -3448,6 +3447,7 @@ public class SessionInstance implements Runnable {
                         topCall.setReturnDataEvent(dataEvent.getEventId());
                         topCall.setReturnNanoTime(dataEvent.getRecordedAt());
                         callsToSave.add(topCall);
+
                         methodCallMap.remove(topCall.getId());
                         methodCallSubjectTypeMap.remove(topCall.getId());
 
@@ -3805,6 +3805,17 @@ public class SessionInstance implements Runnable {
     public List<TestCandidateMetadata> getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
         try {
             return daoService.getTestCandidatesForAllMethod(candidateSearchQuery);
+        } catch (Exception e) {
+            // probably database doesnt exist
+            logger.warn("failed to get test candidates for method [" +
+                    candidateSearchQuery.getClassName() + "." + candidateSearchQuery.getMethodName() + "()]", e);
+            return new ArrayList<>();
+        }
+    }
+
+    public List<MethodCallExpression> getMethodCallExpressions(CandidateSearchQuery candidateSearchQuery) {
+        try {
+            return daoService.getMethodCallExpressions(candidateSearchQuery);
         } catch (Exception e) {
             // probably database doesnt exist
             logger.warn("failed to get test candidates for method [" +

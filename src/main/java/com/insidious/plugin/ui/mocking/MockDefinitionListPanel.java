@@ -125,8 +125,8 @@ public class MockDefinitionListPanel implements OnSaveListener {
                     NotificationType.ERROR);
             return;
         }
-        List<TestCandidateMetadata> candidates = sessionInstance
-                .getTestCandidatesForAllMethod(query);
+        List<MethodCallExpression> mceList = sessionInstance
+                .getMethodCallExpressions(query);
 
         @Nullable PsiClass containingClass = PsiTreeUtil.getParentOfType(methodCallExpression,
                 PsiClass.class);
@@ -136,10 +136,9 @@ public class MockDefinitionListPanel implements OnSaveListener {
             throw new IllegalArgumentException(methodCallExpression.getText());
         }
         String sourceClassName = containingClass.getQualifiedName();
-        for (TestCandidateMetadata candidate : candidates) {
-            MethodCallExpression mce = candidate.getMainMethod();
+        for (MethodCallExpression methodCallExpression1 : mceList) {
             @Nullable DeclaredMock unsavedMock = TestCandidateSaveForm.getDeclaredMock(
-                    mce, methodCallExpression, sourceClassName
+                    methodCallExpression1, methodCallExpression, sourceClassName
             );
             if (unsavedMock == null) {
                 continue;

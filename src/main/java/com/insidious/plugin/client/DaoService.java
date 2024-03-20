@@ -104,6 +104,13 @@ public class DaoService {
             "  and md.methodName = ?\n" +
             "  and md.methodDescriptor = ?\n" +
             "order by tc.entryProbeIndex desc limit 10;";
+    public static final String QUERY_MCE_BY_METHOD_SELECT = "select mc.*\n" +
+            "from method_call mc \n" +
+            "left join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "where (md.ownerType is null or md.ownerType = ?)\n" +
+            "  and (mc.methodName = ?)\n" +
+            "  and (md.methodDescriptor is null or md.methodDescriptor = ?)\n" +
+            "order by mc.entryProbe_id desc limit 10;";
     public static final String QUERY_TEST_CANDIDATE_BY_CLASS_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
@@ -198,6 +205,34 @@ public class DaoService {
 
     }
 
+    /**
+     * Removes all substrings enclosed in < and >, including nested ones, using an optimized single-pass stack-based algorithm.
+     *
+     * @param input The input string from which substrings enclosed in < and > should be removed.
+     * @return A new string with all matching substrings removed.
+     */
+    public static String removeSubstringsSinglePass(String input) {
+        if (input == null) {
+            return null;
+        }
+
+        StringBuilder result = new StringBuilder();
+        Stack<Integer> stack = new Stack<>();
+        int lastRemovedEnd = -1;
+
+        for (int i = 0; i < input.length(); i++) {
+            if (input.charAt(i) == '<') {
+                stack.push(result.length());
+            } else if (input.charAt(i) == '>') {
+                stack.pop();
+            } else if (stack.isEmpty()) {
+                // Only append characters outside of <> blocks
+                result.append(input.charAt(i));
+            }
+        }
+
+        return result.toString();
+    }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
     getTestCandidateForSubjectId(Long id) throws Exception {
@@ -228,7 +263,6 @@ public class DaoService {
 
         return testCandidateList;
     }
-
 
     private com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata
     convertTestCandidateMetadata(TestCandidateMetadata testCandidateMetadata, Boolean loadCalls) throws Exception {
@@ -404,7 +438,6 @@ public class DaoService {
 
     }
 
-
     private List<MethodCallExpression> getMethodCallExpressionsInCandidate(TestCandidateMetadata testCandidateMetadata) throws Exception {
         long mainMethodId = testCandidateMetadata.getMainMethod();
         GenericRawResults<MethodCallExpression> results = methodCallExpressionDao
@@ -413,15 +446,8 @@ public class DaoService {
 
         List<MethodCallExpression> mceList = new ArrayList<>(results.getResults());
         results.close();
-        if (mceList.size() > 0) {
+        if (!mceList.isEmpty()) {
             MethodCallExpression mce = mceList.get(0);
-
-        /*
-        "                        and ((mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
-        "                              mc.subject_id = ? and mc.threadId = ?)\n" +
-        "                          or (mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
-        "                              mc.isStaticCall = true and mc.usesFields = true and mc.subject_id != 0 and mc.threadId = ?)))";
-         */
             GenericRawResults<MethodCallExpression> subCalls = methodCallExpressionDao.queryRaw(
                     QUERY_CALLS_TO_MOCK_SELECT_BY_PARENT_CHILD_CALLS,
                     methodCallExpressionDao.getRawRowMapper(),
@@ -480,7 +506,6 @@ public class DaoService {
 
         return methodClassAggregates;
     }
-
 
     private List<com.insidious.plugin.pojo.MethodCallExpression> buildFromDbMce(
             List<MethodCallExpressionInterface> mceList
@@ -855,7 +880,6 @@ public class DaoService {
         return new ArrayList<>(resultList);
     }
 
-
     public MethodCallExpression getMethodCallExpressionById(Long methodCallId) throws Exception {
         MethodCallExpression dbMce = null;
         try {
@@ -1016,7 +1040,6 @@ public class DaoService {
         }
     }
 
-
     public long getMaxCallId() {
         try {
             long result = methodCallExpressionDao.queryRawValue("select max(id) from method_call");
@@ -1044,15 +1067,6 @@ public class DaoService {
         }
     }
 
-    public List<ArchiveFile> getArchiveList() {
-        try {
-            return archiveFileDao.queryForAll();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return Collections.emptyList();
-        }
-    }
-
 //    public List<ThreadProcessingState> getThreadList() {
 //        try {
 //            return threadStateDao.queryForAll()
@@ -1064,6 +1078,15 @@ public class DaoService {
 //            return Collections.emptyList();
 //        }
 //    }
+
+    public List<ArchiveFile> getArchiveList() {
+        try {
+            return archiveFileDao.queryForAll();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+    }
 
     public void createArchiveFileEntry(ArchiveFile archiveFile) {
         try {
@@ -1096,17 +1119,6 @@ public class DaoService {
         }
     }
 
-    public void updateLogFileEntry(LogFile logFile) {
-        try {
-            logFilesDao.update(logFile);
-        } catch (SQLException e) {
-            if (shutDown) {
-                return;
-            }
-            logger.error("Failed to update log entry", e);
-        }
-    }
-
 //    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
 //    getTestCandidatesForClass(String className) {
 //        try {
@@ -1119,6 +1131,17 @@ public class DaoService {
 //            throw new RuntimeException(e);
 //        }
 //    }
+
+    public void updateLogFileEntry(LogFile logFile) {
+        try {
+            logFilesDao.update(logFile);
+        } catch (SQLException e) {
+            if (shutDown) {
+                return;
+            }
+            logger.error("Failed to update log entry", e);
+        }
+    }
 
     public List<VideobugTreeClassAggregateNode> getTestCandidateAggregates() {
         try {
@@ -1164,7 +1187,6 @@ public class DaoService {
 
     }
 
-
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
     getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
 //        logger.warn("query test candidates: " + candidateSearchQuery);
@@ -1194,10 +1216,7 @@ public class DaoService {
                     break;
                 default:
                     parameterIds = testCandidateDao.queryRaw(QUERY_TEST_CANDIDATE_BY_ALL_SELECT,
-                            testCandidateDao.getRawRowMapper(),
-                            candidateSearchQuery.getClassName(),
-                            candidateSearchQuery.getMethodName(),
-                            candidateSearchQuery.getArgumentsDescriptor());
+                            testCandidateDao.getRawRowMapper());
             }
 
             List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> resultList = new LinkedList<>();
@@ -1223,6 +1242,74 @@ public class DaoService {
                     e.getMessage(), e);
             return new ArrayList<>();
         }
+    }
+
+    public List<com.insidious.plugin.pojo.MethodCallExpression>
+    getMethodCallExpressions(CandidateSearchQuery candidateSearchQuery) {
+//        logger.warn("query test candidates: " + candidateSearchQuery);
+        try {
+            long start = new Date().getTime();
+
+            GenericRawResults<MethodCallExpression> parameterIds;
+            String argumentsDescriptor = candidateSearchQuery.getArgumentsDescriptor();
+            argumentsDescriptor = removeSubstringsSinglePass(argumentsDescriptor);
+            parameterIds = methodCallExpressionDao.queryRaw(QUERY_MCE_BY_METHOD_SELECT,
+                    methodCallExpressionDao.getRawRowMapper(),
+                    candidateSearchQuery.getClassName(),
+                    candidateSearchQuery.getMethodName(),
+                    argumentsDescriptor);
+
+            List<MethodCallExpressionInterface> mceInterface = new ArrayList<>();
+            mceInterface.addAll(parameterIds.getResults());
+            parameterIds.close();
+
+            List<com.insidious.plugin.pojo.MethodCallExpression> built = buildFromDbMce(mceInterface);
+            List<com.insidious.plugin.pojo.MethodCallExpression> returnList = new ArrayList<>();
+
+            for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : built) {
+                if (methodCallExpression.getMethodDefinitionId() != 0) {
+                    returnList.add(methodCallExpression);
+                } else {
+                    if (!methodCallExpression.getSubject().getType().equals(candidateSearchQuery.getClassName())) {
+                        continue;
+                    }
+                    if (!IsSignatureMatch(methodCallExpression, argumentsDescriptor)) {
+                        continue;
+                    }
+                    returnList.add(methodCallExpression);
+                }
+            }
+
+
+            long end = new Date().getTime();
+            logger.warn("found [" + mceInterface.size() + "] mce in " + (end - start) + " ms");
+            return returnList;
+        } catch (Exception e) {
+            logger.error("failed to getTestCandidatesForAllMethod [" + candidateSearchQuery + "]:  " +
+                    e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
+
+    private boolean IsSignatureMatch(com.insidious.plugin.pojo.MethodCallExpression methodCallExpression, String argumentsDescriptor) {
+        List<String> expectedTypes = MethodSignatureParser.parseMethodSignature(argumentsDescriptor);
+        String returnType = expectedTypes.remove(0);
+        int actualArgumentCount = methodCallExpression.getArguments().size();
+        int expectedArgumentCount = expectedTypes.size();
+        if (actualArgumentCount != expectedArgumentCount ) {
+            return false;
+        }
+
+        if (!returnType.startsWith(methodCallExpression.getReturnValue().getType())) {
+            return false;
+        }
+
+        for (int i = 0; i < actualArgumentCount; i++) {
+            String expectedType = expectedTypes.get(i);
+        }
+
+
+        return true;
     }
 
     public com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata

@@ -13,6 +13,7 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
+import com.j256.ormlite.field.DatabaseField;
 import org.objectweb.asm.Opcodes;
 
 import java.io.Serializable;
@@ -40,6 +41,26 @@ public class MethodCallExpression implements Expression, Serializable {
     private DataEventWithSessionId returnDataEvent;
     private boolean usesFields;
     private int methodDefinitionId;
+
+    public long getReturnNanoTime() {
+        return returnNanoTime;
+    }
+
+    public void setReturnNanoTime(long returnNanoTime) {
+        this.returnNanoTime = returnNanoTime;
+    }
+
+    public long getEnterNanoTime() {
+        return enterNanoTime;
+    }
+
+    public void setEnterNanoTime(long enterNanoTime) {
+        this.enterNanoTime = enterNanoTime;
+    }
+
+    private long returnNanoTime;
+    private long enterNanoTime;
+
 
     public MethodCallExpression() {
     }
