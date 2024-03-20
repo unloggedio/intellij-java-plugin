@@ -1285,7 +1285,7 @@ public class DaoService {
             logger.warn("found [" + mceInterface.size() + "] mce in " + (end - start) + " ms");
             return returnList;
         } catch (Exception e) {
-            logger.error("failed to getTestCandidatesForAllMethod [" + candidateSearchQuery + "]:  " +
+            logger.warn("failed to getTestCandidatesForAllMethod [" + candidateSearchQuery + "]:  " +
                     e.getMessage(), e);
             return new ArrayList<>();
         }
