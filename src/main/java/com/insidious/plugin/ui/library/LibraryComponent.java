@@ -793,19 +793,19 @@ public class LibraryComponent {
             }
             if (countMocks == 0) {
                 try {
-                    ImagePanel imagePanel = null;
 
-                    BufferedImage myPicture = ImageIO.read(
-                            this.getClass().getClassLoader().getResourceAsStream(
-                                    "images/mocks-introduction-scaled.png"
-                            )
-                    );
-                    JLabel picLabel = new JLabel(new ImageIcon(myPicture));
-                    Dimension maximumSize = new Dimension(400, 504);
-                    picLabel.setMaximumSize(maximumSize);
-                    picLabel.setMinimumSize(maximumSize);
-                    picLabel.setPreferredSize(maximumSize);
-                    itemsContainer.add(picLabel, createGBCForLeftMainComponent(count++));
+                    JPanel picLabel1 = getImageLabel("images/mocks-commentary-image-1-scaled.png", 131);
+                    itemsContainer.add(picLabel1, createGBCForLeftMainComponent(count++));
+                    itemsContainer.add(new JSeparator(), createGBCForLeftMainComponent(count++));
+
+                    JPanel picLabel2 = getImageLabel("images/mocks-commentary-image-2-scaled.png", 211);
+                    itemsContainer.add(picLabel2, createGBCForLeftMainComponent(count++));
+                    itemsContainer.add(new JSeparator(), createGBCForLeftMainComponent(count++));
+
+                    JPanel picLabel3 = getImageLabel("images/mocks-commentary-image-3-scaled.png", 158);
+                    itemsContainer.add(picLabel3, createGBCForLeftMainComponent(count++));
+
+
                 } catch (IOException e) {
                     //
                 }
@@ -845,19 +845,21 @@ public class LibraryComponent {
 
             if (countReplay == 0) {
                 try {
-                    ImagePanel imagePanel = null;
 
-                    BufferedImage myPicture = ImageIO.read(
-                            this.getClass().getClassLoader().getResourceAsStream(
-                                    "images/tests-introduction-scaled.png"
-                            )
-                    );
-                    JLabel picLabel = new JLabel(new ImageIcon(myPicture));
-                    Dimension maximumSize = new Dimension(400, 691);
-                    picLabel.setMaximumSize(maximumSize);
-                    picLabel.setMinimumSize(maximumSize);
-                    picLabel.setPreferredSize(maximumSize);
-                    itemsContainer.add(picLabel, createGBCForLeftMainComponent(count++));
+                    JPanel picLabel1 = getImageLabel("images/tests-commentary-image-1-scaled.png", 131);
+                    itemsContainer.add(picLabel1, createGBCForLeftMainComponent(count++));
+                    itemsContainer.add(new JSeparator(), createGBCForLeftMainComponent(count++));
+
+                    JPanel picLabel2 = getImageLabel("images/tests-commentary-image-2-scaled.png", 131);
+                    itemsContainer.add(picLabel2, createGBCForLeftMainComponent(count++));
+                    itemsContainer.add(new JSeparator(), createGBCForLeftMainComponent(count++));
+
+                    JPanel picLabel3 = getImageLabel("images/tests-commentary-image-3-scaled.png", 208);
+                    itemsContainer.add(picLabel3, createGBCForLeftMainComponent(count++));
+
+                    JPanel picLabel4 = getImageLabel("images/tests-commentary-image-4-scaled.png", 218);
+                    itemsContainer.add(picLabel4, createGBCForLeftMainComponent(count++));
+
                 } catch (IOException e) {
                     //
                 }
@@ -876,6 +878,28 @@ public class LibraryComponent {
         });
 
 
+    }
+
+    @NotNull
+    private JPanel getImageLabel(String name, int height) throws IOException {
+        BufferedImage myPicture = ImageIO.read(
+                this.getClass().getClassLoader().getResourceAsStream(
+                        name
+                )
+        );
+        JLabel picLabel1 = new JLabel(new ImageIcon(myPicture));
+        Dimension maximumSize = new Dimension(400, height);
+        picLabel1.setMaximumSize(maximumSize);
+        picLabel1.setMinimumSize(maximumSize);
+        picLabel1.setPreferredSize(maximumSize);
+        @NotNull JPanel jpanel = new JPanel();
+        jpanel.setBorder(
+                BorderFactory.createEmptyBorder(10, 0, 10, 0)
+        );
+        jpanel.setLayout(new GridBagLayout());
+        new JPanel();
+        jpanel.add(picLabel1, new GridBagConstraints());
+        return jpanel;
     }
 
     public JComponent getComponent() {
