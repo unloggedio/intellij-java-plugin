@@ -601,16 +601,14 @@ public class TestCandidateSaveForm {
 //        }
 
         Map<String, List<PsiMethodCallExpression>> expressionsByMethodName = allCallExpressions.stream()
-                .collect(Collectors.groupingBy(e1 -> {
-                    return ApplicationManager.getApplication().runReadAction(
-                            (Computable<String>) () -> {
-                                MethodUnderTest methodUnderTest = MethodUnderTest.fromPsiCallExpression(e1);
-                                if (methodUnderTest == null) {
-                                    return "";
-                                }
-                                return methodUnderTest.getName();
-                            });
-                }));
+                .collect(Collectors.groupingBy(e1 -> ApplicationManager.getApplication().runReadAction(
+                        (Computable<String>) () -> {
+                            MethodUnderTest methodUnderTest = MethodUnderTest.fromPsiCallExpression(e1);
+                            if (methodUnderTest == null) {
+                                return "";
+                            }
+                            return methodUnderTest.getName();
+                        })));
         List<DeclaredMock> mocks = new ArrayList<>();
 
         List<MethodCallExpression> callListCopy = new ArrayList<>(candidateMetadata.getCallsList());
@@ -622,7 +620,7 @@ public class TestCandidateSaveForm {
             List<PsiMethodCallExpression> callExpressionByName = expressionsByMethodName.get(methodName);
             if (callExpressionByName == null) {
                 // no such call
-                return null;
+                continue;
             }
             if (callExpressionByName.size() != 1) {
 //                throw new RuntimeException("please");
