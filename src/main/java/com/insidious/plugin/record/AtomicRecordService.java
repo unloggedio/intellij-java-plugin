@@ -17,6 +17,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
@@ -40,7 +41,8 @@ import java.util.stream.Collectors;
 
 import static java.io.File.separator;
 
-public class AtomicRecordService {
+@Service(Service.Level.PROJECT)
+public final class AtomicRecordService {
     public static final String TEST_CONTENT_PATH = "src" + separator + "test" + separator;
     public static final String TEST_RESOURCES_PATH = TEST_CONTENT_PATH + "resources" + separator;
     private static final Logger logger = LoggerUtil.getInstance(AtomicRecordService.class);

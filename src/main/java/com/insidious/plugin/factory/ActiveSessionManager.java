@@ -2,7 +2,9 @@ package com.insidious.plugin.factory;
 
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.client.ScanEventType;
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.ZipConsumer;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
@@ -16,6 +18,9 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ActiveSessionManager {
 

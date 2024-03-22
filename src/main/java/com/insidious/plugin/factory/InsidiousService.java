@@ -60,6 +60,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.compiler.CompileStatusNotification;
 import com.intellij.openapi.compiler.CompilerManager;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -91,6 +92,7 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import org.json.JSONObject;
 
 import java.awt.*;
@@ -114,12 +116,14 @@ import static com.insidious.plugin.agent.AgentCommandRequestType.DIRECT_INVOKE;
 import static com.intellij.psi.PsiModifier.ABSTRACT;
 
 @Storage("insidious.xml")
+@Service(Service.Level.PROJECT)
 final public class InsidiousService implements
         Disposable, NewTestCandidateIdentifiedListener {
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     final static private int TOOL_WINDOW_WIDTH = 400;
-    private final ExecutorService connectionCheckerThreadPool = Executors.newFixedThreadPool(2);
+    private final ExecutorService connectionCheckerThreadPool = Executors.newFixedThreadPool(1,
+            new DefaultThreadFactory("UnloggedProjectThreadPool", true));
     private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
@@ -134,7 +138,7 @@ final public class InsidiousService implements
     private final ActiveSessionManager sessionManager;
     private final CurrentState currentState = new CurrentState();
     private final MockManager mockManager;
-    private ScheduledExecutorService stompComponentThreadPool = Executors.newScheduledThreadPool(2);
+    private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
     private VideobugClientInterface client;
     private Content singleWindowContent;
@@ -579,7 +583,9 @@ final public class InsidiousService implements
         UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_DISPOSED", eventProperties);
         logger.warn("Disposing InsidiousService for project: " + project.getName());
         connectionCheckerThreadPool.shutdownNow();
-        stompComponentThreadPool.shutdownNow();
+        if (stompComponentThreadPool != null) {
+            stompComponentThreadPool.shutdownNow();
+        }
         if (sessionLoader != null) {
             sessionLoader.removeListener(sessionListener);
         }
@@ -1093,9 +1099,11 @@ final public class InsidiousService implements
                 stompWindow = new StompComponent(this);
                 if (isAgentConnected()) {
                     stompWindow.setConnectedAndWaiting();
-                    stompComponentThreadPool.shutdownNow();
-                    stompComponentThreadPool = Executors.newScheduledThreadPool(2);
                 }
+                if (stompComponentThreadPool != null) {
+                    stompComponentThreadPool.shutdownNow();
+                }
+                stompComponentThreadPool = Executors.newScheduledThreadPool(2);
                 stompComponentThreadPool.scheduleWithFixedDelay(stompWindow, 0, 1, TimeUnit.MILLISECONDS);
 
                 stompWindowContent =

@@ -1684,6 +1684,7 @@ public class DaoService {
                     try {
                         return convertTestCandidateMetadata(e, false);
                     } catch (Exception ex) {
+                        ex.printStackTrace();
                         logger.warn("failed to convert test candidate: " + ex.getMessage());
                         return null;
                     }
