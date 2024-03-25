@@ -53,7 +53,11 @@ public class DeclaredMockItemPanel {
             );
         }
 
-        this.nameLabel.setText(declaredMock.getMethodName());
+        String methodName = declaredMock.getMethodName();
+        if (methodName.length() > 25) {
+            methodName = methodName.substring(0, 20) +  "...";
+        }
+        this.nameLabel.setText(methodName);
 
         AnAction editAction = new AnAction(() -> "Edit", UIUtils.EDIT) {
 
