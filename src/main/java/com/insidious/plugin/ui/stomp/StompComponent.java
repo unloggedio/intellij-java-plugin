@@ -573,7 +573,7 @@ public class StompComponent implements
             historyStreamScrollPanel.setVisible(true);
             welcomePanelRemoved = true;
         }
-        itemPanel.remove(unloggedSDKOnboarding.getComponent());
+        ApplicationManager.getApplication().invokeLater(() -> itemPanel.remove(unloggedSDKOnboarding.getComponent()));
 
         totalAcceptedCount++;
 

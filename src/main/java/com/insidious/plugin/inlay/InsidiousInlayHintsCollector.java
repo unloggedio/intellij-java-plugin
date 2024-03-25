@@ -471,7 +471,11 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
                     });
                 }
             } else {
-                insidiousService.onMethodCallExpressionInlayClick(mockableCallExpressions, mouseEvent, point);
+                DumbService.getInstance(insidiousService.getProject())
+                        .smartInvokeLater(() -> {
+                            insidiousService.onMethodCallExpressionInlayClick(mockableCallExpressions, mouseEvent,
+                                    point);
+                        });
             }
         });
 

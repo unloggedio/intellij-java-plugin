@@ -25,9 +25,12 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.dao.GenericRawResults;
+import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.table.TableUtils;
+import org.jetbrains.annotations.Nullable;
 
+import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
@@ -738,6 +741,14 @@ public class DaoService {
             DataEventWithSessionId returnDataEvent = probesMap.get(dbMce.getReturnDataEvent());
             DataInfo eventProbe = probeInfoMap.get((int) returnDataEvent.getProbeId());
 
+            if (returnDataEvent.getSerializedValue().length == 8) {
+                DataEventWithSessionId referenceId = getReferencedEvent(returnDataEvent.getSerializedValue());
+                if (referenceId != null) {
+                    returnDataEvent.setSerializedValue(referenceId.getSerializedValue());
+                }
+
+            }
+
             String returnParamType = returnParam.getType();
             if ((returnParamType == null || returnParamType.equals("") || returnParam.isPrimitiveType())
                     && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
@@ -822,6 +833,43 @@ public class DaoService {
         return finalCallsList;
     }
 
+    @Nullable
+    private DataEventWithSessionId getReferencedEvent(byte[] serializedValue) throws SQLException {
+        long longVlaue = ByteBuffer.wrap(serializedValue).getLong();
+        DataEventWithSessionId ref = getDataEventByValue(longVlaue);
+        return ref;
+    }
+
+    private DataEventWithSessionId getDataEventByValue(long longVlaue) throws SQLException {
+
+        String[] count = dataEventDao.queryRaw("select count(*) from data_event where value = " + longVlaue)
+                .getFirstResult();
+        if (!count[0].equals("0")) {
+            String query = "select * from data_event where value = " + longVlaue;
+
+            Object[] allProbeValues = dataEventDao.queryRaw(query,
+                    new DataType[]{DataType.LONG, DataType.LONG, DataType.LONG, DataType.LONG, DataType.LONG,
+                            DataType.BYTE_ARRAY}).getFirstResult();
+
+            DataEventWithSessionId newDataEvent = new DataEventWithSessionId((Long) allProbeValues[0]);
+            newDataEvent.setEventId((Long) allProbeValues[1]);
+            newDataEvent.setRecordedAt((Long) allProbeValues[2]);
+            newDataEvent.setProbeId((Long) allProbeValues[3]);
+            newDataEvent.setValue((Long) allProbeValues[4]);
+            byte[] serializedValue = (byte[]) allProbeValues[5];
+            newDataEvent.setSerializedValue(serializedValue);
+            if (serializedValue.length == 8) {
+                DataEventWithSessionId ref = getReferencedEvent(serializedValue);
+                if (ref != null) {
+                    newDataEvent.setSerializedValue(ref.getSerializedValue());
+                }
+            }
+            logger.warn("yosdf => " + new String(newDataEvent.getSerializedValue()));
+            return newDataEvent;
+        }
+        return null;
+    }
+
     public List<com.insidious.plugin.pojo.Parameter> getParameterByValue(Collection<Long> values) {
         if (values.size() == 0) {
             return Collections.emptyList();
@@ -844,23 +892,42 @@ public class DaoService {
 //        return new ArrayList<>(resultList);
     }
 
-    public List<DataEventWithSessionId>
-    getProbes(Collection<Long> values) throws Exception {
+    public List<DataEventWithSessionId> getProbes(Collection<Long> values) throws Exception {
         if (values.size() == 0) {
             return Collections.emptyList();
         }
 
-        String query = "select * from data_event where eventId in (" + StringUtils.join(values, ",") + ")";
+        String query = "select de.threadId, de.eventId, de.recordedAt, de.probeId, de.value, serializedValue from " +
+                "data_event de where eventId in (" + StringUtils.join(values, ",") + ")";
 
-        GenericRawResults<DataEventWithSessionId> queryResult = dataEventDao.queryRaw(query,
-                dataEventDao.getRawRowMapper());
-        List<DataEventWithSessionId> resultList = queryResult.getResults();
+        GenericRawResults<Object[]> queryResult = dataEventDao.queryRaw(query,
+                new DataType[]{DataType.LONG, DataType.LONG, DataType.LONG, DataType.LONG, DataType.LONG, DataType.BYTE_ARRAY});
+        List<Object[]> resultListValues = queryResult.getResults();
         queryResult.close();
-        if (resultList.size() == 0) {
+        if (resultListValues.size() == 0) {
             return Collections.emptyList();
         }
+        ArrayList<DataEventWithSessionId> dataEventWithSessionIds = new ArrayList<>();
 
-        return new ArrayList<>(resultList);
+        for (Object[] allProbeValues : resultListValues) {
+            DataEventWithSessionId newDataEvent = new DataEventWithSessionId((Long) allProbeValues[0]);
+            newDataEvent.setEventId((Long) allProbeValues[1]);
+            newDataEvent.setRecordedAt((Long) allProbeValues[2]);
+            newDataEvent.setProbeId((Long) allProbeValues[3]);
+            newDataEvent.setValue((Long) allProbeValues[4]);
+            byte[] serializedValue = (byte[]) allProbeValues[5];
+            newDataEvent.setSerializedValue(serializedValue);
+            if (serializedValue.length == 8) {
+                DataEventWithSessionId ref = getReferencedEvent(serializedValue);
+                if (ref != null) {
+                    newDataEvent.setSerializedValue(ref.getSerializedValue());
+                }
+            }
+            dataEventWithSessionIds.add(newDataEvent);
+        }
+
+
+        return dataEventWithSessionIds;
     }
 
     public List<DataInfo>
@@ -928,7 +995,15 @@ public class DaoService {
 //        if (parameterList.size() == 0) {
 //            return null;
 //        }
-        return parameterProvider.getParameterByValue(value);
+        com.insidious.plugin.pojo.Parameter parameterByValue = parameterProvider.getParameterByValue(value);
+        if (parameterByValue.getProb() != null
+                && parameterByValue.getProb().getSerializedValue().length == 8) {
+            @Nullable DataEventWithSessionId fk = getReferencedEvent(parameterByValue.getProb().getSerializedValue());
+            if (fk != null) {
+                parameterByValue.getProb().setSerializedValue(fk.getSerializedValue());
+            }
+        }
+        return parameterByValue;
 //        com.insidious.plugin.pojo.Parameter convertedParameter = Parameter.toParameter(parameter);
 //
 //        DataEventWithSessionId dataEvent = this.getDataEventById(parameter.getEventId());
@@ -940,14 +1015,15 @@ public class DaoService {
 //        return convertedParameter;
     }
 
-    private DataInfo getProbeInfoById(long probeId) throws SQLException {
-        ProbeInfo dataInfo = probeInfoDao.queryForId(probeId);
-        return ProbeInfo.ToProbeInfo(dataInfo);
-    }
+//    private DataInfo getProbeInfoById(long probeId) throws SQLException {
+//        ProbeInfo dataInfo = probeInfoDao.queryForId(probeId);
+//        return ProbeInfo.ToProbeInfo(dataInfo);
+//    }
 
-    private DataEventWithSessionId getDataEventById(Long id) throws SQLException {
-        return dataEventDao.queryForId(id);
-    }
+//    private DataEventWithSessionId getDataEventById(Long id) throws SQLException {
+//        DataEventWithSessionId dataEventWithSessionId = dataEventDao.queryForId(id);
+//        return dataEventWithSessionId;
+//    }
 
     public void createOrUpdateDataEvent(Collection<DataEventWithSessionId> dataEvent) {
         try {
