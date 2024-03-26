@@ -4,6 +4,7 @@ import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.stomp.FilterModel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.components.PersistentStateComponent;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
@@ -22,7 +23,8 @@ import java.util.Map;
         name = "com.insidious.plugin.factory.InsidiousConfigurationState",
         storages = @Storage("InsidiousPlugin.xml")
 )
-public class InsidiousConfigurationState
+@Service(Service.Level.PROJECT)
+public final class InsidiousConfigurationState
         implements PersistentStateComponent<InsidiousConfigurationState> {
 
     private static final Logger logger = LoggerUtil.getInstance(InsidiousConfigurationState.class);

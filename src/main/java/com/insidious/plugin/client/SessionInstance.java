@@ -50,6 +50,7 @@ import com.intellij.openapi.util.Computable;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import io.kaitai.struct.RandomAccessFileKaitaiStream;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import net.openhft.chronicle.map.ChronicleMap;
 import net.openhft.chronicle.map.ChronicleMapBuilder;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -59,6 +60,7 @@ import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -164,7 +166,8 @@ public class SessionInstance implements Runnable {
             logger.warn("Starting zip consumer: " + processorId);
             zipConsumer = new ZipConsumer(daoService, sessionDirectory, this);
             scanLock = new ArrayBlockingQueue<Integer>(1);
-            executorPool = Executors.newFixedThreadPool(4);
+            executorPool = Executors.newFixedThreadPool(4,
+                    new DefaultThreadFactory("UnloggedSessionThreadPool", true));
             executorPool.submit(this);
             executorPool.submit(zipConsumer);
             executorPool.submit(() -> {
@@ -198,6 +201,10 @@ public class SessionInstance implements Runnable {
         //         dataEvent.setSerializedValue(Base64.getEncoder().encodeToString(eventBlock.serializedData()).getBytes(
         //                StandardCharsets.UTF_8));
         return dataEvent;
+    }
+
+    public boolean isScanEnable() {
+        return scanEnable;
     }
 
     private void publishEvent(ScanEventType scanEventType) {
@@ -2530,6 +2537,22 @@ public class SessionInstance implements Runnable {
             switch (probeInfo.getEventType()) {
 
                 case LABEL:
+//                    logger.warn("label: " + probeInfo);
+                    dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                    existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+
+
+//                    isModified = false;
+//                    if (existingParameter.getProb() == null) {
+                        existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
+//                        isModified = true;
+//                    }
+                    saveProbe = true;
+
+//                    if (!isModified) {
+//                        existingParameter = null;
+//                    }
+
                     // nothing to do
                     break;
                 case LINE_NUMBER:
@@ -3308,6 +3331,11 @@ public class SessionInstance implements Runnable {
                     if (existingParameter.getProb() == null || existingParameter.getProbeInfo() == null) {
                         existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         isModified = eventValue != 0;
+                    }
+                    if (existingParameter.getType()  != null
+                     && existingParameter.getType().contains("Mono")) {
+                        long longValue = ByteBuffer.wrap(eventBlock.serializedData()).getLong();
+
                     }
 
                     if (existingParameter.getType() == null && eventValue != 0) {

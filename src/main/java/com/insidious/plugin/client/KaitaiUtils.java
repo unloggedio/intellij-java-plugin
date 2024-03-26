@@ -10,7 +10,7 @@ public class KaitaiUtils {
 
     private final static Descriptor[] DescriptorValues = Descriptor.values();
 
-    
+
     public static DataInfo toDataInfo(KaitaiInsidiousClassWeaveParser.ProbeInfo e) {
 //        String descriptorValue = DescriptorValues[e.valueDescriptor().ordinal()].getString();
 
@@ -27,9 +27,16 @@ public class KaitaiUtils {
             instructionIndex = -1;
         }
 
+        int intExact = 0;
+        try {
+
+            intExact = Math.toIntExact(lineNumber);
+        }catch (ArithmeticException arithmeticException) {
+            arithmeticException.printStackTrace();
+        }
         return new DataInfo(Math.toIntExact(e.classId()), Math.toIntExact(e.methodId()),
                 Math.toIntExact(e.dataId()),
-                Math.toIntExact(lineNumber),
+                intExact,
                 Math.toIntExact(instructionIndex),
                 eventType,
                 valueDesc,
@@ -67,7 +74,7 @@ public class KaitaiUtils {
 //    }
 
 
-    
+
     public static ClassInfo toClassInfo(KaitaiInsidiousClassWeaveParser.ClassInfo classInfo) {
         String[] interfaceList = classInfo.interfaceNames()
                 .stream()
@@ -87,7 +94,7 @@ public class KaitaiUtils {
         );
     }
 
-    
+
     public static MethodInfo toMethodInfo(
             KaitaiInsidiousClassWeaveParser.MethodInfo e, String className) {
         return new MethodInfo(

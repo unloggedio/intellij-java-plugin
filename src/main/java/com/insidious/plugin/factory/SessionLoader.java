@@ -7,6 +7,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbService;
+import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,12 +19,12 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback, Disp
 
     private static final Logger logger = LoggerUtil.getInstance(SessionLoader.class);
     private final ExecutorService ourPool;
-    private List<GetProjectSessionsCallback> listeners = new ArrayList<>();
+    private final List<GetProjectSessionsCallback> listeners = new ArrayList<>();
     private VideobugClientInterface client;
     private List<ExecutionSession> lastResult;
 
     public SessionLoader() {
-        ourPool = Executors.newFixedThreadPool(1);
+        ourPool = Executors.newFixedThreadPool(1, new DefaultThreadFactory("UnloggedAppThreadPool"));
         ourPool.submit(this);
     }
 

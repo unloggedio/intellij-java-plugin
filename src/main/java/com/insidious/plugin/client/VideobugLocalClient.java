@@ -15,6 +15,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.Project;
+import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.io.File;
 import java.util.*;
@@ -26,11 +27,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private static final Logger logger = Logger.getInstance(VideobugLocalClient.class.getName());
     private final String pathToSessions;
     private final VideobugNetworkClient networkClient;
-    private final ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService threadPoolExecutor5Seconds =
+            Executors.newScheduledThreadPool(1, new DefaultThreadFactory("UnloggedClientPool", true));
     private final Project project;
     private final ActiveSessionManager sessionManager;
     private SessionInstance sessionInstance;
     private ProjectItem currentProject;
+    private File sessionPathFile;
 
     public VideobugLocalClient(String pathToSessions, Project project, ActiveSessionManager sessionManager) {
         this.project = project;
@@ -39,6 +42,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             pathToSessions = pathToSessions + "/";
         }
         this.pathToSessions = pathToSessions;
+        this.sessionPathFile = new File(pathToSessions);
         this.networkClient = new VideobugNetworkClient("https://cloud.bug.video");
     }
 
@@ -92,12 +96,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private List<ExecutionSession> getLocalSessions() {
         List<ExecutionSession> list = new ArrayList<>();
         logger.debug(String.format("looking for sessions in [%s]", pathToSessions));
-        File currentDir = new File(pathToSessions);
-        if (!currentDir.exists()) {
-            currentDir.mkdirs();
+        if (!sessionPathFile.exists()) {
+            sessionPathFile.mkdirs();
             return Collections.emptyList();
         }
-        File[] sessionDirectories = currentDir.listFiles();
+        File[] sessionDirectories = sessionPathFile.listFiles();
         if (sessionDirectories == null) {
             return Collections.emptyList();
         }
