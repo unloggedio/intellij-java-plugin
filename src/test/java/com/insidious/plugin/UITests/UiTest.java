@@ -1,12 +1,15 @@
 package com.insidious.plugin.UITests;
 
+import com.insidious.plugin.UITests.Utils.CustomGutterIconComparator;
 import com.insidious.plugin.UITests.pages.IdeaFrame;
 import com.insidious.plugin.UITests.pages.WelcomeFrame;
+import com.insidious.plugin.UITests.wrapper.MethodWiseGutterIcons;
+import com.insidious.plugin.UITests.wrapper.MockPopupEntry;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
-import org.apache.batik.transcoder.keys.IntegerKey;
+import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -26,6 +29,131 @@ public class UiTest {
     private final Keyboard keyboard = new Keyboard(remoteRobot);
 
 
+    @Test
+    public void testOnSuiteFile()
+    {
+        final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
+        waitFor(ofMinutes(4), () -> !idea.isDumbMode());
+
+
+        CustomGutterIconComparator iconComparator = new CustomGutterIconComparator();
+        TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
+        editor.getEditor().scrollToOffset(1);
+        //pick based on open file
+        List<GutterIcon> icons = editor.getGutter().getIcons();
+
+        List<GutterIcon> unloggedAccessIcons = icons.stream()
+                .filter(icon -> icon.toString().contains("profileBlue.svg"))
+                .toList();
+
+        List<GutterIcon> mainIcons = new ArrayList<>(unloggedAccessIcons);
+        Collections.sort(mainIcons, iconComparator);
+
+        List<GutterIcon> unloggedMockIcons = icons.stream()
+                .filter(icon -> icon.toString().contains("mock_ghost_icon_v2.svg"))
+                .toList();
+        List<GutterIcon> mockIcons = new ArrayList<>(unloggedMockIcons);
+        Collections.sort(mockIcons, iconComparator);
+
+        System.out.println("Main icons : ");
+        mainIcons.forEach(icon -> System.out.println("(M) -> : " + icon.toString()));
+        System.out.println("Mock icons : ");
+        mockIcons.forEach(icon -> System.out.println("(m) -> : " + icon.toString()));
+
+        List<MethodWiseGutterIcons> methodWiseGutterIconsList = new ArrayList<>();
+        for (int i = 0; i < mainIcons.size(); i++) {
+            GutterIcon mainIcon = mainIcons.get(i);
+            scrollDownToIcon(editor, mainIcon);
+            pause(ofSeconds(2).toMillis());
+            List<GutterIcon> subMockIcons = new ArrayList<>();
+            if (i + 1 < mainIcons.size()) {
+                int nextIconStart = mainIcons.get(i + 1).getLineNumber();
+                subMockIcons = mockIcons.stream()
+                        .filter(mockIcon -> mockIcon.getLineNumber() >= mainIcon.getLineNumber()
+                                && mockIcon.getLineNumber() <= nextIconStart).toList();
+            } else {
+                subMockIcons = mockIcons.stream()
+                        .filter(mockIcon -> mockIcon.getLineNumber() >= mainIcon.getLineNumber())
+                        .toList();
+            }
+
+            MethodWiseGutterIcons currentMethodIcons = new MethodWiseGutterIcons(mainIcon, subMockIcons);
+            methodWiseGutterIconsList.add(currentMethodIcons);
+
+            //click on each mockable icon and make sure there's nothing them
+            subMockIcons.stream().forEach(ghostIcon -> {
+                pause(ofMillis(500).toMillis());
+                scrollDownToIcon(editor, ghostIcon);
+                pause(ofSeconds(1).toMillis());
+                System.out.println("Clicking Ghost Icon (1) : " + ghostIcon.toString());
+                ghostIcon.click();
+                pause(ofSeconds(1).toMillis());
+                try {
+                    ComponentFixture mockScrollPanel = idea.getMockPopupScrollPanel();
+                    List<RemoteText> remoteTexts = mockScrollPanel.getData().getAll();
+                    assert remoteTexts.isEmpty();
+                } catch (WaitForConditionTimeoutException timeoutException) {
+                    assert true;
+                }
+                //keep closing this recursively until all are gone (strange ui behaviour)
+                ComponentFixture closeButton = idea.getMockPopupCloseButton();
+                closeButton.moveMouse();
+                pause(ofSeconds(1).toMillis());
+                closeButton.click();
+                pause(ofMillis(500).toMillis());
+            });
+
+
+            scrollDownToIcon(editor, mainIcon);
+            //click on main icon and directInvoke
+            currentMethodIcons.getMainGutterIcon().click();
+            pause(ofSeconds(1).toMillis());
+
+            idea.getDirectInvokeExecuteButtonNew().click();
+            pause(ofSeconds(10).toMillis());
+
+            //now ensure that there are new mocks for mockable method
+            subMockIcons.stream().forEach(ghostIcon -> {
+                pause(ofMillis(500).toMillis());
+                scrollDownToIcon(editor, ghostIcon);
+                pause(ofSeconds(1).toMillis());
+                System.out.println("Clicking Ghost Icon (2) : " + ghostIcon.toString());
+                ghostIcon.moveMouse();
+                pause(ofMillis(500).toMillis());
+                ghostIcon.click();
+
+                pause(ofSeconds(2).toMillis());
+
+                ComponentFixture mockScrollPanel = idea.getMockPopupScrollPanel();
+                List<RemoteText> remoteTexts = mockScrollPanel.getData().getAll();
+                assert remoteTexts.size() > 1;
+                List<MockPopupEntry> mockPopupEntries = new ArrayList<>();
+                //alt make this start with mock
+                if (remoteTexts.size() % 3 == 0) {
+//                    System.out.println("Correct format");
+                    int index = 0;
+                    for (int x = 0; x < remoteTexts.size() / 3; x++) {
+                        RemoteText mockname = remoteTexts.get(index++);
+                        RemoteText returnTypeText = remoteTexts.get(index++);
+                        RemoteText methodNameText = remoteTexts.get(index++);
+                        MockPopupEntry mpe = new MockPopupEntry(mockname, returnTypeText, methodNameText);
+                        ComponentFixture panelFixture = idea.getComponentByXpath(mpe.getPanelXpath());
+                        mpe.setPanel(panelFixture);
+                        mockPopupEntries.add(mpe);
+                    }
+                }
+
+                ComponentFixture closeButton = idea.getMockPopupCloseButton();
+                closeButton.moveMouse();
+                pause(ofSeconds(1).toMillis());
+                closeButton.click();
+                pause(ofMillis(500).toMillis());
+            });
+        }
+
+
+    }
+
     //Expecting project to be open already
     @Test
     public void testOnboardingFlowOnFreshProject() {
@@ -39,6 +167,261 @@ public class UiTest {
         //Start application and wait for 20 seconds (depends on project)
         //the view should automatically change to Live view
         //pass the case here
+    }
+
+    //keep open - DeliveryService for this.
+    //expand the imports section
+    //Start with fresh session
+    //Go mock by mock
+    //Make sure they are empty, click on create new
+    //Close popup and save
+    //repoen popup, you should have entires.
+    @Test
+    public void testMockCreationFlow() {
+
+        IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
+
+
+        try {
+            ComponentFixture mockSelectionPanel = idea.getMockMultiSelectPanel();
+            //selection panel is up
+//            ComponentFixture parentPanel = idea.get("//div[@class='MyContentPanel']");
+//            parentPanel.getData();
+        } catch (WaitForConditionTimeoutException timeoutException) {
+            System.out.println("No Multi Select panel");
+        }
+
+        try {
+            //selection panel is up
+            ComponentFixture parentPanel = idea.getComponentByXpath("//div[@class='MyContentPanel']");
+        } catch (WaitForConditionTimeoutException timeoutException) {
+            System.out.println("No Multi Select panel 2");
+        }
+
+        try {
+            //selection panel is up
+            ComponentFixture pp = idea.getComponentByXpath("//div[@name='null.contentPane']");
+        } catch (WaitForConditionTimeoutException timeoutException) {
+            System.out.println("No Multi Select panel 2");
+        }
+
+//        if (true) {
+//            return;
+//        }
+
+        CustomGutterIconComparator iconComparator = new CustomGutterIconComparator();
+//        final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
+        TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
+        editor.getEditor().scrollToOffset(1);
+        //pick based on open file
+        List<GutterIcon> unloggedMockIcons = editor.getGutter().getIcons().stream()
+                .filter(icon -> icon.toString().contains("mock_ghost_icon_v2.svg"))
+                .toList();
+        List<GutterIcon> mockIcons = new ArrayList<>(unloggedMockIcons);
+        Collections.sort(mockIcons, iconComparator);
+
+        System.out.println("Mock icons : ");
+        mockIcons.forEach(icon -> System.out.println("(m) -> : " + icon.toString()));
+        for (GutterIcon mockIcon : mockIcons) {
+            scrollDownToIcon(editor, mockIcon);
+            pause(ofMillis(500).toMillis());
+            mockIcon.moveMouse();
+            pause(ofMillis(250).toMillis());
+            mockIcon.click();
+            pause(ofSeconds(2).toMillis());
+
+            //assert empty
+            try {
+                ComponentFixture mockScrollPanel = idea.getMockPopupScrollPanel();
+                List<RemoteText> remoteTexts = mockScrollPanel.getData().getAll();
+                assert remoteTexts.isEmpty();
+            } catch (WaitForConditionTimeoutException timeoutException) {
+                assert true;
+            }
+
+            //check for multi mock selection panel
+            try {
+                ComponentFixture mockSelectionPanel = idea.getMockMultiSelectPanel();
+            } catch (WaitForConditionTimeoutException timeoutException) {
+
+            }
+
+            //click on create
+            ComponentFixture createNewMockButton = idea.getCreateNewMockButton();
+            createNewMockButton.moveMouse();
+            pause(ofMillis(250).toMillis());
+            createNewMockButton.click();
+
+            ComponentFixture closeButton = idea.getMockPopupCloseButton();
+            closeButton.moveMouse();
+            pause(ofMillis(500).toMillis());
+            closeButton.click();
+
+            pause(ofSeconds(2).toMillis());
+
+            ComponentFixture mockEditPanelSaveButton = idea.getMockEditSaveButton();
+            mockEditPanelSaveButton.moveMouse();
+            pause(ofMillis(250).toMillis());
+            mockEditPanelSaveButton.click();
+            pause(ofSeconds(5).toMillis());
+
+            //reopen mock popup and make sure newly saved mocks are available
+            mockIcon.moveMouse();
+            pause(ofSeconds(1).toMillis());
+            mockIcon.click();
+            pause(ofSeconds(2).toMillis());
+
+            ComponentFixture mockScrollPanel = idea.getMockPopupScrollPanel();
+            List<RemoteText> remoteTexts = mockScrollPanel.getData().getAll();
+            assert remoteTexts.size() > 1;
+            List<MockPopupEntry> mockPopupEntries = new ArrayList<>();
+            //alt make this start with mock
+            if (remoteTexts.size() % 3 == 0) {
+                int index = 0;
+                for (int x = 0; x < remoteTexts.size() / 3; x++) {
+                    RemoteText mockname = remoteTexts.get(index++);
+                    RemoteText returnTypeText = remoteTexts.get(index++);
+                    RemoteText methodNameText = remoteTexts.get(index++);
+                    MockPopupEntry mpe = new MockPopupEntry(mockname, returnTypeText, methodNameText);
+                    ComponentFixture panelFixture = idea.getComponentByXpath(mpe.getPanelXpath());
+                    mpe.setPanel(panelFixture);
+                    mockPopupEntries.add(mpe);
+                }
+            }
+
+            closeButton = idea.getMockPopupCloseButton();
+            closeButton.moveMouse();
+            pause(ofSeconds(1).toMillis());
+            closeButton.click();
+            pause(ofMillis(500).toMillis());
+
+        }
+    }
+
+    //keep open - DeliveryService for this.
+    //expand the imports section
+    //Start with fresh session
+    //Go method by method and click on each mock gutter icon
+    //Make sure they are empty, DirectInvoke each method in the file and see if you have entries.
+    //you should have entires.
+    @Test
+    public void testMockingFlow() {
+
+        CustomGutterIconComparator iconComparator = new CustomGutterIconComparator();
+        final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
+        TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
+        editor.getEditor().scrollToOffset(1);
+        //pick based on open file
+        List<GutterIcon> icons = editor.getGutter().getIcons();
+
+        List<GutterIcon> unloggedAccessIcons = icons.stream()
+                .filter(icon -> icon.toString().contains("profileBlue.svg"))
+                .toList();
+
+        List<GutterIcon> mainIcons = new ArrayList<>(unloggedAccessIcons);
+        Collections.sort(mainIcons, iconComparator);
+
+        List<GutterIcon> unloggedMockIcons = icons.stream()
+                .filter(icon -> icon.toString().contains("mock_ghost_icon_v2.svg"))
+                .toList();
+        List<GutterIcon> mockIcons = new ArrayList<>(unloggedMockIcons);
+        Collections.sort(mockIcons, iconComparator);
+
+        System.out.println("Main icons : ");
+        mainIcons.forEach(icon -> System.out.println("(M) -> : " + icon.toString()));
+        System.out.println("Mock icons : ");
+        mockIcons.forEach(icon -> System.out.println("(m) -> : " + icon.toString()));
+
+        List<MethodWiseGutterIcons> methodWiseGutterIconsList = new ArrayList<>();
+        for (int i = 0; i < mainIcons.size(); i++) {
+            GutterIcon mainIcon = mainIcons.get(i);
+            scrollDownToIcon(editor, mainIcon);
+            pause(ofSeconds(2).toMillis());
+            List<GutterIcon> subMockIcons = new ArrayList<>();
+            if (i + 1 < mainIcons.size()) {
+                int nextIconStart = mainIcons.get(i + 1).getLineNumber();
+                subMockIcons = mockIcons.stream()
+                        .filter(mockIcon -> mockIcon.getLineNumber() >= mainIcon.getLineNumber()
+                                && mockIcon.getLineNumber() <= nextIconStart).toList();
+            } else {
+                subMockIcons = mockIcons.stream()
+                        .filter(mockIcon -> mockIcon.getLineNumber() >= mainIcon.getLineNumber())
+                        .toList();
+            }
+
+            MethodWiseGutterIcons currentMethodIcons = new MethodWiseGutterIcons(mainIcon, subMockIcons);
+            methodWiseGutterIconsList.add(currentMethodIcons);
+
+            //click on each mockable icon and make sure there's nothing them
+            subMockIcons.stream().forEach(ghostIcon -> {
+                pause(ofMillis(500).toMillis());
+                scrollDownToIcon(editor, ghostIcon);
+                pause(ofSeconds(1).toMillis());
+                System.out.println("Clicking Ghost Icon (1) : " + ghostIcon.toString());
+                ghostIcon.click();
+                pause(ofSeconds(1).toMillis());
+                try {
+                    ComponentFixture mockScrollPanel = idea.getMockPopupScrollPanel();
+                    List<RemoteText> remoteTexts = mockScrollPanel.getData().getAll();
+                    assert remoteTexts.isEmpty();
+                } catch (WaitForConditionTimeoutException timeoutException) {
+                    assert true;
+                }
+                //keep closing this recursively until all are gone (strange ui behaviour)
+                ComponentFixture closeButton = idea.getMockPopupCloseButton();
+                closeButton.moveMouse();
+                pause(ofSeconds(1).toMillis());
+                closeButton.click();
+                pause(ofMillis(500).toMillis());
+            });
+
+
+            scrollDownToIcon(editor, mainIcon);
+            //click on main icon and directInvoke
+            currentMethodIcons.getMainGutterIcon().click();
+            pause(ofSeconds(1).toMillis());
+
+            idea.getDirectInvokeExecuteButtonNew().click();
+            pause(ofSeconds(10).toMillis());
+
+            //now ensure that there are new mocks for mockable method
+            subMockIcons.stream().forEach(ghostIcon -> {
+                pause(ofMillis(500).toMillis());
+                scrollDownToIcon(editor, ghostIcon);
+                pause(ofSeconds(1).toMillis());
+                System.out.println("Clicking Ghost Icon (2) : " + ghostIcon.toString());
+                ghostIcon.moveMouse();
+                pause(ofMillis(500).toMillis());
+                ghostIcon.click();
+
+                pause(ofSeconds(2).toMillis());
+
+                ComponentFixture mockScrollPanel = idea.getMockPopupScrollPanel();
+                List<RemoteText> remoteTexts = mockScrollPanel.getData().getAll();
+                assert remoteTexts.size() > 1;
+                List<MockPopupEntry> mockPopupEntries = new ArrayList<>();
+                //alt make this start with mock
+                if (remoteTexts.size() % 3 == 0) {
+//                    System.out.println("Correct format");
+                    int index = 0;
+                    for (int x = 0; x < remoteTexts.size() / 3; x++) {
+                        RemoteText mockname = remoteTexts.get(index++);
+                        RemoteText returnTypeText = remoteTexts.get(index++);
+                        RemoteText methodNameText = remoteTexts.get(index++);
+                        MockPopupEntry mpe = new MockPopupEntry(mockname, returnTypeText, methodNameText);
+                        ComponentFixture panelFixture = idea.getComponentByXpath(mpe.getPanelXpath());
+                        mpe.setPanel(panelFixture);
+                        mockPopupEntries.add(mpe);
+                    }
+                }
+
+                ComponentFixture closeButton = idea.getMockPopupCloseButton();
+                closeButton.moveMouse();
+                pause(ofSeconds(1).toMillis());
+                closeButton.click();
+                pause(ofMillis(500).toMillis());
+            });
+        }
     }
 
     @Test
@@ -85,7 +468,7 @@ public class UiTest {
         idea.getFilterApplyButton().click();
 
         //disable this after testing
-        tryToSaveAll(idea);
+//        tryToSaveAll(idea);
 
 
         String startWith = "PatientCaseAuditService";
@@ -230,6 +613,10 @@ public class UiTest {
                             scrollDownToIcon(editor, icon);
                             pause(ofSeconds(1).toMillis());
                             try {
+                                icon.moveMouse();
+                                pause(ofMillis(250).toMillis());
+                                icon.moveMouse();
+                                pause(ofMillis(250).toMillis());
                                 icon.click();
                             } catch (Exception e) {
                                 scrollDownToIcon(editor, icon);
@@ -239,7 +626,7 @@ public class UiTest {
                             step("Direct Invoke method", () -> {
                                 pause(ofSeconds(1).toMillis());
                                 try {
-                                    idea.getDirectInvokeExecuteButton().click();
+                                    idea.getDirectInvokeExecuteButtonNew().click();
                                 } catch (Exception exception) {
                                     //atomic window in focus right after button click
                                     System.out.println("Direct Invoke click failed");
@@ -285,12 +672,14 @@ public class UiTest {
             }
         }
         followCheckBox.click();
-
         tryToSaveAll(idea);
     }
 
     private void tryToSaveAll(IdeaFrame idea) {
-        idea.getSelectAllText().click();
+        ComponentFixture selectAllIcon = idea.getSelectAllicon();
+        pause(ofSeconds(1).toMillis());
+        selectAllIcon.click();
+        pause(ofMillis(250).toMillis());
         idea.getSaveGlobalButton().click();
         pause(ofSeconds(30).toMillis());
         idea.getSaveFromConfirmButton().click();
@@ -576,7 +965,14 @@ public class UiTest {
     }
 
     private void scrollDownToIcon(TextEditorFixture editorFixture, GutterIcon icon) {
-        int startingOffset = editorFixture.getEditor().callJs("local.get('editor').getDocument().getLineStartOffset(" + icon.getLineNumber() + ")", true);
+        int offsetIncrement = 2;
+        Integer startingOffset = null;
+        try {
+            startingOffset = editorFixture.getEditor().callJs("local.get('editor').getDocument().getLineStartOffset(" + (icon.getLineNumber() + offsetIncrement) + ")", true);
+        } catch (IndexOutOfBoundsException outOfBoundsException) {
+            startingOffset = editorFixture.getEditor().callJs("local.get('editor').getDocument().getLineStartOffset(" + (icon.getLineNumber()) + ")", true);
+        }
+        assert startingOffset != null;
         editorFixture.getEditor().scrollToOffset(startingOffset);
         System.out.println("Scrolling down to line number : " + icon.getLineNumber() + ", Offset : " + startingOffset);
     }

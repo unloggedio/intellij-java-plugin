@@ -103,7 +103,7 @@ public class IdeaFrame extends CommonContainerFixture {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.SAVE_AND_CLOSE_SAVE_FORM);
     }
 
-    public ComponentFixture getDirectInvokeExecuteButton() {
+    public ComponentFixture getDirectInvokeExecuteButtonNew() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.DIRECT_INVOKE_EXECUTE_NEW);
     }
 
@@ -125,6 +125,14 @@ public class IdeaFrame extends CommonContainerFixture {
         return fixtureList.get(0);
     }
 
+    public List<ComponentFixture> getAllVisibleCheckBoxes() {
+        return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.CHECK_BOX);
+    }
+
+    public List<ComponentFixture> getAllVisibleRadioButtons() {
+        return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.RADIO_BUTTON);
+    }
+
     public ComponentFixture getFilterApplyButton() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.FILTER_APPLY);
     }
@@ -140,4 +148,61 @@ public class IdeaFrame extends CommonContainerFixture {
     public ComponentFixture getSaveFromConfirmButton() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.SAVE_FORM_CONFIRM);
     }
+
+    public ComponentFixture getMockPopupScrollPanel() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MOCK_POPUP_SCROLL_PANEL);
+    }
+
+    public ComponentFixture getComponentByXpath(String panelXpath) {
+        return UITestUtils.getComponentFixture(remoteRobot, panelXpath);
+    }
+
+    public ContainerFixture getContainerByXpath(String panelXpath) {
+        return UITestUtils.getContainerFixture(remoteRobot, panelXpath);
+    }
+
+    public ComponentFixture getMockPopupCloseButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MOCK_POPUP_CLOSE_ICON);
+    }
+
+    public ComponentFixture getCreateNewMockButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.ADD_NEW_MOCK_POPUP_BUTTON);
+    }
+
+    public ComponentFixture getUnlinkMockButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.UNLINK_MOCK_POPUP_BUTTON);
+    }
+
+    public ComponentFixture getMockEditSaveButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.SAVE_MOCK_BUTTON);
+    }
+
+    public ComponentFixture getMockMultiSelectPanel() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MULTI_MOCK_SINGL_LINE_PANEL);
+    }
+
+    public ComponentFixture getSelectAllicon() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.SELECT_ALL_ICON);
+    }
+
+
+    public ComponentFixture getMockEditReturnTypeHeader() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MOCK_EDIT_PANEL_RETURN_TYPE_SELECTOR);
+    }
+
+    public ComponentFixture getMockEditPanelReturnNull() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MOCK_EDIT_RETURN_TYPE_NULL);
+    }
+
+    public ComponentFixture getMockEditPanelReturnException() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MOCK_EDIT_RETURN_TYPE_EXCEPTION);
+    }
+
+    public ComponentFixture getlibraryTabHeader() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.LIBRARY_HEADER_TAB);
+    }
+
+//    public JPanelFixture getJPanelFixture(String panelXpath) {
+//        return UITestUtils.getJpanelFixture(remoteRobot, panelXpath);
+//    }
 }

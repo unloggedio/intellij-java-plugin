@@ -3,6 +3,7 @@ package com.insidious.plugin.UITests.Utils;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.fixtures.ContainerFixture;
+import org.assertj.swing.fixture.JPanelFixture;
 
 import java.util.List;
 
@@ -36,13 +37,29 @@ public class UITestUtils {
         TEST_NAME_TF("//div[@class='JTextField']"),
         FILTER_BUTTON_NEW("//div[@myicon='filter.svg']"),
         FILTER_FOLLOW_CHECK_BOX("//div[@class='JTabbedPane']//div[@class='JCheckBox']"),
+        CHECK_BOX("//div[@class='JCheckBox']"),
         FILTER_APPLY("//div[@text='Apply']"),
         SELECT_ALL_FILTER("//div[@visible_text='Select all']"),
         SAVE_FORM_CONFIRM("//div[@text='Confirm']"),
         SAVE_GLOBAL("//div[@visible_text='Save']"),
         CLOSE_DI_COMPONENT_BUTTON("//div[@visible_text='Close']"),
         REPLAY_CANDIDATE_BUTTON("//div[@myicon='replay-all-pink.svg']"),
-        EDITOR_SCROLL_BAR("//div[@class='MyScrollPane']");
+        LINK_MOCK_POPUP_BUTTON("//div[@myicon='link.svg']"),
+        ADD_NEW_MOCK_POPUP_BUTTON("//div[@myicon='add.svg']"),
+        UNLINK_MOCK_POPUP_BUTTON("//div[@visible_text='Un-Mock']"),
+        EDITOR_SCROLL_BAR("//div[@class='MyScrollPane']"),
+        SAVE_MOCK_BUTTON("//div[@text='Save']"),
+        MULTI_MOCK_SINGL_LINE_PANEL("//div[@class='EngravedLabel']"),
+        EDIT_MOCK_ENTRY_BUTTON("//div[@myicon='edit.svg']"),
+        MOCK_POPUP_SCROLL_PANEL("//div[@class='JScrollPane'][.//div[@class='JCheckBox']]"),
+        MOCK_POPUP_CLOSE_ICON("//div[@tooltiptext='Close']"),
+        SELECT_ALL_ICON("//div[@myicon='selectall.svg']"),
+        MOCK_EDIT_PANEL_RETURN_TYPE_SELECTOR("//div[@visible_text='Return']"),
+        MOCK_EDIT_RETURN_TYPE_NULL("//div[@text='Return null']"),
+        LIBRARY_HEADER_TAB("//div[@text='Library']"),
+        RADIO_BUTTON("//div[@class='JRadioButton']"),
+        MOCK_EDIT_RETURN_TYPE_EXCEPTION("//div[@text='Throw exception']"),
+        CANCEL_MOCK_BUTTON("//div[@text='Cancel']");
 
         private String value;
 
@@ -60,11 +77,27 @@ public class UITestUtils {
         return remoteRobot.find(ComponentFixture.class, byXpath(tag.toString()));
     }
 
+//    public static JPanelFixture getJpanelFixture(RemoteRobot remoteRobot, String xapth) {
+//        return remoteRobot.find(JPanelFixture.class, byXpath(xapth));
+//    }
+
     public static ContainerFixture getContainerFixture(RemoteRobot remoteRobot, UITags tag) {
         return remoteRobot.find(ContainerFixture.class, byXpath(tag.toString()));
     }
 
     public static List<ComponentFixture> getComponentFixtures(RemoteRobot remoteRobot, UITags tag) {
         return remoteRobot.findAll(ComponentFixture.class, byXpath(tag.toString()));
+    }
+
+    public static ComponentFixture getComponentFixture(RemoteRobot remoteRobot, String xpath) {
+        return remoteRobot.find(ComponentFixture.class, byXpath(xpath));
+    }
+
+    public static List<ComponentFixture> getComponentFixtures(RemoteRobot remoteRobot, String xpath) {
+        return remoteRobot.findAll(ComponentFixture.class, byXpath(xpath));
+    }
+
+    public static ContainerFixture getContainerFixture(RemoteRobot remoteRobot, String xpath) {
+        return remoteRobot.find(ContainerFixture.class, byXpath(xpath));
     }
 }
