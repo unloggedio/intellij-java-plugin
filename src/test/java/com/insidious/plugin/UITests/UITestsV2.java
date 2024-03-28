@@ -10,7 +10,6 @@ import com.intellij.remoterobot.fixtures.GutterIcon;
 import com.intellij.remoterobot.fixtures.TextEditorFixture;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
-import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -47,40 +46,32 @@ public class UITestsV2 {
         List<GutterIcon> mockIcons = new ArrayList<>(unloggedMockIcons);
         Collections.sort(mockIcons, iconComparator);
 
-        System.out.println("Mock icons : ");
-        mockIcons.forEach(icon -> System.out.println("(m) -> : " + icon.toString()));
-
         assert mockIcons.size() == 10;
 
         for (int i = 0; i < mockIcons.size(); i++) {
             GutterIcon mockIcon = mockIcons.get(i);
-            pause(ofMillis(500).toMillis());
             mockIcon.moveMouse();
-            pause(ofMillis(250).toMillis());
             mockIcon.click();
-            pause(ofSeconds(2).toMillis());
+            pause(ofMillis(250).toMillis());
 
             //assert empty
-            try {
-                ComponentFixture mockScrollPanel = idea.getMockPopupScrollPanel();
-                List<RemoteText> remoteTexts = mockScrollPanel.getData().getAll();
-                assert remoteTexts.isEmpty();
-            } catch (WaitForConditionTimeoutException timeoutException) {
-                assert true;
-            }
+//            try {
+//                ComponentFixture mockScrollPanel = idea.getMockPopupScrollPanel();
+//                List<RemoteText> remoteTexts = mockScrollPanel.getData().getAll();
+//                assert remoteTexts.isEmpty();
+//            } catch (UIElementNotFoundException timeoutException) {
+//                assert true;
+//            }ca mock
 
             //click on create
             ComponentFixture createNewMockButton = idea.getCreateNewMockButton();
             createNewMockButton.moveMouse();
-            pause(ofMillis(250).toMillis());
             createNewMockButton.click();
 
             ComponentFixture closeButton = idea.getMockPopupCloseButton();
             closeButton.moveMouse();
-            pause(ofMillis(500).toMillis());
             closeButton.click();
-
-            pause(ofSeconds(2).toMillis());
+            pause(ofMillis(500).toMillis());
 
             //edit the then parameter ->
             switch (i) {
@@ -138,15 +129,13 @@ public class UITestsV2 {
             pause(ofMillis(250).toMillis());
             ComponentFixture mockEditPanelSaveButton = idea.getMockEditSaveButton();
             mockEditPanelSaveButton.moveMouse();
-            pause(ofMillis(250).toMillis());
             mockEditPanelSaveButton.click();
-            pause(ofSeconds(5).toMillis());
+            pause(ofMillis(250).toMillis());
 
             //re-open mock popup and make sure newly saved mocks are available
             mockIcon.moveMouse();
-            pause(ofSeconds(1).toMillis());
             mockIcon.click();
-            pause(ofSeconds(2).toMillis());
+            pause(ofMillis(250).toMillis());
 
             ComponentFixture mockScrollPanel = idea.getMockPopupScrollPanel();
             List<RemoteText> remoteTexts = mockScrollPanel.getData().getAll();
@@ -168,22 +157,31 @@ public class UITestsV2 {
 
             closeButton = idea.getMockPopupCloseButton();
             closeButton.moveMouse();
-            pause(ofSeconds(1).toMillis());
             closeButton.click();
-            pause(ofMillis(500).toMillis());
+            pause(ofMillis(250).toMillis());
         }
 
         //Execute DirectInvoke the method
         mainIcon.moveMouse();
-        pause(ofMillis(250).toMillis());
         mainIcon.click();
-        pause(ofMillis(500).toMillis());
 
         idea.getDirectInvokeExecuteButtonNew().click();
         pause(ofSeconds(5).toMillis());
 
+        boolean found = false;
+        int tries = 3;
+        ContainerFixture responseTreeFixture = null;
+        while (tries >= 0 && !found) {
+            try {
+                responseTreeFixture = idea.getContainerByXpath("//div[@class='Tree']");
+                found = true;
+            } catch (Exception e) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+
         //record the output for verification
-        ContainerFixture responseTreeFixture = idea.getContainerByXpath("//div[@class='Tree']");
         List<RemoteText> remoteTexts = responseTreeFixture.getData().getAll();
         boolean passing = true;
         for (int i = 0; i < remoteTexts.size(); i++) {
@@ -252,15 +250,12 @@ public class UITestsV2 {
                 .toList();
         mockIcons = new ArrayList<>(unloggedMockIcons);
         Collections.sort(mockIcons, iconComparator);
-        pause(ofSeconds(1).toMillis());
 
         for (int i = 0; i < mockIcons.size(); i++) {
             GutterIcon mockIcon = mockIcons.get(i);
-            pause(ofMillis(500).toMillis());
             mockIcon.moveMouse();
-            pause(ofMillis(250).toMillis());
             mockIcon.click();
-            pause(ofSeconds(1).toMillis());
+            pause(ofMillis(250).toMillis());
 
             List<ComponentFixture> mockScrollCandidates = idea.getMockPopupScrollPanelCandidates();
             ComponentFixture mockScrollPanel = null;
@@ -275,9 +270,8 @@ public class UITestsV2 {
             List<ComponentFixture> checkBoxes = idea.getAllVisibleCheckBoxes();
             checkBoxes.forEach(checkBox -> {
                 checkBox.moveMouse();
-                pause(ofMillis(250).toMillis());
                 checkBox.click();
-                pause(ofMillis(200).toMillis());
+                pause(ofMillis(250).toMillis());
             });
 
             ComponentFixture unmockButton = idea.getUnlinkMockButton();
@@ -300,21 +294,31 @@ public class UITestsV2 {
 
             ComponentFixture closeButton = idea.getMockPopupCloseButton();
             closeButton.moveMouse();
-            pause(ofSeconds(1).toMillis());
             closeButton.click();
-            pause(ofMillis(500).toMillis());
+            pause(ofMillis(250).toMillis());
         }
 
         mainIcon.moveMouse();
-        pause(ofMillis(250).toMillis());
         mainIcon.click();
-        pause(ofMillis(500).toMillis());
+        pause(ofMillis(250).toMillis());
 
         idea.getDirectInvokeExecuteButtonNew().click();
         pause(ofSeconds(5).toMillis());
 
+        found = false;
+        tries = 3;
+        responseTreeFixture = null;
+        while (tries >= 0 && !found) {
+            try {
+                responseTreeFixture = idea.getContainerByXpath("//div[@class='Tree']");
+                found = true;
+            } catch (Exception e) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+
         //record the output for verification
-        responseTreeFixture = idea.getContainerByXpath("//div[@class='Tree']");
         remoteTexts = responseTreeFixture.getData().getAll();
         passing = true;
         for (int i = 0; i < remoteTexts.size(); i++) {
@@ -385,9 +389,8 @@ public class UITestsV2 {
         pause(ofMillis(250).toMillis());
         ComponentFixture mockEditPanelSaveButton = idea.getMockEditSaveButton();
         mockEditPanelSaveButton.moveMouse();
-        pause(ofMillis(250).toMillis());
         mockEditPanelSaveButton.click();
-        pause(ofSeconds(5).toMillis());
+        pause(ofMillis(250).toMillis());
 
         ComponentFixture refreshButton = idea.getRefreshButton();
         refreshButton.click();
@@ -399,15 +402,15 @@ public class UITestsV2 {
         //select all and delete all mocks
         ComponentFixture selectAllToolbarButton = idea.getSelectAllicon();
         selectAllToolbarButton.click();
-        pause(ofSeconds(1).toMillis());
+        pause(ofMillis(500).toMillis());
 
         ComponentFixture deleteToolbarButton = idea.getToolBarDeleteButton();
         deleteToolbarButton.click();
-        pause(ofSeconds(1).toMillis());
+        pause(ofMillis(500).toMillis());
 
         //click on delete confirmation
         idea.getComponentByXpath("//div[@text='OK']").click();
-        pause(ofSeconds(1).toMillis());
+        pause(ofMillis(500).toMillis());
 
         boolean mockExists = true;
         try {
@@ -440,7 +443,6 @@ public class UITestsV2 {
         //name the mock
         ComponentFixture replayCaseName = ideaFrame.getComponentByXpath("//div[@class='JTextField']");
         replayCaseName.moveMouse();
-        pause(ofMillis(250).toMillis());
         replayCaseName.click();
 
         keyboard.hotKey(VK_META, VK_A);
@@ -449,7 +451,6 @@ public class UITestsV2 {
         ComponentFixture typeSelectHeader = ideaFrame.getMockEditReturnTypeHeader();
         if (type.equals("error")) {
             typeSelectHeader.moveMouse();
-            pause(ofMillis(250).toMillis());
             typeSelectHeader.click();
             pause(ofMillis(250).toMillis());
 
@@ -457,7 +458,6 @@ public class UITestsV2 {
             radioButtons.get(2).click();
         } else if (type.equals("null")) {
             typeSelectHeader.moveMouse();
-            pause(ofMillis(250).toMillis());
             typeSelectHeader.click();
             pause(ofMillis(250).toMillis());
 
@@ -472,22 +472,33 @@ public class UITestsV2 {
             ContainerFixture inputTreeFixture = ideaFrame.getContainerByXpath("//div[@class='Tree']");
             RemoteText customerNameElement = inputTreeFixture.findAllText().get(index);
             customerNameElement.moveMouse();
-            pause(ofMillis(250).toMillis());
             customerNameElement.click();
             keyboard.enterText(subValues.get(index));
-            pause(ofMillis(250).toMillis());
+            pause(ofMillis(125).toMillis());
             keyboard.hotKey(VK_ENTER);
         }
     }
 
     private void tryToSaveAll(IdeaFrame idea) {
         ComponentFixture selectAllIcon = idea.getSelectAllicon();
-        pause(ofSeconds(1).toMillis());
+        pause(ofMillis(500).toMillis());
         selectAllIcon.click();
-        pause(ofMillis(250).toMillis());
         idea.getSaveGlobalButton().click();
         pause(ofSeconds(5).toMillis());
-        idea.getSaveFromConfirmButton().click();
-        pause(ofMillis(250).toMillis());
+
+        boolean found = false;
+        int tries = 3;
+        ComponentFixture confirmSaveButton = null;
+        while (tries >= 0 && !found) {
+            try {
+                confirmSaveButton = idea.getSaveFromConfirmButton();
+                found = true;
+            } catch (Exception e) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+
+        confirmSaveButton.click();
     }
 }

@@ -1,12 +1,16 @@
 package com.insidious.plugin.UITests.Utils;
 
+import com.insidious.plugin.UITests.UIElementNotFoundException;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.fixtures.ContainerFixture;
+import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 
 import java.util.List;
 
 import static com.intellij.remoterobot.search.locators.Locators.byXpath;
+import static java.time.Duration.ofSeconds;
+import static org.assertj.swing.timing.Pause.pause;
 
 public class UITestUtils {
 
@@ -76,31 +80,97 @@ public class UITestUtils {
         }
     }
 
-    public static ComponentFixture getComponentFixture(RemoteRobot remoteRobot, UITags tag) {
-        return remoteRobot.find(ComponentFixture.class, byXpath(tag.toString()));
+    public static ComponentFixture getComponentFixture(RemoteRobot remoteRobot, UITags tag) throws UIElementNotFoundException {
+        int tries = 5;
+        boolean found = false;
+        while (tries > 0 && !found) {
+            try {
+                return remoteRobot.find(ComponentFixture.class, byXpath(tag.toString()));
+            } catch (WaitForConditionTimeoutException timeoutException) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+        throw new UIElementNotFoundException("Component with Tag : " + tag.name() + " not found on UI");
     }
 
-//    public static JPanelFixture getJpanelFixture(RemoteRobot remoteRobot, String xapth) {
-//        return remoteRobot.find(JPanelFixture.class, byXpath(xapth));
-//    }
-
-    public static ContainerFixture getContainerFixture(RemoteRobot remoteRobot, UITags tag) {
-        return remoteRobot.find(ContainerFixture.class, byXpath(tag.toString()));
+    public static ContainerFixture getContainerFixture(RemoteRobot remoteRobot, UITags tag) throws UIElementNotFoundException {
+        int tries = 5;
+        boolean found = false;
+        while (tries > 0 && !found) {
+            try {
+                ContainerFixture result = remoteRobot.find(ContainerFixture.class, byXpath(tag.toString()));
+                found = true;
+                return result;
+            } catch (WaitForConditionTimeoutException timeoutException) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+        throw new UIElementNotFoundException("Container with Tag : " + tag.name() + " not found on UI");
     }
 
-    public static List<ComponentFixture> getComponentFixtures(RemoteRobot remoteRobot, UITags tag) {
-        return remoteRobot.findAll(ComponentFixture.class, byXpath(tag.toString()));
+    public static List<ComponentFixture> getComponentFixtures(RemoteRobot remoteRobot, UITags tag) throws UIElementNotFoundException {
+        int tries = 5;
+        boolean found = false;
+        while (tries > 0 && !found) {
+            try {
+                List<ComponentFixture> result = remoteRobot.findAll(ComponentFixture.class, byXpath(tag.toString()));
+                found = true;
+                return result;
+            } catch (WaitForConditionTimeoutException timeoutException) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+        throw new UIElementNotFoundException("Components with Tag : " + tag.name() + " not found on UI");
     }
 
-    public static ComponentFixture getComponentFixture(RemoteRobot remoteRobot, String xpath) {
-        return remoteRobot.find(ComponentFixture.class, byXpath(xpath));
+    public static ComponentFixture getComponentFixture(RemoteRobot remoteRobot, String xpath) throws UIElementNotFoundException {
+        int tries = 5;
+        boolean found = false;
+        while (tries > 0 && !found) {
+            try {
+                ComponentFixture result = remoteRobot.find(ComponentFixture.class, byXpath(xpath));
+                found = true;
+                return result;
+            } catch (WaitForConditionTimeoutException timeoutException) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+        throw new UIElementNotFoundException("Component with XPATH : " + xpath + " not found on UI");
     }
 
-    public static List<ComponentFixture> getComponentFixtures(RemoteRobot remoteRobot, String xpath) {
-        return remoteRobot.findAll(ComponentFixture.class, byXpath(xpath));
+    public static List<ComponentFixture> getComponentFixtures(RemoteRobot remoteRobot, String xpath) throws UIElementNotFoundException {
+        int tries = 5;
+        boolean found = false;
+        while (tries > 0 && !found) {
+            try {
+                List<ComponentFixture> result = remoteRobot.findAll(ComponentFixture.class, byXpath(xpath));
+                found = true;
+                return result;
+            } catch (WaitForConditionTimeoutException timeoutException) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+        throw new UIElementNotFoundException("Components with XPATH : " + xpath + " not found on UI");
     }
 
-    public static ContainerFixture getContainerFixture(RemoteRobot remoteRobot, String xpath) {
-        return remoteRobot.find(ContainerFixture.class, byXpath(xpath));
+    public static ContainerFixture getContainerFixture(RemoteRobot remoteRobot, String xpath) throws UIElementNotFoundException {
+        int tries = 5;
+        boolean found = false;
+        while (tries > 0 && !found) {
+            try {
+                ContainerFixture result = remoteRobot.find(ContainerFixture.class, byXpath(xpath));
+                found = true;
+                return result;
+            } catch (WaitForConditionTimeoutException timeoutException) {
+                tries--;
+                pause(ofSeconds(1).toMillis());
+            }
+        }
+        throw new UIElementNotFoundException("Component with XPATH : " + xpath + " not found on UI");
     }
 }
