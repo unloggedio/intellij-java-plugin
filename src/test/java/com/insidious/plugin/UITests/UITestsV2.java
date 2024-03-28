@@ -14,7 +14,6 @@ import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.rmi.Remote;
 import java.time.Duration;
 import java.util.*;
 
@@ -192,57 +191,68 @@ public class UITestsV2 {
             switch (i) {
                 case 1:
                     if (!currentText.getText().equals("customerId: 0")) {
-                        System.out.println("Assertion "+i);
+                        System.out.println("Assertion " + i);
                         passing = false;
                     }
                     break;
                 case 2:
                     if (!currentText.getText().equals("productCost: 1000.0")) {
-                        System.out.println("Assertion "+i);
+                        System.out.println("Assertion " + i);
                         passing = false;
                     }
                     break;
                 case 3:
                     if (!currentText.getText().equals("deliveryCost: 500.0")) {
-                        System.out.println("Assertion "+i);
+                        System.out.println("Assertion " + i);
                         passing = false;
                     }
                     break;
                 case 4:
                     if (!currentText.getText().equals("totalAmount: 550.0")) {
-                        System.out.println("Assertion "+i);
+                        System.out.println("Assertion " + i);
                         passing = false;
                     }
                     break;
                 case 5:
                     if (!currentText.getText().equals("reportStatus: false")) {
-                        System.out.println("Assertion "+i);
+                        System.out.println("Assertion " + i);
                         passing = false;
                     }
                     break;
                 case 6:
                     if (!currentText.getText().equals("region: central skyrim")) {
-                        System.out.println("Assertion "+i);
+                        System.out.println("Assertion " + i);
                         passing = false;
                     }
                     break;
                 case 7:
-                    //assertion breaking here
                     if (!currentText.getText().equals("groupId: null")) {
-                        System.out.println("Assertion "+i);
+                        System.out.println("Assertion " + i);
+                        System.out.println("Current text : " + currentText.getText());
                         passing = false;
                     }
+                    break;
                 case 8:
                     if (!currentText.getText().startsWith("errorStatus: class java.lang.String cannot be cast to class java.lang.Throwable")) {
-                        System.out.println("Assertion "+i);
+                        System.out.println("Assertion " + i);
                         passing = false;
                     }
+                    break;
                 default:
                     break;
             }
         }
         Assertions.assertTrue(passing);
-        //assertions done
+        //assertion done
+
+        //reload mock icons -> needed to ensure proper coordinates are taken
+        editor = idea.textEditor(Duration.ofSeconds(2));
+        unloggedMockIcons = editor.getGutter().getIcons().stream()
+                .filter(icon -> icon.toString().contains("mock_ghost_icon_v2.svg") && icon.getLineNumber() >= mainIconLinenumber)
+                .toList();
+        mockIcons = new ArrayList<>(unloggedMockIcons);
+        Collections.sort(mockIcons, iconComparator);
+        pause(ofSeconds(1).toMillis());
 
         for (int i = 0; i < mockIcons.size(); i++) {
             GutterIcon mockIcon = mockIcons.get(i);
@@ -252,8 +262,13 @@ public class UITestsV2 {
             mockIcon.click();
             pause(ofSeconds(1).toMillis());
 
-//            List<ComponentFixture> mockScrollCandidates
-            ComponentFixture mockScrollPanel = idea.getMockPopupScrollPanel();
+            List<ComponentFixture> mockScrollCandidates = idea.getMockPopupScrollPanelCandidates();
+            ComponentFixture mockScrollPanel = null;
+            if (mockScrollCandidates.size() > 1) {
+                mockScrollPanel = mockScrollCandidates.get(1);
+            } else {
+                mockScrollPanel = idea.getMockPopupScrollPanel();
+            }
             List<RemoteText> mockEntries = mockScrollPanel.getData().getAll();
             assert mockEntries.size() > 1;
 
@@ -339,20 +354,73 @@ public class UITestsV2 {
                     if (!currentText.getText().equals("groupId: default-1")) {
                         passing = false;
                     }
+                    break;
                 case 8:
                     if (!currentText.getText().startsWith("errorStatus: no error")) {
                         passing = false;
                     }
+                    break;
                 default:
                     break;
             }
         }
         Assertions.assertTrue(passing);
 
-        //delete mocks
-        ComponentFixture LibraryTabHeader = idea.getlibraryTabHeader();
+        //rename and delete mocks
+        //open library
+        ComponentFixture libraryTabHeader = idea.getlibraryTabHeader();
+        libraryTabHeader.click();
 
+        //keep mocks tab open
+//            idea.getLibraryMocksButton().click();
+//            pause(ofSeconds(2).toMillis());
 
+        //alt click on 1 active mock on editor and then clear selections
+
+        ComponentFixture firstMockEditButton = idea.getComponentByXpath("//div[@accessiblename='db call mock']//div[@class='ActionButton']");
+        firstMockEditButton.click();
+
+        interactWithMockEditPanel("db mock renamed", new TreeMap<>(), idea, "default");
+
+        pause(ofMillis(250).toMillis());
+        ComponentFixture mockEditPanelSaveButton = idea.getMockEditSaveButton();
+        mockEditPanelSaveButton.moveMouse();
+        pause(ofMillis(250).toMillis());
+        mockEditPanelSaveButton.click();
+        pause(ofSeconds(5).toMillis());
+
+        ComponentFixture refreshButton = idea.getRefreshButton();
+        refreshButton.click();
+
+        //confirm name changed
+        ComponentFixture renamedMockEntry = idea.getComponentByXpath("//div[@accessiblename='db mock renamed']");
+        //Exists if a timeout error is not thrown.
+
+        //select all and delete all mocks
+        ComponentFixture selectAllToolbarButton = idea.getSelectAllicon();
+        selectAllToolbarButton.click();
+        pause(ofSeconds(1).toMillis());
+
+        ComponentFixture deleteToolbarButton = idea.getToolBarDeleteButton();
+        deleteToolbarButton.click();
+        pause(ofSeconds(1).toMillis());
+
+        //click on delete confirmation
+        idea.getComponentByXpath("//div[@text='OK']").click();
+        pause(ofSeconds(1).toMillis());
+
+        boolean mockExists = true;
+        try {
+            renamedMockEntry = idea.getComponentByXpath("//div[@accessiblename='db mock renamed']");
+        } catch (Exception e) {
+            mockExists = false;
+        }
+        Assertions.assertFalse(mockExists);
+
+        //switch to live view
+        idea.getLiveTabHeader().click();
+        //save all candidates in the end
+        tryToSaveAll(idea);
     }
 
     private void scrollDownToIcon(TextEditorFixture editorFixture, GutterIcon icon) {
@@ -410,5 +478,16 @@ public class UITestsV2 {
             pause(ofMillis(250).toMillis());
             keyboard.hotKey(VK_ENTER);
         }
+    }
+
+    private void tryToSaveAll(IdeaFrame idea) {
+        ComponentFixture selectAllIcon = idea.getSelectAllicon();
+        pause(ofSeconds(1).toMillis());
+        selectAllIcon.click();
+        pause(ofMillis(250).toMillis());
+        idea.getSaveGlobalButton().click();
+        pause(ofSeconds(5).toMillis());
+        idea.getSaveFromConfirmButton().click();
+        pause(ofMillis(250).toMillis());
     }
 }

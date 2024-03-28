@@ -3,7 +3,6 @@ package com.insidious.plugin.UITests.Utils;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.fixtures.ContainerFixture;
-import org.assertj.swing.fixture.JPanelFixture;
 
 import java.util.List;
 
@@ -53,11 +52,15 @@ public class UITestUtils {
         EDIT_MOCK_ENTRY_BUTTON("//div[@myicon='edit.svg']"),
         MOCK_POPUP_SCROLL_PANEL("//div[@class='JScrollPane'][.//div[@class='JCheckBox']]"),
         MOCK_POPUP_CLOSE_ICON("//div[@tooltiptext='Close']"),
-        SELECT_ALL_ICON("//div[@myicon='selectall.svg']"),
+        TOOLBAR_SELECT_ALL("//div[@myicon='selectall.svg']"),
+        TOOLBAR_REFRESH("//div[@myicon='refresh.svg']"),
+        TOOLBAR_DELETE_ICON("//div[@myicon='gc.svg']"),
         MOCK_EDIT_PANEL_RETURN_TYPE_SELECTOR("//div[@visible_text='Return']"),
         MOCK_EDIT_RETURN_TYPE_NULL("//div[@text='Return null']"),
         LIBRARY_HEADER_TAB("//div[@text='Library']"),
+        LIVE_HEADER_TAB("//div[@text='Live']"),
         RADIO_BUTTON("//div[@class='JRadioButton']"),
+        LIBRARY_MOCKS_RADIO_BUTTON("//div[@visible_text='Mocks']]"),
         MOCK_EDIT_RETURN_TYPE_EXCEPTION("//div[@text='Throw exception']"),
         CANCEL_MOCK_BUTTON("//div[@text='Cancel']");
 

@@ -153,6 +153,14 @@ public class IdeaFrame extends CommonContainerFixture {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MOCK_POPUP_SCROLL_PANEL);
     }
 
+    public List<ComponentFixture> getMockPopupScrollPanelCandidates() {
+        return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.MOCK_POPUP_SCROLL_PANEL);
+    }
+
+    public List<ComponentFixture> getMockPopupScrollPanelCandidatesAsContainers() {
+        return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.MOCK_POPUP_SCROLL_PANEL);
+    }
+
     public ComponentFixture getComponentByXpath(String panelXpath) {
         return UITestUtils.getComponentFixture(remoteRobot, panelXpath);
     }
@@ -182,7 +190,7 @@ public class IdeaFrame extends CommonContainerFixture {
     }
 
     public ComponentFixture getSelectAllicon() {
-        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.SELECT_ALL_ICON);
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.TOOLBAR_SELECT_ALL);
     }
 
 
@@ -200,6 +208,22 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public ComponentFixture getlibraryTabHeader() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.LIBRARY_HEADER_TAB);
+    }
+
+    public ComponentFixture getLibraryMocksButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.LIBRARY_MOCKS_RADIO_BUTTON);
+    }
+
+    public ComponentFixture getRefreshButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.TOOLBAR_REFRESH);
+    }
+
+    public ComponentFixture getToolBarDeleteButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.TOOLBAR_DELETE_ICON);
+    }
+
+    public ComponentFixture getLiveTabHeader() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.LIVE_HEADER_TAB);
     }
 
 //    public JPanelFixture getJPanelFixture(String panelXpath) {
