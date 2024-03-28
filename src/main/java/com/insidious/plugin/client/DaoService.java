@@ -17,6 +17,7 @@ import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFact
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.dao.*;
+import com.insidious.plugin.ui.stomp.FilterModel;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.StringUtils;
@@ -1738,17 +1739,113 @@ public class DaoService {
     }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-    getTestCandidatePaginated(long afterEventId, int page, int limit) throws SQLException {
+    getTestCandidatePaginated(long afterEventId, int page, int limit, FilterModel filterModel) throws SQLException {
         List<TestCandidateMetadata> dbCandidateList;
         try {
-            dbCandidateList = testCandidateDao.queryBuilder()
-                    .where()
-                    .ge("entryProbeIndex", afterEventId)
-                    .queryBuilder()
-                    .offset((long) page * limit)
-                    .limit((long) limit)
-                    .orderBy("entryProbeIndex", true)
-                    .query();
+
+
+            StringBuilder query =
+                    new StringBuilder("select tc.* from test_candidate tc " +
+                            "join method_call mc on mc.id = tc.mainMethod_id " +
+                            "join method_definition md on mc.methodDefinitionId = md.id ");
+
+
+            List<String> argumentsList = new ArrayList<>();
+            boolean first = true;
+            if (!filterModel.isEmpty()) {
+                query.append(" where ");
+                if (!filterModel.getIncludedMethodNames().isEmpty()) {
+                    query.append(" ( ");
+                    for (String includedMethodName : filterModel.getIncludedMethodNames()) {
+                        if (!first) {
+                            query.append(" or ");
+                        }
+                        query.append(" md.methodName like ? ");
+
+                        argumentsList.add(includedMethodName);
+                        first = false;
+                    }
+                    query.append(" ) ");
+                }
+                if (!filterModel.getIncludedClassNames().isEmpty()) {
+                    if (!first) {
+                        query.append(" and ");
+                    }
+                    first = true;
+                    query.append(" ( ");
+                    for (String includedClassName : filterModel.getIncludedClassNames()) {
+                        if (!first) {
+                            query.append(" or ");
+                        }
+                        query.append(" md.ownerType like ? ");
+                        argumentsList.add(includedClassName);
+                        first = false;
+                    }
+                    query.append(" ) ");
+                }
+                if (!filterModel.getExcludedClassNames().isEmpty()) {
+                    if (!first) {
+                        query.append(" and ");
+                    }
+                    first = true;
+                    query.append(" ( ");
+                    for (String excludedClassName : filterModel.getExcludedClassNames()) {
+                        if (!first) {
+                            query.append(" and ");
+                        }
+                        query.append(" md.ownerType not like ? ");
+                        argumentsList.add(excludedClassName);
+                        first = false;
+                    }
+                    query.append(" ) ");
+
+                }
+                if (!filterModel.getExcludedMethodNames().isEmpty()) {
+
+                    if (!first) {
+                        query.append(" and ");
+                    }
+                    first = true;
+                    query.append(" ( ");
+                    for (String excludedMethodName : filterModel.getExcludedMethodNames()) {
+                        if (!first) {
+                            query.append(" and ");
+                        }
+                        query.append(" md.methodName not like ? ");
+                        argumentsList.add(excludedMethodName);
+                        first = false;
+                    }
+                    query.append(" ) ");
+                }
+
+            }
+
+            if (!first) {
+                query.append(" and  ");
+            }
+            query.append(
+                    "tc.entryProbeIndex >= ? "
+            );
+            argumentsList.add(String.valueOf(afterEventId));
+            query.append(" order by tc.entryProbeIndex asc");
+            query.append(" limit ? " ); argumentsList.add(String.valueOf(limit));
+            query.append(" offset ? " ); argumentsList.add(String.valueOf(page * limit));
+
+//            dbCandidateList = testCandidateDao.queryBuilder()
+//                    .where()
+//                    .ge("entryProbeIndex", afterEventId)
+//                    .queryBuilder()
+//                    .offset((long) page * limit)
+//                    .limit((long) limit)
+//                    .orderBy("entryProbeIndex", true)
+//                    .query();
+
+
+            GenericRawResults<TestCandidateMetadata> resultList = testCandidateDao.queryRaw(
+                    query.toString(), testCandidateDao.getRawRowMapper(), argumentsList.toArray(new String[0])
+            );
+            dbCandidateList = resultList.getResults();
+
         } catch (Exception e) {
             logger.warn("Failed to query database: " + e.getMessage(), e);
             return new ArrayList<>();

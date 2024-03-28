@@ -1386,7 +1386,9 @@ public class StompComponent implements
         if (candidateQueryLatch != null) {
             return;
         }
-        candidateQueryLatch = insidiousService.getSessionInstance().getTestCandidates(this, lastEventId);
+        candidateQueryLatch = insidiousService
+                .getSessionInstance()
+                .getTestCandidates(this, lastEventId, filterModel);
     }
 
     public SessionScanEventListener getScanEventListener() {

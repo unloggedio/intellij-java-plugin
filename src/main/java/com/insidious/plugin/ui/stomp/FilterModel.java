@@ -15,6 +15,13 @@ public class FilterModel {
     private final Set<String> excludedMethodNames = new HashSet<>();
     boolean followEditor;
     CandidateFilterType candidateFilterType = CandidateFilterType.ALL;
+    public boolean isEmpty() {
+        return includedClassNames.isEmpty()
+                && includedMethodNames.isEmpty()
+                && excludedClassNames.isEmpty()
+                && excludedMethodNames.isEmpty();
+
+    }
 
     public FilterModel(FilterModel filterModel) {
         this.includedMethodNames.addAll(filterModel.includedMethodNames);
