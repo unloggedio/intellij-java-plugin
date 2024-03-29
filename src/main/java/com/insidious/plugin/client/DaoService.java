@@ -1752,8 +1752,8 @@ public class DaoService {
 
             List<String> argumentsList = new ArrayList<>();
             boolean first = true;
+            query.append(" where ");
             if (!filterModel.isEmpty()) {
-                query.append(" where ");
                 if (!filterModel.getIncludedMethodNames().isEmpty()) {
                     query.append(" ( ");
                     for (String includedMethodName : filterModel.getIncludedMethodNames()) {
@@ -1828,8 +1828,10 @@ public class DaoService {
             );
             argumentsList.add(String.valueOf(afterEventId));
             query.append(" order by tc.entryProbeIndex asc");
-            query.append(" limit ? " ); argumentsList.add(String.valueOf(limit));
-            query.append(" offset ? " ); argumentsList.add(String.valueOf(page * limit));
+            query.append(" limit ? ");
+            argumentsList.add(String.valueOf(limit));
+            query.append(" offset ? ");
+            argumentsList.add(String.valueOf(page * limit));
 
 //            dbCandidateList = testCandidateDao.queryBuilder()
 //                    .where()
