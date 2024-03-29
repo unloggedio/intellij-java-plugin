@@ -32,6 +32,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Pair;
 import com.intellij.psi.*;
+import com.intellij.psi.search.searches.ClassInheritorsSearch;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.JBUI;
@@ -748,6 +749,24 @@ public class TestCandidateSaveForm {
                 targetMethod, PsiMethodCallExpression.class));
 
         List<PsiMethodCallExpression> collectedCalls = new ArrayList<>();
+        if (targetMethod.getBody() == null) {
+            // need to find implementations
+            @Nullable PsiClass containingClass = targetMethod.getContainingClass();
+
+            Collection<PsiClass> childClasses = ClassInheritorsSearch.search(
+                    ApplicationManager.getApplication().runReadAction(
+                            (Computable<PsiClass>) () -> containingClass)).findAll();
+
+
+            for (PsiClass childClass : childClasses) {
+                PsiMethod methodImplementation = childClass.findMethodBySignature(targetMethod, false);
+                ArrayList<PsiMethodCallExpression> calls = new ArrayList<>(PsiTreeUtil.findChildrenOfType(
+                        methodImplementation, PsiMethodCallExpression.class));
+                psiMethodCallExpressions.addAll(calls);
+            }
+
+
+        }
 
         for (PsiMethodCallExpression psiMethodCallExpression : psiMethodCallExpressions) {
             PsiExpression qualifierExpression = psiMethodCallExpression.getMethodExpression().getQualifierExpression();
