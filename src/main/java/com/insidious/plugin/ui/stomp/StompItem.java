@@ -48,10 +48,6 @@ public class StompItem {
             new Color(113, 128, 150, 255),
             new Color(113, 128, 150, 255));
     public static final int MAX_METHOD_NAME_LABEL_LENGTH = 25;
-    public static final JBColor HOVER_HIGHLIGHT_COLOR = new JBColor(
-            new Color(121, 64, 64),
-            new Color(147, 125, 125)
-    );
     private static final Logger logger = LoggerUtil.getInstance(StompItem.class);
     private final TestCandidateLifeListener testCandidateLifeListener;
     private final Color defaultPanelColor;
@@ -479,16 +475,7 @@ public class StompItem {
     }
 
     private void hoverOn() {
-//        mainPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        detailPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        infoPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        titleLabelContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        controlPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        controlContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        selectCandidateCheckbox.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        metadataPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
         selectCandidateCheckbox.setVisible(true);
-//        pinLabel.setVisible(true);
 
     }
 

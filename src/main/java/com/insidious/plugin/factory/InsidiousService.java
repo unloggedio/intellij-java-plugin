@@ -1564,6 +1564,13 @@ final public class InsidiousService implements
 
 
     public void onAgentConnected(ServerMetadata serverMetadata) {
+        JSONObject properties = new JSONObject();
+        properties.put("agentVersion", serverMetadata.getAgentVersion());
+        properties.put("package", serverMetadata.getIncludePackageName());
+        properties.put("project", project.getName());
+
+        UsageInsightTracker.getInstance().RecordEvent("AGENT_CONNECTED", properties);
+
         logger.info("unlogged agent connected - " + serverMetadata);
         currentState.setAgentServerRunning(true);
 
