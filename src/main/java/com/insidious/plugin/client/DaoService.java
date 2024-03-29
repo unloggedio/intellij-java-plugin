@@ -17,6 +17,7 @@ import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFact
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.dao.*;
+import com.insidious.plugin.ui.stomp.FilterModel;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.StringUtils;
@@ -29,11 +30,13 @@ import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import org.jetbrains.annotations.Nullable;
-
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -833,41 +836,68 @@ public class DaoService {
         return finalCallsList;
     }
 
-    @Nullable
     private DataEventWithSessionId getReferencedEvent(byte[] serializedValue) throws SQLException {
         long longVlaue = ByteBuffer.wrap(serializedValue).getLong();
-        DataEventWithSessionId ref = getDataEventByValue(longVlaue);
-        return ref;
+        Collection<DataEventWithSessionId> ref = getDataEventByValue(longVlaue);
+        if (ref.isEmpty()) {
+            return null;
+        }
+
+        DataEventWithSessionId firstEvent = ref.stream().findFirst().get();
+        if (ref.size() == 1) {
+            return firstEvent;
+        } else {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            outputStream.write('[');
+            AtomicInteger first = new AtomicInteger(1);
+            ref.forEach(E -> {
+                try {
+                    if (first.decrementAndGet() != 0) {
+                        outputStream.write(',');
+                    }
+                    outputStream.write(E.getSerializedValue());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            outputStream.write(']');
+            firstEvent.setSerializedValue(outputStream.toByteArray());
+        }
+        return firstEvent;
     }
 
-    private DataEventWithSessionId getDataEventByValue(long longVlaue) throws SQLException {
+    private Collection<DataEventWithSessionId> getDataEventByValue(long longVlaue) throws SQLException {
 
         String[] count = dataEventDao.queryRaw("select count(*) from data_event where value = " + longVlaue)
                 .getFirstResult();
+        List<DataEventWithSessionId> resultList = new ArrayList<>();
         if (!count[0].equals("0")) {
             String query = "select * from data_event where value = " + longVlaue;
 
-            Object[] allProbeValues = dataEventDao.queryRaw(query,
+            GenericRawResults<Object[]> result = dataEventDao.queryRaw(query,
                     new DataType[]{DataType.LONG, DataType.LONG, DataType.LONG, DataType.LONG, DataType.LONG,
-                            DataType.BYTE_ARRAY}).getFirstResult();
+                            DataType.BYTE_ARRAY});
 
-            DataEventWithSessionId newDataEvent = new DataEventWithSessionId((Long) allProbeValues[0]);
-            newDataEvent.setEventId((Long) allProbeValues[1]);
-            newDataEvent.setRecordedAt((Long) allProbeValues[2]);
-            newDataEvent.setProbeId((Long) allProbeValues[3]);
-            newDataEvent.setValue((Long) allProbeValues[4]);
-            byte[] serializedValue = (byte[]) allProbeValues[5];
-            newDataEvent.setSerializedValue(serializedValue);
-            if (serializedValue.length == 8) {
-                DataEventWithSessionId ref = getReferencedEvent(serializedValue);
-                if (ref != null) {
-                    newDataEvent.setSerializedValue(ref.getSerializedValue());
+            for (Object[] allProbeValues : result.getResults()) {
+
+                DataEventWithSessionId newDataEvent = new DataEventWithSessionId((Long) allProbeValues[0]);
+                newDataEvent.setEventId((Long) allProbeValues[1]);
+                newDataEvent.setRecordedAt((Long) allProbeValues[2]);
+                newDataEvent.setProbeId((Long) allProbeValues[3]);
+                newDataEvent.setValue((Long) allProbeValues[4]);
+                byte[] serializedValue = (byte[]) allProbeValues[5];
+                if (serializedValue.length == 8) {
+                    DataEventWithSessionId ref = getReferencedEvent(serializedValue);
+                    if (ref != null) {
+                        newDataEvent.setSerializedValue(ref.getSerializedValue());
+                    }
+                } else {
+                    newDataEvent.setSerializedValue(serializedValue);
                 }
+                resultList.add(newDataEvent);
             }
-            logger.warn("yosdf => " + new String(newDataEvent.getSerializedValue()));
-            return newDataEvent;
         }
-        return null;
+        return resultList;
     }
 
     public List<com.insidious.plugin.pojo.Parameter> getParameterByValue(Collection<Long> values) {
@@ -1738,17 +1768,115 @@ public class DaoService {
     }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-    getTestCandidatePaginated(long afterEventId, int page, int limit) throws SQLException {
+    getTestCandidatePaginated(long afterEventId, int page, int limit, FilterModel filterModel) throws SQLException {
         List<TestCandidateMetadata> dbCandidateList;
         try {
-            dbCandidateList = testCandidateDao.queryBuilder()
-                    .where()
-                    .ge("entryProbeIndex", afterEventId)
-                    .queryBuilder()
-                    .offset((long) page * limit)
-                    .limit((long) limit)
-                    .orderBy("entryProbeIndex", true)
-                    .query();
+
+
+            StringBuilder query =
+                    new StringBuilder("select tc.* from test_candidate tc " +
+                            "join method_call mc on mc.id = tc.mainMethod_id " +
+                            "join method_definition md on mc.methodDefinitionId = md.id ");
+
+
+            List<String> argumentsList = new ArrayList<>();
+            boolean first = true;
+            query.append(" where ");
+            if (!filterModel.isEmpty()) {
+                if (!filterModel.getIncludedMethodNames().isEmpty()) {
+                    query.append(" ( ");
+                    for (String includedMethodName : filterModel.getIncludedMethodNames()) {
+                        if (!first) {
+                            query.append(" or ");
+                        }
+                        query.append(" md.methodName like ? ");
+
+                        argumentsList.add(includedMethodName);
+                        first = false;
+                    }
+                    query.append(" ) ");
+                }
+                if (!filterModel.getIncludedClassNames().isEmpty()) {
+                    if (!first) {
+                        query.append(" and ");
+                    }
+                    first = true;
+                    query.append(" ( ");
+                    for (String includedClassName : filterModel.getIncludedClassNames()) {
+                        if (!first) {
+                            query.append(" or ");
+                        }
+                        query.append(" md.ownerType like ? ");
+                        argumentsList.add(includedClassName);
+                        first = false;
+                    }
+                    query.append(" ) ");
+                }
+                if (!filterModel.getExcludedClassNames().isEmpty()) {
+                    if (!first) {
+                        query.append(" and ");
+                    }
+                    first = true;
+                    query.append(" ( ");
+                    for (String excludedClassName : filterModel.getExcludedClassNames()) {
+                        if (!first) {
+                            query.append(" and ");
+                        }
+                        query.append(" md.ownerType not like ? ");
+                        argumentsList.add(excludedClassName);
+                        first = false;
+                    }
+                    query.append(" ) ");
+
+                }
+                if (!filterModel.getExcludedMethodNames().isEmpty()) {
+
+                    if (!first) {
+                        query.append(" and ");
+                    }
+                    first = true;
+                    query.append(" ( ");
+                    for (String excludedMethodName : filterModel.getExcludedMethodNames()) {
+                        if (!first) {
+                            query.append(" and ");
+                        }
+                        query.append(" md.methodName not like ? ");
+                        argumentsList.add(excludedMethodName);
+                        first = false;
+                    }
+                    query.append(" ) ");
+                }
+
+            }
+
+            if (!first) {
+                query.append(" and  ");
+            }
+            query.append(
+                    "tc.entryProbeIndex >= ? "
+            );
+            argumentsList.add(String.valueOf(afterEventId));
+            query.append(" order by tc.entryProbeIndex asc");
+            query.append(" limit ? ");
+            argumentsList.add(String.valueOf(limit));
+            query.append(" offset ? ");
+            argumentsList.add(String.valueOf(page * limit));
+
+//            dbCandidateList = testCandidateDao.queryBuilder()
+//                    .where()
+//                    .ge("entryProbeIndex", afterEventId)
+//                    .queryBuilder()
+//                    .offset((long) page * limit)
+//                    .limit((long) limit)
+//                    .orderBy("entryProbeIndex", true)
+//                    .query();
+
+
+            GenericRawResults<TestCandidateMetadata> resultList = testCandidateDao.queryRaw(
+                    query.toString(), testCandidateDao.getRawRowMapper(), argumentsList.toArray(new String[0])
+            );
+            dbCandidateList = resultList.getResults();
+
         } catch (Exception e) {
             logger.warn("Failed to query database: " + e.getMessage(), e);
             return new ArrayList<>();

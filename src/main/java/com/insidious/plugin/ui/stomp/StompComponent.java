@@ -436,7 +436,9 @@ public class StompComponent implements
                 }
                 if (filterModel.followEditor) {
                     lastMethodFocussed = null;
-                    onMethodFocussed(insidiousService.getCurrentMethod());
+                    ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                        onMethodFocussed(insidiousService.getCurrentMethod());
+                    });
                 }
                 JSONObject eventProperties = new JSONObject();
                 eventProperties.put("filter", filterModel.toString());
@@ -1386,7 +1388,9 @@ public class StompComponent implements
         if (candidateQueryLatch != null) {
             return;
         }
-        candidateQueryLatch = insidiousService.getSessionInstance().getTestCandidates(this, lastEventId);
+        candidateQueryLatch = insidiousService
+                .getSessionInstance()
+                .getTestCandidates(this, lastEventId, filterModel);
     }
 
     public SessionScanEventListener getScanEventListener() {
@@ -1557,8 +1561,15 @@ public class StompComponent implements
                         (Computable<PsiClass>) () -> method.getPsiMethod().getContainingClass())).findAll();
 
         for (PsiClass childClass : childClasses) {
-            newClassNameList.add(ApplicationManager.getApplication().runReadAction(
-                    (Computable<String>) childClass::getQualifiedName));
+            ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> {
+                        String name = childClass.getQualifiedName();
+                        newClassNameList.add(name);
+                        for (PsiClass anInterface : childClass.getInterfaces()) {
+                            newClassNameList.add(anInterface.getQualifiedName());
+                        }
+                        return name;
+                    });
         }
 
 

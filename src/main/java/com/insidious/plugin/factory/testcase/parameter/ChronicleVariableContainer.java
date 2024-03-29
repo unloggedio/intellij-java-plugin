@@ -69,6 +69,9 @@ public class ChronicleVariableContainer {
         if (eventValue == 0) {
             return new Parameter(eventValue);
         }
+        if (parameterMap.isClosed()) {
+            return new Parameter(eventValue);
+        }
         Parameter parameter = this.parameterMap.get(eventValue);
         if (parameter == null) {
             parameter = new Parameter(eventValue);

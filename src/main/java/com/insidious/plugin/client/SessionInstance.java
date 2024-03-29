@@ -40,6 +40,7 @@ import com.insidious.plugin.pojo.dao.ClassDefinition;
 import com.insidious.plugin.pojo.dao.LogFile;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
+import com.insidious.plugin.ui.stomp.FilterModel;
 import com.insidious.plugin.util.*;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -4016,7 +4017,8 @@ public class SessionInstance implements Runnable {
 
     }
 
-    public AtomicInteger getTestCandidates(Consumer<List<TestCandidateMetadata>> testCandidateReceiver, long afterEventId) {
+    public AtomicInteger getTestCandidates(Consumer<List<TestCandidateMetadata>> testCandidateReceiver,
+                                           long afterEventId, FilterModel filterModel) {
 
         AtomicInteger cdl = new AtomicInteger(1);
 
@@ -4038,7 +4040,7 @@ public class SessionInstance implements Runnable {
                         return;
                     }
                     List<TestCandidateMetadata> testCandidateMetadataList = daoService
-                            .getTestCandidatePaginated(currentAfterEventId, 0, limit);
+                            .getTestCandidatePaginated(currentAfterEventId, 0, limit, filterModel);
                     if (testCandidateMetadataList.size() > 0) {
                         count += testCandidateMetadataList.size();
                         testCandidateReceiver.accept(testCandidateMetadataList);

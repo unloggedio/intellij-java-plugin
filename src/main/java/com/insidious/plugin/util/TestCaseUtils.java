@@ -2,6 +2,7 @@ package com.insidious.plugin.util;
 
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
+import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -10,6 +11,7 @@ import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.ui.stomp.FilterModel;
 import com.intellij.openapi.diagnostic.Logger;
 
 import java.util.ArrayList;
@@ -57,7 +59,7 @@ public class TestCaseUtils {
             }
 
 
-        }, 0);
+        }, 0, new FilterModel());
     }
 
 }

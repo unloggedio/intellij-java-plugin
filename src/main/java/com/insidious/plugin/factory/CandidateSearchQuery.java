@@ -4,6 +4,7 @@ import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class CandidateSearchQuery {
@@ -37,6 +38,14 @@ public class CandidateSearchQuery {
         this.interfaceNames = interfaceNames;
         this.candidateFilterType = CandidateFilterType.METHOD;
         this.loadCalls = false;
+    }
+
+    public CandidateSearchQuery() {
+
+        loadCalls = false;
+        interfaceNames = new ArrayList<>();
+        argumentsDescriptor = "";
+        candidateFilterType = CandidateFilterType.ALL;
     }
 
     public static CandidateSearchQuery fromMethod(
