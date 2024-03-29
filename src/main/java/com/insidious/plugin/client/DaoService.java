@@ -31,10 +31,13 @@ import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -834,41 +837,68 @@ public class DaoService {
         return finalCallsList;
     }
 
-    @Nullable
     private DataEventWithSessionId getReferencedEvent(byte[] serializedValue) throws SQLException {
         long longVlaue = ByteBuffer.wrap(serializedValue).getLong();
-        DataEventWithSessionId ref = getDataEventByValue(longVlaue);
-        return ref;
+        Collection<DataEventWithSessionId> ref = getDataEventByValue(longVlaue);
+        if (ref.isEmpty()) {
+            return null;
+        }
+
+        DataEventWithSessionId firstEvent = ref.stream().findFirst().get();
+        if (ref.size() == 1) {
+            return firstEvent;
+        } else {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            outputStream.write('[');
+            AtomicInteger first = new AtomicInteger(1);
+            ref.forEach(E -> {
+                try {
+                    if (first.decrementAndGet() != 0) {
+                        outputStream.write(',');
+                    }
+                    outputStream.write(E.getSerializedValue());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            outputStream.write(']');
+            firstEvent.setSerializedValue(outputStream.toByteArray());
+        }
+        return firstEvent;
     }
 
-    private DataEventWithSessionId getDataEventByValue(long longVlaue) throws SQLException {
+    private Collection<DataEventWithSessionId> getDataEventByValue(long longVlaue) throws SQLException {
 
         String[] count = dataEventDao.queryRaw("select count(*) from data_event where value = " + longVlaue)
                 .getFirstResult();
+        List<DataEventWithSessionId> resultList = new ArrayList<>();
         if (!count[0].equals("0")) {
             String query = "select * from data_event where value = " + longVlaue;
 
-            Object[] allProbeValues = dataEventDao.queryRaw(query,
+            GenericRawResults<Object[]> result = dataEventDao.queryRaw(query,
                     new DataType[]{DataType.LONG, DataType.LONG, DataType.LONG, DataType.LONG, DataType.LONG,
-                            DataType.BYTE_ARRAY}).getFirstResult();
+                            DataType.BYTE_ARRAY});
 
-            DataEventWithSessionId newDataEvent = new DataEventWithSessionId((Long) allProbeValues[0]);
-            newDataEvent.setEventId((Long) allProbeValues[1]);
-            newDataEvent.setRecordedAt((Long) allProbeValues[2]);
-            newDataEvent.setProbeId((Long) allProbeValues[3]);
-            newDataEvent.setValue((Long) allProbeValues[4]);
-            byte[] serializedValue = (byte[]) allProbeValues[5];
-            newDataEvent.setSerializedValue(serializedValue);
-            if (serializedValue.length == 8) {
-                DataEventWithSessionId ref = getReferencedEvent(serializedValue);
-                if (ref != null) {
-                    newDataEvent.setSerializedValue(ref.getSerializedValue());
+            for (Object[] allProbeValues : result.getResults()) {
+
+                DataEventWithSessionId newDataEvent = new DataEventWithSessionId((Long) allProbeValues[0]);
+                newDataEvent.setEventId((Long) allProbeValues[1]);
+                newDataEvent.setRecordedAt((Long) allProbeValues[2]);
+                newDataEvent.setProbeId((Long) allProbeValues[3]);
+                newDataEvent.setValue((Long) allProbeValues[4]);
+                byte[] serializedValue = (byte[]) allProbeValues[5];
+                if (serializedValue.length == 8) {
+                    DataEventWithSessionId ref = getReferencedEvent(serializedValue);
+                    if (ref != null) {
+                        newDataEvent.setSerializedValue(ref.getSerializedValue());
+                    }
+                } else {
+                    newDataEvent.setSerializedValue(serializedValue);
                 }
+                resultList.add(newDataEvent);
             }
-            logger.warn("yosdf => " + new String(newDataEvent.getSerializedValue()));
-            return newDataEvent;
         }
-        return null;
+        return resultList;
     }
 
     public List<com.insidious.plugin.pojo.Parameter> getParameterByValue(Collection<Long> values) {

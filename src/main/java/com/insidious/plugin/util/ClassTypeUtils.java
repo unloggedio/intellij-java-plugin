@@ -937,7 +937,7 @@ public class ClassTypeUtils {
                 try {
                     returnValue = objectMapper.readTree(stringValue);
                 } catch (JsonProcessingException e) {
-                    logger.warn("Failed to parse response value as a json object: " + e.getMessage());
+                    logger.warn("Failed to parse response value as a json object: " + e.getMessage() + " => " + stringValue);
                     returnValue = objectMapper.getNodeFactory().textNode(stringValue);
                 }
             }

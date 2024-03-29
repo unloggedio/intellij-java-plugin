@@ -51,10 +51,10 @@ import java.util.stream.Collectors;
 
 public class TestCandidateSaveForm {
     private final static Logger logger = LoggerUtil.getInstance(TestCandidateSaveForm.class);
+    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final List<TestCandidateMetadata> candidateMetadataList;
     private final SaveFormListener saveFormListener;
     private final List<StoredCandidate> candidateList;
-    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final Map<StoredCandidate, StoredCandidateItemPanel> candidatePanelMap = new HashMap<>();
     private final Map<DeclaredMock, DeclaredMockItemPanel> declaredMockPanelMap = new HashMap<>();
     private final Map<AtomicAssertion, AtomicAssertionItemPanel> atomicAssertionPanelMap = new HashMap<>();
@@ -80,8 +80,6 @@ public class TestCandidateSaveForm {
     private JPanel hiddenMockListContainer;
     private JSeparator assertionLine;
     private JLabel assertionExpandIcon;
-    private JSeparator linesCoveredLine;
-    private JLabel linesCoveredExpandIcon;
     private JPanel assertionsScrollParentPanel;
     private JPanel hiddenAssertionsListContainer;
     private JLabel candidateInfoIcon;
@@ -90,6 +88,9 @@ public class TestCandidateSaveForm {
     private JCheckBox methodReturningVoidCheckbox;
     private JLabel methodReturningVoidInfoIcon;
     private JPanel voidInfoPanel;
+    private JLabel replayTestInfoLinkLabel;
+    private JSeparator linesCoveredLine;
+    private JLabel linesCoveredExpandIcon;
 
     public TestCandidateSaveForm(List<TestCandidateMetadata> sourceCandidates,
                                  SaveFormListener saveFormListener,
@@ -99,6 +100,24 @@ public class TestCandidateSaveForm {
         TOP_ONE.add(AssertionType.ANYOF);
         TOP_ONE.add(AssertionType.NOTALLOF);
         TOP_ONE.add(AssertionType.NOTANYOF);
+
+        replayTestInfoLinkLabel.setIcon(AllIcons.Actions.Help);
+        replayTestInfoLinkLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        replayTestInfoLinkLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                String link = "https://read.unlogged.io/cirunner/";
+                if (Desktop.isDesktopSupported()) {
+                    try {
+                        java.awt.Desktop.getDesktop()
+                                .browse(java.net.URI.create(link));
+                    } catch (Exception e1) {
+                    }
+                } else {
+                    //no browser
+                }
+            }
+        });
 
 
         Project project1 = saveFormListener.getProject();
@@ -569,83 +588,10 @@ public class TestCandidateSaveForm {
 
     }
 
-    private List<DeclaredMock> patchCandidate(
-            TestCandidateMetadata candidateMetadata,
-            StoredCandidate storedCandidate,
-            Project project
-    ) {
-
-        Pair<PsiMethod, PsiSubstitutor> psiMethod = ClassTypeUtils.getPsiMethod(
-                candidateMetadata.getMainMethod(), project);
-        if (psiMethod == null) {
-            return new ArrayList<>();
-        }
-        PsiMethod candidateTargetMethod = psiMethod.getFirst();
-
-        List<PsiMethodCallExpression> allCallExpressions = ApplicationManager.getApplication().runReadAction(
-                (Computable<List<PsiMethodCallExpression>>) () -> getAllCallExpressions(candidateTargetMethod));
-
-        MethodUnderTest storedCandidateTargetMethod = storedCandidate.getMethod();
-
-        MethodUnderTest targetMethodWithResolvedSignature = MethodUnderTest.fromPsiCallExpression(
-                candidateTargetMethod);
-
-        storedCandidate.setMethod(targetMethodWithResolvedSignature);
-
-        PsiParameterList parameterList = candidateTargetMethod.getParameterList();
-        int parametersCount = parameterList.getParametersCount();
-
-//        StringBuilder methodSignatureBuilder = new StringBuilder();
-//        for (int i = 0; i < parametersCount; i++) {
-//            @Nullable PsiParameter parameter = parameterList.getParameter(i);
-//        }
-
-        Map<String, List<PsiMethodCallExpression>> expressionsByMethodName = allCallExpressions.stream()
-                .collect(Collectors.groupingBy(e1 -> ApplicationManager.getApplication().runReadAction(
-                        (Computable<String>) () -> {
-                            MethodUnderTest methodUnderTest = MethodUnderTest.fromPsiCallExpression(e1);
-                            if (methodUnderTest == null) {
-                                return "";
-                            }
-                            return methodUnderTest.getName();
-                        })));
-        List<DeclaredMock> mocks = new ArrayList<>();
-
-        List<MethodCallExpression> callListCopy = new ArrayList<>(candidateMetadata.getCallsList());
-        while (!callListCopy.isEmpty()) {
-
-            MethodCallExpression methodCallExpression = callListCopy.remove(0);
-            final String methodName = methodCallExpression.getMethodName();
-
-            List<PsiMethodCallExpression> callExpressionByName = expressionsByMethodName.get(methodName);
-            if (callExpressionByName == null) {
-                // no such call
-                continue;
-            }
-            if (callExpressionByName.size() != 1) {
-//                throw new RuntimeException("please");
-            }
-
-            PsiMethodCallExpression callExpression = callExpressionByName.get(0);
-
-
-            DeclaredMock newMock = getDeclaredMock(
-                    methodCallExpression, callExpression, candidateMetadata.getFullyQualifiedClassname());
-            if (newMock == null) continue;
-            mocks.add(newMock);
-            storedCandidate.getMockIds().add(newMock.getId());
-
-        }
-
-        return mocks;
-
-
-    }
-
     @Nullable
     public static DeclaredMock getDeclaredMock(MethodCallExpression methodCallExpression,
-                                        PsiMethodCallExpression callExpression,
-                                        String sourceClassName) {
+                                               PsiMethodCallExpression callExpression,
+                                               String sourceClassName) {
         if (methodCallExpression.isStaticCall()) {
             return null;
         }
@@ -721,6 +667,79 @@ public class TestCandidateSaveForm {
                     ((PsiMethodCallExpression) callOnSubject).getMethodExpression().getQualifierExpression());
         }
         return resolvedSubject;
+    }
+
+    private List<DeclaredMock> patchCandidate(
+            TestCandidateMetadata candidateMetadata,
+            StoredCandidate storedCandidate,
+            Project project
+    ) {
+
+        Pair<PsiMethod, PsiSubstitutor> psiMethod = ClassTypeUtils.getPsiMethod(
+                candidateMetadata.getMainMethod(), project);
+        if (psiMethod == null) {
+            return new ArrayList<>();
+        }
+        PsiMethod candidateTargetMethod = psiMethod.getFirst();
+
+        List<PsiMethodCallExpression> allCallExpressions = ApplicationManager.getApplication().runReadAction(
+                (Computable<List<PsiMethodCallExpression>>) () -> getAllCallExpressions(candidateTargetMethod));
+
+        MethodUnderTest storedCandidateTargetMethod = storedCandidate.getMethod();
+
+        MethodUnderTest targetMethodWithResolvedSignature = MethodUnderTest.fromPsiCallExpression(
+                candidateTargetMethod);
+
+        storedCandidate.setMethod(targetMethodWithResolvedSignature);
+
+        PsiParameterList parameterList = candidateTargetMethod.getParameterList();
+        int parametersCount = parameterList.getParametersCount();
+
+//        StringBuilder methodSignatureBuilder = new StringBuilder();
+//        for (int i = 0; i < parametersCount; i++) {
+//            @Nullable PsiParameter parameter = parameterList.getParameter(i);
+//        }
+
+        Map<String, List<PsiMethodCallExpression>> expressionsByMethodName = allCallExpressions.stream()
+                .collect(Collectors.groupingBy(e1 -> ApplicationManager.getApplication().runReadAction(
+                        (Computable<String>) () -> {
+                            MethodUnderTest methodUnderTest = MethodUnderTest.fromPsiCallExpression(e1);
+                            if (methodUnderTest == null) {
+                                return "";
+                            }
+                            return methodUnderTest.getName();
+                        })));
+        List<DeclaredMock> mocks = new ArrayList<>();
+
+        List<MethodCallExpression> callListCopy = new ArrayList<>(candidateMetadata.getCallsList());
+        while (!callListCopy.isEmpty()) {
+
+            MethodCallExpression methodCallExpression = callListCopy.remove(0);
+            final String methodName = methodCallExpression.getMethodName();
+
+            List<PsiMethodCallExpression> callExpressionByName = expressionsByMethodName.get(methodName);
+            if (callExpressionByName == null) {
+                // no such call
+                continue;
+            }
+            if (callExpressionByName.size() != 1) {
+//                throw new RuntimeException("please");
+            }
+
+            PsiMethodCallExpression callExpression = callExpressionByName.get(0);
+
+
+            DeclaredMock newMock = getDeclaredMock(
+                    methodCallExpression, callExpression, candidateMetadata.getFullyQualifiedClassname());
+            if (newMock == null) continue;
+            mocks.add(newMock);
+            storedCandidate.getMockIds().add(newMock.getId());
+
+        }
+
+        return mocks;
+
+
     }
 
     private List<PsiMethodCallExpression> getAllCallExpressions(PsiMethod targetMethod) {
