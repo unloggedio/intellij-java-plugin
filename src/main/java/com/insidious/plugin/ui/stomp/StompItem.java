@@ -28,6 +28,7 @@ import com.intellij.openapi.project.DumbService;
 import com.intellij.ui.Gray;
 import com.intellij.ui.JBColor;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -367,23 +368,18 @@ public class StompItem {
             if (returnValueClassName != null && returnValueClassName.contains(".")) {
                 returnValueClassName = returnValueClassName.substring(returnValueClassName.lastIndexOf(".") + 1);
             }
+
             JLabel returnValueTag = createTagLabel("ᐊ " + returnValueClassName, new Object[]{argumentProbes.size()},
                     TAG_LABEL_BACKGROUND_GREY,
                     TAG_LABEL_TEXT_GREY, labelMouseAdapter);
 
 
-            try {
-                String prettyPrintedArguments = objectMapper.writerWithDefaultPrettyPrinter()
-                        .writeValueAsString(ClassTypeUtils.getValueForParameter(mainMethod.getReturnValue()));
-                prettyPrintedArguments = prettyPrintedArguments.replaceAll("\\n", "<br/>");
-                prettyPrintedArguments = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
-                String prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments + "</html>";
-                returnValueTag.setToolTipText(prettyPrintedArgumentsHtml);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-                //
-            }
+            String prettyPrintedArgumentsHtml = getPrettyPrintedArgumentsHtml(
+                    ClassTypeUtils.getValueForParameter(mainMethod.getReturnValue()));
 
+            if (prettyPrintedArgumentsHtml != null) {
+                returnValueTag.setToolTipText(prettyPrintedArgumentsHtml);
+            }
             tagCount++;
             metadataPanel.add(returnValueTag);
         }
@@ -407,8 +403,6 @@ public class StompItem {
         }
 
 
-
-
         selectCandidateCheckbox.addMouseListener(labelMouseAdapter);
 
 
@@ -421,6 +415,24 @@ public class StompItem {
         });
 
 
+    }
+
+    @Nullable
+    public static String getPrettyPrintedArgumentsHtml(JsonNode valueForParameter) {
+        String prettyPrintedArgumentsHtml = null;
+
+
+        try {
+            String prettyPrintedArguments = ObjectMapperInstance.getInstance().writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(valueForParameter);
+            prettyPrintedArguments = prettyPrintedArguments.replaceAll("\\n", "<br/>");
+            prettyPrintedArguments = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
+            prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments + "</html>";
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            //
+        }
+        return prettyPrintedArgumentsHtml;
     }
 
     public static JLabel createTagLabel(String tagText, Object[] value, Color backgroundColor, Color foreground,
