@@ -425,6 +425,9 @@ public class StompItem {
         try {
             String prettyPrintedArguments = ObjectMapperInstance.getInstance().writerWithDefaultPrettyPrinter()
                     .writeValueAsString(valueForParameter);
+            if (prettyPrintedArguments.length() > 500) {
+                prettyPrintedArguments = prettyPrintedArguments.substring(0, 500);
+            }
             prettyPrintedArguments = prettyPrintedArguments.replaceAll("\\n", "<br/>");
             prettyPrintedArguments = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
             prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments + "</html>";
