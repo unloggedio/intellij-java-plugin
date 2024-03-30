@@ -1558,8 +1558,11 @@ final public class InsidiousService implements
         currentState.setAgentServerRunning(true);
 
         if (stompWindow != null) {
-            stompWindow.resetTimeline();
-            stompWindow.setConnectedAndWaiting();
+            ApplicationManager.getApplication().invokeLater(() -> {
+                stompWindow.resetTimeline();
+                stompWindow.setConnectedAndWaiting();
+            });
+
             SemanticVersion currentVersion = new SemanticVersion(serverMetadata.getAgentVersion());
             SemanticVersion requiredVersion = new SemanticVersion(Constants.AGENT_VERSION);
             if (currentVersion.isBelow(requiredVersion)) {

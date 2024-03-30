@@ -251,9 +251,9 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
             } else {
                 timeTakenInMs = 0;
             }
-            if (timeTakenInMs == 0) {
-                continue;
-            }
+//            if (timeTakenInMs == 0) {
+//                continue;
+//            }
 
 //            ExecutionTimeCategory category = ExecutionTimeCategorizer.categorizeExecutionTime(timeTakenInMs);
 //            String timeTakenMsString = ExecutionTimeCategorizer.formatTimePeriod(timeTakenInMs);
