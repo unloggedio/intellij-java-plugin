@@ -63,8 +63,8 @@ public class UIUtils {
     public static final Icon ICON_EXECUTE_METHOD_SMALLER = IconUtil.scale(ICON_EXECUTE_METHOD, null,
             JBUIScale.scale(16.0f) / ICON_EXECUTE_METHOD.getIconWidth());
     public static final JBColor HIGHLIGHT_BACKGROUND_COLOR = new JBColor(
-            new Color(1, 204, 245, 100),
-            new Color(1, 204, 245, 50)
+            new Color(0, 0, 0, 255),
+            new Color(0, 0, 0, 255)
     );
     public static final JBColor ASSERTION_PASSING_COLOR = new JBColor(new Color(171, 232, 206),
             new Color(171, 232, 206));

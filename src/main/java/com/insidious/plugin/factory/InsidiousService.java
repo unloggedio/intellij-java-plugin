@@ -1795,4 +1795,9 @@ final public class InsidiousService implements
     public List<UnloggedTimingTag> getTimingInformation(MethodUnderTest methodUnderTest) {
         return availableTimingTags.get(methodUnderTest);
     }
+
+    public void removeTimingInformation() {
+        availableTimingTags.clear();
+        forceRedrawInlayHints();
+    }
 }

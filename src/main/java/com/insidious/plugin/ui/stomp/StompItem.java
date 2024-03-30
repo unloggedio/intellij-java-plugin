@@ -58,6 +58,7 @@ public class StompItem {
     private final InsidiousService insidiousService;
     private final JCheckBox selectCandidateCheckbox;
     private final ActionToolbarImpl actionToolbar;
+    private final MethodUnderTest methodUnderTest;
     private TestCandidateMetadata candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
@@ -74,7 +75,6 @@ public class StompItem {
     private JPanel controlPanel;
     private JPanel controlContainer;
     private boolean isPinned = false;
-
     private boolean requestedHighlight = false;
 
     public StompItem(
@@ -242,7 +242,6 @@ public class StompItem {
         MethodCallExpression mainMethod = candidateMetadata.getMainMethod();
 //        Pair<PsiMethod, PsiSubstitutor> targetPsiMethod = ClassTypeUtils.getPsiMethod(
 //                mainMethod, insidiousService.getProject());
-        MethodUnderTest methodUnderTest;
         methodUnderTest = MethodUnderTest.fromTestCandidateMetadata(candidateMetadata);
 //        if (targetPsiMethod != null) {
 //            methodUnderTest = MethodUnderTest.fromPsiCallExpression(targetPsiMethod.getFirst());
@@ -299,24 +298,7 @@ public class StompItem {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
-
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-
-                    Pair<PsiMethod, PsiSubstitutor> targetPsiMethod =
-                            ApplicationManager.getApplication().runReadAction(
-                                    (Computable<Pair<PsiMethod, PsiSubstitutor>>) () -> ClassTypeUtils.getPsiMethod(
-                                            mainMethod, insidiousService.getProject()));
-                    if (targetPsiMethod != null) {
-                        MethodUnderTest methodUnderTest1 = ApplicationManager.getApplication().runReadAction(
-                                (Computable<MethodUnderTest>) () -> MethodUnderTest.fromPsiCallExpression(
-                                        targetPsiMethod.getFirst()));
-                        insidiousService.highlightTimingInformation(candidateMetadata,
-                                methodUnderTest1);
-                    } else {
-                        insidiousService.highlightTimingInformation(candidateMetadata, methodUnderTest);
-                    }
-                });
-
+                highlight();
             }
         });
 
@@ -332,17 +314,7 @@ public class StompItem {
             lineCoverageLabel.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    if (!requestedHighlight) {
-                        requestedHighlight = true;
-                        MethodUnderTest mut = MethodUnderTest.fromTestCandidateMetadata(candidateMetadata);
-                        HighlightedRequest highlightRequest = new HighlightedRequest(
-                                mut, new HashSet<>(candidateMetadata.getLineNumbers())
-                        );
-                        insidiousService.highlightLines(highlightRequest);
-                    } else {
-                        requestedHighlight = false;
-                        insidiousService.removeCurrentActiveHighlights();
-                    }
+                    highlight();
                 }
             });
             metadataPanel.add(lineCoverageLabel);
@@ -515,6 +487,39 @@ public class StompItem {
         label.setBorder(roundedBorder);
         label.addMouseListener(mouseAdapter);
         return label;
+    }
+
+    private void highlight() {
+        if (!requestedHighlight) {
+            requestedHighlight = true;
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+
+                Pair<PsiMethod, PsiSubstitutor> targetPsiMethod =
+                        ApplicationManager.getApplication().runReadAction(
+                                (Computable<Pair<PsiMethod, PsiSubstitutor>>) () -> ClassTypeUtils.getPsiMethod(
+                                        candidateMetadata.getMainMethod(), insidiousService.getProject()));
+                if (targetPsiMethod != null) {
+                    MethodUnderTest methodUnderTest1 = ApplicationManager.getApplication().runReadAction(
+                            (Computable<MethodUnderTest>) () -> MethodUnderTest.fromPsiCallExpression(
+                                    targetPsiMethod.getFirst()));
+                    insidiousService.highlightTimingInformation(candidateMetadata,
+                            methodUnderTest1);
+                } else {
+                    insidiousService.highlightTimingInformation(candidateMetadata, methodUnderTest);
+                }
+
+
+            });
+            HighlightedRequest highlightRequest = new HighlightedRequest(
+                    methodUnderTest, new HashSet<>(candidateMetadata.getLineNumbers())
+            );
+            insidiousService.highlightLines(highlightRequest);
+
+        } else {
+            requestedHighlight = false;
+            insidiousService.removeCurrentActiveHighlights();
+            insidiousService.removeTimingInformation();
+        }
     }
 
     private void hoverOff() {
