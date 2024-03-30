@@ -3,11 +3,14 @@ package com.insidious.plugin.inlay;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.MethodCallAggregate;
+import com.insidious.plugin.client.UnloggedTimingTag;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.highlighter.MockItemClickListener;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
+import com.insidious.plugin.ui.stomp.ExecutionTimeCategorizer;
+import com.insidious.plugin.ui.stomp.ExecutionTimeCategory;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
@@ -54,6 +57,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
     public static final Color INLAY_BACKGROUND_COLOR = JBColor.BLUE;
     public static final float BACKGROUND_ALPHA = 0.2f;
     public static final Integer UNLOGGED_APM_GROUP = -500;
+    public static final Integer UNLOGGED_TPM_GROUP = 500;
     public static final Integer UNLOGGED_REQUEST_GROUP = 101;
     public static final Integer UNLOGGED_RESPONSE_GROUP = 102;
     public static final @NotNull TextAttributesKey INSIDIOUS_CREATE_MOCK_ATTRIBUTES = TextAttributesKey
@@ -65,9 +69,9 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
                             new Color(44, 161, 184),
                             new Color(44, 161, 184)
                     ), new JBColor(
-                                    new Color(48, 121, 38),
-                                    new Color(48, 121, 38)
-                            ), EffectType.LINE_UNDERSCORE, Font.PLAIN));
+                            new Color(48, 121, 38),
+                            new Color(48, 121, 38)
+                    ), EffectType.LINE_UNDERSCORE, Font.PLAIN));
     public static final @NotNull TextAttributesKey INSIDIOUS_ACTIVE_MOCK_ATTRIBUTES = TextAttributesKey
             .createTextAttributesKey("INSIDIOUS_MOCK_ACTIVE",
                     new TextAttributes(new JBColor(
@@ -95,6 +99,23 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
                                     new Color(48, 121, 38)
                             ), EffectType.LINE_UNDERSCORE, Font.PLAIN));
     private static final Logger logger = LoggerUtil.getInstance(InsidiousInlayHintsCollector.class);
+    private static final Map<ExecutionTimeCategory, TextAttributesKey> exectionTimeCategoryttributeMap =
+            new HashMap<>();
+
+    static {
+        for (ExecutionTimeCategory value : ExecutionTimeCategory.values()) {
+            TextAttributesKey timeTakenColorAttrib =
+                    TextAttributesKey.createTextAttributesKey("CTRL_CLICKABLE_" + value.toString(),
+                            new TextAttributes(
+                                    new JBColor(Color.decode(value.getColorHex()), Color.decode(value.getColorHex())),
+                                    null,
+                                    new JBColor(Color.decode(value.getColorHex()), Color.decode(value.getColorHex())),
+                                    EffectType.LINE_UNDERSCORE, Font.PLAIN));
+            exectionTimeCategoryttributeMap.put(value, timeTakenColorAttrib);
+
+        }
+    }
+
     private final InsidiousService insidiousService;
     private final Editor editor;
     private PsiClass currentClass;
@@ -105,6 +126,8 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         super(editor);
         this.editor = editor;
         this.insidiousService = editor.getProject().getService(InsidiousService.class);
+
+
     }
 
     private static String formatTimeDuration(Float duration) {
@@ -124,6 +147,18 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
             }
         }
         return element.getTextRange().getStartOffset();
+    }
+
+    public static String padString(String str, int length, char padChar) {
+        if (str.length() >= length) {
+            return str;
+        }
+
+        StringBuilder padded = new StringBuilder(str);
+        while (padded.length() < length) {
+            padded.append(padChar);
+        }
+        return padded.toString();
     }
 
     @Override
@@ -159,8 +194,15 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
                 }
             }
 
+            PsiMethod methodPsiElement = (PsiMethod) element;
+            List<UnloggedTimingTag> timingTags = insidiousService.getTimingInformation(
+                    MethodUnderTest.fromPsiCallExpression(methodPsiElement));
 
-            createInlinePresentationsForMethod((PsiMethod) element, editor, inlayHintsSink);
+            if (timingTags != null && timingTags.size() > 0) {
+                createInlinePresentationsForTimingTags(methodPsiElement, editor, inlayHintsSink, timingTags);
+            }
+
+            createInlinePresentationsForMethod(methodPsiElement, editor, inlayHintsSink);
         } else if (element instanceof PsiMethodCallExpression) {
             PsiMethodCallExpression methodCallExpression = (PsiMethodCallExpression) element;
             PsiMethodCallExpression hasParent = PsiTreeUtil.getParentOfType(
@@ -173,6 +215,72 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         }
 
         return true;
+    }
+
+    private void createInlinePresentationsForTimingTags(
+            PsiMethod methodPsiElement,
+            Editor editor,
+            InlayHintsSink inlayHintsSink,
+            List<UnloggedTimingTag> timingTags) {
+
+
+        Document document = editor.getDocument();
+//        int elementLineNumber = document.getLineNumber(methodPsiElement.getTextOffset());
+
+        TextRange range = getTextRangeWithoutLeadingCommentsAndWhitespaces(methodPsiElement);
+
+
+        int offset = range.getStartOffset();
+        int line = document.getLineNumber(offset);
+//        int columnWidth = EditorUtil.getPlainSpaceWidth(editor);
+//        int startOffset = document.getLineStartOffset(line);
+//        int column = offset - startOffset;
+
+
+        int totalCount = timingTags.size();
+        for (int i = 0; i < totalCount; i++) {
+            UnloggedTimingTag timingTag = timingTags.get(i);
+            int inlayHintOffset = document.getLineStartOffset(timingTag.getLineNumber() - 1);
+            long timeTakenInMs;
+            UnloggedTimingTag nextTime = null;
+            if (i < totalCount - 1) {
+                nextTime = timingTags.get(i + 1);
+            }
+            if (nextTime != null) {
+                timeTakenInMs = (nextTime.getNanoSecondTimestamp() - timingTag.getNanoSecondTimestamp()) / (1000 * 1000);
+            } else {
+                timeTakenInMs = 0;
+            }
+            if (timeTakenInMs == 0) {
+                continue;
+            }
+
+//            ExecutionTimeCategory category = ExecutionTimeCategorizer.categorizeExecutionTime(timeTakenInMs);
+//            String timeTakenMsString = ExecutionTimeCategorizer.formatTimePeriod(timeTakenInMs);
+
+
+            InlayPresentation inlayShowingCount = createTimeTagInlayPresentation(
+                    "time spent on line " + timingTag.getLineNumber(), (mouseEvent, point) -> {
+//                        insidiousService.showStompAndFilterForMethod(new JavaMethodAdapter(methodPsiElement));
+//                        logger.warn("inlay clicked: " + timeTakenInMs + (" ms"));
+                    }, timeTakenInMs);
+
+            int width = inlayShowingCount.getWidth();
+
+            SequencePresentation sequenceOfInlays = new SequencePresentation(
+                    Arrays.asList(
+                            inlayShowingCount,
+                            new SpacePresentation(50 - width, 80)
+                    )
+            );
+
+            logger.warn(
+                    "Add timing tag: " + timeTakenInMs + " ms for " + methodPsiElement.getName() + " at line " + timingTag.getLineNumber() + " at offset " + inlayHintOffset);
+            inlayHintsSink.addInlineElement(inlayHintOffset, false, sequenceOfInlays, false);
+
+        }
+
+
     }
 
     private void createInlinePresentationsForCallExpression(
@@ -368,7 +476,6 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         return TextRange.create(start.getTextRange().getStartOffset(), element.getTextRange().getEndOffset());
     }
 
-
     private InlayPresentation createMockInlayPresentation(List<PsiMethodCallExpression> mockableCallExpressions,
                                                           int savedMockCount, int activeMockCount,
                                                           int callExpressionCount) {
@@ -486,7 +593,6 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         return text;
     }
 
-
     private InlayPresentation createInlayPresentation(final String inlayText, String hoverText, InlayPresentationFactory.ClickListener clickListener) {
 
         PresentationFactory factory = getFactory();
@@ -504,6 +610,37 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         text = factory.withTooltip(hoverText, text);
 
         text = new WithCursorOnHoverPresentation(text, Cursor.getPredefinedCursor(Cursor.HAND_CURSOR), editor);
+
+        return text;
+    }
+
+    private InlayPresentation createTimeTagInlayPresentation(String hoverText,
+                                                             InlayPresentationFactory.ClickListener clickListener,
+                                                             long timeTakenMs) {
+
+
+        PresentationFactory factory = getFactory();
+        InlayPresentation text;
+
+        String inlayText = ExecutionTimeCategorizer.formatTimePeriod(timeTakenMs);
+        text = factory.smallText(inlayText);
+        WithAttributesPresentation.AttributesFlags flags = (new WithAttributesPresentation.AttributesFlags()).withSkipEffects(
+                true);
+        text = factory.roundWithBackgroundAndSmallInset(text);
+
+        text = new WithAttributesPresentation(text, exectionTimeCategoryttributeMap.get(
+                ExecutionTimeCategorizer.categorizeExecutionTime(timeTakenMs)
+        ), this.editor, flags);
+
+        text = new OnClickPresentation(text, clickListener);
+
+//        InlayPresentation onHover = factory.roundWithBackground(text);
+//        text = new ChangeOnHoverPresentation(text, () -> onHover, mouseEvent -> true);
+
+
+        text = factory.withTooltip(hoverText, text);
+
+//        text = new WithCursorOnHoverPresentation(text, Cursor.getPredefinedCursor(Cursor.HAND_CURSOR), editor);
 
         return text;
     }

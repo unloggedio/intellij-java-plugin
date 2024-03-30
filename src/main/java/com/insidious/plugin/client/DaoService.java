@@ -1768,6 +1768,42 @@ public class DaoService {
 
     }
 
+    public List<UnloggedTimingTag> getTimingTags(long methodCallId) {
+
+
+        MethodCallExpression methodCallExpression;
+        try {
+            methodCallExpression = getMethodCallExpressionById(methodCallId);
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+        String startEventId = String.valueOf(methodCallExpression.getEntryProbe_id());
+        String endEventId = String.valueOf(methodCallExpression.getReturnDataEvent());
+        String methodDefinitionId = String.valueOf(methodCallExpression.getMethodDefinitionId());
+        try {
+            List<UnloggedTimingTag> timingTagList = new ArrayList<>();
+            GenericRawResults<Object[]> result = dataEventDao.queryRaw("" +
+                            "select pi.line, de.recordedAt \n" +
+                            "from data_event de\n" +
+                            "         join probe_info pi on pi.probeId = de.probeId\n" +
+                            "where de.eventId > ? and de.eventId < ? and pi.methodId = ?\n" +
+                            "and pi.eventType = 'LINE_NUMBER' order by eventId;",
+                    new DataType[]{DataType.INTEGER, DataType.LONG},
+                    startEventId, endEventId, methodDefinitionId);
+
+            for (Object[] objects : result) {
+                UnloggedTimingTag utt = new UnloggedTimingTag((Integer) objects[0], (Long) objects[1]);
+                timingTagList.add(utt);
+            }
+
+
+            return timingTagList;
+        } catch (SQLException e) {
+            return new ArrayList<>();
+        }
+
+    }
+
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
     getTestCandidatePaginated(long afterEventId, int page, int limit, FilterModel filterModel) throws SQLException {
         List<TestCandidateMetadata> dbCandidateList;

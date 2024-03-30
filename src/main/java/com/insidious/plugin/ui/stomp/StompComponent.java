@@ -1012,8 +1012,7 @@ public class StompComponent implements
 
                 CountDownLatch cdl = new CountDownLatch(1);
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    instance.waitForSmartMode();
-                    instance.suspendIndexingAndRun("Generating JUnit Test cases", () -> {
+                    instance.smartInvokeLater(() -> {
                         try {
                             generateTestCaseSingle(generationConfiguration, testCaseService, testCandidateShell);
                         } catch (Exception e) {
@@ -1021,10 +1020,7 @@ public class StompComponent implements
                         } finally {
                             cdl.countDown();
                         }
-
-
                     });
-
                 });
 
                 cdl.await();

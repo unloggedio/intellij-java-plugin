@@ -961,7 +961,6 @@ public class SessionInstance implements Runnable {
             ConcurrentIndexedCollection<TypeInfoDocument> typeIndex = archiveIndex.getTypeInfoIndex();
             typeIndex.parallelStream().forEach(e -> typeInfoIndex.put(e.getTypeId(), e));
         } catch (Exception e) {
-            e.printStackTrace();
             logger.warn("failed to read archive for types index: " + e.getMessage()
                     + " from file [" + sessionFile + "]");
             throw new FailedToReadClassWeaveException("Failed to read " + INDEX_TYPE_DAT_FILE + " in "
@@ -2544,7 +2543,7 @@ public class SessionInstance implements Runnable {
 
 //                    isModified = false;
 //                    if (existingParameter.getProb() == null) {
-                        existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
+                    existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
 //                        isModified = true;
 //                    }
                     saveProbe = true;
@@ -2556,6 +2555,10 @@ public class SessionInstance implements Runnable {
                     // nothing to do
                     break;
                 case LINE_NUMBER:
+
+                    dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                    saveProbe = true;
+
                     // we always have this information in the probeInfo
                     // nothing to do
                     break;
@@ -4027,6 +4030,10 @@ public class SessionInstance implements Runnable {
                 long currentAfterEventId = afterEventId;
                 while (true) {
                     attempt++;
+                    if (shutdown) {
+                        cdl.decrementAndGet();
+                        return;
+                    }
                     if (cdl.get() == 0) {
                         logger.warn(
                                 "shutting down query started at [" + afterEventId + "] currently at item [" + count +
@@ -4123,4 +4130,7 @@ public class SessionInstance implements Runnable {
         return daoService.getTotalFileCount();
     }
 
+    public List<UnloggedTimingTag> getTimingTags(long id) {
+        return daoService.getTimingTags(id);
+    }
 }

@@ -94,9 +94,9 @@
         <codeInsight.lineMarkerProvider
                 language="JAVA"
                 implementationClass="com.insidious.plugin.ui.highlighter.MockMethodLineHighlighter"/>
-        <codeInsight.lineMarkerProvider
-                language="kotlin"
-                implementationClass="com.insidious.plugin.ui.highlighter.KotlinLineHighlighter"/>
+<!--        <codeInsight.lineMarkerProvider-->
+<!--                language="kotlin"-->
+<!--                implementationClass="com.insidious.plugin.ui.highlighter.KotlinLineHighlighter"/>-->
         <codeInsight.inlayProvider implementationClass="com.insidious.plugin.inlay.InsidiousInlayHintsProvider"
                                    language="JAVA"/>
         <errorHandler implementation="com.insidious.plugin.exceptionhandler.InsidiousExceptionReportSubmitter"/>
