@@ -85,63 +85,69 @@ public class EventLogWindow {
         });
 
         this.searchButton.addActionListener(event -> {
-            String queryString = queryTextField.getText();
-
-            if (!queryString.contains("=") && !queryString.contains(" ")) {
-                loadObject(Long.parseLong(queryString));
-                return;
-            }
-
-            String[] queryStringParts = queryString.trim().split(",");
-            FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
-
-            filterRequest.setPageInfo(new PageInfo(0, paginationSize, PageInfo.Order.ASC));
+            try {
 
 
-            for (String queryStringPart : queryStringParts) {
+                String queryString = queryTextField.getText();
 
-                String[] queryStringPartTriplet = queryStringPart.trim().split(" ");
+                if (!queryString.contains("=") && !queryString.contains(" ")) {
+                    loadObject(Long.parseLong(queryString));
+                    return;
+                }
 
-                String operator = queryStringPartTriplet[1];
-                String key = queryStringPartTriplet[0];
-                String value = queryStringPartTriplet[2];
+                String[] queryStringParts = queryString.trim().split(",");
+                FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
 
-                switch (key) {
-                    case "probe":
-                        filterRequest.setProbeId(Integer.parseInt(value));
-                        break;
-                    case "thread":
-                        filterRequest.setThreadId(Long.valueOf(value));
-                        break;
-                    case "time":
-                        filterRequest.setNanotime(Long.parseLong(value));
+                filterRequest.setPageInfo(new PageInfo(0, paginationSize, PageInfo.Order.ASC));
 
-                        switch (operator) {
-                            case "<":
-                                filterRequest.setPageInfo(new PageInfo(0, paginationSize, PageInfo.Order.DESC));
-                                break;
-                            case ">":
-                                filterRequest.setPageInfo(new PageInfo(0, paginationSize, PageInfo.Order.ASC));
-                                break;
-                        }
 
-                        break;
-                    case "value":
-                        filterRequest.setValueId(List.of(Long.valueOf(value)));
-                        break;
-                    case "object":
-                        filterRequest.setObjectId(Long.valueOf(value));
-                        break;
+                for (String queryStringPart : queryStringParts) {
+
+                    String[] queryStringPartTriplet = queryStringPart.trim().split(" ");
+
+                    String operator = queryStringPartTriplet[1];
+                    String key = queryStringPartTriplet[0];
+                    String value = queryStringPartTriplet[2];
+
+                    switch (key) {
+                        case "probe":
+                            filterRequest.setProbeId(Integer.parseInt(value));
+                            break;
+                        case "thread":
+                            filterRequest.setThreadId(Long.valueOf(value));
+                            break;
+                        case "time":
+                            filterRequest.setNanotime(Long.parseLong(value));
+
+                            switch (operator) {
+                                case "<":
+                                    filterRequest.setPageInfo(new PageInfo(0, paginationSize, PageInfo.Order.DESC));
+                                    break;
+                                case ">":
+                                    filterRequest.setPageInfo(new PageInfo(0, paginationSize, PageInfo.Order.ASC));
+                                    break;
+                            }
+
+                            break;
+                        case "value":
+                            filterRequest.setValueId(List.of(Long.valueOf(value)));
+                            break;
+                        case "object":
+                            filterRequest.setObjectId(Long.valueOf(value));
+                            break;
+
+                    }
 
                 }
 
-            }
-
-            try {
-                loadHistory(filterRequest);
-            } catch (SessionNotSelectedException ex) {
-                InsidiousNotification.notifyMessage("Failed to fetch events: " + ex.getMessage(),
-                        NotificationType.ERROR);
+                try {
+                    loadHistory(filterRequest);
+                } catch (SessionNotSelectedException ex) {
+                    InsidiousNotification.notifyMessage("Failed to fetch events: " + ex.getMessage(),
+                            NotificationType.ERROR);
+                }
+            } catch (Exception e) {
+                InsidiousNotification.notifyMessage("Invalid query", NotificationType.ERROR);
             }
         });
 
