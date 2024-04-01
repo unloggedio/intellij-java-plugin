@@ -107,9 +107,9 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
             TextAttributesKey timeTakenColorAttrib =
                     TextAttributesKey.createTextAttributesKey("CTRL_CLICKABLE_" + value.toString(),
                             new TextAttributes(
-                                    new JBColor(Color.decode(value.getColorHex()), Color.decode(value.getColorHex())),
+                                    value.getJbColor(),
                                     null,
-                                    new JBColor(Color.decode(value.getColorHex()), Color.decode(value.getColorHex())),
+                                    value.getJbColor(),
                                     EffectType.LINE_UNDERSCORE, Font.PLAIN));
             exectionTimeCategoryttributeMap.put(value, timeTakenColorAttrib);
 
@@ -626,7 +626,6 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         text = factory.smallText(inlayText);
         WithAttributesPresentation.AttributesFlags flags = (new WithAttributesPresentation.AttributesFlags()).withSkipEffects(
                 true);
-        text = factory.roundWithBackgroundAndSmallInset(text);
 
         text = new WithAttributesPresentation(text, exectionTimeCategoryttributeMap.get(
                 ExecutionTimeCategorizer.categorizeExecutionTime(timeTakenMs)

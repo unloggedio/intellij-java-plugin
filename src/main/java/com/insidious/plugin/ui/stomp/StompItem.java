@@ -288,7 +288,8 @@ public class StompItem {
             }
         };
 
-        timeTakenMsLabel = createTagLabel("⏱ %s", new Object[]{timeTakenMsString}, Color.decode(category.getColorHex()),
+        timeTakenMsLabel = createTagLabel("⏱ %s", new Object[]{timeTakenMsString},
+                category.getJbColor(),
                 new JBColor(Gray._255, Gray._255),
                 labelMouseAdapter);
         timeTakenMsLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -307,7 +308,7 @@ public class StompItem {
 
         if (candidateMetadata.getLineNumbers().size() > 1) {
             lineCoverageLabel = createTagLabel("+%d lines", new Object[]{candidateMetadata.getLineNumbers().size()},
-                    TAG_LABEL_BACKGROUND_GREY, Color.decode(ExecutionTimeCategory.INSTANTANEOUS.getColorHex()),
+                    TAG_LABEL_BACKGROUND_GREY, ExecutionTimeCategory.INSTANTANEOUS.getJbColor(),
                     labelMouseAdapter);
             tagCount++;
             lineCoverageLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -393,7 +394,8 @@ public class StompItem {
                         String prettyPrintedArgumentsHtml = "{}";
                         if (valueForParameter.isNumber()
                                 && (mainMethod.getReturnValue().getType() == null ||
-                                !mainMethod.getReturnValue().getType().startsWith("java.lang"))
+                                (mainMethod.getReturnValue().getType().length() != 1 &&
+                                !mainMethod.getReturnValue().getType().startsWith("java.lang")))
                         ) {
                             // not a serializable value
 //                            valueForParameter = objectMapper.createObjectNode();
