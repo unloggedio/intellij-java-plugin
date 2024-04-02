@@ -1925,8 +1925,7 @@ public class DaoService {
                     try {
                         return convertTestCandidateMetadata(e, false);
                     } catch (Exception ex) {
-                        ex.printStackTrace();
-                        logger.warn("failed to convert test candidate: " + ex.getMessage());
+                        logger.warn("failed to convert test candidate" + ex);
                         return null;
                     }
                 })
@@ -1953,9 +1952,11 @@ public class DaoService {
                     try {
                         return convertTestCandidateMetadata(e, false);
                     } catch (Exception ex) {
-                        throw new RuntimeException(ex);
+                        logger.warn("failed to convert test candidate metadata", ex);
+                        return null;
                     }
                 })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -1985,9 +1986,11 @@ public class DaoService {
                     try {
                         return convertTestCandidateMetadata(e, false);
                     } catch (Exception ex) {
-                        throw new RuntimeException(ex);
+                        logger.warn("failed to convert test candidate metadata", ex);
+                        return null;
                     }
                 })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -1997,7 +2000,8 @@ public class DaoService {
             Optional<String> processed_count = Arrays.stream(rows.getFirstResult()).findFirst();
             return Integer.parseInt(processed_count.get());
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            logger.warn("failed to get count of processed files", e);
+            return 0;
         }
     }
 
@@ -2006,7 +2010,8 @@ public class DaoService {
             long count = logFilesDao.countOf();
             return (int) count;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            logger.warn("failed to get count of total files", e);
+            return 0;
         }
     }
 }

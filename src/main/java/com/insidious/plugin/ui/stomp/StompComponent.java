@@ -1435,14 +1435,14 @@ public class StompComponent implements
                     List<TestCandidateMetadata> remainingItems = new ArrayList<>();
                     remainingItems.add(testCandidateMetadata);
                     incomingQueue.drainTo(remainingItems);
-//                    while (remainingItems.size() > 100) {
-//                        remainingItems.remove(0);
-//                    }
+                    while (remainingItems.size() > 20) {
+                        remainingItems.remove(0);
+                    }
 
                     for (TestCandidateMetadata remainingItem : remainingItems) {
                         acceptSingle(remainingItem);
                     }
-                    while (itemPanel.getComponentCount() > 100) {
+                    while (itemPanel.getComponentCount() > 20) {
                         itemPanel.remove(0);
                     }
                     insidiousService.forceRedrawInlayHints();

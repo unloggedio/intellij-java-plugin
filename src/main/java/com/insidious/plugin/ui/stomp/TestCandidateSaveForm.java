@@ -1,7 +1,6 @@
 package com.insidious.plugin.ui.stomp;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
@@ -42,8 +41,6 @@ import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
@@ -52,9 +49,7 @@ import java.util.stream.Collectors;
 
 public class TestCandidateSaveForm {
     private final static Logger logger = LoggerUtil.getInstance(TestCandidateSaveForm.class);
-    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final List<TestCandidateMetadata> candidateMetadataList;
-    private final SaveFormListener saveFormListener;
     private final List<StoredCandidate> candidateList;
     private final Map<StoredCandidate, StoredCandidateItemPanel> candidatePanelMap = new HashMap<>();
     private final Map<DeclaredMock, DeclaredMockItemPanel> declaredMockPanelMap = new HashMap<>();
@@ -170,7 +165,6 @@ public class TestCandidateSaveForm {
                         "Saved mocks can be used for real time mocking (Enable from Library) and managed inside Library"
         );
 
-        this.saveFormListener = saveFormListener;
         selectedReplayCountLabel.setText(candidateMetadataList.size() + " replay selected");
 
 
@@ -186,8 +180,8 @@ public class TestCandidateSaveForm {
             voidInfoPanel.setVisible(false);
         }
 
-        Map<Long, List<TestCandidateMetadata>> mapByEntryProbe = candidateMetadataList.stream()
-                .collect(Collectors.groupingBy(TestCandidateMetadata::getEntryProbeIndex));
+//        Map<Long, List<TestCandidateMetadata>> mapByEntryProbe = candidateMetadataList.stream()
+//                .collect(Collectors.groupingBy(TestCandidateMetadata::getEntryProbeIndex));
 
         Map<StoredCandidate, List<DeclaredMock>> mocksMap = new HashMap<>();
 
@@ -235,61 +229,56 @@ public class TestCandidateSaveForm {
         mockCallCountLabel.setText(declaredMockList.size() + " downstream call mocks");
 
         confirmButton.setIcon(AllIcons.Actions.MenuSaveall);
-        confirmButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    JSONObject eventProperties = new JSONObject();
-                    eventProperties.put("count", candidateMetadataList.size());
-                    eventProperties.put("inUnit", unitRadioButton.isSelected());
-                    eventProperties.put("mockCount", mocksMap.values()
-                            .stream().mapToLong(Collection::size).sum());
-                    eventProperties.put("assertionCount", candidateList
-                            .stream().mapToInt(e2 -> AtomicAssertionUtils.countAssertions(e2.getTestAssertions()))
-                            .sum());
-                    UsageInsightTracker.getInstance().RecordEvent("TCSF_CONFIRM", eventProperties);
+        confirmButton.addActionListener(e -> ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("count", candidateMetadataList.size());
+            eventProperties.put("inUnit", unitRadioButton.isSelected());
+            eventProperties.put("mockCount", mocksMap.values()
+                    .stream().mapToLong(Collection::size).sum());
+            eventProperties.put("assertionCount", candidateList
+                    .stream().mapToInt(e2 -> AtomicAssertionUtils.countAssertions(e2.getTestAssertions()))
+                    .sum());
+            UsageInsightTracker.getInstance().RecordEvent("TCSF_CONFIRM", eventProperties);
 
-                    int mockSavedCount = 0;
-                    for (StoredCandidate storedCandidate : candidateList) {
-                        if (!unitRadioButton.isSelected()) {
-                            storedCandidate.setMockIds(new HashSet<>());
-                        } else {
-                            List<DeclaredMock> mocks = mocksMap.getOrDefault(storedCandidate, new ArrayList<>());
+            int mockSavedCount = 0;
+            for (StoredCandidate storedCandidate : candidateList) {
+                if (!unitRadioButton.isSelected()) {
+                    storedCandidate.setMockIds(new HashSet<>());
+                } else {
+                    List<DeclaredMock> mocks = mocksMap.getOrDefault(storedCandidate, new ArrayList<>());
 
-                            Set<String> mockIds = new HashSet<>();
-                            for (DeclaredMock declaredMock : mocks) {
-                                String mockId = saveFormListener.onSaved(declaredMock);
-                                mockIds.add(mockId);
-                            }
-                            mockSavedCount += mockIds.size();
-                            storedCandidate.setMockIds(mockIds);
-                        }
-                        saveFormListener.onSaved(storedCandidate);
+                    Set<String> mockIds = new HashSet<>();
+                    for (DeclaredMock declaredMock : mocks) {
+                        String mockId = saveFormListener.onSaved(declaredMock);
+                        mockIds.add(mockId);
                     }
-
-
-                    insidiousService.reloadLibrary();
-
-                    InsidiousNotification
-                            .notifyMessage(
-                                    "Saved " + candidateList.size() + " replay tests and "
-                                            + mockSavedCount + " mock definitions", NotificationType.INFORMATION,
-                                    List.of(
-                                            new AnAction(() -> "Go to Library", UIUtils.LIBRARY_ICON) {
-                                                @Override
-                                                public void actionPerformed(@NotNull AnActionEvent e) {
-                                                    saveFormListener.getProject()
-                                                            .getService(InsidiousService.class)
-                                                            .showLibrary();
-                                                }
-                                            }
-                                    )
-                            );
-
-                    componentLifecycleListener.onClose(TestCandidateSaveForm.this);
-                });
+                    mockSavedCount += mockIds.size();
+                    storedCandidate.setMockIds(mockIds);
+                }
+                saveFormListener.onSaved(storedCandidate);
             }
-        });
+
+
+            insidiousService.reloadLibrary();
+
+            InsidiousNotification
+                    .notifyMessage(
+                            "Saved " + candidateList.size() + " replay tests and "
+                                    + mockSavedCount + " mock definitions", NotificationType.INFORMATION,
+                            List.of(
+                                    new AnAction(() -> "Go to Library", UIUtils.LIBRARY_ICON) {
+                                        @Override
+                                        public void actionPerformed(@NotNull AnActionEvent e) {
+                                            saveFormListener.getProject()
+                                                    .getService(InsidiousService.class)
+                                                    .showLibrary();
+                                        }
+                                    }
+                            )
+                    );
+
+            componentLifecycleListener.onClose(TestCandidateSaveForm.this);
+        }));
 
         cancelButton.setIcon(AllIcons.Actions.Cancel);
         cancelButton.addActionListener(e -> {
@@ -406,10 +395,8 @@ public class TestCandidateSaveForm {
         ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener = new ItemLifeCycleListener<>() {
             @Override
             public void onSelect(DeclaredMock item) {
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    InsidiousUtils.focusInEditor(item.getFieldTypeName(),
-                            item.getMethodName(), project);
-                });
+                ApplicationManager.getApplication().executeOnPooledThread(() -> InsidiousUtils.focusInEditor(item.getFieldTypeName(),
+                        item.getMethodName(), project));
 
             }
 
