@@ -395,7 +395,7 @@ public class StompItem {
                         if (valueForParameter.isNumber()
                                 && (mainMethod.getReturnValue().getType() == null ||
                                 (mainMethod.getReturnValue().getType().length() != 1 &&
-                                !mainMethod.getReturnValue().getType().startsWith("java.lang")))
+                                        !mainMethod.getReturnValue().getType().startsWith("java.lang")))
                         ) {
                             // not a serializable value
 //                            valueForParameter = objectMapper.createObjectNode();
@@ -456,11 +456,15 @@ public class StompItem {
         try {
             String prettyPrintedArguments = ObjectMapperInstance.getInstance().writerWithDefaultPrettyPrinter()
                     .writeValueAsString(valueForParameter);
+            int remaining = prettyPrintedArguments.length() - 500;
             if (prettyPrintedArguments.length() > 500) {
                 prettyPrintedArguments = prettyPrintedArguments.substring(0, 500);
             }
             prettyPrintedArguments = prettyPrintedArguments.replaceAll("\\n", "<br/>");
             prettyPrintedArguments = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
+            if (remaining > 1) {
+                prettyPrintedArguments += "  .... <b>+" + remaining + " more characters</b>";
+            }
             prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments + "</html>";
         } catch (JsonProcessingException e) {
             e.printStackTrace();

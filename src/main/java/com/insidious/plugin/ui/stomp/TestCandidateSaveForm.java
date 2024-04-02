@@ -670,8 +670,44 @@ public class TestCandidateSaveForm {
         }
         PsiMethod candidateTargetMethod = psiMethod.getFirst();
 
+        if (candidateTargetMethod.getContainingClass().isInterface()) {
+
+            @Nullable PsiClass containingClass = candidateTargetMethod.getContainingClass();
+
+            Collection<PsiClass> childClasses = ClassInheritorsSearch.search(
+                    ApplicationManager.getApplication().runReadAction(
+                            (Computable<PsiClass>) () -> containingClass)).findAll();
+
+            List<PsiMethod> candidateMethods = new ArrayList<>();
+
+            for (PsiClass childClass : childClasses) {
+                if (childClass.isInterface()) {
+                    continue;
+                }
+                PsiMethod methodImplementation = childClass.findMethodBySignature(candidateTargetMethod, false);
+                if (methodImplementation == null) {
+                    continue;
+                }
+                candidateMethods.add(methodImplementation);
+            }
+
+            if (candidateMethods.size() == 0) {
+                // no implementation found
+                InsidiousNotification.notifyMessage("No implementation found for method " + candidateTargetMethod.getName(), NotificationType.WARNING);
+            } else if (candidateMethods.size() == 1) {
+                candidateTargetMethod = candidateMethods.stream().findFirst().get();
+            } else {
+                candidateTargetMethod = candidateMethods.stream().findFirst().get();
+                // more than 1 implementation
+            }
+            storedCandidate.getMethod().setClassName(candidateTargetMethod.getContainingClass().getQualifiedName());
+
+
+        }
+
+        PsiMethod finalCandidateTargetMethod = candidateTargetMethod;
         List<PsiMethodCallExpression> allCallExpressions = ApplicationManager.getApplication().runReadAction(
-                (Computable<List<PsiMethodCallExpression>>) () -> getAllCallExpressions(candidateTargetMethod));
+                (Computable<List<PsiMethodCallExpression>>) () -> getAllCallExpressions(finalCandidateTargetMethod));
 
         MethodUnderTest storedCandidateTargetMethod = storedCandidate.getMethod();
 
