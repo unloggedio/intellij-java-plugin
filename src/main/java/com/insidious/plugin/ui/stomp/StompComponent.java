@@ -282,10 +282,13 @@ public class StompComponent implements
         AnAction selectAllAction = new AnAction(() -> "Select All", AllIcons.Actions.Selectall) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                selectedCandidates.clear();
-                for (StompItem stompItem : stompItems) {
-                    stompItem.setSelected(true);
-                    selectedCandidates.add(stompItem.getTestCandidate());
+                if (selectedCandidates.size() != stompItems.size()) {
+                    for (StompItem stompItem : stompItems) {
+                        stompItem.setSelected(true);
+                        selectedCandidates.add(stompItem.getTestCandidate());
+                    }
+                } else {
+                    selectedCandidates.clear();
                 }
                 updateControlPanel();
             }
@@ -468,7 +471,7 @@ public class StompComponent implements
             return;
         }
 
-        if (selectedCandidates.size() == 0) {
+        if (selectedCandidates.isEmpty()) {
             InsidiousNotification.notifyMessage("Select items on the timeline to save",
                     NotificationType.INFORMATION);
             return;
@@ -485,7 +488,15 @@ public class StompComponent implements
 //                            ApplicationManager.getApplication().executeOnPooledThread(() -> {
                     SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
 
-                    saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener,
+                    ArrayList<TestCandidateMetadata> sourceCandidates = new ArrayList<>();
+                    int size = selectedCandidates.size();
+                    for (int i = 0; i < size; i++) {
+                        TestCandidateMetadata selectedCandidate = selectedCandidates.get(i);
+                        sourceCandidates.add(selectedCandidate);
+                    }
+
+
+                    saveFormReference = new TestCandidateSaveForm(sourceCandidates, candidateLifeListener,
                             component -> {
                                 ApplicationManager.getApplication().invokeLater(() -> {
                                     southPanel.removeAll();
@@ -663,6 +674,7 @@ public class StompComponent implements
         JPanel dateAndTimePanel = createDateAndTimePanel(createTimeLineComponent(comp1),
                 Date.from(Instant.ofEpochMilli(testCandidateMetadata.getCreatedAt())));
         rowPanel.add(dateAndTimePanel, BorderLayout.EAST);
+        stompItem.setStompRowItem(rowPanel);
 
 
 //        makeSpace(index);
@@ -1442,9 +1454,12 @@ public class StompComponent implements
                     for (TestCandidateMetadata remainingItem : remainingItems) {
                         acceptSingle(remainingItem);
                     }
-                    while (itemPanel.getComponentCount() > 20) {
-                        itemPanel.remove(0);
+                    while (stompItems.size() > 20) {
+                        StompItem first = stompItems.remove(0);
+                        itemPanel.remove(first.getStompRowItem());
                     }
+                    itemPanel.revalidate();
+                    itemPanel.repaint();
                     insidiousService.forceRedrawInlayHints();
 
 

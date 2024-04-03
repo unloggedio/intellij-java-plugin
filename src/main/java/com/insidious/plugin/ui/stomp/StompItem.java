@@ -76,6 +76,7 @@ public class StompItem {
     private JPanel controlContainer;
     private boolean isPinned = false;
     private boolean requestedHighlight = false;
+    private JPanel stompRowItem;
 
     public StompItem(
             TestCandidateMetadata testCandidateMetadata,
@@ -575,5 +576,13 @@ public class StompItem {
 
     public boolean isPinned() {
         return isPinned;
+    }
+
+    public void setStompRowItem(JPanel stompRowItem) {
+        this.stompRowItem = stompRowItem;
+    }
+
+    public JPanel getStompRowItem() {
+        return stompRowItem;
     }
 }
