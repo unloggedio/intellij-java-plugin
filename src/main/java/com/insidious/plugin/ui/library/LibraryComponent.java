@@ -765,7 +765,10 @@ public class LibraryComponent {
         listedCandidateItems.clear();
         clearSelection();
 
+        itemsContainer.setDoubleBuffered(true);
         itemScrollPanel.setViewportView(itemsContainer);
+        JScrollBar vscroll = itemScrollPanel.getVerticalScrollBar();
+        vscroll.setUnitIncrement(16);
         atomicRecordService.checkPreRequisites();
         int count = 1;
         if (filterModel.getItemFilterType().equals(ItemFilterType.SavedMocks)) {
