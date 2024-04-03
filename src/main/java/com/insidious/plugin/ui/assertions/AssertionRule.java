@@ -2,8 +2,13 @@ package com.insidious.plugin.ui.assertions;
 
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
+import com.insidious.plugin.ui.library.ItemLifeCycleListener;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
+import com.intellij.uiDesigner.core.GridConstraints;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,13 +21,16 @@ public class AssertionRule {
     private static final Logger logger = LoggerUtil.getInstance(AssertionRule.class);
     private final AssertionBlock manager;
     private final AtomicAssertion assertion;
+    private final Project project;
     private JPanel mainPanel;
     private JPanel topAligner;
     private JLabel nameSelector;
     private JLabel trashButton;
+    private JPanel nameSelectorContainerPanel;
 
-    public AssertionRule(AssertionBlock assertionBlock, AtomicAssertion atomicAssertion1) {
+    public AssertionRule(AssertionBlock assertionBlock, AtomicAssertion atomicAssertion1, Project project) {
         this.assertion = atomicAssertion1;
+        this.project = project;
         if (assertion.getAssertionType() == null) {
             assertion.setAssertionType(AssertionType.EQUAL);
         }
@@ -48,18 +56,67 @@ public class AssertionRule {
             }
         });
 
-        String expectedValue = assertion.getExpectedValue();
-        String text = expectedValue != null ? expectedValue : "";
-        if (text.length() > 40) {
-            text = text.substring(0, 37) + "...";
-        }
 
         setupOptions();
 
         String operationText = getOperationText(assertion);
 
-        this.nameSelector.setText("<html><pre>" + assertion.getKey() + " " + operationText + " " + text + "" + "</pre" +
-                "></html>");
+        nameSelector.setBackground(Color.WHITE);
+        nameSelector.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                nameSelectorContainerPanel.removeAll();
+                final AssertionRuleEditPanel editPanel =
+                        new AssertionRuleEditPanel(assertion, new ItemLifeCycleListener<>() {
+                            @Override
+                            public void onSelect(AtomicAssertion item) {
+
+                            }
+
+                            @Override
+                            public void onClick(AtomicAssertion item) {
+
+                            }
+
+                            @Override
+                            public void onUnSelect(AtomicAssertion item) {
+                                nameSelectorContainerPanel.removeAll();
+                                nameSelector.setText("<html><pre>" + assertion.getKey() + " " + operationText + " " +
+                                        trimValue(assertion.getExpectedValue()) +
+                                        "</pre></html>");
+                                nameSelectorContainerPanel.add(nameSelector, new GridConstraints());
+                                nameSelectorContainerPanel.revalidate();
+                                nameSelectorContainerPanel.repaint();
+
+                            }
+
+                            @Override
+                            public void onDelete(AtomicAssertion item) {
+
+                            }
+
+                            @Override
+                            public void onEdit(AtomicAssertion item) {
+                                nameSelectorContainerPanel.removeAll();
+                                nameSelector.setText("<html><pre>" + assertion.getKey() + " " + operationText + " " +
+                                        trimValue(assertion.getExpectedValue()) +
+                                        "</pre></html>");
+                                nameSelectorContainerPanel.add(nameSelector, new GridConstraints());
+                                nameSelectorContainerPanel.revalidate();
+                                nameSelectorContainerPanel.repaint();
+                            }
+                        }, project);
+
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    nameSelectorContainerPanel.add(editPanel.getComponent(),
+                            new GridConstraints());
+                });
+
+            }
+        });
+        this.nameSelector.setText("<html><pre>" + assertion.getKey() + " " + operationText + " " + trimValue(
+                assertion.getExpectedValue()) + "</pre></html>");
 //        this.valueField.setText("<html><pre>" + text + "</pre></html>");
 
 
@@ -204,6 +261,15 @@ public class AssertionRule {
             }
         });
 //        updateResult();
+    }
+
+    @NotNull
+    private static String trimValue(String expectedValue) {
+        String text = expectedValue != null ? expectedValue : "";
+        if (text.length() > 40) {
+            text = text.substring(0, 37) + "...";
+        }
+        return text;
     }
 
     private String getOperationText(AtomicAssertion atomicAssertion) {

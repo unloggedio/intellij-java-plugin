@@ -59,7 +59,7 @@ public class AtomicAssertionItemPanel {
             public void removeAssertionGroup(AssertionBlock block) {
 
             }
-        }, true);
+        }, true, project);
 
         this.atomicAssertion = atomicAssertion;
         this.atomicAssertionLifeListener = atomicAssertionLifeListener;

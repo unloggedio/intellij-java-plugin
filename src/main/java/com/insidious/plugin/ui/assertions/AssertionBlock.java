@@ -5,6 +5,7 @@ import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.KeyValue;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.openapi.project.Project;
 
 import javax.swing.*;
 import java.awt.*;
@@ -25,16 +26,19 @@ public class AssertionBlock implements AssertionBlockManager {
     private final List<AssertionBlock> assertionGroups = new ArrayList<>();
     private final AssertionBlockManager manager;
     private final AtomicAssertion assertion;
+    private final Project project;
     private final boolean isRootCondition;
     private JPanel mainPanel;
     private JPanel topAligner;
     private JPanel contentPanel;
     private JPanel controlPanel;
 
-    public AssertionBlock(AtomicAssertion assertion, AssertionBlockManager blockManager, boolean isRootCondition) {
+    public AssertionBlock(AtomicAssertion assertion, AssertionBlockManager blockManager, boolean isRootCondition,
+                          Project project) {
         this.isRootCondition = isRootCondition;
         this.manager = blockManager;
         this.assertion = assertion;
+        this.project = project;
         BoxLayout boxLayout = new BoxLayout(contentPanel, BoxLayout.Y_AXIS);
         contentPanel.setLayout(boxLayout);
 
@@ -69,7 +73,7 @@ public class AssertionBlock implements AssertionBlockManager {
     }
 
     private void addRule(AtomicAssertion payload) {
-        AssertionRule rule = new AssertionRule(this, payload);
+        AssertionRule rule = new AssertionRule(this, payload, project);
         assertionRules.add(rule);
         contentPanel.add(rule.getMainPanel());
         contentPanel.revalidate();
@@ -101,7 +105,7 @@ public class AssertionBlock implements AssertionBlockManager {
     }
 
     private void addGroup(AtomicAssertion newSubGroup) {
-        AssertionBlock newBlock = new AssertionBlock(newSubGroup, this, false);
+        AssertionBlock newBlock = new AssertionBlock(newSubGroup, this, false, project);
         assertionGroups.add(newBlock);
         contentPanel.add(newBlock.getContent());
         contentPanel.revalidate();

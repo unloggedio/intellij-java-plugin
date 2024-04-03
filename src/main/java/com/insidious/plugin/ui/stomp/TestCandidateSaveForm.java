@@ -27,6 +27,7 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Pair;
@@ -45,6 +46,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class TestCandidateSaveForm {
@@ -54,6 +56,7 @@ public class TestCandidateSaveForm {
     private final Map<StoredCandidate, StoredCandidateItemPanel> candidatePanelMap = new HashMap<>();
     private final Map<DeclaredMock, DeclaredMockItemPanel> declaredMockPanelMap = new HashMap<>();
     private final Map<AtomicAssertion, AtomicAssertionItemPanel> atomicAssertionPanelMap = new HashMap<>();
+    private final ProgressIndicator progressIndicator;
     Set<AssertionType> TOP_ONE = new HashSet<>();
     private JPanel mainPanel;
     private JLabel assertionCountLabel;
@@ -90,7 +93,9 @@ public class TestCandidateSaveForm {
 
     public TestCandidateSaveForm(List<TestCandidateMetadata> sourceCandidates,
                                  SaveFormListener saveFormListener,
-                                 ComponentLifecycleListener<TestCandidateSaveForm> componentLifecycleListener) {
+                                 ComponentLifecycleListener<TestCandidateSaveForm> componentLifecycleListener,
+                                 ProgressIndicator progressIndicator) {
+        this.progressIndicator = progressIndicator;
 
         TOP_ONE.add(AssertionType.ALLOF);
         TOP_ONE.add(AssertionType.ANYOF);
@@ -120,8 +125,7 @@ public class TestCandidateSaveForm {
         InsidiousService insidiousService = project1.getService(InsidiousService.class);
 
 //        ProgressManager instance = ProgressManager.getInstance();
-//        ProgressIndicator progressIndicator = instance.getProgressIndicator();
-//        progressIndicator.setText("Loading " + sourceCandidates.size() + " Replay");
+        progressIndicator.setText("Loading " + sourceCandidates.size() + " Replay");
 
         List<TestCandidateMetadata> list = new ArrayList<>();
         for (TestCandidateMetadata sourceCandidate : sourceCandidates) {
@@ -185,14 +189,23 @@ public class TestCandidateSaveForm {
 
         Map<StoredCandidate, List<DeclaredMock>> mocksMap = new HashMap<>();
 
+        int total = candidateMetadataList.size();
+        AtomicInteger current = new AtomicInteger(0);
         candidateList = candidateMetadataList.stream()
                 .map(candidateMetadata -> {
                     StoredCandidate storedCandidate = new StoredCandidate(candidateMetadata);
+                    int val = current.incrementAndGet();
 
+                    progressIndicator.setFraction((double) val / (double) total);
 
                     List<DeclaredMock> mocks = ApplicationManager.getApplication()
                             .runReadAction((Computable<List<DeclaredMock>>) () -> patchCandidate(candidateMetadata,
                                     storedCandidate, project1));
+
+                    if (progressIndicator.isCanceled()) {
+                        componentLifecycleListener.onClose(TestCandidateSaveForm.this);
+                        return null;
+                    }
 
                     mocksMap.put(storedCandidate, mocks);
 
@@ -288,6 +301,11 @@ public class TestCandidateSaveForm {
 
             componentLifecycleListener.onClose(TestCandidateSaveForm.this);
         });
+
+        if (progressIndicator.isCanceled()) {
+            componentLifecycleListener.onClose(TestCandidateSaveForm.this);
+            return;
+        }
 
 
         List<AtomicAssertion> allAssertions = candidateList.stream()
@@ -395,8 +413,9 @@ public class TestCandidateSaveForm {
         ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener = new ItemLifeCycleListener<>() {
             @Override
             public void onSelect(DeclaredMock item) {
-                ApplicationManager.getApplication().executeOnPooledThread(() -> InsidiousUtils.focusInEditor(item.getFieldTypeName(),
-                        item.getMethodName(), project));
+                ApplicationManager.getApplication()
+                        .executeOnPooledThread(() -> InsidiousUtils.focusInEditor(item.getFieldTypeName(),
+                                item.getMethodName(), project));
 
             }
 
@@ -663,12 +682,19 @@ public class TestCandidateSaveForm {
             Project project
     ) {
 
+        if (progressIndicator.isCanceled()) {
+            return new ArrayList<>();
+        }
+
+
         Pair<PsiMethod, PsiSubstitutor> psiMethod = ClassTypeUtils.getPsiMethod(
                 candidateMetadata.getMainMethod(), project);
         if (psiMethod == null) {
             return new ArrayList<>();
         }
         PsiMethod candidateTargetMethod = psiMethod.getFirst();
+        progressIndicator.setText("Building test case for " + candidateTargetMethod.getContainingClass()
+                .getName() + "." + candidateTargetMethod.getName());
 
         if (candidateTargetMethod.getContainingClass().isInterface()) {
 
@@ -693,7 +719,9 @@ public class TestCandidateSaveForm {
 
             if (candidateMethods.size() == 0) {
                 // no implementation found
-                InsidiousNotification.notifyMessage("No implementation found for method " + candidateTargetMethod.getName(), NotificationType.WARNING);
+                InsidiousNotification.notifyMessage(
+                        "No implementation found for method " + candidateTargetMethod.getName(),
+                        NotificationType.WARNING);
             } else if (candidateMethods.size() == 1) {
                 candidateTargetMethod = candidateMethods.stream().findFirst().get();
             } else {

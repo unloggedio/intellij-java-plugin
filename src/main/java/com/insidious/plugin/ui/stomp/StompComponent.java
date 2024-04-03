@@ -36,7 +36,6 @@ import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
-import com.intellij.codeInsight.daemon.impl.DaemonProgressIndicator;
 import com.intellij.icons.AllIcons;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
@@ -167,12 +166,11 @@ public class StompComponent implements
         AnAction saveAction = new AnAction(() -> "Save", AllIcons.Actions.MenuSaveall) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                DumbService.getInstance(project).runWhenSmart(() -> {
                     JSONObject eventProperties = new JSONObject();
                     eventProperties.put("count", selectedCandidates.size());
                     UsageInsightTracker.getInstance().RecordEvent("ACTION_SAVE", eventProperties);
-
-                    ApplicationManager.getApplication().runReadAction(StompComponent.this::saveSelected);
+                    saveSelected();
                 });
             }
 
@@ -473,11 +471,6 @@ public class StompComponent implements
     }
 
     private void saveSelected() {
-        if (DumbService.getInstance(insidiousService.getProject()).isDumb()) {
-            InsidiousNotification.notifyMessage("Please wait for IDE indexing to complete",
-                    NotificationType.INFORMATION);
-            return;
-        }
 
         if (selectedCandidates.isEmpty()) {
             InsidiousNotification.notifyMessage("Select items on the timeline to save",
@@ -486,11 +479,13 @@ public class StompComponent implements
 
         }
 
-        ProgressIndicator progressIndicator = new DaemonProgressIndicator();
-        progressIndicator.setFraction(0.25);
-        ProgressManager.getInstance()
-                .executeProcessUnderProgress(() -> {
+        ProgressManager.getInstance().
+                runProcessWithProgressSynchronously(() -> {
+                    ProgressIndicator progressIndicator = ProgressManager.getInstance()
+                            .getProgressIndicator();//(project, "New project...");
                     CountDownLatch cdl = new CountDownLatch(1);
+//                    progressIndicator.setIndeterminate(false);
+//                    progressIndicator.setFraction(0.25);
                     progressIndicator.setText(
                             "Gathering type information for " + selectedCandidates.size() + " replays");
 //                            ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -511,7 +506,7 @@ public class StompComponent implements
                                     scrollContainer.revalidate();
                                     scrollContainer.repaint();
                                 });
-                            });
+                            }, progressIndicator);
                     cdl.countDown();
 
                     ApplicationManager.getApplication().invokeLater(() -> {
@@ -529,7 +524,9 @@ public class StompComponent implements
 
 
 //                            });
-                }, progressIndicator);
+
+
+                }, "Save Replays", true, insidiousService.getProject());
 
 
     }
