@@ -66,7 +66,14 @@ public class UITestUtils {
         RADIO_BUTTON("//div[@class='JRadioButton']"),
         LIBRARY_MOCKS_RADIO_BUTTON("//div[@visible_text='Mocks']]"),
         MOCK_EDIT_RETURN_TYPE_EXCEPTION("//div[@text='Throw exception']"),
-        CANCEL_MOCK_BUTTON("//div[@text='Cancel']");
+        GIT_IT_TEXT("//div[@text='Got It']"),
+        SHELL_WIDGET("//div[@class='ShellTerminalWidget']"),
+        TERMINAL_TOOL_WINDOW_HIDE_BUTTON("//div[@class='ToolWindowHeader'][.//div[@text='Terminal:']]//div[@tooltiptext='Hide']"),
+        CANCEL_MOCK_BUTTON("//div[@text='Cancel']"),
+        MAVEN_TOOLBAR_BUTTON("//div[@text='Maven']"),
+        MAVEN_REFRESH_SVG("//div[@myicon='refresh.svg']"),
+        MAVEN_TOOLBAR_HIDE("//div[contains(@myvisibleactions, '[Options')]//div[@tooltiptext='Hide']]"),
+        MY_CONTENT_PANEL("//div[@class='MyContentPanel']");
 
         private String value;
 

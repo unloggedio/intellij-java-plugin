@@ -4,8 +4,10 @@ import com.insidious.plugin.UITests.Utils.UITestUtils;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.data.RemoteComponent;
 import com.intellij.remoterobot.fixtures.*;
+import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
 import java.util.List;
 
 @FixtureName(name = "Idea frame")
@@ -153,6 +155,18 @@ public class IdeaFrame extends CommonContainerFixture {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MOCK_POPUP_SCROLL_PANEL);
     }
 
+    public ComponentFixture getMyContentPanel() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MY_CONTENT_PANEL);
+    }
+
+    public ComponentFixture getMavenToolbarIcon() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MAVEN_TOOLBAR_BUTTON);
+    }
+
+    public ComponentFixture getMavenToolBarRefreshIcon() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MAVEN_REFRESH_SVG);
+    }
+
     public List<ComponentFixture> getMockPopupScrollPanelCandidates() {
         return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.MOCK_POPUP_SCROLL_PANEL);
     }
@@ -226,7 +240,26 @@ public class IdeaFrame extends CommonContainerFixture {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.LIVE_HEADER_TAB);
     }
 
-//    public JPanelFixture getJPanelFixture(String panelXpath) {
-//        return UITestUtils.getJpanelFixture(remoteRobot, panelXpath);
-//    }
+    public List<ComponentFixture> getGotItTexts() {
+        return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.GIT_IT_TEXT);
+    }
+
+    public ComponentFixture findCopyButton() {
+        return UITestUtils.getComponentFixtures(remoteRobot, "//div[@class='JButton']").stream()
+                .filter(component ->
+                        component.getData().getAll().isEmpty())
+                .toList().get(0);
+    }
+
+    public ComponentFixture getTerminalToolWindowHideButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.TERMINAL_TOOL_WINDOW_HIDE_BUTTON);
+    }
+
+    public ContainerFixture getShellWidget() {
+        return UITestUtils.getContainerFixture(remoteRobot, UITestUtils.UITags.SHELL_WIDGET);
+    }
+
+    public ComponentFixture getmavenToolBarHideIcon() {
+        return UITestUtils.getContainerFixture(remoteRobot, UITestUtils.UITags.MAVEN_TOOLBAR_HIDE);
+    }
 }

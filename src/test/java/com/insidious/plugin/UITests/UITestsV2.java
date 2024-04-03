@@ -2,23 +2,23 @@ package com.insidious.plugin.UITests;
 
 import com.insidious.plugin.UITests.Utils.CustomGutterIconComparator;
 import com.insidious.plugin.UITests.pages.IdeaFrame;
+import com.insidious.plugin.UITests.pages.WelcomeFrame;
 import com.insidious.plugin.UITests.wrapper.MockPopupEntry;
 import com.intellij.remoterobot.RemoteRobot;
-import com.intellij.remoterobot.fixtures.ComponentFixture;
-import com.intellij.remoterobot.fixtures.ContainerFixture;
-import com.intellij.remoterobot.fixtures.GutterIcon;
-import com.intellij.remoterobot.fixtures.TextEditorFixture;
+import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.awt.*;
 import java.time.Duration;
 import java.util.*;
+import java.util.List;
 
+import static com.intellij.remoterobot.utils.RepeatUtilsKt.waitFor;
 import static java.awt.event.KeyEvent.*;
-import static java.time.Duration.ofMillis;
-import static java.time.Duration.ofSeconds;
+import static java.time.Duration.*;
 import static org.assertj.swing.timing.Pause.pause;
 
 public class UITestsV2 {
@@ -26,22 +26,153 @@ public class UITestsV2 {
     private RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8082");
     private final Keyboard keyboard = new Keyboard(remoteRobot);
 
-    @Test
-    public void testTC2_maven_demo() {
 
-        //keep the UI test file open
-        IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
+    @Test
+    public void testFullFlow() {
+        final WelcomeFrame welcomeFrame = remoteRobot.find(WelcomeFrame.class, ofSeconds(10));
+        welcomeFrame.getOpenProjectButton().click();
+
+        welcomeFrame.getProjectSelectorComboBox().click();
+        String projectName = "unlogged-spring-maven-demo";
+
+        keyboard.enterText("/" + projectName);
+        welcomeFrame.getOpenConfirmButton().click();
+
+        final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
+        waitFor(ofMinutes(10), () -> !idea.isDumbMode());
+//        pause(ofMinutes(1).toMillis());
+
+        //for mac, open pom.xml
+        openFile("pom.xml", idea);
+
+        //open unlogged toolbar, copy and paste dependency
+        ComponentFixture unloggedToolbar = idea.getUnloggedToolbarComponent();
+        unloggedToolbar.moveMouse();
+        unloggedToolbar.click();
+        pause(ofSeconds(1).toMillis());
+
+        ComponentFixture copyButton = idea.findCopyButton();
+        copyButton.moveMouse();
+        copyButton.click();
+
+        //paste right after dependencies
+        TextEditorFixture textEditorFixture = idea.textEditor();
+        List<RemoteText> pomContents = textEditorFixture.getEditor().getData().getAll();
+        RemoteText dependencyText = pomContents.stream().filter(remoteText -> remoteText.getText().equals("dependencies")).toList().get(0);
+        int indexOfDependencies = pomContents.indexOf(dependencyText);
+        RemoteText closingTag = pomContents.get(indexOfDependencies + 1);
+        closingTag.click();
+        keyboard.hotKey(VK_RIGHT);
+        keyboard.hotKey(VK_ENTER);
+        keyboard.hotKey(VK_META, VK_V);
+
+        //sync and add @unlogged over main method
+        openFile("UnloggedDemoApplication", idea);
+        textEditorFixture = idea.textEditor();
+
+        expandJavaFile(textEditorFixture.getEditor());
+
+        List<RemoteText> mainClassContents = textEditorFixture.getEditor().getData().getAll();
+        RemoteText firstSemicolon = mainClassContents.stream().filter(text -> text.getText().equals(";")).toList().get(0);
+        firstSemicolon.click();
+        keyboard.hotKey(VK_RIGHT);
+        keyboard.hotKey(VK_ENTER);
+        keyboard.enterText("import io.unlogged.Unlogged;");
+
+        //refresh contents post text addition
+        mainClassContents = textEditorFixture.getEditor().getData().getAll();
+        RemoteText mainLabel = mainClassContents.stream().filter(text -> text.getText().equals("main")).toList().get(0);
+        int mainLabelIndex = mainClassContents.indexOf(mainLabel);
+        RemoteText spaceLabel = mainClassContents.get(mainLabelIndex - 7);
+        spaceLabel.click();
+        keyboard.hotKey(VK_ENTER);
+        keyboard.enterText("@Unlogged");
+        keyboard.hotKey(VK_ENTER);
+
+        //refresh maven before proceeding
+        ComponentFixture mavenIcon = idea.getMavenToolbarIcon();
+        mavenIcon.click();
+        pause(ofSeconds(1).toMillis());
+        idea.getMavenToolBarRefreshIcon().click();
+        pause(ofSeconds(1).toMillis());
+        mavenIcon.click();
+
+        //start application
+        openFile("start_project.sh", idea);
+        TextEditorFixture shellScript = idea.textEditor();
+        //click the first icon
+        boolean started = false;
+        while (!started) {
+            try {
+                GutterIcon gutterIcon = shellScript.getGutter().getIcons().get(0);
+                gutterIcon.moveMouse();
+                pause(ofMillis(250).toMillis());
+                gutterIcon.click();
+                started = true;
+            } catch (Exception e) {
+                pause(ofSeconds(2).toMillis());
+            }
+        }
+
+        //wait for 2 mins - or how much time docker compose would take
+        //todo - hook to terminal stdout and search for start indicator
+        pause(ofMinutes(2).toMillis());
+
+        List<ComponentFixture> gotItTexts = idea.getGotItTexts();
+        gotItTexts.forEach(text -> text.click());
+
+        //call prep1
+        prep_TC2(idea);
+
+        //call test
+        test_TC2(idea);
+    }
+
+    private void prep_TC2(IdeaFrame idea) {
+
+        openFile("UiTestPrepHelper", idea);
+        expandJavaFile(idea.textEditor().getEditor());
+
+        //clear got its
+        List<ComponentFixture> gotItIcons = idea.getGotItTexts();
+        gotItIcons.forEach(ComponentFixture::click);
+
+        //hide terminal
+        idea.getTerminalToolWindowHideButton().click();
+
+        //one more round of got it clear
+        gotItIcons = idea.getGotItTexts();
+        gotItIcons.forEach(ComponentFixture::click);
+
+        TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
+        GutterIcon addMethodIcon = editor.getGutter().getIcons().stream()
+                .filter(icon -> icon.toString().contains("profileBlue.svg") && icon.getLineNumber() > 30)
+                .toList().get(0);
+        scrollToIcon(editor, addMethodIcon);
+        addMethodIcon.click();
+        idea.getDirectInvokeExecuteButtonNew().click();
+        pause(ofSeconds(5).toMillis());
+
+        gotItIcons = idea.getGotItTexts();
+        gotItIcons.forEach(ComponentFixture::click);
+    }
+
+    public void test_TC2(IdeaFrame idea) {
+
+        openFile("UiTestEntryClass", idea);
         CustomGutterIconComparator iconComparator = new CustomGutterIconComparator();
         TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
-
-        int mainIconLinenumber = 49;
+        expandJavaFile(editor.getEditor());
+        editor = idea.textEditor(Duration.ofSeconds(2));
 
         GutterIcon mainIcon = editor.getGutter().getIcons().stream()
-                .filter(icon -> icon.toString().contains("profileBlue.svg") && icon.getLineNumber() == mainIconLinenumber)
+                .filter(icon -> icon.toString().contains("profileBlue.svg"))
                 .toList().get(0);
 
+        scrollToIcon(editor, mainIcon);
+
         List<GutterIcon> unloggedMockIcons = editor.getGutter().getIcons().stream()
-                .filter(icon -> icon.toString().contains("mock_ghost_icon_v2.svg") && icon.getLineNumber() >= mainIconLinenumber)
+                .filter(icon -> icon.toString().contains("mock_ghost_icon_v2.svg"))
                 .toList();
         List<GutterIcon> mockIcons = new ArrayList<>(unloggedMockIcons);
         Collections.sort(mockIcons, iconComparator);
@@ -50,18 +181,10 @@ public class UITestsV2 {
 
         for (int i = 0; i < mockIcons.size(); i++) {
             GutterIcon mockIcon = mockIcons.get(i);
+            scrollToIcon(editor, mockIcon);
             mockIcon.moveMouse();
             mockIcon.click();
             pause(ofMillis(250).toMillis());
-
-            //assert empty
-//            try {
-//                ComponentFixture mockScrollPanel = idea.getMockPopupScrollPanel();
-//                List<RemoteText> remoteTexts = mockScrollPanel.getData().getAll();
-//                assert remoteTexts.isEmpty();
-//            } catch (UIElementNotFoundException timeoutException) {
-//                assert true;
-//            }ca mock
 
             //click on create
             ComponentFixture createNewMockButton = idea.getCreateNewMockButton();
@@ -137,31 +260,14 @@ public class UITestsV2 {
             mockIcon.click();
             pause(ofMillis(250).toMillis());
 
-            ComponentFixture mockScrollPanel = idea.getMockPopupScrollPanel();
-            List<RemoteText> remoteTexts = mockScrollPanel.getData().getAll();
-            assert remoteTexts.size() > 1;
-            List<MockPopupEntry> mockPopupEntries = new ArrayList<>();
-            //alt make this start with mock
-            if (remoteTexts.size() % 3 == 0) {
-                int index = 0;
-                for (int x = 0; x < remoteTexts.size() / 3; x++) {
-                    RemoteText mockname = remoteTexts.get(index++);
-                    RemoteText returnTypeText = remoteTexts.get(index++);
-                    RemoteText methodNameText = remoteTexts.get(index++);
-                    MockPopupEntry mpe = new MockPopupEntry(mockname, returnTypeText, methodNameText);
-                    ComponentFixture panelFixture = idea.getComponentByXpath(mpe.getPanelXpath());
-                    mpe.setPanel(panelFixture);
-                    mockPopupEntries.add(mpe);
-                }
-            }
-
             closeButton = idea.getMockPopupCloseButton();
             closeButton.moveMouse();
             closeButton.click();
             pause(ofMillis(250).toMillis());
         }
 
-        //Execute DirectInvoke the method
+        //DirectInvoke the method
+        scrollToIcon(editor, mainIcon);
         mainIcon.moveMouse();
         mainIcon.click();
 
@@ -180,6 +286,10 @@ public class UITestsV2 {
                 pause(ofSeconds(1).toMillis());
             }
         }
+
+        //clear got its
+        List<ComponentFixture> gotItIcons = idea.getGotItTexts();
+        gotItIcons.forEach(ComponentFixture::click);
 
         //record the output for verification
         List<RemoteText> remoteTexts = responseTreeFixture.getData().getAll();
@@ -246,13 +356,14 @@ public class UITestsV2 {
         //reload mock icons -> needed to ensure proper coordinates are taken
         editor = idea.textEditor(Duration.ofSeconds(2));
         unloggedMockIcons = editor.getGutter().getIcons().stream()
-                .filter(icon -> icon.toString().contains("mock_ghost_icon_v2.svg") && icon.getLineNumber() >= mainIconLinenumber)
+                .filter(icon -> icon.toString().contains("mock_ghost_icon_v2.svg"))
                 .toList();
         mockIcons = new ArrayList<>(unloggedMockIcons);
         Collections.sort(mockIcons, iconComparator);
 
         for (int i = 0; i < mockIcons.size(); i++) {
             GutterIcon mockIcon = mockIcons.get(i);
+            scrollToIcon(editor, mockIcon);
             mockIcon.moveMouse();
             mockIcon.click();
             pause(ofMillis(250).toMillis());
@@ -298,6 +409,7 @@ public class UITestsV2 {
             pause(ofMillis(250).toMillis());
         }
 
+        scrollToIcon(editor, mainIcon);
         mainIcon.moveMouse();
         mainIcon.click();
         pause(ofMillis(250).toMillis());
@@ -426,15 +538,8 @@ public class UITestsV2 {
         tryToSaveAll(idea);
     }
 
-    private void scrollDownToIcon(TextEditorFixture editorFixture, GutterIcon icon) {
-        int offsetIncrement = 2;
-        Integer startingOffset = null;
-        try {
-            startingOffset = editorFixture.getEditor().callJs("local.get('editor').getDocument().getLineStartOffset(" + (icon.getLineNumber() + offsetIncrement) + ")", true);
-        } catch (IndexOutOfBoundsException outOfBoundsException) {
-            startingOffset = editorFixture.getEditor().callJs("local.get('editor').getDocument().getLineStartOffset(" + (icon.getLineNumber()) + ")", true);
-        }
-        assert startingOffset != null;
+    private void scrollToIcon(TextEditorFixture editorFixture, GutterIcon icon) {
+        Integer startingOffset = editorFixture.getEditor().callJs("local.get('editor').getDocument().getLineStartOffset(" + (icon.getLineNumber()) + ")", true);
         editorFixture.getEditor().scrollToOffset(startingOffset);
         System.out.println("Scrolling down to line number : " + icon.getLineNumber() + ", Offset : " + startingOffset);
     }
@@ -500,5 +605,19 @@ public class UITestsV2 {
         }
 
         confirmSaveButton.click();
+    }
+
+    private void openFile(String filename, IdeaFrame ideaFrame) {
+        keyboard.hotKey(VK_META, VK_SHIFT, VK_O);
+        keyboard.enterText(filename);
+        keyboard.hotKey(VK_ENTER);
+    }
+
+    private void expandJavaFile(EditorFixture editor) {
+        for (RemoteText text : editor.getData().getAll()) {
+            if (text.getText().equals("...")) {
+                text.click();
+            }
+        }
     }
 }
