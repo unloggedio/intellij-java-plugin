@@ -89,8 +89,8 @@ public class StompComponent implements
         ComponentLifecycleListener<MethodDirectInvokeComponent>,
         Runnable, OnExpandListener, Disposable {
     public static final int COMPONENT_HEIGHT = 93;
-    private static final Logger logger = LoggerUtil.getInstance(StompComponent.class);
     public static final int MAX_ITEM_TO_DISPLAY = 50;
+    private static final Logger logger = LoggerUtil.getInstance(StompComponent.class);
     private final InsidiousService insidiousService;
     private final JPanel itemPanel;
     private final StompStatusComponent stompStatusComponent;
@@ -284,12 +284,16 @@ public class StompComponent implements
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 if (selectedCandidates.size() != stompItems.size()) {
+                    selectedCandidates.clear();
                     for (StompItem stompItem : stompItems) {
                         stompItem.setSelected(true);
                         selectedCandidates.add(stompItem.getTestCandidate());
                     }
                 } else {
                     selectedCandidates.clear();
+                    for (StompItem stompItem : stompItems) {
+                        stompItem.setSelected(false);
+                    }
                 }
                 updateControlPanel();
             }
