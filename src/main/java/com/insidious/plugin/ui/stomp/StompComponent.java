@@ -157,7 +157,10 @@ public class StompComponent implements
 
 
         historyStreamScrollPanel.setViewportView(itemPanel);
+        itemPanel.setDoubleBuffered(true);
         historyStreamScrollPanel.setBorder(BorderFactory.createEmptyBorder());
+        JScrollBar verticalScrollBar = historyStreamScrollPanel.getVerticalScrollBar();
+        verticalScrollBar.setUnitIncrement(16); // Adjust as needed
 
         scrollContainer.setBorder(BorderFactory.createEmptyBorder());
 
