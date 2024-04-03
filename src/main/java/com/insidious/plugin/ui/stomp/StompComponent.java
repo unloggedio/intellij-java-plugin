@@ -90,6 +90,7 @@ public class StompComponent implements
         Runnable, OnExpandListener, Disposable {
     public static final int COMPONENT_HEIGHT = 93;
     private static final Logger logger = LoggerUtil.getInstance(StompComponent.class);
+    public static final int MAX_ITEM_TO_DISPLAY = 50;
     private final InsidiousService insidiousService;
     private final JPanel itemPanel;
     private final StompStatusComponent stompStatusComponent;
@@ -1447,14 +1448,14 @@ public class StompComponent implements
                     List<TestCandidateMetadata> remainingItems = new ArrayList<>();
                     remainingItems.add(testCandidateMetadata);
                     incomingQueue.drainTo(remainingItems);
-                    while (remainingItems.size() > 20) {
+                    while (remainingItems.size() > MAX_ITEM_TO_DISPLAY) {
                         remainingItems.remove(0);
                     }
 
                     for (TestCandidateMetadata remainingItem : remainingItems) {
                         acceptSingle(remainingItem);
                     }
-                    while (stompItems.size() > 20) {
+                    while (stompItems.size() > MAX_ITEM_TO_DISPLAY) {
                         StompItem first = stompItems.remove(0);
                         itemPanel.remove(first.getStompRowItem());
                     }
