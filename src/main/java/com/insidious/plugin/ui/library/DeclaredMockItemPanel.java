@@ -8,6 +8,7 @@ import com.insidious.plugin.mocking.*;
 import com.insidious.plugin.ui.stomp.StompItem;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
@@ -22,6 +23,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -219,6 +221,8 @@ public class DeclaredMockItemPanel {
 //        controlPanel.addMouseListener(showDeleteButtonListener);
 //        controlContainer.addMouseListener(showDeleteButtonListener);
 //        selectCandidateCheckbox.addMouseListener(showDeleteButtonListener);
+
+
 
 
     }

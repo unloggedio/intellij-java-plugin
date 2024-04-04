@@ -1,10 +1,14 @@
 package com.insidious.plugin.ui.stomp;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.Expression;
+import com.insidious.plugin.assertions.KeyValue;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -47,6 +51,7 @@ import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class TestCandidateSaveForm {
@@ -102,6 +107,7 @@ public class TestCandidateSaveForm {
         TOP_ONE.add(AssertionType.NOTALLOF);
         TOP_ONE.add(AssertionType.NOTANYOF);
 
+        linesCountLabel.setIcon(AllIcons.General.Information);
         replayTestInfoLinkLabel.setIcon(AllIcons.Actions.Help);
         replayTestInfoLinkLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         replayTestInfoLinkLabel.addMouseListener(new MouseAdapter() {
@@ -196,7 +202,9 @@ public class TestCandidateSaveForm {
                     StoredCandidate storedCandidate = new StoredCandidate(candidateMetadata);
                     int val = current.incrementAndGet();
 
-                    progressIndicator.setFraction((double) val / (double) total);
+                    if (progressIndicator != null) {
+                        progressIndicator.setFraction((double) val / (double) total);
+                    }
 
                     List<DeclaredMock> mocks = ApplicationManager.getApplication()
                             .runReadAction((Computable<List<DeclaredMock>>) () -> patchCandidate(candidateMetadata,
@@ -545,19 +553,43 @@ public class TestCandidateSaveForm {
                 storedCandidate.setTestAssertions(new AtomicAssertion());
                 continue;
             }
+            int count = AtomicAssertionUtils.countAssertions(atomicAssertion);
+            if (count < 2) {
+                continue;
+            }
+            Supplier<List<KeyValue>> keyValueSupplier = () -> {
+                JsonNode node;
+                ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
+                try {
+                    node = objectMapper.readTree(storedCandidate.getReturnValue());
+                } catch (JsonProcessingException e) {
+                    node = objectMapper.getNodeFactory().textNode(storedCandidate.getReturnValue());
+                }
+
+                ObjectNode flatJson = JsonTreeUtils.flatten(node);
+
+                Iterator<String> stringIterator = flatJson.fieldNames();
+                List<KeyValue> listOfKeyValue = new ArrayList<>();
+                while ((stringIterator.hasNext())) {
+                    String key = stringIterator.next();
+                    String value = flatJson.get(key).toString();
+                    listOfKeyValue.add(new KeyValue(key, value));
+                }
+                return listOfKeyValue;
+
+            };
             AtomicAssertionItemPanel atomicAssertionItemPanel = new AtomicAssertionItemPanel(
-                    atomicAssertion, atomicAssertionLifeListener, project);
+                    atomicAssertion, atomicAssertionLifeListener, project, keyValueSupplier);
 
             atomicAssertionPanelMap.put(atomicAssertion, atomicAssertionItemPanel);
             assertionItemContainer.add(atomicAssertionItemPanel.getComponent(),
                     createGBCForLeftMainComponent(assertionPanelCount));
-            int count = AtomicAssertionUtils.countAssertions(atomicAssertion);
             String returnValueClassname = storedCandidate.getReturnValueClassname();
-            atomicAssertionItemPanel.setTitle(count + " assertions for " +
-                    ClassTypeUtils.getSimpleClassName(returnValueClassname == null ? "Void" : returnValueClassname) +
-                    " from " + ClassTypeUtils.getSimpleClassName(
-                    storedCandidate.getMethod().getClassName()) + "." + storedCandidate.getMethod()
-                    .getName());
+            String returnClassSimpleName = ClassTypeUtils.getSimpleClassName(
+                    returnValueClassname == null ? "Void" : returnValueClassname);
+            String targetMethodClassSimpleName = ClassTypeUtils.getSimpleClassName(
+                    storedCandidate.getMethod().getClassName());
+            atomicAssertionItemPanel.setTitle(returnClassSimpleName);
             assertionPanelCount++;
         }
         assertionItemContainer.add(new JPanel(), createGBCForFakeComponent(assertionPanelCount));
@@ -693,7 +725,7 @@ public class TestCandidateSaveForm {
             return new ArrayList<>();
         }
         PsiMethod candidateTargetMethod = psiMethod.getFirst();
-        progressIndicator.setText("Building test case for " + candidateTargetMethod.getContainingClass()
+        progressIndicator.setText2("Building test case for " + candidateTargetMethod.getContainingClass()
                 .getName() + "." + candidateTargetMethod.getName());
 
         if (candidateTargetMethod.getContainingClass().isInterface()) {

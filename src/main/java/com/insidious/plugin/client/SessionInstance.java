@@ -615,7 +615,7 @@ public class SessionInstance implements Runnable {
 
         averageValue.setTemplateMap(transformedTemplateMap);
 
-        int entries = 1_500_000;
+        int entries = 50_000;
         if (executionSession.getSessionId().equals("na")) {
             entries = 500;
         }

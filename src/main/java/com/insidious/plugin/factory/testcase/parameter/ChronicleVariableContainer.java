@@ -33,6 +33,10 @@ public class ChronicleVariableContainer {
             } catch (IllegalArgumentException iae) {
                 // index is full
                 logger.warn("parameter index is full", iae);
+            } finally {
+                if (parameterMap.size() > 45_000) {
+                    parameterMap.clear();
+                }
             }
             return;
         }
@@ -50,6 +54,10 @@ public class ChronicleVariableContainer {
             } catch (IllegalArgumentException iae) {
                 // index is full
                 logger.warn("index is full", iae);
+            } finally {
+                if (parameterMap.size() > 45_000) {
+                    parameterMap.clear();
+                }
             }
 
         }

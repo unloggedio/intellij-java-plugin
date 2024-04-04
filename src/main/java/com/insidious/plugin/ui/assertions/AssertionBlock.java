@@ -6,12 +6,14 @@ import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.KeyValue;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.project.Project;
+import com.intellij.ui.JBColor;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class AssertionBlock implements AssertionBlockManager {
     //    private boolean controlPanelIsVisible = false;
@@ -41,6 +43,9 @@ public class AssertionBlock implements AssertionBlockManager {
         this.project = project;
         BoxLayout boxLayout = new BoxLayout(contentPanel, BoxLayout.Y_AXIS);
         contentPanel.setLayout(boxLayout);
+        mainPanel.setBackground(JBColor.WHITE);
+        topAligner.setBackground(JBColor.WHITE);
+        contentPanel.setBackground(JBColor.WHITE);
 
 //        if (!isRootCondition) {
 //            topAligner.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
@@ -173,5 +178,34 @@ public class AssertionBlock implements AssertionBlockManager {
 
     public List<AssertionBlock> getAssertionGroups() {
         return assertionGroups;
+    }
+
+    public void showEditForm(Supplier<List<KeyValue>> keyValueSupplier) {
+        for (AssertionBlock assertionGroup : assertionGroups) {
+            assertionGroup.showEditForm(keyValueSupplier);
+        }
+        for (AssertionRule assertionRule : assertionRules) {
+            assertionRule.showEditForm(keyValueSupplier);
+        }
+    }
+
+    public void hideEditForm() {
+        for (AssertionBlock assertionGroup : assertionGroups) {
+            assertionGroup.hideEditForm();
+        }
+        for (AssertionRule assertionRule : assertionRules) {
+            assertionRule.hideEditForm();
+        }
+
+    }
+
+    public void saveEdit() {
+        for (AssertionBlock assertionGroup : assertionGroups) {
+            assertionGroup.saveEdit();
+        }
+        for (AssertionRule assertionRule : assertionRules) {
+            assertionRule.saveEdit();
+        }
+
     }
 }

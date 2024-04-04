@@ -483,6 +483,8 @@ public class StompComponent implements
                 runProcessWithProgressSynchronously(() -> {
                     ProgressIndicator progressIndicator = ProgressManager.getInstance()
                             .getProgressIndicator();//(project, "New project...");
+                    progressIndicator.setIndeterminate(false);
+                    progressIndicator.setFraction(0);
                     CountDownLatch cdl = new CountDownLatch(1);
 //                    progressIndicator.setIndeterminate(false);
 //                    progressIndicator.setFraction(0.25);

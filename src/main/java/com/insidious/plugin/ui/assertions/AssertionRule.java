@@ -2,11 +2,12 @@ package com.insidious.plugin.ui.assertions;
 
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
+import com.insidious.plugin.assertions.KeyValue;
 import com.insidious.plugin.ui.library.ItemLifeCycleListener;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
 import org.jetbrains.annotations.NotNull;
 
@@ -16,6 +17,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.List;
+import java.util.function.Supplier;
 
 public class AssertionRule {
     private static final Logger logger = LoggerUtil.getInstance(AssertionRule.class);
@@ -27,6 +30,7 @@ public class AssertionRule {
     private JLabel nameSelector;
     private JLabel trashButton;
     private JPanel nameSelectorContainerPanel;
+    private AssertionRuleEditPanel editPanel;
 
     public AssertionRule(AssertionBlock assertionBlock, AtomicAssertion atomicAssertion1, Project project) {
         this.assertion = atomicAssertion1;
@@ -34,6 +38,9 @@ public class AssertionRule {
         if (assertion.getAssertionType() == null) {
             assertion.setAssertionType(AssertionType.EQUAL);
         }
+        nameSelectorContainerPanel.setBackground(JBColor.WHITE);
+        topAligner.setBackground(JBColor.WHITE);
+        mainPanel.setBackground(JBColor.WHITE);
 
 
         this.manager = assertionBlock;
@@ -59,64 +66,9 @@ public class AssertionRule {
 
         setupOptions();
 
-        String operationText = getOperationText(assertion);
 
-        nameSelector.setBackground(Color.WHITE);
-        nameSelector.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
-                nameSelectorContainerPanel.removeAll();
-                final AssertionRuleEditPanel editPanel =
-                        new AssertionRuleEditPanel(assertion, new ItemLifeCycleListener<>() {
-                            @Override
-                            public void onSelect(AtomicAssertion item) {
-
-                            }
-
-                            @Override
-                            public void onClick(AtomicAssertion item) {
-
-                            }
-
-                            @Override
-                            public void onUnSelect(AtomicAssertion item) {
-                                nameSelectorContainerPanel.removeAll();
-                                nameSelector.setText("<html><pre>" + assertion.getKey() + " " + operationText + " " +
-                                        trimValue(assertion.getExpectedValue()) +
-                                        "</pre></html>");
-                                nameSelectorContainerPanel.add(nameSelector, new GridConstraints());
-                                nameSelectorContainerPanel.revalidate();
-                                nameSelectorContainerPanel.repaint();
-
-                            }
-
-                            @Override
-                            public void onDelete(AtomicAssertion item) {
-
-                            }
-
-                            @Override
-                            public void onEdit(AtomicAssertion item) {
-                                nameSelectorContainerPanel.removeAll();
-                                nameSelector.setText("<html><pre>" + assertion.getKey() + " " + operationText + " " +
-                                        trimValue(assertion.getExpectedValue()) +
-                                        "</pre></html>");
-                                nameSelectorContainerPanel.add(nameSelector, new GridConstraints());
-                                nameSelectorContainerPanel.revalidate();
-                                nameSelectorContainerPanel.repaint();
-                            }
-                        }, project);
-
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    nameSelectorContainerPanel.add(editPanel.getComponent(),
-                            new GridConstraints());
-                });
-
-            }
-        });
-        this.nameSelector.setText("<html><pre>" + assertion.getKey() + " " + operationText + " " + trimValue(
-                assertion.getExpectedValue()) + "</pre></html>");
+        nameSelector.setBackground(JBColor.WHITE);
+        updateLabel();
 //        this.valueField.setText("<html><pre>" + text + "</pre></html>");
 
 
@@ -270,6 +222,59 @@ public class AssertionRule {
             text = text.substring(0, 37) + "...";
         }
         return text;
+    }
+
+    private void updateLabel() {
+        nameSelector.setText(
+                "<html><pre>" + assertion.getKey() + " " + getOperationText(assertion) + " " + trimValue(
+                        assertion.getExpectedValue()) + "</pre></html>");
+    }
+
+    public void showEditForm(Supplier<List<KeyValue>> keyValueSupplier) {
+        nameSelectorContainerPanel.removeAll();
+        editPanel = getEditPanel(keyValueSupplier);
+
+        nameSelectorContainerPanel.add(editPanel.getComponent(), new GridConstraints());
+        nameSelectorContainerPanel.revalidate();
+        nameSelectorContainerPanel.repaint();
+    }
+
+    @NotNull
+    private AssertionRuleEditPanel getEditPanel(Supplier<List<KeyValue>> keyValueSupplier) {
+        return new AssertionRuleEditPanel(assertion, new ItemLifeCycleListener<>() {
+            @Override
+            public void onSelect(AtomicAssertion item) {
+
+            }
+
+            @Override
+            public void onClick(AtomicAssertion item) {
+
+            }
+
+            @Override
+            public void onUnSelect(AtomicAssertion item) {
+                hideEditForm();
+            }
+
+            @Override
+            public void onDelete(AtomicAssertion item) {
+
+            }
+
+            @Override
+            public void onEdit(AtomicAssertion item) {
+                hideEditForm();
+            }
+        }, keyValueSupplier, project);
+    }
+
+    public void hideEditForm() {
+        nameSelectorContainerPanel.removeAll();
+        updateLabel();
+        nameSelectorContainerPanel.add(nameSelector, new GridConstraints());
+        nameSelectorContainerPanel.revalidate();
+        nameSelectorContainerPanel.repaint();
     }
 
     private String getOperationText(AtomicAssertion atomicAssertion) {
@@ -445,4 +450,14 @@ public class AssertionRule {
         return assertion;
     }
 
+    public void saveEdit() {
+        if (editPanel != null) {
+            AtomicAssertion assertionRule = editPanel.getUpdatedValue();
+            assertion.setAssertionType(assertionRule.getAssertionType());
+            assertion.setKey(assertionRule.getKey());
+            assertion.setExpectedValue(assertionRule.getExpectedValue());
+            hideEditForm();
+            editPanel = null;
+        }
+    }
 }

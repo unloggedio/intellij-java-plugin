@@ -377,8 +377,7 @@ public class ClassUtils {
                     dummyValue.append("}");
                 }
 
-            }
-            else if (parameterType instanceof PsiPrimitiveType) {
+            } else if (parameterType instanceof PsiPrimitiveType) {
                 PsiPrimitiveType primitiveType = (PsiPrimitiveType) parameterType;
                 if ("boolean".equals(primitiveType.getName())) {
                     return "true";
@@ -591,7 +590,12 @@ public class ClassUtils {
                         returnParameter.getType() != null) {
                     if (!returnTypeClassReference.getReference()
                             .getQualifiedName()
-                            .equals(returnParameter.getType())) {
+                            .equals(returnParameter.getType())
+                            && !returnParameter.getType()
+                            .startsWith(returnTypeClassReference.getReference()
+                                    .getQualifiedName())
+
+                    ) {
                         // type name mismatch
                         logger.warn(
                                 "Call expected return [" + returnParameter.getType() + "] did not match return type in " +
