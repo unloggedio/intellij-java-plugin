@@ -47,7 +47,10 @@ public class AutoExecutorCITest {
         TreeMap<String, URL> testConfig = new TreeMap<>();
         URL pathToIntegrationResources = Thread.currentThread().getContextClassLoader()
                 .getResource(testResourcesPath + "webflux-demo-integration-resources.xlsx");
+        URL pathToMockResources = Thread.currentThread().getContextClassLoader()
+                .getResource(testResourcesPath + "webflux-demo-unit-resources.xlsx");
         testConfig.put("Integration", pathToIntegrationResources);
+        testConfig.put("Unit", pathToMockResources);
         runTests(testConfig);
     }
 

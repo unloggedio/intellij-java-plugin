@@ -16,6 +16,7 @@ public class DeclaredMock {
     private String methodName;
     private List<ParameterMatcher> whenParameter;
     private List<ThenParameter> thenParameter;
+    private String methodHashKey;
 
     public DeclaredMock(DeclaredMock declaredMock) {
         this.id = declaredMock.id;
@@ -122,5 +123,13 @@ public class DeclaredMock {
 
     public void setThenParameter(List<ThenParameter> thenParameter) {
         this.thenParameter = thenParameter;
+    }
+
+    public String getMethodHashKey() {
+        return methodHashKey;
+    }
+
+    public void setMethodHashKey(String methodHashKey) {
+        this.methodHashKey = methodHashKey;
     }
 }
