@@ -41,6 +41,7 @@ import com.insidious.plugin.pojo.dao.LogFile;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.ui.stomp.FilterModel;
+import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.insidious.plugin.util.*;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -87,7 +88,7 @@ public class SessionInstance implements Runnable {
     private final ExecutionSession executionSession;
     private final Map<String, String> cacheEntries = new HashMap<>();
     //    private final DatabasePipe databasePipe;
-    private final DaoService daoService;
+    private DaoService daoService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private final ExecutorService executorPool;
     private final Map<String, Boolean> objectIndexRead = new HashMap<>();
@@ -105,7 +106,7 @@ public class SessionInstance implements Runnable {
     private List<File> sessionArchives = new ArrayList<>();
     private ArchiveIndex archiveIndex;
     private Map<Long, ObjectInfoDocument> objectInfoIndex;
-    private ChronicleMap<Integer, DataInfo> probeInfoIndex;
+    private Map<Integer, DataInfo> probeInfoIndex;
     private Map<Integer, TypeInfoDocument> typeInfoIndex;
     private Map<Integer, MethodInfo> methodInfoIndex;
     private Map<String, MethodInfo> methodInfoByNameIndex;
@@ -157,7 +158,17 @@ public class SessionInstance implements Runnable {
 //        ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
         parameterContainer = new ChronicleVariableContainer(null);
 
-        ParameterProvider parameterProvider = value -> parameterContainer.getParameterByValue(value);
+        ParameterProvider parameterProvider = value -> {
+            Parameter parameterByValue = parameterContainer.getParameterByValue(value);
+            if (parameterByValue.getType() == null) {
+                try {
+                    parameterByValue = daoService.getParameterByValue(value);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return parameterByValue;
+        };
         daoService = new DaoService(connectionSource, parameterProvider, ObjectMapperInstance.getInstance());
 
 
@@ -276,13 +287,13 @@ public class SessionInstance implements Runnable {
             return sessionFiles;
         }
 
-        typeInfoIndex = createTypeInfoIndex();
-        objectInfoIndex = createObjectInfoIndex();
+        typeInfoIndex = new HashMap<>();
+        objectInfoIndex = new HashMap<>();
 
-        probeInfoIndex = createProbeInfoIndex();
-        methodInfoIndex = createMethodInfoIndex();
-        methodInfoByNameIndex = createMethodInfoByNameIndex();
-        classInfoIndex = createClassInfoIndex();
+        probeInfoIndex = new HashMap<>();
+        methodInfoIndex = new HashMap<>();
+        methodInfoByNameIndex = new HashMap<>();
+        classInfoIndex = new HashMap<>();
         try {
             classInfoIndex.values().forEach(classInfo1 ->
                     classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()),
@@ -293,7 +304,7 @@ public class SessionInstance implements Runnable {
             if (e instanceof RuntimeException && e.getCause() instanceof InvalidClassException) {
 //                typeInfoIndex.close();
 //                objectInfoIndex.close();
-                probeInfoIndex.close();
+//                probeInfoIndex.close();
 //                methodInfoIndex.close();
 //                classInfoIndex.close();
                 e.printStackTrace();
@@ -311,12 +322,12 @@ public class SessionInstance implements Runnable {
                             .toFile();
                     toDelete.delete();
                 }
-                typeInfoIndex = createTypeInfoIndex();
-                objectInfoIndex = createObjectInfoIndex();
-                probeInfoIndex = createProbeInfoIndex();
-                methodInfoByNameIndex = createMethodInfoByNameIndex();
-                methodInfoIndex = createMethodInfoIndex();
-                classInfoIndex = createClassInfoIndex();
+                typeInfoIndex = new HashMap<>();
+                objectInfoIndex = new HashMap<>();
+                probeInfoIndex = new HashMap<>();
+                methodInfoByNameIndex = new HashMap<>();
+                methodInfoIndex = new HashMap<>();
+//                classInfoIndex = createClassInfoIndex();
             }
         }
 
@@ -537,47 +548,47 @@ public class SessionInstance implements Runnable {
 
     }
 
-    private ChronicleMap<Integer, TypeInfoDocument> createTypeInfoIndex() throws IOException {
+//    private ChronicleMap<Integer, TypeInfoDocument> createTypeInfoIndex() throws IOException {
+//
+//        checkProgressIndicator(null, "Loading type info index");
+//        File typeIndexFile = FileSystems.getDefault()
+//                .getPath(executionSession.getPath(), "index.type.dat")
+//                .toFile();
+//
+//        int entries = 20000;
+//        if (executionSession.getSessionId().equals("na")) {
+//            entries = 200;
+//        }
+//
+//        ChronicleMapBuilder<Integer, TypeInfoDocument> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
+//                        TypeInfoDocument.class)
+//                .name("type-info-map")
+//                .averageValue(new TypeInfoDocument(1, "Type-name-class", new byte[100]))
+//                .entries(entries);
+//        return probeInfoMapBuilder.createPersistedTo(typeIndexFile);
+//
+//    }
 
-        checkProgressIndicator(null, "Loading type info index");
-        File typeIndexFile = FileSystems.getDefault()
-                .getPath(executionSession.getPath(), "index.type.dat")
-                .toFile();
-
-        int entries = 20000;
-        if (executionSession.getSessionId().equals("na")) {
-            entries = 200;
-        }
-
-        ChronicleMapBuilder<Integer, TypeInfoDocument> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
-                        TypeInfoDocument.class)
-                .name("type-info-map")
-                .averageValue(new TypeInfoDocument(1, "Type-name-class", new byte[100]))
-                .entries(entries);
-        return probeInfoMapBuilder.createPersistedTo(typeIndexFile);
-
-    }
-
-    private ChronicleMap<Long, ObjectInfoDocument> createObjectInfoIndex() throws IOException {
-
-        checkProgressIndicator(null, "Loading object info index");
-        File objectIndexFile = FileSystems.getDefault()
-                .getPath(executionSession.getPath(), "index.object.dat")
-                .toFile();
-
-        int entries = 1_000_000;
-        if (executionSession.getSessionId().equals("na")) {
-            entries = 500;
-        }
-
-        ChronicleMapBuilder<Long, ObjectInfoDocument> probeInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
-                        ObjectInfoDocument.class)
-                .name("object-info-map")
-                .averageValue(new ObjectInfoDocument(1, 1))
-                .entries(entries);
-        return probeInfoMapBuilder.createPersistedTo(objectIndexFile);
-
-    }
+//    private ChronicleMap<Long, ObjectInfoDocument> createObjectInfoIndex() throws IOException {
+//
+//        checkProgressIndicator(null, "Loading object info index");
+//        File objectIndexFile = FileSystems.getDefault()
+//                .getPath(executionSession.getPath(), "index.object.dat")
+//                .toFile();
+//
+//        int entries = 1_000_000;
+//        if (executionSession.getSessionId().equals("na")) {
+//            entries = 500;
+//        }
+//
+//        ChronicleMapBuilder<Long, ObjectInfoDocument> probeInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
+//                        ObjectInfoDocument.class)
+//                .name("object-info-map")
+//                .averageValue(new ObjectInfoDocument(1, 1))
+//                .entries(entries);
+//        return probeInfoMapBuilder.createPersistedTo(objectIndexFile);
+//
+//    }
 
     private ChronicleMap<Long, Parameter> createParameterIndex() throws IOException {
 
@@ -628,81 +639,81 @@ public class SessionInstance implements Runnable {
 
     }
 
-    private ChronicleMap<Integer, MethodInfo> createMethodInfoIndex() throws IOException {
+//    private ChronicleMap<Integer, MethodInfo> createMethodInfoIndex() throws IOException {
+//
+//        checkProgressIndicator(null, "Loading method info index");
+//        File methodIndexFile = FileSystems.getDefault()
+//                .getPath(executionSession.getPath(), "index.method.dat")
+//                .toFile();
+//        int entries = 100_000;
+//        if (executionSession.getSessionId().equals("na")) {
+//            entries = 10;
+//        }
+//        ChronicleMapBuilder<Integer, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
+//                        MethodInfo.class)
+//                .name("method-info-map")
+//                .averageValue(
+//                        new MethodInfo(1, 2, "class-name", "method-name", "methoddesc", 5, "source-file-name",
+//                                "method-hash"))
+//                .entries(entries);
+//        return probeInfoMapBuilder.createPersistedTo(methodIndexFile);
+//
+//    }
 
-        checkProgressIndicator(null, "Loading method info index");
-        File methodIndexFile = FileSystems.getDefault()
-                .getPath(executionSession.getPath(), "index.method.dat")
-                .toFile();
-        int entries = 100_000;
-        if (executionSession.getSessionId().equals("na")) {
-            entries = 10;
-        }
-        ChronicleMapBuilder<Integer, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
-                        MethodInfo.class)
-                .name("method-info-map")
-                .averageValue(
-                        new MethodInfo(1, 2, "class-name", "method-name", "methoddesc", 5, "source-file-name",
-                                "method-hash"))
-                .entries(entries);
-        return probeInfoMapBuilder.createPersistedTo(methodIndexFile);
+//    private ChronicleMap<String, MethodInfo> createMethodInfoByNameIndex() throws IOException {
+//
+//        checkProgressIndicator(null, "Loading method info by name index");
+//        File methodIndexFile = FileSystems.getDefault()
+//                .getPath(executionSession.getPath(), "index.method.name.dat")
+//                .toFile();
+//        ChronicleMapBuilder<String, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(String.class,
+//                        MethodInfo.class)
+//                .name("method-info-name-map")
+//                .averageKey("methodNameIsALong(Laudhfiudfhadsufhasdoufhaofuahdsofudashfuiadshfufakdsufhd")
+//                .averageValue(
+//                        new MethodInfo(1, 2, "class-name", "method-name", "methoddesc", 5, "source-file-name",
+//                                "method-hash"))
+//                .entries(100_000);
+//        return probeInfoMapBuilder.createPersistedTo(methodIndexFile);
+//
+//    }
 
-    }
+//    private ChronicleMap<Integer, ClassInfo> createClassInfoIndex() throws IOException {
+//
+//        checkProgressIndicator(null, "Loading class info index");
+//        File classIndexFile = FileSystems.getDefault()
+//                .getPath(executionSession.getPath(), "index.class.dat")
+//                .toFile();
+//        ChronicleMapBuilder<Integer, ClassInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
+//                        ClassInfo.class)
+//                .name("class-info-map")
+//                .averageValue(
+//                        new ClassInfo(1, "container-name", "file-name", "class-name", LogLevel.Normal, "hashvalue",
+//                                "class-loader-identifier", new String[]{"classinterface-1"}, "super-class-name",
+//                                "signaure"))
+//                .entries(10_000);
+//        return probeInfoMapBuilder.createPersistedTo(classIndexFile);
+//
+//    }
 
-    private ChronicleMap<String, MethodInfo> createMethodInfoByNameIndex() throws IOException {
-
-        checkProgressIndicator(null, "Loading method info by name index");
-        File methodIndexFile = FileSystems.getDefault()
-                .getPath(executionSession.getPath(), "index.method.name.dat")
-                .toFile();
-        ChronicleMapBuilder<String, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(String.class,
-                        MethodInfo.class)
-                .name("method-info-name-map")
-                .averageKey("methodNameIsALong(Laudhfiudfhadsufhasdoufhaofuahdsofudashfuiadshfufakdsufhd")
-                .averageValue(
-                        new MethodInfo(1, 2, "class-name", "method-name", "methoddesc", 5, "source-file-name",
-                                "method-hash"))
-                .entries(100_000);
-        return probeInfoMapBuilder.createPersistedTo(methodIndexFile);
-
-    }
-
-    private ChronicleMap<Integer, ClassInfo> createClassInfoIndex() throws IOException {
-
-        checkProgressIndicator(null, "Loading class info index");
-        File classIndexFile = FileSystems.getDefault()
-                .getPath(executionSession.getPath(), "index.class.dat")
-                .toFile();
-        ChronicleMapBuilder<Integer, ClassInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
-                        ClassInfo.class)
-                .name("class-info-map")
-                .averageValue(
-                        new ClassInfo(1, "container-name", "file-name", "class-name", LogLevel.Normal, "hashvalue",
-                                "class-loader-identifier", new String[]{"classinterface-1"}, "super-class-name",
-                                "signaure"))
-                .entries(10_000);
-        return probeInfoMapBuilder.createPersistedTo(classIndexFile);
-
-    }
-
-    private ChronicleMap<String, ClassInfo> createClassInfoNameIndex() throws IOException {
-
-        checkProgressIndicator(null, "Loading class info index");
-        File classIndexFile = FileSystems.getDefault()
-                .getPath(executionSession.getPath(), "index.classname.dat")
-                .toFile();
-        ChronicleMapBuilder<String, ClassInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(String.class,
-                        ClassInfo.class)
-                .name("class-info-name-map")
-                .averageKey("aco.asfe.asfijaisd.avsdiv$ausdhf$adfaadsfa.adfadf")
-                .averageValue(
-                        new ClassInfo(1, "container-name", "file-name", "class-name", LogLevel.Normal, "hashvalue",
-                                "class-loader-identifier", new String[]{"classinterface-1"}, "super-class-name",
-                                "signaure"))
-                .entries(10_000);
-        return probeInfoMapBuilder.createPersistedTo(classIndexFile);
-
-    }
+//    private ChronicleMap<String, ClassInfo> createClassInfoNameIndex() throws IOException {
+//
+//        checkProgressIndicator(null, "Loading class info index");
+//        File classIndexFile = FileSystems.getDefault()
+//                .getPath(executionSession.getPath(), "index.classname.dat")
+//                .toFile();
+//        ChronicleMapBuilder<String, ClassInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(String.class,
+//                        ClassInfo.class)
+//                .name("class-info-name-map")
+//                .averageKey("aco.asfe.asfijaisd.avsdiv$ausdhf$adfaadsfa.adfadf")
+//                .averageValue(
+//                        new ClassInfo(1, "container-name", "file-name", "class-name", LogLevel.Normal, "hashvalue",
+//                                "class-loader-identifier", new String[]{"classinterface-1"}, "super-class-name",
+//                                "signaure"))
+//                .entries(10_000);
+//        return probeInfoMapBuilder.createPersistedTo(classIndexFile);
+//
+//    }
 
 //    public Collection<TracePoint> queryTracePointsByValue(SearchQuery searchQuery) {
 //        List<TracePoint> tracePointList = new LinkedList<>();
@@ -3339,28 +3350,37 @@ public class SessionInstance implements Runnable {
                     if (existingParameter.getType() == null && eventValue != 0) {
                         ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
                         if (probeInfo.getValueDesc() == Descriptor.Object) {
-                            if (objectInfoDocument == null) {
-                                this.sessionArchives = refreshSessionArchivesList(true);
-                                updateObjectInfoIndex(eventValue);
-                                objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
+
+                            if (probeInfo.getAttributes().contains("Type=")) {
+                                typeFromProbe = probeInfo.getAttribute("Type", null);
+                                existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
+                                isModified = true;
+                            } else {
                                 if (objectInfoDocument == null) {
-                                    logger.warn(
-                                            "object info document is null for [" + existingParameter.getValue() + "] in " +
-                                                    "log file: [" + "] in archive [" +
-                                                    "]");
-                                    throw new NeedMoreLogsException(
-                                            "object info document is null for [" + existingParameter.getValue() + "] in " +
-                                                    "log file: [" + "] in archive [" +
-                                                    "]");
+                                    this.sessionArchives = refreshSessionArchivesList(true);
+                                    updateObjectInfoIndex(eventValue);
+                                    objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
+                                    if (objectInfoDocument == null) {
+                                        logger.warn(
+                                                "object info document is null for [" + existingParameter.getValue() + "] in " +
+                                                        "log file: [" + "] in archive [" +
+                                                        "]");
+                                        throw new NeedMoreLogsException(
+                                                "object info document is null for [" + existingParameter.getValue() + "] in " +
+                                                        "log file: [" + "] in archive [" +
+                                                        "]");
+                                    }
+                                }
+                                if (objectInfoDocument != null) {
+                                    TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(
+                                            objectInfoDocument.getTypeId());
+                                    String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
+                                    existingParameter.setType(typeName);
+                                    isModified = true;
                                 }
                             }
-                            if (objectInfoDocument != null) {
-                                TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(
-                                        objectInfoDocument.getTypeId());
-                                String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
-                                existingParameter.setType(typeName);
-                                isModified = true;
-                            }
+
+
                         } else {
                             existingParameter.setType(
                                     ClassTypeUtils.getJavaClassName(probeInfo.getValueDesc().getString()));
@@ -3948,7 +3968,7 @@ public class SessionInstance implements Runnable {
 //            classInfoIndex.close();
         }
         if (probeInfoIndex != null) {
-            probeInfoIndex.close();
+//            probeInfoIndex.close();
         }
         if (methodInfoIndex != null) {
 //            methodInfoIndex.close();
@@ -4014,7 +4034,7 @@ public class SessionInstance implements Runnable {
 
     }
 
-    public AtomicInteger getTestCandidates(Consumer<List<TestCandidateMetadata>> testCandidateReceiver,
+    public AtomicInteger getTestCandidates(Consumer<List<TestCandidateBareBone>> testCandidateReceiver,
                                            long afterEventId, FilterModel filterModel) {
 
         AtomicInteger cdl = new AtomicInteger(1);
@@ -4040,14 +4060,12 @@ public class SessionInstance implements Runnable {
                                         "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
                         return;
                     }
-                    List<TestCandidateMetadata> testCandidateMetadataList = daoService
+                    List<TestCandidateBareBone> testCandidateMetadataList = daoService
                             .getTestCandidatePaginated(currentAfterEventId, 0, limit, filterModel);
                     if (testCandidateMetadataList.size() > 0) {
                         count += testCandidateMetadataList.size();
                         testCandidateReceiver.accept(testCandidateMetadataList);
-                        currentAfterEventId =
-                                testCandidateMetadataList.get(0)
-                                        .getEntryProbeIndex() + 1;
+                        currentAfterEventId = testCandidateMetadataList.get(0).getId() + 1;
                     }
                     if (testCandidateMetadataList.size() < limit) {
                         try {

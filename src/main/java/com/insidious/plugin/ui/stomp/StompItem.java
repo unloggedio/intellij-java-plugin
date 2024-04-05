@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.insidious.plugin.MethodSignatureParser;
 import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.TestCandidateLifeListener;
 import com.insidious.plugin.factory.InsidiousService;
@@ -20,8 +21,6 @@ import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
-import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbService;
@@ -40,7 +39,6 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -57,9 +55,9 @@ public class StompItem {
     private final Color defaultPanelColor;
     private final InsidiousService insidiousService;
     private final JCheckBox selectCandidateCheckbox;
-    private final ActionToolbarImpl actionToolbar;
+    //    private final ActionToolbarImpl actionToolbar;
     private final MethodUnderTest methodUnderTest;
-    private TestCandidateMetadata candidateMetadata;
+    private TestCandidateBareBone candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
     //    private JLabel pinLabel;
@@ -77,9 +75,10 @@ public class StompItem {
     private boolean isPinned = false;
     private boolean requestedHighlight = false;
     private JPanel stompRowItem;
+    private TestCandidateMetadata loadedCandidate;
 
     public StompItem(
-            TestCandidateMetadata testCandidateMetadata,
+            TestCandidateBareBone testCandidateMetadata,
             TestCandidateLifeListener testCandidateLifeListener,
             InsidiousService insidiousService, JCheckBox selectCandidateCheckbox) {
         this.selectCandidateCheckbox = selectCandidateCheckbox;
@@ -97,7 +96,7 @@ public class StompItem {
                     Integer firstLine = candidateMetadata.getLineNumbers().get(0);
                     ApplicationManager.getApplication().executeOnPooledThread(() -> {
                         InsidiousUtils.focusProbeLocationInEditor(firstLine,
-                                candidateMetadata.getFullyQualifiedClassname(), insidiousService.getProject());
+                                candidateMetadata.getMethodUnderTest().getClassName(), insidiousService.getProject());
                     });
                 }
             }
@@ -116,7 +115,7 @@ public class StompItem {
                     Integer firstLine = candidateMetadata.getLineNumbers().get(0);
                     ApplicationManager.getApplication().executeOnPooledThread(() -> {
                         InsidiousUtils.focusProbeLocationInEditor(firstLine,
-                                candidateMetadata.getFullyQualifiedClassname(), insidiousService.getProject());
+                                candidateMetadata.methodUnderTest.getClassName(), insidiousService.getProject());
                     });
                 }
 
@@ -137,49 +136,6 @@ public class StompItem {
 
         mainPanel.revalidate();
 
-//        pinLabel.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                if (isPinned) {
-//                    isPinned = false;
-//                    pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
-//                } else {
-//                    isPinned = true;
-//                    pinLabel.setIcon(UIUtils.PUSHPIN_2_FILL);
-//                }
-//            }
-//
-//            @Override
-//            public void mouseEntered(MouseEvent e) {
-//                hoverOn();
-//                if (isPinned) {
-//                    pinLabel.setIcon(UIUtils.UNPIN_LINE);
-//                } else {
-//                    pinLabel.setIcon(UIUtils.PUSHPIN_2_LINE);
-//                }
-//                super.mouseEntered(e);
-//            }
-//
-//            @Override
-//            public void mouseExited(MouseEvent e) {
-//                hoverOff();
-//                if (isPinned) {
-//                    pinLabel.setIcon(UIUtils.PUSHPIN_2_FILL);
-//                } else {
-//                    pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
-//                }
-//                super.mouseExited(e);
-//            }
-//        });
-
-
-//        pinLabel.setIcon(UIUtils.PUSHPIN_LINE);
-//        pinLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        new GotItTooltip("Unlogged.Stomp.Item.Replay",
-//                "Replay a single method again using this button", insidiousService.getProject())
-//                .withPosition(Balloon.Position.above)
-//                .show(replaySingle, GotItTooltip.TOP_MIDDLE);
-
 
         AnAction replayAction = new AnAction(() -> "Replay", UIUtils.REPLAY_PINK) {
 
@@ -189,7 +145,7 @@ public class StompItem {
                     DumbService.getInstance(insidiousService.getProject())
                             .runReadActionInSmartMode(() -> {
                                 testCandidateLifeListener.executeCandidate(Collections.singletonList(candidateMetadata),
-                                        new ClassUnderTest(candidateMetadata.getFullyQualifiedClassname()),
+                                        new ClassUnderTest(candidateMetadata.getMethodUnderTest().getClassName()),
                                         ExecutionRequestSourceType.Single,
                                         (testCandidate, agentCommandResponse, diffResult) -> {
                                             // do something with the response.
@@ -199,16 +155,16 @@ public class StompItem {
             }
         };
 
-        ArrayList<AnAction> action11 = new ArrayList<>();
-        action11.add(replayAction);
-        actionToolbar = new ActionToolbarImpl(
-                "Live View", new DefaultActionGroup(action11), true);
-        actionToolbar.setMiniMode(false);
-        actionToolbar.setForceMinimumSize(true);
-        actionToolbar.setTargetComponent(mainPanel);
-
-
-        controlContainer.add(actionToolbar.getComponent(), BorderLayout.CENTER);
+//        ArrayList<AnAction> action11 = new ArrayList<>();
+//        action11.add(replayAction);
+//        actionToolbar = new ActionToolbarImpl(
+//                "Live View", new DefaultActionGroup(action11), true);
+//        actionToolbar.setMiniMode(false);
+//        actionToolbar.setForceMinimumSize(true);
+//        actionToolbar.setTargetComponent(mainPanel);
+//
+//
+//        controlContainer.add(actionToolbar.getComponent(), BorderLayout.CENTER);
 //        replaySingle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 //        replaySingle.addMouseListener(new MouseAdapter() {
 //            @Override
@@ -240,10 +196,10 @@ public class StompItem {
 //        });
 
 
-        MethodCallExpression mainMethod = candidateMetadata.getMainMethod();
+//        MethodCallExpression mainMethod = candidateMetadata.getMainMethod();
 //        Pair<PsiMethod, PsiSubstitutor> targetPsiMethod = ClassTypeUtils.getPsiMethod(
 //                mainMethod, insidiousService.getProject());
-        methodUnderTest = MethodUnderTest.fromTestCandidateMetadata(candidateMetadata);
+        methodUnderTest = candidateMetadata.getMethodUnderTest();
 //        if (targetPsiMethod != null) {
 //            methodUnderTest = MethodUnderTest.fromPsiCallExpression(targetPsiMethod.getFirst());
 //        } else {
@@ -254,8 +210,9 @@ public class StompItem {
             className = className.substring(className.lastIndexOf(".") + 1);
         }
 //        setTitledBorder("[" + candidateMetadata.getEntryProbeIndex() + "] " + className);
-        long timeTakenMs = (mainMethod.getReturnValue().getProb().getRecordedAt() -
-                mainMethod.getEntryProbe().getRecordedAt()) / (1000 * 1000);
+//        long timeTakenMs = (mainMethod.getReturnValue().getProb().getRecordedAt() -
+//                mainMethod.getEntryProbe().getRecordedAt()) / (1000 * 1000);
+        long timeTakenMs = candidateMetadata.getTimeSpentNano() / (1000 * 1000);
         String itemLabel = String.format("%s", className);
         if (itemLabel.length() > MAX_METHOD_NAME_LABEL_LENGTH) {
             itemLabel = itemLabel.substring(0, MAX_METHOD_NAME_LABEL_LENGTH - 3) + "...";
@@ -323,13 +280,17 @@ public class StompItem {
         }
         ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
 
-        List<Parameter> argumentProbes = mainMethod.getArguments();
-        if (!argumentProbes.isEmpty()) {
+        List<String> descriptorName = MethodSignatureParser.parseMethodSignature(
+                candidateMetadata.getMethodUnderTest().getSignature());
+        String returnValueType = descriptorName.remove(descriptorName.size() - 1);
+        String returnValueClassName = ClassTypeUtils.getJavaClassName(returnValueType);
+
+        if (!descriptorName.isEmpty()) {
 
 
             parameterCountLabel = createTagLabel("%d Argument" + (
-                            argumentProbes.size() > 1 ? "s" : ""
-                    ), new Object[]{argumentProbes.size()}, TAG_LABEL_BACKGROUND_GREY,
+                            descriptorName.size() > 1 ? "s" : ""
+                    ), new Object[]{descriptorName.size()}, TAG_LABEL_BACKGROUND_GREY,
                     TAG_LABEL_TEXT_GREY, labelMouseAdapter);
 
 
@@ -337,30 +298,15 @@ public class StompItem {
                 @Override
                 public void mouseEntered(MouseEvent e) {
 
-                    if (parameterCountLabel.getToolTipText() == null ||
-                            parameterCountLabel.getToolTipText().isEmpty()) {
-                        ObjectNode parametersNode = objectMapper.getNodeFactory().objectNode();
-                        List<Parameter> arguments = mainMethod.getArguments();
-                        for (int i = 0; i < arguments.size(); i++) {
-                            Parameter argument = arguments.get(i);
-                            JsonNode value = ClassTypeUtils.getValueForParameter(argument);
-                            String name = argument.getName();
-                            if (name == null) {
-                                name = "Arg" + i;
-                            }
-                            parametersNode.set(name, value);
-                        }
-                        try {
-                            String prettyPrintedArguments = objectMapper.writerWithDefaultPrettyPrinter()
-                                    .writeValueAsString(parametersNode);
-                            prettyPrintedArguments = prettyPrintedArguments.replaceAll("\\n", "<br/>");
-                            prettyPrintedArguments = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
-                            String prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments + "</html>";
-                            parameterCountLabel.setToolTipText(prettyPrintedArgumentsHtml);
-                        } catch (JsonProcessingException e1) {
-                            e1.printStackTrace();
-                            //
-                        }
+                    if (loadedCandidate == null) {
+                        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                            checkLoadedCandidate();
+                            ApplicationManager.getApplication().invokeLater(() -> {
+                                setArgumentTagHoverText(parameterCountLabel);
+                            });
+                        });
+                    } else {
+                        setArgumentTagHoverText(parameterCountLabel);
                     }
 
                     super.mouseEntered(e);
@@ -376,12 +322,11 @@ public class StompItem {
         if (tagCount < 4) {
 
 
-            String returnValueClassName = mainMethod.getReturnValue().getType();
             if (returnValueClassName != null && returnValueClassName.contains(".")) {
                 returnValueClassName = returnValueClassName.substring(returnValueClassName.lastIndexOf(".") + 1);
             }
 
-            JLabel returnValueTag = createTagLabel("ᐊ " + returnValueClassName, new Object[]{argumentProbes.size()},
+            JLabel returnValueTag = createTagLabel("ᐊ " + returnValueClassName, new Object[]{descriptorName.size()},
                     TAG_LABEL_BACKGROUND_GREY,
                     TAG_LABEL_TEXT_GREY, labelMouseAdapter);
 
@@ -389,25 +334,15 @@ public class StompItem {
             returnValueTag.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
-                    if (returnValueTag.getToolTipText() == null
-                            || returnValueTag.getToolTipText().isEmpty()) {
-                        JsonNode valueForParameter = ClassTypeUtils.getValueForParameter(mainMethod.getReturnValue());
-                        String prettyPrintedArgumentsHtml = "{}";
-                        if (valueForParameter.isNumber()
-                                && (mainMethod.getReturnValue().getType() == null ||
-                                (mainMethod.getReturnValue().getType().length() != 1 &&
-                                        !mainMethod.getReturnValue().getType().startsWith("java.lang")))
-                        ) {
-                            // not a serializable value
-//                            valueForParameter = objectMapper.createObjectNode();
-                        } else {
-                            prettyPrintedArgumentsHtml = getPrettyPrintedArgumentsHtml(valueForParameter);
-                        }
-
-                        if (prettyPrintedArgumentsHtml != null) {
-                            returnValueTag.setToolTipText(prettyPrintedArgumentsHtml);
-                        }
-
+                    if (loadedCandidate == null) {
+                        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                            checkLoadedCandidate();
+                            ApplicationManager.getApplication().invokeLater(() -> {
+                                setReturnTagHoverValue(returnValueTag);
+                            });
+                        });
+                    } else {
+                        setReturnTagHoverValue(returnValueTag);
                     }
                     super.mouseEntered(e);
                 }
@@ -477,14 +412,16 @@ public class StompItem {
     public static JLabel createTagLabel(String tagText, Object[] value, Color backgroundColor, Color foreground,
                                         MouseAdapter mouseAdapter) {
         JLabel label = new JLabel();
-        label.setText(String.format("<html><small>" + tagText + "</small></html>", value));
+
+        String hex = "#" + Integer.toHexString(foreground.getRGB()).substring(2);
+        label.setText(String.format("<html><font size=-1 color=" + hex + ">" + tagText + "</font></html>",
+                value));
 
         label.setOpaque(true);
         JPopupMenu jPopupMenu = new JPopupMenu("Yay");
         jPopupMenu.add(new JMenuItem("item 1", UIUtils.GHOST_MOCK));
         label.setComponentPopupMenu(jPopupMenu);
         label.setBackground(backgroundColor);
-        label.setForeground(foreground);
 
         // Creating a rounded border
         Border roundedBorder = BorderFactory.createCompoundBorder(
@@ -496,23 +433,87 @@ public class StompItem {
         return label;
     }
 
+    private void setArgumentTagHoverText(JLabel parameterCountLabel) {
+        ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
+        if (this.parameterCountLabel.getToolTipText() == null ||
+                this.parameterCountLabel.getToolTipText().isEmpty()) {
+            ObjectNode parametersNode = objectMapper.getNodeFactory().objectNode();
+            List<Parameter> arguments = loadedCandidate.getMainMethod().getArguments();
+            for (int i = 0; i < arguments.size(); i++) {
+                Parameter argument = arguments.get(i);
+                JsonNode value = ClassTypeUtils.getValueForParameter(argument);
+                String name = argument.getName();
+                if (name == null) {
+                    name = "Arg" + i;
+                }
+                parametersNode.set(name, value);
+            }
+            try {
+                String prettyPrintedArguments = objectMapper.writerWithDefaultPrettyPrinter()
+                        .writeValueAsString(parametersNode);
+                prettyPrintedArguments = prettyPrintedArguments.replaceAll("\\n", "<br/>");
+                prettyPrintedArguments = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
+                String prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments + "</html>";
+                this.parameterCountLabel.setToolTipText(prettyPrintedArgumentsHtml);
+            } catch (JsonProcessingException e1) {
+                e1.printStackTrace();
+                //
+            }
+        }
+    }
+
+    private void setReturnTagHoverValue(JLabel returnValueTag) {
+        if (loadedCandidate == null) {
+            return;
+        }
+        MethodCallExpression mainMethod = loadedCandidate.getMainMethod();
+
+        if (returnValueTag.getToolTipText() == null
+                || returnValueTag.getToolTipText().isEmpty()) {
+            JsonNode valueForParameter = ClassTypeUtils.getValueForParameter(mainMethod.getReturnValue());
+            String prettyPrintedArgumentsHtml = "{}";
+            if (valueForParameter.isNumber()
+                    && (mainMethod.getReturnValue().getType() == null ||
+                    (mainMethod.getReturnValue().getType().length() != 1 &&
+                            !mainMethod.getReturnValue().getType().startsWith("java.lang")))
+            ) {
+                // not a serializable value
+//                            valueForParameter = objectMapper.createObjectNode();
+            } else {
+                prettyPrintedArgumentsHtml = getPrettyPrintedArgumentsHtml(valueForParameter);
+            }
+
+            if (prettyPrintedArgumentsHtml != null) {
+                returnValueTag.setToolTipText(prettyPrintedArgumentsHtml);
+            }
+
+        }
+    }
+
+    private synchronized void checkLoadedCandidate() {
+        if (loadedCandidate == null) {
+            loadedCandidate = insidiousService.getTestCandidateById(
+                    candidateMetadata.getId(), true);
+        }
+    }
+
     private void highlight() {
         if (!requestedHighlight) {
             requestedHighlight = true;
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
-
+                checkLoadedCandidate();
                 Pair<PsiMethod, PsiSubstitutor> targetPsiMethod =
                         ApplicationManager.getApplication().runReadAction(
                                 (Computable<Pair<PsiMethod, PsiSubstitutor>>) () -> ClassTypeUtils.getPsiMethod(
-                                        candidateMetadata.getMainMethod(), insidiousService.getProject()));
+                                        loadedCandidate.getMainMethod(), insidiousService.getProject()));
                 if (targetPsiMethod != null) {
                     MethodUnderTest methodUnderTest1 = ApplicationManager.getApplication().runReadAction(
                             (Computable<MethodUnderTest>) () -> MethodUnderTest.fromPsiCallExpression(
                                     targetPsiMethod.getFirst()));
-                    insidiousService.highlightTimingInformation(candidateMetadata,
+                    insidiousService.highlightTimingInformation(loadedCandidate,
                             methodUnderTest1);
                 } else {
-                    insidiousService.highlightTimingInformation(candidateMetadata, methodUnderTest);
+                    insidiousService.highlightTimingInformation(loadedCandidate, methodUnderTest);
                 }
 
 
@@ -566,7 +567,7 @@ public class StompItem {
         statusLabel.setText(statusText);
     }
 
-    public TestCandidateMetadata getTestCandidate() {
+    public TestCandidateBareBone getTestCandidate() {
         return candidateMetadata;
     }
 
@@ -578,11 +579,11 @@ public class StompItem {
         return isPinned;
     }
 
-    public void setStompRowItem(JPanel stompRowItem) {
-        this.stompRowItem = stompRowItem;
-    }
-
     public JPanel getStompRowItem() {
         return stompRowItem;
+    }
+
+    public void setStompRowItem(JPanel stompRowItem) {
+        this.stompRowItem = stompRowItem;
     }
 }

@@ -43,8 +43,11 @@ public class MethodDefinition implements Comparable<MethodDefinition> {
     @DatabaseField
     private int lineCount;
 
+//    @DatabaseField
     private String methodHash;
+//    @DatabaseField
     private String sourceFileName;
+//    @DatabaseField
     private int classId;
 
     public MethodDefinition(int id, String argumentTypes, String methodName, boolean isStatic,
@@ -71,6 +74,7 @@ public class MethodDefinition implements Comparable<MethodDefinition> {
         methodDefinition.setMethodAccess(methodInfo.getAccess());
         methodDefinition.setMethodName(methodInfo.getMethodName());
         methodDefinition.setId(methodInfo.getMethodId());
+
         methodDefinition.setLineCount(lineCount);
 
 

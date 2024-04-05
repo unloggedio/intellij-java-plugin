@@ -20,7 +20,7 @@ public class ReplayData {
     private final FilteredDataEventsRequest filteredDataEventsRequest;
     List<DataEventWithSessionId> dataEvents;
     Map<Integer, ClassInfo> classInfoMap;
-    ChronicleMap<Integer, DataInfo> probeInfoMap;
+    Map<Integer, DataInfo> probeInfoMap;
     Map<Long, StringInfo> stringInfoMap;
     Map<Long, ObjectInfo> objectInfoMap;
     Map<Integer, TypeInfo> typeInfoMap;
@@ -32,7 +32,7 @@ public class ReplayData {
             FilteredDataEventsRequest filteredDataEventsRequest,
             List<DataEventWithSessionId> dataList,
             Map<Integer, ClassInfo> classInfo,
-            ChronicleMap<Integer, DataInfo> dataInfo,
+            Map<Integer, DataInfo> dataInfo,
             Map<Long, StringInfo> stringInfo,
             Map<Long, ObjectInfo> objectInfoMap,
             Map<Integer, TypeInfo> typeInfoMap,

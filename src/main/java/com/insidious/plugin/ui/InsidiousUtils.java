@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
@@ -46,9 +47,16 @@ public class InsidiousUtils {
                             () -> FilenameIndex
                                     .getFilesByName(project, finalFileName, GlobalSearchScope.projectScope(project)));
             if (searchResult.length == 0) {
-                return;
+
+                newFile = JavaPsiFacade.getInstance(project)
+                        .findClass(ClassTypeUtils.getDottedClassName(className), GlobalSearchScope.allScope(project))
+                        .getContainingFile().getVirtualFile();
+                if (newFile == null) {
+                    return;
+                }
+            } else {
+                newFile = searchResult[0].getVirtualFile();
             }
-            newFile = searchResult[0].getVirtualFile();
         }
 
         VirtualFile finalNewFile = newFile;
@@ -70,7 +78,7 @@ public class InsidiousUtils {
                     int lineOffsetStart = newDocument.getLineStartOffset(lineNumber - 1);
                     editor.getCaretModel().getCurrentCaret().moveToOffset(lineOffsetStart);
                     editor.getScrollingModel().scrollToCaret(ScrollType.CENTER);
-                }catch (Exception e) {
+                } catch (Exception e) {
                     // failed to focus
                 }
             }

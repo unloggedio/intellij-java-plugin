@@ -96,7 +96,7 @@ public class TestCandidateSaveForm {
     private JSeparator linesCoveredLine;
     private JLabel linesCoveredExpandIcon;
 
-    public TestCandidateSaveForm(List<TestCandidateMetadata> sourceCandidates,
+    public TestCandidateSaveForm(List<TestCandidateBareBone> sourceCandidates,
                                  SaveFormListener saveFormListener,
                                  ComponentLifecycleListener<TestCandidateSaveForm> componentLifecycleListener,
                                  ProgressIndicator progressIndicator) {
@@ -134,9 +134,9 @@ public class TestCandidateSaveForm {
         progressIndicator.setText("Loading " + sourceCandidates.size() + " Replay");
 
         List<TestCandidateMetadata> list = new ArrayList<>();
-        for (TestCandidateMetadata sourceCandidate : sourceCandidates) {
+        for (TestCandidateBareBone sourceCandidate : sourceCandidates) {
             TestCandidateMetadata testCandidateById = insidiousService.getTestCandidateById(
-                    sourceCandidate.getEntryProbeIndex(),
+                    sourceCandidate.getId(),
                     true);
             list.add(testCandidateById);
         }

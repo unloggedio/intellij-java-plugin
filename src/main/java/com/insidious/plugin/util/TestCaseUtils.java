@@ -12,6 +12,7 @@ import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.stomp.FilterModel;
+import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.intellij.openapi.diagnostic.Logger;
 
 import java.util.ArrayList;
@@ -31,8 +32,10 @@ public class TestCaseUtils {
 
         sessionInstance.getTestCandidates(testCandidateMetadata -> {
 
-            for (TestCandidateMetadata testCandidateMetadatum : testCandidateMetadata) {
+            for (TestCandidateBareBone testCandidateBareBone : testCandidateMetadata) {
+                TestCandidateMetadata testCandidateMetadatum = null;
                 try {
+                    testCandidateMetadatum = insidiousService.getTestCandidateById(testCandidateBareBone.getId(), true);
                     TestCaseUnit testCaseUnit;
                     Parameter testSubject = testCandidateMetadatum.getTestSubject();
                     if (testSubject.isException()) {
