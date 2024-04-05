@@ -7,13 +7,16 @@ import com.intellij.openapi.diagnostic.Logger;
 import net.openhft.chronicle.map.ChronicleMap;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ChronicleVariableContainer {
     private static final Logger logger = LoggerUtil.getInstance(ChronicleVariableContainer.class);
-    final ChronicleMap<Long, Parameter> parameterMap;
+    //    final ChronicleMap<Long, Parameter> parameterMap;
+    final Map<Long, Parameter> parameterMap;
 
     public ChronicleVariableContainer(ChronicleMap<Long, Parameter> parameterMap) {
-        this.parameterMap = parameterMap;
+        this.parameterMap = new HashMap<>();
     }
 
 
@@ -77,9 +80,9 @@ public class ChronicleVariableContainer {
         if (eventValue == 0) {
             return new Parameter(eventValue);
         }
-        if (parameterMap.isClosed()) {
-            return new Parameter(eventValue);
-        }
+//        if (parameterMap.isClosed()) {
+//            return new Parameter(eventValue);
+//        }
         Parameter parameter = this.parameterMap.get(eventValue);
         if (parameter == null) {
             parameter = new Parameter(eventValue);
@@ -92,7 +95,7 @@ public class ChronicleVariableContainer {
         if (eventValue == 0) {
             return new Parameter(eventValue);
         }
-        parameter = this.parameterMap.getUsing(eventValue, parameter);
+        parameter = this.parameterMap.get(eventValue);
         if (parameter == null) {
             parameter = new Parameter(eventValue);
             return parameter;
@@ -102,6 +105,6 @@ public class ChronicleVariableContainer {
 
 
     public void close() {
-        parameterMap.close();
+//        parameterMap.close();
     }
 }

@@ -19,24 +19,24 @@ public class ReplayData {
     private static final Logger logger = LoggerUtil.getInstance(ReplayData.class);
     private final FilteredDataEventsRequest filteredDataEventsRequest;
     List<DataEventWithSessionId> dataEvents;
-    ChronicleMap<Integer, ClassInfo> classInfoMap;
+    Map<Integer, ClassInfo> classInfoMap;
     ChronicleMap<Integer, DataInfo> probeInfoMap;
     Map<Long, StringInfo> stringInfoMap;
     Map<Long, ObjectInfo> objectInfoMap;
     Map<Integer, TypeInfo> typeInfoMap;
-    ChronicleMap<Integer, MethodInfo> methodInfoMap;
+    Map<Integer, MethodInfo> methodInfoMap;
     private VideobugClientInterface client;
 
     public ReplayData(
             VideobugClientInterface client,
             FilteredDataEventsRequest filteredDataEventsRequest,
             List<DataEventWithSessionId> dataList,
-            ChronicleMap<Integer, ClassInfo> classInfo,
+            Map<Integer, ClassInfo> classInfo,
             ChronicleMap<Integer, DataInfo> dataInfo,
             Map<Long, StringInfo> stringInfo,
             Map<Long, ObjectInfo> objectInfoMap,
             Map<Integer, TypeInfo> typeInfoMap,
-            ChronicleMap<Integer, MethodInfo> methodInfoMap
+            Map<Integer, MethodInfo> methodInfoMap
     ) {
         this.client = client;
         this.filteredDataEventsRequest = filteredDataEventsRequest;

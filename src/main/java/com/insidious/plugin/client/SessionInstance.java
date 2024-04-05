@@ -104,12 +104,12 @@ public class SessionInstance implements Runnable {
     private boolean scanEnable = false;
     private List<File> sessionArchives = new ArrayList<>();
     private ArchiveIndex archiveIndex;
-    private ChronicleMap<Long, ObjectInfoDocument> objectInfoIndex;
+    private Map<Long, ObjectInfoDocument> objectInfoIndex;
     private ChronicleMap<Integer, DataInfo> probeInfoIndex;
-    private ChronicleMap<Integer, TypeInfoDocument> typeInfoIndex;
-    private ChronicleMap<Integer, MethodInfo> methodInfoIndex;
-    private ChronicleMap<String, MethodInfo> methodInfoByNameIndex;
-    private ChronicleMap<Integer, ClassInfo> classInfoIndex;
+    private Map<Integer, TypeInfoDocument> typeInfoIndex;
+    private Map<Integer, MethodInfo> methodInfoIndex;
+    private Map<String, MethodInfo> methodInfoByNameIndex;
+    private Map<Integer, ClassInfo> classInfoIndex;
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexCollection;
     private List<NewTestCandidateIdentifiedListener> testCandidateListener = new ArrayList<>();
     private File currentSessionArchiveBeingProcessed;
@@ -154,8 +154,8 @@ public class SessionInstance implements Runnable {
         JdbcConnectionSource connectionSource = new JdbcConnectionSource(
                 executionSession.getDatabaseConnectionString());
 
-        ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
-        parameterContainer = new ChronicleVariableContainer(parameterIndex);
+//        ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
+        parameterContainer = new ChronicleVariableContainer(null);
 
         ParameterProvider parameterProvider = value -> parameterContainer.getParameterByValue(value);
         daoService = new DaoService(connectionSource, parameterProvider, ObjectMapperInstance.getInstance());
@@ -291,11 +291,11 @@ public class SessionInstance implements Runnable {
         } catch (Throwable e) {
 //            e.printStackTrace();
             if (e instanceof RuntimeException && e.getCause() instanceof InvalidClassException) {
-                typeInfoIndex.close();
-                objectInfoIndex.close();
+//                typeInfoIndex.close();
+//                objectInfoIndex.close();
                 probeInfoIndex.close();
-                methodInfoIndex.close();
-                classInfoIndex.close();
+//                methodInfoIndex.close();
+//                classInfoIndex.close();
                 e.printStackTrace();
                 List<String> indexFiles = Arrays.asList(
                         "index.class.dat",
@@ -2278,8 +2278,8 @@ public class SessionInstance implements Runnable {
             }
 
             if (parameterContainer == null) {
-                ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
-                parameterContainer = new ChronicleVariableContainer(parameterIndex);
+//                ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
+                parameterContainer = new ChronicleVariableContainer(null);
             }
 
             boolean newCandidateIdentified = false;
@@ -2483,7 +2483,7 @@ public class SessionInstance implements Runnable {
         com.insidious.plugin.pojo.dao.TestCandidateMetadata completedExceptional;
         com.insidious.plugin.pojo.dao.MethodCallExpression methodCall;
         com.insidious.plugin.pojo.dao.MethodCallExpression topCall;
-
+        MethodInfo methodInfo = new MethodInfo(0, 0, null, null, null, 0, null, null);
         String existingParameterType;
         Parameter parameterInstance = new Parameter();
         logger.warn("processing [" + eventsSublist.size() + "] events from [" + logFileList.size() + "] log files");
@@ -3020,7 +3020,7 @@ public class SessionInstance implements Runnable {
 
                 case METHOD_ENTRY:
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                    MethodInfo methodInfo = methodInfoIndex.get(probeInfo.getMethodId());
+                    methodInfo = methodInfoIndex.get(probeInfo.getMethodId());
                     methodCall = null;
                     // a method_entry event can come in without a corresponding event for call,
                     // in which case this is actually a separate method call
@@ -3945,19 +3945,19 @@ public class SessionInstance implements Runnable {
                     NotificationType.ERROR);
         }
         if (classInfoIndex != null) {
-            classInfoIndex.close();
+//            classInfoIndex.close();
         }
         if (probeInfoIndex != null) {
             probeInfoIndex.close();
         }
         if (methodInfoIndex != null) {
-            methodInfoIndex.close();
+//            methodInfoIndex.close();
         }
         if (typeInfoIndex != null) {
-            typeInfoIndex.close();
+//            typeInfoIndex.close();
         }
         if (objectInfoIndex != null) {
-            objectInfoIndex.close();
+//            objectInfoIndex.close();
         }
         if (parameterContainer != null) {
             parameterContainer.close();
@@ -4046,7 +4046,7 @@ public class SessionInstance implements Runnable {
                         count += testCandidateMetadataList.size();
                         testCandidateReceiver.accept(testCandidateMetadataList);
                         currentAfterEventId =
-                                testCandidateMetadataList.get(testCandidateMetadataList.size() - 1)
+                                testCandidateMetadataList.get(0)
                                         .getEntryProbeIndex() + 1;
                     }
                     if (testCandidateMetadataList.size() < limit) {

@@ -183,6 +183,11 @@ public class DaoService {
 
         // instantiate the DAO to handle Account with String id
         testCandidateDao = DaoManager.createDao(connectionSource, TestCandidateMetadata.class);
+
+        testCandidateDao.executeRaw("PRAGMA synchronous=OFF");
+        testCandidateDao.executeRaw("PRAGMA locking_mode=EXCLUSIVE");
+        testCandidateDao.executeRaw("PRAGMA journal_mode=OFF");
+
         probeInfoDao = DaoManager.createDao(connectionSource, ProbeInfo.class);
 //        parameterDao = DaoManager.createDao(connectionSource, Parameter.class);
         logFilesDao = DaoManager.createDao(connectionSource, LogFile.class);
@@ -333,11 +338,11 @@ public class DaoService {
 
         } else {
 
-            int methodCallsCountFromDb = getMethodCallExpressionToMockCount(testCandidateMetadata);
-            callsList = new ArrayList<>(methodCallsCountFromDb);
-            for (int i = 0; i < methodCallsCountFromDb; i++) {
-                callsList.add(new com.insidious.plugin.pojo.MethodCallExpression());
-            }
+//            int methodCallsCountFromDb = getMethodCallExpressionToMockCount(testCandidateMetadata);
+            callsList = new ArrayList<>(0);
+//            for (int i = 0; i < methodCallsCountFromDb; i++) {
+//                callsList.add(new com.insidious.plugin.pojo.MethodCallExpression());
+//            }
 
             List<MethodCallExpressionInterface> mces = new ArrayList<>();
             mces.add(getMethodCallExpressionById(testCandidateMetadata.getMainMethod()));
@@ -1893,7 +1898,7 @@ public class DaoService {
                     "tc.entryProbeIndex >= ? "
             );
             argumentsList.add(String.valueOf(afterEventId));
-            query.append(" order by tc.entryProbeIndex asc");
+            query.append(" order by tc.entryProbeIndex desc");
             query.append(" limit ? ");
             argumentsList.add(String.valueOf(limit));
             query.append(" offset ? ");
@@ -1923,7 +1928,11 @@ public class DaoService {
                 .stream()
                 .map(e -> {
                     try {
-                        return convertTestCandidateMetadata(e, false);
+                        long start = System.currentTimeMillis();
+                        com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata = convertTestCandidateMetadata(
+                                e, false);
+                        logger.warn("Convert test case took: " + (System.currentTimeMillis() - start) + " ms");
+                        return testCandidateMetadata;
                     } catch (Exception ex) {
                         logger.warn("failed to convert test candidate" + ex);
                         return null;

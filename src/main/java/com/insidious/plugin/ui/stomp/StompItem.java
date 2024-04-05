@@ -416,23 +416,23 @@ public class StompItem {
             metadataPanel.add(returnValueTag);
         }
 
-        if (tagCount < 4) {
-            int size = candidateMetadata.getCallsList().size();
-            if (size > 0) {
-                callsCountLabel = createTagLabel("%d Downstream", new Object[]{size},
-                        TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, labelMouseAdapter);
-//            callsCountLabel.setToolTipText("Click to show downstream calls");
-//            callsCountLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//            callsCountLabel.addMouseListener(new MouseAdapter() {
-//                @Override
-//                public void mouseClicked(MouseEvent e) {
-//                    testCandidateLifeListener.onExpandChildren(candidateMetadata);
-//                    super.mouseClicked(e);
-//                }
-//            });
-                metadataPanel.add(callsCountLabel);
-            }
-        }
+//        if (tagCount < 4) {
+//            int size = candidateMetadata.getCallsList().size();
+//            if (size > 0) {
+//                callsCountLabel = createTagLabel("%d Downstream", new Object[]{size},
+//                        TAG_LABEL_BACKGROUND_GREY, TAG_LABEL_TEXT_GREY, labelMouseAdapter);
+////            callsCountLabel.setToolTipText("Click to show downstream calls");
+////            callsCountLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+////            callsCountLabel.addMouseListener(new MouseAdapter() {
+////                @Override
+////                public void mouseClicked(MouseEvent e) {
+////                    testCandidateLifeListener.onExpandChildren(candidateMetadata);
+////                    super.mouseClicked(e);
+////                }
+////            });
+//                metadataPanel.add(callsCountLabel);
+//            }
+//        }
 
 
         selectCandidateCheckbox.addMouseListener(labelMouseAdapter);
