@@ -139,7 +139,6 @@ public class UITestsV2 {
         //clear got its
         clearGotIts(idea);
 
-
         //hide terminal
         idea.getTerminalToolWindowHideButton().click();
 
@@ -153,7 +152,7 @@ public class UITestsV2 {
         CustomGutterIconComparator iconComparator = new CustomGutterIconComparator();
         Collections.sort(gutterIcons, iconComparator);
 
-        scrollToIcon(editor, gutterIcons.get(1));
+        scrollToIcon(editor, gutterIcons.get(0));
         gutterIcons.get(1).click();
         idea.getDirectInvokeExecuteButtonNew().click();
         pause(ofSeconds(5).toMillis());
