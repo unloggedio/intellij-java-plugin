@@ -584,6 +584,10 @@ public class ClassTypeUtils {
         String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
         PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
                 GlobalSearchScope.allScope(project));
+        if (classPsiElement == null) {
+            logger.warn("Class not found [" + subjectClassName + "]");
+            return null;
+        }
 
         String methodName = methodCallExpression.getMethodName();
         boolean isLambda = false;
