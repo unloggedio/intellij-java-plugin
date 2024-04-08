@@ -434,9 +434,12 @@ public class StompItem {
     }
 
     private void setArgumentTagHoverText(JLabel parameterCountLabel) {
+        if (loadedCandidate == null) {
+            return;
+        }
         ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
-        if (this.parameterCountLabel.getToolTipText() == null ||
-                this.parameterCountLabel.getToolTipText().isEmpty()) {
+        if (parameterCountLabel.getToolTipText() == null ||
+                parameterCountLabel.getToolTipText().isEmpty()) {
             ObjectNode parametersNode = objectMapper.getNodeFactory().objectNode();
             List<Parameter> arguments = loadedCandidate.getMainMethod().getArguments();
             for (int i = 0; i < arguments.size(); i++) {
@@ -454,7 +457,7 @@ public class StompItem {
                 prettyPrintedArguments = prettyPrintedArguments.replaceAll("\\n", "<br/>");
                 prettyPrintedArguments = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
                 String prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments + "</html>";
-                this.parameterCountLabel.setToolTipText(prettyPrintedArgumentsHtml);
+                parameterCountLabel.setToolTipText(prettyPrintedArgumentsHtml);
             } catch (JsonProcessingException e1) {
                 e1.printStackTrace();
                 //

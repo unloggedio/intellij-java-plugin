@@ -3059,6 +3059,7 @@ public class SessionInstance implements Runnable {
                                     methodCall.getEntryProbe_id() ==
                                             (eventBlock.eventId() - methodCall.getArgumentProbes().size() - 1)
                                             && methodCall.getSubject() == dataEvent.getValue()
+                                    && methodCall.getMethodDefinitionId() == methodInfo.getMethodId()
                             ) {
                                 // we are inside a method call on a class intercepted by spring or cglib companions
                                 // but this is the actual method call
