@@ -59,6 +59,7 @@ public class UITestUtils {
         TOOLBAR_SELECT_ALL("//div[@myicon='selectall.svg']"),
         TOOLBAR_REFRESH("//div[@myicon='refresh.svg']"),
         TOOLBAR_DELETE_ICON("//div[@myicon='gc.svg']"),
+        JUNIT_TOP_TOOLBAR("//div[@myicon='tests.svg']"),
         MOCK_EDIT_PANEL_RETURN_TYPE_SELECTOR("//div[@visible_text='Return']"),
         MOCK_EDIT_RETURN_TYPE_NULL("//div[@text='Return null']"),
         LIBRARY_HEADER_TAB("//div[@text='Library']"),

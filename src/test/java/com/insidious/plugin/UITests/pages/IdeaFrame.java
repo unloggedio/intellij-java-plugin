@@ -259,6 +259,10 @@ public class IdeaFrame extends CommonContainerFixture {
         return UITestUtils.getContainerFixture(remoteRobot, UITestUtils.UITags.SHELL_WIDGET);
     }
 
+    public ContainerFixture getJunitTopToolbarIcon() {
+        return UITestUtils.getContainerFixture(remoteRobot, UITestUtils.UITags.JUNIT_TOP_TOOLBAR);
+    }
+
     public ComponentFixture getmavenToolBarHideIcon() {
         return UITestUtils.getContainerFixture(remoteRobot, UITestUtils.UITags.MAVEN_TOOLBAR_HIDE);
     }

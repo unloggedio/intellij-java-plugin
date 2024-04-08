@@ -117,9 +117,7 @@ public class UITestsV2 {
         //wait for 2 mins - or how much time docker compose would take
         //todo - hook to terminal stdout and search for start indicator
         pause(ofMinutes(2).toMillis());
-
-        List<ComponentFixture> gotItTexts = idea.getGotItTexts();
-        gotItTexts.forEach(text -> text.click());
+        clearGotIts(idea);
 
         //call prep1
         prep_TC2(idea);
@@ -128,33 +126,39 @@ public class UITestsV2 {
         test_TC2(idea);
     }
 
+    private void clearGotIts(IdeaFrame idea) {
+        List<ComponentFixture> gotItTexts = idea.getGotItTexts();
+        gotItTexts.forEach(text -> text.click());
+    }
+
     private void prep_TC2(IdeaFrame idea) {
 
         openFile("UiTestPrepHelper", idea);
         expandJavaFile(idea.textEditor().getEditor());
 
         //clear got its
-        List<ComponentFixture> gotItIcons = idea.getGotItTexts();
-        gotItIcons.forEach(ComponentFixture::click);
+        clearGotIts(idea);
+
 
         //hide terminal
         idea.getTerminalToolWindowHideButton().click();
 
         //one more round of got it clear
-        gotItIcons = idea.getGotItTexts();
-        gotItIcons.forEach(ComponentFixture::click);
+        clearGotIts(idea);
 
         TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
-        GutterIcon addMethodIcon = editor.getGutter().getIcons().stream()
-                .filter(icon -> icon.toString().contains("profileBlue.svg") && icon.getLineNumber() > 30)
-                .toList().get(0);
-        scrollToIcon(editor, addMethodIcon);
-        addMethodIcon.click();
+        List<GutterIcon> gutterIcons = editor.getGutter().getIcons().stream()
+                .filter(icon -> icon.toString().contains("profileBlue.svg"))
+                .toList();
+        CustomGutterIconComparator iconComparator = new CustomGutterIconComparator();
+        Collections.sort(gutterIcons, iconComparator);
+
+        scrollToIcon(editor, gutterIcons.get(1));
+        gutterIcons.get(1).click();
         idea.getDirectInvokeExecuteButtonNew().click();
         pause(ofSeconds(5).toMillis());
 
-        gotItIcons = idea.getGotItTexts();
-        gotItIcons.forEach(ComponentFixture::click);
+        clearGotIts(idea);
     }
 
     public void test_TC2(IdeaFrame idea) {
@@ -288,8 +292,7 @@ public class UITestsV2 {
         }
 
         //clear got its
-        List<ComponentFixture> gotItIcons = idea.getGotItTexts();
-        gotItIcons.forEach(ComponentFixture::click);
+        clearGotIts(idea);
 
         //record the output for verification
         List<RemoteText> remoteTexts = responseTreeFixture.getData().getAll();
@@ -353,6 +356,12 @@ public class UITestsV2 {
         Assertions.assertTrue(passing);
         //assertion done
 
+
+        //clear liveView
+        clearGotIts(idea);
+        ComponentFixture deleteButton = idea.getToolBarDeleteButton();
+        deleteButton.click();
+
         //reload mock icons -> needed to ensure proper coordinates are taken
         editor = idea.textEditor(Duration.ofSeconds(2));
         unloggedMockIcons = editor.getGutter().getIcons().stream()
@@ -361,7 +370,10 @@ public class UITestsV2 {
         mockIcons = new ArrayList<>(unloggedMockIcons);
         Collections.sort(mockIcons, iconComparator);
 
+        clearGotIts(idea);
+
         for (int i = 0; i < mockIcons.size(); i++) {
+            clearGotIts(idea);
             GutterIcon mockIcon = mockIcons.get(i);
             scrollToIcon(editor, mockIcon);
             mockIcon.moveMouse();
@@ -377,6 +389,9 @@ public class UITestsV2 {
             }
             List<RemoteText> mockEntries = mockScrollPanel.getData().getAll();
             assert mockEntries.size() > 1;
+
+            idea.getToolBarDeleteButton().click();
+            pause(ofMillis(250).toMillis());
 
             List<ComponentFixture> checkBoxes = idea.getAllVisibleCheckBoxes();
             checkBoxes.forEach(checkBox -> {
@@ -409,6 +424,9 @@ public class UITestsV2 {
             pause(ofMillis(250).toMillis());
         }
 
+        mainIcon = editor.getGutter().getIcons().stream()
+                .filter(icon -> icon.toString().contains("profileBlue.svg"))
+                .toList().get(0);
         scrollToIcon(editor, mainIcon);
         mainIcon.moveMouse();
         mainIcon.click();
@@ -482,6 +500,11 @@ public class UITestsV2 {
         }
         Assertions.assertTrue(passing);
 
+        //clear liveView
+        clearGotIts(idea);
+        deleteButton = idea.getToolBarDeleteButton();
+        deleteButton.click();
+
         //rename and delete mocks
         //open library
         ComponentFixture libraryTabHeader = idea.getlibraryTabHeader();
@@ -531,11 +554,16 @@ public class UITestsV2 {
             mockExists = false;
         }
         Assertions.assertFalse(mockExists);
-
         //switch to live view
         idea.getLiveTabHeader().click();
         //save all candidates in the end
+        idea.getRefreshButton().click();
+        pause(ofSeconds(2).toMillis());
         tryToSaveAll(idea);
+        pause(ofSeconds(2).toMillis());
+
+        idea.getJunitTopToolbarIcon().click();
+        pause(ofSeconds(2).toMillis());
     }
 
     private void scrollToIcon(TextEditorFixture editorFixture, GutterIcon icon) {
