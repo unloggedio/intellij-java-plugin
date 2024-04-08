@@ -121,7 +121,6 @@ final public class InsidiousService implements
     final static private int TOOL_WINDOW_WIDTH = 400;
     private final ExecutorService connectionCheckerThreadPool = Executors.newFixedThreadPool(1,
             new DefaultThreadFactory("UnloggedProjectThreadPool", true));
-    private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
     private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
@@ -171,7 +170,7 @@ final public class InsidiousService implements
         FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
         this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
         sessionListener = new GetProjectSessionsCallback() {
-            private final Map<String, Boolean> checkCache = new HashMap<>();
+            private final Map<String, ServerMetadata> checkCache = new HashMap<>();
             private ExecutionSession currentSession;
 
             @Override
@@ -203,9 +202,11 @@ final public class InsidiousService implements
                 logger.debug(
                         "New session: [" + mostRecentSession.getSessionId() + "] vs existing session: " + currentSession);
 
+                ServerMetadata serverMetadata;
                 if (currentSession == null) {
+                    serverMetadata = checkSessionBelongsToProject(mostRecentSession, project);
                     // no session currently loaded, and we can load a new sessions
-                    if (!checkSessionBelongsToProject(mostRecentSession, project)) {
+                    if (serverMetadata == null) {
                         return;
                     }
 
@@ -213,7 +214,8 @@ final public class InsidiousService implements
                     // already using this session
                     return;
                 } else {
-                    if (!checkSessionBelongsToProject(mostRecentSession, project)) {
+                    serverMetadata = checkSessionBelongsToProject(mostRecentSession, project);
+                    if (null == serverMetadata) {
                         return;
                     }
                     logger.warn(
@@ -221,10 +223,10 @@ final public class InsidiousService implements
                                     "recent session found [" + mostRecentSession.getSessionId() + "]");
                 }
                 currentSession = mostRecentSession;
-                setSession(mostRecentSession);
+                setSession(mostRecentSession, serverMetadata);
             }
 
-            private boolean checkSessionBelongsToProject(ExecutionSession mostRecentSession, Project project) {
+            private ServerMetadata checkSessionBelongsToProject(ExecutionSession mostRecentSession, Project project) {
                 if (checkCache.containsKey(mostRecentSession.getSessionId())) {
                     return checkCache.get(mostRecentSession.getSessionId());
                 }
@@ -240,8 +242,8 @@ final public class InsidiousService implements
                     if (!agentParamsLine.startsWith("Params: ")) {
                         logger.warn(
                                 "The third line is not Params line, marked as session not matching: " + mostRecentSession.getLogFilePath());
-                        checkCache.put(mostRecentSession.getSessionId(), false);
-                        return false;
+                        checkCache.put(mostRecentSession.getSessionId(), null);
+                        return null;
                     }
                     String[] paramParts = agentParamsLine.substring("Params: ".length()).split(",");
                     boolean foundIncludePackage = false;
@@ -254,10 +256,23 @@ final public class InsidiousService implements
                         }
                     }
                     if (!foundIncludePackage) {
-                        checkCache.put(mostRecentSession.getSessionId(), false);
+                        checkCache.put(mostRecentSession.getSessionId(), null);
                         logger.warn(
                                 "Package not found in the params, marked as session not matching: " + mostRecentSession.getLogFilePath());
-                        return false;
+                        return null;
+                    }
+                    String serverMetadataJson = logFileInputStream.readLine();
+                    ServerMetadata serverMetadata;
+                    try {
+                        serverMetadata = objectMapper.readValue(serverMetadataJson,
+                                ServerMetadata.class);
+                    } catch (Exception e) {
+                        checkCache.put(mostRecentSession.getSessionId(), null);
+                        logger.warn("Failed to read server metadata from log: [" + serverMetadataJson + "]", e);
+                        InsidiousNotification.notifyMessage("Found session at [" + mostRecentSession.getPath() + "] " +
+                                        "but couldn't connect to server because of missing server metadata.",
+                                NotificationType.ERROR);
+                        return null;
                     }
 
                     String finalIncludedPackagedName = includedPackagedName.replace('/', '.');
@@ -268,20 +283,21 @@ final public class InsidiousService implements
                         logger.warn("Package for agent [" + finalIncludedPackagedName + "] NOTFOUND in current " +
                                 "project [" + project.getName() + "]" +
                                 " -> " + mostRecentSession.getLogFilePath());
-                        checkCache.put(mostRecentSession.getSessionId(), false);
-                        return false;
+                        checkCache.put(mostRecentSession.getSessionId(), null);
+                        return null;
                     }
                     logger.warn("Package for agent [" + finalIncludedPackagedName + "] FOUND in current " +
                             "project [" + project.getName() + "]" +
                             " -> " + mostRecentSession.getLogFilePath());
 
 
-                    checkCache.put(mostRecentSession.getSessionId(), true);
-                    return true;
+                    checkCache.put(mostRecentSession.getSessionId(), serverMetadata);
+                    return serverMetadata;
 
 
                 } catch (Exception e) {
-                    return false;
+                    checkCache.put(mostRecentSession.getSessionId(), null);
+                    return null;
                 }
 
             }
@@ -296,9 +312,8 @@ final public class InsidiousService implements
         multicaster.addDocumentListener(listener, this);
 
 
-        unloggedSdkApiAgentClient = new UnloggedSdkApiAgentClient("http://localhost:12100");
-        ConnectionCheckerService connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgentClient);
-        connectionCheckerThreadPool.submit(connectionCheckerService);
+//        ConnectionCheckerService connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgentClient);
+//        connectionCheckerThreadPool.submit(connectionCheckerService);
         junitTestCaseWriter = new JUnitTestCaseWriter(project, objectMapper);
         configurationState = project.getService(InsidiousConfigurationState.class);
 
@@ -764,8 +779,9 @@ final public class InsidiousService implements
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
             try {
-                AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgentClient.executeCommand(
-                        agentCommandRequest);
+                AgentCommandResponse<String> agentCommandResponse =
+                        getSessionInstance().getAgent().executeCommand(
+                                agentCommandRequest);
                 logger.warn("agent command response - " + agentCommandResponse);
                 InsidiousNotification.notifyMessage(
                         agentCommandResponse.getMessage(), NotificationType.INFORMATION
@@ -815,7 +831,7 @@ final public class InsidiousService implements
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
             try {
-                AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgentClient.executeCommand(
+                AgentCommandResponse<String> agentCommandResponse = getSessionInstance().getAgent().executeCommand(
                         agentCommandRequest);
                 logger.warn("agent command response - " + agentCommandResponse);
                 InsidiousNotification.notifyMessage(
@@ -886,7 +902,7 @@ final public class InsidiousService implements
                     return;
                 }
 
-                AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgentClient.executeCommand(
+                AgentCommandResponse<String> agentCommandResponse = getSessionInstance().getAgent().executeCommand(
                         agentCommandRequest);
                 logger.warn("agent command response - " + agentCommandResponse);
                 if (executionResponseListener != null) {
@@ -963,7 +979,7 @@ final public class InsidiousService implements
         }
 
         try {
-            AgentCommandResponse<String> agentCommandResponse = unloggedSdkApiAgentClient.executeCommand(
+            AgentCommandResponse<String> agentCommandResponse = getSessionInstance().getAgent().executeCommand(
                     agentCommandRequest);
             logger.warn("agent command response - " + agentCommandResponse);
             if (executionResponseListener != null) {
@@ -1005,14 +1021,12 @@ final public class InsidiousService implements
 
         List<String> classNameOptions = new ArrayList<>();
         for (PsiElement implementation : implementations) {
-            boolean match = false;
             PsiClass implementsPsi = (PsiClass) implementation;
             PsiClassType[] implementsListTypes = ApplicationManager.getApplication().runReadAction(
                     (Computable<PsiClassType[]>) implementsPsi::getImplementsListTypes);
             for (PsiClassType implementsListType : implementsListTypes) {
                 if (implementsListType.getName().endsWith("UserDetails")) {
                     // yes match
-                    match = true;
                     String qualifiedName = ApplicationManager.getApplication().runReadAction(
                             (Computable<String>) implementsPsi::getQualifiedName);
                     if (qualifiedName == null) {
@@ -1024,7 +1038,7 @@ final public class InsidiousService implements
             }
         }
 
-        if (classNameOptions.size() > 0) {
+        if (!classNameOptions.isEmpty()) {
             Optional<String> classNameNotFromSprint = classNameOptions.stream()
                     .filter(e -> !e.contains("springframework"))
                     .findFirst();
@@ -1046,7 +1060,7 @@ final public class InsidiousService implements
         return testCaseService;
     }
 
-    public void setSession(ExecutionSession executionSession) {
+    public void setSession(ExecutionSession executionSession, ServerMetadata serverMetadata) {
 
         SessionInstance currentSession = currentState.getSessionInstance();
         if (currentSession != null) {
@@ -1062,7 +1076,7 @@ final public class InsidiousService implements
         this.methodHash.clear();
         this.classModifiedFlagMap.clear();
         logger.info("Loading new session: " + executionSession.getSessionId() + " => " + project.getName());
-        final SessionInstance sessionInstance = sessionManager.createSessionInstance(executionSession, project);
+        final SessionInstance sessionInstance = sessionManager.createSessionInstance(executionSession, serverMetadata, project);
         currentState.setSessionInstance(sessionInstance);
         sessionInstance.addTestCandidateListener(this);
 
@@ -1072,10 +1086,6 @@ final public class InsidiousService implements
 
         if (!executionSession.getSessionId().equals("na")) {
             removeOnboardingTab();
-
-            if (stompWindow != null) {
-                stompWindow.disconnected();
-            }
 
             ApplicationManager.getApplication().invokeLater(() -> {
                 ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
@@ -1091,9 +1101,6 @@ final public class InsidiousService implements
 
 
                 stompWindow = new StompComponent(this);
-                if (isAgentConnected()) {
-                    stompWindow.setConnectedAndWaiting();
-                }
                 if (stompComponentThreadPool != null) {
                     stompComponentThreadPool.shutdownNow();
                 }
@@ -1555,12 +1562,11 @@ final public class InsidiousService implements
         UsageInsightTracker.getInstance().RecordEvent("AGENT_CONNECTED", properties);
 
         logger.info("unlogged agent connected - " + serverMetadata);
-        currentState.setAgentServerRunning(true);
 
         if (stompWindow != null) {
             ApplicationManager.getApplication().invokeLater(() -> {
-                stompWindow.resetTimeline();
-                stompWindow.setConnectedAndWaiting();
+//                stompWindow.resetTimeline();
+//                stompWindow.setConnectedAndWaiting();
             });
 
             SemanticVersion currentVersion = new SemanticVersion(serverMetadata.getAgentVersion());
@@ -1575,12 +1581,15 @@ final public class InsidiousService implements
     }
 
     public void onAgentDisconnected() {
-        if (stompWindow != null) {
-            stompWindow.disconnected();
-        }
+        UsageInsightTracker.getInstance().RecordEvent("AGENT_DISCONNECTED", null);
+
         if (libraryToolWindow != null) {
             libraryToolWindow.setMockStatus(false);
         }
+        if (stompWindow != null) {
+            stompWindow.getScanEventListener().ended();
+        }
+
         removeCurrentActiveHighlights();
         triggerGutterIconReload();
         configurationState.clearPermanentFieldMockSetting();

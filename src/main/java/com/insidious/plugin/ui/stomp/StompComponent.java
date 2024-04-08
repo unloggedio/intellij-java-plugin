@@ -367,6 +367,7 @@ public class StompComponent implements
             @Override
             public void started() {
                 lastEventId = 0;
+                setConnectedAndWaiting();
                 stompStatusComponent.addRightStatus("last-updated", "Last updated at " + simpleTime(new Date()));
             }
 
@@ -385,6 +386,7 @@ public class StompComponent implements
 
             @Override
             public void ended() {
+                disconnected();
                 stompStatusComponent.removeRightStatus("last-updated");
                 stompStatusComponent.removeRightStatus("scan-progress");
             }
@@ -1283,13 +1285,12 @@ public class StompComponent implements
         }
     }
 
-    public void disconnected() {
+    private void disconnected() {
         if (candidateQueryLatch != null) {
             candidateQueryLatch.decrementAndGet();
             candidateQueryLatch = null;
         }
         stompStatusComponent.setDisconnected();
-        scanEventListener.ended();
     }
 
     public void showDirectInvoke(MethodAdapter method) {
@@ -1360,7 +1361,7 @@ public class StompComponent implements
         scrollContainer.repaint();
     }
 
-    public void setConnectedAndWaiting() {
+    private void setConnectedAndWaiting() {
         if (!welcomePanelRemoved) {
             historyStreamScrollPanel.setVisible(true);
             welcomePanelRemoved = true;
@@ -1389,7 +1390,7 @@ public class StompComponent implements
         setConnected();
     }
 
-    public void setConnected() {
+    private void setConnected() {
         stompStatusComponent.setConnected();
     }
 

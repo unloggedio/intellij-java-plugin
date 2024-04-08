@@ -35,6 +35,7 @@ public class CurrentState {
 
     public void setSessionInstance(SessionInstance sessionInstance) {
         this.sessionInstance = sessionInstance;
+        this.isAgentServerRunning = sessionInstance != null;
     }
 
     public boolean isCodeCoverageHighlightEnabled() {

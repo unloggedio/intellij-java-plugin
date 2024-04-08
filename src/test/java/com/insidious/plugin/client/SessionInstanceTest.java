@@ -1,5 +1,6 @@
 package com.insidious.plugin.client;
 
+import com.insidious.plugin.agent.ServerMetadata;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.ActiveSessionManager;
 import com.insidious.plugin.factory.CandidateSearchQuery;
@@ -13,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 
 public class SessionInstanceTest extends TestCase {
@@ -32,7 +34,7 @@ public class SessionInstanceTest extends TestCase {
         executionSession.setHostname("test-host");
         executionSession.setCreatedAt(new Date());
         executionSession.setLastUpdateAt(0);
-        SessionInstance sessionInstance = new SessionInstance(executionSession, project);
+        SessionInstance sessionInstance = new SessionInstance(executionSession, new ServerMetadata(), project);
 
         while (sessionInstance.getProcessedFileCount() < 6) {
             continue;
@@ -66,9 +68,9 @@ public class SessionInstanceTest extends TestCase {
         executionSession.setHostname("test-host");
         executionSession.setCreatedAt(new Date());
         executionSession.setLastUpdateAt(0);
-        SessionInstance sessionInstance = new SessionInstance(executionSession, project);
+        SessionInstance sessionInstance = new SessionInstance(executionSession, new ServerMetadata(), project);
 
-        int zipCount = new File(sessionPath).listFiles().length;
+        int zipCount = Objects.requireNonNull(new File(sessionPath).listFiles()).length;
         while (sessionInstance.getProcessedFileCount() < zipCount) {
             continue;
         }

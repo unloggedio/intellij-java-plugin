@@ -17,6 +17,9 @@ import com.insidious.common.weaver.*;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.MethodSignatureParser;
+import com.insidious.plugin.agent.ConnectionCheckerService;
+import com.insidious.plugin.agent.ServerMetadata;
+import com.insidious.plugin.agent.UnloggedSdkApiAgentClient;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -87,6 +90,7 @@ public class SessionInstance implements Runnable {
     private final File sessionDirectory;
     private final ExecutionSession executionSession;
     private final Map<String, String> cacheEntries = new HashMap<>();
+    private final ConnectionCheckerService connectionCheckerService;
     //    private final DatabasePipe databasePipe;
     private DaoService daoService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
@@ -120,9 +124,14 @@ public class SessionInstance implements Runnable {
     private boolean hasShownCorruptedNotification = false;
     private BlockingQueue<Integer> scanLock;
     private boolean shutdown = false;
+    private UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
 
-    public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
+    public SessionInstance(ExecutionSession executionSession, ServerMetadata serverMetadata, Project project) throws SQLException,
+            IOException {
         this.project = project;
+        this.unloggedSdkApiAgentClient =
+                new UnloggedSdkApiAgentClient(serverMetadata.getAgentServerUrl());
+        this.connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgentClient);
         this.sessionDirectory = FileSystems.getDefault().getPath(executionSession.getPath()).toFile();
         this.processorId = UUID.randomUUID().toString();
 
@@ -176,11 +185,12 @@ public class SessionInstance implements Runnable {
         if (scanEnable) {
             logger.warn("Starting zip consumer: " + processorId);
             zipConsumer = new ZipConsumer(daoService, sessionDirectory, this);
-            scanLock = new ArrayBlockingQueue<Integer>(1);
-            executorPool = Executors.newFixedThreadPool(4,
+            scanLock = new ArrayBlockingQueue<>(1);
+            executorPool = Executors.newFixedThreadPool(5,
                     new DefaultThreadFactory("UnloggedSessionThreadPool", true));
             executorPool.submit(this);
             executorPool.submit(zipConsumer);
+            executorPool.submit(this.connectionCheckerService);
             executorPool.submit(() -> {
                 try {
                     publishEvent(ScanEventType.START);
@@ -4150,5 +4160,9 @@ public class SessionInstance implements Runnable {
 
     public List<UnloggedTimingTag> getTimingTags(long id) {
         return daoService.getTimingTags(id);
+    }
+
+    public UnloggedSdkApiAgentClient getAgent() {
+        return unloggedSdkApiAgentClient;
     }
 }

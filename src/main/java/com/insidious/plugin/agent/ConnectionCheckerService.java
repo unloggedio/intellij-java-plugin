@@ -27,9 +27,9 @@ public class ConnectionCheckerService implements Runnable {
             if (newState && !currentState) {
                 currentState = true;
                 ServerMetadata serverMetadata = response.getMethodReturnValue();
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    applicationLevelPublisher.onConnectedToAgentServer(serverMetadata);
-                });
+//                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+//                    applicationLevelPublisher.onConnectedToAgentServer(serverMetadata);
+//                });
             } else if (!newState && currentState) {
                 currentState = false;
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -37,7 +37,7 @@ public class ConnectionCheckerService implements Runnable {
                 });
             }
             try {
-                Thread.sleep(1000);
+                Thread.sleep(3000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
