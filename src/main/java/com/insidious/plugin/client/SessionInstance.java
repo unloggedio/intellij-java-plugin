@@ -2972,6 +2972,7 @@ public class SessionInstance implements Runnable {
                     if ("Static".equals(probeInfo.getAttribute("CallType", null))) {
                         methodCall.setStaticCall(true);
                         methodCall.setSubject(existingParameter.getValue());
+                        dataEvent.setValue(existingParameter.getValue());
                     }
                     methodCall.setMethodAccess(1);
 

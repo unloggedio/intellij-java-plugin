@@ -179,9 +179,12 @@ public class TestCandidateSaveForm {
 
 
         long voidMethodCount = candidateMetadataList.stream().filter(e ->
-                e.getMainMethod().getReturnValue() == null ||
-                        e.getMainMethod().getReturnValue().getType() == null ||
-                        e.getMainMethod().getReturnValue().getType().equalsIgnoreCase("void")).count();
+        {
+            MethodCallExpression mainMethod1 = e.getMainMethod();
+            return mainMethod1.getReturnValue() == null ||
+                    mainMethod1.getReturnValue().getType() == null ||
+                    mainMethod1.getReturnValue().getType().equalsIgnoreCase("void");
+        }).count();
 
         if (voidMethodCount > 0) {
             voidInfoPanel.setVisible(true);

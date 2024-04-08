@@ -335,7 +335,8 @@ public class DaoService {
                 logger.warn("main method isn't public: " + mainMethodCallExpression);
                 List<com.insidious.plugin.pojo.MethodCallExpression> methodCallExpressions = buildFromDbMce(
                         Collections.singletonList(mainMethodCallExpression));
-                converted.setMainMethod(methodCallExpressions.get(0));
+                com.insidious.plugin.pojo.MethodCallExpression mainMethod1 = methodCallExpressions.get(0);
+                converted.setMainMethod(mainMethod1);
             }
 
 
@@ -349,10 +350,22 @@ public class DaoService {
 
             List<MethodCallExpressionInterface> mces = new ArrayList<>();
             mces.add(getMethodCallExpressionById(testCandidateMetadata.getMainMethod()));
-            converted.setMainMethod(buildFromDbMce(mces).get(0));
+            com.insidious.plugin.pojo.MethodCallExpression mainMethod = buildFromDbMce(mces).get(0);
+            converted.setMainMethod(mainMethod);
         }
-        int threadId = converted.getMainMethod().getThreadId();
-        converted.setTestSubject(getParameterByValue(testCandidateMetadata.getTestSubject()));
+
+        if (converted.getTestSubject() == null) {
+            if (converted.getMainMethod().getSubject() != null) {
+                converted.setTestSubject(converted.getMainMethod().getSubject());
+            }
+        }
+
+//        int threadId = converted.getMainMethod().getThreadId();
+        com.insidious.plugin.pojo.Parameter parameterByValueFromDb = getParameterByValue(
+                testCandidateMetadata.getTestSubject());
+        if (parameterByValueFromDb != null && converted.getTestSubject() == null) {
+            converted.setTestSubject(parameterByValueFromDb);
+        }
 
         Set<Long> fieldParameters = testCandidateMetadata.getFields();
 
