@@ -41,11 +41,6 @@ public class AgentConnectionStateTracker implements AgentConnectionStateNotifier
             includedPackageName = includedPackageName.split(",")[0];
         }
         logger.warn("connected to agent: " + serverMetadata);
-        JSONObject properties = new JSONObject();
-        properties.put("agentVersion", serverMetadata.getAgentVersion());
-        properties.put("package", serverMetadata.getIncludePackageName());
-        properties.put("project", project.getName());
-        UsageInsightTracker.getInstance().RecordEvent("AGENT_CONNECTED", properties);
         String finalIncludedPackageName = "*";
         if (!"null".equals(includedPackageName)) {
 

@@ -15,10 +15,7 @@ import com.insidious.plugin.autoexecutor.AutoExecutorRunOptions;
 import com.insidious.plugin.autoexecutor.AutomaticExecutorService;
 import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
-import com.insidious.plugin.client.ClassMethodAggregates;
-import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.client.VideobugClientInterface;
-import com.insidious.plugin.client.VideobugLocalClient;
+import com.insidious.plugin.client.*;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.coverage.ClassCoverageData;
 import com.insidious.plugin.coverage.CodeCoverageData;
@@ -139,6 +136,7 @@ final public class InsidiousService implements
     private final ActiveSessionManager sessionManager;
     private final CurrentState currentState = new CurrentState();
     private final MockManager mockManager;
+    Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
     private VideobugClientInterface client;
@@ -431,21 +429,6 @@ final public class InsidiousService implements
         clipboard.setContents(selection, null);
     }
 
-
-    public TestCaseUnit getTestCandidateCode(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
-//        TestCaseService testCaseService;
-        if (testCaseService == null) {
-            return null;
-        }
-        return ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            try {
-                return testCaseService.buildTestCaseUnit(new TestCaseGenerationConfiguration(generationConfiguration));
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }).get();
-    }
-
 //    public void generateAndSaveTestCase(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
 //        TestCaseService testCaseService = getTestCaseService();
 //        if (testCaseService == null) {
@@ -461,6 +444,20 @@ final public class InsidiousService implements
 //    public TestCaseGenerationConfiguration generateMethodBoilerplate(MethodAdapter methodAdapter) {
 //        return testCaseDesignerWindow.generateTestCaseBoilerPlace(methodAdapter);
 //    }
+
+    public TestCaseUnit getTestCandidateCode(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
+//        TestCaseService testCaseService;
+        if (testCaseService == null) {
+            return null;
+        }
+        return ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try {
+                return testCaseService.buildTestCaseUnit(new TestCaseGenerationConfiguration(generationConfiguration));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }).get();
+    }
 
     public synchronized FileEditorManager previewTestCase(LightVirtualFile lightVirtualFile) {
 
@@ -581,6 +578,14 @@ final public class InsidiousService implements
         reportingService.toggleReportMode();
     }
 
+//    public void generateAndUploadReport() throws APICallException, IOException {
+//        UsageInsightTracker.getInstance()
+//                .RecordEvent("DiagnosticReport", null);
+//        DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project,
+//                this.currentModule);
+//        diagnosticService.generateAndUploadReport();
+//    }
+
     @Override
     public void dispose() {
         JSONObject eventProperties = new JSONObject();
@@ -609,18 +614,6 @@ final public class InsidiousService implements
         UsageInsightTracker.getInstance().close();
     }
 
-//    public void generateAndUploadReport() throws APICallException, IOException {
-//        UsageInsightTracker.getInstance()
-//                .RecordEvent("DiagnosticReport", null);
-//        DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project,
-//                this.currentModule);
-//        diagnosticService.generateAndUploadReport();
-//    }
-
-    public Project getProject() {
-        return project;
-    }
-
 //    public void addLiveView() {
 //        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
 //        if (!liveViewAdded) {
@@ -639,6 +632,10 @@ final public class InsidiousService implements
 //        }
 //    }
 
+    public Project getProject() {
+        return project;
+    }
+
     public void attachRawView() {
         if (rawViewAdded) {
             return;
@@ -647,7 +644,6 @@ final public class InsidiousService implements
         contentManager.addContent(singleWindowContent);
         rawViewAdded = true;
     }
-
 
     public void methodFocussedHandler(final MethodAdapter method) {
         if (method == null || method.getContainingClass() == null) {
@@ -670,7 +666,6 @@ final public class InsidiousService implements
         libraryToolWindow.setLibraryFilterState(libraryFilterState);
     }
 
-
     public void showStompAndFilterForMethod(MethodAdapter method) {
         if (stompWindow == null) {
             InsidiousNotification.notifyMessage(
@@ -687,7 +682,6 @@ final public class InsidiousService implements
         toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
 
     }
-
 
     public void showLibrary() {
         if (toolWindow == null) {
@@ -1146,7 +1140,6 @@ final public class InsidiousService implements
         toolWindow.show(null);
     }
 
-
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
         if (stompWindow != null) {
@@ -1208,7 +1201,6 @@ final public class InsidiousService implements
         coverageReportComponent.setCoverageData(new CodeCoverageData(updatedPackageList));
     }
 
-
     public CandidateSearchQuery createSearchQueryForMethod(
             MethodAdapter currentMethod,
             CandidateFilterType candidateFilterType,
@@ -1229,7 +1221,6 @@ final public class InsidiousService implements
         }
         return sessionInstance.getClassMethodAggregates(qualifiedName);
     }
-
 
     public ExecutionSession getCurrentExecutionSession() {
         if (currentState.getSessionInstance() == null) {
@@ -1317,7 +1308,6 @@ final public class InsidiousService implements
         DaemonCodeAnalyzer.getInstance(project).restart();
     }
 
-
     public void removeOnboardingTab() {
         if (toolWindow == null || onboardingWindow == null) {
             return;
@@ -1330,7 +1320,6 @@ final public class InsidiousService implements
                 });
     }
 
-
     public void showDiffEditor(SimpleDiffRequest request) {
         DiffManager.getInstance().showDiff(project, request);
     }
@@ -1342,7 +1331,6 @@ final public class InsidiousService implements
 
         return fileEditorManager;
     }
-
 
     public void addDiffRecord(DifferenceResult newDiffRecord) {
         if (newDiffRecord == null) {
@@ -1377,7 +1365,6 @@ final public class InsidiousService implements
     public void addExecutionRecord(AutoExecutorReportRecord result) {
         reportingService.addRecord(result);
     }
-
 
     public void focusAtomicTestsWindow() {
         if (this.atomicTestContent != null) {
@@ -1482,7 +1469,6 @@ final public class InsidiousService implements
         }
     }
 
-
     public void setCodeCoverageHighlightEnabled(boolean state) {
         currentState.setCodeCoverageHighlightEnabled(state);
         highlightLines(currentState.getCurrentHighlightedRequest());
@@ -1530,12 +1516,10 @@ final public class InsidiousService implements
         atomicRecordService.deleteMockDefinition(declaredMock);
     }
 
-
     public void disableMock(DeclaredMock declaredMock) {
         configurationState.removeMock(declaredMock.getId());
         removeMocksInRunningProcess(List.of(declaredMock));
     }
-
 
     public void disableMock(Collection<DeclaredMock> declaredMock) {
         removeMocksInRunningProcess(declaredMock);
@@ -1564,14 +1548,23 @@ final public class InsidiousService implements
         automaticExecutorService.executeAllJavaMethodsInProject(options);
     }
 
-
     public void onAgentConnected(ServerMetadata serverMetadata) {
+        JSONObject properties = new JSONObject();
+        properties.put("agentVersion", serverMetadata.getAgentVersion());
+        properties.put("package", serverMetadata.getIncludePackageName());
+        properties.put("project", project.getName());
+
+        UsageInsightTracker.getInstance().RecordEvent("AGENT_CONNECTED", properties);
+
         logger.info("unlogged agent connected - " + serverMetadata);
         currentState.setAgentServerRunning(true);
 
         if (stompWindow != null) {
-            stompWindow.resetTimeline();
-            stompWindow.setConnectedAndWaiting();
+            ApplicationManager.getApplication().invokeLater(() -> {
+                stompWindow.resetTimeline();
+                stompWindow.setConnectedAndWaiting();
+            });
+
             SemanticVersion currentVersion = new SemanticVersion(serverMetadata.getAgentVersion());
             SemanticVersion requiredVersion = new SemanticVersion(Constants.AGENT_VERSION);
             if (currentVersion.isBelow(requiredVersion)) {
@@ -1717,7 +1710,6 @@ final public class InsidiousService implements
         libraryToolWindow.showMockEditor(declaredMock, onSaveListener);
     }
 
-
     public void showMockCreator(JavaMethodAdapter method, PsiMethodCallExpression callExpression, OnSaveListener onSaveListener) {
         if (stompWindow == null) {
             if (toolWindow == null) {
@@ -1785,5 +1777,29 @@ final public class InsidiousService implements
             UnloggedOnboardingScreenV2 screen = new UnloggedOnboardingScreenV2();
             unloggedSDKOnboarding.showStep2(screen);
         }
+    }
+
+    public void highlightTimingInformation(TestCandidateMetadata candidateMetadata, MethodUnderTest methodUnderTest) {
+
+
+        List<UnloggedTimingTag> timingTags = getSessionInstance()
+                .getTimingTags(candidateMetadata.getMainMethod().getId());
+//        if (availableTimingTags.containsKey(methodUnderTest)) {
+//            availableTimingTags.remove(methodUnderTest);
+//        } else {
+        availableTimingTags.put(methodUnderTest, timingTags);
+//        }
+
+        forceRedrawInlayHints();
+
+    }
+
+    public List<UnloggedTimingTag> getTimingInformation(MethodUnderTest methodUnderTest) {
+        return availableTimingTags.get(methodUnderTest);
+    }
+
+    public void removeTimingInformation() {
+        availableTimingTags.clear();
+        forceRedrawInlayHints();
     }
 }

@@ -89,6 +89,7 @@ public class StompComponent implements
         ComponentLifecycleListener<MethodDirectInvokeComponent>,
         Runnable, OnExpandListener, Disposable {
     public static final int COMPONENT_HEIGHT = 93;
+    public static final int MAX_ITEM_TO_DISPLAY = 50;
     private static final Logger logger = LoggerUtil.getInstance(StompComponent.class);
     private final InsidiousService insidiousService;
     private final JPanel itemPanel;
@@ -156,7 +157,10 @@ public class StompComponent implements
 
 
         historyStreamScrollPanel.setViewportView(itemPanel);
+        itemPanel.setDoubleBuffered(true);
         historyStreamScrollPanel.setBorder(BorderFactory.createEmptyBorder());
+        JScrollBar verticalScrollBar = historyStreamScrollPanel.getVerticalScrollBar();
+        verticalScrollBar.setUnitIncrement(16); // Adjust as needed
 
         scrollContainer.setBorder(BorderFactory.createEmptyBorder());
 
@@ -282,10 +286,17 @@ public class StompComponent implements
         AnAction selectAllAction = new AnAction(() -> "Select All", AllIcons.Actions.Selectall) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                selectedCandidates.clear();
-                for (StompItem stompItem : stompItems) {
-                    stompItem.setSelected(true);
-                    selectedCandidates.add(stompItem.getTestCandidate());
+                if (selectedCandidates.size() != stompItems.size()) {
+                    selectedCandidates.clear();
+                    for (StompItem stompItem : stompItems) {
+                        stompItem.setSelected(true);
+                        selectedCandidates.add(stompItem.getTestCandidate());
+                    }
+                } else {
+                    selectedCandidates.clear();
+                    for (StompItem stompItem : stompItems) {
+                        stompItem.setSelected(false);
+                    }
                 }
                 updateControlPanel();
             }
@@ -468,7 +479,7 @@ public class StompComponent implements
             return;
         }
 
-        if (selectedCandidates.size() == 0) {
+        if (selectedCandidates.isEmpty()) {
             InsidiousNotification.notifyMessage("Select items on the timeline to save",
                     NotificationType.INFORMATION);
             return;
@@ -485,7 +496,15 @@ public class StompComponent implements
 //                            ApplicationManager.getApplication().executeOnPooledThread(() -> {
                     SaveFormListener candidateLifeListener = new SaveFormListener(insidiousService);
 
-                    saveFormReference = new TestCandidateSaveForm(selectedCandidates, candidateLifeListener,
+                    ArrayList<TestCandidateMetadata> sourceCandidates = new ArrayList<>();
+                    int size = selectedCandidates.size();
+                    for (int i = 0; i < size; i++) {
+                        TestCandidateMetadata selectedCandidate = selectedCandidates.get(i);
+                        sourceCandidates.add(selectedCandidate);
+                    }
+
+
+                    saveFormReference = new TestCandidateSaveForm(sourceCandidates, candidateLifeListener,
                             component -> {
                                 ApplicationManager.getApplication().invokeLater(() -> {
                                     southPanel.removeAll();
@@ -663,6 +682,7 @@ public class StompComponent implements
         JPanel dateAndTimePanel = createDateAndTimePanel(createTimeLineComponent(comp1),
                 Date.from(Instant.ofEpochMilli(testCandidateMetadata.getCreatedAt())));
         rowPanel.add(dateAndTimePanel, BorderLayout.EAST);
+        stompItem.setStompRowItem(rowPanel);
 
 
 //        makeSpace(index);
@@ -1012,8 +1032,7 @@ public class StompComponent implements
 
                 CountDownLatch cdl = new CountDownLatch(1);
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    instance.waitForSmartMode();
-                    instance.suspendIndexingAndRun("Generating JUnit Test cases", () -> {
+                    instance.smartInvokeLater(() -> {
                         try {
                             generateTestCaseSingle(generationConfiguration, testCaseService, testCandidateShell);
                         } catch (Exception e) {
@@ -1021,10 +1040,7 @@ public class StompComponent implements
                         } finally {
                             cdl.countDown();
                         }
-
-
                     });
-
                 });
 
                 cdl.await();
@@ -1439,16 +1455,19 @@ public class StompComponent implements
                     List<TestCandidateMetadata> remainingItems = new ArrayList<>();
                     remainingItems.add(testCandidateMetadata);
                     incomingQueue.drainTo(remainingItems);
-//                    while (remainingItems.size() > 100) {
-//                        remainingItems.remove(0);
-//                    }
+                    while (remainingItems.size() > MAX_ITEM_TO_DISPLAY) {
+                        remainingItems.remove(0);
+                    }
 
                     for (TestCandidateMetadata remainingItem : remainingItems) {
                         acceptSingle(remainingItem);
                     }
-                    while (itemPanel.getComponentCount() > 100) {
-                        itemPanel.remove(0);
+                    while (stompItems.size() > MAX_ITEM_TO_DISPLAY) {
+                        StompItem first = stompItems.remove(0);
+                        itemPanel.remove(first.getStompRowItem());
                     }
+                    itemPanel.revalidate();
+                    itemPanel.repaint();
                     insidiousService.forceRedrawInlayHints();
 
 

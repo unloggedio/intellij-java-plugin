@@ -16,7 +16,7 @@ def getGitHash = { ->
 
 group 'org.videobug'
 def remoteRobotVersion = "0.11.20"
-version '1.22.2-' + getGitHash()
+version '1.22.3-' + getGitHash()
 
 compileJava {
     sourceCompatibility = '11'
@@ -181,8 +181,8 @@ patchPluginXml {
 }
 
 publishPlugin {
-    token = "perm:c2hhcmR1bGxhdmVrYXI=.OTItOTUwNA==.LQaLX5e7EeHr4Cvw3l50TdhGMEZAhp"
-    channels = ['stable']
+    token = "perm:c2hhcmR1bGxhdmVrYXI=.OTItOTgzNg==.jtYdVSDkwcwSWZMhCu5BVma7V3VRFY"
+    channels = ['alpha']
 }
 
 runIdeForUiTests {

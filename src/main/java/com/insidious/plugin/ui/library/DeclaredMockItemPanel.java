@@ -1,11 +1,12 @@
 package com.insidious.plugin.ui.library;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.mocking.DeclaredMock;
-import com.insidious.plugin.mocking.ParameterMatcher;
-import com.insidious.plugin.mocking.ParameterMatcherType;
-import com.insidious.plugin.mocking.ThenParameter;
+import com.insidious.plugin.mocking.*;
 import com.insidious.plugin.ui.stomp.StompItem;
+import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -13,6 +14,7 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.ui.JBColor;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -55,7 +57,7 @@ public class DeclaredMockItemPanel {
 
         String methodName = declaredMock.getMethodName();
         if (methodName.length() > 25) {
-            methodName = methodName.substring(0, 20) +  "...";
+            methodName = methodName.substring(0, 20) + "...";
         }
         this.nameLabel.setText(methodName);
 
@@ -119,10 +121,12 @@ public class DeclaredMockItemPanel {
         }
 
 
-
         int thenParameterSize = declaredMock.getThenParameter().size();
         ThenParameter thenParameter = declaredMock.getThenParameter().get(0);
-        String className = thenParameter.getReturnParameter().getClassName();
+        ReturnValue returnParameter = thenParameter.getReturnParameter();
+        JsonNode jsonNode = null;
+
+        String className = returnParameter.getClassName();
         if (className.contains("<")) {
             className = className.substring(0, className.indexOf("<"));
         }
@@ -139,6 +143,14 @@ public class DeclaredMockItemPanel {
                             }
                         });
 
+        try {
+            jsonNode = new ObjectMapper().readTree(returnParameter.getValue());
+            @Nullable String returnValueHover = StompItem.getPrettyPrintedArgumentsHtml(jsonNode);
+            returnsTag.setToolTipText(returnValueHover);
+        } catch (JsonProcessingException e) {
+            jsonNode = ObjectMapperInstance.getInstance().getNodeFactory().textNode(returnParameter.getValue());
+            returnsTag.setToolTipText(StompItem.getPrettyPrintedArgumentsHtml(jsonNode));
+        }
 
         tagsContainerPanel.add(returnsTag);
 
@@ -209,7 +221,6 @@ public class DeclaredMockItemPanel {
 //        selectCandidateCheckbox.addMouseListener(showDeleteButtonListener);
 
 
-
     }
 
     public void setSelected(boolean b) {
@@ -229,21 +240,22 @@ public class DeclaredMockItemPanel {
         selectCandidateCheckbox.setVisible(b);
     }
 
+    public boolean isUnsaved() {
+        return isUnsaved;
+    }
+
     public void setUnsaved(boolean isUnsaved) {
         this.isUnsaved = isUnsaved;
         if (isUnsaved) {
             TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
             String title = titledBorder.getTitle();
 //            title = "[unsaved] " + title;
-            TitledBorder titledBorder1 = BorderFactory.createTitledBorder(BorderFactory.createLineBorder(JBColor.ORANGE));
+            TitledBorder titledBorder1 = BorderFactory.createTitledBorder(
+                    BorderFactory.createLineBorder(JBColor.ORANGE));
             titledBorder1.setTitle(title);
             mainPanel.setBorder(
                     titledBorder1
             );
         }
-    }
-
-    public boolean isUnsaved() {
-        return isUnsaved;
     }
 }

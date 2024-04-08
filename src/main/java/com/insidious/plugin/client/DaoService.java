@@ -1767,6 +1767,42 @@ public class DaoService {
 
     }
 
+    public List<UnloggedTimingTag> getTimingTags(long methodCallId) {
+
+
+        MethodCallExpression methodCallExpression;
+        try {
+            methodCallExpression = getMethodCallExpressionById(methodCallId);
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+        String startEventId = String.valueOf(methodCallExpression.getEntryProbe_id());
+        String endEventId = String.valueOf(methodCallExpression.getReturnDataEvent());
+        String methodDefinitionId = String.valueOf(methodCallExpression.getMethodDefinitionId());
+        try {
+            List<UnloggedTimingTag> timingTagList = new ArrayList<>();
+            GenericRawResults<Object[]> result = dataEventDao.queryRaw("" +
+                            "select pi.line, de.recordedAt \n" +
+                            "from data_event de\n" +
+                            "         join probe_info pi on pi.probeId = de.probeId\n" +
+                            "where de.eventId > ? and de.eventId < ? and pi.methodId = ?\n" +
+                            "and pi.eventType = 'LINE_NUMBER' order by eventId;",
+                    new DataType[]{DataType.INTEGER, DataType.LONG},
+                    startEventId, endEventId, methodDefinitionId);
+
+            for (Object[] objects : result) {
+                UnloggedTimingTag utt = new UnloggedTimingTag((Integer) objects[0], (Long) objects[1]);
+                timingTagList.add(utt);
+            }
+
+
+            return timingTagList;
+        } catch (SQLException e) {
+            return new ArrayList<>();
+        }
+
+    }
+
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
     getTestCandidatePaginated(long afterEventId, int page, int limit, FilterModel filterModel) throws SQLException {
         List<TestCandidateMetadata> dbCandidateList;
@@ -1888,8 +1924,7 @@ public class DaoService {
                     try {
                         return convertTestCandidateMetadata(e, false);
                     } catch (Exception ex) {
-                        ex.printStackTrace();
-                        logger.warn("failed to convert test candidate: " + ex.getMessage());
+                        logger.warn("failed to convert test candidate" + ex);
                         return null;
                     }
                 })
@@ -1916,9 +1951,11 @@ public class DaoService {
                     try {
                         return convertTestCandidateMetadata(e, false);
                     } catch (Exception ex) {
-                        throw new RuntimeException(ex);
+                        logger.warn("failed to convert test candidate metadata", ex);
+                        return null;
                     }
                 })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -1948,9 +1985,11 @@ public class DaoService {
                     try {
                         return convertTestCandidateMetadata(e, false);
                     } catch (Exception ex) {
-                        throw new RuntimeException(ex);
+                        logger.warn("failed to convert test candidate metadata", ex);
+                        return null;
                     }
                 })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -1960,7 +1999,8 @@ public class DaoService {
             Optional<String> processed_count = Arrays.stream(rows.getFirstResult()).findFirst();
             return Integer.parseInt(processed_count.get());
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            logger.warn("failed to get count of processed files", e);
+            return 0;
         }
     }
 
@@ -1969,7 +2009,8 @@ public class DaoService {
             long count = logFilesDao.countOf();
             return (int) count;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            logger.warn("failed to get count of total files", e);
+            return 0;
         }
     }
 }

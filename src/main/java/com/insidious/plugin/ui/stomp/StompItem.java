@@ -25,9 +25,14 @@ import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbService;
+import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.util.Pair;
+import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiSubstitutor;
 import com.intellij.ui.Gray;
 import com.intellij.ui.JBColor;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -47,16 +52,13 @@ public class StompItem {
             new Color(113, 128, 150, 255),
             new Color(113, 128, 150, 255));
     public static final int MAX_METHOD_NAME_LABEL_LENGTH = 25;
-    public static final JBColor HOVER_HIGHLIGHT_COLOR = new JBColor(
-            new Color(121, 64, 64),
-            new Color(147, 125, 125)
-    );
     private static final Logger logger = LoggerUtil.getInstance(StompItem.class);
     private final TestCandidateLifeListener testCandidateLifeListener;
     private final Color defaultPanelColor;
     private final InsidiousService insidiousService;
     private final JCheckBox selectCandidateCheckbox;
     private final ActionToolbarImpl actionToolbar;
+    private final MethodUnderTest methodUnderTest;
     private TestCandidateMetadata candidateMetadata;
     private JPanel mainPanel;
     private JLabel statusLabel;
@@ -73,8 +75,8 @@ public class StompItem {
     private JPanel controlPanel;
     private JPanel controlContainer;
     private boolean isPinned = false;
-
     private boolean requestedHighlight = false;
+    private JPanel stompRowItem;
 
     public StompItem(
             TestCandidateMetadata testCandidateMetadata,
@@ -239,10 +241,13 @@ public class StompItem {
 
 
         MethodCallExpression mainMethod = candidateMetadata.getMainMethod();
-        MethodUnderTest methodUnderTest = new MethodUnderTest(
-                mainMethod.getMethodName(), "",
-                0, candidateMetadata.getFullyQualifiedClassname()
-        );
+//        Pair<PsiMethod, PsiSubstitutor> targetPsiMethod = ClassTypeUtils.getPsiMethod(
+//                mainMethod, insidiousService.getProject());
+        methodUnderTest = MethodUnderTest.fromTestCandidateMetadata(candidateMetadata);
+//        if (targetPsiMethod != null) {
+//            methodUnderTest = MethodUnderTest.fromPsiCallExpression(targetPsiMethod.getFirst());
+//        } else {
+//        }
 
         String className = methodUnderTest.getClassName();
         if (className.contains(".")) {
@@ -284,32 +289,34 @@ public class StompItem {
             }
         };
 
-        timeTakenMsLabel = createTagLabel("⏱ %s", new Object[]{timeTakenMsString}, Color.decode(category.getColorHex()),
+        timeTakenMsLabel = createTagLabel("⏱ %s", new Object[]{timeTakenMsString},
+                category.getJbColor(),
                 new JBColor(Gray._255, Gray._255),
                 labelMouseAdapter);
+        timeTakenMsLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+
+        timeTakenMsLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                highlight();
+            }
+        });
+
         int tagCount = 1;
         metadataPanel.add(timeTakenMsLabel);
 
         if (candidateMetadata.getLineNumbers().size() > 1) {
             lineCoverageLabel = createTagLabel("+%d lines", new Object[]{candidateMetadata.getLineNumbers().size()},
-                    TAG_LABEL_BACKGROUND_GREY, Color.decode(ExecutionTimeCategory.INSTANTANEOUS.getColorHex()),
+                    TAG_LABEL_BACKGROUND_GREY, ExecutionTimeCategory.INSTANTANEOUS.getJbColor(),
                     labelMouseAdapter);
             tagCount++;
             lineCoverageLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             lineCoverageLabel.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    if (!requestedHighlight) {
-                        requestedHighlight = true;
-                        MethodUnderTest mut = MethodUnderTest.fromTestCandidateMetadata(candidateMetadata);
-                        HighlightedRequest highlightRequest = new HighlightedRequest(
-                                mut, new HashSet<>(candidateMetadata.getLineNumbers())
-                        );
-                        insidiousService.highlightLines(highlightRequest);
-                    } else {
-                        requestedHighlight = false;
-                        insidiousService.removeCurrentActiveHighlights();
-                    }
+                    highlight();
                 }
             });
             metadataPanel.add(lineCoverageLabel);
@@ -325,34 +332,40 @@ public class StompItem {
                     ), new Object[]{argumentProbes.size()}, TAG_LABEL_BACKGROUND_GREY,
                     TAG_LABEL_TEXT_GREY, labelMouseAdapter);
 
-            ObjectNode parametersNode = objectMapper.getNodeFactory().objectNode();
-            List<Parameter> arguments = mainMethod.getArguments();
-            for (int i = 0; i < arguments.size(); i++) {
-                Parameter argument = arguments.get(i);
-                JsonNode value = ClassTypeUtils.getValueForParameter(argument);
-                String name = argument.getName();
-                if (name == null) {
-                    name = "Arg" + i;
-                }
-                parametersNode.set(name, value);
-            }
-            try {
-                String prettyPrintedArguments = objectMapper.writerWithDefaultPrettyPrinter()
-                        .writeValueAsString(parametersNode);
-                prettyPrintedArguments = prettyPrintedArguments.replaceAll("\\n", "<br/>");
-                prettyPrintedArguments = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
-                String prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments + "</html>";
-                parameterCountLabel.setToolTipText(prettyPrintedArgumentsHtml);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-                //
-            }
-
 
             parameterCountLabel.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
+
+                    if (parameterCountLabel.getToolTipText() == null ||
+                            parameterCountLabel.getToolTipText().isEmpty()) {
+                        ObjectNode parametersNode = objectMapper.getNodeFactory().objectNode();
+                        List<Parameter> arguments = mainMethod.getArguments();
+                        for (int i = 0; i < arguments.size(); i++) {
+                            Parameter argument = arguments.get(i);
+                            JsonNode value = ClassTypeUtils.getValueForParameter(argument);
+                            String name = argument.getName();
+                            if (name == null) {
+                                name = "Arg" + i;
+                            }
+                            parametersNode.set(name, value);
+                        }
+                        try {
+                            String prettyPrintedArguments = objectMapper.writerWithDefaultPrettyPrinter()
+                                    .writeValueAsString(parametersNode);
+                            prettyPrintedArguments = prettyPrintedArguments.replaceAll("\\n", "<br/>");
+                            prettyPrintedArguments = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
+                            String prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments + "</html>";
+                            parameterCountLabel.setToolTipText(prettyPrintedArgumentsHtml);
+                        } catch (JsonProcessingException e1) {
+                            e1.printStackTrace();
+                            //
+                        }
+                    }
+
                     super.mouseEntered(e);
+
+
                 }
             });
 
@@ -367,23 +380,38 @@ public class StompItem {
             if (returnValueClassName != null && returnValueClassName.contains(".")) {
                 returnValueClassName = returnValueClassName.substring(returnValueClassName.lastIndexOf(".") + 1);
             }
+
             JLabel returnValueTag = createTagLabel("ᐊ " + returnValueClassName, new Object[]{argumentProbes.size()},
                     TAG_LABEL_BACKGROUND_GREY,
                     TAG_LABEL_TEXT_GREY, labelMouseAdapter);
 
 
-            try {
-                String prettyPrintedArguments = objectMapper.writerWithDefaultPrettyPrinter()
-                        .writeValueAsString(ClassTypeUtils.getValueForParameter(mainMethod.getReturnValue()));
-                prettyPrintedArguments = prettyPrintedArguments.replaceAll("\\n", "<br/>");
-                prettyPrintedArguments = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
-                String prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments + "</html>";
-                returnValueTag.setToolTipText(prettyPrintedArgumentsHtml);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-                //
-            }
+            returnValueTag.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    if (returnValueTag.getToolTipText() == null
+                            || returnValueTag.getToolTipText().isEmpty()) {
+                        JsonNode valueForParameter = ClassTypeUtils.getValueForParameter(mainMethod.getReturnValue());
+                        String prettyPrintedArgumentsHtml = "{}";
+                        if (valueForParameter.isNumber()
+                                && (mainMethod.getReturnValue().getType() == null ||
+                                (mainMethod.getReturnValue().getType().length() != 1 &&
+                                        !mainMethod.getReturnValue().getType().startsWith("java.lang")))
+                        ) {
+                            // not a serializable value
+//                            valueForParameter = objectMapper.createObjectNode();
+                        } else {
+                            prettyPrintedArgumentsHtml = getPrettyPrintedArgumentsHtml(valueForParameter);
+                        }
 
+                        if (prettyPrintedArgumentsHtml != null) {
+                            returnValueTag.setToolTipText(prettyPrintedArgumentsHtml);
+                        }
+
+                    }
+                    super.mouseEntered(e);
+                }
+            });
             tagCount++;
             metadataPanel.add(returnValueTag);
         }
@@ -407,8 +435,6 @@ public class StompItem {
         }
 
 
-
-
         selectCandidateCheckbox.addMouseListener(labelMouseAdapter);
 
 
@@ -421,6 +447,31 @@ public class StompItem {
         });
 
 
+    }
+
+    @Nullable
+    public static String getPrettyPrintedArgumentsHtml(JsonNode valueForParameter) {
+        String prettyPrintedArgumentsHtml = null;
+
+
+        try {
+            String prettyPrintedArguments = ObjectMapperInstance.getInstance().writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(valueForParameter);
+            int remaining = prettyPrintedArguments.length() - 500;
+            if (prettyPrintedArguments.length() > 500) {
+                prettyPrintedArguments = prettyPrintedArguments.substring(0, 500);
+            }
+            prettyPrintedArguments = prettyPrintedArguments.replaceAll("\\n", "<br/>");
+            prettyPrintedArguments = prettyPrintedArguments.replaceAll(" ", "&nbsp;");
+            if (remaining > 1) {
+                prettyPrintedArguments += "  .... <b>+" + remaining + " more characters</b>";
+            }
+            prettyPrintedArgumentsHtml = "<html>" + prettyPrintedArguments + "</html>";
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            //
+        }
+        return prettyPrintedArgumentsHtml;
     }
 
     public static JLabel createTagLabel(String tagText, Object[] value, Color backgroundColor, Color foreground,
@@ -445,6 +496,39 @@ public class StompItem {
         return label;
     }
 
+    private void highlight() {
+        if (!requestedHighlight) {
+            requestedHighlight = true;
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+
+                Pair<PsiMethod, PsiSubstitutor> targetPsiMethod =
+                        ApplicationManager.getApplication().runReadAction(
+                                (Computable<Pair<PsiMethod, PsiSubstitutor>>) () -> ClassTypeUtils.getPsiMethod(
+                                        candidateMetadata.getMainMethod(), insidiousService.getProject()));
+                if (targetPsiMethod != null) {
+                    MethodUnderTest methodUnderTest1 = ApplicationManager.getApplication().runReadAction(
+                            (Computable<MethodUnderTest>) () -> MethodUnderTest.fromPsiCallExpression(
+                                    targetPsiMethod.getFirst()));
+                    insidiousService.highlightTimingInformation(candidateMetadata,
+                            methodUnderTest1);
+                } else {
+                    insidiousService.highlightTimingInformation(candidateMetadata, methodUnderTest);
+                }
+
+
+            });
+            HighlightedRequest highlightRequest = new HighlightedRequest(
+                    methodUnderTest, new HashSet<>(candidateMetadata.getLineNumbers())
+            );
+            insidiousService.highlightLines(highlightRequest);
+
+        } else {
+            requestedHighlight = false;
+            insidiousService.removeCurrentActiveHighlights();
+            insidiousService.removeTimingInformation();
+        }
+    }
+
     private void hoverOff() {
 //        mainPanel.setBackground(defaultPanelColor);
 //        detailPanel.setBackground(defaultPanelColor);
@@ -464,16 +548,7 @@ public class StompItem {
     }
 
     private void hoverOn() {
-//        mainPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        detailPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        infoPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        titleLabelContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        controlPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        controlContainer.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        selectCandidateCheckbox.setBackground(HOVER_HIGHLIGHT_COLOR);
-//        metadataPanel.setBackground(HOVER_HIGHLIGHT_COLOR);
         selectCandidateCheckbox.setVisible(true);
-//        pinLabel.setVisible(true);
 
     }
 
@@ -501,5 +576,13 @@ public class StompItem {
 
     public boolean isPinned() {
         return isPinned;
+    }
+
+    public void setStompRowItem(JPanel stompRowItem) {
+        this.stompRowItem = stompRowItem;
+    }
+
+    public JPanel getStompRowItem() {
+        return stompRowItem;
     }
 }

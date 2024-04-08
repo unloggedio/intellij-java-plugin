@@ -214,8 +214,7 @@ public class MethodUnderTest {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         MethodUnderTest that = (MethodUnderTest) o;
-        return methodHash == that.methodHash
-                && Objects.equals(name, that.name)
+        return Objects.equals(name, that.name)
                 && Objects.equals(signature, that.signature)
                 && Objects.equals(className, that.className);
     }
