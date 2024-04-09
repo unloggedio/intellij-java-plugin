@@ -24,7 +24,7 @@
               <icon value="icons/png/close-line.png"/>
               <text value=""/>
               <toolTipText value="Delete rule"/>
-              <visible value="false"/>
+              <visible value="true"/>
             </properties>
           </component>
           <grid id="fd8c6" binding="nameSelectorContainerPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">

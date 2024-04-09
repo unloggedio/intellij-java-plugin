@@ -7,12 +7,14 @@ import com.insidious.plugin.ui.assertions.AssertionBlock;
 import com.insidious.plugin.ui.assertions.AssertionBlockManager;
 import com.insidious.plugin.ui.assertions.AssertionRule;
 import com.insidious.plugin.ui.library.ItemLifeCycleListener;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
@@ -24,6 +26,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public class AtomicAssertionItemPanel {
+    private static final Logger logger = LoggerUtil.getInstance(AtomicAssertionItemPanel.class);
     private final AtomicAssertion atomicAssertion;
     private final ItemLifeCycleListener<AtomicAssertion> atomicAssertionLifeListener;
     private final Project project;
@@ -33,7 +36,11 @@ public class AtomicAssertionItemPanel {
     private JPanel mainPanel;
     private JPanel assertionPanel;
 
-    public AtomicAssertionItemPanel(AtomicAssertion atomicAssertion, ItemLifeCycleListener<AtomicAssertion> atomicAssertionLifeListener, Project project, Supplier<List<KeyValue>> keyValueSupplier) {
+    public AtomicAssertionItemPanel(
+            AtomicAssertion atomicAssertion,
+            ItemLifeCycleListener<AtomicAssertion> atomicAssertionLifeListener,
+            Project project,
+            Supplier<List<KeyValue>> keyValueSupplier) {
 
 
         assertionBlock = new AssertionBlock(atomicAssertion, new AssertionBlockManager() {
@@ -54,11 +61,12 @@ public class AtomicAssertionItemPanel {
 
             @Override
             public void deleteAssertionRule(AssertionRule assertionRule) {
-
+                logger.warn("delete assertion rule: " + assertionRule);
             }
 
             @Override
             public void removeAssertionGroup() {
+                logger.warn("remove assertion group" + this);
 
             }
 
@@ -122,15 +130,16 @@ public class AtomicAssertionItemPanel {
 
         };
 
-        editModeActionList.add(new AnAction(() -> "Delete", AllIcons.Actions.GC) {
+        editModeActionList.add(new AnAction(() -> "Delete Block", AllIcons.Actions.GC) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
+                atomicAssertionLifeListener.onDelete(atomicAssertion);
 //                componentLifecycleListener.onDelete(originalCopy);
             }
 
             @Override
             public boolean displayTextInToolbar() {
-                return false;
+                return true;
             }
         });
 

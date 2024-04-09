@@ -134,12 +134,14 @@ public class AssertionBlock implements AssertionBlockManager {
     public void deleteAssertionRule(AssertionRule element) {
         if (assertionRules.contains(element)) {
             assertionRules.remove(element);
-            assertion.getSubAssertions().remove(element.getAtomicAssertion());
+            List<AtomicAssertion> existingSubAssertions = new ArrayList<>(assertion.getSubAssertions());
+            existingSubAssertions.remove(element.getAtomicAssertion());
+            assertion.setSubAssertions(existingSubAssertions);
             contentPanel.remove(element.getMainPanel());
             contentPanel.revalidate();
             executeAssertion(assertion);
         }
-        if (assertion.getSubAssertions().size() == 0) {
+        if (assertion.getSubAssertions().isEmpty()) {
             removeAssertionGroup();
         }
     }

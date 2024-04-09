@@ -229,6 +229,9 @@ public class TestCandidateSaveForm {
 
                     Parameter returnValue1 = mainMethod.getReturnValue();
                     JsonNode returnValue = ClassTypeUtils.getValueForParameter(returnValue1);
+                    if (returnValue.isNumber() && !returnValue1.isPrimitiveType() && !returnValue1.isBoxedPrimitiveType()) {
+                        returnValue = ObjectMapperInstance.getInstance().getNodeFactory().objectNode();
+                    }
 
 
                     AtomicAssertion assertion;
@@ -240,7 +243,11 @@ public class TestCandidateSaveForm {
                         assertion = new AtomicAssertion(Expression.SELF, AssertionType.EQUAL, "/message",
                                 expectedValue);
                     }
-                    storedCandidate.setTestAssertions(assertion);
+                    if (AtomicAssertionUtils.countAssertions(assertion) != 0) {
+                        storedCandidate.setTestAssertions(assertion);
+                    } else {
+                        storedCandidate.setTestAssertions(new AtomicAssertion());
+                    }
                     return storedCandidate;
                 }).collect(Collectors.toList());
 
@@ -319,11 +326,11 @@ public class TestCandidateSaveForm {
         }
 
 
-        List<AtomicAssertion> allAssertions = candidateList.stream()
+        Integer allAssertionsCount = candidateList.stream()
                 .flatMap(e -> AtomicAssertionUtils.flattenAssertionMap(e.getTestAssertions()).stream())
-                .collect(Collectors.toList());
-
-        long assertionCount = allAssertions.size();
+                .map(AtomicAssertionUtils::countAssertions).mapToInt(e -> e)
+                .sum();
+        Integer assertionCount = allAssertionsCount;
 
         assertionCountLabel.setText(assertionCount + " assertions");
 
@@ -517,7 +524,7 @@ public class TestCandidateSaveForm {
 
             @Override
             public void onDelete(AtomicAssertion item) {
-
+                logger.warn("Delete AssertionBlock: " + item);
             }
 
             @Override
@@ -557,7 +564,7 @@ public class TestCandidateSaveForm {
                 continue;
             }
             int count = AtomicAssertionUtils.countAssertions(atomicAssertion);
-            if (count < 2) {
+            if (count < 1) {
                 continue;
             }
             Supplier<List<KeyValue>> keyValueSupplier = () -> {
@@ -680,6 +687,10 @@ public class TestCandidateSaveForm {
         List<ThenParameter> thenParameterList = new ArrayList<>();
         Parameter returnValue1 = methodCallExpression.getReturnValue();
         JsonNode value = ClassTypeUtils.getValueForParameter(returnValue1);
+
+        if (value.isNumber() && !returnValue1.isBoxedPrimitiveType() && !returnValue1.isPrimitiveType()) {
+            value = ObjectMapperInstance.getInstance().getNodeFactory().objectNode();
+        }
 
         String returnValueClassName = callExpressionReturnType.getCanonicalText(); // returnValue1.getType();
         ReturnValue returnValue = new ReturnValue(value.toString(), returnValueClassName, ReturnValueType.REAL);
