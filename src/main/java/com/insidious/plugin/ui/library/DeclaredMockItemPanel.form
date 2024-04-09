@@ -75,7 +75,7 @@
           </grid>
         </children>
       </grid>
-      <grid id="7c9c" binding="tagsContainerPanel" layout-manager="FlowLayout" hgap="5" vgap="5" flow-align="1">
+      <grid id="7c9c" binding="tagsContainerPanel" layout-manager="FlowLayout" hgap="5" vgap="5" flow-align="0">
         <constraints border-constraint="South"/>
         <properties/>
         <border type="none"/>

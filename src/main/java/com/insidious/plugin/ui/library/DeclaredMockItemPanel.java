@@ -126,7 +126,6 @@ public class DeclaredMockItemPanel {
         int thenParameterSize = declaredMock.getThenParameter().size();
         ThenParameter thenParameter = declaredMock.getThenParameter().get(0);
         ReturnValue returnParameter = thenParameter.getReturnParameter();
-        JsonNode jsonNode = null;
 
         String className = returnParameter.getClassName();
         if (className.contains("<")) {
@@ -145,14 +144,26 @@ public class DeclaredMockItemPanel {
                             }
                         });
 
-        try {
-            jsonNode = new ObjectMapper().readTree(returnParameter.getValue());
-            @Nullable String returnValueHover = StompItem.getPrettyPrintedArgumentsHtml(jsonNode);
-            returnsTag.setToolTipText(returnValueHover);
-        } catch (JsonProcessingException e) {
-            jsonNode = ObjectMapperInstance.getInstance().getNodeFactory().textNode(returnParameter.getValue());
-            returnsTag.setToolTipText(StompItem.getPrettyPrintedArgumentsHtml(jsonNode));
-        }
+        returnsTag.addMouseListener(new MouseAdapter() {
+            @Override
+            public synchronized void mouseEntered(MouseEvent e) {
+                if (returnsTag.getToolTipText() != null) {
+                    return;
+                }
+                JsonNode jsonNode = null;
+                try {
+                    jsonNode = new ObjectMapper().readTree(returnParameter.getValue());
+                    @Nullable String returnValueHover = StompItem.getPrettyPrintedArgumentsHtml(jsonNode);
+                    returnsTag.setToolTipText(returnValueHover);
+                } catch (JsonProcessingException e1) {
+                    jsonNode = ObjectMapperInstance.getInstance().getNodeFactory().textNode(returnParameter.getValue());
+                    returnsTag.setToolTipText(StompItem.getPrettyPrintedArgumentsHtml(jsonNode));
+                }
+
+                super.mouseEntered(e);
+            }
+        });
+
 
         tagsContainerPanel.add(returnsTag);
 

@@ -46,12 +46,6 @@ public class ReturnValue {
         this.returnValueType = returnValueType;
     }
 
-    public ReturnValue(String value, String returnValueClassName, ReturnValueType returnValueType, List<DeclaredMock> declaredMocks) {
-        this.value = value;
-        this.className = returnValueClassName;
-        this.returnValueType = returnValueType;
-        this.declaredMocks.addAll(declaredMocks);
-    }
 
     public ReturnValue(ReturnValue returnParameter) {
         this.value = returnParameter.value;
