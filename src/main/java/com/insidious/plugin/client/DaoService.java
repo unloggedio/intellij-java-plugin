@@ -644,6 +644,11 @@ public class DaoService {
                 if (probeInfo != null && probeInfo.getEventType().equals(EventType.CALL)) {
                     subjectParameterType = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null));
                     subjectParameter.setType(subjectParameterType);
+                } else if (probeInfo != null && probeInfo.getEventType().equals(EventType.METHOD_ENTRY)) {
+                    ClassDefinition probeClassOwner = classDefinitionsDao.queryForId(
+                            (long) probeInfo.getClassId());
+                    subjectParameterType = ClassTypeUtils.getDottedClassName(probeClassOwner.getClassName());
+                    subjectParameter.setType(subjectParameterType);
                 } else {
                     logger.warn("type for subject of method call [" + dbMce + "] is null [" + subjectParameter + "]");
                     continue;
