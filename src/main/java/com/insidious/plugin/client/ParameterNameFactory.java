@@ -27,6 +27,9 @@ public class ParameterNameFactory {
             key = parameter.getType() + "-" + parameter.getValue();
         }
         if ("0".equals(key)){
+            if (parameter.getName() != null) {
+                return parameter.getName();
+            }
             return null;
         }
 

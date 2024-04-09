@@ -17,9 +17,7 @@ import com.insidious.common.weaver.*;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.MethodSignatureParser;
-import com.insidious.plugin.agent.ConnectionCheckerService;
-import com.insidious.plugin.agent.ServerMetadata;
-import com.insidious.plugin.agent.UnloggedSdkApiAgentClient;
+import com.insidious.plugin.agent.*;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -95,10 +93,8 @@ public class SessionInstance implements Runnable {
     private DaoService daoService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private final ExecutorService executorPool;
-    private final Map<String, Boolean> objectIndexRead = new HashMap<>();
     private final ZipConsumer zipConsumer;
     private final Project project;
-    private final Map<String, Boolean> classNotFound = new HashMap<>();
     private final Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
     private final Map<Long, com.insidious.plugin.pojo.dao.MethodCallExpression> methodCallMap = new HashMap<>();
     private final Map<Long, String> methodCallSubjectTypeMap = new HashMap<>();
@@ -116,7 +112,7 @@ public class SessionInstance implements Runnable {
     private Map<String, MethodInfo> methodInfoByNameIndex;
     private Map<Integer, ClassInfo> classInfoIndex;
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexCollection;
-    private List<NewTestCandidateIdentifiedListener> testCandidateListener = new ArrayList<>();
+    private final List<NewTestCandidateIdentifiedListener> testCandidateListener = new ArrayList<>();
     private File currentSessionArchiveBeingProcessed;
     private ChronicleVariableContainer parameterContainer;
     //    private Date lastScannedTimeStamp;
@@ -124,7 +120,7 @@ public class SessionInstance implements Runnable {
     private boolean hasShownCorruptedNotification = false;
     private BlockingQueue<Integer> scanLock;
     private boolean shutdown = false;
-    private UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
+    private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
 
     public SessionInstance(ExecutionSession executionSession, ServerMetadata serverMetadata, Project project) throws SQLException,
             IOException {
@@ -132,25 +128,30 @@ public class SessionInstance implements Runnable {
         this.unloggedSdkApiAgentClient =
                 new UnloggedSdkApiAgentClient(serverMetadata.getAgentServerUrl());
         this.connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgentClient);
+
+        AgentCommandResponse<ServerMetadata> pingResponse = unloggedSdkApiAgentClient.ping();
+
         this.sessionDirectory = FileSystems.getDefault().getPath(executionSession.getPath()).toFile();
         this.processorId = UUID.randomUUID().toString();
 
-        File sessionLockFile = FileSystems.getDefault().getPath(executionSession.getPath(), "lock").toFile();
-        try {
-            boolean created = sessionLockFile.createNewFile();
-            if (created) {
-                scanEnable = true;
-                sessionLockFile.deleteOnExit();
-                logger.warn("scan lock file created: " + project.getName());
-            } else {
-                logger.warn("scan lock file wasn't created, scanning is disabled: " + project.getName());
-            }
-        } catch (IOException e) {
-            logger.warn("exception while trying to create scan lock file, scanning is disabled " + project.getName(),
-                    e);
-            // lockFile failed to create, probably already exists
-            // no scanning to be done from this session instance
+        if (pingResponse.getResponseType().equals(ResponseType.NORMAL)) {
+            File sessionLockFile = FileSystems.getDefault().getPath(executionSession.getPath(), "lock").toFile();
+            try {
+                boolean created = sessionLockFile.createNewFile();
+                if (created) {
+                    scanEnable = true;
+                    sessionLockFile.deleteOnExit();
+                    logger.warn("scan lock file created: " + project.getName());
+                } else {
+                    logger.warn("scan lock file wasn't created, scanning is disabled: " + project.getName());
+                }
+            } catch (IOException e) {
+                logger.warn("exception while trying to create scan lock file, scanning is disabled " + project.getName(),
+                        e);
+                // lockFile failed to create, probably already exists
+                // no scanning to be done from this session instance
 
+            }
         }
 
         File cacheDir = new File(this.sessionDirectory + "/cache/");
