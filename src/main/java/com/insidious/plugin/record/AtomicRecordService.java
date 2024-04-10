@@ -349,11 +349,11 @@ public final class AtomicRecordService {
                 InsidiousNotification.notifyMessage(getMessageForOperationType(type, file.getPath(), true),
                         NotificationType.INFORMATION);
             }
-            VirtualFile virtialFile = VirtualFileManager.getInstance()
-                    .findFileByNioPath(file.getParentFile().toPath());
-            if (virtialFile != null) {
-                virtialFile.refresh(false, false);
-            }
+//            VirtualFile virtialFile = VirtualFileManager.getInstance()
+//                    .findFileByNioPath(file.getParentFile().toPath());
+//            if (virtialFile != null) {
+//                virtialFile.refresh(false, false);
+//            }
         } catch (Exception e) {
             logger.info("[ATRS] Failed to write to file : " + e);
             logger.error(e.getMessage(), e);

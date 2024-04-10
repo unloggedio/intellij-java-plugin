@@ -273,7 +273,7 @@ public class TestCandidateSaveForm {
                         .sum());
                 UsageInsightTracker.getInstance().RecordEvent("TCSF_CONFIRM", eventProperties);
 
-                DumbService.getInstance(project1).runWhenSmart(() -> {
+                DumbService.getInstance(project1).runReadActionInSmartMode(() -> {
                     int mockSavedCount = 0;
                     for (StoredCandidate storedCandidate : candidateList) {
                         if (!unitRadioButton.isSelected()) {
