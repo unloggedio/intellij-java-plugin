@@ -283,7 +283,7 @@ public class StompItem {
         List<String> descriptorName = MethodSignatureParser.parseMethodSignature(
                 candidateMetadata.getMethodUnderTest().getSignature());
         String returnValueType = descriptorName.remove(descriptorName.size() - 1);
-        String returnValueClassName = ClassTypeUtils.getJavaClassName(returnValueType);
+        String returnValueClassName = ClassTypeUtils.getDottedClassName(returnValueType);
 
         if (!descriptorName.isEmpty()) {
 

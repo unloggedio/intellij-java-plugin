@@ -80,15 +80,15 @@ public class MethodDefinition implements Comparable<MethodDefinition> {
 
         methodDefinition.setMethodHash(methodInfo.getMethodHash());
         methodDefinition.setSourceFileName(methodInfo.getSourceFileName());
-        methodDefinition.setOwnerType(ClassTypeUtils.getJavaClassName(methodInfo.getClassName()));
+        methodDefinition.setOwnerType(ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
 
         List<String> descriptorParsed = MethodSignatureParser.parseMethodSignature(methodInfo.getMethodDesc());
 
         methodDefinition.setReturnType(
-                ClassTypeUtils.getJavaClassName(descriptorParsed.get(descriptorParsed.size() - 1)));
+                ClassTypeUtils.getDottedClassName(descriptorParsed.get(descriptorParsed.size() - 1)));
         descriptorParsed.remove(descriptorParsed.size() - 1);
         methodDefinition.setArgumentTypes(StringUtils.join(descriptorParsed.stream()
-                .map(ClassTypeUtils::getJavaClassName)
+                .map(ClassTypeUtils::getDottedClassName)
                 .collect(Collectors.toList()), ","));
 
         methodDefinition.setClassId(classInfo.getClassId());

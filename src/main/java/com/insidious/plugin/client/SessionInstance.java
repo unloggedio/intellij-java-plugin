@@ -2929,7 +2929,7 @@ public class SessionInstance implements Runnable {
                     if (existingParameter.getValue() == 0
                             && "Static".equals(probeInfo.getAttribute("CallType", null))
                             && !methodName.startsWith("<") && !methodName.contains("$")) {
-                        String ownerClass = ClassTypeUtils.getJavaClassName(
+                        String ownerClass = ClassTypeUtils.getDottedClassName(
                                 probeInfo.getAttribute("Owner", null));
                         existingParameter.setValue(ownerClass.hashCode());
                         isModified = true;
@@ -2943,7 +2943,7 @@ public class SessionInstance implements Runnable {
                     methodCall.setId(currentCallId);
                     methodCall.setEnterNanoTime(dataEvent.getRecordedAt());
                     methodCallMap.put(currentCallId, methodCall);
-                    methodCallSubjectTypeMap.put(currentCallId, ClassTypeUtils.getJavaClassName(
+                    methodCallSubjectTypeMap.put(currentCallId, ClassTypeUtils.getDottedClassName(
                             probeInfo.getAttribute("Owner", null)));
                     methodCall.setEntryProbeInfoId(probeInfo.getDataId());
                     methodCall.setEntryProbeId(dataEvent.getEventId());
@@ -3083,7 +3083,7 @@ public class SessionInstance implements Runnable {
                                 && ((methodInfo.getAccess() & 8) == 8)
                                 && !methodInfo.getMethodName().startsWith("<")
                                 && !methodInfo.getMethodName().contains("$")) {
-                            String ownerClass = ClassTypeUtils.getJavaClassName(
+                            String ownerClass = ClassTypeUtils.getDottedClassName(
                                     classInfoIndex.get(probeInfo.getClassId())
                                             .getClassName());
                             existingParameter.setValue(ownerClass.hashCode());
@@ -3127,7 +3127,7 @@ public class SessionInstance implements Runnable {
                         methodCall.setId(currentCallId);
                         methodCallMap.put(currentCallId, methodCall);
                         methodCallSubjectTypeMap.put(currentCallId,
-                                ClassTypeUtils.getJavaClassName(methodInfo.getClassName()));
+                                ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
 //                            if (threadState.candidateSize() > 0) {
 //                                addMethodToCandidate(threadState, methodCall);
 //                            }
@@ -3392,7 +3392,7 @@ public class SessionInstance implements Runnable {
 
                         } else {
                             existingParameter.setType(
-                                    ClassTypeUtils.getJavaClassName(probeInfo.getValueDesc().getString()));
+                                    ClassTypeUtils.getDottedClassName(probeInfo.getValueDesc().getString()));
                             isModified = true;
                         }
 

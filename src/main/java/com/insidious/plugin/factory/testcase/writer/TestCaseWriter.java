@@ -184,7 +184,7 @@ public class TestCaseWriter {
                     parameterStringBuilder.append("any()");
                 } else {
                     parameterStringBuilder.append("any(")
-                            .append(ClassTypeUtils.getJavaClassName(parameterType))
+                            .append(ClassTypeUtils.getDottedClassName(parameterType))
                             .append(".class)");
                 }
             }

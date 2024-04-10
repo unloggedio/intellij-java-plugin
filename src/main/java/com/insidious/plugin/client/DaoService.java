@@ -701,14 +701,14 @@ public class DaoService {
                         subjectTypeFromProbeInfo = probeInfo.getAttribute("Type", null);
                 }
                 if (subjectTypeFromProbeInfo != null) {
-                    subjectParameter.setTypeForced(ClassTypeUtils.getJavaClassName(subjectTypeFromProbeInfo));
+                    subjectParameter.setTypeForced(ClassTypeUtils.getDottedClassName(subjectTypeFromProbeInfo));
                 } else if (subjectTypeFromMethodDefinition != null) {
                     subjectParameter.setTypeForced(subjectTypeFromMethodDefinition);
                 } else {
                     String callOwnerFromProbe = methodCallExpression.getEntryProbeInfo()
                             .getAttribute("Owner", null);
                     if (callOwnerFromProbe != null) {
-                        subjectParameter.setTypeForced(ClassTypeUtils.getJavaClassName(callOwnerFromProbe));
+                        subjectParameter.setTypeForced(ClassTypeUtils.getDottedClassName(callOwnerFromProbe));
                     }
                 }
 
@@ -731,7 +731,7 @@ public class DaoService {
                     String returnType = descriptorData.remove(descriptorData.size() - 1);
                     argumentTypesFromMethodDefinition =
                             descriptorData.stream()
-                                    .map(ClassTypeUtils::getJavaClassName)
+                                    .map(ClassTypeUtils::getDottedClassName)
                                     .toArray(String[]::new);
                 }
             }
@@ -801,7 +801,7 @@ public class DaoService {
             String returnParamType = returnParam.getType();
             if ((returnParamType == null || returnParamType.equals("") || returnParam.isPrimitiveType())
                     && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
-                returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc().getString()));
+                returnParam.setTypeForced(ClassTypeUtils.getDottedClassName(eventProbe.getValueDesc().getString()));
             }
             if (returnParam.getType() != null && returnParam.getType()
                     .contains("$HibernateProxy")) {
@@ -1093,11 +1093,11 @@ public class DaoService {
 
             if (attributes.contains("Type=")) {
                 DataInfo dataInfo = KaitaiUtils.toDataInfo(probeInfo);
-                parameter.setType(ClassTypeUtils.getJavaClassName(probeInfo.getAttribute("Type", null)));
+                parameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
                 parameter.setProbeAndProbeInfo(dataEvent, dataInfo);
                 break;
             } else if (attributes.contains("Owner=")) {
-                parameter.setType(ClassTypeUtils.getJavaClassName(probeInfo.getAttribute("Owner", null)));
+                parameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null)));
                 DataInfo dataInfo = KaitaiUtils.toDataInfo(probeInfo);
                 parameter.setProbeAndProbeInfo(dataEvent, dataInfo);
                 break;
@@ -1105,7 +1105,7 @@ public class DaoService {
                     || probeInfo.getEventType().equals(EventType.METHOD_ENTRY)) {
                 ClassDefinition classInfo = classDefinitionsDao.queryForId((long) probeInfo.getClassId());
                 DataInfo dataInfo = KaitaiUtils.toDataInfo(probeInfo);
-                parameter.setType(ClassTypeUtils.getJavaClassName(classInfo.getClassName()));
+                parameter.setType(ClassTypeUtils.getDottedClassName(classInfo.getClassName()));
                 parameter.setProbeAndProbeInfo(dataEvent, dataInfo);
             }
         }

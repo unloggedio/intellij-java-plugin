@@ -351,7 +351,7 @@ public class TestCaseService {
         PsiClass classPsiInstance = null;
         try {
             classPsiInstance = JavaPsiFacade.getInstance(project)
-                    .findClass(ClassTypeUtils.getJavaClassName(target.getType()), GlobalSearchScope.allScope(project));
+                    .findClass(ClassTypeUtils.getDottedClassName(target.getType()), GlobalSearchScope.allScope(project));
         } catch (IndexNotReadyException e) {
             InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
                     NotificationType.ERROR);

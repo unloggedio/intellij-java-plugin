@@ -1115,7 +1115,7 @@ public class TestCaseDesignerLite {
 
     private ClassAdapter getClassByName(String className) {
         PsiClass aClass = JavaPsiFacade.getInstance(methodAdapter.getProject())
-                .findClass(ClassTypeUtils.getJavaClassName(className),
+                .findClass(ClassTypeUtils.getDottedClassName(className),
                         GlobalSearchScope.allScope(methodAdapter.getProject()));
         if (aClass == null) {
             return null;

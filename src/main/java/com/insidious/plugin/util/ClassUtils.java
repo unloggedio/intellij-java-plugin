@@ -522,7 +522,7 @@ public class ClassUtils {
 
         try {
             classPsiInstance = JavaPsiFacade.getInstance(project)
-                    .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
+                    .findClass(ClassTypeUtils.getDottedClassName(subjectType), GlobalSearchScope.allScope(project));
         } catch (IndexNotReadyException e) {
 //            e.printStackTrace();
             InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",

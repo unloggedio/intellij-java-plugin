@@ -178,18 +178,17 @@ public class ClassTypeUtils {
         if (className == null) {
             return "V";
         }
-        if (className.length() < 2) {
+        if (className.length() < 2 || className.contains("/")) {
             return className;
         }
         if (className.endsWith("[]")) {
             return "[" + getDescriptorName(className.substring(0, className.length() - 2));
         }
-        String containerClassName = className;
+        String containerClassName = className.replace('.', '/');
         if (className.contains("<")) {
-            className = className.replaceAll(" ", "");
             StringBuilder nameBuilder = new StringBuilder();
             String[] classNameTemplateParts = className.split("<");
-            nameBuilder.append(classNameTemplateParts[0]);
+            nameBuilder.append(classNameTemplateParts[0].replace('.', '/'));
             for (int j = 1; j < classNameTemplateParts.length; j++) {
                 String classNameTemplatePart = classNameTemplateParts[j];
                 String[] subParts = classNameTemplatePart.split(",");
@@ -199,10 +198,10 @@ public class ClassTypeUtils {
                 for (int i = 0; i < subParts.length; i++) {
                     String subPart = subParts[i].split(">")[0];
                     if (subPart.length() > 1) {
-                        subPart = "L" + subPart.replace("/", ".") + ";";
+                        subPart = getDescriptorName(subPart);
                     }
-                    if (i > 1) {
-                        nameBuilder.append(", ");
+                    if (i > 0) {
+                        nameBuilder.append(",");
                     }
                     nameBuilder.append(subPart);
                 }
@@ -214,71 +213,52 @@ public class ClassTypeUtils {
 
             containerClassName = nameBuilder.toString();
         }
-        if (containerClassName.contains(".")) {
-            containerClassName = containerClassName.replace('.', '/');
-        }
         return "L" + containerClassName + ";";
     }
 
     public static String getDottedClassName(String className) {
+
         if (className == null) {
-            return null;
+            return "V";
         }
-        if (className.contains(".")) {
+        if (className.length() < 2 || className.contains(".")) {
             return className;
         }
+        if (className.startsWith("[")) {
+            return getDottedClassName(className.substring(1)) + "[]";
+        }
+        String containerClassName = className.substring(1, className.length() - 1).replace('/', '.');
+        if (className.contains("<")) {
+            StringBuilder nameBuilder = new StringBuilder();
+            String[] classNameTemplateParts = className.split("<");
+            nameBuilder.append(classNameTemplateParts[0].substring(1).replace('/', '.'));
+            for (int j = 1; j < classNameTemplateParts.length; j++) {
+                String classNameTemplatePart = classNameTemplateParts[j];
+                String[] subParts = classNameTemplatePart.split(",");
+                if (subParts.length > 0) {
+                    nameBuilder.append("<");
+                }
+                for (int i = 0; i < subParts.length; i++) {
+                    String subPart = subParts[i].split(">")[0];
+                    if (subPart.length() > 1) {
+                        subPart = getDottedClassName(subPart);
+                    }
+                    if (i > 0) {
+                        nameBuilder.append(",");
+                    }
+                    nameBuilder.append(subPart);
+                }
+                if (subParts.length > 0) {
+                    nameBuilder.append(">");
+                }
+            }
 
-        if (className.endsWith(";")) {
-            className = className.substring(0, className.length() - 1);
+            containerClassName = nameBuilder.toString();
         }
+        return containerClassName;
 
-        while (className.startsWith("[")) {
-            className = className.substring(1) + "[]";
-        }
-        if (className.startsWith("L")) {
-            className = className.substring(1);
-        }
-
-        String dottedName = className.replace('/', '.');
-        if (dottedName.contains("$$")) {
-            dottedName = dottedName.substring(0, dottedName.indexOf("$$"));
-        }
-        return dottedName;
     }
 
-    public static String getJavaClassName(String className) {
-        if (className == null) {
-            return null;
-        }
-        if (className.contains("$$")) {
-            className = className.substring(0, className.indexOf("$$"));
-        }
-        if (className.contains(".") && !className.contains("/")) {
-            className = className.replace('$', '.');
-        } else {
-            className = className.replace('$', '.');
-
-            if (className.endsWith(";")) {
-                className = className.substring(0, className.length() - 1);
-            }
-
-            while (className.startsWith("[")) {
-                className = className.substring(1) + "[]";
-            }
-            if (className.startsWith("L")) {
-                className = className.substring(1);
-            }
-            className = className.replace('/', '.');
-        }
-
-        if (className.matches(".+\\.[0-9]+$")) {
-
-            // if the class name is like a `ClassName.1`
-            className = className.substring(0, className.lastIndexOf("."));
-        }
-
-        return className;
-    }
 
 
     /**
@@ -472,7 +452,7 @@ public class ClassTypeUtils {
     }
 
     public static Pair<PsiMethod, PsiSubstitutor> getPsiMethod(MethodUnderTest methodCallExpression, Project project) {
-        String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getClassName());
+        String subjectClassName = ClassTypeUtils.getDottedClassName(methodCallExpression.getClassName());
         PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
                 GlobalSearchScope.allScope(project));
 
@@ -581,7 +561,7 @@ public class ClassTypeUtils {
 
 
     public static Pair<PsiMethod, PsiSubstitutor> getPsiMethod(MethodCallExpression methodCallExpression, Project project) {
-        String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
+        String subjectClassName = ClassTypeUtils.getDottedClassName(methodCallExpression.getSubject().getType());
         PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
                 GlobalSearchScope.allScope(project));
         if (classPsiElement == null) {
