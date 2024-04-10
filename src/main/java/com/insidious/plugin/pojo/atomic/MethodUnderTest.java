@@ -141,7 +141,7 @@ public class MethodUnderTest {
         }
 
 
-        methodUnderTest.setClassName(callOnType.getCanonicalText());
+//        methodUnderTest.setClassName(callOnType.getCanonicalText());
         String signatureVal = buildMethodSignature(methodCallExpression, classSubstitutor);
         methodUnderTest.setSignature(signatureVal);
 

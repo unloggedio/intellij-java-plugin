@@ -24,6 +24,7 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
+import com.intellij.psi.impl.PsiJavaParserFacadeImpl;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.impl.source.tree.java.*;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -148,6 +149,13 @@ public class ClassUtils {
                         containingClass, resolveChildClass, PsiSubstitutor.EMPTY);
             }
         }
+        PsiClass classContainingFieldInstance = PsiTreeUtil.getParentOfType(
+                methodExpression.getQualifierExpression().getReference().resolve(),
+                PsiClass.class);
+        PsiClass classContainingCallExpression = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
+        classSubstitutor = TypeConversionUtil.getClassSubstitutor(
+                classContainingFieldInstance, classContainingCallExpression,
+                classSubstitutor == null ? PsiSubstitutor.EMPTY : classSubstitutor);
         return classSubstitutor;
     }
 

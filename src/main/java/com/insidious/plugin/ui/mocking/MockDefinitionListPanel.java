@@ -5,7 +5,6 @@ import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
@@ -27,6 +26,8 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
+import com.intellij.psi.PsiType;
+import com.intellij.psi.impl.PsiJavaParserFacadeImpl;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
@@ -50,7 +51,8 @@ public class MockDefinitionListPanel implements OnSaveListener {
     private final List<DeclaredMock> unsavedMocks = new ArrayList<>();
     private JLabel mockedMethodText;
     //    private JButton addNewMockButton;
-    private JPanel savedMocksListParent;    private final ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener = new ItemLifeCycleListener<>() {
+    private JPanel savedMocksListParent;
+    private JPanel controlPanel;    private final ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener = new ItemLifeCycleListener<>() {
         @Override
         public void onSelect(DeclaredMock item) {
             selectedMocks.add(item);
@@ -81,7 +83,6 @@ public class MockDefinitionListPanel implements OnSaveListener {
             });
         }
     };
-    private JPanel controlPanel;
     private JPanel mainPanel;
     private JScrollPane savedItemScrollPanel;
     private JLabel mockCountLabel;
@@ -121,7 +122,7 @@ public class MockDefinitionListPanel implements OnSaveListener {
         SessionInstance sessionInstance = insidiousService.getSessionInstance();
         if (sessionInstance == null) {
             InsidiousNotification.notifyMessage("" +
-                    "No session found. Please start your application with unlogged-sdk to create a session",
+                            "No session found. Please start your application with unlogged-sdk to create a session",
                     NotificationType.ERROR);
             return;
         }
@@ -131,8 +132,9 @@ public class MockDefinitionListPanel implements OnSaveListener {
         @Nullable PsiClass containingClass = PsiTreeUtil.getParentOfType(methodCallExpression,
                 PsiClass.class);
         if (containingClass == null) {
-            InsidiousNotification.notifyMessage("Failed to locate parent class for method call expression: " + methodCallExpression.getText()
-            , NotificationType.ERROR);
+            InsidiousNotification.notifyMessage(
+                    "Failed to locate parent class for method call expression: " + methodCallExpression.getText()
+                    , NotificationType.ERROR);
             throw new IllegalArgumentException(methodCallExpression.getText());
         }
         String sourceClassName = containingClass.getQualifiedName();
@@ -320,7 +322,7 @@ public class MockDefinitionListPanel implements OnSaveListener {
             int containerHeight = Math.min(500, itemListPanel.getComponentCount() * PANEL_HEIGHT);
             if (resizePanel) {
                 Dimension currentSize = savedItemScrollPanel.getSize();
-                if (currentSize.getHeight() <  containerHeight) {
+                if (currentSize.getHeight() < containerHeight) {
                     savedItemScrollPanel.setPreferredSize(new Dimension(-1, containerHeight));
                     savedItemScrollPanel.setSize(new Dimension(-1, containerHeight));
                 }

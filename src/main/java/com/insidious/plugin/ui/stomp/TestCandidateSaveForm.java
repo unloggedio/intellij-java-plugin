@@ -32,6 +32,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Pair;
@@ -260,56 +261,62 @@ public class TestCandidateSaveForm {
         mockCallCountLabel.setText(declaredMockList.size() + " downstream call mocks");
 
         confirmButton.setIcon(AllIcons.Actions.MenuSaveall);
-        confirmButton.addActionListener(e -> ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            JSONObject eventProperties = new JSONObject();
-            eventProperties.put("count", candidateMetadataList.size());
-            eventProperties.put("inUnit", unitRadioButton.isSelected());
-            eventProperties.put("mockCount", mocksMap.values()
-                    .stream().mapToLong(Collection::size).sum());
-            eventProperties.put("assertionCount", candidateList
-                    .stream().mapToInt(e2 -> AtomicAssertionUtils.countAssertions(e2.getTestAssertions()))
-                    .sum());
-            UsageInsightTracker.getInstance().RecordEvent("TCSF_CONFIRM", eventProperties);
+        confirmButton.addActionListener(e -> {
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("count", candidateMetadataList.size());
+                eventProperties.put("inUnit", unitRadioButton.isSelected());
+                eventProperties.put("mockCount", mocksMap.values()
+                        .stream().mapToLong(Collection::size).sum());
+                eventProperties.put("assertionCount", candidateList
+                        .stream().mapToInt(e2 -> AtomicAssertionUtils.countAssertions(e2.getTestAssertions()))
+                        .sum());
+                UsageInsightTracker.getInstance().RecordEvent("TCSF_CONFIRM", eventProperties);
 
-            int mockSavedCount = 0;
-            for (StoredCandidate storedCandidate : candidateList) {
-                if (!unitRadioButton.isSelected()) {
-                    storedCandidate.setMockIds(new HashSet<>());
-                } else {
-                    List<DeclaredMock> mocks = mocksMap.getOrDefault(storedCandidate, new ArrayList<>());
+                DumbService.getInstance(project1).runWhenSmart(() -> {
+                    int mockSavedCount = 0;
+                    for (StoredCandidate storedCandidate : candidateList) {
+                        if (!unitRadioButton.isSelected()) {
+                            storedCandidate.setMockIds(new HashSet<>());
+                        } else {
+                            List<DeclaredMock> mocks = mocksMap.getOrDefault(storedCandidate, new ArrayList<>());
 
-                    Set<String> mockIds = new HashSet<>();
-                    for (DeclaredMock declaredMock : mocks) {
-                        String mockId = saveFormListener.onSaved(declaredMock);
-                        mockIds.add(mockId);
+                            Set<String> mockIds = new HashSet<>();
+                            for (DeclaredMock declaredMock : mocks) {
+                                String mockId = saveFormListener.onSaved(declaredMock);
+                                mockIds.add(mockId);
+                            }
+                            mockSavedCount += mockIds.size();
+                            storedCandidate.setMockIds(mockIds);
+                        }
+                        saveFormListener.onSaved(storedCandidate);
                     }
-                    mockSavedCount += mockIds.size();
-                    storedCandidate.setMockIds(mockIds);
-                }
-                saveFormListener.onSaved(storedCandidate);
-            }
 
 
-            insidiousService.reloadLibrary();
+                    insidiousService.reloadLibrary();
 
-            InsidiousNotification
-                    .notifyMessage(
-                            "Saved " + candidateList.size() + " replay tests and "
-                                    + mockSavedCount + " mock definitions", NotificationType.INFORMATION,
-                            List.of(
-                                    new AnAction(() -> "Go to Library", UIUtils.LIBRARY_ICON) {
-                                        @Override
-                                        public void actionPerformed(@NotNull AnActionEvent e) {
-                                            saveFormListener.getProject()
-                                                    .getService(InsidiousService.class)
-                                                    .showLibrary();
-                                        }
-                                    }
-                            )
-                    );
+                    InsidiousNotification
+                            .notifyMessage(
+                                    "Saved " + candidateList.size() + " replay tests and "
+                                            + mockSavedCount + " mock definitions", NotificationType.INFORMATION,
+                                    List.of(
+                                            new AnAction(() -> "Go to Library", UIUtils.LIBRARY_ICON) {
+                                                @Override
+                                                public void actionPerformed(@NotNull AnActionEvent e) {
+                                                    saveFormListener.getProject()
+                                                            .getService(InsidiousService.class)
+                                                            .showLibrary();
+                                                }
+                                            }
+                                    )
+                            );
 
-            componentLifecycleListener.onClose(TestCandidateSaveForm.this);
-        }));
+                    componentLifecycleListener.onClose(TestCandidateSaveForm.this);
+                });
+
+
+            });
+        });
 
         cancelButton.setIcon(AllIcons.Actions.Cancel);
         cancelButton.addActionListener(e -> {

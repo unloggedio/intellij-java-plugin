@@ -51,7 +51,7 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback, Disp
                 if (client == null) {
                     continue;
                 }
-                logger.warn("Check for new sessions");
+                logger.debug("Check for new sessions");
                 client.getProjectSessions(this);
             } catch (InterruptedException ie) {
                 logger.warn("Session loader interrupted: " + ie.getMessage());

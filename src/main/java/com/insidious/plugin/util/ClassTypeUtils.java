@@ -596,7 +596,7 @@ public class ClassTypeUtils {
             isLambda = true;
         }
         List<Pair<PsiMethod, PsiSubstitutor>> methodsByNameList = classPsiElement.findMethodsAndTheirSubstitutorsByName(
-                methodName, true);
+                methodName, false);
 
         if (methodsByNameList.size() == 1) {
             // should we verify parameters ?
