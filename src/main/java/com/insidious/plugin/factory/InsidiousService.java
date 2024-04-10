@@ -1076,7 +1076,8 @@ final public class InsidiousService implements
         this.methodHash.clear();
         this.classModifiedFlagMap.clear();
         logger.info("Loading new session: " + executionSession.getSessionId() + " => " + project.getName());
-        final SessionInstance sessionInstance = sessionManager.createSessionInstance(executionSession, serverMetadata, project);
+        final SessionInstance sessionInstance = sessionManager.createSessionInstance(executionSession, serverMetadata,
+                project);
         currentState.setSessionInstance(sessionInstance);
         sessionInstance.addTestCandidateListener(this);
 
@@ -1144,9 +1145,11 @@ final public class InsidiousService implements
 
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
-        if (stompWindow != null) {
-            stompWindow.loadNewCandidates();
-        }
+//        if (stompWindow != null) {
+//            ApplicationManager.getApplication().invokeLater(() -> {
+//                stompWindow.loadNewCandidates();
+//            });
+//        }
     }
 
     public void updateCoverageReport() {
@@ -1609,7 +1612,29 @@ final public class InsidiousService implements
     }
 
     public TestCandidateMetadata getTestCandidateById(long eventId, boolean loadCalls) {
-        return getSessionInstance().getTestCandidateById(eventId, loadCalls);
+        SessionInstance sessionInstance = getSessionInstance();
+        TestCandidateMetadata testCandidateMetadata = sessionInstance.getTestCandidateById(eventId, loadCalls);
+
+        TestCandidateMetadata tm = ApplicationManager.getApplication()
+                .runReadAction((Computable<TestCandidateMetadata>) () -> {
+                    ClassUtils.resolveTemplatesInCall(testCandidateMetadata.getMainMethod(), project);
+                    return testCandidateMetadata;
+                });
+        // check if the param are ENUM
+        sessionInstance.createParamEnumPropertyTrueIfTheyAre(testCandidateMetadata.getMainMethod());
+
+        if (loadCalls) {
+            for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
+                MethodCallExpression finalMethodCallExpression = methodCallExpression;
+                methodCallExpression = ApplicationManager.getApplication().runReadAction(
+                        (Computable<MethodCallExpression>) () -> ClassUtils.resolveTemplatesInCall(
+                                finalMethodCallExpression, project));
+                sessionInstance.createParamEnumPropertyTrueIfTheyAre(methodCallExpression);
+            }
+        }
+
+
+        return testCandidateMetadata;
     }
 
     public void executeSingleCandidate(

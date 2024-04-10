@@ -1077,8 +1077,7 @@ public class StompComponent implements
             TestCaseService testCaseService,
             TestCandidateBareBone testCandidateShell) throws Exception {
         TestCandidateMetadata loadedTestCandidate = ApplicationManager.getApplication().executeOnPooledThread(
-                () -> insidiousService.getSessionInstance()
-                        .getTestCandidateById(testCandidateShell.getId(), true)).get();
+                () -> insidiousService.getTestCandidateById(testCandidateShell.getId(), true)).get();
         Parameter testSubject = loadedTestCandidate.getTestSubject();
         if (testSubject.isException()) {
             return true;
@@ -1398,9 +1397,13 @@ public class StompComponent implements
         if (candidateQueryLatch != null) {
             return;
         }
-        candidateQueryLatch = insidiousService
-                .getSessionInstance()
-                .getTestCandidates(this, lastEventId, filterModel);
+        candidateQueryLatch = new AtomicInteger(1);
+
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            insidiousService
+                    .getSessionInstance()
+                    .getTestCandidates(this, lastEventId, filterModel, candidateQueryLatch);
+        });
     }
 
     public SessionScanEventListener getScanEventListener() {

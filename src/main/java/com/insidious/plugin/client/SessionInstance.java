@@ -45,11 +45,9 @@ import com.insidious.plugin.ui.stomp.FilterModel;
 import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.insidious.plugin.util.*;
 import com.intellij.notification.NotificationType;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Computable;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import io.kaitai.struct.RandomAccessFileKaitaiStream;
@@ -89,8 +87,6 @@ public class SessionInstance implements Runnable {
     private final ExecutionSession executionSession;
     private final Map<String, String> cacheEntries = new HashMap<>();
     private final ConnectionCheckerService connectionCheckerService;
-    //    private final DatabasePipe databasePipe;
-    private DaoService daoService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private final ExecutorService executorPool;
     private final ZipConsumer zipConsumer;
@@ -102,6 +98,10 @@ public class SessionInstance implements Runnable {
     private final Map<Integer, Integer> methodLineCount = new HashMap<>();
     private final Map<Integer, Boolean> methodUsesFields = new HashMap<>();
     private final List<SessionScanEventListener> sessionScanEventListeners = new ArrayList<>();
+    private final List<NewTestCandidateIdentifiedListener> testCandidateListener = new ArrayList<>();
+    private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
+    //    private final DatabasePipe databasePipe;
+    private DaoService daoService;
     private boolean scanEnable = false;
     private List<File> sessionArchives = new ArrayList<>();
     private ArchiveIndex archiveIndex;
@@ -112,7 +112,6 @@ public class SessionInstance implements Runnable {
     private Map<String, MethodInfo> methodInfoByNameIndex;
     private Map<Integer, ClassInfo> classInfoIndex;
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexCollection;
-    private final List<NewTestCandidateIdentifiedListener> testCandidateListener = new ArrayList<>();
     private File currentSessionArchiveBeingProcessed;
     private ChronicleVariableContainer parameterContainer;
     //    private Date lastScannedTimeStamp;
@@ -120,7 +119,6 @@ public class SessionInstance implements Runnable {
     private boolean hasShownCorruptedNotification = false;
     private BlockingQueue<Integer> scanLock;
     private boolean shutdown = false;
-    private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
 
     public SessionInstance(ExecutionSession executionSession, ServerMetadata serverMetadata, Project project) throws SQLException,
             IOException {
@@ -146,7 +144,8 @@ public class SessionInstance implements Runnable {
                     logger.warn("scan lock file wasn't created, scanning is disabled: " + project.getName());
                 }
             } catch (IOException e) {
-                logger.warn("exception while trying to create scan lock file, scanning is disabled " + project.getName(),
+                logger.warn(
+                        "exception while trying to create scan lock file, scanning is disabled " + project.getName(),
                         e);
                 // lockFile failed to create, probably already exists
                 // no scanning to be done from this session instance
@@ -2325,14 +2324,10 @@ public class SessionInstance implements Runnable {
 //            Collection<Parameter> allParameters = new ArrayList<>(parameterIndex.values());
 //            checkProgressIndicator("Saving " + allParameters.size() + " parameters", "");
 //            daoService.createOrUpdateParameter(allParameters);
-            if (newCandidateIdentified && testCandidateListener != null) {
+            if (newCandidateIdentified) {
                 final int finalProcessedCount = processedCount;
-                testCandidateListener.forEach(e -> {
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        e.onNewTestCandidateIdentified(finalProcessedCount,
-                                logFilesToProcess.size());
-                    });
-                });
+                testCandidateListener.forEach(
+                        e -> e.onNewTestCandidateIdentified(finalProcessedCount, logFilesToProcess.size()));
             }
 
 
@@ -3061,7 +3056,7 @@ public class SessionInstance implements Runnable {
                                     methodCall.getEntryProbe_id() ==
                                             (eventBlock.eventId() - methodCall.getArgumentProbes().size() - 1)
                                             && methodCall.getSubject() == dataEvent.getValue()
-                                    && methodCall.getMethodDefinitionId() == methodInfo.getMethodId()
+                                            && methodCall.getMethodDefinitionId() == methodInfo.getMethodId()
                             ) {
                                 // we are inside a method call on a class intercepted by spring or cglib companions
                                 // but this is the actual method call
@@ -3387,7 +3382,8 @@ public class SessionInstance implements Runnable {
                                 if (objectInfoDocument != null) {
                                     TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(
                                             objectInfoDocument.getTypeId());
-                                    String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
+                                    String typeName = ClassTypeUtils.getDottedClassName(
+                                            typeFromTypeIndex.getTypeName());
                                     existingParameter.setType(typeName);
                                     isModified = true;
                                 }
@@ -3889,30 +3885,10 @@ public class SessionInstance implements Runnable {
 
     public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
         TestCandidateMetadata testCandidateMetadata = daoService.getTestCandidateById(testCandidateId, loadCalls);
-        if (testCandidateMetadata == null) {
-            return null;
-        }
-        TestCandidateMetadata tm = ApplicationManager.getApplication()
-                .runReadAction((Computable<TestCandidateMetadata>) () -> {
-                    ClassUtils.resolveTemplatesInCall(testCandidateMetadata.getMainMethod(), project);
-                    return testCandidateMetadata;
-                });
-        // check if the param are ENUM
-        createParamEnumPropertyTrueIfTheyAre(testCandidateMetadata.getMainMethod());
-
-        if (loadCalls) {
-            for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
-                MethodCallExpression finalMethodCallExpression = methodCallExpression;
-                methodCallExpression = ApplicationManager.getApplication().runReadAction(
-                        (Computable<MethodCallExpression>) () -> ClassUtils.resolveTemplatesInCall(
-                                finalMethodCallExpression, project));
-                createParamEnumPropertyTrueIfTheyAre(methodCallExpression);
-            }
-        }
         return testCandidateMetadata;
     }
 
-    private void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
+    public void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
         List<Parameter> methodArguments = methodCallExpression.getArguments();
 
         for (Parameter methodArgument : methodArguments) {
@@ -4013,90 +3989,50 @@ public class SessionInstance implements Runnable {
         return classInfoIndexByName;
     }
 
+    public void getTestCandidates(
+            Consumer<List<TestCandidateBareBone>> testCandidateReceiver,
+            long afterEventId,
+            FilterModel filterModel, AtomicInteger cdl) {
 
-    public void getTopLevelTestCandidates(Consumer<List<TestCandidateMetadata>> testCandidateReceiver, long afterEventId) {
+        try {
 
 
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            try {
-
-                int page = 0;
-                int limit = 50;
-                int count = 0;
-                while (true) {
-                    if (shutdown) {
-                        return;
-                    }
-                    List<TestCandidateMetadata> testCandidateMetadataList = daoService
-                            .getTopLevelTestCandidatePaginated(afterEventId, page, limit);
-                    testCandidateReceiver.accept(testCandidateMetadataList);
+            int page = 0;
+            int limit = 50;
+            int count = 0;
+            int attempt = 0;
+            long currentAfterEventId = afterEventId;
+            while (true) {
+                attempt++;
+                if (shutdown) {
+                    cdl.decrementAndGet();
+                }
+                if (cdl.get() == 0) {
+                    logger.warn(
+                            "shutting down query started at [" + afterEventId + "] currently at item [" + count +
+                                    "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
+                }
+                List<TestCandidateBareBone> testCandidateMetadataList = daoService
+                        .getTestCandidatePaginated(currentAfterEventId, 0, limit, filterModel);
+                if (testCandidateMetadataList.size() > 0) {
                     count += testCandidateMetadataList.size();
-                    page++;
-                    if (testCandidateMetadataList.size() < limit || count > 100) {
-                        break;
+                    testCandidateReceiver.accept(testCandidateMetadataList);
+                    currentAfterEventId = testCandidateMetadataList.get(0).getId() + 1;
+                }
+                if (testCandidateMetadataList.size() < limit) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
                 }
-
-            } catch (SQLException e) {
-                // failed to load candidates hmm
-                e.printStackTrace();
-                throw new RuntimeException(e);
             }
-        });
 
-
-    }
-
-    public AtomicInteger getTestCandidates(Consumer<List<TestCandidateBareBone>> testCandidateReceiver,
-                                           long afterEventId, FilterModel filterModel) {
-
-        AtomicInteger cdl = new AtomicInteger(1);
-
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            try {
-
-
-                int page = 0;
-                int limit = 50;
-                int count = 0;
-                int attempt = 0;
-                long currentAfterEventId = afterEventId;
-                while (true) {
-                    attempt++;
-                    if (shutdown) {
-                        cdl.decrementAndGet();
-                        return;
-                    }
-                    if (cdl.get() == 0) {
-                        logger.warn(
-                                "shutting down query started at [" + afterEventId + "] currently at item [" + count +
-                                        "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
-                        return;
-                    }
-                    List<TestCandidateBareBone> testCandidateMetadataList = daoService
-                            .getTestCandidatePaginated(currentAfterEventId, 0, limit, filterModel);
-                    if (testCandidateMetadataList.size() > 0) {
-                        count += testCandidateMetadataList.size();
-                        testCandidateReceiver.accept(testCandidateMetadataList);
-                        currentAfterEventId = testCandidateMetadataList.get(0).getId() + 1;
-                    }
-                    if (testCandidateMetadataList.size() < limit) {
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                }
-
-            } catch (SQLException e) {
-                // failed to load candidates hmm
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            }
-        });
-
-        return cdl;
+        } catch (SQLException e) {
+            // failed to load candidates hmm
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
 
     }
 

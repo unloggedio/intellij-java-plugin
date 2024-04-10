@@ -16,6 +16,7 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class SessionInstanceTest extends TestCase {
 
@@ -44,7 +45,7 @@ public class SessionInstanceTest extends TestCase {
 
         sessionInstance.getTestCandidates(testCandidateMetadata -> {
             cdl.countDown();
-        }, 0, new FilterModel());
+        }, 0, new FilterModel(), new AtomicInteger(1));
 
 
         cdl.await();
@@ -79,7 +80,7 @@ public class SessionInstanceTest extends TestCase {
 
         sessionInstance.getTestCandidates(testCandidateMetadata -> {
             cdl.countDown();
-        }, 0, new FilterModel());
+        }, 0, new FilterModel(), new AtomicInteger(1));
 
 
         cdl.await();

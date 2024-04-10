@@ -17,6 +17,7 @@ import com.intellij.openapi.diagnostic.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestCaseUtils {
 
@@ -62,7 +63,7 @@ public class TestCaseUtils {
             }
 
 
-        }, 0, new FilterModel());
+        }, 0, new FilterModel(), new AtomicInteger(1));
     }
 
 }
