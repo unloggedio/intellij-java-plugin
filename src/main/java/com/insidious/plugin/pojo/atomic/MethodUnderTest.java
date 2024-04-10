@@ -34,7 +34,7 @@ public class MethodUnderTest {
     }
 
     public static MethodUnderTest fromMethodAdapter(MethodAdapter methodElement) {
-        final int methodHash = methodElement.getText().hashCode();
+        final int methodHash = methodElement.getText() == null ? 0 :methodElement.getText().hashCode();
         final String methodName = methodElement.getName();
         final String methodJVMSignature = methodElement.getJVMSignature();
         final String classQualifiedName = methodElement.getContainingClass().getQualifiedName();

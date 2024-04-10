@@ -115,8 +115,11 @@ public class ClassUtils {
         if (destinationMethod == null) {
             return new EmptySubstitutor();
         }
-        PsiExpression fieldReferenceExpression = methodExpression
-                .getQualifierExpression();
+        PsiExpression qualifierExpression = methodExpression.getQualifierExpression();
+        if (qualifierExpression == null) {
+            return PsiSubstitutor.EMPTY;
+        }
+        PsiExpression fieldReferenceExpression = qualifierExpression;
         PsiType type;
         if (fieldReferenceExpression == null || fieldReferenceExpression.getReference() == null) {
             // a call to a methid in the same class, so
@@ -149,9 +152,16 @@ public class ClassUtils {
                         containingClass, resolveChildClass, PsiSubstitutor.EMPTY);
             }
         }
+        PsiReference reference = qualifierExpression.getReference();
+        if (reference == null) {
+            return PsiSubstitutor.EMPTY;
+        }
         PsiClass classContainingFieldInstance = PsiTreeUtil.getParentOfType(
-                methodExpression.getQualifierExpression().getReference().resolve(),
+                reference.resolve(),
                 PsiClass.class);
+        if (classContainingFieldInstance == null) {
+            return classSubstitutor;
+        }
         PsiClass classContainingCallExpression = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
         classSubstitutor = TypeConversionUtil.getClassSubstitutor(
                 classContainingFieldInstance, classContainingCallExpression,
