@@ -49,7 +49,7 @@ public class InsidiousUtils {
             if (searchResult.length == 0) {
 
                 newFile = JavaPsiFacade.getInstance(project)
-                        .findClass(ClassTypeUtils.getDottedClassName(className), GlobalSearchScope.allScope(project))
+                        .findClass(ClassTypeUtils.getDescriptorToDottedClassName(className), GlobalSearchScope.allScope(project))
                         .getContainingFile().getVirtualFile();
                 if (newFile == null) {
                     return;

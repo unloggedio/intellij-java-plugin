@@ -6,13 +6,9 @@ import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ParameterUtils;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClassType;
 import com.intellij.psi.PsiType;
-import com.intellij.psi.impl.source.PsiClassReferenceType;
-import com.intellij.psi.impl.source.PsiImmediateClassType;
 
 import java.util.List;
 
@@ -184,7 +180,7 @@ public class TestCaseWriter {
                     parameterStringBuilder.append("any()");
                 } else {
                     parameterStringBuilder.append("any(")
-                            .append(ClassTypeUtils.getDottedClassName(parameterType))
+                            .append(ClassTypeUtils.getDescriptorToDottedClassName(parameterType))
                             .append(".class)");
                 }
             }

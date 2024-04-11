@@ -24,7 +24,6 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
-import com.intellij.psi.impl.PsiJavaParserFacadeImpl;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.impl.source.tree.java.*;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -522,7 +521,7 @@ public class ClassUtils {
 
         try {
             classPsiInstance = JavaPsiFacade.getInstance(project)
-                    .findClass(ClassTypeUtils.getDottedClassName(subjectType), GlobalSearchScope.allScope(project));
+                    .findClass(ClassTypeUtils.getDescriptorToDottedClassName(subjectType), GlobalSearchScope.allScope(project));
         } catch (IndexNotReadyException e) {
 //            e.printStackTrace();
             InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",

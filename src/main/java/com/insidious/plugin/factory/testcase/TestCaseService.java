@@ -45,7 +45,6 @@ import org.objectweb.asm.Opcodes;
 
 import javax.lang.model.element.Modifier;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class TestCaseService {
@@ -351,7 +350,7 @@ public class TestCaseService {
         PsiClass classPsiInstance = null;
         try {
             classPsiInstance = JavaPsiFacade.getInstance(project)
-                    .findClass(ClassTypeUtils.getDottedClassName(target.getType()), GlobalSearchScope.allScope(project));
+                    .findClass(ClassTypeUtils.getDescriptorToDottedClassName(target.getType()), GlobalSearchScope.allScope(project));
         } catch (IndexNotReadyException e) {
             InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
                     NotificationType.ERROR);

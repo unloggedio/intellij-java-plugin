@@ -642,12 +642,12 @@ public class DaoService {
                     probeInfo = probeInfoMap.get(call.getEntryProbeInfo_id());
                 }
                 if (probeInfo != null && probeInfo.getEventType().equals(EventType.CALL)) {
-                    subjectParameterType = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null));
+                    subjectParameterType = ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Owner", null));
                     subjectParameter.setType(subjectParameterType);
                 } else if (probeInfo != null && probeInfo.getEventType().equals(EventType.METHOD_ENTRY)) {
                     ClassDefinition probeClassOwner = classDefinitionsDao.queryForId(
                             (long) probeInfo.getClassId());
-                    subjectParameterType = ClassTypeUtils.getDottedClassName(probeClassOwner.getClassName());
+                    subjectParameterType = ClassTypeUtils.getDescriptorToDottedClassName(probeClassOwner.getClassName());
                     subjectParameter.setType(subjectParameterType);
                 } else {
                     logger.warn("type for subject of method call [" + dbMce + "] is null [" + subjectParameter + "]");
@@ -701,14 +701,14 @@ public class DaoService {
                         subjectTypeFromProbeInfo = probeInfo.getAttribute("Type", null);
                 }
                 if (subjectTypeFromProbeInfo != null) {
-                    subjectParameter.setTypeForced(ClassTypeUtils.getDottedClassName(subjectTypeFromProbeInfo));
+                    subjectParameter.setTypeForced(ClassTypeUtils.getDescriptorToDottedClassName(subjectTypeFromProbeInfo));
                 } else if (subjectTypeFromMethodDefinition != null) {
                     subjectParameter.setTypeForced(subjectTypeFromMethodDefinition);
                 } else {
                     String callOwnerFromProbe = methodCallExpression.getEntryProbeInfo()
                             .getAttribute("Owner", null);
                     if (callOwnerFromProbe != null) {
-                        subjectParameter.setTypeForced(ClassTypeUtils.getDottedClassName(callOwnerFromProbe));
+                        subjectParameter.setTypeForced(ClassTypeUtils.getDescriptorToDottedClassName(callOwnerFromProbe));
                     }
                 }
 
@@ -731,7 +731,7 @@ public class DaoService {
                     String returnType = descriptorData.remove(descriptorData.size() - 1);
                     argumentTypesFromMethodDefinition =
                             descriptorData.stream()
-                                    .map(ClassTypeUtils::getDottedClassName)
+                                    .map(ClassTypeUtils::getDescriptorToDottedClassName)
                                     .toArray(String[]::new);
                 }
             }
@@ -753,7 +753,7 @@ public class DaoService {
                 paramArgument.setProbeAndProbeInfo(dataEvent, probeInfo);
 
                 String paramArgTypeFromProbe = probeInfo.getAttribute("Type", probeInfo.getValueDesc().getString());
-                String argumentTypeFromProbe = ClassTypeUtils.getDottedClassName(paramArgTypeFromProbe);
+                String argumentTypeFromProbe = ClassTypeUtils.getDescriptorToDottedClassName(paramArgTypeFromProbe);
                 // only set param type if the type is not already null or empty
                 String existingType = paramArgument.getType();
                 if ((existingType == null || existingType.equals("") || existingType.length() == 1)
@@ -801,7 +801,7 @@ public class DaoService {
             String returnParamType = returnParam.getType();
             if ((returnParamType == null || returnParamType.equals("") || returnParam.isPrimitiveType())
                     && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
-                returnParam.setTypeForced(ClassTypeUtils.getDottedClassName(eventProbe.getValueDesc().getString()));
+                returnParam.setTypeForced(ClassTypeUtils.getDescriptorToDottedClassName(eventProbe.getValueDesc().getString()));
             }
             if (returnParam.getType() != null && returnParam.getType()
                     .contains("$HibernateProxy")) {
@@ -811,7 +811,7 @@ public class DaoService {
             }
             returnParam.setProbeAndProbeInfo(returnDataEvent, eventProbe);
 
-            String typeFromProbe = ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", null));
+            String typeFromProbe = ClassTypeUtils.getDescriptorToDottedClassName(eventProbe.getAttribute("Type", null));
             if (typeFromProbe != null && !typeFromProbe.equals("java.lang.Object")) {
                 returnParam.setTypeForced(typeFromProbe);
             }
@@ -1093,11 +1093,11 @@ public class DaoService {
 
             if (attributes.contains("Type=")) {
                 DataInfo dataInfo = KaitaiUtils.toDataInfo(probeInfo);
-                parameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
+                parameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Type", null)));
                 parameter.setProbeAndProbeInfo(dataEvent, dataInfo);
                 break;
             } else if (attributes.contains("Owner=")) {
-                parameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null)));
+                parameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Owner", null)));
                 DataInfo dataInfo = KaitaiUtils.toDataInfo(probeInfo);
                 parameter.setProbeAndProbeInfo(dataEvent, dataInfo);
                 break;
@@ -1105,7 +1105,7 @@ public class DaoService {
                     || probeInfo.getEventType().equals(EventType.METHOD_ENTRY)) {
                 ClassDefinition classInfo = classDefinitionsDao.queryForId((long) probeInfo.getClassId());
                 DataInfo dataInfo = KaitaiUtils.toDataInfo(probeInfo);
-                parameter.setType(ClassTypeUtils.getDottedClassName(classInfo.getClassName()));
+                parameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(classInfo.getClassName()));
                 parameter.setProbeAndProbeInfo(dataEvent, dataInfo);
             }
         }

@@ -56,12 +56,12 @@ public class MethodUnderTest {
 
         for (Parameter argument : mainMethod.getArguments()) {
             String type = argument.getType();
-            methodSignature.append(ClassTypeUtils.getDescriptorName(type));
+            methodSignature.append(ClassTypeUtils.getDottedToDescriptorName(type));
         }
 
         methodSignature.append(")");
         String type = mainMethod.getReturnValue().getType();
-        methodSignature.append(ClassTypeUtils.getDescriptorName(type));
+        methodSignature.append(ClassTypeUtils.getDottedToDescriptorName(type));
 
         return methodSignature.toString();
     }
@@ -79,13 +79,13 @@ public class MethodUnderTest {
         for (JvmParameter argument : targetMethod.getParameters()) {
             JvmType type1 = argument.getType();
             String descriptorName;
-            descriptorName = ClassTypeUtils.getDescriptorName(substitutor, type1);
+            descriptorName = ClassTypeUtils.getDottedToDescriptorName(substitutor, type1);
             methodSignature.append(descriptorName);
         }
 
         methodSignature.append(")");
         PsiType returnType = targetMethod.getReturnType();
-        String returnTypeDescriptor = ClassTypeUtils.getDescriptorName(substitutor, returnType);
+        String returnTypeDescriptor = ClassTypeUtils.getDottedToDescriptorName(substitutor, returnType);
         methodSignature.append(returnTypeDescriptor);
 
         return methodSignature.toString();

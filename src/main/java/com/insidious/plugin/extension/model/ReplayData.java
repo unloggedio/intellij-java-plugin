@@ -11,7 +11,6 @@ import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
-import net.openhft.chronicle.map.ChronicleMap;
 
 import java.util.*;
 
@@ -170,7 +169,7 @@ public class ReplayData {
                 if (searchRequestCallStack == ScanRequest.CURRENT_CLASS) {
                     stackMatch = firstClass.getClassId() == classInfo.getClassId();
                     if (!stackMatch) {
-                        if (typeLadder.contains(ClassTypeUtils.getDottedClassName(classInfo.getClassName()))) {
+                        if (typeLadder.contains(ClassTypeUtils.getDescriptorToDottedClassName(classInfo.getClassName()))) {
                             stackMatch = true;
                             callStackMatched = ScanRequest.CURRENT_CLASS;
                         }
@@ -324,7 +323,7 @@ public class ReplayData {
             if (searchRequestCallStack == ScanRequest.CURRENT_CLASS) {
                 stackMatch = firstClass.getClassId() == classInfo.getClassId();
                 if (!stackMatch) {
-                    if (typeLadder.contains(ClassTypeUtils.getDottedClassName(classInfo.getClassName()))) {
+                    if (typeLadder.contains(ClassTypeUtils.getDescriptorToDottedClassName(classInfo.getClassName()))) {
                         stackMatch = true;
                         callStackMatched = ScanRequest.CURRENT_CLASS;
                     }
@@ -385,7 +384,7 @@ public class ReplayData {
         }
 
         if (expectedParameterType.startsWith("L")) {
-            expectedParameterType = ClassTypeUtils.getDottedClassName(expectedParameterType);
+            expectedParameterType = ClassTypeUtils.getDescriptorToDottedClassName(expectedParameterType);
         }
 
         TypeInfo typeInfo = getTypeInfoByName(expectedParameterType);

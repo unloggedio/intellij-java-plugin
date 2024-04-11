@@ -71,8 +71,6 @@ import org.objectweb.asm.Opcodes;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -1115,7 +1113,7 @@ public class TestCaseDesignerLite {
 
     private ClassAdapter getClassByName(String className) {
         PsiClass aClass = JavaPsiFacade.getInstance(methodAdapter.getProject())
-                .findClass(ClassTypeUtils.getDottedClassName(className),
+                .findClass(ClassTypeUtils.getDescriptorToDottedClassName(className),
                         GlobalSearchScope.allScope(methodAdapter.getProject()));
         if (aClass == null) {
             return null;

@@ -306,7 +306,7 @@ public class SessionInstance implements Runnable {
         classInfoIndex = new HashMap<>();
         try {
             classInfoIndex.values().forEach(classInfo1 ->
-                    classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()),
+                    classInfoIndexByName.put(ClassTypeUtils.getDescriptorToDottedClassName(classInfo1.getClassName()),
                             ChronicleUtils.ClassInfoFromClassInfo(classInfo1)));
 
         } catch (Throwable e) {
@@ -471,7 +471,7 @@ public class SessionInstance implements Runnable {
             }
             classInfo1.setEnum(isEnum);
             classInfoIndex.put(classInfo1.getClassId(), classInfo1);
-            classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()), classInfo1);
+            classInfoIndexByName.put(ClassTypeUtils.getDescriptorToDottedClassName(classInfo1.getClassName()), classInfo1);
 
             for (MethodInfo value : methodInfoMap.values()) {
                 List<DataInfo> methodProbes = dataInfoByMethodId.get(value.getMethodId());
@@ -2604,7 +2604,7 @@ public class SessionInstance implements Runnable {
 //                            isModified = true;
 //                        } else {
                         typeFromProbe = probeInfo.getAttribute("Type", null);
-                        existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
+                        existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(typeFromProbe));
                         isModified = true;
 //                        }
                     }
@@ -2645,7 +2645,7 @@ public class SessionInstance implements Runnable {
 //
 //                        } else {
                         existingParameter.setType(
-                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
+                                ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Type", null)));
 //                        }
                         isModified = true;
                     }
@@ -2657,7 +2657,7 @@ public class SessionInstance implements Runnable {
                     break;
 
                 case GET_STATIC_FIELD:
-                    String fieldType1 = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null));
+                    String fieldType1 = ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Type", null));
                     if (fieldType1.startsWith("org.slf4j")
                             || fieldType1.startsWith("com.google")
                             || fieldType1.startsWith("org.joda.time")) {
@@ -2692,7 +2692,7 @@ public class SessionInstance implements Runnable {
 //                                }
 //                            } else {
                             existingParameter.setType(
-                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
+                                    ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Type", null)));
 //                            }
 
                             dataEvent = createDataEventFromBlock(threadId, eventBlock);
@@ -2718,7 +2718,7 @@ public class SessionInstance implements Runnable {
 //                        isModified = true;
 //                        existingParameter.addName(nameFromProbe);
 //                    }
-                    typeFromProbe = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"));
+                    typeFromProbe = ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Type", "V"));
                     existingParameterType = existingParameter.getType();
                     if (eventValue != 0 && (existingParameterType == null
                             || existingParameterType.equals("java.lang.Object")
@@ -2736,7 +2736,7 @@ public class SessionInstance implements Runnable {
 //                            }
 //
 //                        } else {
-                        existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
+                        existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(typeFromProbe));
 //                        }
                     }
                     saveProbe = true;
@@ -2776,7 +2776,7 @@ public class SessionInstance implements Runnable {
 //                                            probeInfo.getAttribute("Owner", null)));
 //                                }
 //                            } else {
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                            existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(
                                     probeInfo.getAttribute("Owner", null)));
 //                            }
 
@@ -2789,7 +2789,7 @@ public class SessionInstance implements Runnable {
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
                                 existingParameter);
                         existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
-                        existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                        existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(
                                 probeInfo.getAttribute("Type", "V")));
 
 //                        existingParameter.addName(
@@ -2830,7 +2830,7 @@ public class SessionInstance implements Runnable {
 //                                }
 //                            } else {
                             existingParameter.setType(
-                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
+                                    ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Type", null)));
 //                            }
                             isModified = true;
                         }
@@ -2840,7 +2840,7 @@ public class SessionInstance implements Runnable {
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
                                 existingParameter);
                         existingParameter.setType(
-                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
+                                ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Type", "V")));
 
 //                        existingParameter.addName(
 //                                probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
@@ -2874,7 +2874,7 @@ public class SessionInstance implements Runnable {
                                     existingParameter);
 //                            existingParameter.addName(probeInfo.getAttribute("Name",
 //                                    probeInfo.getAttribute("FieldName", null)));
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                            existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(
                                     probeInfo.getAttribute("Type", "V")));
 
                             existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
@@ -2887,11 +2887,11 @@ public class SessionInstance implements Runnable {
 //                                existingParameter.addName(nameFromProbe);
 //                                isModified = true;
 //                            }
-                            typeFromProbe = ClassTypeUtils.getDottedClassName(
+                            typeFromProbe = ClassTypeUtils.getDescriptorToDottedClassName(
                                     probeInfo.getAttribute("Type", "V"));
                             if (existingParameter.getType() == null ||
                                     !existingParameter.getType().equals(typeFromProbe)) {
-                                existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
+                                existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(typeFromProbe));
                                 isModified = true;
                             }
                             if (!isModified) {
@@ -2918,7 +2918,7 @@ public class SessionInstance implements Runnable {
                     if ((existingParameter.getType() == null || existingParameter.getType()
                             .equals("java.lang.Object"))) {
                         existingParameter.setType(
-                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", "V")));
+                                ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Owner", "V")));
                         isModified = eventValue != 0;
                     }
 
@@ -2929,7 +2929,7 @@ public class SessionInstance implements Runnable {
                     if (existingParameter.getValue() == 0
                             && "Static".equals(probeInfo.getAttribute("CallType", null))
                             && !methodName.startsWith("<") && !methodName.contains("$")) {
-                        String ownerClass = ClassTypeUtils.getDottedClassName(
+                        String ownerClass = ClassTypeUtils.getDescriptorToDottedClassName(
                                 probeInfo.getAttribute("Owner", null));
                         existingParameter.setValue(ownerClass.hashCode());
                         isModified = true;
@@ -2943,7 +2943,7 @@ public class SessionInstance implements Runnable {
                     methodCall.setId(currentCallId);
                     methodCall.setEnterNanoTime(dataEvent.getRecordedAt());
                     methodCallMap.put(currentCallId, methodCall);
-                    methodCallSubjectTypeMap.put(currentCallId, ClassTypeUtils.getDottedClassName(
+                    methodCallSubjectTypeMap.put(currentCallId, ClassTypeUtils.getDescriptorToDottedClassName(
                             probeInfo.getAttribute("Owner", null)));
                     methodCall.setEntryProbeInfoId(probeInfo.getDataId());
                     methodCall.setEntryProbeId(dataEvent.getEventId());
@@ -3003,10 +3003,10 @@ public class SessionInstance implements Runnable {
 //                            }
 //                        } else {
                         typeFromProbe = probeInfo.getAttribute("Type", null);
-                        String typeNameForValue = ClassTypeUtils.getDottedClassName(typeFromProbe);
+                        String typeNameForValue = ClassTypeUtils.getDescriptorToDottedClassName(typeFromProbe);
                         if (typeNameForValue != null && !typeNameForValue.equals("java.lang.Object")) {
                             existingParameter.setType(
-                                    ClassTypeUtils.getDottedClassName(typeFromProbe));
+                                    ClassTypeUtils.getDescriptorToDottedClassName(typeFromProbe));
                         }
 //                        }
                         // TODO: This is getting ugly, but
@@ -3044,9 +3044,9 @@ public class SessionInstance implements Runnable {
                     // in which case this is actually a separate method call
                     if (threadState.getCallStackSize() > 0) {
                         methodCall = threadState.getTopCall();
-                        String expectedClassName = ClassTypeUtils.getDottedClassName(
+                        String expectedClassName = ClassTypeUtils.getDescriptorToDottedClassName(
                                 methodInfo.getClassName());
-                        String owner = ClassTypeUtils.getDottedClassName(
+                        String owner = ClassTypeUtils.getDescriptorToDottedClassName(
                                 probeInfoIndex.get(methodCall.getEntryProbeInfo_id()).getAttribute("Owner", null));
                         if (owner == null) {
                             methodCall = null;
@@ -3083,7 +3083,7 @@ public class SessionInstance implements Runnable {
                                 && ((methodInfo.getAccess() & 8) == 8)
                                 && !methodInfo.getMethodName().startsWith("<")
                                 && !methodInfo.getMethodName().contains("$")) {
-                            String ownerClass = ClassTypeUtils.getDottedClassName(
+                            String ownerClass = ClassTypeUtils.getDescriptorToDottedClassName(
                                     classInfoIndex.get(probeInfo.getClassId())
                                             .getClassName());
                             existingParameter.setValue(ownerClass.hashCode());
@@ -3094,12 +3094,12 @@ public class SessionInstance implements Runnable {
                         if (existingParameter.getProb() == null) {
 
                             existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
+                            existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(methodInfo.getClassName()));
                             isModified = true;
                         }
                         if (existingParameter.getType() == null ||
                                 existingParameter.getType().equals("java.lang.Object")) {
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
+                            existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(methodInfo.getClassName()));
 
 
                             isModified = true;
@@ -3127,7 +3127,7 @@ public class SessionInstance implements Runnable {
                         methodCall.setId(currentCallId);
                         methodCallMap.put(currentCallId, methodCall);
                         methodCallSubjectTypeMap.put(currentCallId,
-                                ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
+                                ClassTypeUtils.getDescriptorToDottedClassName(methodInfo.getClassName()));
 //                            if (threadState.candidateSize() > 0) {
 //                                addMethodToCandidate(threadState, methodCall);
 //                            }
@@ -3267,7 +3267,7 @@ public class SessionInstance implements Runnable {
                         }
                         if (objectInfoDocument != null) {
                             TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(objectInfoDocument.getTypeId());
-                            String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
+                            String typeName = ClassTypeUtils.getDescriptorToDottedClassName(typeFromTypeIndex.getTypeName());
                             existingParameter.setType(typeName);
                         }
                     }
@@ -3361,7 +3361,7 @@ public class SessionInstance implements Runnable {
 
                             if (probeInfo.getAttributes().contains("Type=")) {
                                 typeFromProbe = probeInfo.getAttribute("Type", null);
-                                existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
+                                existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(typeFromProbe));
                                 isModified = true;
                             } else {
                                 if (objectInfoDocument == null) {
@@ -3382,7 +3382,7 @@ public class SessionInstance implements Runnable {
                                 if (objectInfoDocument != null) {
                                     TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(
                                             objectInfoDocument.getTypeId());
-                                    String typeName = ClassTypeUtils.getDottedClassName(
+                                    String typeName = ClassTypeUtils.getDescriptorToDottedClassName(
                                             typeFromTypeIndex.getTypeName());
                                     existingParameter.setType(typeName);
                                     isModified = true;
@@ -3392,7 +3392,7 @@ public class SessionInstance implements Runnable {
 
                         } else {
                             existingParameter.setType(
-                                    ClassTypeUtils.getDottedClassName(probeInfo.getValueDesc().getString()));
+                                    ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getValueDesc().getString()));
                             isModified = true;
                         }
 
@@ -3479,7 +3479,7 @@ public class SessionInstance implements Runnable {
                     if ((existingParameter.getType() == null || existingParameter.getType().endsWith(".Object"))) {
                         existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         saveProbe = true;
-                        existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                        existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(
                                 probeInfo.getAttribute("Type", "V")));
 
                         isModified = true;
@@ -3523,7 +3523,7 @@ public class SessionInstance implements Runnable {
 
                     break;
                 case NEW_OBJECT:
-                    String nextNewObjectType = ClassTypeUtils.getDottedClassName(
+                    String nextNewObjectType = ClassTypeUtils.getDescriptorToDottedClassName(
                             probeInfo.getAttribute("Type", "V"));
                     threadState.pushNextNewObjectType(nextNewObjectType);
                     if (nextNewObjectType.equals("java.util.Date")) {
@@ -3539,7 +3539,7 @@ public class SessionInstance implements Runnable {
 //                    if (existingParameter.getProb() == null) {
                     existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
 //                    }
-                    existingParameter.setType(ClassTypeUtils.getDottedClassName(upcomingObjectType));
+                    existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(upcomingObjectType));
                     theCallThatJustEnded.setReturnValue_id(existingParameter.getValue());
                     theCallThatJustEnded.setSubject(existingParameter.getValue());
                     if (!callsToSave.contains(theCallThatJustEnded)) {
@@ -4006,6 +4006,7 @@ public class SessionInstance implements Runnable {
                 attempt++;
                 if (shutdown) {
                     cdl.decrementAndGet();
+                    break;
                 }
                 if (cdl.get() == 0) {
                     logger.warn(

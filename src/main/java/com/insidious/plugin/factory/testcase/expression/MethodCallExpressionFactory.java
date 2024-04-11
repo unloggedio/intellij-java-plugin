@@ -243,7 +243,7 @@ public class MethodCallExpressionFactory {
     public static Expression createEnumExpression(Parameter enumParam) {
 
         TypeName enumTypeName = ClassTypeUtils.createTypeFromNameString(
-                ClassTypeUtils.getDottedClassName(enumParam.getType()));
+                ClassTypeUtils.getDescriptorToDottedClassName(enumParam.getType()));
 
         String value = new String(enumParam.getProb()
                 .getSerializedValue());

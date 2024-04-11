@@ -15,7 +15,7 @@ class ClassTypeUtilsTest {
 
     @Test
     void getDottedClassName() {
-        String dotName = ClassTypeUtils.getDottedClassName("Ljava/util/List<Lcom/org/Profile;>;");
+        String dotName = ClassTypeUtils.getDescriptorToDottedClassName("Ljava/util/List<Lcom/org/Profile;>;");
         assertEquals("java.util.List<com.org.Profile>", dotName);
     }
 
