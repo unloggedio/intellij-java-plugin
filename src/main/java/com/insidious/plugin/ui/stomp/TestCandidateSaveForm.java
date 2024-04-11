@@ -706,7 +706,7 @@ public class TestCandidateSaveForm {
         thenParameterList.add(thenParam);
         DeclaredMock newMock = new DeclaredMock(
                 "mock response for call to " + callExpression.getText(),
-                methodCallExpression.getSubject().getType(), sourceClassName,
+                mut.getClassName(), sourceClassName,
                 fieldName, methodCallExpression.getMethodName(),
                 mut.getMethodHashKey(), whenParameterList, thenParameterList
         );

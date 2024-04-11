@@ -127,30 +127,27 @@ public class SessionInstance implements Runnable {
                 new UnloggedSdkApiAgentClient(serverMetadata.getAgentServerUrl());
         this.connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgentClient);
 
-        AgentCommandResponse<ServerMetadata> pingResponse = unloggedSdkApiAgentClient.ping();
 
         this.sessionDirectory = FileSystems.getDefault().getPath(executionSession.getPath()).toFile();
         this.processorId = UUID.randomUUID().toString();
 
-        if (pingResponse.getResponseType().equals(ResponseType.NORMAL)) {
-            File sessionLockFile = FileSystems.getDefault().getPath(executionSession.getPath(), "lock").toFile();
-            try {
-                boolean created = sessionLockFile.createNewFile();
-                if (created) {
-                    scanEnable = true;
-                    sessionLockFile.deleteOnExit();
-                    logger.warn("scan lock file created: " + project.getName());
-                } else {
-                    logger.warn("scan lock file wasn't created, scanning is disabled: " + project.getName());
-                }
-            } catch (IOException e) {
-                logger.warn(
-                        "exception while trying to create scan lock file, scanning is disabled " + project.getName(),
-                        e);
-                // lockFile failed to create, probably already exists
-                // no scanning to be done from this session instance
-
+        File sessionLockFile = FileSystems.getDefault().getPath(executionSession.getPath(), "lock").toFile();
+        try {
+            boolean created = sessionLockFile.createNewFile();
+            if (created) {
+                scanEnable = true;
+                sessionLockFile.deleteOnExit();
+                logger.warn("scan lock file created: " + project.getName());
+            } else {
+                logger.warn("scan lock file wasn't created, scanning is disabled: " + project.getName());
             }
+        } catch (IOException e) {
+            logger.warn(
+                    "exception while trying to create scan lock file, scanning is disabled " + project.getName(),
+                    e);
+            // lockFile failed to create, probably already exists
+            // no scanning to be done from this session instance
+
         }
 
         File cacheDir = new File(this.sessionDirectory + "/cache/");
@@ -226,6 +223,11 @@ public class SessionInstance implements Runnable {
 
     public boolean isScanEnable() {
         return scanEnable;
+    }
+
+    public boolean isConnected() {
+        AgentCommandResponse<ServerMetadata> pingResponse = unloggedSdkApiAgentClient.ping();
+        return ResponseType.NORMAL.equals(pingResponse.getResponseType());
     }
 
     private void publishEvent(ScanEventType scanEventType) {
@@ -471,7 +473,8 @@ public class SessionInstance implements Runnable {
             }
             classInfo1.setEnum(isEnum);
             classInfoIndex.put(classInfo1.getClassId(), classInfo1);
-            classInfoIndexByName.put(ClassTypeUtils.getDescriptorToDottedClassName(classInfo1.getClassName()), classInfo1);
+            classInfoIndexByName.put(ClassTypeUtils.getDescriptorToDottedClassName(classInfo1.getClassName()),
+                    classInfo1);
 
             for (MethodInfo value : methodInfoMap.values()) {
                 List<DataInfo> methodProbes = dataInfoByMethodId.get(value.getMethodId());
@@ -2657,7 +2660,8 @@ public class SessionInstance implements Runnable {
                     break;
 
                 case GET_STATIC_FIELD:
-                    String fieldType1 = ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Type", null));
+                    String fieldType1 = ClassTypeUtils.getDescriptorToDottedClassName(
+                            probeInfo.getAttribute("Type", null));
                     if (fieldType1.startsWith("org.slf4j")
                             || fieldType1.startsWith("com.google")
                             || fieldType1.startsWith("org.joda.time")) {
@@ -2692,7 +2696,8 @@ public class SessionInstance implements Runnable {
 //                                }
 //                            } else {
                             existingParameter.setType(
-                                    ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Type", null)));
+                                    ClassTypeUtils.getDescriptorToDottedClassName(
+                                            probeInfo.getAttribute("Type", null)));
 //                            }
 
                             dataEvent = createDataEventFromBlock(threadId, eventBlock);
@@ -2830,7 +2835,8 @@ public class SessionInstance implements Runnable {
 //                                }
 //                            } else {
                             existingParameter.setType(
-                                    ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Type", null)));
+                                    ClassTypeUtils.getDescriptorToDottedClassName(
+                                            probeInfo.getAttribute("Type", null)));
 //                            }
                             isModified = true;
                         }
@@ -3094,12 +3100,14 @@ public class SessionInstance implements Runnable {
                         if (existingParameter.getProb() == null) {
 
                             existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
-                            existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(methodInfo.getClassName()));
+                            existingParameter.setType(
+                                    ClassTypeUtils.getDescriptorToDottedClassName(methodInfo.getClassName()));
                             isModified = true;
                         }
                         if (existingParameter.getType() == null ||
                                 existingParameter.getType().equals("java.lang.Object")) {
-                            existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(methodInfo.getClassName()));
+                            existingParameter.setType(
+                                    ClassTypeUtils.getDescriptorToDottedClassName(methodInfo.getClassName()));
 
 
                             isModified = true;
@@ -3267,7 +3275,8 @@ public class SessionInstance implements Runnable {
                         }
                         if (objectInfoDocument != null) {
                             TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(objectInfoDocument.getTypeId());
-                            String typeName = ClassTypeUtils.getDescriptorToDottedClassName(typeFromTypeIndex.getTypeName());
+                            String typeName = ClassTypeUtils.getDescriptorToDottedClassName(
+                                    typeFromTypeIndex.getTypeName());
                             existingParameter.setType(typeName);
                         }
                     }
@@ -3392,7 +3401,8 @@ public class SessionInstance implements Runnable {
 
                         } else {
                             existingParameter.setType(
-                                    ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getValueDesc().getString()));
+                                    ClassTypeUtils.getDescriptorToDottedClassName(
+                                            probeInfo.getValueDesc().getString()));
                             isModified = true;
                         }
 

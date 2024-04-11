@@ -1243,6 +1243,13 @@ public class StompComponent implements
 
         List<Component> itemsToNotDelete = new ArrayList<>();
         List<StompItem> pinnedStomps = new ArrayList<>();
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            if (insidiousService.getSessionInstance().isScanEnable() &&  insidiousService.getSessionInstance().isConnected()) {
+                ApplicationManager.getApplication().invokeLater(stompStatusComponent::setConnected);
+            } else {
+                ApplicationManager.getApplication().invokeLater(stompStatusComponent::setDisconnected);
+            }
+        });
         for (StompItem stompItem : stompItems) {
             if (stompItem.isPinned()) {
                 pinnedStomps.add(stompItem);
