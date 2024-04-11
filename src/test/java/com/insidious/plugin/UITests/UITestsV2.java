@@ -116,14 +116,23 @@ public class UITestsV2 {
 
         //wait for 2 mins - or how much time docker compose would take
         //todo - hook to terminal stdout and search for start indicator
-        pause(ofMinutes(2).toMillis());
+        pause(ofSeconds(70).toMillis());
         clearGotIts(idea);
+
+        //Ensure that the status shows "Connected"
+        try {
+            ComponentFixture connectedLabel = idea.getConnectedLabel();
+        } catch (Exception e) {
+            assert false;
+        }
 
         //call prep1
         prep_TC2(idea);
 
         //call test
         test_TC2(idea);
+
+        restart_test(idea);
     }
 
     private void clearGotIts(IdeaFrame idea) {
@@ -609,6 +618,50 @@ public class UITestsV2 {
             pause(ofMillis(125).toMillis());
             keyboard.hotKey(VK_ENTER);
         }
+    }
+
+    private void restart_test(IdeaFrame ideaFrame) {
+        List<RemoteText> remoteTexts = ideaFrame.getShellWidget().getData().getAll();
+        RemoteText lastText = remoteTexts.get(remoteTexts.size() - 1);
+        lastText.click();
+        //stop the running process
+        keyboard.hotKey(VK_CONTROL, VK_C);
+        //wait till process stops
+        pause(ofSeconds(7).toMillis());
+
+        //make sure Disconnected is seen
+        try {
+            ComponentFixture disconnectedLabel = ideaFrame.getDisconnectedLabel();
+        } catch (Exception e) {
+            assert false;
+        }
+
+        openFile("start_project.sh", ideaFrame);
+
+        TextEditorFixture shellScript = ideaFrame.textEditor();
+        //click the first icon
+        boolean started = false;
+        while (!started) {
+            try {
+                GutterIcon gutterIcon = shellScript.getGutter().getIcons().get(0);
+                gutterIcon.moveMouse();
+                pause(ofMillis(250).toMillis());
+                gutterIcon.click();
+                started = true;
+            } catch (Exception e) {
+                pause(ofSeconds(2).toMillis());
+            }
+        }
+
+        pause(ofSeconds(60).toMillis());
+        //make sure Connected is seen
+        try {
+            ComponentFixture connectedLabel = ideaFrame.getConnectedLabel();
+        } catch (Exception e) {
+            assert false;
+        }
+
+        Assertions.assertTrue(true);
     }
 
     private void tryToSaveAll(IdeaFrame idea) {

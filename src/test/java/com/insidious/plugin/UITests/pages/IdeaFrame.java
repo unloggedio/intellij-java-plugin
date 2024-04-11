@@ -266,4 +266,12 @@ public class IdeaFrame extends CommonContainerFixture {
     public ComponentFixture getmavenToolBarHideIcon() {
         return UITestUtils.getContainerFixture(remoteRobot, UITestUtils.UITags.MAVEN_TOOLBAR_HIDE);
     }
+
+    public ComponentFixture getConnectedLabel() {
+        return UITestUtils.getContainerFixture(remoteRobot, UITestUtils.UITags.CONNECTED_STATE_LABEL);
+    }
+
+    public ComponentFixture getDisconnectedLabel() {
+        return UITestUtils.getContainerFixture(remoteRobot, UITestUtils.UITags.DISCONNECTED_STATE_LABEL);
+    }
 }
