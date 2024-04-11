@@ -4008,10 +4008,11 @@ public class SessionInstance implements Runnable {
                     cdl.decrementAndGet();
                     break;
                 }
-                if (cdl.get() == 0) {
+                if (cdl.get() < 1) {
                     logger.warn(
                             "shutting down query started at [" + afterEventId + "] currently at item [" + count +
                                     "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
+                    break;
                 }
                 List<TestCandidateBareBone> testCandidateMetadataList = daoService
                         .getTestCandidatePaginated(currentAfterEventId, 0, limit, filterModel);

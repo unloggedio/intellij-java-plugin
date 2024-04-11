@@ -706,7 +706,9 @@ final public class InsidiousService implements
             }
         }
         toolWindow.show();
-        toolWindow.getContentManager().setSelectedContent(libraryWindowContent, true);
+        if (libraryWindowContent != null) {
+            toolWindow.getContentManager().setSelectedContent(libraryWindowContent, true);
+        }
     }
 
     public void compile(ClassAdapter psiClass, CompileStatusNotification compileStatusNotification) {
