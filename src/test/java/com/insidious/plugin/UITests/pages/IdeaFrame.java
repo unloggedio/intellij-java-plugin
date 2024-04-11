@@ -4,10 +4,8 @@ import com.insidious.plugin.UITests.Utils.UITestUtils;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.data.RemoteComponent;
 import com.intellij.remoterobot.fixtures.*;
-import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
 import java.util.List;
 
 @FixtureName(name = "Idea frame")
@@ -241,7 +239,7 @@ public class IdeaFrame extends CommonContainerFixture {
     }
 
     public List<ComponentFixture> getGotItTexts() {
-        return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.GIT_IT_TEXT);
+        return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.GOT_IT_TEXT);
     }
 
     public ComponentFixture findCopyButton() {
@@ -273,5 +271,9 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public ComponentFixture getDisconnectedLabel() {
         return UITestUtils.getContainerFixture(remoteRobot, UITestUtils.UITags.DISCONNECTED_STATE_LABEL);
+    }
+
+    public ComponentFixture getTerminalToolBarSelectable() {
+        return UITestUtils.getContainerFixture(remoteRobot, UITestUtils.UITags.TERMINAL_TOOLBAR_SELECTABLE);
     }
 }

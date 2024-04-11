@@ -36,11 +36,14 @@ public class UITestsV2 {
         String projectName = "unlogged-spring-maven-demo";
 
         keyboard.enterText("/" + projectName);
+        pause(ofSeconds(1).toMillis());
         welcomeFrame.getOpenConfirmButton().click();
 
         final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
         waitFor(ofMinutes(10), () -> !idea.isDumbMode());
-//        pause(ofMinutes(1).toMillis());
+
+        //wait for a small duration so that file searches don't turn up empty
+        pause(ofSeconds(30).toMillis());
 
         //for mac, open pom.xml
         openFile("pom.xml", idea);
@@ -121,9 +124,13 @@ public class UITestsV2 {
 
         //Ensure that the status shows "Connected"
         try {
+            ComponentFixture toolBarNav = idea.getUnloggedToolbarComponent();
+            toolBarNav.click();
+            pause(ofSeconds(5).toMillis());
             ComponentFixture connectedLabel = idea.getConnectedLabel();
+            toolBarNav.click();
         } catch (Exception e) {
-            assert false;
+            Assertions.assertTrue(false);
         }
 
         //call prep1
@@ -133,6 +140,11 @@ public class UITestsV2 {
         test_TC2(idea);
 
         restart_test(idea);
+
+        idea.getJunitTopToolbarIcon().click();
+        pause(ofSeconds(2).toMillis());
+
+        Assertions.assertTrue(true);
     }
 
     private void clearGotIts(IdeaFrame idea) {
@@ -155,14 +167,12 @@ public class UITestsV2 {
         clearGotIts(idea);
 
         TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
-        List<GutterIcon> gutterIcons = editor.getGutter().getIcons().stream()
+        GutterIcon addDataGutter = editor.getGutter().getIcons().stream()
                 .filter(icon -> icon.toString().contains("profileBlue.svg"))
-                .toList();
-        CustomGutterIconComparator iconComparator = new CustomGutterIconComparator();
-        Collections.sort(gutterIcons, iconComparator);
+                .toList().get(0);
 
-        scrollToIcon(editor, gutterIcons.get(0));
-        gutterIcons.get(1).click();
+        scrollToIcon(editor, addDataGutter);
+        addDataGutter.click();
         idea.getDirectInvokeExecuteButtonNew().click();
         pause(ofSeconds(5).toMillis());
 
@@ -518,11 +528,22 @@ public class UITestsV2 {
         ComponentFixture libraryTabHeader = idea.getlibraryTabHeader();
         libraryTabHeader.click();
 
-        //keep mocks tab open
-//            idea.getLibraryMocksButton().click();
-//            pause(ofSeconds(2).toMillis());
+        //keep the mocks tab open
+        try {
+            ComponentFixture cf = idea.getComponentByXpath("//div[@text='Mocks']");
+            cf.click();
+        } catch (Exception e) {
+            TextEditorFixture tef = idea.textEditor();
+            List<RemoteText> remoteTexts1 = tef.getEditor().getData().getAll();
+            List<RemoteText> mockInlayHints = remoteTexts1.stream()
+                    .filter(remoteText -> remoteText.getText().equals("1 saved mock")).toList();
+            mockInlayHints.get(0).click();
+            pause(ofMillis(250).toMillis());
 
-        //alt click on 1 active mock on editor and then clear selections
+            ComponentFixture clearFiltersText = idea.getComponentByXpath("//div[@visible_text='Clear filters']");
+            pause(ofMillis(250).toMillis());
+            clearFiltersText.click();
+        }
 
         ComponentFixture firstMockEditButton = idea.getComponentByXpath("//div[@accessiblename='db call mock']//div[@class='ActionButton']");
         firstMockEditButton.click();
@@ -568,9 +589,6 @@ public class UITestsV2 {
         idea.getRefreshButton().click();
         pause(ofSeconds(2).toMillis());
         tryToSaveAll(idea);
-        pause(ofSeconds(2).toMillis());
-
-        idea.getJunitTopToolbarIcon().click();
         pause(ofSeconds(2).toMillis());
     }
 
@@ -621,6 +639,9 @@ public class UITestsV2 {
     }
 
     private void restart_test(IdeaFrame ideaFrame) {
+        ComponentFixture terminalToolbar = ideaFrame.getTerminalToolBarSelectable();
+        terminalToolbar.click();
+
         List<RemoteText> remoteTexts = ideaFrame.getShellWidget().getData().getAll();
         RemoteText lastText = remoteTexts.get(remoteTexts.size() - 1);
         lastText.click();
@@ -668,8 +689,9 @@ public class UITestsV2 {
         ComponentFixture selectAllIcon = idea.getSelectAllicon();
         pause(ofMillis(500).toMillis());
         selectAllIcon.click();
+        clearGotIts(idea);
         idea.getSaveGlobalButton().click();
-        pause(ofSeconds(5).toMillis());
+        pause(ofSeconds(20).toMillis());
 
         boolean found = false;
         int tries = 3;
@@ -683,7 +705,6 @@ public class UITestsV2 {
                 pause(ofSeconds(1).toMillis());
             }
         }
-
         confirmSaveButton.click();
     }
 
