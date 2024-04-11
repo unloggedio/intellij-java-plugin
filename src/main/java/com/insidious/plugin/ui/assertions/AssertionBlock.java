@@ -118,16 +118,17 @@ public class AssertionBlock implements AssertionBlockManager {
 
     @Override
     public AssertionResult executeAssertion(AtomicAssertion subAssertion) {
-        AssertionResult thisResult = manager.executeAssertion(assertion);
-        Boolean result = thisResult.getResults().get(assertion.getId());
-
-        if (result) {
-            topAligner.setBackground(UIUtils.ASSERTION_PASSING_COLOR);
-        } else {
-            topAligner.setBackground(UIUtils.ASSERTION_FAILING_COLOR);
-        }
-
-        return thisResult;
+        return null;
+//        AssertionResult thisResult = manager.executeAssertion(assertion);
+//        Boolean result = thisResult.getResults().get(assertion.getId());
+//
+//        if (result) {
+//            topAligner.setBackground(UIUtils.ASSERTION_PASSING_COLOR);
+//        } else {
+//            topAligner.setBackground(UIUtils.ASSERTION_FAILING_COLOR);
+//        }
+//
+//        return thisResult;
     }
 
     @Override

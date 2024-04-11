@@ -614,7 +614,7 @@ public class StompComponent implements
             if (!insidiousService.getProject().isDisposed()) {
                 new GotItTooltip("Unlogged.Stomp.Item.Filter",
                         "Filter items on the timeline by including and excluding classes so only relevant replays show up",
-                        insidiousService.getProject())
+                        this)
                         .withHeader("Filter whats visible")
                         .withIcon(UIUtils.UNLOGGED_ICON_DARK_SVG)
                         .withLink("Enable Follow Method Filter", () -> {
