@@ -17,6 +17,7 @@ import com.insidious.common.weaver.*;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.MethodSignatureParser;
+import com.insidious.plugin.agent.*;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -41,13 +42,12 @@ import com.insidious.plugin.pojo.dao.LogFile;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.ui.stomp.FilterModel;
+import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.insidious.plugin.util.*;
 import com.intellij.notification.NotificationType;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Computable;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import io.kaitai.struct.RandomAccessFileKaitaiStream;
@@ -87,14 +87,11 @@ public class SessionInstance implements Runnable {
     private final File sessionDirectory;
     private final ExecutionSession executionSession;
     private final Map<String, String> cacheEntries = new HashMap<>();
-    //    private final DatabasePipe databasePipe;
-    private final DaoService daoService;
+    private final ConnectionCheckerService connectionCheckerService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private final ExecutorService executorPool;
-    private final Map<String, Boolean> objectIndexRead = new HashMap<>();
     private final ZipConsumer zipConsumer;
     private final Project project;
-    private final Map<String, Boolean> classNotFound = new HashMap<>();
     private final Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
     private final Map<Long, com.insidious.plugin.pojo.dao.MethodCallExpression> methodCallMap = new HashMap<>();
     private final Map<Long, String> methodCallSubjectTypeMap = new HashMap<>();
@@ -102,17 +99,20 @@ public class SessionInstance implements Runnable {
     private final Map<Integer, Integer> methodLineCount = new HashMap<>();
     private final Map<Integer, Boolean> methodUsesFields = new HashMap<>();
     private final List<SessionScanEventListener> sessionScanEventListeners = new ArrayList<>();
+    private final List<NewTestCandidateIdentifiedListener> testCandidateListener = new ArrayList<>();
+    private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
+    //    private final DatabasePipe databasePipe;
+    private DaoService daoService;
     private boolean scanEnable = false;
     private List<File> sessionArchives = new ArrayList<>();
     private ArchiveIndex archiveIndex;
-    private ChronicleMap<Long, ObjectInfoDocument> objectInfoIndex;
-    private ChronicleMap<Integer, DataInfo> probeInfoIndex;
-    private ChronicleMap<Integer, TypeInfoDocument> typeInfoIndex;
-    private ChronicleMap<Integer, MethodInfo> methodInfoIndex;
-    private ChronicleMap<String, MethodInfo> methodInfoByNameIndex;
-    private ChronicleMap<Integer, ClassInfo> classInfoIndex;
+    private Map<Long, ObjectInfoDocument> objectInfoIndex;
+    private Map<Integer, DataInfo> probeInfoIndex;
+    private Map<Integer, TypeInfoDocument> typeInfoIndex;
+    private Map<Integer, MethodInfo> methodInfoIndex;
+    private Map<String, MethodInfo> methodInfoByNameIndex;
+    private Map<Integer, ClassInfo> classInfoIndex;
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexCollection;
-    private List<NewTestCandidateIdentifiedListener> testCandidateListener = new ArrayList<>();
     private File currentSessionArchiveBeingProcessed;
     private ChronicleVariableContainer parameterContainer;
     //    private Date lastScannedTimeStamp;
@@ -121,8 +121,14 @@ public class SessionInstance implements Runnable {
     private BlockingQueue<Integer> scanLock;
     private boolean shutdown = false;
 
-    public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
+    public SessionInstance(ExecutionSession executionSession, ServerMetadata serverMetadata, Project project) throws SQLException,
+            IOException {
         this.project = project;
+        this.unloggedSdkApiAgentClient =
+                new UnloggedSdkApiAgentClient(serverMetadata.getAgentServerUrl());
+        this.connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgentClient);
+
+
         this.sessionDirectory = FileSystems.getDefault().getPath(executionSession.getPath()).toFile();
         this.processorId = UUID.randomUUID().toString();
 
@@ -137,7 +143,8 @@ public class SessionInstance implements Runnable {
                 logger.warn("scan lock file wasn't created, scanning is disabled: " + project.getName());
             }
         } catch (IOException e) {
-            logger.warn("exception while trying to create scan lock file, scanning is disabled " + project.getName(),
+            logger.warn(
+                    "exception while trying to create scan lock file, scanning is disabled " + project.getName(),
                     e);
             // lockFile failed to create, probably already exists
             // no scanning to be done from this session instance
@@ -155,10 +162,20 @@ public class SessionInstance implements Runnable {
         JdbcConnectionSource connectionSource = new JdbcConnectionSource(
                 executionSession.getDatabaseConnectionString());
 
-        ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
-        parameterContainer = new ChronicleVariableContainer(parameterIndex);
+//        ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
+        parameterContainer = new ChronicleVariableContainer(null);
 
-        ParameterProvider parameterProvider = value -> parameterContainer.getParameterByValue(value);
+        ParameterProvider parameterProvider = value -> {
+            Parameter parameterByValue = parameterContainer.getParameterByValue(value);
+            if (parameterByValue.getType() == null) {
+                try {
+                    parameterByValue = daoService.getParameterByValue(value);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return parameterByValue;
+        };
         daoService = new DaoService(connectionSource, parameterProvider, ObjectMapperInstance.getInstance());
 
 
@@ -166,11 +183,12 @@ public class SessionInstance implements Runnable {
         if (scanEnable) {
             logger.warn("Starting zip consumer: " + processorId);
             zipConsumer = new ZipConsumer(daoService, sessionDirectory, this);
-            scanLock = new ArrayBlockingQueue<Integer>(1);
-            executorPool = Executors.newFixedThreadPool(4,
+            scanLock = new ArrayBlockingQueue<>(1);
+            executorPool = Executors.newFixedThreadPool(5,
                     new DefaultThreadFactory("UnloggedSessionThreadPool", true));
             executorPool.submit(this);
             executorPool.submit(zipConsumer);
+            executorPool.submit(this.connectionCheckerService);
             executorPool.submit(() -> {
                 try {
                     publishEvent(ScanEventType.START);
@@ -206,6 +224,11 @@ public class SessionInstance implements Runnable {
 
     public boolean isScanEnable() {
         return scanEnable;
+    }
+
+    public boolean isConnected() {
+        AgentCommandResponse<ServerMetadata> pingResponse = unloggedSdkApiAgentClient.ping();
+        return ResponseType.NORMAL.equals(pingResponse.getResponseType());
     }
 
     private void publishEvent(ScanEventType scanEventType) {
@@ -277,26 +300,26 @@ public class SessionInstance implements Runnable {
             return sessionFiles;
         }
 
-        typeInfoIndex = createTypeInfoIndex();
-        objectInfoIndex = createObjectInfoIndex();
+        typeInfoIndex = new HashMap<>();
+        objectInfoIndex = new HashMap<>();
 
-        probeInfoIndex = createProbeInfoIndex();
-        methodInfoIndex = createMethodInfoIndex();
-        methodInfoByNameIndex = createMethodInfoByNameIndex();
-        classInfoIndex = createClassInfoIndex();
+        probeInfoIndex = new HashMap<>();
+        methodInfoIndex = new HashMap<>();
+        methodInfoByNameIndex = new HashMap<>();
+        classInfoIndex = new HashMap<>();
         try {
             classInfoIndex.values().forEach(classInfo1 ->
-                    classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()),
+                    classInfoIndexByName.put(ClassTypeUtils.getDescriptorToDottedClassName(classInfo1.getClassName()),
                             ChronicleUtils.ClassInfoFromClassInfo(classInfo1)));
 
         } catch (Throwable e) {
 //            e.printStackTrace();
             if (e instanceof RuntimeException && e.getCause() instanceof InvalidClassException) {
-                typeInfoIndex.close();
-                objectInfoIndex.close();
-                probeInfoIndex.close();
-                methodInfoIndex.close();
-                classInfoIndex.close();
+//                typeInfoIndex.close();
+//                objectInfoIndex.close();
+//                probeInfoIndex.close();
+//                methodInfoIndex.close();
+//                classInfoIndex.close();
                 e.printStackTrace();
                 List<String> indexFiles = Arrays.asList(
                         "index.class.dat",
@@ -312,12 +335,12 @@ public class SessionInstance implements Runnable {
                             .toFile();
                     toDelete.delete();
                 }
-                typeInfoIndex = createTypeInfoIndex();
-                objectInfoIndex = createObjectInfoIndex();
-                probeInfoIndex = createProbeInfoIndex();
-                methodInfoByNameIndex = createMethodInfoByNameIndex();
-                methodInfoIndex = createMethodInfoIndex();
-                classInfoIndex = createClassInfoIndex();
+                typeInfoIndex = new HashMap<>();
+                objectInfoIndex = new HashMap<>();
+                probeInfoIndex = new HashMap<>();
+                methodInfoByNameIndex = new HashMap<>();
+                methodInfoIndex = new HashMap<>();
+//                classInfoIndex = createClassInfoIndex();
             }
         }
 
@@ -451,7 +474,8 @@ public class SessionInstance implements Runnable {
             }
             classInfo1.setEnum(isEnum);
             classInfoIndex.put(classInfo1.getClassId(), classInfo1);
-            classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()), classInfo1);
+            classInfoIndexByName.put(ClassTypeUtils.getDescriptorToDottedClassName(classInfo1.getClassName()),
+                    classInfo1);
 
             for (MethodInfo value : methodInfoMap.values()) {
                 List<DataInfo> methodProbes = dataInfoByMethodId.get(value.getMethodId());
@@ -538,47 +562,47 @@ public class SessionInstance implements Runnable {
 
     }
 
-    private ChronicleMap<Integer, TypeInfoDocument> createTypeInfoIndex() throws IOException {
+//    private ChronicleMap<Integer, TypeInfoDocument> createTypeInfoIndex() throws IOException {
+//
+//        checkProgressIndicator(null, "Loading type info index");
+//        File typeIndexFile = FileSystems.getDefault()
+//                .getPath(executionSession.getPath(), "index.type.dat")
+//                .toFile();
+//
+//        int entries = 20000;
+//        if (executionSession.getSessionId().equals("na")) {
+//            entries = 200;
+//        }
+//
+//        ChronicleMapBuilder<Integer, TypeInfoDocument> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
+//                        TypeInfoDocument.class)
+//                .name("type-info-map")
+//                .averageValue(new TypeInfoDocument(1, "Type-name-class", new byte[100]))
+//                .entries(entries);
+//        return probeInfoMapBuilder.createPersistedTo(typeIndexFile);
+//
+//    }
 
-        checkProgressIndicator(null, "Loading type info index");
-        File typeIndexFile = FileSystems.getDefault()
-                .getPath(executionSession.getPath(), "index.type.dat")
-                .toFile();
-
-        int entries = 20000;
-        if (executionSession.getSessionId().equals("na")) {
-            entries = 200;
-        }
-
-        ChronicleMapBuilder<Integer, TypeInfoDocument> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
-                        TypeInfoDocument.class)
-                .name("type-info-map")
-                .averageValue(new TypeInfoDocument(1, "Type-name-class", new byte[100]))
-                .entries(entries);
-        return probeInfoMapBuilder.createPersistedTo(typeIndexFile);
-
-    }
-
-    private ChronicleMap<Long, ObjectInfoDocument> createObjectInfoIndex() throws IOException {
-
-        checkProgressIndicator(null, "Loading object info index");
-        File objectIndexFile = FileSystems.getDefault()
-                .getPath(executionSession.getPath(), "index.object.dat")
-                .toFile();
-
-        int entries = 1_000_000;
-        if (executionSession.getSessionId().equals("na")) {
-            entries = 500;
-        }
-
-        ChronicleMapBuilder<Long, ObjectInfoDocument> probeInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
-                        ObjectInfoDocument.class)
-                .name("object-info-map")
-                .averageValue(new ObjectInfoDocument(1, 1))
-                .entries(entries);
-        return probeInfoMapBuilder.createPersistedTo(objectIndexFile);
-
-    }
+//    private ChronicleMap<Long, ObjectInfoDocument> createObjectInfoIndex() throws IOException {
+//
+//        checkProgressIndicator(null, "Loading object info index");
+//        File objectIndexFile = FileSystems.getDefault()
+//                .getPath(executionSession.getPath(), "index.object.dat")
+//                .toFile();
+//
+//        int entries = 1_000_000;
+//        if (executionSession.getSessionId().equals("na")) {
+//            entries = 500;
+//        }
+//
+//        ChronicleMapBuilder<Long, ObjectInfoDocument> probeInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
+//                        ObjectInfoDocument.class)
+//                .name("object-info-map")
+//                .averageValue(new ObjectInfoDocument(1, 1))
+//                .entries(entries);
+//        return probeInfoMapBuilder.createPersistedTo(objectIndexFile);
+//
+//    }
 
     private ChronicleMap<Long, Parameter> createParameterIndex() throws IOException {
 
@@ -616,7 +640,7 @@ public class SessionInstance implements Runnable {
 
         averageValue.setTemplateMap(transformedTemplateMap);
 
-        int entries = 1_500_000;
+        int entries = 50_000;
         if (executionSession.getSessionId().equals("na")) {
             entries = 500;
         }
@@ -629,81 +653,81 @@ public class SessionInstance implements Runnable {
 
     }
 
-    private ChronicleMap<Integer, MethodInfo> createMethodInfoIndex() throws IOException {
+//    private ChronicleMap<Integer, MethodInfo> createMethodInfoIndex() throws IOException {
+//
+//        checkProgressIndicator(null, "Loading method info index");
+//        File methodIndexFile = FileSystems.getDefault()
+//                .getPath(executionSession.getPath(), "index.method.dat")
+//                .toFile();
+//        int entries = 100_000;
+//        if (executionSession.getSessionId().equals("na")) {
+//            entries = 10;
+//        }
+//        ChronicleMapBuilder<Integer, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
+//                        MethodInfo.class)
+//                .name("method-info-map")
+//                .averageValue(
+//                        new MethodInfo(1, 2, "class-name", "method-name", "methoddesc", 5, "source-file-name",
+//                                "method-hash"))
+//                .entries(entries);
+//        return probeInfoMapBuilder.createPersistedTo(methodIndexFile);
+//
+//    }
 
-        checkProgressIndicator(null, "Loading method info index");
-        File methodIndexFile = FileSystems.getDefault()
-                .getPath(executionSession.getPath(), "index.method.dat")
-                .toFile();
-        int entries = 100_000;
-        if (executionSession.getSessionId().equals("na")) {
-            entries = 10;
-        }
-        ChronicleMapBuilder<Integer, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
-                        MethodInfo.class)
-                .name("method-info-map")
-                .averageValue(
-                        new MethodInfo(1, 2, "class-name", "method-name", "methoddesc", 5, "source-file-name",
-                                "method-hash"))
-                .entries(entries);
-        return probeInfoMapBuilder.createPersistedTo(methodIndexFile);
+//    private ChronicleMap<String, MethodInfo> createMethodInfoByNameIndex() throws IOException {
+//
+//        checkProgressIndicator(null, "Loading method info by name index");
+//        File methodIndexFile = FileSystems.getDefault()
+//                .getPath(executionSession.getPath(), "index.method.name.dat")
+//                .toFile();
+//        ChronicleMapBuilder<String, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(String.class,
+//                        MethodInfo.class)
+//                .name("method-info-name-map")
+//                .averageKey("methodNameIsALong(Laudhfiudfhadsufhasdoufhaofuahdsofudashfuiadshfufakdsufhd")
+//                .averageValue(
+//                        new MethodInfo(1, 2, "class-name", "method-name", "methoddesc", 5, "source-file-name",
+//                                "method-hash"))
+//                .entries(100_000);
+//        return probeInfoMapBuilder.createPersistedTo(methodIndexFile);
+//
+//    }
 
-    }
+//    private ChronicleMap<Integer, ClassInfo> createClassInfoIndex() throws IOException {
+//
+//        checkProgressIndicator(null, "Loading class info index");
+//        File classIndexFile = FileSystems.getDefault()
+//                .getPath(executionSession.getPath(), "index.class.dat")
+//                .toFile();
+//        ChronicleMapBuilder<Integer, ClassInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
+//                        ClassInfo.class)
+//                .name("class-info-map")
+//                .averageValue(
+//                        new ClassInfo(1, "container-name", "file-name", "class-name", LogLevel.Normal, "hashvalue",
+//                                "class-loader-identifier", new String[]{"classinterface-1"}, "super-class-name",
+//                                "signaure"))
+//                .entries(10_000);
+//        return probeInfoMapBuilder.createPersistedTo(classIndexFile);
+//
+//    }
 
-    private ChronicleMap<String, MethodInfo> createMethodInfoByNameIndex() throws IOException {
-
-        checkProgressIndicator(null, "Loading method info by name index");
-        File methodIndexFile = FileSystems.getDefault()
-                .getPath(executionSession.getPath(), "index.method.name.dat")
-                .toFile();
-        ChronicleMapBuilder<String, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(String.class,
-                        MethodInfo.class)
-                .name("method-info-name-map")
-                .averageKey("methodNameIsALong(Laudhfiudfhadsufhasdoufhaofuahdsofudashfuiadshfufakdsufhd")
-                .averageValue(
-                        new MethodInfo(1, 2, "class-name", "method-name", "methoddesc", 5, "source-file-name",
-                                "method-hash"))
-                .entries(100_000);
-        return probeInfoMapBuilder.createPersistedTo(methodIndexFile);
-
-    }
-
-    private ChronicleMap<Integer, ClassInfo> createClassInfoIndex() throws IOException {
-
-        checkProgressIndicator(null, "Loading class info index");
-        File classIndexFile = FileSystems.getDefault()
-                .getPath(executionSession.getPath(), "index.class.dat")
-                .toFile();
-        ChronicleMapBuilder<Integer, ClassInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
-                        ClassInfo.class)
-                .name("class-info-map")
-                .averageValue(
-                        new ClassInfo(1, "container-name", "file-name", "class-name", LogLevel.Normal, "hashvalue",
-                                "class-loader-identifier", new String[]{"classinterface-1"}, "super-class-name",
-                                "signaure"))
-                .entries(10_000);
-        return probeInfoMapBuilder.createPersistedTo(classIndexFile);
-
-    }
-
-    private ChronicleMap<String, ClassInfo> createClassInfoNameIndex() throws IOException {
-
-        checkProgressIndicator(null, "Loading class info index");
-        File classIndexFile = FileSystems.getDefault()
-                .getPath(executionSession.getPath(), "index.classname.dat")
-                .toFile();
-        ChronicleMapBuilder<String, ClassInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(String.class,
-                        ClassInfo.class)
-                .name("class-info-name-map")
-                .averageKey("aco.asfe.asfijaisd.avsdiv$ausdhf$adfaadsfa.adfadf")
-                .averageValue(
-                        new ClassInfo(1, "container-name", "file-name", "class-name", LogLevel.Normal, "hashvalue",
-                                "class-loader-identifier", new String[]{"classinterface-1"}, "super-class-name",
-                                "signaure"))
-                .entries(10_000);
-        return probeInfoMapBuilder.createPersistedTo(classIndexFile);
-
-    }
+//    private ChronicleMap<String, ClassInfo> createClassInfoNameIndex() throws IOException {
+//
+//        checkProgressIndicator(null, "Loading class info index");
+//        File classIndexFile = FileSystems.getDefault()
+//                .getPath(executionSession.getPath(), "index.classname.dat")
+//                .toFile();
+//        ChronicleMapBuilder<String, ClassInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(String.class,
+//                        ClassInfo.class)
+//                .name("class-info-name-map")
+//                .averageKey("aco.asfe.asfijaisd.avsdiv$ausdhf$adfaadsfa.adfadf")
+//                .averageValue(
+//                        new ClassInfo(1, "container-name", "file-name", "class-name", LogLevel.Normal, "hashvalue",
+//                                "class-loader-identifier", new String[]{"classinterface-1"}, "super-class-name",
+//                                "signaure"))
+//                .entries(10_000);
+//        return probeInfoMapBuilder.createPersistedTo(classIndexFile);
+//
+//    }
 
 //    public Collection<TracePoint> queryTracePointsByValue(SearchQuery searchQuery) {
 //        List<TracePoint> tracePointList = new LinkedList<>();
@@ -2279,8 +2303,8 @@ public class SessionInstance implements Runnable {
             }
 
             if (parameterContainer == null) {
-                ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
-                parameterContainer = new ChronicleVariableContainer(parameterIndex);
+//                ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
+                parameterContainer = new ChronicleVariableContainer(null);
             }
 
             boolean newCandidateIdentified = false;
@@ -2304,14 +2328,10 @@ public class SessionInstance implements Runnable {
 //            Collection<Parameter> allParameters = new ArrayList<>(parameterIndex.values());
 //            checkProgressIndicator("Saving " + allParameters.size() + " parameters", "");
 //            daoService.createOrUpdateParameter(allParameters);
-            if (newCandidateIdentified && testCandidateListener != null) {
+            if (newCandidateIdentified) {
                 final int finalProcessedCount = processedCount;
-                testCandidateListener.forEach(e -> {
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        e.onNewTestCandidateIdentified(finalProcessedCount,
-                                logFilesToProcess.size());
-                    });
-                });
+                testCandidateListener.forEach(
+                        e -> e.onNewTestCandidateIdentified(finalProcessedCount, logFilesToProcess.size()));
             }
 
 
@@ -2484,7 +2504,7 @@ public class SessionInstance implements Runnable {
         com.insidious.plugin.pojo.dao.TestCandidateMetadata completedExceptional;
         com.insidious.plugin.pojo.dao.MethodCallExpression methodCall;
         com.insidious.plugin.pojo.dao.MethodCallExpression topCall;
-
+        MethodInfo methodInfo = new MethodInfo(0, 0, null, null, null, 0, null, null);
         String existingParameterType;
         Parameter parameterInstance = new Parameter();
         logger.warn("processing [" + eventsSublist.size() + "] events from [" + logFileList.size() + "] log files");
@@ -2588,7 +2608,7 @@ public class SessionInstance implements Runnable {
 //                            isModified = true;
 //                        } else {
                         typeFromProbe = probeInfo.getAttribute("Type", null);
-                        existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
+                        existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(typeFromProbe));
                         isModified = true;
 //                        }
                     }
@@ -2629,7 +2649,7 @@ public class SessionInstance implements Runnable {
 //
 //                        } else {
                         existingParameter.setType(
-                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
+                                ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Type", null)));
 //                        }
                         isModified = true;
                     }
@@ -2641,7 +2661,8 @@ public class SessionInstance implements Runnable {
                     break;
 
                 case GET_STATIC_FIELD:
-                    String fieldType1 = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null));
+                    String fieldType1 = ClassTypeUtils.getDescriptorToDottedClassName(
+                            probeInfo.getAttribute("Type", null));
                     if (fieldType1.startsWith("org.slf4j")
                             || fieldType1.startsWith("com.google")
                             || fieldType1.startsWith("org.joda.time")) {
@@ -2676,7 +2697,8 @@ public class SessionInstance implements Runnable {
 //                                }
 //                            } else {
                             existingParameter.setType(
-                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
+                                    ClassTypeUtils.getDescriptorToDottedClassName(
+                                            probeInfo.getAttribute("Type", null)));
 //                            }
 
                             dataEvent = createDataEventFromBlock(threadId, eventBlock);
@@ -2702,7 +2724,7 @@ public class SessionInstance implements Runnable {
 //                        isModified = true;
 //                        existingParameter.addName(nameFromProbe);
 //                    }
-                    typeFromProbe = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"));
+                    typeFromProbe = ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Type", "V"));
                     existingParameterType = existingParameter.getType();
                     if (eventValue != 0 && (existingParameterType == null
                             || existingParameterType.equals("java.lang.Object")
@@ -2720,7 +2742,7 @@ public class SessionInstance implements Runnable {
 //                            }
 //
 //                        } else {
-                        existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
+                        existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(typeFromProbe));
 //                        }
                     }
                     saveProbe = true;
@@ -2760,7 +2782,7 @@ public class SessionInstance implements Runnable {
 //                                            probeInfo.getAttribute("Owner", null)));
 //                                }
 //                            } else {
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                            existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(
                                     probeInfo.getAttribute("Owner", null)));
 //                            }
 
@@ -2773,7 +2795,7 @@ public class SessionInstance implements Runnable {
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
                                 existingParameter);
                         existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
-                        existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                        existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(
                                 probeInfo.getAttribute("Type", "V")));
 
 //                        existingParameter.addName(
@@ -2814,7 +2836,8 @@ public class SessionInstance implements Runnable {
 //                                }
 //                            } else {
                             existingParameter.setType(
-                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
+                                    ClassTypeUtils.getDescriptorToDottedClassName(
+                                            probeInfo.getAttribute("Type", null)));
 //                            }
                             isModified = true;
                         }
@@ -2824,7 +2847,7 @@ public class SessionInstance implements Runnable {
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
                                 existingParameter);
                         existingParameter.setType(
-                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
+                                ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Type", "V")));
 
 //                        existingParameter.addName(
 //                                probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
@@ -2858,7 +2881,7 @@ public class SessionInstance implements Runnable {
                                     existingParameter);
 //                            existingParameter.addName(probeInfo.getAttribute("Name",
 //                                    probeInfo.getAttribute("FieldName", null)));
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                            existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(
                                     probeInfo.getAttribute("Type", "V")));
 
                             existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
@@ -2871,11 +2894,11 @@ public class SessionInstance implements Runnable {
 //                                existingParameter.addName(nameFromProbe);
 //                                isModified = true;
 //                            }
-                            typeFromProbe = ClassTypeUtils.getDottedClassName(
+                            typeFromProbe = ClassTypeUtils.getDescriptorToDottedClassName(
                                     probeInfo.getAttribute("Type", "V"));
                             if (existingParameter.getType() == null ||
                                     !existingParameter.getType().equals(typeFromProbe)) {
-                                existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
+                                existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(typeFromProbe));
                                 isModified = true;
                             }
                             if (!isModified) {
@@ -2902,7 +2925,7 @@ public class SessionInstance implements Runnable {
                     if ((existingParameter.getType() == null || existingParameter.getType()
                             .equals("java.lang.Object"))) {
                         existingParameter.setType(
-                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", "V")));
+                                ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Owner", "V")));
                         isModified = eventValue != 0;
                     }
 
@@ -2913,7 +2936,7 @@ public class SessionInstance implements Runnable {
                     if (existingParameter.getValue() == 0
                             && "Static".equals(probeInfo.getAttribute("CallType", null))
                             && !methodName.startsWith("<") && !methodName.contains("$")) {
-                        String ownerClass = ClassTypeUtils.getJavaClassName(
+                        String ownerClass = ClassTypeUtils.getDescriptorToDottedClassName(
                                 probeInfo.getAttribute("Owner", null));
                         existingParameter.setValue(ownerClass.hashCode());
                         isModified = true;
@@ -2927,7 +2950,7 @@ public class SessionInstance implements Runnable {
                     methodCall.setId(currentCallId);
                     methodCall.setEnterNanoTime(dataEvent.getRecordedAt());
                     methodCallMap.put(currentCallId, methodCall);
-                    methodCallSubjectTypeMap.put(currentCallId, ClassTypeUtils.getJavaClassName(
+                    methodCallSubjectTypeMap.put(currentCallId, ClassTypeUtils.getDescriptorToDottedClassName(
                             probeInfo.getAttribute("Owner", null)));
                     methodCall.setEntryProbeInfoId(probeInfo.getDataId());
                     methodCall.setEntryProbeId(dataEvent.getEventId());
@@ -2952,6 +2975,7 @@ public class SessionInstance implements Runnable {
                     if ("Static".equals(probeInfo.getAttribute("CallType", null))) {
                         methodCall.setStaticCall(true);
                         methodCall.setSubject(existingParameter.getValue());
+                        dataEvent.setValue(existingParameter.getValue());
                     }
                     methodCall.setMethodAccess(1);
 
@@ -2986,10 +3010,10 @@ public class SessionInstance implements Runnable {
 //                            }
 //                        } else {
                         typeFromProbe = probeInfo.getAttribute("Type", null);
-                        String typeNameForValue = ClassTypeUtils.getDottedClassName(typeFromProbe);
+                        String typeNameForValue = ClassTypeUtils.getDescriptorToDottedClassName(typeFromProbe);
                         if (typeNameForValue != null && !typeNameForValue.equals("java.lang.Object")) {
                             existingParameter.setType(
-                                    ClassTypeUtils.getDottedClassName(typeFromProbe));
+                                    ClassTypeUtils.getDescriptorToDottedClassName(typeFromProbe));
                         }
 //                        }
                         // TODO: This is getting ugly, but
@@ -3021,15 +3045,15 @@ public class SessionInstance implements Runnable {
 
                 case METHOD_ENTRY:
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                    MethodInfo methodInfo = methodInfoIndex.get(probeInfo.getMethodId());
+                    methodInfo = methodInfoIndex.get(probeInfo.getMethodId());
                     methodCall = null;
                     // a method_entry event can come in without a corresponding event for call,
                     // in which case this is actually a separate method call
                     if (threadState.getCallStackSize() > 0) {
                         methodCall = threadState.getTopCall();
-                        String expectedClassName = ClassTypeUtils.getDottedClassName(
+                        String expectedClassName = ClassTypeUtils.getDescriptorToDottedClassName(
                                 methodInfo.getClassName());
-                        String owner = ClassTypeUtils.getDottedClassName(
+                        String owner = ClassTypeUtils.getDescriptorToDottedClassName(
                                 probeInfoIndex.get(methodCall.getEntryProbeInfo_id()).getAttribute("Owner", null));
                         if (owner == null) {
                             methodCall = null;
@@ -3039,6 +3063,7 @@ public class SessionInstance implements Runnable {
                                     methodCall.getEntryProbe_id() ==
                                             (eventBlock.eventId() - methodCall.getArgumentProbes().size() - 1)
                                             && methodCall.getSubject() == dataEvent.getValue()
+                                            && methodCall.getMethodDefinitionId() == methodInfo.getMethodId()
                             ) {
                                 // we are inside a method call on a class intercepted by spring or cglib companions
                                 // but this is the actual method call
@@ -3065,7 +3090,7 @@ public class SessionInstance implements Runnable {
                                 && ((methodInfo.getAccess() & 8) == 8)
                                 && !methodInfo.getMethodName().startsWith("<")
                                 && !methodInfo.getMethodName().contains("$")) {
-                            String ownerClass = ClassTypeUtils.getJavaClassName(
+                            String ownerClass = ClassTypeUtils.getDescriptorToDottedClassName(
                                     classInfoIndex.get(probeInfo.getClassId())
                                             .getClassName());
                             existingParameter.setValue(ownerClass.hashCode());
@@ -3076,12 +3101,14 @@ public class SessionInstance implements Runnable {
                         if (existingParameter.getProb() == null) {
 
                             existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
+                            existingParameter.setType(
+                                    ClassTypeUtils.getDescriptorToDottedClassName(methodInfo.getClassName()));
                             isModified = true;
                         }
                         if (existingParameter.getType() == null ||
                                 existingParameter.getType().equals("java.lang.Object")) {
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
+                            existingParameter.setType(
+                                    ClassTypeUtils.getDescriptorToDottedClassName(methodInfo.getClassName()));
 
 
                             isModified = true;
@@ -3109,7 +3136,7 @@ public class SessionInstance implements Runnable {
                         methodCall.setId(currentCallId);
                         methodCallMap.put(currentCallId, methodCall);
                         methodCallSubjectTypeMap.put(currentCallId,
-                                ClassTypeUtils.getJavaClassName(methodInfo.getClassName()));
+                                ClassTypeUtils.getDescriptorToDottedClassName(methodInfo.getClassName()));
 //                            if (threadState.candidateSize() > 0) {
 //                                addMethodToCandidate(threadState, methodCall);
 //                            }
@@ -3249,7 +3276,8 @@ public class SessionInstance implements Runnable {
                         }
                         if (objectInfoDocument != null) {
                             TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(objectInfoDocument.getTypeId());
-                            String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
+                            String typeName = ClassTypeUtils.getDescriptorToDottedClassName(
+                                    typeFromTypeIndex.getTypeName());
                             existingParameter.setType(typeName);
                         }
                     }
@@ -3345,31 +3373,42 @@ public class SessionInstance implements Runnable {
                     if (existingParameter.getType() == null && eventValue != 0) {
                         ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
                         if (probeInfo.getValueDesc() == Descriptor.Object) {
-                            if (objectInfoDocument == null) {
-                                this.sessionArchives = refreshSessionArchivesList(true);
-                                updateObjectInfoIndex(eventValue);
-                                objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
+
+                            if (probeInfo.getAttributes().contains("Type=")) {
+                                typeFromProbe = probeInfo.getAttribute("Type", null);
+                                existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(typeFromProbe));
+                                isModified = true;
+                            } else {
                                 if (objectInfoDocument == null) {
-                                    logger.warn(
-                                            "object info document is null for [" + existingParameter.getValue() + "] in " +
-                                                    "log file: [" + "] in archive [" +
-                                                    "]");
-                                    throw new NeedMoreLogsException(
-                                            "object info document is null for [" + existingParameter.getValue() + "] in " +
-                                                    "log file: [" + "] in archive [" +
-                                                    "]");
+                                    this.sessionArchives = refreshSessionArchivesList(true);
+                                    updateObjectInfoIndex(eventValue);
+                                    objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
+                                    if (objectInfoDocument == null) {
+                                        logger.warn(
+                                                "object info document is null for [" + existingParameter.getValue() + "] in " +
+                                                        "log file: [" + "] in archive [" +
+                                                        "]");
+                                        throw new NeedMoreLogsException(
+                                                "object info document is null for [" + existingParameter.getValue() + "] in " +
+                                                        "log file: [" + "] in archive [" +
+                                                        "]");
+                                    }
+                                }
+                                if (objectInfoDocument != null) {
+                                    TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(
+                                            objectInfoDocument.getTypeId());
+                                    String typeName = ClassTypeUtils.getDescriptorToDottedClassName(
+                                            typeFromTypeIndex.getTypeName());
+                                    existingParameter.setType(typeName);
+                                    isModified = true;
                                 }
                             }
-                            if (objectInfoDocument != null) {
-                                TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(
-                                        objectInfoDocument.getTypeId());
-                                String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
-                                existingParameter.setType(typeName);
-                                isModified = true;
-                            }
+
+
                         } else {
                             existingParameter.setType(
-                                    ClassTypeUtils.getJavaClassName(probeInfo.getValueDesc().getString()));
+                                    ClassTypeUtils.getDescriptorToDottedClassName(
+                                            probeInfo.getValueDesc().getString()));
                             isModified = true;
                         }
 
@@ -3456,7 +3495,7 @@ public class SessionInstance implements Runnable {
                     if ((existingParameter.getType() == null || existingParameter.getType().endsWith(".Object"))) {
                         existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         saveProbe = true;
-                        existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                        existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(
                                 probeInfo.getAttribute("Type", "V")));
 
                         isModified = true;
@@ -3500,7 +3539,7 @@ public class SessionInstance implements Runnable {
 
                     break;
                 case NEW_OBJECT:
-                    String nextNewObjectType = ClassTypeUtils.getDottedClassName(
+                    String nextNewObjectType = ClassTypeUtils.getDescriptorToDottedClassName(
                             probeInfo.getAttribute("Type", "V"));
                     threadState.pushNextNewObjectType(nextNewObjectType);
                     if (nextNewObjectType.equals("java.util.Date")) {
@@ -3516,7 +3555,7 @@ public class SessionInstance implements Runnable {
 //                    if (existingParameter.getProb() == null) {
                     existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
 //                    }
-                    existingParameter.setType(ClassTypeUtils.getDottedClassName(upcomingObjectType));
+                    existingParameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(upcomingObjectType));
                     theCallThatJustEnded.setReturnValue_id(existingParameter.getValue());
                     theCallThatJustEnded.setSubject(existingParameter.getValue());
                     if (!callsToSave.contains(theCallThatJustEnded)) {
@@ -3862,30 +3901,10 @@ public class SessionInstance implements Runnable {
 
     public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
         TestCandidateMetadata testCandidateMetadata = daoService.getTestCandidateById(testCandidateId, loadCalls);
-        if (testCandidateMetadata == null) {
-            return null;
-        }
-        TestCandidateMetadata tm = ApplicationManager.getApplication()
-                .runReadAction((Computable<TestCandidateMetadata>) () -> {
-                    ClassUtils.resolveTemplatesInCall(testCandidateMetadata.getMainMethod(), project);
-                    return testCandidateMetadata;
-                });
-        // check if the param are ENUM
-        createParamEnumPropertyTrueIfTheyAre(testCandidateMetadata.getMainMethod());
-
-        if (loadCalls) {
-            for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
-                MethodCallExpression finalMethodCallExpression = methodCallExpression;
-                methodCallExpression = ApplicationManager.getApplication().runReadAction(
-                        (Computable<MethodCallExpression>) () -> ClassUtils.resolveTemplatesInCall(
-                                finalMethodCallExpression, project));
-                createParamEnumPropertyTrueIfTheyAre(methodCallExpression);
-            }
-        }
         return testCandidateMetadata;
     }
 
-    private void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
+    public void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
         List<Parameter> methodArguments = methodCallExpression.getArguments();
 
         for (Parameter methodArgument : methodArguments) {
@@ -3951,19 +3970,19 @@ public class SessionInstance implements Runnable {
                     NotificationType.ERROR);
         }
         if (classInfoIndex != null) {
-            classInfoIndex.close();
+//            classInfoIndex.close();
         }
         if (probeInfoIndex != null) {
-            probeInfoIndex.close();
+//            probeInfoIndex.close();
         }
         if (methodInfoIndex != null) {
-            methodInfoIndex.close();
+//            methodInfoIndex.close();
         }
         if (typeInfoIndex != null) {
-            typeInfoIndex.close();
+//            typeInfoIndex.close();
         }
         if (objectInfoIndex != null) {
-            objectInfoIndex.close();
+//            objectInfoIndex.close();
         }
         if (parameterContainer != null) {
             parameterContainer.close();
@@ -3986,92 +4005,52 @@ public class SessionInstance implements Runnable {
         return classInfoIndexByName;
     }
 
+    public void getTestCandidates(
+            Consumer<List<TestCandidateBareBone>> testCandidateReceiver,
+            long afterEventId,
+            FilterModel filterModel, AtomicInteger cdl) {
 
-    public void getTopLevelTestCandidates(Consumer<List<TestCandidateMetadata>> testCandidateReceiver, long afterEventId) {
+        try {
 
 
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            try {
-
-                int page = 0;
-                int limit = 50;
-                int count = 0;
-                while (true) {
-                    if (shutdown) {
-                        return;
-                    }
-                    List<TestCandidateMetadata> testCandidateMetadataList = daoService
-                            .getTopLevelTestCandidatePaginated(afterEventId, page, limit);
-                    testCandidateReceiver.accept(testCandidateMetadataList);
+            int page = 0;
+            int limit = 50;
+            int count = 0;
+            int attempt = 0;
+            long currentAfterEventId = afterEventId;
+            while (true) {
+                attempt++;
+                if (shutdown) {
+                    cdl.decrementAndGet();
+                    break;
+                }
+                if (cdl.get() < 1) {
+                    logger.warn(
+                            "shutting down query started at [" + afterEventId + "] currently at item [" + count +
+                                    "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
+                    break;
+                }
+                List<TestCandidateBareBone> testCandidateMetadataList = daoService
+                        .getTestCandidatePaginated(currentAfterEventId, 0, limit, filterModel);
+                if (testCandidateMetadataList.size() > 0) {
                     count += testCandidateMetadataList.size();
-                    page++;
-                    if (testCandidateMetadataList.size() < limit || count > 100) {
-                        break;
+                    testCandidateReceiver.accept(testCandidateMetadataList);
+                    currentAfterEventId = testCandidateMetadataList.get(0).getId() + 1;
+                }
+                if (testCandidateMetadataList.size() < limit) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
                 }
-
-            } catch (SQLException e) {
-                // failed to load candidates hmm
-                e.printStackTrace();
-                throw new RuntimeException(e);
             }
-        });
 
-
-    }
-
-    public AtomicInteger getTestCandidates(Consumer<List<TestCandidateMetadata>> testCandidateReceiver,
-                                           long afterEventId, FilterModel filterModel) {
-
-        AtomicInteger cdl = new AtomicInteger(1);
-
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            try {
-
-
-                int page = 0;
-                int limit = 50;
-                int count = 0;
-                int attempt = 0;
-                long currentAfterEventId = afterEventId;
-                while (true) {
-                    attempt++;
-                    if (shutdown) {
-                        cdl.decrementAndGet();
-                        return;
-                    }
-                    if (cdl.get() == 0) {
-                        logger.warn(
-                                "shutting down query started at [" + afterEventId + "] currently at item [" + count +
-                                        "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
-                        return;
-                    }
-                    List<TestCandidateMetadata> testCandidateMetadataList = daoService
-                            .getTestCandidatePaginated(currentAfterEventId, 0, limit, filterModel);
-                    if (testCandidateMetadataList.size() > 0) {
-                        count += testCandidateMetadataList.size();
-                        testCandidateReceiver.accept(testCandidateMetadataList);
-                        currentAfterEventId =
-                                testCandidateMetadataList.get(testCandidateMetadataList.size() - 1)
-                                        .getEntryProbeIndex() + 1;
-                    }
-                    if (testCandidateMetadataList.size() < limit) {
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                }
-
-            } catch (SQLException e) {
-                // failed to load candidates hmm
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            }
-        });
-
-        return cdl;
+        } catch (SQLException e) {
+            // failed to load candidates hmm
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
 
     }
 
@@ -4138,5 +4117,9 @@ public class SessionInstance implements Runnable {
 
     public List<UnloggedTimingTag> getTimingTags(long id) {
         return daoService.getTimingTags(id);
+    }
+
+    public UnloggedSdkApiAgentClient getAgent() {
+        return unloggedSdkApiAgentClient;
     }
 }

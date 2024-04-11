@@ -40,9 +40,7 @@ public class MethodUtils {
                     String[] parameterCanonicalStrings = new String[methodParameters.length];
                     for (int i = 0; i < methodParameters.length; i++) {
                         ParameterAdapter methodParameter = methodParameters[i];
-                        parameterCanonicalStrings[i] =
-                                ClassTypeUtils.getDescriptorName(EmptySubstitutor.getInstance(),
-                                        methodParameter.getType());
+                        parameterCanonicalStrings[i] = methodParameter.getType().getCanonicalText();
                     }
                     agentCommandRequest.setParameterTypes(List.of(parameterCanonicalStrings));
 

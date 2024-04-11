@@ -11,7 +11,6 @@ import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
-import net.openhft.chronicle.map.ChronicleMap;
 
 import java.util.*;
 
@@ -19,24 +18,24 @@ public class ReplayData {
     private static final Logger logger = LoggerUtil.getInstance(ReplayData.class);
     private final FilteredDataEventsRequest filteredDataEventsRequest;
     List<DataEventWithSessionId> dataEvents;
-    ChronicleMap<Integer, ClassInfo> classInfoMap;
-    ChronicleMap<Integer, DataInfo> probeInfoMap;
+    Map<Integer, ClassInfo> classInfoMap;
+    Map<Integer, DataInfo> probeInfoMap;
     Map<Long, StringInfo> stringInfoMap;
     Map<Long, ObjectInfo> objectInfoMap;
     Map<Integer, TypeInfo> typeInfoMap;
-    ChronicleMap<Integer, MethodInfo> methodInfoMap;
+    Map<Integer, MethodInfo> methodInfoMap;
     private VideobugClientInterface client;
 
     public ReplayData(
             VideobugClientInterface client,
             FilteredDataEventsRequest filteredDataEventsRequest,
             List<DataEventWithSessionId> dataList,
-            ChronicleMap<Integer, ClassInfo> classInfo,
-            ChronicleMap<Integer, DataInfo> dataInfo,
+            Map<Integer, ClassInfo> classInfo,
+            Map<Integer, DataInfo> dataInfo,
             Map<Long, StringInfo> stringInfo,
             Map<Long, ObjectInfo> objectInfoMap,
             Map<Integer, TypeInfo> typeInfoMap,
-            ChronicleMap<Integer, MethodInfo> methodInfoMap
+            Map<Integer, MethodInfo> methodInfoMap
     ) {
         this.client = client;
         this.filteredDataEventsRequest = filteredDataEventsRequest;
@@ -170,7 +169,7 @@ public class ReplayData {
                 if (searchRequestCallStack == ScanRequest.CURRENT_CLASS) {
                     stackMatch = firstClass.getClassId() == classInfo.getClassId();
                     if (!stackMatch) {
-                        if (typeLadder.contains(ClassTypeUtils.getDottedClassName(classInfo.getClassName()))) {
+                        if (typeLadder.contains(ClassTypeUtils.getDescriptorToDottedClassName(classInfo.getClassName()))) {
                             stackMatch = true;
                             callStackMatched = ScanRequest.CURRENT_CLASS;
                         }
@@ -324,7 +323,7 @@ public class ReplayData {
             if (searchRequestCallStack == ScanRequest.CURRENT_CLASS) {
                 stackMatch = firstClass.getClassId() == classInfo.getClassId();
                 if (!stackMatch) {
-                    if (typeLadder.contains(ClassTypeUtils.getDottedClassName(classInfo.getClassName()))) {
+                    if (typeLadder.contains(ClassTypeUtils.getDescriptorToDottedClassName(classInfo.getClassName()))) {
                         stackMatch = true;
                         callStackMatched = ScanRequest.CURRENT_CLASS;
                     }
@@ -385,7 +384,7 @@ public class ReplayData {
         }
 
         if (expectedParameterType.startsWith("L")) {
-            expectedParameterType = ClassTypeUtils.getDottedClassName(expectedParameterType);
+            expectedParameterType = ClassTypeUtils.getDescriptorToDottedClassName(expectedParameterType);
         }
 
         TypeInfo typeInfo = getTypeInfoByName(expectedParameterType);

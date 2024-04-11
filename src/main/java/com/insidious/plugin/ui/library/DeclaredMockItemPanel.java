@@ -8,6 +8,7 @@ import com.insidious.plugin.mocking.*;
 import com.insidious.plugin.ui.stomp.StompItem;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.UIUtils;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
@@ -22,6 +23,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -124,7 +126,6 @@ public class DeclaredMockItemPanel {
         int thenParameterSize = declaredMock.getThenParameter().size();
         ThenParameter thenParameter = declaredMock.getThenParameter().get(0);
         ReturnValue returnParameter = thenParameter.getReturnParameter();
-        JsonNode jsonNode = null;
 
         String className = returnParameter.getClassName();
         if (className.contains("<")) {
@@ -143,14 +144,26 @@ public class DeclaredMockItemPanel {
                             }
                         });
 
-        try {
-            jsonNode = new ObjectMapper().readTree(returnParameter.getValue());
-            @Nullable String returnValueHover = StompItem.getPrettyPrintedArgumentsHtml(jsonNode);
-            returnsTag.setToolTipText(returnValueHover);
-        } catch (JsonProcessingException e) {
-            jsonNode = ObjectMapperInstance.getInstance().getNodeFactory().textNode(returnParameter.getValue());
-            returnsTag.setToolTipText(StompItem.getPrettyPrintedArgumentsHtml(jsonNode));
-        }
+        returnsTag.addMouseListener(new MouseAdapter() {
+            @Override
+            public synchronized void mouseEntered(MouseEvent e) {
+                if (returnsTag.getToolTipText() != null) {
+                    return;
+                }
+                JsonNode jsonNode = null;
+                try {
+                    jsonNode = new ObjectMapper().readTree(returnParameter.getValue());
+                    @Nullable String returnValueHover = StompItem.getPrettyPrintedArgumentsHtml(jsonNode);
+                    returnsTag.setToolTipText(returnValueHover);
+                } catch (JsonProcessingException e1) {
+                    jsonNode = ObjectMapperInstance.getInstance().getNodeFactory().textNode(returnParameter.getValue());
+                    returnsTag.setToolTipText(StompItem.getPrettyPrintedArgumentsHtml(jsonNode));
+                }
+
+                super.mouseEntered(e);
+            }
+        });
+
 
         tagsContainerPanel.add(returnsTag);
 
@@ -219,6 +232,8 @@ public class DeclaredMockItemPanel {
 //        controlPanel.addMouseListener(showDeleteButtonListener);
 //        controlContainer.addMouseListener(showDeleteButtonListener);
 //        selectCandidateCheckbox.addMouseListener(showDeleteButtonListener);
+
+
 
 
     }

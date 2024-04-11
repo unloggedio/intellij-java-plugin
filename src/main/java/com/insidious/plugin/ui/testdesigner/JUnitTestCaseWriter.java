@@ -128,10 +128,10 @@ public class JUnitTestCaseWriter {
                     List<Problem> problems = parseResult.getProblems();
                     for (int i = 0; i < problems.size(); i++) {
                         Problem problem = problems.get(i);
-                        logger.error("Problem [" + i + "] => " + problem);
+                        logger.warn("Problem [" + i + "] => " + problem);
                     }
 
-                    InsidiousNotification.notifyMessage("Failed to parse test case to write " +
+                    InsidiousNotification.notifyMessage("Failed to save test case: " +
                             parseResult.getProblems(), NotificationType.ERROR
                     );
                     return null;

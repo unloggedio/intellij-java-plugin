@@ -1,10 +1,14 @@
 package com.insidious.plugin.ui.stomp;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.assertions.AssertionType;
 import com.insidious.plugin.assertions.AtomicAssertion;
 import com.insidious.plugin.assertions.Expression;
+import com.insidious.plugin.assertions.KeyValue;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -27,6 +31,8 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Pair;
@@ -45,6 +51,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class TestCandidateSaveForm {
@@ -54,6 +62,7 @@ public class TestCandidateSaveForm {
     private final Map<StoredCandidate, StoredCandidateItemPanel> candidatePanelMap = new HashMap<>();
     private final Map<DeclaredMock, DeclaredMockItemPanel> declaredMockPanelMap = new HashMap<>();
     private final Map<AtomicAssertion, AtomicAssertionItemPanel> atomicAssertionPanelMap = new HashMap<>();
+    private final ProgressIndicator progressIndicator;
     Set<AssertionType> TOP_ONE = new HashSet<>();
     private JPanel mainPanel;
     private JLabel assertionCountLabel;
@@ -88,15 +97,18 @@ public class TestCandidateSaveForm {
     private JSeparator linesCoveredLine;
     private JLabel linesCoveredExpandIcon;
 
-    public TestCandidateSaveForm(List<TestCandidateMetadata> sourceCandidates,
+    public TestCandidateSaveForm(List<TestCandidateBareBone> sourceCandidates,
                                  SaveFormListener saveFormListener,
-                                 ComponentLifecycleListener<TestCandidateSaveForm> componentLifecycleListener) {
+                                 ComponentLifecycleListener<TestCandidateSaveForm> componentLifecycleListener,
+                                 ProgressIndicator progressIndicator) {
+        this.progressIndicator = progressIndicator;
 
         TOP_ONE.add(AssertionType.ALLOF);
         TOP_ONE.add(AssertionType.ANYOF);
         TOP_ONE.add(AssertionType.NOTALLOF);
         TOP_ONE.add(AssertionType.NOTANYOF);
 
+        linesCountLabel.setIcon(AllIcons.General.Information);
         replayTestInfoLinkLabel.setIcon(AllIcons.Actions.Help);
         replayTestInfoLinkLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         replayTestInfoLinkLabel.addMouseListener(new MouseAdapter() {
@@ -120,13 +132,12 @@ public class TestCandidateSaveForm {
         InsidiousService insidiousService = project1.getService(InsidiousService.class);
 
 //        ProgressManager instance = ProgressManager.getInstance();
-//        ProgressIndicator progressIndicator = instance.getProgressIndicator();
-//        progressIndicator.setText("Loading " + sourceCandidates.size() + " Replay");
+        progressIndicator.setText("Loading " + sourceCandidates.size() + " Replay");
 
         List<TestCandidateMetadata> list = new ArrayList<>();
-        for (TestCandidateMetadata sourceCandidate : sourceCandidates) {
+        for (TestCandidateBareBone sourceCandidate : sourceCandidates) {
             TestCandidateMetadata testCandidateById = insidiousService.getTestCandidateById(
-                    sourceCandidate.getEntryProbeIndex(),
+                    sourceCandidate.getId(),
                     true);
             list.add(testCandidateById);
         }
@@ -169,9 +180,12 @@ public class TestCandidateSaveForm {
 
 
         long voidMethodCount = candidateMetadataList.stream().filter(e ->
-                e.getMainMethod().getReturnValue() == null ||
-                        e.getMainMethod().getReturnValue().getType() == null ||
-                        e.getMainMethod().getReturnValue().getType().equalsIgnoreCase("void")).count();
+        {
+            MethodCallExpression mainMethod1 = e.getMainMethod();
+            return mainMethod1.getReturnValue() == null ||
+                    mainMethod1.getReturnValue().getType() == null ||
+                    mainMethod1.getReturnValue().getType().equalsIgnoreCase("void");
+        }).count();
 
         if (voidMethodCount > 0) {
             voidInfoPanel.setVisible(true);
@@ -185,14 +199,25 @@ public class TestCandidateSaveForm {
 
         Map<StoredCandidate, List<DeclaredMock>> mocksMap = new HashMap<>();
 
+        int total = candidateMetadataList.size();
+        AtomicInteger current = new AtomicInteger(0);
         candidateList = candidateMetadataList.stream()
                 .map(candidateMetadata -> {
                     StoredCandidate storedCandidate = new StoredCandidate(candidateMetadata);
+                    int val = current.incrementAndGet();
 
+                    if (progressIndicator != null) {
+                        progressIndicator.setFraction((double) val / (double) total);
+                    }
 
                     List<DeclaredMock> mocks = ApplicationManager.getApplication()
                             .runReadAction((Computable<List<DeclaredMock>>) () -> patchCandidate(candidateMetadata,
                                     storedCandidate, project1));
+
+                    if (progressIndicator.isCanceled()) {
+                        componentLifecycleListener.onClose(TestCandidateSaveForm.this);
+                        return null;
+                    }
 
                     mocksMap.put(storedCandidate, mocks);
 
@@ -205,6 +230,9 @@ public class TestCandidateSaveForm {
 
                     Parameter returnValue1 = mainMethod.getReturnValue();
                     JsonNode returnValue = ClassTypeUtils.getValueForParameter(returnValue1);
+                    if (returnValue.isNumber() && !returnValue1.isPrimitiveType() && !returnValue1.isBoxedPrimitiveType()) {
+                        returnValue = ObjectMapperInstance.getInstance().getNodeFactory().objectNode();
+                    }
 
 
                     AtomicAssertion assertion;
@@ -216,7 +244,11 @@ public class TestCandidateSaveForm {
                         assertion = new AtomicAssertion(Expression.SELF, AssertionType.EQUAL, "/message",
                                 expectedValue);
                     }
-                    storedCandidate.setTestAssertions(assertion);
+                    if (AtomicAssertionUtils.countAssertions(assertion) != 0) {
+                        storedCandidate.setTestAssertions(assertion);
+                    } else {
+                        storedCandidate.setTestAssertions(new AtomicAssertion());
+                    }
                     return storedCandidate;
                 }).collect(Collectors.toList());
 
@@ -229,56 +261,62 @@ public class TestCandidateSaveForm {
         mockCallCountLabel.setText(declaredMockList.size() + " downstream call mocks");
 
         confirmButton.setIcon(AllIcons.Actions.MenuSaveall);
-        confirmButton.addActionListener(e -> ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            JSONObject eventProperties = new JSONObject();
-            eventProperties.put("count", candidateMetadataList.size());
-            eventProperties.put("inUnit", unitRadioButton.isSelected());
-            eventProperties.put("mockCount", mocksMap.values()
-                    .stream().mapToLong(Collection::size).sum());
-            eventProperties.put("assertionCount", candidateList
-                    .stream().mapToInt(e2 -> AtomicAssertionUtils.countAssertions(e2.getTestAssertions()))
-                    .sum());
-            UsageInsightTracker.getInstance().RecordEvent("TCSF_CONFIRM", eventProperties);
+        confirmButton.addActionListener(e -> {
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("count", candidateMetadataList.size());
+                eventProperties.put("inUnit", unitRadioButton.isSelected());
+                eventProperties.put("mockCount", mocksMap.values()
+                        .stream().mapToLong(Collection::size).sum());
+                eventProperties.put("assertionCount", candidateList
+                        .stream().mapToInt(e2 -> AtomicAssertionUtils.countAssertions(e2.getTestAssertions()))
+                        .sum());
+                UsageInsightTracker.getInstance().RecordEvent("TCSF_CONFIRM", eventProperties);
 
-            int mockSavedCount = 0;
-            for (StoredCandidate storedCandidate : candidateList) {
-                if (!unitRadioButton.isSelected()) {
-                    storedCandidate.setMockIds(new HashSet<>());
-                } else {
-                    List<DeclaredMock> mocks = mocksMap.getOrDefault(storedCandidate, new ArrayList<>());
+                DumbService.getInstance(project1).runReadActionInSmartMode(() -> {
+                    int mockSavedCount = 0;
+                    for (StoredCandidate storedCandidate : candidateList) {
+                        if (!unitRadioButton.isSelected()) {
+                            storedCandidate.setMockIds(new HashSet<>());
+                        } else {
+                            List<DeclaredMock> mocks = mocksMap.getOrDefault(storedCandidate, new ArrayList<>());
 
-                    Set<String> mockIds = new HashSet<>();
-                    for (DeclaredMock declaredMock : mocks) {
-                        String mockId = saveFormListener.onSaved(declaredMock);
-                        mockIds.add(mockId);
+                            Set<String> mockIds = new HashSet<>();
+                            for (DeclaredMock declaredMock : mocks) {
+                                String mockId = saveFormListener.onSaved(declaredMock);
+                                mockIds.add(mockId);
+                            }
+                            mockSavedCount += mockIds.size();
+                            storedCandidate.setMockIds(mockIds);
+                        }
+                        saveFormListener.onSaved(storedCandidate);
                     }
-                    mockSavedCount += mockIds.size();
-                    storedCandidate.setMockIds(mockIds);
-                }
-                saveFormListener.onSaved(storedCandidate);
-            }
 
 
-            insidiousService.reloadLibrary();
+                    insidiousService.reloadLibrary();
 
-            InsidiousNotification
-                    .notifyMessage(
-                            "Saved " + candidateList.size() + " replay tests and "
-                                    + mockSavedCount + " mock definitions", NotificationType.INFORMATION,
-                            List.of(
-                                    new AnAction(() -> "Go to Library", UIUtils.LIBRARY_ICON) {
-                                        @Override
-                                        public void actionPerformed(@NotNull AnActionEvent e) {
-                                            saveFormListener.getProject()
-                                                    .getService(InsidiousService.class)
-                                                    .showLibrary();
-                                        }
-                                    }
-                            )
-                    );
+                    InsidiousNotification
+                            .notifyMessage(
+                                    "Saved " + candidateList.size() + " replay tests and "
+                                            + mockSavedCount + " mock definitions", NotificationType.INFORMATION,
+                                    List.of(
+                                            new AnAction(() -> "Go to Library", UIUtils.LIBRARY_ICON) {
+                                                @Override
+                                                public void actionPerformed(@NotNull AnActionEvent e) {
+                                                    saveFormListener.getProject()
+                                                            .getService(InsidiousService.class)
+                                                            .showLibrary();
+                                                }
+                                            }
+                                    )
+                            );
 
-            componentLifecycleListener.onClose(TestCandidateSaveForm.this);
-        }));
+                    componentLifecycleListener.onClose(TestCandidateSaveForm.this);
+                });
+
+
+            });
+        });
 
         cancelButton.setIcon(AllIcons.Actions.Cancel);
         cancelButton.addActionListener(e -> {
@@ -289,12 +327,17 @@ public class TestCandidateSaveForm {
             componentLifecycleListener.onClose(TestCandidateSaveForm.this);
         });
 
+        if (progressIndicator.isCanceled()) {
+            componentLifecycleListener.onClose(TestCandidateSaveForm.this);
+            return;
+        }
 
-        List<AtomicAssertion> allAssertions = candidateList.stream()
+
+        Integer allAssertionsCount = candidateList.stream()
                 .flatMap(e -> AtomicAssertionUtils.flattenAssertionMap(e.getTestAssertions()).stream())
-                .collect(Collectors.toList());
-
-        long assertionCount = allAssertions.size();
+                .map(AtomicAssertionUtils::countAssertions).mapToInt(e -> e)
+                .sum();
+        Integer assertionCount = allAssertionsCount;
 
         assertionCountLabel.setText(assertionCount + " assertions");
 
@@ -395,8 +438,9 @@ public class TestCandidateSaveForm {
         ItemLifeCycleListener<DeclaredMock> itemLifeCycleListener = new ItemLifeCycleListener<>() {
             @Override
             public void onSelect(DeclaredMock item) {
-                ApplicationManager.getApplication().executeOnPooledThread(() -> InsidiousUtils.focusInEditor(item.getFieldTypeName(),
-                        item.getMethodName(), project));
+                ApplicationManager.getApplication()
+                        .executeOnPooledThread(() -> InsidiousUtils.focusInEditor(item.getFieldTypeName(),
+                                item.getMethodName(), project));
 
             }
 
@@ -487,7 +531,7 @@ public class TestCandidateSaveForm {
 
             @Override
             public void onDelete(AtomicAssertion item) {
-
+                logger.warn("Delete AssertionBlock: " + item);
             }
 
             @Override
@@ -526,19 +570,43 @@ public class TestCandidateSaveForm {
                 storedCandidate.setTestAssertions(new AtomicAssertion());
                 continue;
             }
+            int count = AtomicAssertionUtils.countAssertions(atomicAssertion);
+            if (count < 1) {
+                continue;
+            }
+            Supplier<List<KeyValue>> keyValueSupplier = () -> {
+                JsonNode node;
+                ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
+                try {
+                    node = objectMapper.readTree(storedCandidate.getReturnValue());
+                } catch (JsonProcessingException e) {
+                    node = objectMapper.getNodeFactory().textNode(storedCandidate.getReturnValue());
+                }
+
+                ObjectNode flatJson = JsonTreeUtils.flatten(node);
+
+                Iterator<String> stringIterator = flatJson.fieldNames();
+                List<KeyValue> listOfKeyValue = new ArrayList<>();
+                while ((stringIterator.hasNext())) {
+                    String key = stringIterator.next();
+                    String value = flatJson.get(key).toString();
+                    listOfKeyValue.add(new KeyValue(key, value));
+                }
+                return listOfKeyValue;
+
+            };
             AtomicAssertionItemPanel atomicAssertionItemPanel = new AtomicAssertionItemPanel(
-                    atomicAssertion, atomicAssertionLifeListener, project);
+                    atomicAssertion, atomicAssertionLifeListener, project, keyValueSupplier);
 
             atomicAssertionPanelMap.put(atomicAssertion, atomicAssertionItemPanel);
             assertionItemContainer.add(atomicAssertionItemPanel.getComponent(),
                     createGBCForLeftMainComponent(assertionPanelCount));
-            int count = AtomicAssertionUtils.countAssertions(atomicAssertion);
             String returnValueClassname = storedCandidate.getReturnValueClassname();
-            atomicAssertionItemPanel.setTitle(count + " assertions for " +
-                    ClassTypeUtils.getSimpleClassName(returnValueClassname == null ? "Void" : returnValueClassname) +
-                    " from " + ClassTypeUtils.getSimpleClassName(
-                    storedCandidate.getMethod().getClassName()) + "." + storedCandidate.getMethod()
-                    .getName());
+            String returnClassSimpleName = ClassTypeUtils.getSimpleClassName(
+                    returnValueClassname == null ? "Void" : returnValueClassname);
+            String targetMethodClassSimpleName = ClassTypeUtils.getSimpleClassName(
+                    storedCandidate.getMethod().getClassName());
+            atomicAssertionItemPanel.setTitle(returnClassSimpleName);
             assertionPanelCount++;
         }
         assertionItemContainer.add(new JPanel(), createGBCForFakeComponent(assertionPanelCount));
@@ -627,6 +695,10 @@ public class TestCandidateSaveForm {
         Parameter returnValue1 = methodCallExpression.getReturnValue();
         JsonNode value = ClassTypeUtils.getValueForParameter(returnValue1);
 
+        if (value.isNumber() && !returnValue1.isBoxedPrimitiveType() && !returnValue1.isPrimitiveType()) {
+            value = ObjectMapperInstance.getInstance().getNodeFactory().objectNode();
+        }
+
         String returnValueClassName = callExpressionReturnType.getCanonicalText(); // returnValue1.getType();
         ReturnValue returnValue = new ReturnValue(value.toString(), returnValueClassName, ReturnValueType.REAL);
         ThenParameter thenParam = new ThenParameter(returnValue, MethodExitType.NORMAL);
@@ -634,7 +706,7 @@ public class TestCandidateSaveForm {
         thenParameterList.add(thenParam);
         DeclaredMock newMock = new DeclaredMock(
                 "mock response for call to " + callExpression.getText(),
-                methodCallExpression.getSubject().getType(), sourceClassName,
+                mut.getClassName(), sourceClassName,
                 fieldName, methodCallExpression.getMethodName(),
                 mut.getMethodHashKey(), whenParameterList, thenParameterList
         );
@@ -663,12 +735,19 @@ public class TestCandidateSaveForm {
             Project project
     ) {
 
+        if (progressIndicator.isCanceled()) {
+            return new ArrayList<>();
+        }
+
+
         Pair<PsiMethod, PsiSubstitutor> psiMethod = ClassTypeUtils.getPsiMethod(
                 candidateMetadata.getMainMethod(), project);
         if (psiMethod == null) {
             return new ArrayList<>();
         }
         PsiMethod candidateTargetMethod = psiMethod.getFirst();
+        progressIndicator.setText2("Building test case for " + candidateTargetMethod.getContainingClass()
+                .getName() + "." + candidateTargetMethod.getName());
 
         if (candidateTargetMethod.getContainingClass().isInterface()) {
 
@@ -693,7 +772,9 @@ public class TestCandidateSaveForm {
 
             if (candidateMethods.size() == 0) {
                 // no implementation found
-                InsidiousNotification.notifyMessage("No implementation found for method " + candidateTargetMethod.getName(), NotificationType.WARNING);
+                InsidiousNotification.notifyMessage(
+                        "No implementation found for method " + candidateTargetMethod.getName(),
+                        NotificationType.WARNING);
             } else if (candidateMethods.size() == 1) {
                 candidateTargetMethod = candidateMethods.stream().findFirst().get();
             } else {

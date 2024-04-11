@@ -448,7 +448,8 @@ public class MethodDirectInvokeComponent implements ActionListener {
 //                ParameterInputComponent parameterInputComponent = parameterInputComponents.get(i);
             ParameterAdapter parameter = parameters[i];
 
-            String selectedKey = "/" + parameter.getName();
+            String selectedKey = "/" + ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) parameter::getName);
 
             JsonNode valueFromJsonNode = parameterEditor.getValue();
 

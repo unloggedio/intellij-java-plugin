@@ -3,6 +3,17 @@ package com.insidious.plugin.agent;
 public class ServerMetadata {
     String includePackageName;
     String agentVersion;
+    String agentServerPort;
+
+    public String getAgentServerUrl() {
+        return agentServerUrl;
+    }
+
+    public void setAgentServerUrl(String agentServerUrl) {
+        this.agentServerUrl = agentServerUrl;
+    }
+
+    String agentServerUrl;
 
     public ServerMetadata(String includePackageName, String agentVersion) {
         this.includePackageName = includePackageName;
@@ -10,6 +21,14 @@ public class ServerMetadata {
     }
 
     public ServerMetadata() {
+    }
+
+    public String getAgentServerPort() {
+        return agentServerPort;
+    }
+
+    public void setAgentServerPort(String agentServerPort) {
+        this.agentServerPort = agentServerPort;
     }
 
     public String getIncludePackageName() {

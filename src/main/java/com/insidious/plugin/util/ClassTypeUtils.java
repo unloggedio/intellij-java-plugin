@@ -1,7 +1,6 @@
 package com.insidious.plugin.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javaparser.JavaParser;
@@ -14,7 +13,6 @@ import com.insidious.plugin.MethodSignatureParser;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
-import com.insidious.plugin.ui.stomp.TestCandidateSaveForm;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmPrimitiveTypeKind;
 import com.intellij.lang.jvm.types.JvmType;
@@ -35,11 +33,8 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class ClassTypeUtils {
@@ -149,7 +144,7 @@ public class ClassTypeUtils {
         if (typeNameRaw == null) {
             return null;
         }
-        String lastPart = ClassTypeUtils.getDottedClassName(typeNameRaw);
+        String lastPart = ClassTypeUtils.getDescriptorToDottedClassName(typeNameRaw);
         lastPart = getSimpleClassName(lastPart);
         if (lastPart.length() < 2) {
             return lastPart.toLowerCase();
@@ -174,22 +169,21 @@ public class ClassTypeUtils {
     }
 
 
-    public static String getDescriptorName(String className) {
+    public static String getDottedToDescriptorName(String className) {
         if (className == null) {
             return "V";
         }
-        if (className.length() < 2) {
+        if (className.length() < 2 || className.contains("/")) {
             return className;
         }
         if (className.endsWith("[]")) {
-            return "[" + getDescriptorName(className.substring(0, className.length() - 2));
+            return "[" + getDottedToDescriptorName(className.substring(0, className.length() - 2));
         }
-        String containerClassName = className;
+        String containerClassName = className.replace('.', '/');
         if (className.contains("<")) {
-            className = className.replaceAll(" ", "");
             StringBuilder nameBuilder = new StringBuilder();
             String[] classNameTemplateParts = className.split("<");
-            nameBuilder.append(classNameTemplateParts[0]);
+            nameBuilder.append(classNameTemplateParts[0].replace('.', '/'));
             for (int j = 1; j < classNameTemplateParts.length; j++) {
                 String classNameTemplatePart = classNameTemplateParts[j];
                 String[] subParts = classNameTemplatePart.split(",");
@@ -199,10 +193,10 @@ public class ClassTypeUtils {
                 for (int i = 0; i < subParts.length; i++) {
                     String subPart = subParts[i].split(">")[0];
                     if (subPart.length() > 1) {
-                        subPart = "L" + subPart.replace("/", ".") + ";";
+                        subPart = getDottedToDescriptorName(subPart);
                     }
-                    if (i > 1) {
-                        nameBuilder.append(", ");
+                    if (i > 0) {
+                        nameBuilder.append(",");
                     }
                     nameBuilder.append(subPart);
                 }
@@ -214,71 +208,58 @@ public class ClassTypeUtils {
 
             containerClassName = nameBuilder.toString();
         }
-        if (containerClassName.contains(".")) {
-            containerClassName = containerClassName.replace('.', '/');
-        }
         return "L" + containerClassName + ";";
     }
 
-    public static String getDottedClassName(String className) {
+    public static String getDescriptorToDottedClassName(String className) {
+
         if (className == null) {
-            return null;
+            return "V";
         }
-        if (className.contains(".")) {
+        if (className.length() < 2 || className.contains(".")) {
             return className;
         }
-
-        if (className.endsWith(";")) {
-            className = className.substring(0, className.length() - 1);
-        }
-
-        while (className.startsWith("[")) {
-            className = className.substring(1) + "[]";
+        if (className.startsWith("[")) {
+            return getDescriptorToDottedClassName(className.substring(1)) + "[]";
         }
         if (className.startsWith("L")) {
             className = className.substring(1);
         }
-
-        String dottedName = className.replace('/', '.');
-        if (dottedName.contains("$$")) {
-            dottedName = dottedName.substring(0, dottedName.indexOf("$$"));
+        if (className.endsWith(";")) {
+            className = className.substring(0, className.length() - 1);
         }
-        return dottedName;
+        String containerClassName = className.replace('/', '.');
+        if (className.contains("<")) {
+            StringBuilder nameBuilder = new StringBuilder();
+            String[] classNameTemplateParts = className.split("<");
+            nameBuilder.append(classNameTemplateParts[0].substring(1).replace('/', '.'));
+            for (int j = 1; j < classNameTemplateParts.length; j++) {
+                String classNameTemplatePart = classNameTemplateParts[j];
+                String[] subParts = classNameTemplatePart.split(",");
+                if (subParts.length > 0) {
+                    nameBuilder.append("<");
+                }
+                for (int i = 0; i < subParts.length; i++) {
+                    String subPart = subParts[i].split(">")[0];
+                    if (subPart.length() > 1) {
+                        subPart = getDescriptorToDottedClassName(subPart);
+                    }
+                    if (i > 0) {
+                        nameBuilder.append(",");
+                    }
+                    nameBuilder.append(subPart);
+                }
+                if (subParts.length > 0) {
+                    nameBuilder.append(">");
+                }
+            }
+
+            containerClassName = nameBuilder.toString();
+        }
+        return containerClassName;
+
     }
 
-    public static String getJavaClassName(String className) {
-        if (className == null) {
-            return null;
-        }
-        if (className.contains("$$")) {
-            className = className.substring(0, className.indexOf("$$"));
-        }
-        if (className.contains(".") && !className.contains("/")) {
-            className = className.replace('$', '.');
-        } else {
-            className = className.replace('$', '.');
-
-            if (className.endsWith(";")) {
-                className = className.substring(0, className.length() - 1);
-            }
-
-            while (className.startsWith("[")) {
-                className = className.substring(1) + "[]";
-            }
-            if (className.startsWith("L")) {
-                className = className.substring(1);
-            }
-            className = className.replace('/', '.');
-        }
-
-        if (className.matches(".+\\.[0-9]+$")) {
-
-            // if the class name is like a `ClassName.1`
-            className = className.substring(0, className.lastIndexOf("."));
-        }
-
-        return className;
-    }
 
 
     /**
@@ -472,7 +453,7 @@ public class ClassTypeUtils {
     }
 
     public static Pair<PsiMethod, PsiSubstitutor> getPsiMethod(MethodUnderTest methodCallExpression, Project project) {
-        String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getClassName());
+        String subjectClassName = ClassTypeUtils.getDescriptorToDottedClassName(methodCallExpression.getClassName());
         PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
                 GlobalSearchScope.allScope(project));
 
@@ -504,7 +485,7 @@ public class ClassTypeUtils {
 
                 boolean mismatch = false;
                 for (int i = 0; i < methodDescriptor.size(); i++) {
-                    String expectedArgument = ClassTypeUtils.getDottedClassName(methodDescriptor.get(i));
+                    String expectedArgument = ClassTypeUtils.getDescriptorToDottedClassName(methodDescriptor.get(i));
                     JvmParameter actualArgument = actualArguments[i];
                     JvmType actualArgumentType = actualArgument.getType();
                     if (actualArgumentType instanceof PsiType) {
@@ -581,9 +562,13 @@ public class ClassTypeUtils {
 
 
     public static Pair<PsiMethod, PsiSubstitutor> getPsiMethod(MethodCallExpression methodCallExpression, Project project) {
-        String subjectClassName = ClassTypeUtils.getJavaClassName(methodCallExpression.getSubject().getType());
+        String subjectClassName = ClassTypeUtils.getDescriptorToDottedClassName(methodCallExpression.getSubject().getType());
         PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
                 GlobalSearchScope.allScope(project));
+        if (classPsiElement == null) {
+            logger.warn("Class not found [" + subjectClassName + "]");
+            return null;
+        }
 
         String methodName = methodCallExpression.getMethodName();
         boolean isLambda = false;
@@ -592,7 +577,7 @@ public class ClassTypeUtils {
             isLambda = true;
         }
         List<Pair<PsiMethod, PsiSubstitutor>> methodsByNameList = classPsiElement.findMethodsAndTheirSubstitutorsByName(
-                methodName, true);
+                methodName, false);
 
         if (methodsByNameList.size() == 1) {
             // should we verify parameters ?
@@ -838,25 +823,25 @@ public class ClassTypeUtils {
         return result;
     }
 
-    public static String getDescriptorName(PsiSubstitutor substitutor, JvmType type1) {
+    public static String getDottedToDescriptorName(PsiSubstitutor substitutor, JvmType type1) {
         String descriptorName = null;
         if (type1 instanceof PsiWildcardType) {
             type1 = substituteClassRecursively((PsiWildcardType) type1, substitutor);
             String type = ((PsiWildcardType) type1).getCanonicalText();
-            descriptorName = getDescriptorName(type);
+            descriptorName = getDottedToDescriptorName(type);
         } else if (type1 instanceof PsiClassType) {
             type1 = substituteClassRecursively((PsiType) type1, substitutor);
             String type = ((PsiType) type1).getCanonicalText();
-            descriptorName = getDescriptorName(type);
+            descriptorName = getDottedToDescriptorName(type);
         } else if (type1 instanceof PsiPrimitiveType) {
             PsiPrimitiveType psiType = (PsiPrimitiveType) type1;
             descriptorName = psiType.getKind().getBinaryName();
         } else if (type1 instanceof PsiEllipsisType) {
             PsiType componentType = ((PsiEllipsisType) type1).getComponentType();
-            return "[" + getDescriptorName(substitutor, componentType);
+            return "[" + getDottedToDescriptorName(substitutor, componentType);
         } else if (type1 instanceof PsiArrayType) {
             PsiType componentType = ((PsiArrayType) type1).getComponentType();
-            return "[" + getDescriptorName(substitutor, componentType);
+            return "[" + getDottedToDescriptorName(substitutor, componentType);
         }
         if (descriptorName == null) {
             return null;
@@ -937,7 +922,6 @@ public class ClassTypeUtils {
                 try {
                     returnValue = objectMapper.readTree(stringValue);
                 } catch (JsonProcessingException e) {
-                    logger.warn("Failed to parse response value as a json object: " + e.getMessage() + " => " + stringValue);
                     returnValue = objectMapper.getNodeFactory().textNode(stringValue);
                 }
             }

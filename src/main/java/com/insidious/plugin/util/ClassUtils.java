@@ -114,8 +114,11 @@ public class ClassUtils {
         if (destinationMethod == null) {
             return new EmptySubstitutor();
         }
-        PsiExpression fieldReferenceExpression = methodExpression
-                .getQualifierExpression();
+        PsiExpression qualifierExpression = methodExpression.getQualifierExpression();
+        if (qualifierExpression == null) {
+            return PsiSubstitutor.EMPTY;
+        }
+        PsiExpression fieldReferenceExpression = qualifierExpression;
         PsiType type;
         if (fieldReferenceExpression == null || fieldReferenceExpression.getReference() == null) {
             // a call to a methid in the same class, so
@@ -148,6 +151,20 @@ public class ClassUtils {
                         containingClass, resolveChildClass, PsiSubstitutor.EMPTY);
             }
         }
+        PsiReference reference = qualifierExpression.getReference();
+        if (reference == null) {
+            return PsiSubstitutor.EMPTY;
+        }
+        PsiClass classContainingFieldInstance = PsiTreeUtil.getParentOfType(
+                reference.resolve(),
+                PsiClass.class);
+        if (classContainingFieldInstance == null) {
+            return classSubstitutor;
+        }
+        PsiClass classContainingCallExpression = PsiTreeUtil.getParentOfType(methodCallExpression, PsiClass.class);
+        classSubstitutor = TypeConversionUtil.getClassSubstitutor(
+                classContainingFieldInstance, classContainingCallExpression,
+                classSubstitutor == null ? PsiSubstitutor.EMPTY : classSubstitutor);
         return classSubstitutor;
     }
 
@@ -377,8 +394,7 @@ public class ClassUtils {
                     dummyValue.append("}");
                 }
 
-            }
-            else if (parameterType instanceof PsiPrimitiveType) {
+            } else if (parameterType instanceof PsiPrimitiveType) {
                 PsiPrimitiveType primitiveType = (PsiPrimitiveType) parameterType;
                 if ("boolean".equals(primitiveType.getName())) {
                     return "true";
@@ -550,7 +566,7 @@ public class ClassUtils {
 
         try {
             classPsiInstance = JavaPsiFacade.getInstance(project)
-                    .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
+                    .findClass(ClassTypeUtils.getDescriptorToDottedClassName(subjectType), GlobalSearchScope.allScope(project));
         } catch (IndexNotReadyException e) {
 //            e.printStackTrace();
             InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
@@ -636,7 +652,12 @@ public class ClassUtils {
                         returnParameter.getType() != null) {
                     if (!returnTypeClassReference.getReference()
                             .getQualifiedName()
-                            .equals(returnParameter.getType())) {
+                            .equals(returnParameter.getType())
+                            && !returnParameter.getType()
+                            .startsWith(returnTypeClassReference.getReference()
+                                    .getQualifiedName())
+
+                    ) {
                         // type name mismatch
                         logger.warn(
                                 "Call expected return [" + returnParameter.getType() + "] did not match return type in " +

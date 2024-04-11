@@ -42,8 +42,7 @@ public class JsonTreeUtils {
                 arrayNode.add(buildJsonFromTree(child));
             }
             return arrayNode;
-        }
-        else if (isJSONnode(treeNode)) {
+        } else if (isJSONnode(treeNode)) {
             ObjectNode objectNode = mapper.createObjectNode();
             TreeNode childNode = children.nextElement();
             try {
@@ -51,8 +50,7 @@ public class JsonTreeUtils {
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-        }
-        else {
+        } else {
             ObjectNode objectNode = mapper.createObjectNode();
             while (children.hasMoreElements()) {
                 DefaultMutableTreeNode child = (DefaultMutableTreeNode) children.nextElement();
@@ -118,13 +116,11 @@ public class JsonTreeUtils {
                     buildTreeFromJsonNode(childNode, field.getValue());
                     treeNode.add(childNode);
                 }
-            }
-            else {
+            } else {
                 DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(jsonNode);
-                if (jsonNode.asText().length()==0) {
+                if (jsonNode.asText().length() == 0) {
                     childNode.setUserObject("{}");
-                }
-                else {
+                } else {
                     childNode.setUserObject("{" + jsonNode.asText() + "}");
                 }
                 treeNode.add(childNode);
@@ -140,7 +136,6 @@ public class JsonTreeUtils {
             treeNode.setUserObject(treeNode.getUserObject() + ": " + jsonNode.asText());
         }
     }
-
 
 
     public static String getFlatMap(TreeNode[] treeNodes) {
@@ -183,16 +178,30 @@ public class JsonTreeUtils {
 
     public static ObjectNode flatten(JsonNode map) {
         ObjectNode newObjectNode = objectMapper.createObjectNode();
-        if (map.isObject()) {
-            ObjectNode objectNode = (ObjectNode) map;
-            Iterator<JsonNode> iterator = objectNode.iterator();
-            objectNode.forEach(e -> {
-                ObjectNode flatObject = flatten(e);
-            });
-            return newObjectNode;
+        flattenRecursively(newObjectNode, "", map);
+        return newObjectNode;
+    }
 
+    private static void flattenRecursively(ObjectNode newObjectNode, String currentPath, JsonNode node) {
+        if (node.isObject()) {
+            ObjectNode objectNode = (ObjectNode) node;
+            Iterator<Map.Entry<String, JsonNode>> fields = objectNode.fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> entry = fields.next();
+                String key = entry.getKey();
+                JsonNode value = entry.getValue();
+                String newPath = currentPath + "/" + key;
+                flattenRecursively(newObjectNode, newPath, value);
+            }
+        } else if (node.isArray()) {
+            int index = 0;
+            for (JsonNode childNode : node) {
+                String newPath = currentPath + "/" + index;
+                flattenRecursively(newObjectNode, newPath, childNode);
+                index++;
+            }
         } else {
-            return newObjectNode;
+            newObjectNode.put(currentPath, node.asText());
         }
     }
 

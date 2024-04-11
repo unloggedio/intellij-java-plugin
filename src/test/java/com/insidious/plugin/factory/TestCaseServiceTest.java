@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
+import com.insidious.plugin.agent.ServerMetadata;
 import com.insidious.plugin.client.DaoService;
 import com.insidious.plugin.client.ParameterProvider;
 import com.insidious.plugin.client.SessionInstance;
@@ -124,7 +125,7 @@ public class TestCaseServiceTest {
         ExecutionSession session = sessions.getItems().get(0);
 
 
-        client.setSessionInstance(new SessionInstance(session, project));
+        client.setSessionInstance(new SessionInstance(session, new ServerMetadata(), project));
         FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
 
         filterRequest.setObjectId(objectId);
@@ -460,7 +461,7 @@ public class TestCaseServiceTest {
             return;
         }
         ExecutionSession session = sessions.getItems().get(0);
-        client.setSessionInstance(new SessionInstance(session, project));
+        client.setSessionInstance(new SessionInstance(session, new ServerMetadata(), project));
         SessionInstance sessionInstance = client.getSessionInstance();
         sessionInstance.unlockNextScan();
         sessionInstance.close();
