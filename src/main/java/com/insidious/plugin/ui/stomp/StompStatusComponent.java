@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.stomp;
 
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.icons.AllIcons;
 import com.intellij.ui.AnimatedIcon;
@@ -10,6 +11,8 @@ import com.intellij.util.ui.JBUI;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,8 +22,11 @@ public class StompStatusComponent {
     private JPanel mainPanel;
     private JPanel rightPanelContainer;
     private JLabel connectionStatusLabel;
+    private JLabel slackButton;
+    private JLabel emailButton;
+    private JLabel msTeamsButton;
 
-    public StompStatusComponent(FilterModel filterModel) {
+    public StompStatusComponent(StompFilterModel stompFilterModel) {
 
         // Create an EmptyBorder with desired margins (top, left, bottom, right)
         int topMargin = 7;
@@ -33,7 +39,81 @@ public class StompStatusComponent {
         rightPanelContainer.setBorder(marginBorder);
 
         setDisconnected();
+
+//        msTeamsButton.setIcon(UIUtils.MS_TEAMS_ICON);
+//        msTeamsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        msTeamsButton.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                routeToMsTeams();
+//            }
+//        });
+//
+//        emailButton.setIcon(UIUtils.GMAIL_ICON);
+//        emailButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        emailButton.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                routeToMail();
+//            }
+//        });
+//
+//        slackButton.setIcon(UIUtils.SLACK_ICON);
+//        slackButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        slackButton.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                routeToSlack();
+//            }
+//        });
+
     }
+
+//    private void routeToMail() {
+//        String link = "mailto:?body=Attaching replays for method&subject=Method replays";
+//        if (Desktop.isDesktopSupported()) {
+//            try {
+//                java.awt.Desktop.getDesktop()
+//                        .browse(java.net.URI.create(link));
+//            } catch (Exception e) {
+//            }
+//        } else {
+//            //no browser
+//        }
+//        UsageInsightTracker.getInstance().RecordEvent(
+//                "shameToMail", null);
+//    }
+//
+//    private void routeToMsTeams() {
+//        String link = "https://teams.microsoft.com/l/chat/0/0?";
+//        if (Desktop.isDesktopSupported()) {
+//            try {
+//                java.awt.Desktop.getDesktop()
+//                        .browse(java.net.URI.create(link));
+//            } catch (Exception e) {
+//            }
+//        } else {
+//            //no browser
+//        }
+//        UsageInsightTracker.getInstance().RecordEvent(
+//                "shareToMsTeams", null);
+//    }
+//
+//    public void routeToSlack() {
+//        String link = "https://slack.com/app_redirect?channel=general";
+//        if (Desktop.isDesktopSupported()) {
+//            try {
+//                java.awt.Desktop.getDesktop()
+//                        .browse(java.net.URI.create(link));
+//            } catch (Exception e) {
+//            }
+//        } else {
+//            //no browser
+//        }
+//        UsageInsightTracker.getInstance().RecordEvent(
+//                "shareToSlack", null);
+//    }
+//
 
     AnimatedIcon connectedIconAnimated = new AnimatedIcon(
             125,

@@ -2,18 +2,17 @@ package com.insidious.plugin.ui.eventviewer;
 
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
-import com.insidious.common.weaver.DataInfo;
-import com.insidious.common.weaver.ObjectInfo;
-import com.insidious.common.weaver.StringInfo;
-import com.insidious.common.weaver.TypeInfo;
+import com.insidious.common.weaver.*;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.ui.InsidiousUtils;
+import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -165,8 +164,10 @@ public class EventLogWindow {
                 DataEventWithSessionId selectedEvent = replayData.getDataEvents().get(selectedRowIndex);
                 DataInfo probeInfo = replayData.getProbeInfo(selectedEvent.getProbeId());
 
-                InsidiousUtils.focusProbeLocationInEditor(probeInfo.getLine(),
-                        replayData.getClassInfo(probeInfo.getClassId()).getClassName(), project);
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    InsidiousUtils.focusProbeLocationInEditor(probeInfo.getLine(),
+                            replayData.getClassInfo(probeInfo.getClassId()).getClassName(), project);
+                });
 
             }
 
@@ -285,7 +286,8 @@ public class EventLogWindow {
     private void updateTableData(ReplayData replayData1) {
         this.replayData = replayData1;
         Vector<Object> columnVector = new Vector<>(List.of(
-                "Event", "Nano", "#EventId", "#Line", "Value", "Attributes", "Value type", "String", "Serialized"
+                "Event", "#ProbeId", "Class.Method", "#EventId", "#Line", "Value", "Attributes", "Value type", "String",
+                "Serialized"
         ));
         Vector<Vector<Object>> dataVector = new Vector<>(replayData.getDataEvents().size());
 
@@ -306,7 +308,10 @@ public class EventLogWindow {
 
 //            rowVector.add(dataEvent.getRecordedAt());
             rowVector.add(eventType);
-            rowVector.add(dataEvent.getRecordedAt() + " (" + (dataEvent.getRecordedAt() - previousRecordedAt) + ")");
+            ClassInfo classInfo = replayData.getClassInfo(probeInfo.getClassId());
+            MethodInfo methodInfo = replayData.getMethodInfo(probeInfo.getMethodId());
+            rowVector.add(probeInfo.getDataId());
+            rowVector.add(ClassTypeUtils.getSimpleClassName(ClassTypeUtils.getDescriptorToDottedClassName(classInfo.getClassName())) + "." + methodInfo.getMethodName());
             previousRecordedAt = dataEvent.getRecordedAt();
             rowVector.add(dataEvent.getEventId());
             rowVector.add(probeInfo.getLine());

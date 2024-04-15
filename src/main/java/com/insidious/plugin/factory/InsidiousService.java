@@ -38,8 +38,8 @@ import com.insidious.plugin.ui.library.LibraryComponent;
 import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
-import com.insidious.plugin.ui.stomp.FilterModel;
 import com.insidious.plugin.ui.stomp.StompComponent;
+import com.insidious.plugin.ui.stomp.StompFilterModel;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
@@ -63,7 +63,10 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.editor.EditorKind;
 import com.intellij.openapi.editor.event.EditorEventMulticaster;
+import com.intellij.openapi.editor.event.EditorFactoryEvent;
+import com.intellij.openapi.editor.event.EditorFactoryListener;
 import com.intellij.openapi.editor.impl.EditorFactoryImpl;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
@@ -82,6 +85,7 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.content.Content;
@@ -90,6 +94,7 @@ import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
 import io.netty.util.concurrent.DefaultThreadFactory;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import java.awt.*;
@@ -116,6 +121,10 @@ import static com.intellij.psi.PsiModifier.ABSTRACT;
 @Service(Service.Level.PROJECT)
 final public class InsidiousService implements
         Disposable, NewTestCandidateIdentifiedListener {
+    public static final Set<String> SKIP_METHOD_IN_FOLLOW_FILTER = new HashSet<>(
+            Arrays.asList("Object", "clone", "toString",
+                    "equals", "finalize", "notify", "hashCode", "wait",
+                    "getClass"));
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     final static private int TOOL_WINDOW_WIDTH = 400;
@@ -166,6 +175,7 @@ final public class InsidiousService implements
 
         sessionManager = ApplicationManager.getApplication().getService(ActiveSessionManager.class);
 
+
         String pathToSessions = Constants.HOME_PATH + "/sessions";
         FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
         this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
@@ -209,6 +219,7 @@ final public class InsidiousService implements
                     if (serverMetadata == null) {
                         return;
                     }
+                    onAgentConnected(serverMetadata);
 
                 } else if (currentSession.getSessionId().equals(mostRecentSession.getSessionId())) {
                     // already using this session
@@ -230,6 +241,17 @@ final public class InsidiousService implements
                 if (checkCache.containsKey(mostRecentSession.getSessionId())) {
                     return checkCache.get(mostRecentSession.getSessionId());
                 }
+//                else {
+//                    ServerMetadata value = new ServerMetadata();
+//                    value.setAgentServerPort("12100");
+//                    value.setAgentVersion("0.4.1");
+//                    value.setIncludePackageName("*");
+//                    value.setAgentServerUrl("http://localhost:12100");
+//                    checkCache.put(mostRecentSession.getSessionId(), value);
+//                    if (1 < 2) {
+//                        return value;
+//                    }
+//                }
                 try {
                     String executionLogFile = mostRecentSession.getLogFilePath();
                     File logFile = new File(executionLogFile);
@@ -259,7 +281,7 @@ final public class InsidiousService implements
                         checkCache.put(mostRecentSession.getSessionId(), null);
                         logger.warn(
                                 "Package not found in the params, marked as session not matching: " + mostRecentSession.getLogFilePath());
-                        return null;
+//                        return null;
                     }
                     String serverMetadataJson = logFileInputStream.readLine();
                     ServerMetadata serverMetadata;
@@ -311,6 +333,23 @@ final public class InsidiousService implements
         multicaster.addCaretListener(listener, this);
         multicaster.addDocumentListener(listener, this);
 
+        EditorFactory.getInstance().addEditorFactoryListener(new EditorFactoryListener() {
+            @Override
+            public void editorCreated(@NotNull EditorFactoryEvent event) {
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    populateFromEditors(null);
+                });
+
+            }
+
+            @Override
+            public void editorReleased(@NotNull EditorFactoryEvent event) {
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    populateFromEditors(event);
+                });
+            }
+        }, this);
+
 
 //        ConnectionCheckerService connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgentClient);
 //        connectionCheckerThreadPool.submit(connectionCheckerService);
@@ -318,6 +357,10 @@ final public class InsidiousService implements
         configurationState = project.getService(InsidiousConfigurationState.class);
 
         mockManager = new MockManager(configurationState);
+
+        if (configurationState.getFilterModel().isFollowEditor()) {
+            populateFromEditors(null);
+        }
 
     }
 
@@ -328,6 +371,58 @@ final public class InsidiousService implements
 
     private static String getClassMethodHashKey(AgentCommandRequest agentCommandRequest) {
         return agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
+    }
+
+    private static boolean addClassAndSuperClasses(PsiClass psiClass, StompFilterModel model) {
+        Set<String> classNames = new HashSet<>();
+        model.getIncludedClassNames().forEach(classNames::add);
+
+        boolean changed = false;
+        while (psiClass != null) {
+            PsiClass finalPsiClass = psiClass;
+            String qualifiedName = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) finalPsiClass::getQualifiedName);
+            if ("java.lang.Object".equals(qualifiedName)) {
+                break;
+            }
+            if (!classNames.contains(qualifiedName)) {
+                changed = true;
+                classNames.add(qualifiedName);
+            }
+            changed = addMethods(psiClass, model) || changed;
+            changed = addInterfaces(psiClass, model) || changed;
+            psiClass = ApplicationManager.getApplication().runReadAction(
+                    (Computable<PsiClass>) finalPsiClass::getSuperClass);
+        }
+        model.getIncludedClassNames().addAll(classNames);
+        return changed;
+    }
+
+    private static boolean addInterfaces(PsiClass psiClass, StompFilterModel model) {
+        boolean changed = false;
+        PsiClass[] interfaces = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiClass[]>) psiClass::getInterfaces);
+        for (PsiClass type : interfaces) {
+            changed = addClassAndSuperClasses(type, model) || changed;
+        }
+        return changed;
+    }
+
+    private static boolean addMethods(PsiClass psiClass, StompFilterModel model) {
+        boolean changed = false;
+        for (PsiMethod method : ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiMethod[]>) psiClass::getMethods)) {
+            String name = ApplicationManager.getApplication()
+                    .runReadAction((Computable<String>) method::getName);
+            if (SKIP_METHOD_IN_FOLLOW_FILTER.contains(name)) {
+                continue;
+            }
+            if (!model.getIncludedMethodNames().contains(name)) {
+                changed = true;
+                model.getIncludedMethodNames().add(name);
+            }
+        }
+        return changed;
     }
 
     public void chooseClassImplementation(String className, ClassChosenListener classChosenListener) {
@@ -349,7 +444,7 @@ final public class InsidiousService implements
         if (implementations.length == 1) {
             PsiClass singleImplementation = (PsiClass) implementations[0];
             if (ApplicationManager.getApplication().runReadAction(
-                    (Computable<Boolean>) () -> singleImplementation.isInterface()) || ApplicationManager.getApplication()
+                    (Computable<Boolean>) singleImplementation::isInterface) || ApplicationManager.getApplication()
                     .runReadAction(
                             (Computable<Boolean>) () -> singleImplementation.hasModifierProperty(ABSTRACT))) {
                 InsidiousNotification.notifyMessage("No implementations found for " + className,
@@ -368,7 +463,7 @@ final public class InsidiousService implements
                         .filter(e -> !e.hasModifierProperty(ABSTRACT))
                         .collect(Collectors.toList()));
 
-        if (implementationOptions.size() == 0) {
+        if (implementationOptions.isEmpty()) {
             InsidiousNotification.notifyMessage("No implementations found for " + className,
                     NotificationType.ERROR);
             return;
@@ -412,6 +507,22 @@ final public class InsidiousService implements
         return reportingService;
     }
 
+//    public void generateAndSaveTestCase(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
+//        TestCaseService testCaseService = getTestCaseService();
+//        if (testCaseService == null) {
+//            return;
+//        }
+//        TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+//        ArrayList<TestCaseUnit> testCaseScripts = new ArrayList<>();
+//        testCaseScripts.add(testCaseUnit);
+//        TestSuite testSuite = new TestSuite(testCaseScripts);
+//        junitTestCaseWriter.saveTestSuite(testSuite);
+//    }
+
+//    public TestCaseGenerationConfiguration generateMethodBoilerplate(MethodAdapter methodAdapter) {
+//        return testCaseDesignerWindow.generateTestCaseBoilerPlace(methodAdapter);
+//    }
+
     public MethodAdapter getCurrentMethod() {
         return this.currentState.getCurrentMethod();
     }
@@ -443,22 +554,6 @@ final public class InsidiousService implements
         clipboard.setContents(selection, null);
     }
 
-//    public void generateAndSaveTestCase(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
-//        TestCaseService testCaseService = getTestCaseService();
-//        if (testCaseService == null) {
-//            return;
-//        }
-//        TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-//        ArrayList<TestCaseUnit> testCaseScripts = new ArrayList<>();
-//        testCaseScripts.add(testCaseUnit);
-//        TestSuite testSuite = new TestSuite(testCaseScripts);
-//        junitTestCaseWriter.saveTestSuite(testSuite);
-//    }
-
-//    public TestCaseGenerationConfiguration generateMethodBoilerplate(MethodAdapter methodAdapter) {
-//        return testCaseDesignerWindow.generateTestCaseBoilerPlace(methodAdapter);
-//    }
-
     public TestCaseUnit getTestCandidateCode(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
 //        TestCaseService testCaseService;
         if (testCaseService == null) {
@@ -482,6 +577,14 @@ final public class InsidiousService implements
         return showDesignerLiteForm(lightVirtualFile);
 
     }
+
+//    public void generateAndUploadReport() throws APICallException, IOException {
+//        UsageInsightTracker.getInstance()
+//                .RecordEvent("DiagnosticReport", null);
+//        DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project,
+//                this.currentModule);
+//        diagnosticService.generateAndUploadReport();
+//    }
 
     private synchronized void initiateUI() {
         logger.info("initiate ui");
@@ -513,6 +616,24 @@ final public class InsidiousService implements
         }
         return;
     }
+
+//    public void addLiveView() {
+//        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
+//        if (!liveViewAdded) {
+//            toolWindow.getContentManager().addContent(liveWindowContent);
+//            toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
+//            liveViewAdded = true;
+//            try {
+//                liveViewWindow.setTreeStateToLoading();
+//                liveViewWindow.loadInfoBanner();
+//            } catch (Exception e) {
+//                //exception setting state
+//                logger.error("Failed to start scan after proceed.");
+//            }
+//        } else {
+//            toolWindow.getContentManager().setSelectedContent(liveWindowContent);
+//        }
+//    }
 
     public void addAllTabs() {
         ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
@@ -588,14 +709,6 @@ final public class InsidiousService implements
         return client;
     }
 
-//    public void generateAndUploadReport() throws APICallException, IOException {
-//        UsageInsightTracker.getInstance()
-//                .RecordEvent("DiagnosticReport", null);
-//        DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project,
-//                this.currentModule);
-//        diagnosticService.generateAndUploadReport();
-//    }
-
     @Override
     public void dispose() {
         JSONObject eventProperties = new JSONObject();
@@ -623,24 +736,6 @@ final public class InsidiousService implements
         }
         UsageInsightTracker.getInstance().close();
     }
-
-//    public void addLiveView() {
-//        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
-//        if (!liveViewAdded) {
-//            toolWindow.getContentManager().addContent(liveWindowContent);
-//            toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
-//            liveViewAdded = true;
-//            try {
-//                liveViewWindow.setTreeStateToLoading();
-//                liveViewWindow.loadInfoBanner();
-//            } catch (Exception e) {
-//                //exception setting state
-//                logger.error("Failed to start scan after proceed.");
-//            }
-//        } else {
-//            toolWindow.getContentManager().setSelectedContent(liveWindowContent);
-//        }
-//    }
 
     public Project getProject() {
         return project;
@@ -685,7 +780,7 @@ final public class InsidiousService implements
             return;
         }
 
-        FilterModel stompFilterModel = configurationState.getFilterModel();
+        StompFilterModel stompFilterModel = configurationState.getFilterModel();
         stompFilterModel.setFollowEditor(true);
         stompWindow.onMethodFocussed(null);
         stompWindow.onMethodFocussed(method);
@@ -1582,7 +1677,7 @@ final public class InsidiousService implements
 
         }
 
-        triggerGutterIconReload();
+//        triggerGutterIconReload();
     }
 
     public void onAgentDisconnected() {
@@ -1836,4 +1931,64 @@ final public class InsidiousService implements
         availableTimingTags.clear();
         forceRedrawInlayHints();
     }
+
+    public void populateFromEditors(EditorFactoryEvent event) {
+        Editor[] allEditors = ApplicationManager.getApplication().getService(EditorFactory.class)
+                .getAllEditors();
+
+        Editor skip = null;
+        if (event != null) {
+            skip = event.getEditor();
+        }
+
+        List<Editor> selected = new ArrayList<>();
+        for (Editor editor : allEditors) {
+            if (editor.getProject() == null) {
+                continue;
+            }
+            if (editor.getProject().equals(project) && editor.getEditorKind().equals(EditorKind.MAIN_EDITOR)) {
+                if (skip != null && skip.equals(editor)) {
+                    continue;
+                }
+                selected.add(editor);
+
+            }
+        }
+        InsidiousConfigurationState ics = getProject().getService(InsidiousConfigurationState.class);
+        StompFilterModel stompFilterModel = ics.getFilterModel();
+        if (!stompFilterModel.isFollowEditor()) {
+            return;
+        }
+        boolean changed = false;
+
+        stompFilterModel.getIncludedClassNames().clear();
+        stompFilterModel.getIncludedMethodNames().clear();
+
+        for (Editor editor : selected) {
+            if (editor.getEditorKind().equals(EditorKind.MAIN_EDITOR)) {
+
+
+                PsiFile psiFile = ApplicationManager.getApplication().runReadAction(
+                        (Computable<PsiFile>) () -> PsiDocumentManager.getInstance(project)
+                                .getPsiFile(editor.getDocument()));
+                if (!(psiFile instanceof PsiJavaFile)) {
+                    continue;
+                }
+
+                Collection<PsiClass> classes = ApplicationManager.getApplication().runReadAction(
+                        (Computable<Collection<PsiClass>>) () -> PsiTreeUtil.findChildrenOfType(psiFile,
+                                PsiClass.class));
+
+                for (PsiClass psiClass : classes) {
+                    changed = addClassAndSuperClasses(psiClass, stompFilterModel) || changed;
+                    changed = addInterfaces(psiClass, stompFilterModel) || changed;
+                    changed = addMethods(psiClass, stompFilterModel) || changed;
+                }
+            }
+        }
+        if (true) {
+            stompWindow.resetAndReload();
+        }
+    }
+
 }

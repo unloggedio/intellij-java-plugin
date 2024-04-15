@@ -28,7 +28,8 @@
 
         ]]>
     </description>
-
+<!--    <product-descriptor code="PUNLOGGED" release-date="20240412" release-version="20241"/>-->
+    <version>2024.1.1</version>
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
          on how to target different products -->
     <depends>com.intellij.modules.platform</depends>
@@ -36,8 +37,6 @@
     <depends>com.intellij.modules.java</depends>
     <depends>org.jetbrains.kotlin</depends>
     <depends>org.jetbrains.idea.maven</depends>
-    <depends>org.jetbrains.plugins.gradle</depends>
-    <depends>org.jetbrains.plugins.gradle.maven</depends>
     <actions>
         <!-- Add your actions here -->
 
@@ -85,7 +84,7 @@
 
         <applicationService serviceImplementation="com.insidious.plugin.factory.ActiveSessionManager"/>
         <applicationService serviceImplementation="com.insidious.plugin.factory.SessionLoader"/>
-<!--        <applicationService serviceImplementation="com.insidious.plugin.factory.ApplicationConfigurationState"/>-->
+        <!--        <applicationService serviceImplementation="com.insidious.plugin.factory.ApplicationConfigurationState"/>-->
 
 
         <codeInsight.lineMarkerProvider
@@ -94,9 +93,9 @@
         <codeInsight.lineMarkerProvider
                 language="JAVA"
                 implementationClass="com.insidious.plugin.ui.highlighter.MockMethodLineHighlighter"/>
-<!--        <codeInsight.lineMarkerProvider-->
-<!--                language="kotlin"-->
-<!--                implementationClass="com.insidious.plugin.ui.highlighter.KotlinLineHighlighter"/>-->
+        <!--        <codeInsight.lineMarkerProvider-->
+        <!--                language="kotlin"-->
+        <!--                implementationClass="com.insidious.plugin.ui.highlighter.KotlinLineHighlighter"/>-->
         <codeInsight.inlayProvider implementationClass="com.insidious.plugin.inlay.InsidiousInlayHintsProvider"
                                    language="JAVA"/>
         <errorHandler implementation="com.insidious.plugin.exceptionhandler.InsidiousExceptionReportSubmitter"/>

@@ -1,7 +1,7 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.ui.library.LibraryFilterState;
-import com.insidious.plugin.ui.stomp.FilterModel;
+import com.insidious.plugin.ui.stomp.StompFilterModel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
@@ -33,7 +33,7 @@ public final class InsidiousConfigurationState
     @OptionTag(converter = LibraryFilterModelConverter.class)
     private final LibraryFilterState libraryFilterModel = new LibraryFilterState();
     @OptionTag(converter = FilterModelConverter.class)
-    private FilterModel filterModel = new FilterModel();
+    private StompFilterModel stompFilterModel = new StompFilterModel();
 
 
     public InsidiousConfigurationState() {
@@ -43,11 +43,11 @@ public final class InsidiousConfigurationState
         return libraryFilterModel;
     }
 
-    public FilterModel getFilterModel() {
-        if (filterModel == null) {
-            filterModel = new FilterModel();
+    public StompFilterModel getFilterModel() {
+        if (stompFilterModel == null) {
+            stompFilterModel = new StompFilterModel();
         }
-        return filterModel;
+        return stompFilterModel;
     }
 
     @Override

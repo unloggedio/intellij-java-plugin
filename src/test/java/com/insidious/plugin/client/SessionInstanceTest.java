@@ -3,8 +3,7 @@ package com.insidious.plugin.client;
 import com.insidious.plugin.agent.ServerMetadata;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.ActiveSessionManager;
-import com.insidious.plugin.factory.CandidateSearchQuery;
-import com.insidious.plugin.ui.stomp.FilterModel;
+import com.insidious.plugin.ui.stomp.StompFilterModel;
 import com.intellij.openapi.project.Project;
 import junit.framework.TestCase;
 import org.junit.jupiter.api.Test;
@@ -45,7 +44,7 @@ public class SessionInstanceTest extends TestCase {
 
         sessionInstance.getTestCandidates(testCandidateMetadata -> {
             cdl.countDown();
-        }, 0, new FilterModel(), new AtomicInteger(1));
+        }, 0, new StompFilterModel(), new AtomicInteger(1));
 
 
         cdl.await();
@@ -80,7 +79,7 @@ public class SessionInstanceTest extends TestCase {
 
         sessionInstance.getTestCandidates(testCandidateMetadata -> {
             cdl.countDown();
-        }, 0, new FilterModel(), new AtomicInteger(1));
+        }, 0, new StompFilterModel(), new AtomicInteger(1));
 
 
         cdl.await();

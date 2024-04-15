@@ -28,8 +28,8 @@ import static com.intellij.uiDesigner.core.GridConstraints.ALIGN_FILL;
 import static com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL;
 
 public class StompFilter {
-    private final FilterModel originalFilterModel;
-    private FilterModel filterModel;
+    private final StompFilterModel originalStompFilterModel;
+    private StompFilterModel stompFilterModel;
     private JTabbedPane mainPanel;
     private JCheckBox followEditorCheckBox;
     private JList<String> includedClassesList;
@@ -63,9 +63,9 @@ public class StompFilter {
     private DefaultListModel<String> modelExcludedMethods;
 
 
-    public StompFilter(FilterModel filterModel, MethodUnderTest lastMethodFocussed, Project project) {
-        originalFilterModel = new FilterModel(filterModel);
-        this.filterModel = new FilterModel(originalFilterModel);
+    public StompFilter(StompFilterModel stompFilterModel, MethodUnderTest lastMethodFocussed, Project project) {
+        originalStompFilterModel = new StompFilterModel(stompFilterModel);
+        this.stompFilterModel = new StompFilterModel(originalStompFilterModel);
         int stompFilterPanelWidth = 300;
 
         cancelButton.addActionListener(e -> {
@@ -82,32 +82,27 @@ public class StompFilter {
 
 
         applyButton.addActionListener(e -> {
-            originalFilterModel.setFollowEditor(filterModel.followEditor);
-//            if (filterModel.followEditor) {
-//                InsidiousNotification.notifyMessage(
-//                        "Filter will follow method focussed in editor", NotificationType.INFORMATION
-//                );
-//            }
+            originalStompFilterModel.setFollowEditor(stompFilterModel.followEditor);
 
-            originalFilterModel.getIncludedClassNames().clear();
-            originalFilterModel.getIncludedClassNames().addAll(filterModel.getIncludedClassNames());
+            originalStompFilterModel.getIncludedClassNames().clear();
+            originalStompFilterModel.getIncludedClassNames().addAll(stompFilterModel.getIncludedClassNames());
 
 
-            originalFilterModel.getIncludedMethodNames().clear();
-            originalFilterModel.getIncludedMethodNames().addAll(filterModel.getIncludedMethodNames());
+            originalStompFilterModel.getIncludedMethodNames().clear();
+            originalStompFilterModel.getIncludedMethodNames().addAll(stompFilterModel.getIncludedMethodNames());
 
 
-            originalFilterModel.getExcludedMethodNames().clear();
-            originalFilterModel.getExcludedMethodNames().addAll(filterModel.getExcludedMethodNames());
+            originalStompFilterModel.getExcludedMethodNames().clear();
+            originalStompFilterModel.getExcludedMethodNames().addAll(stompFilterModel.getExcludedMethodNames());
 
 
-            originalFilterModel.getExcludedClassNames().clear();
-            originalFilterModel.getExcludedClassNames().addAll(filterModel.getExcludedClassNames());
+            originalStompFilterModel.getExcludedClassNames().clear();
+            originalStompFilterModel.getExcludedClassNames().addAll(stompFilterModel.getExcludedClassNames());
 
-            originalFilterModel.getExcludedClassNames().clear();
-            originalFilterModel.getExcludedClassNames().addAll(filterModel.getExcludedClassNames());
+            originalStompFilterModel.getExcludedClassNames().clear();
+            originalStompFilterModel.getExcludedClassNames().addAll(stompFilterModel.getExcludedClassNames());
 
-            originalFilterModel.candidateFilterType = filterModel.candidateFilterType;
+            originalStompFilterModel.candidateFilterType = stompFilterModel.candidateFilterType;
             componentLifecycleListener.onClose(StompFilter.this);
         });
 
@@ -116,11 +111,11 @@ public class StompFilter {
         includedMethodsList.setFixedCellWidth(stompFilterPanelWidth);
         excludedMethodsList.setFixedCellWidth(stompFilterPanelWidth);
 
-        setUiModels(filterModel);
+        setUiModels(stompFilterModel);
         resetToDefaultButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                filterModel.setFrom(originalFilterModel);
+                stompFilterModel.setFrom(originalStompFilterModel);
             }
         });
 
@@ -159,7 +154,7 @@ public class StompFilter {
                     public void actionPerformed(ActionEvent e) {
                         String newName = newNameTextField.getText().trim();
                         modelExcludedClasses.addElement(newName);
-                        filterModel.getExcludedClassNames().add(newName);
+                        stompFilterModel.getExcludedClassNames().add(newName);
                         excludedClassesControlPanel.remove(centerPanel);
                         excludedClassesButtonPanel.setVisible(true);
                     }
@@ -197,7 +192,7 @@ public class StompFilter {
             public void onRemove() {
                 List<String> selectedValues = excludedClassesList.getSelectedValuesList();
                 for (String selectedValue : selectedValues) {
-                    filterModel.getExcludedClassNames().remove(selectedValue);
+                    stompFilterModel.getExcludedClassNames().remove(selectedValue);
                     modelExcludedClasses.removeElement(selectedValue);
                 }
             }
@@ -211,7 +206,7 @@ public class StompFilter {
                 for (String line : lines) {
                     line = line.trim();
                     modelExcludedClasses.addElement(line);
-                    filterModel.getExcludedClassNames().add(line);
+                    stompFilterModel.getExcludedClassNames().add(line);
                 }
             }
         });
@@ -385,7 +380,7 @@ public class StompFilter {
                 newNameTextField.registerKeyboardAction(e1 -> {
                     String newName = newNameTextField.getText().trim();
                     modelIncludedClasses.addElement(newName);
-                    filterModel.getIncludedClassNames().add(newName);
+                    stompFilterModel.getIncludedClassNames().add(newName);
                     includedClassesControlPanel.remove(centerPanel);
                     includedClassesButtonPanel.setVisible(true);
                 }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
@@ -419,7 +414,7 @@ public class StompFilter {
             public void onRemove() {
                 List<String> selectedValues = includedClassesList.getSelectedValuesList();
                 for (String selectedValue : selectedValues) {
-                    filterModel.getIncludedClassNames().remove(selectedValue);
+                    stompFilterModel.getIncludedClassNames().remove(selectedValue);
                     modelIncludedClasses.removeElement(selectedValue);
                 }
 
@@ -434,7 +429,7 @@ public class StompFilter {
                 for (String line : lines) {
                     line = line.trim();
                     modelIncludedClasses.addElement(line);
-                    filterModel.getIncludedClassNames().add(line);
+                    stompFilterModel.getIncludedClassNames().add(line);
                 }
             }
         });
@@ -588,7 +583,7 @@ public class StompFilter {
                 ActionListener saveAction = e13 -> {
                     String newName = newNameTextField.getText().trim();
                     modelIncludedMethods.addElement(newName);
-                    filterModel.getIncludedMethodNames().add(newName);
+                    stompFilterModel.getIncludedMethodNames().add(newName);
                     includedMethodsControlPanel.remove(centerPanel);
                     includedMethodsButtonPanel.setVisible(true);
                 };
@@ -646,7 +641,7 @@ public class StompFilter {
             public void onRemove() {
                 List<String> selectedValues = includedMethodsList.getSelectedValuesList();
                 for (String selectedValue : selectedValues) {
-                    filterModel.getIncludedMethodNames().remove(selectedValue);
+                    stompFilterModel.getIncludedMethodNames().remove(selectedValue);
                     modelIncludedMethods.removeElement(selectedValue);
                 }
 
@@ -661,7 +656,7 @@ public class StompFilter {
                 for (String line : lines) {
                     line = line.trim();
                     modelIncludedMethods.addElement(line);
-                    filterModel.getIncludedMethodNames().add(line);
+                    stompFilterModel.getIncludedMethodNames().add(line);
                 }
             }
         });
@@ -841,7 +836,7 @@ public class StompFilter {
                 newNameTextField.registerKeyboardAction(e15 -> {
                     String newName = newNameTextField.getText().trim();
                     modelExcludedMethods.addElement(newName);
-                    filterModel.getExcludedMethodNames().add(newName);
+                    stompFilterModel.getExcludedMethodNames().add(newName);
                     excludedMethodsControlPanel.remove(centerPanel);
                     excludedMethodsButtonPanel.setVisible(true);
                 }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
@@ -875,7 +870,7 @@ public class StompFilter {
             public void onRemove() {
                 List<String> selectedValues = excludedMethodsList.getSelectedValuesList();
                 for (String selectedValue : selectedValues) {
-                    filterModel.getExcludedMethodNames().remove(selectedValue);
+                    stompFilterModel.getExcludedMethodNames().remove(selectedValue);
                     modelExcludedMethods.removeElement(selectedValue);
                 }
 
@@ -890,7 +885,7 @@ public class StompFilter {
                 for (String line : lines) {
                     line = line.trim();
                     modelExcludedMethods.addElement(line);
-                    filterModel.getExcludedMethodNames().add(line);
+                    stompFilterModel.getExcludedMethodNames().add(line);
                 }
             }
         });
@@ -1027,7 +1022,7 @@ public class StompFilter {
 //        });
 
         followEditorCheckBox.addActionListener(e -> {
-            filterModel.setFollowEditor(followEditorCheckBox.isSelected());
+            stompFilterModel.setFollowEditor(followEditorCheckBox.isSelected());
         });
 
 
@@ -1074,27 +1069,27 @@ public class StompFilter {
 
     }
 
-    private void setUiModels(FilterModel filterModel) {
+    private void setUiModels(StompFilterModel stompFilterModel) {
         modelIncludedClasses = new DefaultListModel<>();
-        modelIncludedClasses.addAll(filterModel.getIncludedClassNames());
+        modelIncludedClasses.addAll(stompFilterModel.getIncludedClassNames());
 
         includedClassesList.setModel(modelIncludedClasses);
         includedClassesList.setBorder(BorderFactory.createEmptyBorder());
 
         modelExcludedClasses = new DefaultListModel<>();
-        modelExcludedClasses.addAll(filterModel.getExcludedClassNames());
+        modelExcludedClasses.addAll(stompFilterModel.getExcludedClassNames());
         excludedClassesList.setModel(modelExcludedClasses);
 
         modelIncludedMethods = new DefaultListModel<>();
-        modelIncludedMethods.addAll(filterModel.getIncludedMethodNames());
+        modelIncludedMethods.addAll(stompFilterModel.getIncludedMethodNames());
         includedMethodsList.setModel(modelIncludedMethods);
 
 
         modelExcludedMethods = new DefaultListModel<>();
-        modelExcludedMethods.addAll(filterModel.getExcludedMethodNames());
+        modelExcludedMethods.addAll(stompFilterModel.getExcludedMethodNames());
         excludedMethodsList.setModel(modelExcludedMethods);
 
-        if (filterModel.isFollowEditor()) {
+        if (stompFilterModel.isFollowEditor()) {
             followEditorCheckBox.setSelected(true);
         }
 

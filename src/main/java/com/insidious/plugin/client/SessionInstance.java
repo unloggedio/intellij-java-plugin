@@ -1,5 +1,6 @@
 package com.insidious.plugin.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.index.hash.HashIndex;
 import com.googlecode.cqengine.index.radixinverted.InvertedRadixTreeIndex;
@@ -41,7 +42,7 @@ import com.insidious.plugin.pojo.dao.ClassDefinition;
 import com.insidious.plugin.pojo.dao.LogFile;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
-import com.insidious.plugin.ui.stomp.FilterModel;
+import com.insidious.plugin.ui.stomp.StompFilterModel;
 import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.insidious.plugin.util.*;
 import com.intellij.notification.NotificationType;
@@ -86,7 +87,6 @@ public class SessionInstance implements Runnable {
     private final File sessionDirectory;
     private final ExecutionSession executionSession;
     private final Map<String, String> cacheEntries = new HashMap<>();
-    private final ConnectionCheckerService connectionCheckerService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private final ExecutorService executorPool;
     private final ZipConsumer zipConsumer;
@@ -100,6 +100,7 @@ public class SessionInstance implements Runnable {
     private final List<SessionScanEventListener> sessionScanEventListeners = new ArrayList<>();
     private final List<NewTestCandidateIdentifiedListener> testCandidateListener = new ArrayList<>();
     private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
+    private ConnectionCheckerService connectionCheckerService = null;
     //    private final DatabasePipe databasePipe;
     private DaoService daoService;
     private boolean scanEnable = false;
@@ -187,7 +188,9 @@ public class SessionInstance implements Runnable {
                     new DefaultThreadFactory("UnloggedSessionThreadPool", true));
             executorPool.submit(this);
             executorPool.submit(zipConsumer);
-            executorPool.submit(this.connectionCheckerService);
+            if (this.connectionCheckerService != null) {
+                executorPool.submit(this.connectionCheckerService);
+            }
             executorPool.submit(() -> {
                 try {
                     publishEvent(ScanEventType.START);
@@ -1849,6 +1852,13 @@ public class SessionInstance implements Runnable {
 
 
         final long objectId = filteredDataEventsRequest.getObjectId();
+//        if (this.sessionArchives == null) {
+        try {
+            this.sessionArchives = refreshSessionArchivesList(false);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+//        }
 
         LinkedList<File> sessionArchivesLocal = new LinkedList<>(this.sessionArchives);
 
@@ -2192,7 +2202,9 @@ public class SessionInstance implements Runnable {
 
                 NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
                         INDEX_OBJECT_DAT_FILE.getFileName());
-                assert objectIndexBytes != null;
+                if (objectIndexBytes == null) {
+                    continue;
+                }
                 ArchiveIndex objectsIndex;
                 try {
                     objectsIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
@@ -2349,6 +2361,11 @@ public class SessionInstance implements Runnable {
             properties.put("project", this.project.getName());
             properties.put("session", executionSession.getPath());
             properties.put("message", e.getMessage());
+            try {
+                properties.put("stacktrace", ObjectMapperInstance.getInstance().writeValueAsBytes(e.getStackTrace()));
+            } catch (JsonProcessingException ex) {
+//                throw new RuntimeException(ex);
+            }
             UsageInsightTracker.getInstance().RecordEvent("SESSION_CORRUPT", properties);
             if (shutdown) {
                 scanEnable = false;
@@ -2506,7 +2523,9 @@ public class SessionInstance implements Runnable {
         MethodInfo methodInfo = new MethodInfo(0, 0, null, null, null, 0, null, null);
         String existingParameterType;
         Parameter parameterInstance = new Parameter();
-        logger.warn("processing [" + eventsSublist.size() + "] events from [" + logFileList.size() + "] log files");
+        logger.warn(
+                "processing [" + eventsSublist.size() + "] events from [" + logFileList.size() + "] log files: " + eventsSublist.get(
+                        eventsSublist.size() - 1).block().eventId());
         for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
             KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = e.block();
@@ -2552,6 +2571,9 @@ public class SessionInstance implements Runnable {
             int line = probeInfo.getLine();
             if (threadState.candidateSize() != 0 && line != 0) {
                 threadState.getTopCandidate().addLineCovered(line);
+            }
+            if (eventBlock.eventId() == 145200) {
+                logger.warn("sdf");
             }
             switch (probeInfo.getEventType()) {
 
@@ -3337,6 +3359,11 @@ public class SessionInstance implements Runnable {
                     }
                     break;
 
+                case METHOD_THROW:
+                    dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                    logger.warn("METHOD_THROW: " + dataEvent);
+                    break;
+
 
                 case METHOD_NORMAL_EXIT:
 
@@ -3450,6 +3477,10 @@ public class SessionInstance implements Runnable {
                         com.insidious.plugin.pojo.dao.TestCandidateMetadata newCurrent = threadState.getTopCandidate();
                         com.insidious.plugin.pojo.dao.MethodCallExpression newCurrentMainMethod = methodCallMap.get(
                                 newCurrent.getMainMethod());
+                        if (newCurrentMainMethod == null ||
+                                methodCallSubjectTypeMap.get(newCurrentMainMethod.getId()) == null) {
+                            logger.warn("hello");
+                        }
 
                         if (methodCallSubjectTypeMap.get(newCurrentMainMethod.getId())
                                 .equals(methodCallSubjectTypeMap.get(completed.getMainMethod()))) {
@@ -4002,7 +4033,7 @@ public class SessionInstance implements Runnable {
     public void getTestCandidates(
             Consumer<List<TestCandidateBareBone>> testCandidateReceiver,
             long afterEventId,
-            FilterModel filterModel, AtomicInteger cdl) {
+            StompFilterModel stompFilterModel, AtomicInteger cdl) {
 
         try {
 
@@ -4025,7 +4056,13 @@ public class SessionInstance implements Runnable {
                     break;
                 }
                 List<TestCandidateBareBone> testCandidateMetadataList = daoService
-                        .getTestCandidatePaginated(currentAfterEventId, 0, limit, filterModel);
+                        .getTestCandidatePaginated(currentAfterEventId, 0, limit, stompFilterModel);
+                if (cdl.get() < 1) {
+                    logger.warn(
+                            "shutting down query started at [" + afterEventId + "] currently at item [" + count +
+                                    "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
+                    break;
+                }
                 if (testCandidateMetadataList.size() > 0) {
                     count += testCandidateMetadataList.size();
                     testCandidateReceiver.accept(testCandidateMetadataList);
@@ -4066,7 +4103,7 @@ public class SessionInstance implements Runnable {
                     publishEvent(ScanEventType.WAITING);
                 }
             } catch (InterruptedException ie) {
-//                ie.printStackTrace();
+                ie.printStackTrace();
                 logger.warn("scan checker interrupted");
 //                return;
             } catch (Exception e) {

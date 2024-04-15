@@ -18,7 +18,7 @@ import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.dao.*;
-import com.insidious.plugin.ui.stomp.FilterModel;
+import com.insidious.plugin.ui.stomp.StompFilterModel;
 import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
@@ -395,8 +395,8 @@ public class DaoService {
 
                 // deserialize and compare objects
                 com.insidious.plugin.pojo.Parameter expectedValue;
-                String expectedParameterName = (mainMethodReturnValue.getName() == null ? "value" : mainMethodReturnValue.getName())
-                        + "Expected";
+                String expectedParameterName = (mainMethodReturnValue.getName() == null ? "value" :
+                        mainMethodReturnValue.getName()) + "Expected";
                 expectedValue = new com.insidious.plugin.pojo.Parameter(mainMethodReturnValue);
                 expectedValue.clearNames();
                 expectedValue.setName(expectedParameterName);
@@ -642,12 +642,14 @@ public class DaoService {
                     probeInfo = probeInfoMap.get(call.getEntryProbeInfo_id());
                 }
                 if (probeInfo != null && probeInfo.getEventType().equals(EventType.CALL)) {
-                    subjectParameterType = ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Owner", null));
+                    subjectParameterType = ClassTypeUtils.getDescriptorToDottedClassName(
+                            probeInfo.getAttribute("Owner", null));
                     subjectParameter.setType(subjectParameterType);
                 } else if (probeInfo != null && probeInfo.getEventType().equals(EventType.METHOD_ENTRY)) {
                     ClassDefinition probeClassOwner = classDefinitionsDao.queryForId(
                             (long) probeInfo.getClassId());
-                    subjectParameterType = ClassTypeUtils.getDescriptorToDottedClassName(probeClassOwner.getClassName());
+                    subjectParameterType = ClassTypeUtils.getDescriptorToDottedClassName(
+                            probeClassOwner.getClassName());
                     subjectParameter.setType(subjectParameterType);
                 } else {
                     logger.warn("type for subject of method call [" + dbMce + "] is null [" + subjectParameter + "]");
@@ -701,14 +703,16 @@ public class DaoService {
                         subjectTypeFromProbeInfo = probeInfo.getAttribute("Type", null);
                 }
                 if (subjectTypeFromProbeInfo != null) {
-                    subjectParameter.setTypeForced(ClassTypeUtils.getDescriptorToDottedClassName(subjectTypeFromProbeInfo));
+                    subjectParameter.setTypeForced(
+                            ClassTypeUtils.getDescriptorToDottedClassName(subjectTypeFromProbeInfo));
                 } else if (subjectTypeFromMethodDefinition != null) {
                     subjectParameter.setTypeForced(subjectTypeFromMethodDefinition);
                 } else {
                     String callOwnerFromProbe = methodCallExpression.getEntryProbeInfo()
                             .getAttribute("Owner", null);
                     if (callOwnerFromProbe != null) {
-                        subjectParameter.setTypeForced(ClassTypeUtils.getDescriptorToDottedClassName(callOwnerFromProbe));
+                        subjectParameter.setTypeForced(
+                                ClassTypeUtils.getDescriptorToDottedClassName(callOwnerFromProbe));
                     }
                 }
 
@@ -801,7 +805,8 @@ public class DaoService {
             String returnParamType = returnParam.getType();
             if ((returnParamType == null || returnParamType.equals("") || returnParam.isPrimitiveType())
                     && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
-                returnParam.setTypeForced(ClassTypeUtils.getDescriptorToDottedClassName(eventProbe.getValueDesc().getString()));
+                returnParam.setTypeForced(
+                        ClassTypeUtils.getDescriptorToDottedClassName(eventProbe.getValueDesc().getString()));
             }
             if (returnParam.getType() != null && returnParam.getType()
                     .contains("$HibernateProxy")) {
@@ -1897,7 +1902,7 @@ public class DaoService {
     }
 
     public List<TestCandidateBareBone>
-    getTestCandidatePaginated(long afterEventId, int page, int limit, FilterModel filterModel) throws SQLException {
+    getTestCandidatePaginated(long afterEventId, int page, int limit, StompFilterModel stompFilterModel) throws SQLException {
         List<String[]> dbCandidateList;
         try {
 
@@ -1919,10 +1924,10 @@ public class DaoService {
             List<String> argumentsList = new ArrayList<>();
             boolean first = true;
             query.append(" where ");
-            if (!filterModel.isEmpty()) {
-                if (!filterModel.getIncludedMethodNames().isEmpty()) {
+            if (!stompFilterModel.isEmpty()) {
+                if (!stompFilterModel.getIncludedMethodNames().isEmpty()) {
                     query.append(" ( ");
-                    for (String includedMethodName : filterModel.getIncludedMethodNames()) {
+                    for (String includedMethodName : stompFilterModel.getIncludedMethodNames()) {
                         if (!first) {
                             query.append(" or ");
                         }
@@ -1933,13 +1938,13 @@ public class DaoService {
                     }
                     query.append(" ) ");
                 }
-                if (!filterModel.getIncludedClassNames().isEmpty()) {
+                if (!stompFilterModel.getIncludedClassNames().isEmpty()) {
                     if (!first) {
                         query.append(" and ");
                     }
                     first = true;
                     query.append(" ( ");
-                    for (String includedClassName : filterModel.getIncludedClassNames()) {
+                    for (String includedClassName : stompFilterModel.getIncludedClassNames()) {
                         if (!first) {
                             query.append(" or ");
                         }
@@ -1949,13 +1954,13 @@ public class DaoService {
                     }
                     query.append(" ) ");
                 }
-                if (!filterModel.getExcludedClassNames().isEmpty()) {
+                if (!stompFilterModel.getExcludedClassNames().isEmpty()) {
                     if (!first) {
                         query.append(" and ");
                     }
                     first = true;
                     query.append(" ( ");
-                    for (String excludedClassName : filterModel.getExcludedClassNames()) {
+                    for (String excludedClassName : stompFilterModel.getExcludedClassNames()) {
                         if (!first) {
                             query.append(" and ");
                         }
@@ -1966,14 +1971,14 @@ public class DaoService {
                     query.append(" ) ");
 
                 }
-                if (!filterModel.getExcludedMethodNames().isEmpty()) {
+                if (!stompFilterModel.getExcludedMethodNames().isEmpty()) {
 
                     if (!first) {
                         query.append(" and ");
                     }
                     first = true;
                     query.append(" ( ");
-                    for (String excludedMethodName : filterModel.getExcludedMethodNames()) {
+                    for (String excludedMethodName : stompFilterModel.getExcludedMethodNames()) {
                         if (!first) {
                             query.append(" and ");
                         }
@@ -2036,13 +2041,18 @@ public class DaoService {
                         methodUnderTest.setSignature(e[3]);
                         testCandidateMetadata.setMethodUnderTest(methodUnderTest);
                         testCandidateMetadata.setExitProbeIndex(Long.parseLong(e[4]));
-                        testCandidateMetadata.setLineNumbers(
-                                Arrays.stream(e[5].split(",")).map(Integer::valueOf).collect(Collectors.toList()));
+                        if (e[5] != null) {
+                            testCandidateMetadata.setLineNumbers(
+                                    Arrays.stream(e[5].split(",")).map(Integer::valueOf).collect(Collectors.toList())
+                            );
+                        } else {
+                            testCandidateMetadata.setLineNumbers(new ArrayList<>());
+                        }
                         testCandidateMetadata.setTimeSpentNano(Long.parseLong(e[6]));
                         testCandidateMetadata.setCreatedAt(Long.parseLong(e[7]));
                         return testCandidateMetadata;
                     } catch (Exception ex) {
-                        logger.warn("failed to convert test candidate" + ex);
+                        logger.warn("failed to convert test candidate ", ex);
                         return null;
                     }
                 })
@@ -2117,7 +2127,7 @@ public class DaoService {
             Optional<String> processed_count = Arrays.stream(rows.getFirstResult()).findFirst();
             return Integer.parseInt(processed_count.get());
         } catch (Exception e) {
-            logger.warn("failed to get count of processed files", e);
+            logger.warn("failed to get count of processed files: " + e.getMessage());
             return 0;
         }
     }
@@ -2127,7 +2137,7 @@ public class DaoService {
             long count = logFilesDao.countOf();
             return (int) count;
         } catch (Exception e) {
-            logger.warn("failed to get count of total files", e);
+            logger.warn("failed to get count of total files: " + e.getMessage());
             return 0;
         }
     }

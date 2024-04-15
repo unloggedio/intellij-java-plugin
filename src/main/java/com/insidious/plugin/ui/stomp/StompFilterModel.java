@@ -1,14 +1,12 @@
 package com.insidious.plugin.ui.stomp;
 
-import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
-import com.intellij.notification.NotificationType;
 
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-public class FilterModel {
+public class StompFilterModel {
     private final Set<String> includedClassNames = new HashSet<>();
     private final Set<String> excludedClassNames = new HashSet<>();
     private final Set<String> includedMethodNames = new HashSet<>();
@@ -23,23 +21,23 @@ public class FilterModel {
 
     }
 
-    public FilterModel(FilterModel filterModel) {
-        this.includedMethodNames.addAll(filterModel.includedMethodNames);
-        this.includedClassNames.addAll(filterModel.includedClassNames);
-        this.excludedMethodNames.addAll(filterModel.excludedMethodNames);
-        this.excludedClassNames.addAll(filterModel.excludedClassNames);
-        this.followEditor = filterModel.followEditor;
-        this.candidateFilterType = filterModel.candidateFilterType;
+    public StompFilterModel(StompFilterModel stompFilterModel) {
+        this.includedMethodNames.addAll(stompFilterModel.includedMethodNames);
+        this.includedClassNames.addAll(stompFilterModel.includedClassNames);
+        this.excludedMethodNames.addAll(stompFilterModel.excludedMethodNames);
+        this.excludedClassNames.addAll(stompFilterModel.excludedClassNames);
+        this.followEditor = stompFilterModel.followEditor;
+        this.candidateFilterType = stompFilterModel.candidateFilterType;
     }
 
-    public FilterModel() {
+    public StompFilterModel() {
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        FilterModel that = (FilterModel) o;
+        StompFilterModel that = (StompFilterModel) o;
         return followEditor == that.followEditor && includedClassNames.equals(
                 that.includedClassNames) && excludedClassNames.equals(
                 that.excludedClassNames) && includedMethodNames.equals(
@@ -78,7 +76,7 @@ public class FilterModel {
         return excludedMethodNames;
     }
 
-    public void setFrom(FilterModel filterModel) {
+    public void setFrom(StompFilterModel stompFilterModel) {
         this.includedMethodNames.clear();
         this.includedClassNames.clear();
 
@@ -86,12 +84,12 @@ public class FilterModel {
         this.excludedClassNames.clear();
 
 
-        this.includedMethodNames.addAll(filterModel.includedMethodNames);
-        this.includedClassNames.addAll(filterModel.includedClassNames);
-        this.excludedMethodNames.addAll(filterModel.excludedMethodNames);
-        this.excludedClassNames.addAll(filterModel.excludedClassNames);
-        this.followEditor = filterModel.followEditor;
-        this.candidateFilterType = filterModel.candidateFilterType;
+        this.includedMethodNames.addAll(stompFilterModel.includedMethodNames);
+        this.includedClassNames.addAll(stompFilterModel.includedClassNames);
+        this.excludedMethodNames.addAll(stompFilterModel.excludedMethodNames);
+        this.excludedClassNames.addAll(stompFilterModel.excludedClassNames);
+        this.followEditor = stompFilterModel.followEditor;
+        this.candidateFilterType = stompFilterModel.candidateFilterType;
 
     }
 }

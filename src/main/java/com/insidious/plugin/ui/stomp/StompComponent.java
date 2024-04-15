@@ -98,7 +98,7 @@ public class StompComponent implements
     private final SimpleDateFormat dateFormat;
     private final Map<TestCandidateBareBone, Component> candidateMetadataStompItemMap = new HashMap<>();
     private final InsidiousConfigurationState configurationState;
-    private final FilterModel filterModel;
+    private final StompFilterModel stompFilterModel;
     private final AtomicRecordService atomicRecordService;
     private final Set<Long> pinnedItems = new HashSet<>();
     private final ActionToolbarImpl actionToolbar;
@@ -140,7 +140,7 @@ public class StompComponent implements
         configurationState = project.getService(InsidiousConfigurationState.class);
 
         filterAppliedLabel.setVisible(false);
-        filterModel = configurationState.getFilterModel();
+        stompFilterModel = configurationState.getFilterModel();
 
 
         itemPanel = new JPanel();
@@ -347,7 +347,7 @@ public class StompComponent implements
             @Override
             public void mouseClicked(MouseEvent e) {
                 JSONObject eventProperties = new JSONObject();
-                eventProperties.put("filter", filterModel.toString());
+                eventProperties.put("filter", stompFilterModel.toString());
                 UsageInsightTracker.getInstance().RecordEvent("CLEAR_FILTER", eventProperties);
 
                 clearFilter();
@@ -414,8 +414,8 @@ public class StompComponent implements
     }
 
     private void showFiltersComponentPopup(Project project, InsidiousService insidiousService) {
-        FilterModel originalFilter = new FilterModel(filterModel);
-        StompFilter stompFilter = new StompFilter(filterModel, lastMethodFocussed, project);
+        StompFilterModel originalFilter = new StompFilterModel(stompFilterModel);
+        StompFilter stompFilter = new StompFilter(stompFilterModel, lastMethodFocussed, project);
         JComponent component = stompFilter.getComponent();
 
         ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
@@ -448,17 +448,17 @@ public class StompComponent implements
             @Override
             public void onClose(StompFilter component) {
                 unloggedPreferencesPopup.cancel();
-                if (originalFilter.equals(filterModel)) {
+                if (originalFilter.equals(stompFilterModel)) {
                     return;
                 }
-                if (filterModel.followEditor) {
+                if (stompFilterModel.followEditor) {
                     lastMethodFocussed = null;
                     ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                        onMethodFocussed(insidiousService.getCurrentMethod());
+                        insidiousService.populateFromEditors(null);
                     });
                 }
                 JSONObject eventProperties = new JSONObject();
-                eventProperties.put("filter", filterModel.toString());
+                eventProperties.put("filter", stompFilterModel.toString());
                 UsageInsightTracker.getInstance().RecordEvent("FILTER_UPDATED", eventProperties);
 
                 updateFilterLabel();
@@ -472,10 +472,10 @@ public class StompComponent implements
     }
 
     private void clearFilter() {
-        filterModel.getIncludedMethodNames().clear();
-        filterModel.getExcludedMethodNames().clear();
-        filterModel.getIncludedClassNames().clear();
-        filterModel.getExcludedClassNames().clear();
+        stompFilterModel.getIncludedMethodNames().clear();
+        stompFilterModel.getExcludedMethodNames().clear();
+        stompFilterModel.getIncludedClassNames().clear();
+        stompFilterModel.getExcludedClassNames().clear();
     }
 
     private void saveSelected() {
@@ -541,8 +541,9 @@ public class StompComponent implements
 
     }
 
-    private void resetAndReload() {
+    public void resetAndReload() {
         ApplicationManager.getApplication().invokeLater(() -> {
+            updateFilterLabel();
             resetTimeline();
             if (candidateQueryLatch != null) {
                 candidateQueryLatch.decrementAndGet();
@@ -618,7 +619,7 @@ public class StompComponent implements
                         .withHeader("Filter whats visible")
                         .withIcon(UIUtils.UNLOGGED_ICON_DARK_SVG)
                         .withLink("Enable Follow Method Filter", () -> {
-                            filterModel.setFollowEditor(true);
+                            stompFilterModel.setFollowEditor(true);
                             InsidiousNotification.notifyMessage(
                                     "Filter will follow method focussed in editor", NotificationType.INFORMATION
                             );
@@ -644,23 +645,23 @@ public class StompComponent implements
         }
         String className = testCandidateMetadata.getMethodUnderTest().getClassName();
         String methodName = testCandidateMetadata.getMethodUnderTest().getName();
-        if (!filterModel.getIncludedClassNames().isEmpty()) {
-            if (!filterModel.getIncludedClassNames().contains(className)) {
+        if (!stompFilterModel.getIncludedClassNames().isEmpty()) {
+            if (!stompFilterModel.getIncludedClassNames().contains(className)) {
                 return false;
             }
         }
-        if (!filterModel.getIncludedMethodNames().isEmpty()) {
-            if (!filterModel.getIncludedMethodNames().contains(methodName)) {
+        if (!stompFilterModel.getIncludedMethodNames().isEmpty()) {
+            if (!stompFilterModel.getIncludedMethodNames().contains(methodName)) {
                 return false;
             }
         }
-        if (!filterModel.getExcludedClassNames().isEmpty()) {
-            if (filterModel.getExcludedClassNames().contains(className)) {
+        if (!stompFilterModel.getExcludedClassNames().isEmpty()) {
+            if (stompFilterModel.getExcludedClassNames().contains(className)) {
                 return false;
             }
         }
-        if (!filterModel.getExcludedMethodNames().isEmpty()) {
-            if (filterModel.getExcludedMethodNames().contains(methodName)) {
+        if (!stompFilterModel.getExcludedMethodNames().isEmpty()) {
+            if (stompFilterModel.getExcludedMethodNames().contains(methodName)) {
                 return false;
             }
         }
@@ -1132,12 +1133,12 @@ public class StompComponent implements
 
                                 switch (parts[1]) {
                                     case "class":
-                                        filterModel.getIncludedClassNames().add(fullyQualifiedClassname);
-                                        filterModel.getExcludedClassNames().remove(fullyQualifiedClassname);
+                                        stompFilterModel.getIncludedClassNames().add(fullyQualifiedClassname);
+                                        stompFilterModel.getExcludedClassNames().remove(fullyQualifiedClassname);
                                         break;
                                     case "method":
-                                        filterModel.getIncludedMethodNames().add(methodName);
-                                        filterModel.getExcludedMethodNames().remove(methodName);
+                                        stompFilterModel.getIncludedMethodNames().add(methodName);
+                                        stompFilterModel.getExcludedMethodNames().remove(methodName);
                                         break;
                                 }
 
@@ -1147,12 +1148,12 @@ public class StompComponent implements
 
                                 switch (parts[1]) {
                                     case "class":
-                                        filterModel.getIncludedClassNames().remove(fullyQualifiedClassname);
-                                        filterModel.getExcludedClassNames().add(fullyQualifiedClassname);
+                                        stompFilterModel.getIncludedClassNames().remove(fullyQualifiedClassname);
+                                        stompFilterModel.getExcludedClassNames().add(fullyQualifiedClassname);
                                         break;
                                     case "method":
-                                        filterModel.getIncludedMethodNames().remove(methodName);
-                                        filterModel.getExcludedMethodNames().add(methodName);
+                                        stompFilterModel.getIncludedMethodNames().remove(methodName);
+                                        stompFilterModel.getExcludedMethodNames().add(methodName);
                                         break;
                                 }
 
@@ -1173,10 +1174,10 @@ public class StompComponent implements
 
     private void updateFilterLabel() {
         StringBuilder tooltipText = new StringBuilder();
-        int total = filterModel.getIncludedClassNames().size()
-                + filterModel.getIncludedMethodNames().size()
-                + filterModel.getExcludedClassNames().size()
-                + filterModel.getExcludedMethodNames().size();
+        int total = stompFilterModel.getIncludedClassNames().size()
+                + stompFilterModel.getIncludedMethodNames().size()
+                + stompFilterModel.getExcludedClassNames().size()
+                + stompFilterModel.getExcludedMethodNames().size();
         if (total == 0) {
             clearFilterLabel.setVisible(false);
             filterAppliedLabel.setVisible(false);
@@ -1244,7 +1245,8 @@ public class StompComponent implements
         List<Component> itemsToNotDelete = new ArrayList<>();
         List<StompItem> pinnedStomps = new ArrayList<>();
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            if (insidiousService.getSessionInstance().isScanEnable() &&  insidiousService.getSessionInstance().isConnected()) {
+            if (insidiousService.getSessionInstance().isScanEnable() && insidiousService.getSessionInstance()
+                    .isConnected()) {
                 ApplicationManager.getApplication().invokeLater(stompStatusComponent::setConnected);
             } else {
                 ApplicationManager.getApplication().invokeLater(stompStatusComponent::setDisconnected);
@@ -1409,7 +1411,7 @@ public class StompComponent implements
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             insidiousService
                     .getSessionInstance()
-                    .getTestCandidates(this, lastEventId, filterModel, candidateQueryLatch);
+                    .getTestCandidates(this, lastEventId, stompFilterModel, candidateQueryLatch);
         });
     }
 
@@ -1488,10 +1490,10 @@ public class StompComponent implements
 
         int count = countAtomic.incrementAndGet();
         if (count > 40) {
-            if (!filterModel.getIncludedClassNames().contains(className) ||
-                    !filterModel.getIncludedMethodNames().contains(methodName)) {
-                filterModel.getExcludedMethodNames().add(methodName);
-                filterModel.getExcludedClassNames().add(className);
+            if (!stompFilterModel.getIncludedClassNames().contains(className) ||
+                    !stompFilterModel.getIncludedMethodNames().contains(methodName)) {
+                stompFilterModel.getExcludedMethodNames().add(methodName);
+                stompFilterModel.getExcludedClassNames().add(className);
                 InsidiousNotification.notifyMessage("Excluded [" + key + "] from live view. If you want to see them " +
                                 "include the class [" + className + "] and method [" + methodName + "] in filters.",
                         NotificationType.INFORMATION);
@@ -1585,26 +1587,25 @@ public class StompComponent implements
         }
 
         lastMethodFocussed = newMethodAdapter;
-        if (filterModel.isFollowEditor()) {
-
-            if (filterModel.getIncludedMethodNames().size() == 1 && filterModel.getIncludedMethodNames()
-                    .contains(newMethodName)) {
-                if (filterModel.getIncludedClassNames().size() == 1 && filterModel.getIncludedClassNames()
-                        .containsAll(newClassNameList)) {
-                    if (filterModel.getExcludedClassNames().size() == 0 && filterModel.getExcludedMethodNames()
-                            .size() == 0) {
-                        // already set
-                        return;
-                    }
-                }
-            }
-
-            clearFilter();
-            filterModel.getIncludedMethodNames().add(newMethodName);
-            filterModel.getIncludedClassNames().addAll(newClassNameList);
-            updateFilterLabel();
-            resetAndReload();
-        }
+//        if (stompFilterModel.isFollowEditor()) {
+//
+//            if (stompFilterModel.getIncludedMethodNames().size() == 1 && stompFilterModel.getIncludedMethodNames()
+//                    .contains(newMethodName)) {
+//                if (stompFilterModel.getIncludedClassNames().size() == 1 && stompFilterModel.getIncludedClassNames()
+//                        .containsAll(newClassNameList)) {
+//                    if (stompFilterModel.getExcludedClassNames().isEmpty() && stompFilterModel.getExcludedMethodNames().isEmpty()) {
+//                        // already set
+//                        return;
+//                    }
+//                }
+//            }
+//
+//            clearFilter();
+//            stompFilterModel.getIncludedMethodNames().add(newMethodName);
+//            stompFilterModel.getIncludedClassNames().addAll(newClassNameList);
+//            updateFilterLabel();
+//            resetAndReload();
+//        }
     }
 
     public void showOnboardingScreen(UnloggedOnboardingScreenV2 screen) {
