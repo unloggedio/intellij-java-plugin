@@ -264,8 +264,8 @@ final public class InsidiousService implements
                     if (!agentParamsLine.startsWith("Params: ")) {
                         logger.warn(
                                 "The third line is not Params line, marked as session not matching: " + mostRecentSession.getLogFilePath());
-                        checkCache.put(mostRecentSession.getSessionId(), null);
-                        return null;
+                        checkCache.put(mostRecentSession.getSessionId(), new ServerMetadata());
+                        return new ServerMetadata();
                     }
                     String[] paramParts = agentParamsLine.substring("Params: ".length()).split(",");
                     boolean foundIncludePackage = false;
@@ -278,7 +278,7 @@ final public class InsidiousService implements
                         }
                     }
                     if (!foundIncludePackage) {
-                        checkCache.put(mostRecentSession.getSessionId(), null);
+                        checkCache.put(mostRecentSession.getSessionId(), new ServerMetadata());
                         logger.warn(
                                 "Package not found in the params, marked as session not matching: " + mostRecentSession.getLogFilePath());
 //                        return null;
@@ -289,12 +289,12 @@ final public class InsidiousService implements
                         serverMetadata = objectMapper.readValue(serverMetadataJson,
                                 ServerMetadata.class);
                     } catch (Exception e) {
-                        checkCache.put(mostRecentSession.getSessionId(), null);
+                        checkCache.put(mostRecentSession.getSessionId(), new ServerMetadata());
                         logger.warn("Failed to read server metadata from log: [" + serverMetadataJson + "]", e);
                         InsidiousNotification.notifyMessage("Found session at [" + mostRecentSession.getPath() + "] " +
                                         "but couldn't connect to server because of missing server metadata.",
                                 NotificationType.ERROR);
-                        return null;
+                        return new ServerMetadata();
                     }
 
                     String finalIncludedPackagedName = includedPackagedName.replace('/', '.');
@@ -305,8 +305,8 @@ final public class InsidiousService implements
                         logger.warn("Package for agent [" + finalIncludedPackagedName + "] NOTFOUND in current " +
                                 "project [" + project.getName() + "]" +
                                 " -> " + mostRecentSession.getLogFilePath());
-                        checkCache.put(mostRecentSession.getSessionId(), null);
-                        return null;
+                        checkCache.put(mostRecentSession.getSessionId(), new ServerMetadata());
+                        return new ServerMetadata();
                     }
                     logger.warn("Package for agent [" + finalIncludedPackagedName + "] FOUND in current " +
                             "project [" + project.getName() + "]" +
@@ -318,8 +318,8 @@ final public class InsidiousService implements
 
 
                 } catch (Exception e) {
-                    checkCache.put(mostRecentSession.getSessionId(), null);
-                    return null;
+                    checkCache.put(mostRecentSession.getSessionId(), new ServerMetadata());
+                    return new ServerMetadata();
                 }
 
             }
