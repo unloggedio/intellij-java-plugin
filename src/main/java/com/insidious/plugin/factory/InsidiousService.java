@@ -197,7 +197,7 @@ final public class InsidiousService implements
                     return;
                 }
 
-                if (executionSessionList.size() == 0) {
+                if (executionSessionList.isEmpty()) {
                     logger.debug("no sessions found");
                     // the currently loaded session has been deleted
                     if (currentSession != null && currentSession.getSessionId().equals("na")) {
@@ -234,7 +234,12 @@ final public class InsidiousService implements
                                     "recent session found [" + mostRecentSession.getSessionId() + "]");
                 }
                 currentSession = mostRecentSession;
-                setSession(mostRecentSession, serverMetadata);
+                try {
+                    setSession(mostRecentSession, serverMetadata);
+                } catch (Throwable t) {
+                    InsidiousNotification.notifyMessage("Failed to load session: " + t.getMessage(),
+                            NotificationType.ERROR);
+                }
             }
 
             private ServerMetadata checkSessionBelongsToProject(ExecutionSession mostRecentSession, Project project) {
@@ -255,6 +260,9 @@ final public class InsidiousService implements
                 try {
                     String executionLogFile = mostRecentSession.getLogFilePath();
                     File logFile = new File(executionLogFile);
+                    if (!logFile.exists()) {
+                        return null;
+                    }
                     BufferedReader logFileInputStream = new BufferedReader(
                             new InputStreamReader(Files.newInputStream(logFile.toPath())));
                     // do not remove

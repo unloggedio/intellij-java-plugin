@@ -5,6 +5,7 @@ import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbService;
 import io.netty.util.concurrent.DefaultThreadFactory;
