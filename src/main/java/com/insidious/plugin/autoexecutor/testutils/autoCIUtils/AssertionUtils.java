@@ -22,6 +22,9 @@ public class AssertionUtils {
         AgentCommandResponse<String> agentCommandResponse = postProcessResponse(testUnit.getResponse());
         ResponseType actualResponseType = agentCommandResponse.getResponseType();
         String actualResponse = agentCommandResponse.getMethodReturnValue();
+        if (actualResponse == null) {
+            actualResponse = "null - from agent";
+        }
 
         boolean result = false;
         assertionResult.setAssertionType(assertionType);
