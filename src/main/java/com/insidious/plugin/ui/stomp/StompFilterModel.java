@@ -5,12 +5,13 @@ import com.insidious.plugin.ui.methodscope.CandidateFilterType;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class StompFilterModel {
-    private final Set<String> includedClassNames = new HashSet<>();
-    private final Set<String> excludedClassNames = new HashSet<>();
-    private final Set<String> includedMethodNames = new HashSet<>();
-    private final Set<String> excludedMethodNames = new HashSet<>();
+    private final Set<String> includedClassNames = new CopyOnWriteArraySet<>();
+    private final Set<String> excludedClassNames = new CopyOnWriteArraySet<>();
+    private final Set<String> includedMethodNames = new CopyOnWriteArraySet<>();
+    private final Set<String> excludedMethodNames = new CopyOnWriteArraySet<>();
     boolean followEditor;
     CandidateFilterType candidateFilterType = CandidateFilterType.ALL;
     public boolean isEmpty() {
