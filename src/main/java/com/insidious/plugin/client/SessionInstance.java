@@ -137,7 +137,6 @@ public class SessionInstance implements Runnable {
             boolean created = sessionLockFile.createNewFile();
             if (created) {
                 scanEnable = true;
-                sessionLockFile.deleteOnExit();
                 logger.warn("scan lock file created: " + project.getName());
             } else {
                 logger.warn("scan lock file wasn't created, scanning is disabled: " + project.getName());
@@ -4125,7 +4124,7 @@ public class SessionInstance implements Runnable {
 
     public void addSessionScanEventListener(SessionScanEventListener listener) {
         this.sessionScanEventListeners.add(listener);
-        if (scanEnable) {
+        if (scanEnable && connectionCheckerService.isConnected()) {
             listener.started();
         }
     }
