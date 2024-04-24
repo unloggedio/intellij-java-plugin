@@ -174,7 +174,7 @@ patchPluginXml {
 
 publishPlugin {
     token = "perm:c2hhcmR1bGxhdmVrYXI=.OTItOTgzNg==.jtYdVSDkwcwSWZMhCu5BVma7V3VRFY"
-    channels = ['alpha']
+    channels = ['stable']
 }
 
 test {

@@ -124,8 +124,12 @@ public class SessionInstance implements Runnable {
     public SessionInstance(ExecutionSession executionSession, ServerMetadata serverMetadata, Project project) throws SQLException,
             IOException {
         this.project = project;
+        String agentServerUrl = serverMetadata.getAgentServerUrl();
+        if (agentServerUrl == null || agentServerUrl.length() < 6) {
+            agentServerUrl = "http://localhost:12100";
+        }
         this.unloggedSdkApiAgentClient =
-                new UnloggedSdkApiAgentClient(serverMetadata.getAgentServerUrl());
+                new UnloggedSdkApiAgentClient(agentServerUrl);
         this.connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgentClient);
 
 
