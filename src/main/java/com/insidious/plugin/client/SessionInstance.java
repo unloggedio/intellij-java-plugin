@@ -4156,4 +4156,8 @@ public class SessionInstance implements Runnable {
     public UnloggedSdkApiAgentClient getAgent() {
         return unloggedSdkApiAgentClient;
     }
+
+    public void removeAllScanEventListeners() {
+        sessionScanEventListeners.clear();
+    }
 }

@@ -292,8 +292,6 @@ public class TestCaseDesignerLite {
             saveMethodToExistingFile(testcaseFile);
         }
 
-        closeEditorWindow();
-
         VirtualFile newFile = VirtualFileManager.getInstance()
                 .refreshAndFindFileByUrl(FileSystems.getDefault()
                         .getPath(testcaseFile.getAbsolutePath())
@@ -347,12 +345,6 @@ public class TestCaseDesignerLite {
         return mainPanel;
     }
 
-    public void closeEditorWindow() {
-        if (fileEditorReference != null) {
-            FileEditorManager.getInstance(project)
-                    .closeFile(fileEditorReference.getFile());
-        }
-    }
 
     private void saveMethodToExistingFile(File testcaseFile) {
         try {

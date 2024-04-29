@@ -242,23 +242,12 @@ final public class InsidiousService implements
                 }
             }
 
-            private ServerMetadata checkSessionBelongsToProject(ExecutionSession mostRecentSession, Project project) {
-                if (checkCache.containsKey(mostRecentSession.getSessionId())) {
-                    return checkCache.get(mostRecentSession.getSessionId());
+            private ServerMetadata checkSessionBelongsToProject(ExecutionSession session, Project project) {
+                if (checkCache.containsKey(session.getSessionId())) {
+                    return checkCache.get(session.getSessionId());
                 }
-//                else {
-//                    ServerMetadata value = new ServerMetadata();
-//                    value.setAgentServerPort("12100");
-//                    value.setAgentVersion("0.4.1");
-//                    value.setIncludePackageName("*");
-//                    value.setAgentServerUrl("http://localhost:12100");
-//                    checkCache.put(mostRecentSession.getSessionId(), value);
-//                    if (1 < 2) {
-//                        return value;
-//                    }
-//                }
                 try {
-                    String executionLogFile = mostRecentSession.getLogFilePath();
+                    String executionLogFile = session.getLogFilePath();
                     File logFile = new File(executionLogFile);
                     if (!logFile.exists()) {
                         return null;
@@ -271,9 +260,9 @@ final public class InsidiousService implements
                     String agentParamsLine = logFileInputStream.readLine();
                     if (!agentParamsLine.startsWith("Params: ")) {
                         logger.warn(
-                                "The third line is not Params line, marked as session not matching: " + mostRecentSession.getLogFilePath());
-                        checkCache.put(mostRecentSession.getSessionId(), new ServerMetadata());
-                        return new ServerMetadata();
+                                "The third line is not Params line, marked as session not matching: " + session.getLogFilePath());
+                        checkCache.put(session.getSessionId(), null);
+                        return null;
                     }
                     String[] paramParts = agentParamsLine.substring("Params: ".length()).split(",");
                     boolean foundIncludePackage = false;
@@ -286,9 +275,9 @@ final public class InsidiousService implements
                         }
                     }
                     if (!foundIncludePackage) {
-                        checkCache.put(mostRecentSession.getSessionId(), new ServerMetadata());
+//                        checkCache.put(session.getSessionId(), new ServerMetadata());
                         logger.warn(
-                                "Package not found in the params, marked as session not matching: " + mostRecentSession.getLogFilePath());
+                                "Package not found in the params, marked as session not matching: " + session.getLogFilePath());
 //                        return null;
                     }
                     String serverMetadataJson = logFileInputStream.readLine();
@@ -297,12 +286,13 @@ final public class InsidiousService implements
                         serverMetadata = objectMapper.readValue(serverMetadataJson,
                                 ServerMetadata.class);
                     } catch (Exception e) {
-                        checkCache.put(mostRecentSession.getSessionId(), new ServerMetadata());
+                        checkCache.put(session.getSessionId(), new ServerMetadata());
                         logger.warn("Failed to read server metadata from log: [" + serverMetadataJson + "]", e);
-                        InsidiousNotification.notifyMessage("Found session at [" + mostRecentSession.getPath() + "] " +
+                        InsidiousNotification.notifyMessage("Found session at [" + session.getPath() + "] " +
                                         "but couldn't connect to server because of missing server metadata.",
                                 NotificationType.ERROR);
-                        return new ServerMetadata();
+                        checkCache.put(session.getSessionId(), null);
+                        return null;
                     }
 
                     String finalIncludedPackagedName = includedPackagedName.replace('/', '.');
@@ -312,22 +302,25 @@ final public class InsidiousService implements
                     if (locatedPackage == null) {
                         logger.warn("Package for agent [" + finalIncludedPackagedName + "] NOTFOUND in current " +
                                 "project [" + project.getName() + "]" +
-                                " -> " + mostRecentSession.getLogFilePath());
-                        checkCache.put(mostRecentSession.getSessionId(), new ServerMetadata());
-                        return new ServerMetadata();
+                                " -> " + session.getLogFilePath());
+//                        checkCache.put(session.getSessionId(), new ServerMetadata());
+//                        return new ServerMetadata();
+                    } else {
+
+                        logger.warn("Package for agent [" + finalIncludedPackagedName + "] FOUND in current " +
+                                "project [" + project.getName() + "]" +
+                                " -> " + session.getLogFilePath());
                     }
-                    logger.warn("Package for agent [" + finalIncludedPackagedName + "] FOUND in current " +
-                            "project [" + project.getName() + "]" +
-                            " -> " + mostRecentSession.getLogFilePath());
 
 
-                    checkCache.put(mostRecentSession.getSessionId(), serverMetadata);
+                    checkCache.put(session.getSessionId(), serverMetadata);
                     return serverMetadata;
 
 
                 } catch (Exception e) {
-                    checkCache.put(mostRecentSession.getSessionId(), new ServerMetadata());
-                    return new ServerMetadata();
+                    logger.warn("Failed to check session: " + session.getLogFilePath(), e);
+                    checkCache.put(session.getSessionId(), null);
+                    return null;
                 }
 
             }
@@ -399,8 +392,9 @@ final public class InsidiousService implements
             }
             changed = addMethods(psiClass, model) || changed;
             changed = addInterfaces(psiClass, model) || changed;
-            psiClass = ApplicationManager.getApplication().runReadAction(
-                    (Computable<PsiClass>) finalPsiClass::getSuperClass);
+            psiClass = DumbService.getInstance(psiClass.getProject())
+                    .runReadActionInSmartMode(() -> ApplicationManager.getApplication().runReadAction(
+                            (Computable<PsiClass>) finalPsiClass::getSuperClass));
         }
         model.getIncludedClassNames().addAll(classNames);
         return changed;
@@ -656,14 +650,38 @@ final public class InsidiousService implements
 //        testDesignerContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
 //        contentManager.addContent(testDesignerContent);
 
-        onboardingWindow = new UnloggedSDKOnboarding(this);
+        stompWindow = new StompComponent(this);
+        if (stompComponentThreadPool != null) {
+            stompComponentThreadPool.shutdownNow();
+        }
+        stompComponentThreadPool = Executors.newScheduledThreadPool(2);
+        stompComponentThreadPool.scheduleWithFixedDelay(stompWindow, 0, 1, TimeUnit.MILLISECONDS);
 
-        onboardingWindowContent = contentFactory.createContent(
-                onboardingWindow.getComponent(), "Setup", false);
+        stompWindowContent =
+                contentFactory.createContent(stompWindow.getComponent(), "Live", false);
+        stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
+        contentManager.addContent(stompWindowContent, 0);
+        contentManager.setSelectedContent(stompWindowContent);
 
-        onboardingWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        onboardingWindowContent.setIcon(UIUtils.UNLOGGED_SETUP);
-        contentManager.addContent(onboardingWindowContent);
+
+        libraryToolWindow = new LibraryComponent(project);
+
+        libraryWindowContent = contentFactory.createContent(
+                libraryToolWindow.getComponent(), "Library", false);
+        libraryWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        libraryWindowContent.setIcon(UIUtils.LIBRARY_ICON);
+        contentManager.addContent(libraryWindowContent);
+
+
+//        onboardingWindow = new UnloggedSDKOnboarding(this);
+//
+//        onboardingWindowContent = contentFactory.createContent(
+//                onboardingWindow.getComponent(), "Setup", false);
+//
+//        onboardingWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+//        onboardingWindowContent.setIcon(UIUtils.UNLOGGED_SETUP);
+//        contentManager.addContent(onboardingWindowContent);
 
 
         // stomp window
@@ -1194,44 +1212,15 @@ final public class InsidiousService implements
             removeOnboardingTab();
 
             ApplicationManager.getApplication().invokeLater(() -> {
-                ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
-                ContentManager contentManager = toolWindow.getContentManager();
+//                ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
+//                ContentManager contentManager = toolWindow.getContentManager();
 
-                if (stompWindowContent != null) {
-                    contentManager.removeContent(stompWindowContent, true);
-                }
+//                if (stompWindowContent != null) {
+//                    contentManager.removeContent(stompWindowContent, true);
+//                }
 
-                if (stompWindow != null) {
-                    stompWindow.dispose();
-                }
-
-
-                stompWindow = new StompComponent(this);
-                if (stompComponentThreadPool != null) {
-                    stompComponentThreadPool.shutdownNow();
-                }
-                stompComponentThreadPool = Executors.newScheduledThreadPool(2);
-                stompComponentThreadPool.scheduleWithFixedDelay(stompWindow, 0, 1, TimeUnit.MILLISECONDS);
-
-                stompWindowContent =
-                        contentFactory.createContent(stompWindow.getComponent(), "Live", false);
-                stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-                stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
-                contentManager.addContent(stompWindowContent, 0);
-                contentManager.setSelectedContent(stompWindowContent);
-
-
-                if (libraryToolWindow == null) {
-                    libraryToolWindow = new LibraryComponent(project);
-
-                    libraryWindowContent = contentFactory.createContent(
-                            libraryToolWindow.getComponent(), "Library", false);
-                    libraryWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-                    libraryWindowContent.setIcon(UIUtils.LIBRARY_ICON);
-                    contentManager.addContent(libraryWindowContent);
-                }
-
-
+                stompWindow.setSession(sessionInstance);
+                sessionInstance.removeAllScanEventListeners();
                 sessionInstance.addSessionScanEventListener(stompWindow.getScanEventListener());
                 stompWindow.loadNewCandidates();
 
@@ -1288,7 +1277,7 @@ final public class InsidiousService implements
                 for (MethodCoverageData methodCoverageData : methodCoverageList) {
                     String key = fqcn + "#" + methodCoverageData.getMethodName() + "#" + methodCoverageData.getMethodSignature();
                     List<StoredCandidate> methodCandidates = candidateMapByMethodName.get(key);
-                    if (methodCandidates != null && methodCandidates.size() > 0) {
+                    if (methodCandidates != null && !methodCandidates.isEmpty()) {
                         int coveredLineCount = methodCandidates.stream()
                                 .flatMap(e -> e.getLineNumbers().stream())
                                 .collect(Collectors.toSet())

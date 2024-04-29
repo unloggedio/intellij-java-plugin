@@ -48,10 +48,7 @@ import javax.swing.event.ChangeListener;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.*;
@@ -76,6 +73,13 @@ public class MethodDirectInvokeComponent implements ActionListener {
     private JPanel centerPanel;
     private JTabbedPane tabbedPane;
     private JPanel controlPanel;
+    private JPanel buttonsPanel;
+    private JLabel executeMethodRouteLabel;
+    private JLabel filterInTimeline;
+    private JLabel runReplayTests;
+    private JLabel boilerplateLabel;
+    private JLabel loadTestLabel;
+    private JLabel fuzzyTestLabel;
     private MethodAdapter methodElement;
     private JBScrollPane parameterScrollPanel = null;
     private TestCaseDesignerLite designerLite;
@@ -88,7 +92,48 @@ public class MethodDirectInvokeComponent implements ActionListener {
         this.insidiousService = insidiousService;
         this.objectMapper = ObjectMapperInstance.getInstance();
 
-//        configureCloseButton(componentLifecycleListener);
+        mainContainer.remove(tabbedPane);
+
+        executeMethodRouteLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        filterInTimeline.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        runReplayTests.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        boilerplateLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        loadTestLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        fuzzyTestLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+
+        // 3
+        executeMethodRouteLabel.setBorder(BorderFactory.createCompoundBorder(executeMethodRouteLabel.getBorder(),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+
+        filterInTimeline.setBorder(BorderFactory.createCompoundBorder(filterInTimeline.getBorder(),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+
+        runReplayTests.setBorder(BorderFactory.createCompoundBorder(runReplayTests.getBorder(),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+
+
+        // 3
+
+        boilerplateLabel.setBorder(BorderFactory.createCompoundBorder(boilerplateLabel.getBorder(),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+
+        loadTestLabel.setBorder(BorderFactory.createCompoundBorder(loadTestLabel.getBorder(),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+
+        fuzzyTestLabel.setBorder(BorderFactory.createCompoundBorder(fuzzyTestLabel.getBorder(),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+
+
+        executeMethodRouteLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                mainContainer.add(tabbedPane, BorderLayout.CENTER);
+                mainContainer.remove(buttonsPanel);
+                mainContainer.revalidate();
+                mainContainer.repaint();
+            }
+        });
 
         AnAction closeAction = new AnAction(() -> "Close", AllIcons.Actions.Close) {
             @Override
@@ -112,7 +157,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
         action11.add(closeAction);
 
         ActionToolbarImpl actionToolbar = new ActionToolbarImpl(
-                "Live View", new DefaultActionGroup(action11), true);
+                "MDIC ActionToolBar", new DefaultActionGroup(action11), true);
         actionToolbar.setMiniMode(false);
         actionToolbar.setForceMinimumSize(true);
         actionToolbar.setTargetComponent(mainContainer);
@@ -120,16 +165,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
 
 
 //        closeButton.setIcon(UIUtils.CLOSE_LINE_SVG);
-
-        methodParameterScrollContainer.addKeyListener(new KeyAdapter() {
-
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    executeMethodWithParameters();
-                }
-            }
-        });
 
 
         this.executeAction = new AnAction(() -> "Execute Method", UIUtils.DIRECT_INVOKE_EXECUTE) {
@@ -144,7 +179,7 @@ public class MethodDirectInvokeComponent implements ActionListener {
             }
         };
 
-        this.modifyArgumentsAction = new AnAction(() -> "Modify Arguments", UIUtils.EDIT) {
+        this.modifyArgumentsAction = new AnAction(() -> "Edit Arguments", UIUtils.EDIT) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -354,10 +389,10 @@ public class MethodDirectInvokeComponent implements ActionListener {
             parameterEditor = new JsonTreeEditor(objectMapper.readTree(source), "Method Arguments", true,
                     executeAction);
             parameterEditor.setEditable(true);
-            methodParameterContainer.add(parameterEditor.getContent(), BorderLayout.CENTER);
+            methodParameterContainer.add(parameterEditor.getComponent(), BorderLayout.CENTER);
         } else {
             parameterEditor = new JsonTreeEditor(executeAction);
-            methodParameterContainer.add(parameterEditor.getContent(), BorderLayout.CENTER);
+            methodParameterContainer.add(parameterEditor.getComponent(), BorderLayout.CENTER);
         }
 
         if (parameterScrollPanel == null) {
@@ -379,7 +414,6 @@ public class MethodDirectInvokeComponent implements ActionListener {
         if (designerLite != null) {
             // previewing boilerplate test case
             // refresh it as well
-            designerLite.closeEditorWindow();
             designerLite = new TestCaseDesignerLite(methodElement,
                     null, true, insidiousService);
 
@@ -557,13 +591,16 @@ public class MethodDirectInvokeComponent implements ActionListener {
                                 // pass execute and modify buttons
                                 JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(jsonNode, responseClassName, false,
                                         this.executeAction, this.modifyArgumentsAction);
-                                parameterScrollPanel.setViewportView(jsonTreeEditor.getContent());
+                                parameterScrollPanel.setViewportView(jsonTreeEditor.getComponent());
 
                             } catch (JsonProcessingException ex) {
                                 Document document = EditorFactory.getInstance()
                                         .createDocument(methodReturnValue.toString());
                                 returnValueTextArea = EditorFactory.getInstance().createEditor(document);
-                                parameterScrollPanel.setViewportView(returnValueTextArea.getComponent());
+                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(returnValueTextArea, false,
+                                        this.executeAction, this.modifyArgumentsAction);
+
+                                parameterScrollPanel.setViewportView(jsonTreeEditor.getComponent());
                             }
                         } else if (responseType.equals(ResponseType.EXCEPTION)) {
 
@@ -574,13 +611,21 @@ public class MethodDirectInvokeComponent implements ActionListener {
                                 String editorText = ExceptionUtils.prettyPrintException(exceptionString);
                                 Document document = EditorFactory.getInstance().createDocument(editorText);
                                 returnValueTextArea = EditorFactory.getInstance().createEditor(document);
-                                parameterScrollPanel.setViewportView(returnValueTextArea.getComponent());
+                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(returnValueTextArea, false,
+                                        this.executeAction, this.modifyArgumentsAction);
+
+                                parameterScrollPanel.setViewportView(jsonTreeEditor.getComponent());
+
 
                             } else {
                                 String editorText = agentCommandResponse.getMessage();
                                 Document document = EditorFactory.getInstance().createDocument(editorText);
                                 returnValueTextArea = EditorFactory.getInstance().createEditor(document);
-                                parameterScrollPanel.setViewportView(returnValueTextArea.getComponent());
+                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(returnValueTextArea, false,
+                                        this.executeAction, this.modifyArgumentsAction);
+
+                                parameterScrollPanel.setViewportView(jsonTreeEditor.getComponent());
+
                             }
                         } else if (responseType.equals(ResponseType.FAILED)) {
 
@@ -589,20 +634,32 @@ public class MethodDirectInvokeComponent implements ActionListener {
                                         methodReturnValue.toString());
                                 Document document = EditorFactory.getInstance().createDocument(editorText);
                                 returnValueTextArea = EditorFactory.getInstance().createEditor(document);
-                                parameterScrollPanel.setViewportView(returnValueTextArea.getComponent());
+                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(returnValueTextArea, false,
+                                        this.executeAction, this.modifyArgumentsAction);
+
+                                parameterScrollPanel.setViewportView(jsonTreeEditor.getComponent());
+
                             } else {
                                 String editorText = ExceptionUtils.prettyPrintException(
                                         agentCommandResponse.getMessage());
                                 Document document = EditorFactory.getInstance().createDocument(editorText);
                                 returnValueTextArea = EditorFactory.getInstance().createEditor(document);
-                                parameterScrollPanel.setViewportView(returnValueTextArea.getComponent());
+                                JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(returnValueTextArea, false,
+                                        this.executeAction, this.modifyArgumentsAction);
+
+                                parameterScrollPanel.setViewportView(jsonTreeEditor.getComponent());
+
 
                             }
                         } else {
                             String editorText = responseMessage + methodReturnValue;
                             Document document = EditorFactory.getInstance().createDocument(editorText);
                             returnValueTextArea = EditorFactory.getInstance().createEditor(document);
-                            parameterScrollPanel.setViewportView(returnValueTextArea.getComponent());
+                            JsonTreeEditor jsonTreeEditor = new JsonTreeEditor(returnValueTextArea, false,
+                                    this.executeAction, this.modifyArgumentsAction);
+
+                            parameterScrollPanel.setViewportView(jsonTreeEditor.getComponent());
+
 
                         }
 

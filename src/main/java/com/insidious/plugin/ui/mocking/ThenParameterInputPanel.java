@@ -76,7 +76,7 @@ public class ThenParameterInputPanel {
                     simpleClassName, true);
             editor.setEditable(true);
             editor.addChangeListener(object -> thenParameter.getReturnParameter().setValue(object.toString()));
-            valueScrollPanel.setViewportView(editor.getContent());
+            valueScrollPanel.setViewportView(editor.getComponent());
 
 
         } catch (JsonProcessingException e) {

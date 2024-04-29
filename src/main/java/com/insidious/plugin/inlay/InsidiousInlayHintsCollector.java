@@ -365,21 +365,21 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
         SequencePresentation sequenceOfInlays = new SequencePresentation(inlayPresentations);
 
-        GotItTooltip go = new GotItTooltip("Unlogged.Inlay.Mock",
-                "Mock downstream call by creating mock responses. " +
-                        "Enable mocks in live application",
-                insidiousService.getProject())
-                .withHeader("Mock Downstream Call")
-                .withLink("Go to library", insidiousService::showLibrary)
-                .andShowCloseShortcut()
-                .withPosition(Balloon.Position.above);
-        ApplicationManager.getApplication().invokeLater(() -> {
-            go.show(editor.getContentComponent(), (component, balloon) -> {
-                Point point = editor.offsetToXY(startOffset, true, true);
-                return new Point((int) (point.getX() + column * columnWidth),
-                        (int) point.getY() - editor.getLineHeight());
-            });
-        });
+//        GotItTooltip go = new GotItTooltip("Unlogged.Inlay.Mock",
+//                "Mock downstream call by creating mock responses. " +
+//                        "Enable mocks in live application",
+//                insidiousService.getProject())
+//                .withHeader("Mock Downstream Call")
+//                .withLink("Go to library", insidiousService::showLibrary)
+//                .andShowCloseShortcut()
+//                .withPosition(Balloon.Position.above);
+//        ApplicationManager.getApplication().invokeLater(() -> {
+//            go.show(editor.getContentComponent(), (component, balloon) -> {
+//                Point point = editor.offsetToXY(startOffset, true, true);
+//                return new Point((int) (point.getX() + column * columnWidth),
+//                        (int) point.getY() - editor.getLineHeight());
+//            });
+//        });
 
 
         inlayHintsSink.addBlockElement(startOffset, true, true, UNLOGGED_APM_GROUP, sequenceOfInlays);

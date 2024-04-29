@@ -32,7 +32,9 @@ import javax.swing.event.TreeModelListener;
 import javax.swing.plaf.basic.BasicTreeUI;
 import javax.swing.tree.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -40,9 +42,9 @@ import java.util.List;
 public class JsonTreeEditor {
     private static final Logger logger = LoggerUtil.getInstance(JsonTreeEditor.class);
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
-    private final JsonNode jsonNode;
     Editor jsonTextEditor;
-    Boolean editable;
+    boolean editable;
+    private JsonNode jsonNode;
     private TreeModel treeModel;
     private Tree valueTree;
     private JPanel mainPanel;
@@ -130,7 +132,6 @@ public class JsonTreeEditor {
                 jsonTextEditor = EditorFactory.getInstance().createEditor(jsonTextDocument);
 
 
-
                 dataPanel.add(jsonTextEditor.getComponent(), BorderLayout.CENTER);
                 viewStateButton(true, false);
                 dataPanel.revalidate();
@@ -203,12 +204,30 @@ public class JsonTreeEditor {
         viewStateButton(true, true);
     }
 
+    public JsonTreeEditor(Editor returnValueTextArea, boolean b, AnAction... otherAction) {
+        dataPanel.add(returnValueTextArea.getComponent(), BorderLayout.CENTER);
+        this.listAnAction = List.of(otherAction);
+        viewStateButton(false, false);
+
+    }
+
+    public JsonTreeEditor(AnAction... otherAction) {
+        this.jsonNode = null;
+        this.listAnAction = List.of(otherAction);
+        this.treeModel = null;
+        this.valueTree = null;
+        this.editable = true;
+        viewStateButton(false, true);
+        mainPanel.setPreferredSize(new Dimension(600, 400));
+    }
+
     private Tree createTreeFromTreeModel(TreeModel treeModel1, TreeModelListener insidiousTreeListener) {
         final Tree tree = new Tree(treeModel1);
-        DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer(){
+        DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
             @Override
             public Border getBorder() {
-                return BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(JBColor.BLACK), super.getBorder());
+                return BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(JBColor.BLACK),
+                        super.getBorder());
             }
 
             @Override
@@ -236,16 +255,6 @@ public class JsonTreeEditor {
         });
 
         return tree;
-    }
-
-    public JsonTreeEditor(AnAction... otherAction) {
-        this.jsonNode = null;
-        this.listAnAction = List.of(otherAction);
-        this.treeModel = null;
-        this.valueTree = null;
-        this.editable = true;
-        viewStateButton(false, true);
-        mainPanel.setPreferredSize(new Dimension(600,400));
     }
 
     private MouseListener getMouseListener(final JTree tree) {
@@ -290,10 +299,11 @@ public class JsonTreeEditor {
                 localListAction.add(this.buildJsonAction);
             } else {
                 localListAction.add(this.cancelAction);
-                localListAction.add(this.saveAction);
+//                localListAction.add(this.saveAction);
             }
         }
-        ActionToolbarImpl actionToolbar = new ActionToolbarImpl("JTE actionToolbar", new DefaultActionGroup(localListAction),
+        ActionToolbarImpl actionToolbar = new ActionToolbarImpl("JTE actionToolbar",
+                new DefaultActionGroup(localListAction),
                 true);
         actionToolbar.setMiniMode(false);
         actionToolbar.setForceMinimumSize(true);
@@ -303,6 +313,8 @@ public class JsonTreeEditor {
         actionPanel.removeAll();
         JComponent component = actionToolbar.getComponent();
 
+        component.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0),
+                component.getBorder()));
         actionPanel.add(component, BorderLayout.WEST);
         actionPanel.revalidate();
         actionPanelMain.revalidate();
@@ -335,7 +347,7 @@ public class JsonTreeEditor {
         return 1 + node.getChildCount();
     }
 
-    public Component getContent() {
+    public Component getComponent() {
         return mainPanel;
     }
 
