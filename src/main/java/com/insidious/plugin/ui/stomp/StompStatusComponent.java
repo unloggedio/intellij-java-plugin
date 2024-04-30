@@ -137,7 +137,7 @@ public class StompStatusComponent {
     public synchronized void setDisconnected() {
         connectionStatusLabel.setText("Disconnected");
         connectionStatusLabel.setForeground(new Color(160, 174, 192));
-        connectionStatusLabel.setIcon(UIUtils.DISCONNECTED_ICON);
+        connectionStatusLabel.setIcon(AllIcons.Actions.OfflineMode);
     }
 
     public synchronized void addRightStatus(String id, String value) {

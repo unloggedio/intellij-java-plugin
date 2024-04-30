@@ -1898,12 +1898,6 @@ final public class InsidiousService implements
         libraryToolWindow.reloadItems();
     }
 
-    public void showCallYourApplicationScreen(UnloggedSDKOnboarding unloggedSDKOnboarding) {
-        if (onboardingWindow != null) {
-            UnloggedOnboardingScreenV2 screen = new UnloggedOnboardingScreenV2();
-            unloggedSDKOnboarding.showStep2(screen);
-        }
-    }
 
     public void highlightTimingInformation(TestCandidateMetadata candidateMetadata, MethodUnderTest methodUnderTest) {
 

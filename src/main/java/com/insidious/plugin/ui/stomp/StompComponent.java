@@ -1,6 +1,5 @@
 package com.insidious.plugin.ui.stomp;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
@@ -58,7 +57,6 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
 import com.intellij.psi.PsiSubstitutor;
-import com.intellij.psi.impl.JavaPsiImplementationHelper;
 import com.intellij.psi.search.searches.ClassInheritorsSearch;
 import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.JBColor;
@@ -365,9 +363,9 @@ public class StompComponent implements
         });
 
 
-        ConnectedAndWaiting connectedAndWaiting = new ConnectedAndWaiting();
-        JPanel component = (JPanel) connectedAndWaiting.getComponent();
-        component.setAlignmentY(1.0f);
+//        ConnectedAndWaiting connectedAndWaiting = new ConnectedAndWaiting();
+//        JPanel component = (JPanel) connectedAndWaiting.getComponent();
+//        component.setAlignmentY(1.0f);
 
         scanEventListener = new SessionScanEventListener() {
             @Override
@@ -413,7 +411,9 @@ public class StompComponent implements
 
 
         unloggedSDKOnboarding = new UnloggedSDKOnboarding(insidiousService);
+        itemPanel.removeAll();
         itemPanel.add(unloggedSDKOnboarding.getComponent(), createGBCForProcessStartedComponent());
+        itemPanel.add(new JPanel(), createGBCForFakeComponent(), itemPanel.getComponentCount());
 
 //        saveReplayButton.setEnabled(false);
         updateFilterLabel();
@@ -852,8 +852,8 @@ public class StompComponent implements
 
 
         comp.add(lineContainer, BorderLayout.WEST);
-        comp.setSize(new Dimension(35, -1));
-        comp.setPreferredSize(new Dimension(35, -1));
+        comp.setSize(new Dimension(40, -1));
+        comp.setPreferredSize(new Dimension(40, -1));
         return comp;
     }
 
@@ -865,7 +865,7 @@ public class StompComponent implements
         comp1.setUI(new VerticalLabelUI(true));
 
 //        comp.add(comp1, BorderLayout.CENTER);
-        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 17, 0, 4));
+        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 4));
         comp.add(lineContainer, BorderLayout.WEST);
         comp.setSize(new Dimension(50, -1));
         comp.setPreferredSize(new Dimension(50, -1));
@@ -965,15 +965,11 @@ public class StompComponent implements
 
             JavaMethodAdapter method = new JavaMethodAdapter(methodPsiElement);
             showDirectInvoke(method);
-            try {
-                directInvokeComponent.renderForMethod(method,
-                        selectedCandidate.getMainMethod().getArguments()
-                                .stream().map(e -> new String(e.getProb().getSerializedValue()))
-                                .collect(Collectors.toList()));
-                directInvokeComponent.triggerExecute();
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            directInvokeComponent.renderForMethod(method,
+                    selectedCandidate.getMainMethod().getArguments()
+                            .stream().map(e -> new String(e.getProb().getSerializedValue()))
+                            .collect(Collectors.toList()));
+            directInvokeComponent.triggerExecute();
         }
 
     }
@@ -1231,10 +1227,9 @@ public class StompComponent implements
         normalizeItemPanelComponents();
 
 
-        GridBagConstraints gbcForFakeComponent = createGBCForFakeComponent();
-        gbcForFakeComponent.gridy = itemPanel.getComponentCount();
-//        itemPanel.add(new JPanel(), gbcForFakeComponent);
-        itemPanel.add(unloggedSDKOnboarding.getComponent(), gbcForFakeComponent);
+        itemPanel.add(unloggedSDKOnboarding.getComponent(),
+                createGBCForLeftMainComponent(itemPanel.getComponentCount()));
+        itemPanel.add(new JPanel(), createGBCForFakeComponent(), itemPanel.getComponentCount());
 
         selectedCandidates.clear();
         updateControlPanel();
@@ -1250,6 +1245,9 @@ public class StompComponent implements
 
 
     public void resetTimeline() {
+        if (sessionInstance == null) {
+            return;
+        }
         lastEventId = 0;
 
         List<Component> itemsToNotDelete = new ArrayList<>();
@@ -1317,21 +1315,17 @@ public class StompComponent implements
             content.setMinimumSize(new Dimension(-1, 400));
             content.setMaximumSize(new Dimension(-1, 500));
         }
+        directInvokeComponent.setMethod(method);
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            try {
-                directInvokeComponent.renderForMethod(method, null);
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    splitPane.setDividerLocation(100);
-                    southPanel.removeAll();
-                    southPanel.add(directInvokeComponent.getContent(), BorderLayout.CENTER);
-                    historyStreamScrollPanel.revalidate();
-                    historyStreamScrollPanel.repaint();
-                });
+            ApplicationManager.getApplication().invokeLater(() -> {
+                splitPane.setDividerLocation(200);
+                southPanel.removeAll();
+                southPanel.add(directInvokeComponent.getContent(), BorderLayout.CENTER);
+                historyStreamScrollPanel.revalidate();
+                historyStreamScrollPanel.repaint();
+            });
 
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
         });
 
     }
@@ -1376,6 +1370,8 @@ public class StompComponent implements
 //        scrollContainer.revalidate();
 //        scrollContainer.repaint();
         splitPane.setDividerLocation(splitPane.getHeight());
+        southPanel.removeAll();
+        directInvokeComponent = null;
     }
 
     private void setConnectedAndWaiting() {
@@ -1412,6 +1408,9 @@ public class StompComponent implements
     }
 
     public synchronized void loadNewCandidates() {
+        if (sessionInstance == null) {
+            return;
+        }
         if (candidateQueryLatch != null) {
             return;
         }
@@ -1534,7 +1533,6 @@ public class StompComponent implements
             lastMethodFocussed = null;
             return;
         }
-        String newMethodName = method.getName();
         ClassAdapter containingClass = method.getContainingClass();
         List<String> newClassNameList = new ArrayList<>();
         newClassNameList.add(containingClass.getQualifiedName());
@@ -1542,7 +1540,6 @@ public class StompComponent implements
             newClassNameList.add(aSuper.getQualifiedName());
         }
 
-        JavaPsiImplementationHelper jsp = JavaPsiImplementationHelper.getInstance(method.getProject());
 
         Collection<PsiClass> childClasses = ClassInheritorsSearch.search(
                 ApplicationManager.getApplication().runReadAction(
@@ -1571,25 +1568,6 @@ public class StompComponent implements
         }
 
         lastMethodFocussed = newMethodAdapter;
-//        if (stompFilterModel.isFollowEditor()) {
-//
-//            if (stompFilterModel.getIncludedMethodNames().size() == 1 && stompFilterModel.getIncludedMethodNames()
-//                    .contains(newMethodName)) {
-//                if (stompFilterModel.getIncludedClassNames().size() == 1 && stompFilterModel.getIncludedClassNames()
-//                        .containsAll(newClassNameList)) {
-//                    if (stompFilterModel.getExcludedClassNames().isEmpty() && stompFilterModel.getExcludedMethodNames().isEmpty()) {
-//                        // already set
-//                        return;
-//                    }
-//                }
-//            }
-//
-//            clearFilter();
-//            stompFilterModel.getIncludedMethodNames().add(newMethodName);
-//            stompFilterModel.getIncludedClassNames().addAll(newClassNameList);
-//            updateFilterLabel();
-//            resetAndReload();
-//        }
     }
 
     public void showOnboardingScreen(UnloggedOnboardingScreenV2 screen) {

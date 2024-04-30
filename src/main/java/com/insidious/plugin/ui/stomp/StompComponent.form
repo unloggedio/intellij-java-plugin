@@ -123,6 +123,7 @@
             <properties>
               <dividerLocation value="900"/>
               <orientation value="0"/>
+              <resizeWeight value="1.0"/>
             </properties>
             <border type="none"/>
             <children>
