@@ -115,7 +115,6 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.insidious.plugin.Constants.HOSTNAME;
@@ -343,7 +342,10 @@ final public class InsidiousService implements
             @Override
             public void editorCreated(@NotNull EditorFactoryEvent event) {
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    populateFromEditors(null);
+                    DumbService.getInstance(project)
+                            .runReadActionInSmartMode(() -> {
+                                populateFromEditors(null);
+                            });
                 });
 
             }
@@ -1667,6 +1669,9 @@ final public class InsidiousService implements
     public TestCandidateMetadata getTestCandidateById(long eventId, boolean loadCalls) {
         SessionInstance sessionInstance = getSessionInstance();
         TestCandidateMetadata testCandidateMetadata = sessionInstance.getTestCandidateById(eventId, loadCalls);
+        if (testCandidateMetadata == null) {
+            return null;
+        }
 
         TestCandidateMetadata tm = ApplicationManager.getApplication()
                 .runReadAction((Computable<TestCandidateMetadata>) () -> {
@@ -1824,7 +1829,7 @@ final public class InsidiousService implements
 
     }
 
-    public void showDirectInvoke(MethodAdapter method) {
+    public void showRouterForMethod(MethodAdapter method) {
         if (stompWindow == null) {
             if (toolWindow == null) {
                 initiateUI();
@@ -1845,7 +1850,7 @@ final public class InsidiousService implements
         ApplicationManager.getApplication().invokeLater(() -> {
             toolWindow.show();
             if (stompWindowContent != null) {
-                stompWindow.showDirectInvoke(method);
+                stompWindow.showRouterForMethod(method);
                 toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
             }
         });

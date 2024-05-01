@@ -67,6 +67,7 @@ public class MethodDirectInvokeComponent
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private final ObjectMapper objectMapper;
+    private final RouterPanel routerPanel;
     private JPanel mainContainer;
     private Editor returnValueTextArea;
     private JButton createBoilerplateButton;
@@ -88,7 +89,7 @@ public class MethodDirectInvokeComponent
         this.insidiousService = insidiousService;
         this.objectMapper = ObjectMapperInstance.getInstance();
 
-        RouterPanel routerPanel = new RouterPanel(new RouterListener() {
+        routerPanel = new RouterPanel(new RouterListener() {
             @Override
             public void showDirectInvoke() {
                 isShowingRouter = false;
@@ -709,5 +710,12 @@ public class MethodDirectInvokeComponent
 //        String methodNameForLabel = methodName.length() > 40 ? methodName.substring(0, 40) + "..." : methodName;
 //        String title = methodNameForLabel + "( " + ")";
 
+        renderForMethod(methodElement, null);
+    }
+
+    public void showRouter() {
+        isShowingRouter = true;
+        centerPanel.removeAll();
+        centerPanel.add(routerPanel.getComponent(), BorderLayout.CENTER);
     }
 }

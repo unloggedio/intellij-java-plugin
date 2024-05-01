@@ -495,8 +495,12 @@ public class StompItem {
 
     private synchronized void checkLoadedCandidate() {
         if (loadedCandidate == null) {
-            loadedCandidate = insidiousService.getTestCandidateById(
-                    candidateMetadata.getId(), true);
+            try {
+                loadedCandidate = insidiousService.getTestCandidateById(
+                        candidateMetadata.getId(), true);
+            } catch (Exception e) {
+
+            }
         }
     }
 

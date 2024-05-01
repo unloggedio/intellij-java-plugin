@@ -535,7 +535,7 @@ public class StompComponent implements
                         southPanel.removeAll();
                         splitPane.setDividerLocation(100);
                         component.setMaximumSize(new Dimension(600, 800));
-                        southPanel.add(component, BorderLayout.SOUTH);
+                        southPanel.add(component, BorderLayout.CENTER);
                         southPanel.revalidate();
                         southPanel.repaint();
                         southPanel.getParent().revalidate();
@@ -1318,9 +1318,9 @@ public class StompComponent implements
             content.setMinimumSize(new Dimension(-1, 400));
             content.setMaximumSize(new Dimension(-1, 500));
         }
-        directInvokeComponent.setMethod(method);
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            directInvokeComponent.setMethod(method);
             ApplicationManager.getApplication().invokeLater(() -> {
                 splitPane.setDividerLocation(200);
                 southPanel.removeAll();
@@ -1344,7 +1344,7 @@ public class StompComponent implements
             mainPanel.revalidate();
             mainPanel.repaint();
         }, component -> {
-            hideBottomSplit();
+            insidiousService.showRouterForMethod(javaMethodAdapter);
             scrollContainer.revalidate();
             scrollContainer.repaint();
         });
@@ -1608,5 +1608,16 @@ public class StompComponent implements
 
     public List<TestCandidateBareBone> getSelectedCandidates() {
         return selectedCandidates;
+    }
+
+    public void showRouterForMethod(MethodAdapter methodAdapter) {
+        if (directInvokeComponent == null) {
+            showDirectInvoke(methodAdapter);
+        }
+        splitPane.setDividerLocation(200);
+        ApplicationManager.getApplication().invokeLater(() -> {
+            directInvokeComponent.showRouter();
+        });
+
     }
 }

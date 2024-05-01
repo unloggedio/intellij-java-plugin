@@ -26,7 +26,9 @@ public class RouterPanel {
 
 
         loadTestLabel.setEnabled(false);
+        loadTestLabel.setToolTipText("Coming soon");
         fuzzyTestLabel.setEnabled(false);
+        fuzzyTestLabel.setToolTipText("Coming soon");
 
 
         executeMethodRouteLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
