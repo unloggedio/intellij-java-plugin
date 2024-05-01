@@ -520,6 +520,7 @@ public class StompComponent implements
                     }
 
 
+
                     saveFormReference = new TestCandidateSaveForm(sourceCandidates, candidateLifeListener,
                             component -> {
                                 ApplicationManager.getApplication().invokeLater(() -> {
@@ -531,11 +532,11 @@ public class StompComponent implements
                     cdl.countDown();
 
                     ApplicationManager.getApplication().invokeLater(() -> {
-                        JPanel component = saveFormReference.getComponent();
+                        JPanel saveFormComponent = saveFormReference.getComponent();
                         southPanel.removeAll();
                         splitPane.setDividerLocation(100);
-                        component.setMaximumSize(new Dimension(600, 800));
-                        southPanel.add(component, BorderLayout.CENTER);
+                        saveFormComponent.setMaximumSize(new Dimension(600, 800));
+                        southPanel.add(saveFormComponent, BorderLayout.CENTER);
                         southPanel.revalidate();
                         southPanel.repaint();
                         southPanel.getParent().revalidate();
@@ -1348,14 +1349,14 @@ public class StompComponent implements
             scrollContainer.revalidate();
             scrollContainer.repaint();
         });
-        JComponent content = mockEditor.getComponent();
-        content.setMinimumSize(new Dimension(-1, 500));
-        content.setMaximumSize(new Dimension(-1, 600));
+        JComponent mockEditorComponent = mockEditor.getComponent();
+        mockEditorComponent.setMinimumSize(new Dimension(-1, 500));
+        mockEditorComponent.setMaximumSize(new Dimension(-1, 600));
 
         ApplicationManager.getApplication().invokeLater(() -> {
             splitPane.setDividerLocation(200);
             southPanel.removeAll();
-            southPanel.add(content, BorderLayout.CENTER);
+            southPanel.add(mockEditorComponent, BorderLayout.CENTER);
             scrollContainer.revalidate();
             scrollContainer.repaint();
             historyStreamScrollPanel.revalidate();
@@ -1611,8 +1612,8 @@ public class StompComponent implements
     }
 
     public void showRouterForMethod(MethodAdapter methodAdapter) {
-        if (directInvokeComponent == null) {
-            showDirectInvoke(methodAdapter);
+        if (directInvokeComponent != null) {
+             directInvokeComponent.renderForMethod(methodAdapter, null);
         }
         splitPane.setDividerLocation(200);
         ApplicationManager.getApplication().invokeLater(() -> {
