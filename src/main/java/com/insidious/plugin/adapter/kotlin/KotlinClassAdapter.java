@@ -4,7 +4,7 @@ import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.FieldAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiClass;
 import com.intellij.psi.impl.source.PsiJavaFileImpl;
 import org.jetbrains.kotlin.psi.KtClass;
 
@@ -76,7 +76,7 @@ public class KotlinClassAdapter implements ClassAdapter {
     }
 
     @Override
-    public PsiElement getSource() {
+    public PsiClass getSource() {
         return null;
     }
 }

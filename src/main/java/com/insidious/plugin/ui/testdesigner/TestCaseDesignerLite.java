@@ -116,7 +116,7 @@ public class TestCaseDesignerLite {
 
     public TestCaseDesignerLite(MethodAdapter currentMethod,
                                 TestCaseGenerationConfiguration configuration,
-                                boolean generateOnlyBoilerPlate,
+                                boolean generateBoilerPlate,
                                 InsidiousService insidiousService) {
 
         this.methodAdapter = currentMethod;
@@ -124,7 +124,8 @@ public class TestCaseDesignerLite {
         this.currentTestGenerationConfiguration = configuration;
         this.insidiousService = insidiousService;
         this.project = insidiousService.getProject();
-        testCaseScriptFile = new LightVirtualFile(currentMethod.getName() + "_Unlogged_Preview.java");
+        testCaseScriptFile =
+                new LightVirtualFile("Test" + currentMethod.getContainingClass().getName() + "V.java");
 
 
 //        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -141,7 +142,7 @@ public class TestCaseDesignerLite {
         resourceEmberModeComboBox.setModel(new DefaultComboBoxModel<>(ResourceEmbedMode.values()));
         resourceEmberModeComboBox.setSelectedItem(ResourceEmbedMode.IN_CODE);
 
-        if (generateOnlyBoilerPlate || currentTestGenerationConfiguration == null) {
+        if (generateBoilerPlate || currentTestGenerationConfiguration == null) {
             generateTestCaseBoilerPlace();
         }
 

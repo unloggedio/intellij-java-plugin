@@ -2,6 +2,7 @@ package com.insidious.plugin.callbacks;
 
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
 import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 
@@ -33,7 +34,7 @@ public interface TestCandidateLifeListener {
 
     void onUpdateRequest(TestCandidateBareBone storedCandidate);
 
-    void onGenerateJunitTestCaseRequest(List<TestCandidateBareBone> storedCandidate);
+    void onGenerateJunitTestCaseRequest(List<TestCandidateBareBone> storedCandidate, TestCaseGenerationConfiguration generationConfiguration);
 
     void onCandidateSelected(TestCandidateBareBone testCandidateMetadata, MouseEvent e);
 

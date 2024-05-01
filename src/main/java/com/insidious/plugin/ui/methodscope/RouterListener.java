@@ -8,4 +8,10 @@ public interface RouterListener {
     void showStompAndFilterForMethod();
 
     void showJunitCreator();
+
+    void showJunitFromRecordedCreator();
+
+    void showMockCreator();
+
+    void runReplayTests();
 }

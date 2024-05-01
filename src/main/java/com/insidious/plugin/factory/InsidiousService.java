@@ -31,7 +31,10 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.record.AtomicRecordService;
-import com.insidious.plugin.ui.*;
+import com.insidious.plugin.ui.InsidiousCaretListener;
+import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.ui.UnloggedSDKOnboarding;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.library.ItemFilterType;
 import com.insidious.plugin.ui.library.LibraryComponent;
@@ -40,6 +43,7 @@ import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.stomp.StompFilterModel;
+import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
@@ -111,6 +115,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.insidious.plugin.Constants.HOSTNAME;
@@ -374,58 +379,6 @@ final public class InsidiousService implements
         return agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
     }
 
-    private static boolean addClassAndSuperClasses(PsiClass psiClass, StompFilterModel model) {
-        Set<String> classNames = new HashSet<>();
-        model.getIncludedClassNames().forEach(classNames::add);
-
-        boolean changed = false;
-        while (psiClass != null) {
-            PsiClass finalPsiClass = psiClass;
-            String qualifiedName = ApplicationManager.getApplication().runReadAction(
-                    (Computable<String>) finalPsiClass::getQualifiedName);
-            if ("java.lang.Object".equals(qualifiedName)) {
-                break;
-            }
-            if (!classNames.contains(qualifiedName)) {
-                changed = true;
-                classNames.add(qualifiedName);
-            }
-            changed = addMethods(psiClass, model) || changed;
-            changed = addInterfaces(psiClass, model) || changed;
-            psiClass = DumbService.getInstance(psiClass.getProject())
-                    .runReadActionInSmartMode(() -> ApplicationManager.getApplication().runReadAction(
-                            (Computable<PsiClass>) finalPsiClass::getSuperClass));
-        }
-        model.getIncludedClassNames().addAll(classNames);
-        return changed;
-    }
-
-    private static boolean addInterfaces(PsiClass psiClass, StompFilterModel model) {
-        boolean changed = false;
-        PsiClass[] interfaces = ApplicationManager.getApplication().runReadAction(
-                (Computable<PsiClass[]>) psiClass::getInterfaces);
-        for (PsiClass type : interfaces) {
-            changed = addClassAndSuperClasses(type, model) || changed;
-        }
-        return changed;
-    }
-
-    private static boolean addMethods(PsiClass psiClass, StompFilterModel model) {
-        boolean changed = false;
-        for (PsiMethod method : ApplicationManager.getApplication().runReadAction(
-                (Computable<PsiMethod[]>) psiClass::getMethods)) {
-            String name = ApplicationManager.getApplication()
-                    .runReadAction((Computable<String>) method::getName);
-            if (SKIP_METHOD_IN_FOLLOW_FILTER.contains(name)) {
-                continue;
-            }
-            if (!model.getIncludedMethodNames().contains(name)) {
-                changed = true;
-                model.getIncludedMethodNames().add(name);
-            }
-        }
-        return changed;
-    }
 
     public void chooseClassImplementation(String className, ClassChosenListener classChosenListener) {
 
@@ -807,10 +760,16 @@ final public class InsidiousService implements
         }
 
         StompFilterModel stompFilterModel = configurationState.getFilterModel();
-        stompFilterModel.setFollowEditor(true);
+        stompFilterModel.setFollowEditor(false);
+        stompFilterModel.clearIncluded();
+        stompFilterModel.addClassAndSuperClasses(method.getContainingClass().getSource());
+        stompFilterModel.getIncludedMethodNames().clear();
+        stompFilterModel.getIncludedMethodNames().add(ApplicationManager.getApplication().runReadAction(
+                (Computable<String>) method::getName));
         stompWindow.onMethodFocussed(null);
         stompWindow.onMethodFocussed(method);
-        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
+        stompWindow.resetAndReload();
+//        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
 
     }
 
@@ -1879,15 +1838,15 @@ final public class InsidiousService implements
                 }
             }
         }
+        if (stompWindow != null) {
+            stompWindow.onMethodFocussed(method);
+        }
 
         ApplicationManager.getApplication().invokeLater(() -> {
             toolWindow.show();
             if (stompWindowContent != null) {
                 stompWindow.showDirectInvoke(method);
                 toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    stompWindow.onMethodFocussed(method);
-                });
             }
         });
 
@@ -1952,8 +1911,8 @@ final public class InsidiousService implements
         }
         boolean changed = false;
 
-        stompFilterModel.getIncludedClassNames().clear();
-        stompFilterModel.getIncludedMethodNames().clear();
+
+        stompFilterModel.clearIncluded();
 
         for (Editor editor : selected) {
             if (editor.getEditorKind().equals(EditorKind.MAIN_EDITOR)) {
@@ -1971,15 +1930,39 @@ final public class InsidiousService implements
                                 PsiClass.class));
 
                 for (PsiClass psiClass : classes) {
-                    changed = addClassAndSuperClasses(psiClass, stompFilterModel) || changed;
-                    changed = addInterfaces(psiClass, stompFilterModel) || changed;
-                    changed = addMethods(psiClass, stompFilterModel) || changed;
+                    changed = stompFilterModel.addFromClassRecursively(psiClass) || changed;
                 }
             }
         }
-        if (true) {
-            stompWindow.resetAndReload();
-        }
+        stompWindow.resetAndReload();
     }
 
+    public void hideBottomSplit() {
+        stompWindow.hideBottomSplit();
+    }
+
+    public void createJunitFromSelectedReplay() {
+        List<TestCandidateBareBone> selectedCandidates = stompWindow.getSelectedCandidates();
+
+
+    }
+
+    public int selectVisibleCandidates() {
+        return stompWindow.selectVisibleCandidates();
+    }
+
+    public List<TestCandidateBareBone> getSelectedCandidates() {
+        return stompWindow.getSelectedCandidates();
+    }
+
+    public List<TestCandidateMetadata> getCandidatesForMethod(MethodAdapter methodElement) {
+        StompFilterModel filterModel = new StompFilterModel();
+        filterModel.addFromClassRecursively(methodElement.getContainingClass().getSource());
+        filterModel.getIncludedMethodNames().clear();
+        filterModel.getIncludedMethodNames().add(methodElement.getName());
+        List<TestCandidateBareBone> candidateBones = currentState.getSessionInstance()
+                .getTestCandidatePaginatedByStompFilterModel(filterModel, 0, 10);
+        return candidateBones.stream().map(e -> getTestCandidateById(e.getId(), true)).collect(Collectors.toList());
+
+    }
 }

@@ -7,7 +7,6 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.impl.source.PsiJavaFileImpl;
@@ -123,7 +122,7 @@ public class JavaClassAdapter implements ClassAdapter {
     }
 
     @Override
-    public PsiElement getSource() {
+    public PsiClass getSource() {
         return psiClass;
     }
 }

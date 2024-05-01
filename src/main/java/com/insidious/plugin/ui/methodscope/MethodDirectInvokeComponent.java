@@ -8,6 +8,7 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
+import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
@@ -17,7 +18,12 @@ import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
+import com.insidious.plugin.pojo.frameworks.JsonFramework;
+import com.insidious.plugin.pojo.frameworks.MockFramework;
+import com.insidious.plugin.pojo.frameworks.TestFramework;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.ui.treeeditor.JsonTreeEditor;
 import com.insidious.plugin.util.*;
@@ -34,11 +40,12 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiType;
+import com.intellij.psi.*;
 import com.intellij.psi.search.ProjectAndLibrariesScope;
+import com.intellij.psi.search.searches.ReferencesSearch;
 import com.intellij.ui.components.JBScrollPane;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
@@ -52,34 +59,20 @@ import java.awt.event.ActionListener;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
-public class MethodDirectInvokeComponent implements ActionListener, Disposable {
+public class MethodDirectInvokeComponent
+        implements ActionListener, Disposable {
     private static final Logger logger = LoggerUtil.getInstance(MethodDirectInvokeComponent.class);
-    //    private static final ActionListener NOP_KEY_ADAPTER = e -> {
-//    };
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private final ObjectMapper objectMapper;
     private JPanel mainContainer;
     private Editor returnValueTextArea;
-    //    private JButton modifyArgumentsButton;
-    //    private JLabel editValueLabel;
     private JButton createBoilerplateButton;
     private JLabel methodNameLabel;
-    //    private JPanel directInvokeContainerPanel;
-//    private JPanel junitBoilerplaceContainerPanel;
-//    private JPanel boilerplateCustomizerContainer;
     private JPanel centerPanel;
-    //    private JTabbedPane tabbedPane;
     private JPanel controlPanel;
-    //    private JPanel buttonsPanel;
-//    private JLabel executeMethodRouteLabel;
-//    private JLabel filterInTimeline;
-//    private JLabel runReplayTests;
-//    private JLabel boilerplateLabel;
-//    private JLabel loadTestLabel;
-//    private JLabel fuzzyTestLabel;
-//    private JLabel mockCallsLabel;
     private MethodAdapter methodElement;
     private JBScrollPane parameterScrollPanel = null;
     private TestCaseDesignerLite designerLite;
@@ -90,7 +83,8 @@ public class MethodDirectInvokeComponent implements ActionListener, Disposable {
     private boolean isShowingRouter = true;
 
 
-    public MethodDirectInvokeComponent(InsidiousService insidiousService, ComponentLifecycleListener<MethodDirectInvokeComponent> componentLifecycleListener) {
+    public MethodDirectInvokeComponent(InsidiousService insidiousService,
+                                       ComponentLifecycleListener<MethodDirectInvokeComponent> componentLifecycleListener) {
         this.insidiousService = insidiousService;
         this.objectMapper = ObjectMapperInstance.getInstance();
 
@@ -115,21 +109,120 @@ public class MethodDirectInvokeComponent implements ActionListener, Disposable {
             public void showJunitCreator() {
                 isShowingRouter = false;
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    if (designerLite != null) {
-                        return;
-                    }
-                    designerLite = new TestCaseDesignerLite(methodElement, null, true, insidiousService);
+                    TestCaseGenerationConfiguration configuration = new TestCaseGenerationConfiguration(
+                            TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Jackson,
+                            ResourceEmbedMode.IN_CODE
+                    );
 
-                    centerPanel.add(designerLite.getComponent(), BorderLayout.CENTER);
+
+                    designerLite = new TestCaseDesignerLite(methodElement, configuration, true, insidiousService);
+
                     ApplicationManager.getApplication().invokeLater(() -> {
+                        centerPanel.removeAll();
+                        centerPanel.add(designerLite.getComponent(), BorderLayout.CENTER);
 
                         centerPanel.getParent().revalidate();
                         centerPanel.getParent().repaint();
-
-                        centerPanel.getParent().getParent().revalidate();
-                        centerPanel.getParent().getParent().repaint();
                     });
                 });
+            }
+
+            @Override
+            public void showJunitFromRecordedCreator() {
+
+                isShowingRouter = false;
+
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    TestCaseGenerationConfiguration configuration = new TestCaseGenerationConfiguration(
+                            TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Jackson,
+                            ResourceEmbedMode.IN_CODE
+                    );
+
+                    insidiousService.showStompAndFilterForMethod(methodElement);
+                    insidiousService.selectVisibleCandidates();
+
+
+                    List<TestCandidateMetadata> candidates = insidiousService.getCandidatesForMethod(methodElement);
+                    if (candidates.isEmpty()) {
+                        InsidiousNotification.notifyMessage(
+                                "No replay records found for this method, start your application with unlogged-sdk " +
+                                        "and execute method to record execution",
+                                NotificationType.WARNING
+                        );
+                        return;
+                    }
+
+                    configuration.setTestMethodName(methodElement.getName());
+
+                    for (TestCandidateMetadata selectedCandidate : candidates) {
+                        configuration.getTestCandidateMetadataList().add(selectedCandidate);
+                        configuration.getCallExpressionList().addAll(selectedCandidate.getCallsList());
+
+                    }
+                    designerLite = new TestCaseDesignerLite(methodElement, configuration, false, insidiousService);
+
+
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        centerPanel.removeAll();
+                        centerPanel.add(designerLite.getComponent(), BorderLayout.CENTER);
+
+                        centerPanel.getParent().revalidate();
+                        centerPanel.getParent().repaint();
+                    });
+
+                });
+
+            }
+
+            @Override
+            public void showMockCreator() {
+                isShowingRouter = false;
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+
+                    CountDownLatch cdl = new CountDownLatch(1);
+                    List<PsiReference> psiReferences = new ArrayList<>();
+                    ProgressManager.getInstance()
+                            .runProcessWithProgressSynchronously(new Runnable() {
+                                @Override
+                                public void run() {
+                                    @NotNull Collection<PsiReference> references =
+                                            ApplicationManager.getApplication().runReadAction(
+                                                    (Computable<Collection<PsiReference>>) () -> ReferencesSearch.search(
+                                                            methodElement.getPsiMethod()).findAll());
+                                    psiReferences.addAll(references);
+                                    cdl.countDown();
+
+                                }
+                            }, "Search for references to method", false, insidiousService.getProject());
+
+
+                    try {
+                        cdl.await();
+                    } catch (InterruptedException e) {
+                        return;
+                    }
+                    if (psiReferences.isEmpty()) {
+                        InsidiousNotification.notifyMessage("Could not find a call for this method. Please use this " +
+                                "method to create a mock for it", NotificationType.WARNING);
+                        return;
+                    }
+
+                    for (PsiReference reference : psiReferences) {
+                        if (reference instanceof PsiReferenceExpression) {
+                            PsiReferenceExpression refExpr = (PsiReferenceExpression) reference;
+                            insidiousService.showMockCreator((JavaMethodAdapter) methodElement,
+                                    (PsiMethodCallExpression) refExpr.getParent(), declaredMock -> {
+                                        insidiousService.hideBottomSplit();
+                                    });
+                            break;
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void runReplayTests() {
+                routeToCiDocumentation();
             }
         });
         centerPanel.add(routerPanel.getComponent(), BorderLayout.CENTER);
@@ -204,38 +297,22 @@ public class MethodDirectInvokeComponent implements ActionListener, Disposable {
     }
 
 
-//    private void configureCloseButton(ComponentLifecycleListener<MethodDirectInvokeComponent> componentLifecycleListener) {
-//        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        final Border closeButtonOriginalBorder = closeButton.getBorder();
-//        final Border actuallyOriginalBorder = BorderFactory.createCompoundBorder(
-//                BorderFactory.createEmptyBorder(2, 2, 2, 2),
-//                closeButtonOriginalBorder);
-//        closeButton.setBorder(actuallyOriginalBorder);
-//        closeButton.setToolTipText("Hide direct invoke");
-//        closeButton.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseEntered(MouseEvent e) {
-//                super.mouseEntered(e);
-//                closeButton.setBorder(BorderFactory.createCompoundBorder(
-//                        BorderFactory.createRaisedBevelBorder(),
-//                        closeButtonOriginalBorder));
-////                closeButton.setIcon(UIUtils.CLOSE_LINE_BLACK_PNG);
-//            }
-//
-//            @Override
-//            public void mouseExited(MouseEvent e) {
-//                super.mouseExited(e);
-//                closeButton.setBorder(actuallyOriginalBorder);
-////                closeButton.setIcon(UIUtils.CLOSE_LINE_PNG);
-//            }
-//
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                super.mouseClicked(e);
-//                componentLifecycleListener.onClose(MethodDirectInvokeComponent.this);
-//            }
-//        });
-//    }
+    public void routeToCiDocumentation() {
+        String link = "https://read.unlogged.io/cirunner/";
+        if (Desktop.isDesktopSupported()) {
+            try {
+                java.awt.Desktop.getDesktop()
+                        .browse(java.net.URI.create(link));
+            } catch (Exception e) {
+            }
+        } else {
+            InsidiousNotification.notifyMessage("<a href='https://read.unlogged.io/cirunner/'>Documentation</a> for running unlogged replay tests from " +
+                    "CLI/Maven/Gradle", NotificationType.INFORMATION);
+        }
+        UsageInsightTracker.getInstance().RecordEvent(
+                "routeToGithub", null);
+    }
+
 
     private int expandAll(JTree tree, TreePath parent) {
         TreeNode node = (TreeNode) parent.getLastPathComponent();
@@ -281,22 +358,7 @@ public class MethodDirectInvokeComponent implements ActionListener, Disposable {
             logger.info("DirectInvoke got null method");
             return;
         }
-        this.methodElement = methodElement1;
-        String methodName = methodElement.getName();
-
         ClassAdapter containingClass = methodElement.getContainingClass();
-
-        String className = ApplicationManager.getApplication().runReadAction(
-                (Computable<String>) containingClass::getName);
-
-        String text = className + "." + methodName;
-        methodNameLabel.setText(text.substring(0, Math.min(text.length(), 40)) +
-                (text.length() > 40 ? "..." : ""));
-        methodNameLabel.setToolTipText(methodName);
-
-        logger.warn("render method executor for: " + methodName);
-        String methodNameForLabel = methodName.length() > 40 ? methodName.substring(0, 40) + "..." : methodName;
-        String title = methodNameForLabel + "( " + ")";
 
         ParameterAdapter[] methodParameters = methodElement.getParameters();
 
@@ -327,6 +389,8 @@ public class MethodDirectInvokeComponent implements ActionListener, Disposable {
         }
 
         JPanel methodParameterContainer = new JPanel();
+        BorderLayout boxLayout = new BorderLayout();
+        methodParameterContainer.setLayout(boxLayout);
 
         parameterInputComponents.clear();
         Project project = methodElement.getProject();
@@ -334,8 +398,6 @@ public class MethodDirectInvokeComponent implements ActionListener, Disposable {
 
         if (methodParameters.length > 0) {
 //            methodParameterContainer.setLayout(new GridLayout(methodParameters.length, 1));
-            BorderLayout boxLayout = new BorderLayout();
-            methodParameterContainer.setLayout(boxLayout);
             Map<String, JsonNode> methodArgumentsMap = new HashMap<>();
 
             for (int i = 0; i < methodParameters.length; i++) {
@@ -374,11 +436,12 @@ public class MethodDirectInvokeComponent implements ActionListener, Disposable {
             }
             parameterEditor = new JsonTreeEditor(jsonNode, "Method Arguments", true, executeAction);
             parameterEditor.setEditable(true);
-            methodParameterContainer.add(parameterEditor.getComponent(), BorderLayout.CENTER);
         } else {
-            parameterEditor = new JsonTreeEditor(executeAction);
-            methodParameterContainer.add(parameterEditor.getComponent(), BorderLayout.CENTER);
+            parameterEditor = new JsonTreeEditor(objectMapper.getNodeFactory().objectNode(), "No method arguments",
+                    false, executeAction);
         }
+
+        methodParameterContainer.add(parameterEditor.getComponent(), BorderLayout.CENTER);
 
         if (parameterScrollPanel == null) {
             parameterScrollPanel = new JBScrollPane(methodParameterContainer);
@@ -389,8 +452,10 @@ public class MethodDirectInvokeComponent implements ActionListener, Disposable {
 
         ApplicationManager.getApplication().invokeLater(() -> {
             centerPanel.removeAll();
-            centerPanel.add(parameterScrollPanel, BorderLayout.CENTER);
             parameterScrollPanel.setViewportView(methodParameterContainer);
+            centerPanel.add(parameterScrollPanel, BorderLayout.CENTER);
+            parameterScrollPanel.revalidate();
+            parameterScrollPanel.repaint();
             centerPanel.revalidate();
             centerPanel.repaint();
         });
@@ -627,5 +692,22 @@ public class MethodDirectInvokeComponent implements ActionListener, Disposable {
 
     public void setMethod(MethodAdapter method) {
         this.methodElement = method;
+        ClassAdapter containingClass = methodElement.getContainingClass();
+
+        String methodName = methodElement.getName();
+
+
+        String className = ApplicationManager.getApplication().runReadAction(
+                (Computable<String>) containingClass::getName);
+
+        String text = className + "." + methodName;
+        methodNameLabel.setText(text.substring(0, Math.min(text.length(), 40)) +
+                (text.length() > 40 ? "..." : ""));
+        methodNameLabel.setToolTipText(methodName);
+
+        logger.warn("render method executor for: " + methodName);
+//        String methodNameForLabel = methodName.length() > 40 ? methodName.substring(0, 40) + "..." : methodName;
+//        String title = methodNameForLabel + "( " + ")";
+
     }
 }

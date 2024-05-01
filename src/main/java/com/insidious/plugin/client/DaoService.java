@@ -1393,7 +1393,7 @@ public class DaoService {
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
     getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
-//        logger.warn("query test candidates: " + candidateSearchQuery);
+        logger.warn("query test candidates: " + candidateSearchQuery);
         try {
             long start = new Date().getTime();
 
@@ -1902,7 +1902,7 @@ public class DaoService {
     }
 
     public List<TestCandidateBareBone>
-    getTestCandidatePaginated(long afterEventId, int page, int limit, StompFilterModel stompFilterModel) throws SQLException {
+    getTestCandidatePaginated(long afterEventId, int page, int limit, StompFilterModel stompFilterModel) {
         List<String[]> dbCandidateList;
         try {
 

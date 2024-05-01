@@ -4038,54 +4038,53 @@ public class SessionInstance implements Runnable {
             long afterEventId,
             StompFilterModel stompFilterModel, AtomicInteger cdl) {
 
-        try {
 
-
-            int page = 0;
-            int limit = 50;
-            int count = 0;
-            int attempt = 0;
-            long currentAfterEventId = afterEventId;
-            while (true) {
-                attempt++;
-                if (shutdown) {
-                    cdl.decrementAndGet();
-                    break;
-                }
-                if (cdl.get() < 1) {
-                    logger.warn(
-                            "shutting down query started at [" + afterEventId + "] currently at item [" + count +
-                                    "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
-                    break;
-                }
-                List<TestCandidateBareBone> testCandidateMetadataList = daoService
-                        .getTestCandidatePaginated(currentAfterEventId, 0, limit, stompFilterModel);
-                if (cdl.get() < 1) {
-                    logger.warn(
-                            "shutting down query started at [" + afterEventId + "] currently at item [" + count +
-                                    "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
-                    break;
-                }
-                if (testCandidateMetadataList.size() > 0) {
-                    count += testCandidateMetadataList.size();
-                    testCandidateReceiver.accept(testCandidateMetadataList);
-                    currentAfterEventId = testCandidateMetadataList.get(0).getId() + 1;
-                }
-                if (testCandidateMetadataList.size() < limit) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
+        int page = 0;
+        int limit = 50;
+        int count = 0;
+        int attempt = 0;
+        long currentAfterEventId = afterEventId;
+        while (true) {
+            attempt++;
+            if (shutdown) {
+                cdl.decrementAndGet();
+                break;
+            }
+            if (cdl.get() < 1) {
+                logger.warn(
+                        "shutting down query started at [" + afterEventId + "] currently at item [" + count +
+                                "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
+                break;
+            }
+            List<TestCandidateBareBone> testCandidateMetadataList = getTestCandidatePaginatedByStompFilterModel(
+                    stompFilterModel,
+                    currentAfterEventId, limit);
+            if (cdl.get() < 1) {
+                logger.warn(
+                        "shutting down query started at [" + afterEventId + "] currently at item [" + count +
+                                "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
+                break;
+            }
+            if (testCandidateMetadataList.size() > 0) {
+                count += testCandidateMetadataList.size();
+                testCandidateReceiver.accept(testCandidateMetadataList);
+                currentAfterEventId = testCandidateMetadataList.get(0).getId() + 1;
+            }
+            if (testCandidateMetadataList.size() < limit) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
             }
-
-        } catch (SQLException e) {
-            // failed to load candidates hmm
-            e.printStackTrace();
-            throw new RuntimeException(e);
         }
 
+    }
+
+    public List<TestCandidateBareBone> getTestCandidatePaginatedByStompFilterModel(StompFilterModel stompFilterModel,
+                                                                                   long currentAfterEventId, int limit) {
+        return daoService
+                .getTestCandidatePaginated(currentAfterEventId, 0, limit, stompFilterModel);
     }
 
     public Project getProject() {

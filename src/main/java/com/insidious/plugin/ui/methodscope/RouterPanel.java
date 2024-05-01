@@ -1,7 +1,10 @@
 package com.insidious.plugin.ui.methodscope;
 
+import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.icons.AllIcons;
+import com.intellij.notification.NotificationType;
 
 import javax.swing.*;
 import java.awt.*;
@@ -17,8 +20,15 @@ public class RouterPanel {
     private JLabel loadTestLabel;
     private JLabel fuzzyTestLabel;
     private JPanel mainPanel;
+    private JLabel replayJunitTest;
 
     public RouterPanel(RouterListener routerListener) {
+
+
+        loadTestLabel.setEnabled(false);
+        fuzzyTestLabel.setEnabled(false);
+
+
         executeMethodRouteLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         executeMethodRouteLabel.setIcon(AllIcons.Actions.Execute);
         filterInTimeline.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -28,6 +38,9 @@ public class RouterPanel {
 
         mockCallsLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         mockCallsLabel.setIcon(UIUtils.GHOST_MOCK);
+
+        replayJunitTest.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        replayJunitTest.setIcon(AllIcons.Scope.Tests);
 
         boilerplateLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         boilerplateLabel.setIcon(AllIcons.Scope.Tests);
@@ -40,7 +53,7 @@ public class RouterPanel {
         // 4
         executeMethodRouteLabel.setBorder(BorderFactory.createCompoundBorder(executeMethodRouteLabel.getBorder(),
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)));
-        mockCallsLabel.setBorder(BorderFactory.createCompoundBorder(executeMethodRouteLabel.getBorder(),
+        mockCallsLabel.setBorder(BorderFactory.createCompoundBorder(mockCallsLabel.getBorder(),
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)));
 
         filterInTimeline.setBorder(BorderFactory.createCompoundBorder(filterInTimeline.getBorder(),
@@ -53,6 +66,9 @@ public class RouterPanel {
         // 3
 
         boilerplateLabel.setBorder(BorderFactory.createCompoundBorder(boilerplateLabel.getBorder(),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+
+        replayJunitTest.setBorder(BorderFactory.createCompoundBorder(replayJunitTest.getBorder(),
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)));
 
         loadTestLabel.setBorder(BorderFactory.createCompoundBorder(loadTestLabel.getBorder(),
@@ -70,6 +86,20 @@ public class RouterPanel {
             }
         });
 
+        mockCallsLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                routerListener.showMockCreator();
+            }
+        });
+
+        replayJunitTest.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                routerListener.showJunitFromRecordedCreator();
+            }
+        });
+
 
         filterInTimeline.addMouseListener(new MouseAdapter() {
             @Override
@@ -78,7 +108,25 @@ public class RouterPanel {
             }
         });
 
+        boilerplateLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                routerListener.showJunitCreator();
+            }
+
+        });
+
+        runReplayTests.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                routerListener.runReplayTests();
+            }
+
+        });
+
     }
+
+
 
     public JPanel getComponent() {
         return mainPanel;
