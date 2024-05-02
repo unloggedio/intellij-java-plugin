@@ -59,8 +59,7 @@ public class AutoExecutorCITest {
         AgentClientLite agentClientLite = new AgentClientLite();
         boolean isConnected = agentClientLite.isConnected();
         if (!isConnected) {
-            System.out.println("Not running the autoExecutor tests as Agent is not connected");
-            return;
+            throw new RuntimeException("Cannot connect to agent, skipping AutoExecutor tests");
         }
 
         List<TestResultSummary> resultSummaries = new ArrayList<>();
