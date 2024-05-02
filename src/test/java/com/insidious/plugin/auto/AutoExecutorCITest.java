@@ -57,6 +57,12 @@ public class AutoExecutorCITest {
 
     public void runTests(TreeMap<String, URL> testConfigs) {
         AgentClientLite agentClientLite = new AgentClientLite();
+        boolean isConnected = agentClientLite.isConnected();
+        if (!isConnected) {
+            System.out.println("Not running the autoExecutor tests as Agent is not connected");
+            return;
+        }
+
         List<TestResultSummary> resultSummaries = new ArrayList<>();
 
         for (String testMode : testConfigs.keySet()) {
