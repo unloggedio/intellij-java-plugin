@@ -383,6 +383,11 @@ public class StompComponent implements
 
 //        saveReplayButton.setEnabled(false);
         updateFilterLabel();
+        directInvokeComponent = new MethodDirectInvokeComponent(insidiousService, this);
+        JComponent content = directInvokeComponent.getContent();
+        content.setMinimumSize(new Dimension(-1, 400));
+        content.setMaximumSize(new Dimension(-1, 500));
+
     }
 
     private void selectAll() {
@@ -518,7 +523,6 @@ public class StompComponent implements
                         TestCandidateBareBone selectedCandidate = selectedCandidates.get(i);
                         sourceCandidates.add(selectedCandidate);
                     }
-
 
 
                     saveFormReference = new TestCandidateSaveForm(sourceCandidates, candidateLifeListener,
@@ -1313,12 +1317,6 @@ public class StompComponent implements
     }
 
     public void showDirectInvoke(MethodAdapter method) {
-        if (directInvokeComponent == null) {
-            directInvokeComponent = new MethodDirectInvokeComponent(insidiousService, this);
-            JComponent content = directInvokeComponent.getContent();
-            content.setMinimumSize(new Dimension(-1, 400));
-            content.setMaximumSize(new Dimension(-1, 500));
-        }
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             directInvokeComponent.setMethod(method);
@@ -1369,7 +1367,6 @@ public class StompComponent implements
 
     public void removeDirectInvoke() {
         hideBottomSplit();
-        directInvokeComponent = null;
     }
 
     private void setConnectedAndWaiting() {
@@ -1613,11 +1610,19 @@ public class StompComponent implements
 
     public void showRouterForMethod(MethodAdapter methodAdapter) {
         if (directInvokeComponent != null) {
-             directInvokeComponent.renderForMethod(methodAdapter, null);
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                directInvokeComponent.setMethod(methodAdapter);
+            });
         }
-        splitPane.setDividerLocation(200);
         ApplicationManager.getApplication().invokeLater(() -> {
+            splitPane.setDividerLocation(200);
+            southPanel.removeAll();
+            southPanel.add(directInvokeComponent.getContent(), BorderLayout.CENTER);
             directInvokeComponent.showRouter();
+            southPanel.revalidate();
+            southPanel.repaint();
+            southPanel.getParent().revalidate();
+            southPanel.getParent().repaint();
         });
 
     }

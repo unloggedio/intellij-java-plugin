@@ -707,15 +707,13 @@ public class MethodDirectInvokeComponent
         methodNameLabel.setToolTipText(methodName);
 
         logger.warn("render method executor for: " + methodName);
-//        String methodNameForLabel = methodName.length() > 40 ? methodName.substring(0, 40) + "..." : methodName;
-//        String title = methodNameForLabel + "( " + ")";
-
-        renderForMethod(methodElement, null);
     }
 
     public void showRouter() {
         isShowingRouter = true;
         centerPanel.removeAll();
         centerPanel.add(routerPanel.getComponent(), BorderLayout.CENTER);
+        centerPanel.revalidate();
+        centerPanel.repaint();
     }
 }
