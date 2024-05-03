@@ -1,5 +1,6 @@
 package com.insidious.plugin.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.java.JavaParameterAdapter;
@@ -32,6 +33,7 @@ import com.intellij.psi.util.PsiTypesUtil;
 import com.intellij.psi.util.TypeConversionUtil;
 
 import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -412,7 +414,7 @@ public class ClassUtils {
 
     private static String getCurrentTimeAsString() {
         Instant now = Instant.now();
-        return String.format("\"%s\"", new Date().getTime());
+        return String.format("\"%s\"", ZonedDateTime.now().toLocalDateTime());
     }
 
     public static void chooseClassImplementation(ClassAdapter psiClass, boolean showUI, ClassChosenListener classChosenListener) {
