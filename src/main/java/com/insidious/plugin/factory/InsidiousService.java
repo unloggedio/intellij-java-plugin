@@ -614,6 +614,7 @@ final public class InsidiousService implements
 
         stompWindowContent =
                 contentFactory.createContent(stompWindow.getComponent(), "Live", false);
+
         stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
         contentManager.addContent(stompWindowContent, 0);
@@ -1162,6 +1163,8 @@ final public class InsidiousService implements
         logger.info("Loading new session: " + executionSession.getSessionId() + " => " + project.getName());
         final SessionInstance sessionInstance = sessionManager.createSessionInstance(executionSession, serverMetadata,
                 project);
+
+
         currentState.setSessionInstance(sessionInstance);
         sessionInstance.addTestCandidateListener(this);
 
@@ -1181,8 +1184,6 @@ final public class InsidiousService implements
 //                }
 
                 stompWindow.setSession(sessionInstance);
-                sessionInstance.removeAllScanEventListeners();
-                sessionInstance.addSessionScanEventListener(stompWindow.getScanEventListener());
                 stompWindow.loadNewCandidates();
 
 
@@ -1639,13 +1640,16 @@ final public class InsidiousService implements
     }
 
     public void onAgentDisconnected() {
-        UsageInsightTracker.getInstance().RecordEvent("AGENT_DISCONNECTED", null);
+        JSONObject props = new JSONObject();
+        props.put("sessionId", currentState.getSessionInstance().getExecutionSession().getSessionId());
+        props.put("project", project.getName());
+        UsageInsightTracker.getInstance().RecordEvent("AGENT_DISCONNECTED", props);
 
         if (libraryToolWindow != null) {
             libraryToolWindow.setMockStatus(false);
         }
         if (stompWindow != null) {
-            stompWindow.getScanEventListener().ended();
+            stompWindow.disconnected();
         }
 
         removeCurrentActiveHighlights();
@@ -1939,7 +1943,9 @@ final public class InsidiousService implements
                 }
             }
         }
-        stompWindow.resetAndReload();
+        if (stompWindow != null) {
+            stompWindow.resetAndReload();
+        }
     }
 
     public void hideBottomSplit() {

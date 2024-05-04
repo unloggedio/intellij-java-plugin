@@ -336,6 +336,7 @@ public class StompComponent implements
         scanEventListener = new SessionScanEventListener() {
             @Override
             public void started() {
+                logger.warn("setConnectedAndWaiting: " + StompComponent.this.hashCode());
                 lastEventId = 0;
                 setConnectedAndWaiting();
                 stompStatusComponent.addRightStatus("last-updated", "Last updated at " + simpleTime(new Date()));
@@ -355,7 +356,7 @@ public class StompComponent implements
             }
 
             @Override
-            public void ended() {
+            public synchronized void ended() {
                 disconnected();
                 stompStatusComponent.removeRightStatus("last-updated");
                 stompStatusComponent.removeRightStatus("scan-progress");
@@ -1308,11 +1309,12 @@ public class StompComponent implements
         }
     }
 
-    private void disconnected() {
+    public void disconnected() {
         if (candidateQueryLatch != null) {
             candidateQueryLatch.decrementAndGet();
             candidateQueryLatch = null;
         }
+        logger.warn("setDisconnected: " + stompStatusComponent.hashCode());
         stompStatusComponent.setDisconnected();
     }
 
@@ -1399,6 +1401,7 @@ public class StompComponent implements
     }
 
     private void setConnected() {
+        logger.warn("setDisconnected: " + stompStatusComponent.hashCode());
         stompStatusComponent.setConnected();
     }
 
@@ -1410,6 +1413,14 @@ public class StompComponent implements
             return;
         }
         candidateQueryLatch = new AtomicInteger(1);
+
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            if (sessionInstance.isConnected() && sessionInstance.isScanEnable()) {
+                setConnected();
+            } else {
+                disconnected();
+            }
+        });
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             sessionInstance
@@ -1521,6 +1532,7 @@ public class StompComponent implements
             candidateQueryLatch = null;
         }
         this.sessionInstance = sessionInstance;
+        sessionInstance.addSessionScanEventListener(getScanEventListener());
     }
 
     public void onMethodFocussed(MethodAdapter method) {

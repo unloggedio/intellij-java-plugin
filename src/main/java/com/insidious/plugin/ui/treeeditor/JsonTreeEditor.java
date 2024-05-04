@@ -362,4 +362,8 @@ public class JsonTreeEditor {
     public void setEditable(Boolean editState) {
         valueTree.setEditable(editState);
     }
+
+    public void setVisible(boolean b) {
+        valueTree.setVisible(b);
+    }
 }

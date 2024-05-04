@@ -62,7 +62,7 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
 public class MethodDirectInvokeComponent
-        implements ActionListener, Disposable {
+        implements Disposable {
     private static final Logger logger = LoggerUtil.getInstance(MethodDirectInvokeComponent.class);
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
@@ -82,6 +82,7 @@ public class MethodDirectInvokeComponent
     private AnAction modifyArgumentsAction;
 
     private boolean isShowingRouter = true;
+    private JPanel methodParameterContainer;
 
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService,
@@ -273,7 +274,16 @@ public class MethodDirectInvokeComponent
         this.executeAction = new AnAction(() -> "Execute Method", UIUtils.DIRECT_INVOKE_EXECUTE) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                executeMethodWithParameters();
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    try {
+                        parameterScrollPanel.setViewportView(new JLabel("Executing..."));
+                        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                            executeMethodWithParameters();
+                        });
+                    } catch (Exception e1) {
+                        parameterScrollPanel.setViewportView(methodParameterContainer);
+                    }
+                });
             }
 
             @Override
@@ -307,8 +317,9 @@ public class MethodDirectInvokeComponent
             } catch (Exception e) {
             }
         } else {
-            InsidiousNotification.notifyMessage("<a href='https://read.unlogged.io/cirunner/'>Documentation</a> for running unlogged replay tests from " +
-                    "CLI/Maven/Gradle", NotificationType.INFORMATION);
+            InsidiousNotification.notifyMessage(
+                    "<a href='https://read.unlogged.io/cirunner/'>Documentation</a> for running unlogged replay tests from " +
+                            "CLI/Maven/Gradle", NotificationType.INFORMATION);
         }
         UsageInsightTracker.getInstance().RecordEvent(
                 "routeToGithub", null);
@@ -351,7 +362,7 @@ public class MethodDirectInvokeComponent
             return;
         }
 //        createBoilerplateButton.setVisible(false);
-        ApplicationManager.getApplication().executeOnPooledThread(this::chooseClassAndDirectInvoke);
+        this.chooseClassAndDirectInvoke();
     }
 
     public void renderForMethod(MethodAdapter methodElement1, List<String> methodArgumentValues) {
@@ -389,7 +400,7 @@ public class MethodDirectInvokeComponent
             }
         }
 
-        JPanel methodParameterContainer = new JPanel();
+        methodParameterContainer = new JPanel();
         BorderLayout boxLayout = new BorderLayout();
         methodParameterContainer.setLayout(boxLayout);
 
@@ -463,19 +474,14 @@ public class MethodDirectInvokeComponent
 
     }
 
-
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        executeMethodWithParameters();
-    }
-
-
     public JComponent getContent() {
         return mainContainer;
     }
 
     public void triggerExecute() {
-        executeMethodWithParameters();
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            executeMethodWithParameters();
+        });
     }
 
     private void classSelected(ClassUnderTest psiClass) {

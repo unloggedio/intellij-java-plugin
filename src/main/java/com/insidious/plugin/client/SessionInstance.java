@@ -196,6 +196,7 @@ public class SessionInstance implements Runnable {
             }
             executorPool.submit(() -> {
                 try {
+                    logger.warn("publishEvent(ScanEventType.START)");
                     publishEvent(ScanEventType.START);
                     this.sessionArchives = refreshSessionArchivesList(false);
                 } catch (IOException e) {
@@ -237,6 +238,7 @@ public class SessionInstance implements Runnable {
     }
 
     private void publishEvent(ScanEventType scanEventType) {
+        logger.warn("publishEvent [" + sessionScanEventListeners.size() + "] ScanEventType: " + scanEventType);
         switch (scanEventType) {
 
             case START:
@@ -3972,6 +3974,7 @@ public class SessionInstance implements Runnable {
         shutdown = true;
         logger.warn("Closing session instance: " + executionSession.getPath());
         publishEvent(ScanEventType.ENDED);
+        removeAllScanEventListeners();
         try {
             if (zipConsumer != null) {
                 zipConsumer.close();
@@ -4126,6 +4129,7 @@ public class SessionInstance implements Runnable {
     }
 
     public void addSessionScanEventListener(SessionScanEventListener listener) {
+        this.sessionScanEventListeners.clear();
         this.sessionScanEventListeners.add(listener);
         if (scanEnable && connectionCheckerService.isConnected()) {
             listener.started();
