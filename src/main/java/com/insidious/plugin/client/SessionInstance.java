@@ -4040,8 +4040,6 @@ public class SessionInstance implements Runnable {
             Consumer<List<TestCandidateBareBone>> testCandidateReceiver,
             long afterEventId,
             StompFilterModel stompFilterModel, AtomicInteger cdl) {
-
-
         int page = 0;
         int limit = 50;
         int count = 0;
