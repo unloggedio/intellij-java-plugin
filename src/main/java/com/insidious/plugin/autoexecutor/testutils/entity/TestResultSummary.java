@@ -1,16 +1,20 @@
 package com.insidious.plugin.autoexecutor.testutils.entity;
 
+import java.util.List;
+
 public class TestResultSummary {
     private int numberOfCases;
     private int passingCasesCount;
     private int failingCasesCount;
-
     private String mode;
+    private List<Integer> failingCases;
 
-    public TestResultSummary(int numberOfCases, int passingCasesCount, int failingCasesCount) {
+    public TestResultSummary(int numberOfCases, int passingCasesCount, int failingCasesCount,
+                             List<Integer> failingCaseIds) {
         this.numberOfCases = numberOfCases;
         this.passingCasesCount = passingCasesCount;
         this.failingCasesCount = failingCasesCount;
+        this.failingCases = failingCaseIds;
     }
 
     public int getNumberOfCases() {
@@ -31,5 +35,9 @@ public class TestResultSummary {
 
     public void setMode(String mode) {
         this.mode = mode;
+    }
+
+    public List<Integer> getFailingCases() {
+        return failingCases;
     }
 }

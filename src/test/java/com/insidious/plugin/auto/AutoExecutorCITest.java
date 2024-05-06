@@ -78,6 +78,7 @@ public class AutoExecutorCITest {
             System.out.println("    Total number of cases run : " + resultSummary.getNumberOfCases());
             System.out.println("    Number of Passing cases : " + resultSummary.getPassingCasesCount());
             System.out.println("    Number of Failing cases : " + resultSummary.getFailingCasesCount());
+            System.out.println("    Failing tests (Row numbers) : " + resultSummary.getFailingCases().toString());
             if (resultSummary.getFailingCasesCount() > 0) {
                 overallStatus = false;
             }
@@ -94,6 +95,7 @@ public class AutoExecutorCITest {
         int count = 0;
         int passing = 0;
         int failing = 0;
+        List<Integer> failingCaseIds = new ArrayList<>();
 
         while (rowIterator.hasNext()) {
             if (count == 0) {
@@ -168,6 +170,7 @@ public class AutoExecutorCITest {
                     AutoAssertionResult result = AssertionUtils.assertCase(testUnit);
                     if (!result.isPassing()) {
                         failing++;
+                        failingCaseIds.add(count);
                     } else {
                         passing++;
                     }
@@ -194,6 +197,6 @@ public class AutoExecutorCITest {
                 }
             }
         }
-        return new TestResultSummary(count - 2, passing, failing);
+        return new TestResultSummary(count - 2, passing, failing, failingCaseIds);
     }
 }
