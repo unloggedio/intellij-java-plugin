@@ -58,3 +58,8 @@ test:
     paths:
       - build/reports/tests/test/*
     expire_in: 30 days
+
+scanTest:
+  stage: run Scan tests
+  script:
+  - "./gradlew clean test --tests com.insidious.plugin.scan.ScanTests --scan --info"
