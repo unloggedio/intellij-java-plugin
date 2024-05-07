@@ -33,7 +33,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-public class VideobugNetworkClient implements VideobugClientInterface {
+
+public class NetworkSessionInstanceClient implements SessionInstanceInterface, VideobugClientInterface {
     public static final String SIGN_IN_URL = "/api/auth/signin";
     public static final String SIGN_UP_URL = "/api/auth/signup";
     public static final String FORMAT_CODE_URL = "/api/format/java";
@@ -46,7 +47,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     public static final String GENERATE_PROJECT_TOKEN_URL = "/api/auth/generateAgentToken";
     public static final String TOKEN = "token";
     public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-    private final Logger logger = LoggerUtil.getInstance(VideobugNetworkClient.class);
+    private final Logger logger = LoggerUtil.getInstance(NetworkSessionInstanceClient.class);
     private final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<DataResponse<DataEventWithSessionId>>() {
     };
@@ -58,7 +59,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     private List<ExecutionSession> sessionList;
     private SessionInstance sessionInstance;
 
-    public VideobugNetworkClient(String endpoint) {
+    public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
         if (this.endpoint.endsWith("/")) {
             this.endpoint = this.endpoint.substring(0, this.endpoint.length() - 1);
@@ -129,8 +130,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                                 JSONObject jsonObject = new JSONObject(
                                         Objects.requireNonNull(response.body())
                                                 .string());
-                                VideobugNetworkClient.this.token = jsonObject.getString(TOKEN);
-                                VideobugNetworkClient.this.endpoint = signinRequest.getEndpoint();
+												NetworkSessionInstanceClient.this.token = jsonObject.getString(TOKEN);
+												NetworkSessionInstanceClient.this.endpoint = signinRequest.getEndpoint();
                                 signInCallback.success(token);
                             }
                         } finally {
@@ -719,6 +720,4 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         this.session = sessionInstance.getExecutionSession();
         this.sessionInstance = sessionInstance;
     }
-
-
 }
