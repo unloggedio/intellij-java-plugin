@@ -82,7 +82,7 @@ import java.util.zip.ZipInputStream;
 import static com.insidious.common.weaver.EventType.*;
 import static com.insidious.plugin.client.DatFileType.*;
 
-public class SessionInstance implements Runnable {
+public class SessionInstance implements SessionInstanceInterface, Runnable {
     private static final Logger logger = LoggerUtil.getInstance(SessionInstance.class);
     private final File sessionDirectory;
     private final ExecutionSession executionSession;
