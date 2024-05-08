@@ -228,6 +228,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return dataEvent;
     }
 
+    @Override
     public boolean isScanEnable() {
         return scanEnable;
     }
