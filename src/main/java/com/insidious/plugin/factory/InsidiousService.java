@@ -181,12 +181,14 @@ final public class InsidiousService implements
 
         String pathToSessions = Constants.HOME_PATH + "/sessions";
         FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
-        this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
+        // this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
 
         // test networkSessionInstanceClient
+		System.out.println("--------------------");
         NetworkSessionInstanceClient networkSessionInstanceClient = new NetworkSessionInstanceClient("https://localhost:8123");
         boolean scanEnable = networkSessionInstanceClient.isScanEnable();
         System.out.println("scanEnable = " + scanEnable);
+		System.out.println("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, ServerMetadata> checkCache = new HashMap<>();
