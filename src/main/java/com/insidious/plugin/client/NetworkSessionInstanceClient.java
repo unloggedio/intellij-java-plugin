@@ -741,15 +741,10 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface, V
             public void onResponse(Call call, Response response) throws IOException {
 
                 try {
-                    JSONObject jsonVal = new JSONObject(
-                            Objects.requireNonNull(response.body())
-                                    .string());
-
-                    System.out.println("-------------------");
-                    System.out.println("jsonVal = " + jsonVal);
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					Map<String, Object> jsonVal = objectMapper.readValue(responseBody, new TypeReference<Map<String, Object>>() {});
                     scanEnable = (boolean) jsonVal.get("scanEnable");
-                    System.out.println("scanEnableValue = " + scanEnable);
-                    System.out.println("-------------------");
 
                 } finally {
                     response.close();
