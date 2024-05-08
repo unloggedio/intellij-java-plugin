@@ -216,6 +216,9 @@ final public class InsidiousService implements
 		System.out.println("componentType = " + typeInfoTypeInt.getComponentType());
 		System.out.println("getClassLoaderIdentifier = " + typeInfoTypeInt.getClassLoaderIdentifier());
 		System.out.println("--------------------");
+		int totalFileCount = networkSessionInstanceClient.getTotalFileCount();
+		System.out.println("totalFileCount = " + totalFileCount);
+		System.out.println("--------------------");
 
 
         sessionListener = new GetProjectSessionsCallback() {

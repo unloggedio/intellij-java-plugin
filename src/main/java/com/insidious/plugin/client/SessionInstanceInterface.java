@@ -6,4 +6,5 @@ public interface SessionInstanceInterface {
     public boolean isScanEnable();
 	public TypeInfo getTypeInfo(String name);
 	public TypeInfo getTypeInfo(Integer typeId);
+	public int getTotalFileCount();
 }

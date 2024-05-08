@@ -33,11 +33,13 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String isScanEnableEndpoint = "/isScanEnable";
 	private String getTypeInfoTypeString = "/getTypeInfoTypeString";
 	private String getTypeInfoTypeInt = "/getTypeInfoTypeInt";
+	private String getTotalFileCount = "/getTotalFileCount";
 
 	// session instance attributes
     private String sessionId = "0";
 	private boolean scanEnable;
 	private TypeInfo typeInfo;
+	private int totalFileCount;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -232,6 +234,42 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
 
         return typeInfo;
+    }
+
+	@Override
+    public int getTotalFileCount() {
+        
+		String url = this.endpoint + this.getTotalFileCount + "?sessionId=" + this.sessionId;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					Map<String, Object> jsonVal = objectMapper.readValue(responseBody, new TypeReference<Map<String, Object>>() {});
+                    totalFileCount = (int) jsonVal.get("totalFileCount");
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+		try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return totalFileCount;
     }
 
 }

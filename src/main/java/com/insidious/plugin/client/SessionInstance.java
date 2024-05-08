@@ -4149,6 +4149,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return daoService.getProcessedFileCount();
     }
 
+	@Override
     public int getTotalFileCount() {
         return daoService.getTotalFileCount();
     }
