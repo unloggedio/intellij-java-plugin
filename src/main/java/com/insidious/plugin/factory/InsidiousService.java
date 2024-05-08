@@ -179,10 +179,15 @@ final public class InsidiousService implements
 
         sessionManager = ApplicationManager.getApplication().getService(ActiveSessionManager.class);
 
-
         String pathToSessions = Constants.HOME_PATH + "/sessions";
         FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
         this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
+
+        // test networkSessionInstanceClient
+        NetworkSessionInstanceClient networkSessionInstanceClient = new NetworkSessionInstanceClient("https://localhost:8123");
+        Boolean scanEnable = networkSessionInstanceClient.isScanEnable();
+        System.out.println("scanEnable = " + scanEnable);
+
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, ServerMetadata> checkCache = new HashMap<>();
             private ExecutionSession currentSession;
