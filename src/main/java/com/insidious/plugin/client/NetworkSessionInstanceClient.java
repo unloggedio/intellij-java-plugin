@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.weaver.TypeInfo;
-import com.insidious.plugin.Constants;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.pojo.*;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
@@ -17,7 +16,6 @@ import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
-import com.intellij.util.graph.Network;
 import okhttp3.*;
 
 import org.json.JSONArray;
@@ -31,8 +29,8 @@ import java.net.URL;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 

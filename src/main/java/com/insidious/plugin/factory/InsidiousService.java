@@ -185,7 +185,7 @@ final public class InsidiousService implements
 
         // test networkSessionInstanceClient
         NetworkSessionInstanceClient networkSessionInstanceClient = new NetworkSessionInstanceClient("https://localhost:8123");
-        Boolean scanEnable = networkSessionInstanceClient.isScanEnable();
+        boolean scanEnable = networkSessionInstanceClient.isScanEnable();
         System.out.println("scanEnable = " + scanEnable);
 
         sessionListener = new GetProjectSessionsCallback() {
