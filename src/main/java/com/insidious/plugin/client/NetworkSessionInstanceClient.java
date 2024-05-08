@@ -26,6 +26,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
 	// endpoint attributes
+	private String isScanEnableEndpoint = "/isScanEnable";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -112,14 +113,14 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
     @Override
     public boolean isScanEnable() {
-        String url = "http://localhost:8123/session/isScanEnable?sessionId=" + this.sessionId;
+        String url = this.endpoint + this.isScanEnableEndpoint + "?sessionId=" + this.sessionId;
         CountDownLatch latch = new CountDownLatch(1);
 
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 logger.info("failure encountered");
-                latch.countDown(); // Signal completion on failure
+                latch.countDown();
             }
 
             @Override
@@ -130,18 +131,17 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 					String responseBody = Objects.requireNonNull(response.body()).string();
 					Map<String, Object> jsonVal = objectMapper.readValue(responseBody, new TypeReference<Map<String, Object>>() {});
                     scanEnable = (boolean) jsonVal.get("scanEnable");
-
                 } finally {
                     response.close();
-                    latch.countDown(); // Signal completion
+                    latch.countDown();
                 }
             }
         });
 
         try {
-            latch.await(); // Wait until the latch is counted down
+            latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // Preserve the interruption status
+            Thread.currentThread().interrupt();
         }
 
 

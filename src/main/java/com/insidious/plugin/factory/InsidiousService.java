@@ -185,7 +185,7 @@ final public class InsidiousService implements
 
         // test networkSessionInstanceClient
 		System.out.println("--------------------");
-        NetworkSessionInstanceClient networkSessionInstanceClient = new NetworkSessionInstanceClient("https://localhost:8123");
+        NetworkSessionInstanceClient networkSessionInstanceClient = new NetworkSessionInstanceClient("https://localhost:8123/session");
         boolean scanEnable = networkSessionInstanceClient.isScanEnable();
         System.out.println("scanEnable = " + scanEnable);
 		System.out.println("--------------------");
