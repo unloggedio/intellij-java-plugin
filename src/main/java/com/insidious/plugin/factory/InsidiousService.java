@@ -185,40 +185,40 @@ final public class InsidiousService implements
         // this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
 
         // test networkSessionInstanceClient
-		System.out.println("--------------------");
-        NetworkSessionInstanceClient networkSessionInstanceClient = new NetworkSessionInstanceClient("http://localhost:8123/session");
-        boolean scanEnable = networkSessionInstanceClient.isScanEnable();
-        System.out.println("scanEnable = " + scanEnable);
-		System.out.println("----------------------");
+		logger.info("--------------------");
+		NetworkSessionInstanceClient networkSessionInstanceClient = new NetworkSessionInstanceClient("http://localhost:8123/session");
+		boolean scanEnable = networkSessionInstanceClient.isScanEnable();
+		logger.info("scanEnable = " + scanEnable);
+		logger.info("----------------------");
 		TypeInfo typeInfoTypeString = networkSessionInstanceClient.getTypeInfo("jdk.proxy2.$Proxy143");
-		System.out.println("typeInfoTypeString: ");
-		System.out.println("interface: " + typeInfoTypeString.getInterfaces());
+		logger.info("typeInfoTypeString: ");
+		logger.info("interface: " + typeInfoTypeString.getInterfaces());
 		for (int i=0;i<=typeInfoTypeString.getInterfaces().length-1;i++) {
-			System.out.println("	interfaces_data = " + typeInfoTypeString.getInterfaces()[i]);
+			logger.info("	interfaces_data = " + typeInfoTypeString.getInterfaces()[i]);
 		}
-		System.out.println("typeId = " + typeInfoTypeString.getTypeId());
-		System.out.println("typeNameFromClass = " + typeInfoTypeString.getTypeNameFromClass());
-		System.out.println("classLocation = " + typeInfoTypeString.getClassLocation());
-		System.out.println("superclass = " + typeInfoTypeString.getSuperClass());
-		System.out.println("componentType = " + typeInfoTypeString.getComponentType());
-		System.out.println("getClassLoaderIdentifier = " + typeInfoTypeString.getClassLoaderIdentifier());
-		System.out.println("--------------------");
+		logger.info("typeId = " + typeInfoTypeString.getTypeId());
+		logger.info("typeNameFromClass = " + typeInfoTypeString.getTypeNameFromClass());
+		logger.info("classLocation = " + typeInfoTypeString.getClassLocation());
+		logger.info("superclass = " + typeInfoTypeString.getSuperClass());
+		logger.info("componentType = " + typeInfoTypeString.getComponentType());
+		logger.info("getClassLoaderIdentifier = " + typeInfoTypeString.getClassLoaderIdentifier());
+		logger.info("--------------------");
 		TypeInfo typeInfoTypeInt = networkSessionInstanceClient.getTypeInfo(195);
-		System.out.println("typeInfoTypeInt: ");
-		System.out.println("interface: " + typeInfoTypeInt.getInterfaces());
+		logger.info("typeInfoTypeInt: ");
+		logger.info("interface: " + typeInfoTypeInt.getInterfaces());
 		for (int i=0;i<=typeInfoTypeInt.getInterfaces().length-1;i++) {
-			System.out.println("	interfaces_data = " + typeInfoTypeInt.getInterfaces()[i]);
+			logger.info("	interfaces_data = " + typeInfoTypeInt.getInterfaces()[i]);
 		}
-		System.out.println("typeId = " + typeInfoTypeInt.getTypeId());
-		System.out.println("typeNameFromClass = " + typeInfoTypeInt.getTypeNameFromClass());
-		System.out.println("classLocation = " + typeInfoTypeInt.getClassLocation());
-		System.out.println("superclass = " + typeInfoTypeInt.getSuperClass());
-		System.out.println("componentType = " + typeInfoTypeInt.getComponentType());
-		System.out.println("getClassLoaderIdentifier = " + typeInfoTypeInt.getClassLoaderIdentifier());
-		System.out.println("--------------------");
+		logger.info("typeId = " + typeInfoTypeInt.getTypeId());
+		logger.info("typeNameFromClass = " + typeInfoTypeInt.getTypeNameFromClass());
+		logger.info("classLocation = " + typeInfoTypeInt.getClassLocation());
+		logger.info("superclass = " + typeInfoTypeInt.getSuperClass());
+		logger.info("componentType = " + typeInfoTypeInt.getComponentType());
+		logger.info("getClassLoaderIdentifier = " + typeInfoTypeInt.getClassLoaderIdentifier());
+		logger.info("--------------------");
 		int totalFileCount = networkSessionInstanceClient.getTotalFileCount();
-		System.out.println("totalFileCount = " + totalFileCount);
-		System.out.println("--------------------");
+		logger.info("totalFileCount = " + totalFileCount);
+		logger.info("--------------------");
 
 
         sessionListener = new GetProjectSessionsCallback() {
