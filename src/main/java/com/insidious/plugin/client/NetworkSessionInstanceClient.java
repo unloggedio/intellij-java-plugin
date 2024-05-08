@@ -2,10 +2,14 @@ package com.insidious.plugin.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
+
 import okhttp3.*;
 
 import java.io.IOException;
@@ -22,15 +26,17 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	// client attributes
     private String endpoint;
     private String token;
-    private OkHttpClient client;
+	private OkHttpClient client;
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
 	// endpoint attributes
 	private String isScanEnableEndpoint = "/isScanEnable";
+	private String getTypeInfoTypeString = "/getTypeInfoTypeString";
 
 	// session instance attributes
     private String sessionId = "0";
 	private boolean scanEnable;
+	private TypeInfo typeInfo;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -48,7 +54,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
             builder = builder.addHeader("Authorization", "Bearer " + token);
         }
         Request request = builder.build();
-        Call call = client.newCall(request);
+        Call call = this.client.newCall(request);
         call.enqueue(callback);
 
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
@@ -90,7 +96,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
         builder.post(body);
         Request request = builder.build();
-        client.newCall(request)
+        this.client.newCall(request)
                 .enqueue(callback);
     }
 
@@ -107,13 +113,14 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         Request request = builder.build();
 
-        return client.newCall(request)
+        return this.client.newCall(request)
                 .execute();
     }
 
     @Override
     public boolean isScanEnable() {
-        String url = this.endpoint + this.isScanEnableEndpoint + "?sessionId=" + this.sessionId;
+        
+		String url = this.endpoint + this.isScanEnableEndpoint + "?sessionId=" + this.sessionId;
         CountDownLatch latch = new CountDownLatch(1);
 
         get(url, new Callback() {
@@ -125,12 +132,51 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-
                 try {
 					ObjectMapper objectMapper = new ObjectMapper();
 					String responseBody = Objects.requireNonNull(response.body()).string();
 					Map<String, Object> jsonVal = objectMapper.readValue(responseBody, new TypeReference<Map<String, Object>>() {});
                     scanEnable = (boolean) jsonVal.get("scanEnable");
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+		try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return scanEnable;
+    }
+
+	@Override
+    public TypeInfo getTypeInfo(String name) {
+        
+		String url = this.endpoint + this.getTypeInfoTypeString + "?sessionId=" + this.sessionId + "&name=" + name;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					SimpleModule module = new SimpleModule();
+					module.addDeserializer(TypeInfoClient.class, new TypeInfoClientDeserializer());
+					objectMapper.registerModule(module);
+
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					TypeInfoClient typeInfoClient = objectMapper.readValue(responseBody, TypeInfoClient.class);
+					typeInfo = typeInfoClient.getTypeInfo();
                 } finally {
                     response.close();
                     latch.countDown();
@@ -144,8 +190,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
             Thread.currentThread().interrupt();
         }
 
-
-        return scanEnable;
+        return typeInfo;
     }
 
 }

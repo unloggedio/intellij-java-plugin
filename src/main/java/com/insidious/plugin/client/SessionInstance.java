@@ -1052,6 +1052,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return new TypeInfo(typeId, "unidentified type", "", 0, 0, "", new int[0]);
     }
 
+	@Override
     public TypeInfo getTypeInfo(String name) {
 
         if (archiveIndex != null) {
