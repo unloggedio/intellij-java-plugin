@@ -219,6 +219,13 @@ final public class InsidiousService implements
 		int totalFileCount = networkSessionInstanceClient.getTotalFileCount();
 		logger.info("totalFileCount = " + totalFileCount);
 		logger.info("--------------------");
+		List<UnloggedTimingTag> unloggedtimingTags = networkSessionInstanceClient.getTimingTags(1);
+		logger.info("unloggedTimingTag list:");
+		for (int i=0;i<=unloggedtimingTags.size()-1;i++) {
+			logger.info("	" + unloggedtimingTags.get(i).getLineNumber());
+			logger.info("	" + unloggedtimingTags.get(i).getNanoSecondTimestamp());
+		}
+		logger.info("--------------------");
 
 
         sessionListener = new GetProjectSessionsCallback() {

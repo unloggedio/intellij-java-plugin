@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
+import com.insidious.plugin.client.UnloggedTimingTagClient.UnloggedTimingTagClientDeserializer;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -13,6 +14,8 @@ import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import okhttp3.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
@@ -34,12 +37,14 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getTypeInfoTypeString = "/getTypeInfoTypeString";
 	private String getTypeInfoTypeInt = "/getTypeInfoTypeInt";
 	private String getTotalFileCount = "/getTotalFileCount";
+	private String getTimingTags = "/getTimingTags";
 
 	// session instance attributes
     private String sessionId = "0";
 	private boolean scanEnable;
 	private TypeInfo typeInfo;
 	private int totalFileCount;
+	private List<UnloggedTimingTag> unloggedTimingTags;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -270,6 +275,50 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
 
         return totalFileCount;
+    }
+
+	@Override
+    public List<UnloggedTimingTag> getTimingTags(long id) {
+        
+		String url = this.endpoint + this.getTimingTags + "?sessionId=" + this.sessionId + "&id=" + id;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					// define unloggedTimingTags
+					ObjectMapper objectMapper = new ObjectMapper();
+					SimpleModule module = new SimpleModule();
+					module.addDeserializer(UnloggedTimingTagClient.class, new UnloggedTimingTagClientDeserializer());
+					objectMapper.registerModule(module);
+
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					UnloggedTimingTagClient[] UnloggedTimingTagClientList = objectMapper.readValue(responseBody, UnloggedTimingTagClient[].class);
+					unloggedTimingTags = new ArrayList<>();
+					for (int i=0;i<=UnloggedTimingTagClientList.length-1;i++) {
+						unloggedTimingTags.add(UnloggedTimingTagClientList[i].getUnloggedTimingTag());
+					}
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return unloggedTimingTags;
     }
 
 }

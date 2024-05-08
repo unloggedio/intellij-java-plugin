@@ -4154,6 +4154,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return daoService.getTotalFileCount();
     }
 
+	@Override
     public List<UnloggedTimingTag> getTimingTags(long id) {
         return daoService.getTimingTags(id);
     }
