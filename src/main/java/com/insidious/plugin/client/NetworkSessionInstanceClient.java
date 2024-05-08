@@ -138,8 +138,8 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
                 try {
 					ObjectMapper objectMapper = new ObjectMapper();
 					String responseBody = Objects.requireNonNull(response.body()).string();
-					Map<String, Object> jsonVal = objectMapper.readValue(responseBody, new TypeReference<Map<String, Object>>() {});
-                    scanEnable = (boolean) jsonVal.get("scanEnable");
+					Map<String, Boolean> jsonVal = objectMapper.readValue(responseBody, new TypeReference<Map<String, Boolean>>() {});
+                    scanEnable = jsonVal.get("scanEnable");
                 } finally {
                     response.close();
                     latch.countDown();
@@ -254,8 +254,8 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
                 try {
 					ObjectMapper objectMapper = new ObjectMapper();
 					String responseBody = Objects.requireNonNull(response.body()).string();
-					Map<String, Object> jsonVal = objectMapper.readValue(responseBody, new TypeReference<Map<String, Object>>() {});
-                    totalFileCount = (int) jsonVal.get("totalFileCount");
+					Map<String, Integer> jsonVal = objectMapper.readValue(responseBody, new TypeReference<Map<String, Integer>>() {});
+                    totalFileCount = jsonVal.get("totalFileCount");
                 } finally {
                     response.close();
                     latch.countDown();
