@@ -1,6 +1,7 @@
 package com.insidious.plugin.factory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
@@ -185,9 +186,21 @@ final public class InsidiousService implements
 
         // test networkSessionInstanceClient
 		System.out.println("--------------------");
-        NetworkSessionInstanceClient networkSessionInstanceClient = new NetworkSessionInstanceClient("https://localhost:8123/session");
+        NetworkSessionInstanceClient networkSessionInstanceClient = new NetworkSessionInstanceClient("http://localhost:8123/session");
         boolean scanEnable = networkSessionInstanceClient.isScanEnable();
         System.out.println("scanEnable = " + scanEnable);
+		TypeInfo typeInfo = networkSessionInstanceClient.getTypeInfo("jdk.proxy2.$Proxy143");
+		System.out.println("typeInfo: ");
+		System.out.println("interface: " + typeInfo.getInterfaces());
+		for (int i=0;i<=typeInfo.getInterfaces().length-1;i++) {
+			System.out.println("	interfaces_data = " + typeInfo.getInterfaces()[i]);
+		}
+		System.out.println("typeId = " + typeInfo.getTypeId());
+		System.out.println("typeNameFromClass = " + typeInfo.getTypeNameFromClass());
+		System.out.println("classLocation = " + typeInfo.getClassLocation());
+		System.out.println("superclass = " + typeInfo.getSuperClass());
+		System.out.println("componentType = " + typeInfo.getComponentType());
+		System.out.println("getClassLoaderIdentifier = " + typeInfo.getClassLoaderIdentifier());
 		System.out.println("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {
