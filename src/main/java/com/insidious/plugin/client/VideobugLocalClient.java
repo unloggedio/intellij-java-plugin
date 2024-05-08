@@ -26,7 +26,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     private static final Logger logger = Logger.getInstance(VideobugLocalClient.class.getName());
     private final String pathToSessions;
-    private final VideobugNetworkClient networkClient;
+    private final NetworkSessionInstanceClient networkClient;
     private final ScheduledExecutorService threadPoolExecutor5Seconds =
             Executors.newScheduledThreadPool(1, new DefaultThreadFactory("UnloggedClientPool", true));
     private final Project project;
@@ -43,7 +43,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         }
         this.pathToSessions = pathToSessions;
         this.sessionPathFile = new File(pathToSessions);
-        this.networkClient = new VideobugNetworkClient("https://cloud.bug.video");
+        this.networkClient = new NetworkSessionInstanceClient("https://cloud.bug.video");
     }
 
     @Override
