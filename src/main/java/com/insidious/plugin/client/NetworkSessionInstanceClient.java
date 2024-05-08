@@ -32,6 +32,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	// endpoint attributes
 	private String isScanEnableEndpoint = "/isScanEnable";
 	private String getTypeInfoTypeString = "/getTypeInfoTypeString";
+	private String getTypeInfoTypeInt = "/getTypeInfoTypeInt";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -157,6 +158,46 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     public TypeInfo getTypeInfo(String name) {
         
 		String url = this.endpoint + this.getTypeInfoTypeString + "?sessionId=" + this.sessionId + "&name=" + name;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					SimpleModule module = new SimpleModule();
+					module.addDeserializer(TypeInfoClient.class, new TypeInfoClientDeserializer());
+					objectMapper.registerModule(module);
+
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					TypeInfoClient typeInfoClient = objectMapper.readValue(responseBody, TypeInfoClient.class);
+					typeInfo = typeInfoClient.getTypeInfo();
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return typeInfo;
+    }
+
+	@Override
+    public TypeInfo getTypeInfo(Integer typeId) {
+        
+		String url = this.endpoint + this.getTypeInfoTypeInt + "?sessionId=" + this.sessionId + "&typeId=" + typeId;
         CountDownLatch latch = new CountDownLatch(1);
 
         get(url, new Callback() {

@@ -189,19 +189,34 @@ final public class InsidiousService implements
         NetworkSessionInstanceClient networkSessionInstanceClient = new NetworkSessionInstanceClient("http://localhost:8123/session");
         boolean scanEnable = networkSessionInstanceClient.isScanEnable();
         System.out.println("scanEnable = " + scanEnable);
-		TypeInfo typeInfo = networkSessionInstanceClient.getTypeInfo("jdk.proxy2.$Proxy143");
-		System.out.println("typeInfo: ");
-		System.out.println("interface: " + typeInfo.getInterfaces());
-		for (int i=0;i<=typeInfo.getInterfaces().length-1;i++) {
-			System.out.println("	interfaces_data = " + typeInfo.getInterfaces()[i]);
+		System.out.println("----------------------");
+		TypeInfo typeInfoTypeString = networkSessionInstanceClient.getTypeInfo("jdk.proxy2.$Proxy143");
+		System.out.println("typeInfoTypeString: ");
+		System.out.println("interface: " + typeInfoTypeString.getInterfaces());
+		for (int i=0;i<=typeInfoTypeString.getInterfaces().length-1;i++) {
+			System.out.println("	interfaces_data = " + typeInfoTypeString.getInterfaces()[i]);
 		}
-		System.out.println("typeId = " + typeInfo.getTypeId());
-		System.out.println("typeNameFromClass = " + typeInfo.getTypeNameFromClass());
-		System.out.println("classLocation = " + typeInfo.getClassLocation());
-		System.out.println("superclass = " + typeInfo.getSuperClass());
-		System.out.println("componentType = " + typeInfo.getComponentType());
-		System.out.println("getClassLoaderIdentifier = " + typeInfo.getClassLoaderIdentifier());
+		System.out.println("typeId = " + typeInfoTypeString.getTypeId());
+		System.out.println("typeNameFromClass = " + typeInfoTypeString.getTypeNameFromClass());
+		System.out.println("classLocation = " + typeInfoTypeString.getClassLocation());
+		System.out.println("superclass = " + typeInfoTypeString.getSuperClass());
+		System.out.println("componentType = " + typeInfoTypeString.getComponentType());
+		System.out.println("getClassLoaderIdentifier = " + typeInfoTypeString.getClassLoaderIdentifier());
 		System.out.println("--------------------");
+		TypeInfo typeInfoTypeInt = networkSessionInstanceClient.getTypeInfo(195);
+		System.out.println("typeInfoTypeInt: ");
+		System.out.println("interface: " + typeInfoTypeInt.getInterfaces());
+		for (int i=0;i<=typeInfoTypeInt.getInterfaces().length-1;i++) {
+			System.out.println("	interfaces_data = " + typeInfoTypeInt.getInterfaces()[i]);
+		}
+		System.out.println("typeId = " + typeInfoTypeInt.getTypeId());
+		System.out.println("typeNameFromClass = " + typeInfoTypeInt.getTypeNameFromClass());
+		System.out.println("classLocation = " + typeInfoTypeInt.getClassLocation());
+		System.out.println("superclass = " + typeInfoTypeInt.getSuperClass());
+		System.out.println("componentType = " + typeInfoTypeInt.getComponentType());
+		System.out.println("getClassLoaderIdentifier = " + typeInfoTypeInt.getClassLoaderIdentifier());
+		System.out.println("--------------------");
+
 
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, ServerMetadata> checkCache = new HashMap<>();

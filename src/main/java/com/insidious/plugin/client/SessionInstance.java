@@ -1042,6 +1042,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                 .collect(Collectors.toList());
     }
 
+	@Override
     public TypeInfo getTypeInfo(Integer typeId) {
 
         Map<String, TypeInfo> result = archiveIndex.getTypesById(new HashSet<>(Collections.singletonList(typeId)));
