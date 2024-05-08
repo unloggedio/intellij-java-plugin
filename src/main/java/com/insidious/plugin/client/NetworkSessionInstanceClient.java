@@ -17,6 +17,7 @@ import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
+import com.intellij.util.graph.Network;
 import okhttp3.*;
 
 import org.json.JSONArray;
@@ -31,6 +32,8 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 
@@ -720,4 +723,51 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface, V
         this.session = sessionInstance.getExecutionSession();
         this.sessionInstance = sessionInstance;
     }
+
+    private boolean scanEnable;
+    private String sessionId = "0";
+
+    @Override
+    public boolean isScanEnable() {
+        String url = "http://localhost:8123/session/isScanEnable?sessionId=" + this.sessionId;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown(); // Signal completion on failure
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+
+                try {
+                    JSONObject jsonVal = new JSONObject(
+                            Objects.requireNonNull(response.body())
+                                    .string());
+
+                    System.out.println("-------------------");
+                    System.out.println("jsonVal = " + jsonVal);
+                    scanEnable = (boolean) jsonVal.get("scanEnable");
+                    System.out.println("scanEnableValue = " + scanEnable);
+                    System.out.println("-------------------");
+
+                } finally {
+                    response.close();
+                    latch.countDown(); // Signal completion
+                }
+            }
+        });
+
+        try {
+            latch.await(); // Wait until the latch is counted down
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // Preserve the interruption status
+        }
+
+
+        return scanEnable;
+    }
+
 }
