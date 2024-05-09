@@ -1,6 +1,7 @@
 package com.insidious.plugin.factory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
@@ -290,6 +291,9 @@ final public class InsidiousService implements
 		logger.info("	classInfoList = " + classWeaveInfo.getClassInfoList());
 		logger.info("	methodInfoList = " + classWeaveInfo.getMethodInfoList());
 		logger.info("	dataInfoList = " + classWeaveInfo.getDataInfoList());
+		logger.info("--------------------");
+		Map<String, ClassInfo> classIndex = networkSessionInstanceClient.getClassIndex();
+		logger.info("classIndex= " + classIndex.toString());
 		logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {

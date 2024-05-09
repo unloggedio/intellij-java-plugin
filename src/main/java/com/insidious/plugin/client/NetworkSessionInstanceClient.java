@@ -3,6 +3,7 @@ package com.insidious.plugin.client;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
 import com.insidious.plugin.factory.CandidateSearchQuery;
@@ -56,6 +57,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getMethodCallCountBetween = "/getMethodCallCountBetween";
 	private String getInitTimestamp = "/getInitTimestamp";
 	private String getClassWeaveInfo = "/getClassWeaveInfo";
+	private String getClassIndex = "/getClassIndex";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -72,6 +74,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private int methodCallCount;
 	private long initTimestamp;
 	private ClassWeaveInfo classWeaveInfo;
+	private Map<String, ClassInfo> classIndex;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -811,4 +814,40 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         return classWeaveInfo;
 	}
 
+
+	@Override
+	public Map<String, ClassInfo> getClassIndex() {
+
+		String url = this.endpoint + this.getClassIndex + "?sessionId=" + this.sessionId;
+		logger.info("url = " + url);
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					classIndex = objectMapper.readValue(responseBody, new TypeReference<Map<String, ClassInfo>>() {});
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+		try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return classIndex;
+	}
 }

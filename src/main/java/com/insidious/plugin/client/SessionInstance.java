@@ -4040,6 +4040,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         this.testCandidateListener.remove(testCandidateListener);
     }
 
+	@Override
     public Map<String, ClassInfo> getClassIndex() {
         return classInfoIndexByName;
     }

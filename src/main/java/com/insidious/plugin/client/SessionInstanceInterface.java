@@ -2,7 +2,9 @@ package com.insidious.plugin.client;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
+import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -27,4 +29,5 @@ public interface SessionInstanceInterface {
 	public List<MethodCallExpression> getMethodCallExpressions(CandidateSearchQuery candidateSearchQuery);
 	public int getMethodCallCountBetween(long start, long end);
 	public ClassWeaveInfo getClassWeaveInfo();
+    public Map<String, ClassInfo> getClassIndex();
 }
