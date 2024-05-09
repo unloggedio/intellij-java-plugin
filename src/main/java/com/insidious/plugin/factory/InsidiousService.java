@@ -249,6 +249,9 @@ final public class InsidiousService implements
 			logger.info("	" + test_candidate_method_aggregate_list.get(i).toString());
 		}
 		logger.info("--------------------");
+		int processed_file_count = networkSessionInstanceClient.getProcessedFileCount();
+		logger.info("processed_file_count = " + processed_file_count);
+		logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, ServerMetadata> checkCache = new HashMap<>();

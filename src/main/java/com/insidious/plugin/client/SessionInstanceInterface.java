@@ -17,4 +17,5 @@ public interface SessionInstanceInterface {
 	public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls);
 	public List<TestCandidateMetadata> getTestCandidateBetween(long eventId, long eventId1) throws SQLException;
 	public List<TestCandidateMethodAggregate> getTestCandidateAggregatesByClassName(String className);
+	public int getProcessedFileCount();
 }

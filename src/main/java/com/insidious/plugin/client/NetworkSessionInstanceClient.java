@@ -45,6 +45,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getTestCandidateById = "/getTestCandidateById";
 	private String getTestCandidateBetween = "/getTestCandidateBetween";
 	private String getTestCandidateAggregatesByClassName = "/getTestCandidateAggregatesByClassName";
+	private String getProcessedFileCount = "/getProcessedFileCount";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -55,6 +56,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private List<TestCandidateMetadata> localtcml;
 	private List<TestCandidateMethodAggregate> localtcma;
 	private TestCandidateMetadata testCandidateMetadata;
+	private Integer processedFileCount;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -505,6 +507,43 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
 
         return localtcma;
+	}
+
+	@Override
+	public int getProcessedFileCount() {
+
+		String url = this.endpoint + this.getProcessedFileCount + "?sessionId=" + this.sessionId;
+		logger.info("url = " + url);
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					Map<String, Integer> jsonVal = objectMapper.readValue(responseBody, new TypeReference<Map<String, Integer>>() {});
+                    processedFileCount = jsonVal.get("processedFileCount");
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+		try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return processedFileCount;
 	}
 
 }
