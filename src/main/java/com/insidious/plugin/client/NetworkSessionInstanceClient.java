@@ -7,6 +7,7 @@ import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
@@ -54,6 +55,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getMethodCallExpressions = "/getMethodCallExpressions";
 	private String getMethodCallCountBetween = "/getMethodCallCountBetween";
 	private String getInitTimestamp = "/getInitTimestamp";
+	private String getClassWeaveInfo = "/getClassWeaveInfo";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -69,6 +71,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private MethodDefinition localMethodDefinition;
 	private int methodCallCount;
 	private long initTimestamp;
+	private ClassWeaveInfo classWeaveInfo;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -771,6 +774,41 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
 
         return initTimestamp;
+	}
+
+	@Override
+	public ClassWeaveInfo getClassWeaveInfo() {
+
+		String url = this.endpoint + this.getClassWeaveInfo + "?sessionId=" + this.sessionId;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					classWeaveInfo = objectMapper.readValue(responseBody, ClassWeaveInfo.class);
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+		try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return classWeaveInfo;
 	}
 
 }

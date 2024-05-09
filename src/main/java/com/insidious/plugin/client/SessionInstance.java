@@ -1763,6 +1763,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //        return objects;
 //    }
 
+	@Override
     public ClassWeaveInfo getClassWeaveInfo() {
 
 

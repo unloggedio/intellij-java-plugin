@@ -24,6 +24,7 @@ import com.insidious.plugin.coverage.PackageCoverageData;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
+import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
@@ -283,6 +284,12 @@ final public class InsidiousService implements
 		logger.info("--------------------");
 		long init_timestamp = networkSessionInstanceClient.getInitTimestamp();
 		logger.info("init_timestamp = " + init_timestamp);
+		logger.info("--------------------");
+		ClassWeaveInfo classWeaveInfo = networkSessionInstanceClient.getClassWeaveInfo();
+		logger.info("classWeaveInfo: ");
+		logger.info("	classInfoList = " + classWeaveInfo.getClassInfoList());
+		logger.info("	methodInfoList = " + classWeaveInfo.getMethodInfoList());
+		logger.info("	dataInfoList = " + classWeaveInfo.getDataInfoList());
 		logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {

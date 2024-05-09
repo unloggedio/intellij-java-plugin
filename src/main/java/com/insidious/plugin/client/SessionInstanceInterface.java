@@ -6,6 +6,7 @@ import java.util.List;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
@@ -25,4 +26,5 @@ public interface SessionInstanceInterface {
 	public List<MethodCallExpression> getMethodCallsBetween(long start, long end);
 	public List<MethodCallExpression> getMethodCallExpressions(CandidateSearchQuery candidateSearchQuery);
 	public int getMethodCallCountBetween(long start, long end);
+	public ClassWeaveInfo getClassWeaveInfo();
 }
