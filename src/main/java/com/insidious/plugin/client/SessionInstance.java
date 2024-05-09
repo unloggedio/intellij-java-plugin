@@ -3906,6 +3906,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //        return daoService.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
 //    }
 
+	@Override
     public List<TestCandidateMetadata> getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
         try {
             return daoService.getTestCandidatesForAllMethod(candidateSearchQuery);

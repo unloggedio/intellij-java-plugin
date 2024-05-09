@@ -6,6 +6,9 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
 import com.insidious.plugin.client.UnloggedTimingTagClient.UnloggedTimingTagClientDeserializer;
+import com.insidious.plugin.factory.CandidateSearchQuery;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.ui.methodscope.CandidateFilterType;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -38,6 +41,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getTypeInfoTypeInt = "/getTypeInfoTypeInt";
 	private String getTotalFileCount = "/getTotalFileCount";
 	private String getTimingTags = "/getTimingTags";
+	private String getTestCandidatesForAllMethod = "/getTestCandidatesForAllMethod";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -45,6 +49,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private TypeInfo typeInfo;
 	private int totalFileCount;
 	private List<UnloggedTimingTag> unloggedTimingTags;
+	private List<TestCandidateMetadata> localtcml;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -320,5 +325,71 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         return unloggedTimingTags;
     }
+
+	@Override
+	public List<TestCandidateMetadata> getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
+
+		boolean loadCalls = candidateSearchQuery.isLoadCalls();
+		List<String> interfaceNames = candidateSearchQuery.getInterfaceNames();
+		String argumentsDescriptor = candidateSearchQuery.getArgumentsDescriptor();
+		CandidateFilterType candidateFilterType = candidateSearchQuery.getCandidateFilterType();
+		String methodSignature = "string";
+		try {
+			methodSignature = candidateSearchQuery.getMethodSignature();
+		} catch (Exception e) {
+		}
+		String className = "string";
+		try {
+			className = candidateSearchQuery.getClassName();
+		} catch (Exception e) {
+		}
+		String methodName = "string";
+		try {
+			methodName = candidateSearchQuery.getMethodName();
+		} catch (Exception e) {
+		}
+
+		String interfaceDataString = "";
+		for (int i=0;i<=interfaceNames.size()-1;i++) {
+			interfaceDataString += "&interfaceNames=" + interfaceNames.get(i);
+		}
+
+		String url = this.endpoint + this.getTestCandidatesForAllMethod + "?sessionId=" + this.sessionId + "&loadCalls=" + loadCalls + interfaceDataString + "&argumentsDescriptor=" + argumentsDescriptor + "&candidateFilterType=" + candidateFilterType + "&methodSignature=" + methodSignature + "&className=" + className + "&methodName=" + methodName;
+		logger.info("url = " + url);
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					TestCandidateMetadata[] val = objectMapper.readValue(responseBody, TestCandidateMetadata[].class);
+
+					localtcml = new ArrayList<>();
+					for (int i=0;i<=val.length-1;i++) {
+						localtcml.add(val[i]);
+					}
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return localtcml;
+	}
 
 }

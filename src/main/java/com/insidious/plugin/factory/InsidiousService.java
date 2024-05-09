@@ -226,7 +226,13 @@ final public class InsidiousService implements
 			logger.info("	" + unloggedtimingTags.get(i).getNanoSecondTimestamp());
 		}
 		logger.info("--------------------");
-
+		List<TestCandidateMetadata> testCandidateMetadataList = networkSessionInstanceClient.getTestCandidatesForAllMethod(new CandidateSearchQuery());
+		logger.info("testCandidateMetadata list:");
+		for (int i=0;i<=testCandidateMetadataList.size()-1;i++){
+			logger.info("	" + testCandidateMetadataList.get(i).getCreatedAt());
+			logger.info("	" + testCandidateMetadataList.get(i).getTestSubject());
+		}
+		logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, ServerMetadata> checkCache = new HashMap<>();
