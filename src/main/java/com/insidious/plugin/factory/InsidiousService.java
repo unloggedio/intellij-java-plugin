@@ -243,6 +243,12 @@ final public class InsidiousService implements
 			logger.info("	" + testCandidateMetadataList_between_event.get(i).getTestSubject());
 		}
 		logger.info("--------------------");
+		List<TestCandidateMethodAggregate> test_candidate_method_aggregate_list = networkSessionInstanceClient.getTestCandidateAggregatesByClassName("org.unlogged.demo.gradle.controller.CustomerController");
+		logger.info("test_candidate_method_aggregate_list list:");
+		for (int i=0;i<=test_candidate_method_aggregate_list.size()-1;i++){
+			logger.info("	" + test_candidate_method_aggregate_list.get(i).toString());
+		}
+		logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, ServerMetadata> checkCache = new HashMap<>();

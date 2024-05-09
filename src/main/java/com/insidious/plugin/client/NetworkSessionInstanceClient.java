@@ -44,6 +44,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getTestCandidatesForAllMethod = "/getTestCandidatesForAllMethod";
 	private String getTestCandidateById = "/getTestCandidateById";
 	private String getTestCandidateBetween = "/getTestCandidateBetween";
+	private String getTestCandidateAggregatesByClassName = "/getTestCandidateAggregatesByClassName";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -52,6 +53,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private int totalFileCount;
 	private List<UnloggedTimingTag> unloggedTimingTags;
 	private List<TestCandidateMetadata> localtcml;
+	private List<TestCandidateMethodAggregate> localtcma;
 	private TestCandidateMetadata testCandidateMetadata;
 
     public NetworkSessionInstanceClient(String endpoint) {
@@ -429,7 +431,6 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	public List<TestCandidateMetadata> getTestCandidateBetween(long eventIdStart, long eventIdEnd) throws SQLException {
 
 		String url = this.endpoint + this.getTestCandidateBetween + "?sessionId=" + this.sessionId + "&eventIdStart=" + eventIdStart + "&eventIdEnd=" + eventIdEnd;
-		logger.info("url = " + url);
         CountDownLatch latch = new CountDownLatch(1);
 
         get(url, new Callback() {
@@ -464,6 +465,46 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
 
         return localtcml;
+	}
+
+	@Override
+	public List<TestCandidateMethodAggregate> getTestCandidateAggregatesByClassName(String className) {
+
+		String url = this.endpoint + this.getTestCandidateAggregatesByClassName + "?sessionId=" + this.sessionId + "&className=" + className;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					TestCandidateMethodAggregate[] val = objectMapper.readValue(responseBody, TestCandidateMethodAggregate[].class);
+
+					localtcma = new ArrayList<>();
+					for (int i=0;i<=val.length-1;i++) {
+						localtcma.add(val[i]);
+					}
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return localtcma;
 	}
 
 }

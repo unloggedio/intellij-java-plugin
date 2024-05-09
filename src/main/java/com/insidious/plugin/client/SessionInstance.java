@@ -3898,6 +3898,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return daoService.getTestCandidateAggregates();
     }
 
+	@Override
     public List<TestCandidateMethodAggregate> getTestCandidateAggregatesByClassName(String className) {
         return daoService.getTestCandidateAggregatesForType(className);
     }
