@@ -6,6 +6,8 @@ import java.util.List;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
+import com.insidious.plugin.pojo.dao.MethodDefinition;
 
 public interface SessionInstanceInterface {
     public boolean isScanEnable();
@@ -18,4 +20,5 @@ public interface SessionInstanceInterface {
 	public List<TestCandidateMetadata> getTestCandidateBetween(long eventId, long eventId1) throws SQLException;
 	public List<TestCandidateMethodAggregate> getTestCandidateAggregatesByClassName(String className);
 	public int getProcessedFileCount();
+	public MethodDefinition getMethodDefinition(MethodUnderTest methodUnderTest1);
 }

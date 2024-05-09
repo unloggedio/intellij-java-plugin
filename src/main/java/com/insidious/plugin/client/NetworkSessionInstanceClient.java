@@ -7,6 +7,8 @@ import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.atomic.MethodUnderTest;
+import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -46,6 +48,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getTestCandidateBetween = "/getTestCandidateBetween";
 	private String getTestCandidateAggregatesByClassName = "/getTestCandidateAggregatesByClassName";
 	private String getProcessedFileCount = "/getProcessedFileCount";
+	private String getMethodDefinition = "/getMethodDefinition";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -57,6 +60,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private List<TestCandidateMethodAggregate> localtcma;
 	private TestCandidateMetadata testCandidateMetadata;
 	private Integer processedFileCount;
+	private MethodDefinition localMethodDefinition;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -513,7 +517,6 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	public int getProcessedFileCount() {
 
 		String url = this.endpoint + this.getProcessedFileCount + "?sessionId=" + this.sessionId;
-		logger.info("url = " + url);
         CountDownLatch latch = new CountDownLatch(1);
 
         get(url, new Callback() {
@@ -546,4 +549,43 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         return processedFileCount;
 	}
 
+	@Override
+	public MethodDefinition getMethodDefinition(MethodUnderTest methodUnderTest) {
+
+		String name = methodUnderTest.getName();
+		String signature = methodUnderTest.getSignature();
+		String className = methodUnderTest.getClassName();
+		int methodHash = methodUnderTest.getMethodHash();
+
+		String url = this.endpoint + this.getMethodDefinition + "?sessionId=" + this.sessionId + "&name=" + name + "&signature=" + signature + "&className=" + className + "&methodHash=" + methodHash;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					localMethodDefinition = objectMapper.readValue(responseBody, MethodDefinition.class);
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return localMethodDefinition;
+	}
 }
