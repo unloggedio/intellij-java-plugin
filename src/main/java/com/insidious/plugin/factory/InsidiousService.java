@@ -236,11 +236,16 @@ final public class InsidiousService implements
 		TestCandidateMetadata testCandidateMetadata_1 = networkSessionInstanceClient.getTestCandidateById(Long.valueOf(3), false);
 		logger.info("testCandidateMetadata_1 = " + testCandidateMetadata_1.getTestSubject().getType());
 		logger.info("--------------------");
-		List<TestCandidateMetadata> testCandidateMetadataList_between_event = networkSessionInstanceClient.getTestCandidatesForAllMethod(new CandidateSearchQuery());
-		logger.info("testCandidateMetadataList_between_event list:");
-		for (int i=0;i<=testCandidateMetadataList_between_event.size()-1;i++){
-			logger.info("	" + testCandidateMetadataList_between_event.get(i).getCreatedAt());
-			logger.info("	" + testCandidateMetadataList_between_event.get(i).getTestSubject());
+		List<TestCandidateMetadata> testCandidateMetadataList_between_event;
+		try {
+			testCandidateMetadataList_between_event = networkSessionInstanceClient.getTestCandidateBetween(0,1000);
+			logger.info("testCandidateMetadataList_between_event list:");
+			for (int i=0;i<=testCandidateMetadataList_between_event.size()-1;i++){
+				logger.info("	" + testCandidateMetadataList_between_event.get(i).getCreatedAt());
+				logger.info("	" + testCandidateMetadataList_between_event.get(i).getTestSubject());
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
 		logger.info("--------------------");
 		List<TestCandidateMethodAggregate> test_candidate_method_aggregate_list = networkSessionInstanceClient.getTestCandidateAggregatesByClassName("org.unlogged.demo.gradle.controller.CustomerController");
@@ -259,11 +264,18 @@ final public class InsidiousService implements
 		logger.info("	methodName = " + method_definition.getMethodName());
 		logger.info("	ownerType = " + method_definition.getOwnerType());
 		logger.info("--------------------");
-		List<MethodCallExpression> method_call_expression_list = networkSessionInstanceClient.getMethodCallsBetween(0, 1000);
-		logger.info("method_call_expression_list: ");
-		for (int i=0;i<=method_call_expression_list.size()-1;i++)
+		List<MethodCallExpression> method_call_expression_list_calls_between = networkSessionInstanceClient.getMethodCallsBetween(0, 1000);
+		logger.info("method_call_expression_list_calls_between: ");
+		for (int i=0;i<=method_call_expression_list_calls_between.size()-1;i++)
 		{
-			logger.info("	local_method_call_expression= " + method_call_expression_list.get(i).toString());
+			logger.info("	local_method_call_expression1 = " + method_call_expression_list_calls_between.get(i).toString());
+		}
+		logger.info("--------------------");
+		List<MethodCallExpression> method_call_expression_list_get_expressions = networkSessionInstanceClient.getMethodCallExpressions(new CandidateSearchQuery());
+		logger.info("method_call_expression_list_get_expressions: ");
+		for (int i=0;i<=method_call_expression_list_get_expressions.size()-1;i++)
+		{
+			logger.info("	local_method_call_expression2 = " + method_call_expression_list_get_expressions.get(i).toString());
 		}
 		logger.info("--------------------");
 

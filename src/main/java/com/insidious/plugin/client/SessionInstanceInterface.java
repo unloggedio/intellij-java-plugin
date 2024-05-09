@@ -23,4 +23,5 @@ public interface SessionInstanceInterface {
 	public int getProcessedFileCount();
 	public MethodDefinition getMethodDefinition(MethodUnderTest methodUnderTest1);
 	public List<MethodCallExpression> getMethodCallsBetween(long start, long end);
+	public List<MethodCallExpression> getMethodCallExpressions(CandidateSearchQuery candidateSearchQuery);
 }

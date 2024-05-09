@@ -3919,6 +3919,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         }
     }
 
+	@Override
     public List<MethodCallExpression> getMethodCallExpressions(CandidateSearchQuery candidateSearchQuery) {
         try {
             return daoService.getMethodCallExpressions(candidateSearchQuery);

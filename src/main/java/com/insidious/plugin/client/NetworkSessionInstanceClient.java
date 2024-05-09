@@ -51,6 +51,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getProcessedFileCount = "/getProcessedFileCount";
 	private String getMethodDefinition = "/getMethodDefinition";
 	private String getMethodCallsBetween = "/getMethodCallsBetween";
+	private String getMethodCallExpressions = "/getMethodCallExpressions";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -596,6 +597,72 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	public List<MethodCallExpression> getMethodCallsBetween(long start, long end) {
 
 		String url = this.endpoint + this.getMethodCallsBetween + "?sessionId=" + this.sessionId + "&start=" + start + "&end=" + end;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					MethodCallExpression[] val = objectMapper.readValue(responseBody, MethodCallExpression[].class);
+
+					localMethodCallExpression = new ArrayList<>();
+					for (int i=0;i<=val.length-1;i++) {
+						localMethodCallExpression.add(val[i]);
+					}
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return localMethodCallExpression;
+	}
+
+	@Override
+	public List<MethodCallExpression> getMethodCallExpressions(CandidateSearchQuery candidateSearchQuery){
+
+		boolean loadCalls = candidateSearchQuery.isLoadCalls();
+		List<String> interfaceNames = candidateSearchQuery.getInterfaceNames();
+		String argumentsDescriptor = candidateSearchQuery.getArgumentsDescriptor();
+		CandidateFilterType candidateFilterType = candidateSearchQuery.getCandidateFilterType();
+		String methodSignature = "string";
+		try {
+			methodSignature = candidateSearchQuery.getMethodSignature();
+		} catch (Exception e) {
+		}
+		String className = "string";
+		try {
+			className = candidateSearchQuery.getClassName();
+		} catch (Exception e) {
+		}
+		String methodName = "string";
+		try {
+			methodName = candidateSearchQuery.getMethodName();
+		} catch (Exception e) {
+		}
+
+		String interfaceDataString = "";
+		for (int i=0;i<=interfaceNames.size()-1;i++) {
+			interfaceDataString += "&interfaceNames=" + interfaceNames.get(i);
+		}
+		
+		String url = this.endpoint + this.getMethodCallExpressions + "?sessionId=" + this.sessionId + "&loadCalls=" + loadCalls + interfaceDataString + "&argumentsDescriptor=" + argumentsDescriptor + "&candidateFilterType=" + candidateFilterType + "&methodSignature=" + methodSignature + "&className=" + className + "&methodName=" + methodName;
+		logger.info("url = " + url);
         CountDownLatch latch = new CountDownLatch(1);
 
         get(url, new Callback() {
