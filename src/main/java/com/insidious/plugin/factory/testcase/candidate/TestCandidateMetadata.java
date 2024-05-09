@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.candidate;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.insidious.plugin.assertions.TestAssertion;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.MethodCallExpression;
@@ -8,7 +9,7 @@ import com.insidious.plugin.pojo.Parameter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class TestCandidateMetadata implements Comparable<TestCandidateMetadata> {
     private final List<TestAssertion> assertionList = new ArrayList<>();
     private List<MethodCallExpression> methodCallExpressions = new LinkedList<>();

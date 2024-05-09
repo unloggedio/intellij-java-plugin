@@ -1,5 +1,6 @@
 package com.insidious.plugin.pojo;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
  * test subject or the return value from the function. Store the corresponding probeInfo and
  * event also from where the information was identified
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Parameter implements Serializable, BytesMarshallable {
     public static final byte[] COMMA_CHARACTER = ",".getBytes();
     /**
