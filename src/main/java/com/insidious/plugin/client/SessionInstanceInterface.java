@@ -1,5 +1,6 @@
 package com.insidious.plugin.client;
 
+import java.sql.SQLException;
 import java.util.List;
 
 import com.insidious.common.weaver.TypeInfo;
@@ -14,4 +15,5 @@ public interface SessionInstanceInterface {
     public List<UnloggedTimingTag> getTimingTags(long id);
 	public List<TestCandidateMetadata> getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery);
 	public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls);
+	public List<TestCandidateMetadata> getTestCandidateBetween(long eventId, long eventId1) throws SQLException;
 }

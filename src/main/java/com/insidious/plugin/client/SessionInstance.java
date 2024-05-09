@@ -4139,6 +4139,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         }
     }
 
+	@Override
     public List<TestCandidateMetadata> getTestCandidateBetween(long eventId, long eventId1) throws SQLException {
         return daoService.getTestCandidateBetween(eventId, eventId1);
     }

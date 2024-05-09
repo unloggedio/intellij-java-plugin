@@ -16,6 +16,7 @@ import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import okhttp3.*;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getTimingTags = "/getTimingTags";
 	private String getTestCandidatesForAllMethod = "/getTestCandidatesForAllMethod";
 	private String getTestCandidateById = "/getTestCandidateById";
+	private String getTestCandidateBetween = "/getTestCandidateBetween";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -421,6 +423,47 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
 
         return testCandidateMetadata;
+	}
+
+	@Override
+	public List<TestCandidateMetadata> getTestCandidateBetween(long eventIdStart, long eventIdEnd) throws SQLException {
+
+		String url = this.endpoint + this.getTestCandidateBetween + "?sessionId=" + this.sessionId + "&eventIdStart=" + eventIdStart + "&eventIdEnd=" + eventIdEnd;
+		logger.info("url = " + url);
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					TestCandidateMetadata[] val = objectMapper.readValue(responseBody, TestCandidateMetadata[].class);
+
+					localtcml = new ArrayList<>();
+					for (int i=0;i<=val.length-1;i++) {
+						localtcml.add(val[i]);
+					}
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return localtcml;
 	}
 
 }

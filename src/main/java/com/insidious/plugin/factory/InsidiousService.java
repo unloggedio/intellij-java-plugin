@@ -226,15 +226,22 @@ final public class InsidiousService implements
 			logger.info("	" + unloggedtimingTags.get(i).getNanoSecondTimestamp());
 		}
 		logger.info("--------------------");
-		List<TestCandidateMetadata> testCandidateMetadataList = networkSessionInstanceClient.getTestCandidatesForAllMethod(new CandidateSearchQuery());
-		logger.info("testCandidateMetadata list:");
-		for (int i=0;i<=testCandidateMetadataList.size()-1;i++){
-			logger.info("	" + testCandidateMetadataList.get(i).getCreatedAt());
-			logger.info("	" + testCandidateMetadataList.get(i).getTestSubject());
+		List<TestCandidateMetadata> testCandidateMetadataList_all_method = networkSessionInstanceClient.getTestCandidatesForAllMethod(new CandidateSearchQuery());
+		logger.info("testCandidateMetadataList_all_method list:");
+		for (int i=0;i<=testCandidateMetadataList_all_method.size()-1;i++){
+			logger.info("	" + testCandidateMetadataList_all_method.get(i).getCreatedAt());
+			logger.info("	" + testCandidateMetadataList_all_method.get(i).getTestSubject());
 		}
 		logger.info("--------------------");
 		TestCandidateMetadata testCandidateMetadata_1 = networkSessionInstanceClient.getTestCandidateById(Long.valueOf(3), false);
 		logger.info("testCandidateMetadata_1 = " + testCandidateMetadata_1.getTestSubject().getType());
+		logger.info("--------------------");
+		List<TestCandidateMetadata> testCandidateMetadataList_between_event = networkSessionInstanceClient.getTestCandidatesForAllMethod(new CandidateSearchQuery());
+		logger.info("testCandidateMetadataList_between_event list:");
+		for (int i=0;i<=testCandidateMetadataList_between_event.size()-1;i++){
+			logger.info("	" + testCandidateMetadataList_between_event.get(i).getCreatedAt());
+			logger.info("	" + testCandidateMetadataList_between_event.get(i).getTestSubject());
+		}
 		logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {
