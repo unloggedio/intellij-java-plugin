@@ -6,6 +6,7 @@ import java.util.List;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 
@@ -21,4 +22,5 @@ public interface SessionInstanceInterface {
 	public List<TestCandidateMethodAggregate> getTestCandidateAggregatesByClassName(String className);
 	public int getProcessedFileCount();
 	public MethodDefinition getMethodDefinition(MethodUnderTest methodUnderTest1);
+	public List<MethodCallExpression> getMethodCallsBetween(long start, long end);
 }

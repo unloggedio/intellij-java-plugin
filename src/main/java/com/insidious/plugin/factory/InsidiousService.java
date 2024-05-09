@@ -259,6 +259,13 @@ final public class InsidiousService implements
 		logger.info("	methodName = " + method_definition.getMethodName());
 		logger.info("	ownerType = " + method_definition.getOwnerType());
 		logger.info("--------------------");
+		List<MethodCallExpression> method_call_expression_list = networkSessionInstanceClient.getMethodCallsBetween(0, 1000);
+		logger.info("method_call_expression_list: ");
+		for (int i=0;i<=method_call_expression_list.size()-1;i++)
+		{
+			logger.info("	local_method_call_expression= " + method_call_expression_list.get(i).toString());
+		}
+		logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, ServerMetadata> checkCache = new HashMap<>();

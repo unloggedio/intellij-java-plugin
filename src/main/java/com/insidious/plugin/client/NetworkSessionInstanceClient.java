@@ -7,6 +7,7 @@ import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
@@ -49,6 +50,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getTestCandidateAggregatesByClassName = "/getTestCandidateAggregatesByClassName";
 	private String getProcessedFileCount = "/getProcessedFileCount";
 	private String getMethodDefinition = "/getMethodDefinition";
+	private String getMethodCallsBetween = "/getMethodCallsBetween";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -58,6 +60,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private List<UnloggedTimingTag> unloggedTimingTags;
 	private List<TestCandidateMetadata> localtcml;
 	private List<TestCandidateMethodAggregate> localtcma;
+	private List<MethodCallExpression> localMethodCallExpression;
 	private TestCandidateMetadata testCandidateMetadata;
 	private Integer processedFileCount;
 	private MethodDefinition localMethodDefinition;
@@ -588,4 +591,45 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         return localMethodDefinition;
 	}
+
+	@Override
+	public List<MethodCallExpression> getMethodCallsBetween(long start, long end) {
+
+		String url = this.endpoint + this.getMethodCallsBetween + "?sessionId=" + this.sessionId + "&start=" + start + "&end=" + end;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					MethodCallExpression[] val = objectMapper.readValue(responseBody, MethodCallExpression[].class);
+
+					localMethodCallExpression = new ArrayList<>();
+					for (int i=0;i<=val.length-1;i++) {
+						localMethodCallExpression.add(val[i]);
+					}
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return localMethodCallExpression;
+	}
+
 }
