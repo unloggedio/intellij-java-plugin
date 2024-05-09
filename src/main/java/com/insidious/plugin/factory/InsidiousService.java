@@ -233,6 +233,9 @@ final public class InsidiousService implements
 			logger.info("	" + testCandidateMetadataList.get(i).getTestSubject());
 		}
 		logger.info("--------------------");
+		TestCandidateMetadata testCandidateMetadata_1 = networkSessionInstanceClient.getTestCandidateById(Long.valueOf(3), false);
+		logger.info("testCandidateMetadata_1 = " + testCandidateMetadata_1.getTestSubject().getType());
+		logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, ServerMetadata> checkCache = new HashMap<>();

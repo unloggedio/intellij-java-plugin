@@ -13,4 +13,5 @@ public interface SessionInstanceInterface {
 	public int getTotalFileCount();
     public List<UnloggedTimingTag> getTimingTags(long id);
 	public List<TestCandidateMetadata> getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery);
+	public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls);
 }

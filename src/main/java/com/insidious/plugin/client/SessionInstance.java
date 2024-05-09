@@ -3933,6 +3933,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return daoService.getConstructorCandidate(parameter);
     }
 
+	@Override
     public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
         TestCandidateMetadata testCandidateMetadata = daoService.getTestCandidateById(testCandidateId, loadCalls);
         return testCandidateMetadata;

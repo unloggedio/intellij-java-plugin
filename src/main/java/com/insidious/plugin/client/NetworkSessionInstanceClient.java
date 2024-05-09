@@ -41,6 +41,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getTotalFileCount = "/getTotalFileCount";
 	private String getTimingTags = "/getTimingTags";
 	private String getTestCandidatesForAllMethod = "/getTestCandidatesForAllMethod";
+	private String getTestCandidateById = "/getTestCandidateById";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -49,6 +50,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private int totalFileCount;
 	private List<UnloggedTimingTag> unloggedTimingTags;
 	private List<TestCandidateMetadata> localtcml;
+	private TestCandidateMetadata testCandidateMetadata;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -350,7 +352,6 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 		}
 
 		String url = this.endpoint + this.getTestCandidatesForAllMethod + "?sessionId=" + this.sessionId + "&loadCalls=" + loadCalls + interfaceDataString + "&argumentsDescriptor=" + argumentsDescriptor + "&candidateFilterType=" + candidateFilterType + "&methodSignature=" + methodSignature + "&className=" + className + "&methodName=" + methodName;
-		logger.info("url = " + url);
         CountDownLatch latch = new CountDownLatch(1);
 
         get(url, new Callback() {
@@ -385,6 +386,41 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
 
         return localtcml;
+	}
+
+	@Override
+	public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
+
+		String url = this.endpoint + this.getTestCandidateById + "?sessionId=" + this.sessionId + "&testCandidateId=" + testCandidateId + "&loadCalls=" + loadCalls;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					testCandidateMetadata = objectMapper.readValue(responseBody, TestCandidateMetadata.class);
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return testCandidateMetadata;
 	}
 
 }
