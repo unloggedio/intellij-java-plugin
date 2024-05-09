@@ -1401,7 +1401,7 @@ public class StompComponent implements
     }
 
     private void setConnected() {
-        logger.warn("setDisconnected: " + stompStatusComponent.hashCode());
+        logger.warn("setConnected: " + stompStatusComponent.hashCode());
         stompStatusComponent.setConnected();
     }
 
@@ -1423,6 +1423,9 @@ public class StompComponent implements
         });
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            if (candidateQueryLatch == null) {
+                candidateQueryLatch = new AtomicInteger(1);
+            }
             sessionInstance
                     .getTestCandidates(this, lastEventId, stompFilterModel, candidateQueryLatch);
         });

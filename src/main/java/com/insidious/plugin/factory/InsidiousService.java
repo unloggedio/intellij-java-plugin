@@ -84,6 +84,7 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
@@ -147,6 +148,7 @@ final public class InsidiousService implements
     private final ActiveSessionManager sessionManager;
     private final CurrentState currentState = new CurrentState();
     private final MockManager mockManager;
+    private final EditorFactoryListener editorFactoryListener;
     Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
@@ -279,10 +281,10 @@ final public class InsidiousService implements
                         }
                     }
                     if (!foundIncludePackage) {
-//                        checkCache.put(session.getSessionId(), new ServerMetadata());
+                        checkCache.put(session.getSessionId(), null);
                         logger.warn(
                                 "Package not found in the params, marked as session not matching: " + session.getLogFilePath());
-//                        return null;
+                        return null;
                     }
                     String serverMetadataJson = logFileInputStream.readLine();
                     ServerMetadata serverMetadata;
@@ -290,7 +292,6 @@ final public class InsidiousService implements
                         serverMetadata = objectMapper.readValue(serverMetadataJson,
                                 ServerMetadata.class);
                     } catch (Exception e) {
-                        checkCache.put(session.getSessionId(), new ServerMetadata());
                         logger.warn("Failed to read server metadata from log: [" + serverMetadataJson + "]", e);
                         InsidiousNotification.notifyMessage("Found session at [" + session.getPath() + "] " +
                                         "but couldn't connect to server because of missing server metadata.",
@@ -338,9 +339,12 @@ final public class InsidiousService implements
         multicaster.addCaretListener(listener, this);
         multicaster.addDocumentListener(listener, this);
 
-        EditorFactory.getInstance().addEditorFactoryListener(new EditorFactoryListener() {
+        editorFactoryListener = new EditorFactoryListener() {
             @Override
             public void editorCreated(@NotNull EditorFactoryEvent event) {
+                if (project.isDisposed()) {
+                    return;
+                }
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
                     DumbService.getInstance(project)
                             .runReadActionInSmartMode(() -> {
@@ -352,11 +356,15 @@ final public class InsidiousService implements
 
             @Override
             public void editorReleased(@NotNull EditorFactoryEvent event) {
+                if (project.isDisposed()) {
+                    return;
+                }
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
                     populateFromEditors(event);
                 });
             }
-        }, this);
+        };
+        EditorFactory.getInstance().addEditorFactoryListener(editorFactoryListener, this);
 
 
 //        ConnectionCheckerService connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgentClient);
@@ -698,6 +706,8 @@ final public class InsidiousService implements
         UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_DISPOSED", eventProperties);
         logger.warn("Disposing InsidiousService for project: " + project.getName());
         connectionCheckerThreadPool.shutdownNow();
+        EditorFactory.getInstance().removeEditorFactoryListener(editorFactoryListener);
+
         if (stompComponentThreadPool != null) {
             stompComponentThreadPool.shutdownNow();
         }

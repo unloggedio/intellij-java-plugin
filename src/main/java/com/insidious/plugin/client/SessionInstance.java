@@ -238,7 +238,7 @@ public class SessionInstance implements Runnable {
     }
 
     private void publishEvent(ScanEventType scanEventType) {
-        logger.warn("publishEvent [" + sessionScanEventListeners.size() + "] ScanEventType: " + scanEventType);
+//        logger.warn("publishEvent [" + sessionScanEventListeners.size() + "] ScanEventType: " + scanEventType);
         switch (scanEventType) {
 
             case START:

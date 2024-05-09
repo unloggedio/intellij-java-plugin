@@ -8,10 +8,9 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
 
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.stream.Collectors;
 
 public class StompFilterModel {
     private final Set<String> includedClassNames = new CopyOnWriteArraySet<>();
@@ -20,13 +19,6 @@ public class StompFilterModel {
     private final Set<String> excludedMethodNames = new CopyOnWriteArraySet<>();
     boolean followEditor;
     CandidateFilterType candidateFilterType = CandidateFilterType.ALL;
-    public boolean isEmpty() {
-        return includedClassNames.isEmpty()
-                && includedMethodNames.isEmpty()
-                && excludedClassNames.isEmpty()
-                && excludedMethodNames.isEmpty();
-
-    }
 
     public StompFilterModel(StompFilterModel stompFilterModel) {
         this.includedMethodNames.addAll(stompFilterModel.includedMethodNames);
@@ -38,6 +30,14 @@ public class StompFilterModel {
     }
 
     public StompFilterModel() {
+    }
+
+    public boolean isEmpty() {
+        return includedClassNames.isEmpty()
+                && includedMethodNames.isEmpty()
+                && excludedClassNames.isEmpty()
+                && excludedMethodNames.isEmpty();
+
     }
 
     @Override
@@ -165,6 +165,7 @@ public class StompFilterModel {
         includedClassNames.clear();
         includedMethodNames.clear();
     }
+
     public void clearExcluded() {
         excludedClassNames.clear();
         excludedMethodNames.clear();
