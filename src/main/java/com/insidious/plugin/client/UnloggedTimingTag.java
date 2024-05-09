@@ -24,7 +24,7 @@ public class UnloggedTimingTag {
         return nanoSecondTimestamp;
     }
 
-    public void setNanoSecondTimestamp(int nanoSecondTimestamp) {
+    public void setNanoSecondTimestamp(long nanoSecondTimestamp) {
         this.nanoSecondTimestamp = nanoSecondTimestamp;
     }
 }

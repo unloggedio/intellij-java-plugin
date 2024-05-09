@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
-import com.insidious.plugin.client.UnloggedTimingTagClient.UnloggedTimingTagClientDeserializer;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
@@ -300,15 +299,11 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
                 try {
 					// define unloggedTimingTags
 					ObjectMapper objectMapper = new ObjectMapper();
-					SimpleModule module = new SimpleModule();
-					module.addDeserializer(UnloggedTimingTagClient.class, new UnloggedTimingTagClientDeserializer());
-					objectMapper.registerModule(module);
-
 					String responseBody = Objects.requireNonNull(response.body()).string();
-					UnloggedTimingTagClient[] UnloggedTimingTagClientList = objectMapper.readValue(responseBody, UnloggedTimingTagClient[].class);
+					UnloggedTimingTag[] UnloggedTimingTagClientList = objectMapper.readValue(responseBody, UnloggedTimingTag[].class);
 					unloggedTimingTags = new ArrayList<>();
 					for (int i=0;i<=UnloggedTimingTagClientList.length-1;i++) {
-						unloggedTimingTags.add(UnloggedTimingTagClientList[i].getUnloggedTimingTag());
+						unloggedTimingTags.add(UnloggedTimingTagClientList[i]);
 					}
                 } finally {
                     response.close();
