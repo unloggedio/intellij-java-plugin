@@ -53,6 +53,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getMethodCallsBetween = "/getMethodCallsBetween";
 	private String getMethodCallExpressions = "/getMethodCallExpressions";
 	private String getMethodCallCountBetween = "/getMethodCallCountBetween";
+	private String getInitTimestamp = "/getInitTimestamp";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -67,6 +68,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private Integer processedFileCount;
 	private MethodDefinition localMethodDefinition;
 	private int methodCallCount;
+	private long initTimestamp;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -734,6 +736,41 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
 
         return methodCallCount;
+	}
+
+	public long getInitTimestamp() {
+
+		String url = this.endpoint + this.getInitTimestamp + "?sessionId=" + this.sessionId;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					Map<String, Long> jsonVal = objectMapper.readValue(responseBody, new TypeReference<Map<String, Long>>() {});
+                    initTimestamp = jsonVal.get("initTimestamp");
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+		try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return initTimestamp;
 	}
 
 }

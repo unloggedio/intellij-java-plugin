@@ -281,6 +281,9 @@ final public class InsidiousService implements
 		int method_call_count = networkSessionInstanceClient.getMethodCallCountBetween(0, 1000);
 		logger.info("method_call_count = " + method_call_count);
 		logger.info("--------------------");
+		long init_timestamp = networkSessionInstanceClient.getInitTimestamp();
+		logger.info("init_timestamp = " + init_timestamp);
+		logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, ServerMetadata> checkCache = new HashMap<>();
