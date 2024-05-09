@@ -3,9 +3,11 @@ package com.insidious.plugin.client;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
+import com.insidious.plugin.client.TypeInfoDocumentClient.TypeInfoDocumentClientDeserializer;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
@@ -58,6 +60,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getInitTimestamp = "/getInitTimestamp";
 	private String getClassWeaveInfo = "/getClassWeaveInfo";
 	private String getClassIndex = "/getClassIndex";
+	private String getAllTypes = "/getAllTypes";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -75,6 +78,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private long initTimestamp;
 	private ClassWeaveInfo classWeaveInfo;
 	private Map<String, ClassInfo> classIndex;
+	private List<TypeInfoDocument> listTypeInfoDocument;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -819,7 +823,6 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	public Map<String, ClassInfo> getClassIndex() {
 
 		String url = this.endpoint + this.getClassIndex + "?sessionId=" + this.sessionId;
-		logger.info("url = " + url);
         CountDownLatch latch = new CountDownLatch(1);
 
         get(url, new Callback() {
@@ -849,5 +852,49 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
 
         return classIndex;
+	}
+
+	@Override
+	public List<TypeInfoDocument> getAllTypes() {
+
+		String url = this.endpoint + this.getAllTypes + "?sessionId=" + this.sessionId;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					SimpleModule module = new SimpleModule();
+					module.addDeserializer(TypeInfoDocumentClient.class, new TypeInfoDocumentClientDeserializer());
+					objectMapper.registerModule(module);
+
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					TypeInfoDocumentClient[] val = objectMapper.readValue(responseBody, TypeInfoDocumentClient[].class);
+					listTypeInfoDocument = new ArrayList<>();
+					for (int i=0;i<=val.length-1;i++) {
+						listTypeInfoDocument.add(val[i].getTypeInfoDocument());
+					}
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return listTypeInfoDocument;
+
 	}
 }

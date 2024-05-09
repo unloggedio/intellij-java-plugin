@@ -1066,6 +1066,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return new TypeInfo(-1, name, "", 0, 0, "", new int[0]);
     }
 
+	@Override
     public List<TypeInfoDocument> getAllTypes() {
         return new ArrayList<>(archiveIndex.Types());
     }

@@ -1,6 +1,7 @@
 package com.insidious.plugin.factory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.Constants;
@@ -294,6 +295,14 @@ final public class InsidiousService implements
 		logger.info("--------------------");
 		Map<String, ClassInfo> classIndex = networkSessionInstanceClient.getClassIndex();
 		logger.info("classIndex= " + classIndex.toString());
+		logger.info("--------------------");
+		List<TypeInfoDocument> listTypeInfoDocument = networkSessionInstanceClient.getAllTypes();
+		logger.info("listTypeInfoDocument:");
+		for (int i=0;i<=listTypeInfoDocument.size()-1;i++) {
+			logger.info("	typeId = " + listTypeInfoDocument.get(i).getTypeId());
+			logger.info("	typeName = " + listTypeInfoDocument.get(i).getTypeName());
+			logger.info("	typeBytes = " + listTypeInfoDocument.get(i).getTypeBytes());
+		}
 		logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {

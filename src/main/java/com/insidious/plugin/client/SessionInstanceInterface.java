@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
+import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.factory.CandidateSearchQuery;
@@ -30,4 +31,5 @@ public interface SessionInstanceInterface {
 	public int getMethodCallCountBetween(long start, long end);
 	public ClassWeaveInfo getClassWeaveInfo();
     public Map<String, ClassInfo> getClassIndex();
+	public List<TypeInfoDocument> getAllTypes();
 }
