@@ -24,4 +24,5 @@ public interface SessionInstanceInterface {
 	public MethodDefinition getMethodDefinition(MethodUnderTest methodUnderTest1);
 	public List<MethodCallExpression> getMethodCallsBetween(long start, long end);
 	public List<MethodCallExpression> getMethodCallExpressions(CandidateSearchQuery candidateSearchQuery);
+	public int getMethodCallCountBetween(long start, long end);
 }

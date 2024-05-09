@@ -52,6 +52,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getMethodDefinition = "/getMethodDefinition";
 	private String getMethodCallsBetween = "/getMethodCallsBetween";
 	private String getMethodCallExpressions = "/getMethodCallExpressions";
+	private String getMethodCallCountBetween = "/getMethodCallCountBetween";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -65,6 +66,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private TestCandidateMetadata testCandidateMetadata;
 	private Integer processedFileCount;
 	private MethodDefinition localMethodDefinition;
+	private int methodCallCount;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -662,7 +664,6 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 		}
 		
 		String url = this.endpoint + this.getMethodCallExpressions + "?sessionId=" + this.sessionId + "&loadCalls=" + loadCalls + interfaceDataString + "&argumentsDescriptor=" + argumentsDescriptor + "&candidateFilterType=" + candidateFilterType + "&methodSignature=" + methodSignature + "&className=" + className + "&methodName=" + methodName;
-		logger.info("url = " + url);
         CountDownLatch latch = new CountDownLatch(1);
 
         get(url, new Callback() {
@@ -697,6 +698,42 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
 
         return localMethodCallExpression;
+	}
+
+	@Override
+	public int getMethodCallCountBetween(long start, long end) {
+
+		String url = this.endpoint + this.getMethodCallCountBetween + "?sessionId=" + this.sessionId + "&start=" + start + "&end=" + end;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					Map<String, Integer> jsonVal = objectMapper.readValue(responseBody, new TypeReference<Map<String, Integer>>() {});
+                    methodCallCount = jsonVal.get("methodCallCountBetween");
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+		try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return methodCallCount;
 	}
 
 }

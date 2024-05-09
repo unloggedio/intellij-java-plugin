@@ -278,6 +278,9 @@ final public class InsidiousService implements
 			logger.info("	local_method_call_expression2 = " + method_call_expression_list_get_expressions.get(i).toString());
 		}
 		logger.info("--------------------");
+		int method_call_count = networkSessionInstanceClient.getMethodCallCountBetween(0, 1000);
+		logger.info("method_call_count = " + method_call_count);
+		logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, ServerMetadata> checkCache = new HashMap<>();

@@ -4130,6 +4130,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                 methodUnderTest1.getName(), methodUnderTest1.getSignature());
     }
 
+	@Override
     public int getMethodCallCountBetween(long start, long end) {
         return daoService.getCallCountBetween(start, end);
     }
