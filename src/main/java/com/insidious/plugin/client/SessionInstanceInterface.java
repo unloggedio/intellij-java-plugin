@@ -32,4 +32,5 @@ public interface SessionInstanceInterface {
 	public ClassWeaveInfo getClassWeaveInfo();
     public Map<String, ClassInfo> getClassIndex();
 	public List<TypeInfoDocument> getAllTypes();
+	public boolean isConnected();
 }

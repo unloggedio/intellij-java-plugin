@@ -233,6 +233,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return scanEnable;
     }
 
+	@Override
     public boolean isConnected() {
         AgentCommandResponse<ServerMetadata> pingResponse = unloggedSdkApiAgentClient.ping();
         return ResponseType.NORMAL.equals(pingResponse.getResponseType());

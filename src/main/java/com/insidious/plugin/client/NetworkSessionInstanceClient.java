@@ -895,6 +895,11 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
 
         return listTypeInfoDocument;
+	@Override
+	public boolean isConnected() {
+		// TODO: should be implemented 
+		return true;
+	}
 
 	}
 }
