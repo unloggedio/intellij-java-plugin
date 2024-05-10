@@ -286,7 +286,6 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return logFileMap;
     }
 
-//    @Override
     public ExecutionSession getExecutionSession() {
         return executionSession;
     }
@@ -3935,7 +3934,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         }
     }
 
-//    @Override
+	@Override
     public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception {
         return daoService.getConstructorCandidate(parameter);
     }

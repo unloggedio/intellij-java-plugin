@@ -28,6 +28,7 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
@@ -318,6 +319,14 @@ final public class InsidiousService implements
         logger.info("--------------------");
 		boolean isConnected = networkSessionInstanceClient.isConnected();
 		logger.info("isConnected= " + isConnected);
+		logger.info("--------------------");
+		TestCandidateMetadata testCandidateMetadata = null;
+		try {
+			testCandidateMetadata = networkSessionInstanceClient.getConstructorCandidate(new Parameter());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		logger.info("testCandidateMetadata = " +  testCandidateMetadata);
 		logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {

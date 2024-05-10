@@ -12,6 +12,7 @@ import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
@@ -64,6 +65,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getClassIndex = "/getClassIndex";
 	private String getAllTypes = "/getAllTypes";
     private String getTestCandidatePaginatedByStompFilterModel = "/getTestCandidatePaginatedByStompFilterModel";
+	private String getConstructorCandidate = "/getConstructorCandidate";
 
 	// session instance attributes
 	private boolean isConnected = false;
@@ -84,6 +86,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private Map<String, ClassInfo> classIndex;
 	private List<TypeInfoDocument> listTypeInfoDocument;
     private List<TestCandidateBareBone> localTestCandidateBareBone;
+	private TestCandidateMetadata localTestCandidateMetadata;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -1036,10 +1039,6 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
             public void onResponse(Call call, Response response) throws IOException {
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
-                    SimpleModule module = new SimpleModule();
-                    module.addDeserializer(TypeInfoDocumentClient.class, new TypeInfoDocumentClientDeserializer());
-                    objectMapper.registerModule(module);
-
                     String responseBody = Objects.requireNonNull(response.body()).string();
                     TestCandidateBareBone[] val = objectMapper.readValue(responseBody, TestCandidateBareBone[].class);
                     localTestCandidateBareBone = new ArrayList<>();
@@ -1063,16 +1062,64 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
     }
 
+	@Override
+	public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception {
 
-//    @Override
-//    public ExecutionSession getExecutionSession() {
-//        // TODO: implement
-//        // TODO: test
-//    }
-//
-//    @Override
-//    public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception {
-//        // TODO: implement
-//        // TODO: test
-//    }
+		// {
+		// 	"value": 0,
+		// 	"type": null,
+		// 	"exception": false,
+		// 	"prob": null,
+		// 	"names": [],
+		// 	"stringValue": "string",
+		// 	"index": 0,
+		// 	"creatorExpression": null,
+		// 	"templateMap": [],
+		// 	"isEnum": true,
+		// 	"iscontainer": true
+		// }
+
+
+		long value = parameter.getValue();
+		String type = parameter.getType();
+		boolean exception = parameter.isException();
+		String stringValue = parameter.getStringValue();
+		int index = parameter.getIndex();
+		MethodCallExpression methodCallExpression = parameter.getCreatorExpression();
+		boolean isEnum = parameter.getIsEnum();
+		boolean isContainer = parameter.isContainer();
+
+		String url = this.endpoint + this.getConstructorCandidate + "?sessionId=" + this.sessionId + "&value=" + value + "&type=" + type + "&exception=" + exception + "&prob=" + "&stringValue=" + stringValue + "&index=" + index + "&creatorExpression=" + "&isEnum=" + isEnum + "&iscontainer=" + isContainer;
+		logger.info("method: getConstructorCandidate url = " + url);
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					localTestCandidateMetadata = objectMapper.readValue(responseBody, TestCandidateMetadata.class);
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return localTestCandidateMetadata;
+	
+	}
 }

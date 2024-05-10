@@ -9,7 +9,6 @@ import java.util.function.Consumer;
 import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
-import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
@@ -43,7 +42,5 @@ public interface SessionInstanceInterface {
 	public List<TestCandidateBareBone> getTestCandidatePaginatedByStompFilterModel(StompFilterModel stompFilterModel,
 																				   long currentAfterEventId,
 																				   int limit);
-
-//	public ExecutionSession getExecutionSession();
-//	public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception;
+	public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception;
 }
