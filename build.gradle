@@ -173,8 +173,8 @@ patchPluginXml {
 }
 
 publishPlugin {
-    token = "perm:c2hhcmR1bGxhdmVrYXI=.OTItOTgzNg==.jtYdVSDkwcwSWZMhCu5BVma7V3VRFY"
-    channels = ['alpha']
+    token = "perm:c2hhcmR1bGxhdmVrYXI=.OTItMTAwMzA=.ZtumD3AexEy1NbzN66xWyJppVwMugG"
+    channels = ['stable']
 }
 
 test {

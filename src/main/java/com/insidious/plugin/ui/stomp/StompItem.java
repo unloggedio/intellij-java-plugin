@@ -447,7 +447,7 @@ public class StompItem {
                 JsonNode value = ClassTypeUtils.getValueForParameter(argument);
                 String name = argument.getName();
                 if (name == null) {
-                    name = "Arg" + i;
+                    name = "[" + i + "]";
                 }
                 parametersNode.set(name, value);
             }
@@ -474,7 +474,7 @@ public class StompItem {
         if (returnValueTag.getToolTipText() == null
                 || returnValueTag.getToolTipText().isEmpty()) {
             JsonNode valueForParameter = ClassTypeUtils.getValueForParameter(mainMethod.getReturnValue());
-            String prettyPrintedArgumentsHtml = "{}";
+            String prettyPrintedArgumentsHtml = valueForParameter.toString();
             if (valueForParameter.isNumber()
                     && (mainMethod.getReturnValue().getType() == null ||
                     (mainMethod.getReturnValue().getType().length() != 1 &&

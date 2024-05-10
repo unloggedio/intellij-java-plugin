@@ -360,7 +360,10 @@ final public class InsidiousService implements
                     return;
                 }
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    populateFromEditors(event);
+                    DumbService.getInstance(project)
+                            .runReadActionInSmartMode(() -> {
+                                populateFromEditors(event);
+                            });
                 });
             }
         };

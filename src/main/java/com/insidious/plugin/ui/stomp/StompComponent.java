@@ -1422,6 +1422,7 @@ public class StompComponent implements
             }
         });
 
+        countByMethodName.clear();
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             if (candidateQueryLatch == null) {
                 candidateQueryLatch = new AtomicInteger(1);
