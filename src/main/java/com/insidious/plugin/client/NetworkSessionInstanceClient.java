@@ -8,12 +8,10 @@ import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
 import com.insidious.plugin.client.TypeInfoDocumentClient.TypeInfoDocumentClientDeserializer;
-import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.insidious.plugin.pojo.MethodCallExpression;
-import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
@@ -913,7 +911,6 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	@Override
 	public void getTestCandidates (Consumer<List<TestCandidateBareBone>> testCandidateReceiver, long afterEventId, StompFilterModel stompFilterModel, AtomicInteger cdl) {
 
-        // TODO: test
         int page = 0;
         int limit = 50;
         int count = 0;
