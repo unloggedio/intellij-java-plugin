@@ -8,6 +8,7 @@ import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
 import com.insidious.plugin.client.TypeInfoDocumentClient.TypeInfoDocumentClientDeserializer;
+import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
@@ -66,10 +67,12 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getAllTypes = "/getAllTypes";
     private String getTestCandidatePaginatedByStompFilterModel = "/getTestCandidatePaginatedByStompFilterModel";
 	private String getConstructorCandidate = "/getConstructorCandidate";
+	private String getExecutionSession = "/getExecutionSession";
 
 	// session instance attributes
 	private boolean isConnected = false;
     private String sessionId = "0";
+	private ExecutionSession executionSession;
 	private boolean scanEnable;
 	private TypeInfo typeInfo;
 	private int totalFileCount;
@@ -1121,5 +1124,40 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         return localTestCandidateMetadata;
 	
+	}
+
+	@Override
+	public ExecutionSession getExecutionSession() {
+
+		String url = this.endpoint + this.getExecutionSession + "?sessionId=" + this.sessionId;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					executionSession = objectMapper.readValue(responseBody, ExecutionSession.class);
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return executionSession;
 	}
 }

@@ -286,6 +286,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return logFileMap;
     }
 
+	@Override
     public ExecutionSession getExecutionSession() {
         return executionSession;
     }

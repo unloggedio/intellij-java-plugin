@@ -1,10 +1,11 @@
 package com.insidious.plugin.client.pojo;
 
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Date;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ExecutionSession {
 
 

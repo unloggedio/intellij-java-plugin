@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
@@ -43,4 +44,5 @@ public interface SessionInstanceInterface {
 																				   long currentAfterEventId,
 																				   int limit);
 	public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception;
+	public ExecutionSession getExecutionSession();
 }
