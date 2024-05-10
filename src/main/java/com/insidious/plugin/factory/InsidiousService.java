@@ -189,148 +189,148 @@ final public class InsidiousService implements
         // this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
 
         // test networkSessionInstanceClient
-		logger.info("--------------------");
-		NetworkSessionInstanceClient networkSessionInstanceClient = new NetworkSessionInstanceClient("http://localhost:8123/session");
-		boolean scanEnable = networkSessionInstanceClient.isScanEnable();
-		logger.info("scanEnable = " + scanEnable);
-		logger.info("----------------------");
-		TypeInfo typeInfoTypeString = networkSessionInstanceClient.getTypeInfo("jdk.proxy2.$Proxy143");
-		logger.info("typeInfoTypeString: ");
-		logger.info("interface: " + typeInfoTypeString.getInterfaces());
-		for (int i=0;i<=typeInfoTypeString.getInterfaces().length-1;i++) {
-			logger.info("	interfaces_data = " + typeInfoTypeString.getInterfaces()[i]);
-		}
-		logger.info("typeId = " + typeInfoTypeString.getTypeId());
-		logger.info("typeNameFromClass = " + typeInfoTypeString.getTypeNameFromClass());
-		logger.info("classLocation = " + typeInfoTypeString.getClassLocation());
-		logger.info("superclass = " + typeInfoTypeString.getSuperClass());
-		logger.info("componentType = " + typeInfoTypeString.getComponentType());
-		logger.info("getClassLoaderIdentifier = " + typeInfoTypeString.getClassLoaderIdentifier());
-		logger.info("--------------------");
-		TypeInfo typeInfoTypeInt = networkSessionInstanceClient.getTypeInfo(195);
-		logger.info("typeInfoTypeInt: ");
-		logger.info("interface: " + typeInfoTypeInt.getInterfaces());
-		for (int i=0;i<=typeInfoTypeInt.getInterfaces().length-1;i++) {
-			logger.info("	interfaces_data = " + typeInfoTypeInt.getInterfaces()[i]);
-		}
-		logger.info("typeId = " + typeInfoTypeInt.getTypeId());
-		logger.info("typeNameFromClass = " + typeInfoTypeInt.getTypeNameFromClass());
-		logger.info("classLocation = " + typeInfoTypeInt.getClassLocation());
-		logger.info("superclass = " + typeInfoTypeInt.getSuperClass());
-		logger.info("componentType = " + typeInfoTypeInt.getComponentType());
-		logger.info("getClassLoaderIdentifier = " + typeInfoTypeInt.getClassLoaderIdentifier());
-		logger.info("--------------------");
-		int totalFileCount = networkSessionInstanceClient.getTotalFileCount();
-		logger.info("totalFileCount = " + totalFileCount);
-		logger.info("--------------------");
-		List<UnloggedTimingTag> unloggedtimingTags = networkSessionInstanceClient.getTimingTags(1);
-		logger.info("unloggedTimingTag list:");
-		for (int i=0;i<=unloggedtimingTags.size()-1;i++) {
-			logger.info("	" + unloggedtimingTags.get(i).getLineNumber());
-			logger.info("	" + unloggedtimingTags.get(i).getNanoSecondTimestamp());
-		}
-		logger.info("--------------------");
-		List<TestCandidateMetadata> testCandidateMetadataList_all_method = networkSessionInstanceClient.getTestCandidatesForAllMethod(new CandidateSearchQuery());
-		logger.info("testCandidateMetadataList_all_method list:");
-		for (int i=0;i<=testCandidateMetadataList_all_method.size()-1;i++){
-			logger.info("	" + testCandidateMetadataList_all_method.get(i).getCreatedAt());
-			logger.info("	" + testCandidateMetadataList_all_method.get(i).getTestSubject());
-		}
-		logger.info("--------------------");
-		TestCandidateMetadata testCandidateMetadata_1 = networkSessionInstanceClient.getTestCandidateById(Long.valueOf(3), false);
-		logger.info("testCandidateMetadata_1 = " + testCandidateMetadata_1.getTestSubject().getType());
-		logger.info("--------------------");
-		List<TestCandidateMetadata> testCandidateMetadataList_between_event;
-		try {
-			testCandidateMetadataList_between_event = networkSessionInstanceClient.getTestCandidateBetween(0,1000);
-			logger.info("testCandidateMetadataList_between_event list:");
-			for (int i=0;i<=testCandidateMetadataList_between_event.size()-1;i++){
-				logger.info("	" + testCandidateMetadataList_between_event.get(i).getCreatedAt());
-				logger.info("	" + testCandidateMetadataList_between_event.get(i).getTestSubject());
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		logger.info("--------------------");
-		List<TestCandidateMethodAggregate> test_candidate_method_aggregate_list = networkSessionInstanceClient.getTestCandidateAggregatesByClassName("org.unlogged.demo.gradle.controller.CustomerController");
-		logger.info("test_candidate_method_aggregate_list list:");
-		for (int i=0;i<=test_candidate_method_aggregate_list.size()-1;i++){
-			logger.info("	" + test_candidate_method_aggregate_list.get(i).toString());
-		}
-		logger.info("--------------------");
-		int processed_file_count = networkSessionInstanceClient.getProcessedFileCount();
-		logger.info("processed_file_count = " + processed_file_count);
-		logger.info("--------------------");
-		MethodDefinition method_definition = networkSessionInstanceClient.getMethodDefinition(new MethodUnderTest("string", "string", 0, "string"));
-		logger.info("method_definition: ");
-		logger.info("	id = " + method_definition.getId());
-		logger.info("	argumentTypes = " + method_definition.getArgumentTypes());
-		logger.info("	methodName = " + method_definition.getMethodName());
-		logger.info("	ownerType = " + method_definition.getOwnerType());
-		logger.info("--------------------");
-		List<MethodCallExpression> method_call_expression_list_calls_between = networkSessionInstanceClient.getMethodCallsBetween(0, 1000);
-		logger.info("method_call_expression_list_calls_between: ");
-		for (int i=0;i<=method_call_expression_list_calls_between.size()-1;i++)
-		{
-			logger.info("	local_method_call_expression1 = " + method_call_expression_list_calls_between.get(i).toString());
-		}
-		logger.info("--------------------");
-		List<MethodCallExpression> method_call_expression_list_get_expressions = networkSessionInstanceClient.getMethodCallExpressions(new CandidateSearchQuery());
-		logger.info("method_call_expression_list_get_expressions: ");
-		for (int i=0;i<=method_call_expression_list_get_expressions.size()-1;i++)
-		{
-			logger.info("	local_method_call_expression2 = " + method_call_expression_list_get_expressions.get(i).toString());
-		}
-		logger.info("--------------------");
-		int method_call_count = networkSessionInstanceClient.getMethodCallCountBetween(0, 1000);
-		logger.info("method_call_count = " + method_call_count);
-		logger.info("--------------------");
-		long init_timestamp = networkSessionInstanceClient.getInitTimestamp();
-		logger.info("init_timestamp = " + init_timestamp);
-		logger.info("--------------------");
-		ClassWeaveInfo classWeaveInfo = networkSessionInstanceClient.getClassWeaveInfo();
-		logger.info("classWeaveInfo: ");
-		logger.info("	classInfoList = " + classWeaveInfo.getClassInfoList());
-		logger.info("	methodInfoList = " + classWeaveInfo.getMethodInfoList());
-		logger.info("	dataInfoList = " + classWeaveInfo.getDataInfoList());
-		logger.info("--------------------");
-		Map<String, ClassInfo> classIndex = networkSessionInstanceClient.getClassIndex();
-		logger.info("classIndex= " + classIndex.toString());
-		logger.info("--------------------");
-		List<TypeInfoDocument> listTypeInfoDocument = networkSessionInstanceClient.getAllTypes();
-		logger.info("listTypeInfoDocument:");
-		for (int i=0;i<=listTypeInfoDocument.size()-1;i++) {
-			logger.info("	typeId = " + listTypeInfoDocument.get(i).getTypeId());
-			logger.info("	typeName = " + listTypeInfoDocument.get(i).getTypeName());
-			logger.info("	typeBytes = " + listTypeInfoDocument.get(i).getTypeBytes());
-		}
-		logger.info("--------------------");
-        List<TestCandidateBareBone> localTestCandidateBarebone = networkSessionInstanceClient.getTestCandidatePaginatedByStompFilterModel(
-                new StompFilterModel(),
-                0,
-                50
-        );
-        logger.info("localTestCandidateBarebone:");
-        for (int i=0;i<=localTestCandidateBarebone.size()-1;i++) {
-            logger.info("	id = " + localTestCandidateBarebone.get(i).getId());
-            logger.info("	createdAt = " + localTestCandidateBarebone.get(i).getCreatedAt());
-            logger.info("	lineNumbers = " + localTestCandidateBarebone.get(i).getLineNumbers());
-        }
-        logger.info("--------------------");
-		boolean isConnected = networkSessionInstanceClient.isConnected();
-		logger.info("isConnected= " + isConnected);
-		logger.info("--------------------");
-		TestCandidateMetadata testCandidateMetadata = null;
-		try {
-			testCandidateMetadata = networkSessionInstanceClient.getConstructorCandidate(new Parameter());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		logger.info("testCandidateMetadata = " +  testCandidateMetadata);
-		logger.info("--------------------");
-		ExecutionSession executionSession = networkSessionInstanceClient.getExecutionSession();
-		logger.info("executionSession = " +  executionSession);
-		logger.info("--------------------");
+//		logger.info("--------------------");
+//		NetworkSessionInstanceClient networkSessionInstanceClient = new NetworkSessionInstanceClient("http://localhost:8123/session");
+//		boolean scanEnable = networkSessionInstanceClient.isScanEnable();
+//		logger.info("scanEnable = " + scanEnable);
+//		logger.info("----------------------");
+//		TypeInfo typeInfoTypeString = networkSessionInstanceClient.getTypeInfo("jdk.proxy2.$Proxy143");
+//		logger.info("typeInfoTypeString: ");
+//		logger.info("interface: " + typeInfoTypeString.getInterfaces());
+//		for (int i=0;i<=typeInfoTypeString.getInterfaces().length-1;i++) {
+//			logger.info("	interfaces_data = " + typeInfoTypeString.getInterfaces()[i]);
+//		}
+//		logger.info("typeId = " + typeInfoTypeString.getTypeId());
+//		logger.info("typeNameFromClass = " + typeInfoTypeString.getTypeNameFromClass());
+//		logger.info("classLocation = " + typeInfoTypeString.getClassLocation());
+//		logger.info("superclass = " + typeInfoTypeString.getSuperClass());
+//		logger.info("componentType = " + typeInfoTypeString.getComponentType());
+//		logger.info("getClassLoaderIdentifier = " + typeInfoTypeString.getClassLoaderIdentifier());
+//		logger.info("--------------------");
+//		TypeInfo typeInfoTypeInt = networkSessionInstanceClient.getTypeInfo(195);
+//		logger.info("typeInfoTypeInt: ");
+//		logger.info("interface: " + typeInfoTypeInt.getInterfaces());
+//		for (int i=0;i<=typeInfoTypeInt.getInterfaces().length-1;i++) {
+//			logger.info("	interfaces_data = " + typeInfoTypeInt.getInterfaces()[i]);
+//		}
+//		logger.info("typeId = " + typeInfoTypeInt.getTypeId());
+//		logger.info("typeNameFromClass = " + typeInfoTypeInt.getTypeNameFromClass());
+//		logger.info("classLocation = " + typeInfoTypeInt.getClassLocation());
+//		logger.info("superclass = " + typeInfoTypeInt.getSuperClass());
+//		logger.info("componentType = " + typeInfoTypeInt.getComponentType());
+//		logger.info("getClassLoaderIdentifier = " + typeInfoTypeInt.getClassLoaderIdentifier());
+//		logger.info("--------------------");
+//		int totalFileCount = networkSessionInstanceClient.getTotalFileCount();
+//		logger.info("totalFileCount = " + totalFileCount);
+//		logger.info("--------------------");
+//		List<UnloggedTimingTag> unloggedtimingTags = networkSessionInstanceClient.getTimingTags(1);
+//		logger.info("unloggedTimingTag list:");
+//		for (int i=0;i<=unloggedtimingTags.size()-1;i++) {
+//			logger.info("	" + unloggedtimingTags.get(i).getLineNumber());
+//			logger.info("	" + unloggedtimingTags.get(i).getNanoSecondTimestamp());
+//		}
+//		logger.info("--------------------");
+//		List<TestCandidateMetadata> testCandidateMetadataList_all_method = networkSessionInstanceClient.getTestCandidatesForAllMethod(new CandidateSearchQuery());
+//		logger.info("testCandidateMetadataList_all_method list:");
+//		for (int i=0;i<=testCandidateMetadataList_all_method.size()-1;i++){
+//			logger.info("	" + testCandidateMetadataList_all_method.get(i).getCreatedAt());
+//			logger.info("	" + testCandidateMetadataList_all_method.get(i).getTestSubject());
+//		}
+//		logger.info("--------------------");
+//		TestCandidateMetadata testCandidateMetadata_1 = networkSessionInstanceClient.getTestCandidateById(Long.valueOf(3), false);
+//		logger.info("testCandidateMetadata_1 = " + testCandidateMetadata_1.getTestSubject().getType());
+//		logger.info("--------------------");
+//		List<TestCandidateMetadata> testCandidateMetadataList_between_event;
+//		try {
+//			testCandidateMetadataList_between_event = networkSessionInstanceClient.getTestCandidateBetween(0,1000);
+//			logger.info("testCandidateMetadataList_between_event list:");
+//			for (int i=0;i<=testCandidateMetadataList_between_event.size()-1;i++){
+//				logger.info("	" + testCandidateMetadataList_between_event.get(i).getCreatedAt());
+//				logger.info("	" + testCandidateMetadataList_between_event.get(i).getTestSubject());
+//			}
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
+//		logger.info("--------------------");
+//		List<TestCandidateMethodAggregate> test_candidate_method_aggregate_list = networkSessionInstanceClient.getTestCandidateAggregatesByClassName("org.unlogged.demo.gradle.controller.CustomerController");
+//		logger.info("test_candidate_method_aggregate_list list:");
+//		for (int i=0;i<=test_candidate_method_aggregate_list.size()-1;i++){
+//			logger.info("	" + test_candidate_method_aggregate_list.get(i).toString());
+//		}
+//		logger.info("--------------------");
+//		int processed_file_count = networkSessionInstanceClient.getProcessedFileCount();
+//		logger.info("processed_file_count = " + processed_file_count);
+//		logger.info("--------------------");
+//		MethodDefinition method_definition = networkSessionInstanceClient.getMethodDefinition(new MethodUnderTest("string", "string", 0, "string"));
+//		logger.info("method_definition: ");
+//		logger.info("	id = " + method_definition.getId());
+//		logger.info("	argumentTypes = " + method_definition.getArgumentTypes());
+//		logger.info("	methodName = " + method_definition.getMethodName());
+//		logger.info("	ownerType = " + method_definition.getOwnerType());
+//		logger.info("--------------------");
+//		List<MethodCallExpression> method_call_expression_list_calls_between = networkSessionInstanceClient.getMethodCallsBetween(0, 1000);
+//		logger.info("method_call_expression_list_calls_between: ");
+//		for (int i=0;i<=method_call_expression_list_calls_between.size()-1;i++)
+//		{
+//			logger.info("	local_method_call_expression1 = " + method_call_expression_list_calls_between.get(i).toString());
+//		}
+////		logger.info("--------------------");
+////		List<MethodCallExpression> method_call_expression_list_get_expressions = networkSessionInstanceClient.getMethodCallExpressions(new CandidateSearchQuery());
+////		logger.info("method_call_expression_list_get_expressions: ");
+////		for (int i=0;i<=method_call_expression_list_get_expressions.size()-1;i++)
+////		{
+////			logger.info("	local_method_call_expression2 = " + method_call_expression_list_get_expressions.get(i).toString());
+////		}
+//		logger.info("--------------------");
+//		int method_call_count = networkSessionInstanceClient.getMethodCallCountBetween(0, 1000);
+//		logger.info("method_call_count = " + method_call_count);
+//		logger.info("--------------------");
+//		long init_timestamp = networkSessionInstanceClient.getInitTimestamp();
+//		logger.info("init_timestamp = " + init_timestamp);
+//		logger.info("--------------------");
+//		ClassWeaveInfo classWeaveInfo = networkSessionInstanceClient.getClassWeaveInfo();
+//		logger.info("classWeaveInfo: ");
+//		logger.info("	classInfoList = " + classWeaveInfo.getClassInfoList());
+//		logger.info("	methodInfoList = " + classWeaveInfo.getMethodInfoList());
+//		logger.info("	dataInfoList = " + classWeaveInfo.getDataInfoList());
+//		logger.info("--------------------");
+//		Map<String, ClassInfo> classIndex = networkSessionInstanceClient.getClassIndex();
+//		logger.info("classIndex= " + classIndex.toString());
+//		logger.info("--------------------");
+//		List<TypeInfoDocument> listTypeInfoDocument = networkSessionInstanceClient.getAllTypes();
+//		logger.info("listTypeInfoDocument:");
+//		for (int i=0;i<=listTypeInfoDocument.size()-1;i++) {
+//			logger.info("	typeId = " + listTypeInfoDocument.get(i).getTypeId());
+//			logger.info("	typeName = " + listTypeInfoDocument.get(i).getTypeName());
+//			logger.info("	typeBytes = " + listTypeInfoDocument.get(i).getTypeBytes());
+//		}
+//		logger.info("--------------------");
+//        List<TestCandidateBareBone> localTestCandidateBarebone = networkSessionInstanceClient.getTestCandidatePaginatedByStompFilterModel(
+//                new StompFilterModel(),
+//                0,
+//                50
+//        );
+//        logger.info("localTestCandidateBarebone:");
+//        for (int i=0;i<=localTestCandidateBarebone.size()-1;i++) {
+//            logger.info("	id = " + localTestCandidateBarebone.get(i).getId());
+//            logger.info("	createdAt = " + localTestCandidateBarebone.get(i).getCreatedAt());
+//            logger.info("	lineNumbers = " + localTestCandidateBarebone.get(i).getLineNumbers());
+//        }
+//        logger.info("--------------------");
+//		boolean isConnected = networkSessionInstanceClient.isConnected();
+//		logger.info("isConnected= " + isConnected);
+//		logger.info("--------------------");
+//		TestCandidateMetadata testCandidateMetadata = null;
+//		try {
+//			testCandidateMetadata = networkSessionInstanceClient.getConstructorCandidate(new Parameter());
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//		logger.info("testCandidateMetadata = " +  testCandidateMetadata);
+//		logger.info("--------------------");
+//		ExecutionSession executionSession = networkSessionInstanceClient.getExecutionSession();
+//		logger.info("executionSession = " +  executionSession);
+//		logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, ServerMetadata> checkCache = new HashMap<>();
@@ -1296,7 +1296,7 @@ final public class InsidiousService implements
 
     public void setSession(ExecutionSession executionSession, ServerMetadata serverMetadata) {
 
-        SessionInstance currentSession = currentState.getSessionInstance();
+        SessionInstanceInterface currentSession = currentState.getSessionInstance();
         if (currentSession != null) {
             try {
                 logger.info("Closing existing session: " + currentSession.getExecutionSession().getSessionId());
@@ -1310,9 +1310,7 @@ final public class InsidiousService implements
         this.methodHash.clear();
         this.classModifiedFlagMap.clear();
         logger.info("Loading new session: " + executionSession.getSessionId() + " => " + project.getName());
-        final SessionInstance sessionInstance = sessionManager.createSessionInstance(executionSession, serverMetadata,
-                project);
-
+        final SessionInstanceInterface sessionInstance = sessionManager.createSessionInstance(executionSession, serverMetadata, project);
 
         currentState.setSessionInstance(sessionInstance);
         sessionInstance.addTestCandidateListener(this);
@@ -1359,7 +1357,7 @@ final public class InsidiousService implements
 
     public void updateCoverageReport() {
 
-        SessionInstance sessionInstance = currentState.getSessionInstance();
+        SessionInstanceInterface sessionInstance = currentState.getSessionInstance();
         if (coverageReportComponent == null || sessionInstance == null) {
             return;
         }
@@ -1425,7 +1423,7 @@ final public class InsidiousService implements
     }
 
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
-        SessionInstance sessionInstance = currentState.getSessionInstance();
+        SessionInstanceInterface sessionInstance = currentState.getSessionInstance();
         if (sessionInstance == null || sessionInstance.getExecutionSession().getSessionId().equals("na")) {
             return new ClassMethodAggregates();
         }
@@ -1439,7 +1437,7 @@ final public class InsidiousService implements
         return currentState.getSessionInstance().getExecutionSession();
     }
 
-    public SessionInstance getSessionInstance() {
+    public SessionInstanceInterface getSessionInstance() {
         return currentState.getSessionInstance();
     }
 
@@ -1820,7 +1818,7 @@ final public class InsidiousService implements
     }
 
     public TestCandidateMetadata getTestCandidateById(long eventId, boolean loadCalls) {
-        SessionInstance sessionInstance = getSessionInstance();
+        SessionInstanceInterface sessionInstance = getSessionInstance();
         TestCandidateMetadata testCandidateMetadata = sessionInstance.getTestCandidateById(eventId, loadCalls);
         if (testCandidateMetadata == null) {
             return null;

@@ -4,6 +4,7 @@ import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.mock.MockFactory;
@@ -49,12 +50,13 @@ import java.util.stream.Collectors;
 
 public class TestCaseService {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseService.class);
-    private final SessionInstance sessionInstance;
+    private final SessionInstanceInterface sessionInstance;
     private final Project project;
 
-    public TestCaseService(SessionInstance sessionInstance) {
+    public TestCaseService(SessionInstanceInterface sessionInstance) {
         this.sessionInstance = sessionInstance;
-        this.project = sessionInstance.getProject();
+        // this.project = sessionInstance.getProject();
+		this.project = null;
     }
 
 

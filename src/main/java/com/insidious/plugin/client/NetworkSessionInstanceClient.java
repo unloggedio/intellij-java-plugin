@@ -6,9 +6,11 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.agent.UnloggedSdkApiAgentClient;
 import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
 import com.insidious.plugin.client.TypeInfoDocumentClient.TypeInfoDocumentClientDeserializer;
 import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.coverage.CodeCoverageData;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
@@ -16,6 +18,7 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
+import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
 import com.insidious.plugin.ui.stomp.StompFilterModel;
 import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
@@ -23,6 +26,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
+import com.intellij.openapi.project.Project;
 
 import okhttp3.*;
 
@@ -1159,5 +1163,45 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
 
         return executionSession;
+	}
+
+	@Override
+	public synchronized void close() {
+		return;
+	}
+
+	@Override
+	public void addSessionScanEventListener(SessionScanEventListener listener) {
+		return;
+	}
+
+	@Override
+	public void addTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener) {
+		return;
+	}
+
+	@Override
+	public Project getProject() {
+		return null;
+	}
+
+	@Override
+	public CodeCoverageData createCoverageData() {
+		return null;
+	}
+
+	@Override
+	public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
+		return null;
+	}
+
+	@Override
+	public UnloggedSdkApiAgentClient getAgent() {
+		return null;
+	}	
+
+	@Override
+	public void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
+		return;
 	}
 }

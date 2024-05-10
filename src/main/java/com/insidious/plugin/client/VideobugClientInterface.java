@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 public interface VideobugClientInterface {
     ExecutionSession getCurrentSession();
 
-    void setSessionInstance(SessionInstance sessionInstance);
+    void setSessionInstance(SessionInstanceInterface sessionInstance);
 
     void signup(String serverUrl, String username, String password, SignUpCallback callback);
 

@@ -14,6 +14,7 @@ import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -385,7 +386,7 @@ public class MethodDirectInvokeComponent
         if (existingRequests != null) {
             methodArgumentValues = existingRequests.getMethodParameters();
         } else {
-            SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
+            SessionInstanceInterface sessionInstance = this.insidiousService.getSessionInstance();
             if (sessionInstance != null) {
                 CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
                         methodElement, CandidateFilterType.METHOD, false);

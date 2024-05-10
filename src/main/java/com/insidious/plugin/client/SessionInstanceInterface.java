@@ -9,7 +9,9 @@ import java.util.function.Consumer;
 import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.agent.UnloggedSdkApiAgentClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.coverage.CodeCoverageData;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
@@ -17,8 +19,10 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
+import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.ui.stomp.StompFilterModel;
 import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
+import com.intellij.openapi.project.Project;
 
 public interface SessionInstanceInterface {
     public boolean isScanEnable();
@@ -45,4 +49,12 @@ public interface SessionInstanceInterface {
 																				   int limit);
 	public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception;
 	public ExecutionSession getExecutionSession();
+	public void close();
+	public void addSessionScanEventListener(SessionScanEventListener listener);
+	public void addTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener);
+	public Project getProject();
+	public CodeCoverageData createCoverageData();
+	public ClassMethodAggregates getClassMethodAggregates(String qualifiedName);
+	public UnloggedSdkApiAgentClient getAgent();
+	public void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression);
 }

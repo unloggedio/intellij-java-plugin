@@ -3743,6 +3743,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         }
     }
 
+	@Override
     public CodeCoverageData createCoverageData() {
 
         List<MethodDefinition> allMethods = daoService.getAllMethodDefinitions();
@@ -3946,6 +3947,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return testCandidateMetadata;
     }
 
+	@Override
     public void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
         List<Parameter> methodArguments = methodCallExpression.getArguments();
 
@@ -3977,7 +3979,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         }
     }
 
-
+	@Override
     public synchronized void close() {
         if (shutdown) {
             // already shutdown
@@ -4036,6 +4038,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         }
     }
 
+	@Override
     public void addTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener) {
         this.testCandidateListener.add(testCandidateListener);
     }
@@ -4102,10 +4105,12 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                 .getTestCandidatePaginated(currentAfterEventId, 0, limit, stompFilterModel);
     }
 
+	@Override
     public Project getProject() {
         return project;
     }
 
+	@Override
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
         return daoService.getClassMethodCallAggregates(qualifiedName);
     }
@@ -4142,6 +4147,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return daoService.getCallCountBetween(start, end);
     }
 
+	@Override
     public void addSessionScanEventListener(SessionScanEventListener listener) {
         this.sessionScanEventListeners.clear();
         this.sessionScanEventListeners.add(listener);
@@ -4175,6 +4181,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return daoService.getTimingTags(id);
     }
 
+	@Override
     public UnloggedSdkApiAgentClient getAgent() {
         return unloggedSdkApiAgentClient;
     }

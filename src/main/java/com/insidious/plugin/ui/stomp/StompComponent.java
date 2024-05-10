@@ -8,6 +8,7 @@ import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.TestCandidateLifeListener;
 import com.insidious.plugin.client.ScanProgress;
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.client.SessionScanEventListener;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
@@ -131,7 +132,7 @@ public class StompComponent implements
     private AtomicInteger candidateQueryLatch;
     private MethodUnderTest lastMethodFocussed;
     private boolean shownGotItNofiticaton = false;
-    private SessionInstance sessionInstance;
+    private SessionInstanceInterface sessionInstance;
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -389,7 +390,7 @@ public class StompComponent implements
         content.setMinimumSize(new Dimension(-1, 400));
         content.setMaximumSize(new Dimension(-1, 500));
 
-    }
+     }
 
     private void selectAll() {
         if (selectedCandidates.size() != stompItems.size()) {
@@ -1254,6 +1255,11 @@ public class StompComponent implements
 
 
     public void resetTimeline() {
+		logger.info("------------------------");
+		logger.info("reset timeline is called");
+		logger.info("sessionInstance = " + sessionInstance);
+		logger.info("------------------------");
+
         if (sessionInstance == null) {
             return;
         }
@@ -1262,6 +1268,8 @@ public class StompComponent implements
         List<Component> itemsToNotDelete = new ArrayList<>();
         List<StompItem> pinnedStomps = new ArrayList<>();
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
+			logger.info("isScanEnable = " + sessionInstance.isScanEnable());
+			logger.info("isConnected = " + sessionInstance.isConnected());
             if (sessionInstance.isScanEnable() && sessionInstance.isConnected()) {
                 ApplicationManager.getApplication().invokeLater(stompStatusComponent::setConnected);
             } else {
@@ -1526,7 +1534,7 @@ public class StompComponent implements
 
     }
 
-    public void setSession(SessionInstance sessionInstance) {
+    public void setSession(SessionInstanceInterface sessionInstance) {
         if (candidateQueryLatch != null) {
             candidateQueryLatch.decrementAndGet();
             candidateQueryLatch = null;

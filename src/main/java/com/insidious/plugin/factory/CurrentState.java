@@ -2,11 +2,12 @@ package com.insidious.plugin.factory;
 
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.ui.methodscope.HighlightedRequest;
 
 public class CurrentState {
     private MethodAdapter currentMethod;
-    private SessionInstance sessionInstance;
+    private SessionInstanceInterface sessionInstance;
     private boolean codeCoverageHighlightEnabled = true;
     private HighlightedRequest currentHighlightedRequest = null;
     private boolean testCaseDesignerWindowAdded = false;
@@ -29,11 +30,11 @@ public class CurrentState {
         this.currentMethod = currentMethod;
     }
 
-    public SessionInstance getSessionInstance() {
+    public SessionInstanceInterface getSessionInstance() {
         return sessionInstance;
     }
 
-    public void setSessionInstance(SessionInstance sessionInstance) {
+    public void setSessionInstance(SessionInstanceInterface sessionInstance) {
         this.sessionInstance = sessionInstance;
         this.isAgentServerRunning = sessionInstance != null;
     }
