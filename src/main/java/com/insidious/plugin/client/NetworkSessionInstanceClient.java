@@ -44,6 +44,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
 	// endpoint attributes
+	private String ping = "/ping";
 	private String isScanEnableEndpoint = "/isScanEnable";
 	private String getTypeInfoTypeString = "/getTypeInfoTypeString";
 	private String getTypeInfoTypeInt = "/getTypeInfoTypeInt";
@@ -65,6 +66,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     private String getTestCandidatePaginatedByStompFilterModel = "/getTestCandidatePaginatedByStompFilterModel";
 
 	// session instance attributes
+	private boolean isConnected = false;
     private String sessionId = "0";
 	private boolean scanEnable;
 	private TypeInfo typeInfo;
@@ -901,11 +903,40 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	}
 
 
-//	@Override
+	@Override
 	public boolean isConnected() {
-		// TODO: implement
-        // TODO: test
-		return true;
+		
+		String url = this.endpoint + this.ping;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					Map<String, Boolean> jsonVal = objectMapper.readValue(responseBody, new TypeReference<Map<String, Boolean>>() {});
+                    isConnected = jsonVal.get("status");
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+		try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return isConnected;
 	}
 
 	@Override

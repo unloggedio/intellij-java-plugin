@@ -39,7 +39,7 @@ public interface SessionInstanceInterface {
     public Map<String, ClassInfo> getClassIndex();
 	public List<TypeInfoDocument> getAllTypes();
 	public void getTestCandidates(Consumer<List<TestCandidateBareBone>> testCandidateReceiver, long afterEventId, StompFilterModel stompFilterModel, AtomicInteger cdl);
-//	public boolean isConnected();
+	public boolean isConnected();
 	public List<TestCandidateBareBone> getTestCandidatePaginatedByStompFilterModel(StompFilterModel stompFilterModel,
 																				   long currentAfterEventId,
 																				   int limit);

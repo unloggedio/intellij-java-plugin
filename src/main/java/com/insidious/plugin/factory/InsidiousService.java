@@ -316,6 +316,9 @@ final public class InsidiousService implements
             logger.info("	lineNumbers = " + localTestCandidateBarebone.get(i).getLineNumbers());
         }
         logger.info("--------------------");
+		boolean isConnected = networkSessionInstanceClient.isConnected();
+		logger.info("isConnected= " + isConnected);
+		logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, ServerMetadata> checkCache = new HashMap<>();
