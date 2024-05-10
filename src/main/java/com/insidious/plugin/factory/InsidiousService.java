@@ -304,6 +304,18 @@ final public class InsidiousService implements
 			logger.info("	typeBytes = " + listTypeInfoDocument.get(i).getTypeBytes());
 		}
 		logger.info("--------------------");
+        List<TestCandidateBareBone> localTestCandidateBarebone = networkSessionInstanceClient.getTestCandidatePaginatedByStompFilterModel(
+                new StompFilterModel(),
+                0,
+                50
+        );
+        logger.info("localTestCandidateBarebone:");
+        for (int i=0;i<=localTestCandidateBarebone.size()-1;i++) {
+            logger.info("	id = " + localTestCandidateBarebone.get(i).getId());
+            logger.info("	createdAt = " + localTestCandidateBarebone.get(i).getCreatedAt());
+            logger.info("	lineNumbers = " + localTestCandidateBarebone.get(i).getLineNumbers());
+        }
+        logger.info("--------------------");
 
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, ServerMetadata> checkCache = new HashMap<>();

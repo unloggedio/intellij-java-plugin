@@ -8,13 +8,17 @@ import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
 import com.insidious.plugin.client.TypeInfoDocumentClient.TypeInfoDocumentClientDeserializer;
+import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.ui.methodscope.CandidateFilterType;
+import com.insidious.plugin.ui.stomp.StompFilterModel;
+import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -24,12 +28,11 @@ import okhttp3.*;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 
 public class NetworkSessionInstanceClient implements SessionInstanceInterface {
@@ -61,6 +64,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private String getClassWeaveInfo = "/getClassWeaveInfo";
 	private String getClassIndex = "/getClassIndex";
 	private String getAllTypes = "/getAllTypes";
+    private String getTestCandidatePaginatedByStompFilterModel = "/getTestCandidatePaginatedByStompFilterModel";
 
 	// session instance attributes
     private String sessionId = "0";
@@ -79,6 +83,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private ClassWeaveInfo classWeaveInfo;
 	private Map<String, ClassInfo> classIndex;
 	private List<TypeInfoDocument> listTypeInfoDocument;
+    private List<TestCandidateBareBone> localTestCandidateBareBone;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -895,11 +900,151 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
 
         return listTypeInfoDocument;
-	@Override
+	}
+
+
+//	@Override
 	public boolean isConnected() {
-		// TODO: should be implemented 
+		// TODO: implement
+        // TODO: test
 		return true;
 	}
 
+	@Override
+	public void getTestCandidates (Consumer<List<TestCandidateBareBone>> testCandidateReceiver, long afterEventId, StompFilterModel stompFilterModel, AtomicInteger cdl) {
+
+        // TODO: test
+        int page = 0;
+        int limit = 50;
+        int count = 0;
+        int attempt = 0;
+        long currentAfterEventId = afterEventId;
+        while (true) {
+            attempt++;
+//            if (shutdown) {
+//                cdl.decrementAndGet();
+//                break;
+//            }
+            if (cdl.get() < 1) {
+                logger.warn(
+                        "shutting down query started at [" + afterEventId + "] currently at item [" + count +
+                                "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
+                break;
+            }
+			// server block
+            List<TestCandidateBareBone> testCandidateMetadataList = getTestCandidatePaginatedByStompFilterModel(
+                    stompFilterModel,
+                    currentAfterEventId,
+                    limit);
+            if (cdl.get() < 1) {
+                logger.warn(
+                        "shutting down query started at [" + afterEventId + "] currently at item [" + count +
+                                "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
+                break;
+            }
+            if (testCandidateMetadataList.size() > 0) {
+                count += testCandidateMetadataList.size();
+                testCandidateReceiver.accept(testCandidateMetadataList);
+                currentAfterEventId = testCandidateMetadataList.get(0).getId() + 1;
+            }
+            if (testCandidateMetadataList.size() < limit) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
 	}
+
+
+    @Override
+    public List<TestCandidateBareBone> getTestCandidatePaginatedByStompFilterModel(StompFilterModel stompFilterModel,
+                                                                                   long currentAfterEventId,
+                                                                                   int limit) {
+        String includedClassNamePart = "";
+        Set<String> includedClassNames = stompFilterModel.getIncludedClassNames();
+        for (String localIncludedClassName: includedClassNames) {
+            includedClassNamePart += "&includedClassNames=" + localIncludedClassName;
+        }
+
+        String excludedClassNamePart = "";
+        Set<String> excludedClassNames = stompFilterModel.getExcludedClassNames();
+        for (String localExcludedClassName: excludedClassNames) {
+            excludedClassNamePart += "&excludedClassNames" + localExcludedClassName;
+        }
+
+        String includedMethodName = "";
+        Set<String> includedMethodNames = stompFilterModel.getIncludedMethodNames();
+        for (String localIncludedMethodName: includedMethodNames) {
+            includedMethodName += "&includedMethodNames=" + localIncludedMethodName;
+        }
+
+        String excludedMethodName = "";
+        Set<String> excludedMethodNames = stompFilterModel.getExcludedMethodNames();
+        for (String localExcludedMethodNames: excludedMethodNames) {
+            excludedMethodName += "&excludedMethodNames=" + localExcludedMethodNames;
+        }
+
+        Boolean followEditor = stompFilterModel.isFollowEditor();
+        CandidateFilterType candidateFilterType = stompFilterModel.getCandidateFilterType();
+
+
+        String url = this.endpoint + this.getTestCandidatePaginatedByStompFilterModel + "?sessionId=" + this.sessionId +
+                includedClassNamePart + excludedClassNamePart + includedMethodName + excludedMethodName +
+                "&followEditor=" + followEditor + "&candidateFilterType=" + candidateFilterType +
+                "&currentAfterEventId=" + currentAfterEventId + "&limit=" + limit;
+        System.out.println("url = " + url);
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    SimpleModule module = new SimpleModule();
+                    module.addDeserializer(TypeInfoDocumentClient.class, new TypeInfoDocumentClientDeserializer());
+                    objectMapper.registerModule(module);
+
+                    String responseBody = Objects.requireNonNull(response.body()).string();
+                    TestCandidateBareBone[] val = objectMapper.readValue(responseBody, TestCandidateBareBone[].class);
+                    localTestCandidateBareBone = new ArrayList<>();
+                    for (int i=0;i<=val.length-1;i++) {
+                        localTestCandidateBareBone.add(val[i]);
+                    }
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return localTestCandidateBareBone;
+
+    }
+
+
+//    @Override
+//    public ExecutionSession getExecutionSession() {
+//        // TODO: implement
+//        // TODO: test
+//    }
+//
+//    @Override
+//    public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception {
+//        // TODO: implement
+//        // TODO: test
+//    }
 }

@@ -233,7 +233,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return scanEnable;
     }
 
-	@Override
+//	@Override
     public boolean isConnected() {
         AgentCommandResponse<ServerMetadata> pingResponse = unloggedSdkApiAgentClient.ping();
         return ResponseType.NORMAL.equals(pingResponse.getResponseType());
@@ -286,6 +286,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return logFileMap;
     }
 
+//    @Override
     public ExecutionSession getExecutionSession() {
         return executionSession;
     }
@@ -3934,6 +3935,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         }
     }
 
+//    @Override
     public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception {
         return daoService.getConstructorCandidate(parameter);
     }
@@ -4047,6 +4049,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return classInfoIndexByName;
     }
 
+	@Override
     public void getTestCandidates(
             Consumer<List<TestCandidateBareBone>> testCandidateReceiver,
             long afterEventId,
@@ -4090,9 +4093,9 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                 }
             }
         }
-
     }
 
+    @Override
     public List<TestCandidateBareBone> getTestCandidatePaginatedByStompFilterModel(StompFilterModel stompFilterModel,
                                                                                    long currentAfterEventId, int limit) {
         return daoService
