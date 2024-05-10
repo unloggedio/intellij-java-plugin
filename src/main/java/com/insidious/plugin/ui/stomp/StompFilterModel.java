@@ -7,6 +7,7 @@ import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
+import org.jetbrains.kotlin.fir.resolve.calls.Candidate;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -57,6 +58,10 @@ public class StompFilterModel {
         return Objects.hash(includedClassNames, excludedClassNames, includedMethodNames, excludedMethodNames,
                 followEditor,
                 candidateFilterType);
+    }
+
+	public CandidateFilterType getCandidateFilterType() {
+        return this.candidateFilterType;
     }
 
     public boolean isFollowEditor() {
