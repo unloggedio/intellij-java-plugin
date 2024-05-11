@@ -26,6 +26,7 @@
 
      private static final Logger logger = Logger.getInstance(VideobugLocalClient.class.getName());
      private final String pathToSessions;
+     private final NetworkSessionInstanceClient networkClient;
      private final ScheduledExecutorService threadPoolExecutor5Seconds =
              Executors.newScheduledThreadPool(1, new DefaultThreadFactory("UnloggedClientPool", true));
      private final Project project;
@@ -42,6 +43,7 @@
          }
          this.pathToSessions = pathToSessions;
          this.sessionPathFile = new File(pathToSessions);
+         this.networkClient = new NetworkSessionInstanceClient("http://localhost:8123/session");
      }
 
      @Override
