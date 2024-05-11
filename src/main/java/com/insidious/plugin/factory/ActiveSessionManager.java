@@ -6,6 +6,7 @@ import com.insidious.plugin.agent.ServerMetadata;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.constants.SessionMode;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
@@ -32,16 +33,29 @@ public class ActiveSessionManager {
         if (sessionInstanceMap.containsKey(executionSession.getSessionId())) {
             return sessionInstanceMap.get(executionSession.getSessionId());
         }
+
+        // these are set before
+        SessionMode sessionMode = SessionMode.SERVER;
+        String sessionNetworkUrl = "http://localhost:8123/session";
+
+        // create a session instance
         SessionInstanceInterface sessionInstance;
-//        sessionInstance = new NetworkSessionInstanceClient("http://localhost:8123/session");
-         try {
-             sessionInstance = new SessionInstance(executionSession, serverMetadata, project);
-         } catch (SQLException | IOException e) {
-             logger.error("Failed to initialize session instance: " + e.getMessage(), e);
-             InsidiousNotification.notifyMessage("Failed to initialize session instance: " + e.getMessage(),
-                     NotificationType.ERROR);
-             throw new RuntimeException(e);
-         }
+        if (sessionMode == sessionMode.LOCAL) {
+            logger.info("attempting to create a session instance from local process");
+            try {
+                sessionInstance = new SessionInstance(executionSession, serverMetadata, project);
+             } catch (SQLException | IOException e) {
+                 logger.error("Failed to initialize session instance: " + e.getMessage(), e);
+                 InsidiousNotification.notifyMessage("Failed to initialize session instance: " + e.getMessage(),
+                         NotificationType.ERROR);
+                 throw new RuntimeException(e);
+             }
+        }
+        else {
+            logger.info("attempting to create a session instance from remote process");
+            sessionInstance = new NetworkSessionInstanceClient(sessionNetworkUrl);
+        }
+
         sessionInstanceMap.put(executionSession.getSessionId(), sessionInstance);
         return sessionInstance;
     }
