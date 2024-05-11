@@ -1167,57 +1167,57 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
 	@Override
 	public synchronized void close() {
-        throw new RuntimeException("method not implemented here");
+        return;
     }
 
 	@Override
 	public void addSessionScanEventListener(SessionScanEventListener listener) {
-        throw new RuntimeException("method not implemented here");
+        return;
 	}
 
 	@Override
 	public void addTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener) {
-        throw new RuntimeException("method not implemented here");
+        return;
 	}
 
 	@Override
 	public Project getProject() {
-        throw new RuntimeException("method not implemented here");
+        return null;
 	}
 
 	@Override
 	public CodeCoverageData createCoverageData() {
-        throw new RuntimeException("method not implemented here");
+        return null;
     }
 
 	@Override
 	public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
-        throw new RuntimeException("method not implemented here");
+        return null;
 	}
 
 	@Override
 	public UnloggedSdkApiAgentClient getAgent() {
-        throw new RuntimeException("method not implemented here");
+        return null;
 	}
 
 	@Override
 	public void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
-        throw new RuntimeException("method not implemented here");
+        return;
 	}
 
     @Override
     public void unlockNextScan() {
-        throw new RuntimeException("method not implemented here");
+        return;
     }
 
     @Override
     public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest){
-        throw new RuntimeException("method not implemented here");
+        return null;
     }
 
     @Override
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest){
-        throw new RuntimeException("method not implemented here");
+        return null;
     }
 
 }
