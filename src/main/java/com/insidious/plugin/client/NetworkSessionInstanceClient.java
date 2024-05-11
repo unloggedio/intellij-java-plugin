@@ -1034,7 +1034,6 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
                 includedClassNamePart + excludedClassNamePart + includedMethodName + excludedMethodName +
                 "&followEditor=" + followEditor + "&candidateFilterType=" + candidateFilterType +
                 "&currentAfterEventId=" + currentAfterEventId + "&limit=" + limit;
-        System.out.println("url = " + url);
         CountDownLatch latch = new CountDownLatch(1);
 
         get(url, new Callback() {
@@ -1099,7 +1098,6 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 		boolean isContainer = parameter.isContainer();
 
 		String url = this.endpoint + this.getConstructorCandidate + "?sessionId=" + this.sessionId + "&value=" + value + "&type=" + type + "&exception=" + exception + "&prob=" + "&stringValue=" + stringValue + "&index=" + index + "&creatorExpression=" + "&isEnum=" + isEnum + "&iscontainer=" + isContainer;
-		logger.info("method: getConstructorCandidate url = " + url);
         CountDownLatch latch = new CountDownLatch(1);
 
         get(url, new Callback() {
