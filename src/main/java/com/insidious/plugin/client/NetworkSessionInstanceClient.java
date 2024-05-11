@@ -3,6 +3,7 @@ package com.insidious.plugin.client;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
@@ -11,6 +12,7 @@ import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
 import com.insidious.plugin.client.TypeInfoDocumentClient.TypeInfoDocumentClientDeserializer;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.coverage.CodeCoverageData;
+import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
@@ -1204,4 +1206,19 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	public void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
 		return;
 	}
+
+    @Override
+    public void unlockNextScan() {
+    }
+
+    @Override
+    public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest){
+        return null;
+    }
+
+    @Override
+    public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest){
+        return null;
+    }
+
 }

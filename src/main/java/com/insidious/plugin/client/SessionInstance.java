@@ -1578,6 +1578,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                 .collect(Collectors.toList());
     }
 
+    @Override
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) {
         File archiveToServe = null;
         for (File sessionArchive : this.sessionArchives) {
@@ -1855,6 +1856,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return events;
     }
 
+    @Override
     public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
 
         List<DataEventWithSessionId> dataEventList = new LinkedList<>();
@@ -2291,6 +2293,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 
     }
 
+    @Override
     public void unlockNextScan() {
         scanLock.offer(1);
     }

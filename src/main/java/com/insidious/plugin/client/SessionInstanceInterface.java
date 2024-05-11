@@ -6,12 +6,14 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
+import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.agent.UnloggedSdkApiAgentClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.coverage.CodeCoverageData;
+import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
@@ -57,4 +59,7 @@ public interface SessionInstanceInterface {
 	public ClassMethodAggregates getClassMethodAggregates(String qualifiedName);
 	public UnloggedSdkApiAgentClient getAgent();
 	public void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression);
+	public void unlockNextScan();
+	public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest);
+	public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest);
 }
