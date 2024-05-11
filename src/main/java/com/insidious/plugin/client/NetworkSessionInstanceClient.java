@@ -1167,56 +1167,57 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
 	@Override
 	public synchronized void close() {
-		return;
-	}
+        throw new RuntimeException("method not implemented here");
+    }
 
 	@Override
 	public void addSessionScanEventListener(SessionScanEventListener listener) {
-		return;
+        throw new RuntimeException("method not implemented here");
 	}
 
 	@Override
 	public void addTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener) {
-		return;
+        throw new RuntimeException("method not implemented here");
 	}
 
 	@Override
 	public Project getProject() {
-		return null;
+        throw new RuntimeException("method not implemented here");
 	}
 
 	@Override
 	public CodeCoverageData createCoverageData() {
-		return null;
-	}
+        throw new RuntimeException("method not implemented here");
+    }
 
 	@Override
 	public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
-		return null;
+        throw new RuntimeException("method not implemented here");
 	}
 
 	@Override
 	public UnloggedSdkApiAgentClient getAgent() {
-		return null;
-	}	
+        throw new RuntimeException("method not implemented here");
+	}
 
 	@Override
 	public void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
-		return;
+        throw new RuntimeException("method not implemented here");
 	}
 
     @Override
     public void unlockNextScan() {
+        throw new RuntimeException("method not implemented here");
     }
 
     @Override
     public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest){
-        return null;
+        throw new RuntimeException("method not implemented here");
     }
 
     @Override
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest){
-        return null;
+        throw new RuntimeException("method not implemented here");
     }
 
 }
