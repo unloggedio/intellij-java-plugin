@@ -5,10 +5,7 @@ import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.agent.ServerMetadata;
-import com.insidious.plugin.client.DaoService;
-import com.insidious.plugin.client.ParameterProvider;
-import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.client.VideobugLocalClient;
+import com.insidious.plugin.client.*;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
@@ -462,7 +459,7 @@ public class TestCaseServiceTest {
         }
         ExecutionSession session = sessions.getItems().get(0);
         client.setSessionInstance(new SessionInstance(session, new ServerMetadata(), project));
-        SessionInstance sessionInstance = client.getSessionInstance();
+        SessionInstanceInterface sessionInstance = client.getSessionInstance();
         sessionInstance.unlockNextScan();
         sessionInstance.close();
 

@@ -87,7 +87,7 @@ public interface VideobugClientInterface {
     TypeInfo getTypeInfoByName(String sessionId, String type);
 
 
-    SessionInstance getSessionInstance();
+    SessionInstanceInterface getSessionInstance();
 
     ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filterRequest);
 }
