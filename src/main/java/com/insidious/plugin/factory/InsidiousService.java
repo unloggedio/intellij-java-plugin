@@ -186,7 +186,7 @@ final public class InsidiousService implements
 
         String pathToSessions = Constants.HOME_PATH + "/sessions";
         FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
-        // this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
+        this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
 
         // test networkSessionInstanceClient
 //		logger.info("--------------------");
