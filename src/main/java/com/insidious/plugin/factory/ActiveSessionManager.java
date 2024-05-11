@@ -39,24 +39,23 @@ public class ActiveSessionManager {
         String sessionNetworkUrl = "http://localhost:8123/session";
 
         // create a session instance
-//        SessionInstanceInterface sessionInstance;
-//        if (sessionMode == sessionMode.LOCAL) {
-//            logger.info("attempting to create a session instance from local process");
-//            try {
-//                sessionInstance = new SessionInstance(executionSession, serverMetadata, project);
-//             } catch (SQLException | IOException e) {
-//                 logger.error("Failed to initialize session instance: " + e.getMessage(), e);
-//                 InsidiousNotification.notifyMessage("Failed to initialize session instance: " + e.getMessage(),
-//                         NotificationType.ERROR);
-//                 throw new RuntimeException(e);
-//             }
-//        }
-//        else {
-//            logger.info("attempting to create a session instance from remote process");
-//            sessionInstance = new NetworkSessionInstanceClient(sessionNetworkUrl);
-//        }
+        SessionInstanceInterface sessionInstance;
+        if (sessionMode == SessionMode.LOCAL) {
+            logger.info("attempting to create a session instance from local process");
+            try {
+                sessionInstance = new SessionInstance(executionSession, serverMetadata, project);
+             } catch (SQLException | IOException e) {
+                 logger.error("Failed to initialize session instance: " + e.getMessage(), e);
+                 InsidiousNotification.notifyMessage("Failed to initialize session instance: " + e.getMessage(),
+                         NotificationType.ERROR);
+                 throw new RuntimeException(e);
+             }
+        }
+        else {
+            logger.info("attempting to create a session instance from remote process");
+            sessionInstance = new NetworkSessionInstanceClient(sessionNetworkUrl);
+        }
 
-        SessionInstanceInterface sessionInstance = new NetworkSessionInstanceClient(sessionNetworkUrl);
         sessionInstanceMap.put(executionSession.getSessionId(), sessionInstance);
         return sessionInstance;
     }
