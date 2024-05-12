@@ -84,7 +84,6 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
@@ -778,7 +777,7 @@ final public class InsidiousService implements
         StompFilterModel stompFilterModel = configurationState.getFilterModel();
         stompFilterModel.setFollowEditor(false);
         stompFilterModel.clearIncluded();
-        stompFilterModel.addClassAndSuperClasses(method.getContainingClass().getSource());
+        addClassAndSuperClasses(method.getContainingClass().getSource(), stompFilterModel);
         stompFilterModel.getIncludedMethodNames().clear();
         stompFilterModel.getIncludedMethodNames().add(ApplicationManager.getApplication().runReadAction(
                 (Computable<String>) method::getName));
@@ -1952,7 +1951,7 @@ final public class InsidiousService implements
                                 PsiClass.class));
 
                 for (PsiClass psiClass : classes) {
-                    changed = stompFilterModel.addFromClassRecursively(psiClass) || changed;
+                    changed = addFromClassRecursively(psiClass, stompFilterModel) || changed;
                 }
             }
         }
@@ -1960,6 +1959,62 @@ final public class InsidiousService implements
             stompWindow.resetAndReload();
         }
     }
+
+    public boolean addFromClassRecursively(PsiClass psiClass, StompFilterModel stompFilterModel) {
+        boolean changed;
+        changed = addClassAndSuperClasses(psiClass, stompFilterModel);
+        changed = addInterfaces(psiClass, stompFilterModel) || changed;
+        changed = addMethods(psiClass, stompFilterModel) || changed;
+        return changed;
+    }
+
+
+    public boolean addMethods(PsiClass psiClass, StompFilterModel stompFilterModel) {
+        Set<String> methodNames = new HashSet<>();
+        for (PsiMethod method : ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiMethod[]>) psiClass::getMethods)) {
+            String name = ApplicationManager.getApplication()
+                    .runReadAction((Computable<String>) method::getName);
+            if (InsidiousService.SKIP_METHOD_IN_FOLLOW_FILTER.contains(name)) {
+                continue;
+            }
+            methodNames.add(name);
+        }
+        return stompFilterModel.getIncludedMethodNames().addAll(methodNames);
+    }
+
+
+    public boolean addClassAndSuperClasses(PsiClass psiClass, StompFilterModel stompFilterModel) {
+        Set<String> classNames = new HashSet<>();
+
+        boolean changed = false;
+        while (psiClass != null) {
+            PsiClass finalPsiClass = psiClass;
+            String qualifiedName = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) finalPsiClass::getQualifiedName);
+            if ("java.lang.Object".equals(qualifiedName)) {
+                break;
+            }
+            classNames.add(qualifiedName);
+            changed = addMethods(psiClass, stompFilterModel) || changed;
+            changed = addInterfaces(psiClass, stompFilterModel) || changed;
+            psiClass = DumbService.getInstance(psiClass.getProject())
+                    .runReadActionInSmartMode(() -> ApplicationManager.getApplication().runReadAction(
+                            (Computable<PsiClass>) finalPsiClass::getSuperClass));
+        }
+        return stompFilterModel.getIncludedClassNames().addAll(classNames) || changed;
+    }
+
+    public boolean addInterfaces(PsiClass psiClass, StompFilterModel stompFilterModel) {
+        boolean changed = false;
+        PsiClass[] interfaces = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiClass[]>) psiClass::getInterfaces);
+        for (PsiClass type : interfaces) {
+            changed = addClassAndSuperClasses(type, stompFilterModel) || changed;
+        }
+        return changed;
+    }
+
 
     public void hideBottomSplit() {
         stompWindow.hideBottomSplit();
@@ -1981,7 +2036,7 @@ final public class InsidiousService implements
 
     public List<TestCandidateMetadata> getCandidatesForMethod(MethodAdapter methodElement) {
         StompFilterModel filterModel = new StompFilterModel();
-        filterModel.addFromClassRecursively(methodElement.getContainingClass().getSource());
+        addFromClassRecursively(methodElement.getContainingClass().getSource(), filterModel);
         filterModel.getIncludedMethodNames().clear();
         filterModel.getIncludedMethodNames().add(methodElement.getName());
         List<TestCandidateBareBone> candidateBones = currentState.getSessionInstance()
