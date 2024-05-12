@@ -1195,6 +1195,7 @@ final public class InsidiousService implements
 //                    contentManager.removeContent(stompWindowContent, true);
 //                }
 
+                stompWindow.clear();
                 stompWindow.setSession(sessionInstance);
                 stompWindow.loadNewCandidates();
 

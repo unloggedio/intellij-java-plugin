@@ -1094,15 +1094,15 @@ public class DaoService {
         );
         for (DataEventWithSessionId dataEvent : dataEventList) {
             ProbeInfo probeInfo = probeInfoDao.queryForId(dataEvent.getProbeId());
-            String attributes = probeInfo.getAttributes();
-
-            if (attributes.contains("Type=")) {
+            String typeFromAttribute = probeInfo.getAttribute("Type", null);
+            String ownerFromAttribute = probeInfo.getAttribute("Owner", null);
+            if (typeFromAttribute != null) {
                 DataInfo dataInfo = KaitaiUtils.toDataInfo(probeInfo);
-                parameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Type", null)));
+                parameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(typeFromAttribute));
                 parameter.setProbeAndProbeInfo(dataEvent, dataInfo);
                 break;
-            } else if (attributes.contains("Owner=")) {
-                parameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(probeInfo.getAttribute("Owner", null)));
+            } else if (ownerFromAttribute != null) {
+                parameter.setType(ClassTypeUtils.getDescriptorToDottedClassName(ownerFromAttribute));
                 DataInfo dataInfo = KaitaiUtils.toDataInfo(probeInfo);
                 parameter.setProbeAndProbeInfo(dataEvent, dataInfo);
                 break;
