@@ -19,6 +19,6 @@ public class Constants {
             .getPath(System.getProperty("user.home"), ".unlogged");
     public static final String COMPLETED = "completed";
     public static final String PENDING = "pending";
-    public static final String AGENT_VERSION = "0.4.17";
+    public static final String AGENT_VERSION = "0.4.18";
     public static final String HOSTNAME = getHostname();
 }

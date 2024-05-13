@@ -686,9 +686,9 @@ public class ClassTypeUtils {
                 return false;
             }
         }
-        boolean nameContainsTrue = !actualArgumentType.getCanonicalText().contains(expectedType.getCanonicalText());
-        boolean isAssignable = !actualArgumentType.isAssignableFrom(expectedType);
-        return nameContainsTrue && isAssignable;
+        boolean nameNotContainsTrue = !actualArgumentType.getCanonicalText().contains(expectedType.getCanonicalText());
+        boolean isNotAssignable = !actualArgumentType.isAssignableFrom(expectedType);
+        return nameNotContainsTrue || isNotAssignable;
     }
 
     // method call expressions are in the form
