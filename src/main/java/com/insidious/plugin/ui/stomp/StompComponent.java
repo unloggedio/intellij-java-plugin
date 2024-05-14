@@ -1255,11 +1255,6 @@ public class StompComponent implements
 
 
     public void resetTimeline() {
-		logger.info("------------------------");
-		logger.info("reset timeline is called");
-		logger.info("sessionInstance = " + sessionInstance);
-		logger.info("------------------------");
-
         if (sessionInstance == null) {
             return;
         }
@@ -1268,8 +1263,6 @@ public class StompComponent implements
         List<Component> itemsToNotDelete = new ArrayList<>();
         List<StompItem> pinnedStomps = new ArrayList<>();
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-			logger.info("isScanEnable = " + sessionInstance.isScanEnable());
-			logger.info("isConnected = " + sessionInstance.isConnected());
             if (sessionInstance.isScanEnable() && sessionInstance.isConnected()) {
                 ApplicationManager.getApplication().invokeLater(stompStatusComponent::setConnected);
             } else {
