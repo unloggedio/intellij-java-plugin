@@ -74,6 +74,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     private String getTestCandidatePaginatedByStompFilterModel = "/session/getTestCandidatePaginatedByStompFilterModel";
 	private String getConstructorCandidate = "/session/getConstructorCandidate";
 	private String getExecutionSession = "/session/getExecutionSession";
+	private String discovery = "/discovery";
 
 	// session instance attributes
 	private boolean isConnected = false;
@@ -96,6 +97,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private List<TypeInfoDocument> listTypeInfoDocument;
     private List<TestCandidateBareBone> localTestCandidateBareBone;
 	private TestCandidateMetadata localTestCandidateMetadata;
+	private List<ExecutionSession> executionSessionList;
 
     public NetworkSessionInstanceClient(String endpoint) {
         this.endpoint = endpoint;
@@ -1219,5 +1221,42 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest){
         return null;
     }
+
+	public List<ExecutionSession> sessionDiscovery(String packageName){
+		String url = this.endpoint + this.discovery + "?packageName=" + packageName;
+        CountDownLatch latch = new CountDownLatch(1);
+
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+					ObjectMapper objectMapper = new ObjectMapper();
+					String responseBody = Objects.requireNonNull(response.body()).string();
+					ExecutionSession[] executionSessionLocal = objectMapper.readValue(responseBody, ExecutionSession[].class);
+					executionSessionList = new ArrayList<>();
+					for (int i=0;i<=executionSessionLocal.length-1;i++) {
+						executionSessionList.add(executionSessionLocal[i]);
+					}
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return executionSessionList;
+	}
 
 }

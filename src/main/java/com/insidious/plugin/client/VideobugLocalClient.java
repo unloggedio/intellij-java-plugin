@@ -43,7 +43,7 @@
          }
          this.pathToSessions = pathToSessions;
          this.sessionPathFile = new File(pathToSessions);
-//         this.networkClient = new NetworkSessionInstanceClient("http://localhost:8123/session");
+//         this.networkClient = new NetworkSessionInstanceClient("http://localhost:8123");
      }
 
      @Override
