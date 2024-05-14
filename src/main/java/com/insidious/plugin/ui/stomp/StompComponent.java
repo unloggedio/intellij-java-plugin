@@ -1631,7 +1631,7 @@ public class StompComponent implements
             });
         }
         ApplicationManager.getApplication().invokeLater(() -> {
-            splitPane.setDividerLocation(200);
+            splitPane.setDividerLocation(50);
             southPanel.removeAll();
             southPanel.add(directInvokeComponent.getContent(), BorderLayout.CENTER);
             directInvokeComponent.showRouter();
