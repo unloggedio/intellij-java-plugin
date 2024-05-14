@@ -36,7 +36,7 @@ public class ActiveSessionManager {
 
         // these are set before
         SessionMode sessionMode = SessionMode.SERVER;
-        String sessionNetworkUrl = "http://localhost:8123/session";
+        String sessionNetworkUrl = "http://localhost:8123";
 
         // create a session instance
         SessionInstanceInterface sessionInstance;

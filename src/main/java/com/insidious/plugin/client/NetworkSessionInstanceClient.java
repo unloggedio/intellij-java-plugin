@@ -52,28 +52,28 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
 	// endpoint attributes
-	private String ping = "/ping";
-	private String isScanEnableEndpoint = "/isScanEnable";
-	private String getTypeInfoTypeString = "/getTypeInfoTypeString";
-	private String getTypeInfoTypeInt = "/getTypeInfoTypeInt";
-	private String getTotalFileCount = "/getTotalFileCount";
-	private String getTimingTags = "/getTimingTags";
-	private String getTestCandidatesForAllMethod = "/getTestCandidatesForAllMethod";
-	private String getTestCandidateById = "/getTestCandidateById";
-	private String getTestCandidateBetween = "/getTestCandidateBetween";
-	private String getTestCandidateAggregatesByClassName = "/getTestCandidateAggregatesByClassName";
-	private String getProcessedFileCount = "/getProcessedFileCount";
-	private String getMethodDefinition = "/getMethodDefinition";
-	private String getMethodCallsBetween = "/getMethodCallsBetween";
-	private String getMethodCallExpressions = "/getMethodCallExpressions";
-	private String getMethodCallCountBetween = "/getMethodCallCountBetween";
-	private String getInitTimestamp = "/getInitTimestamp";
-	private String getClassWeaveInfo = "/getClassWeaveInfo";
-	private String getClassIndex = "/getClassIndex";
-	private String getAllTypes = "/getAllTypes";
-    private String getTestCandidatePaginatedByStompFilterModel = "/getTestCandidatePaginatedByStompFilterModel";
-	private String getConstructorCandidate = "/getConstructorCandidate";
-	private String getExecutionSession = "/getExecutionSession";
+	private String ping = "/session/ping";
+	private String isScanEnableEndpoint = "/session/isScanEnable";
+	private String getTypeInfoTypeString = "/session/getTypeInfoTypeString";
+	private String getTypeInfoTypeInt = "/session/getTypeInfoTypeInt";
+	private String getTotalFileCount = "/session/getTotalFileCount";
+	private String getTimingTags = "/session/getTimingTags";
+	private String getTestCandidatesForAllMethod = "/session/getTestCandidatesForAllMethod";
+	private String getTestCandidateById = "/session/getTestCandidateById";
+	private String getTestCandidateBetween = "/session/getTestCandidateBetween";
+	private String getTestCandidateAggregatesByClassName = "/session/getTestCandidateAggregatesByClassName";
+	private String getProcessedFileCount = "/session/getProcessedFileCount";
+	private String getMethodDefinition = "/session/getMethodDefinition";
+	private String getMethodCallsBetween = "/session/getMethodCallsBetween";
+	private String getMethodCallExpressions = "/session/getMethodCallExpressions";
+	private String getMethodCallCountBetween = "/session/getMethodCallCountBetween";
+	private String getInitTimestamp = "/session/getInitTimestamp";
+	private String getClassWeaveInfo = "/session/getClassWeaveInfo";
+	private String getClassIndex = "/session/getClassIndex";
+	private String getAllTypes = "/session/getAllTypes";
+    private String getTestCandidatePaginatedByStompFilterModel = "/session/getTestCandidatePaginatedByStompFilterModel";
+	private String getConstructorCandidate = "/session/getConstructorCandidate";
+	private String getExecutionSession = "/session/getExecutionSession";
 
 	// session instance attributes
 	private boolean isConnected = false;
