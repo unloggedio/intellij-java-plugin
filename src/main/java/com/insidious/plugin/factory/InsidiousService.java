@@ -1654,7 +1654,6 @@ final public class InsidiousService implements
 
     public void onAgentDisconnected() {
         JSONObject props = new JSONObject();
-        props.put("sessionId", currentState.getSessionInstance().getExecutionSession().getSessionId());
         props.put("project", project.getName());
         UsageInsightTracker.getInstance().RecordEvent("AGENT_DISCONNECTED", props);
 
