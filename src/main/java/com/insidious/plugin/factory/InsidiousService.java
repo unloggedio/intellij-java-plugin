@@ -50,6 +50,7 @@ import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.stomp.StompFilterModel;
 import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
+import com.insidious.plugin.upload.SourceModel;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
@@ -717,7 +718,9 @@ final public class InsidiousService implements
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             this.sessionLoader = ApplicationManager.getApplication().getService(SessionLoader.class);
             this.sessionLoader.setClient(this.client);
-            this.sessionLoader.addSessionCallbackListener(sessionListener);
+			SourceModel sourceModel = configurationState.getSourceModel();
+			String packageName = project.getName();
+            this.sessionLoader.addSessionCallbackListener(sessionListener, sourceModel, packageName);
             cdl.countDown();
         });
         try {
@@ -1315,7 +1318,8 @@ final public class InsidiousService implements
         this.methodHash.clear();
         this.classModifiedFlagMap.clear();
         logger.info("Loading new session: " + executionSession.getSessionId() + " => " + project.getName());
-        final SessionInstanceInterface sessionInstance = sessionManager.createSessionInstance(executionSession, serverMetadata, project);
+		SourceModel sourceModel = configurationState.getSourceModel();
+        final SessionInstanceInterface sessionInstance = sessionManager.createSessionInstance(executionSession, serverMetadata, sourceModel, project);
 
         currentState.setSessionInstance(sessionInstance);
         sessionInstance.addTestCandidateListener(this);
