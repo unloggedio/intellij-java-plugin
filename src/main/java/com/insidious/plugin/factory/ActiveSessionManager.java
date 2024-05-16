@@ -7,6 +7,7 @@ import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.constants.SessionMode;
+import com.insidious.plugin.upload.SourceModel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
@@ -29,14 +30,13 @@ public class ActiveSessionManager {
     public ActiveSessionManager() {
     }
 
-    public synchronized SessionInstanceInterface createSessionInstance(ExecutionSession executionSession, ServerMetadata serverMetadata, Project project) {
+    public synchronized SessionInstanceInterface createSessionInstance(ExecutionSession executionSession, ServerMetadata serverMetadata, SourceModel sourceModel, Project project) {
         if (sessionInstanceMap.containsKey(executionSession.getSessionId())) {
             return sessionInstanceMap.get(executionSession.getSessionId());
         }
 
-        // these are set before
-        SessionMode sessionMode = SessionMode.SERVER;
-        String sessionNetworkUrl = "http://localhost:8123";
+        SessionMode sessionMode = sourceModel.getSessionMode();
+        String sessionNetworkUrl = sourceModel.getServerEndpoint();
 
         // create a session instance
         SessionInstanceInterface sessionInstance;
