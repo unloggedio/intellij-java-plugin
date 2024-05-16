@@ -1,6 +1,8 @@
 package com.insidious.plugin.client.pojo;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.insidious.plugin.constants.SessionMode;
+
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Date;
@@ -17,6 +19,7 @@ public class ExecutionSession {
     private String sessionId;
     private String hostname;
     private String path;
+	private SessionMode sessionMode;
 
     public String getSessionId() {
         return sessionId;
@@ -57,6 +60,14 @@ public class ExecutionSession {
     public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
     }
+
+	public SessionMode getSessionMode() {
+		return this.sessionMode;
+	}
+
+	public void setSessionMode(SessionMode sessionMode) {
+		this.sessionMode = sessionMode;
+	}
 
     @Override
     public String toString() {
