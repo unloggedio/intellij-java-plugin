@@ -1,9 +1,39 @@
 package com.insidious.plugin.agent;
 
+import java.util.Date;
+
 public class ServerMetadata {
     String includePackageName;
     String agentVersion;
     String agentServerPort;
+    private String agentServerUrl;
+    private String hostname;
+    private Date createdAt;
+    private String timezone;
+
+    public String getHostname() {
+        return hostname;
+    }
+
+    public void setHostname(String hostname) {
+        this.hostname = hostname;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getTimezone() {
+        return timezone;
+    }
+
+    public void setTimezone(String timezone) {
+        this.timezone = timezone;
+    }
 
     public String getAgentServerUrl() {
         return agentServerUrl;
@@ -12,8 +42,6 @@ public class ServerMetadata {
     public void setAgentServerUrl(String agentServerUrl) {
         this.agentServerUrl = agentServerUrl;
     }
-
-    String agentServerUrl;
 
     public ServerMetadata(String includePackageName, String agentVersion) {
         this.includePackageName = includePackageName;
