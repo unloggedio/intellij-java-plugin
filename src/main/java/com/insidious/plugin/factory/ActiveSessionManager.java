@@ -53,7 +53,7 @@ public class ActiveSessionManager {
         }
         else {
             logger.info("attempting to create a session instance from remote process");
-            sessionInstance = new NetworkSessionInstanceClient(sessionNetworkUrl);
+            sessionInstance = new NetworkSessionInstanceClient(sessionNetworkUrl, executionSession.getSessionId(), serverMetadata);
         }
 
         sessionInstanceMap.put(executionSession.getSessionId(), sessionInstance);

@@ -7,6 +7,7 @@ import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.agent.ServerMetadata;
 import com.insidious.plugin.agent.UnloggedSdkApiAgentClient;
 import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
 import com.insidious.plugin.client.TypeInfoDocumentClient.TypeInfoDocumentClientDeserializer;
@@ -78,7 +79,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
 	// session instance attributes
 	private boolean isConnected = false;
-    private String sessionId = "0";
+    private String sessionId;
 	private ExecutionSession executionSession;
 	private boolean scanEnable;
 	private TypeInfo typeInfo;
@@ -99,8 +100,9 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private TestCandidateMetadata localTestCandidateMetadata;
 	private List<ExecutionSession> executionSessionList;
 
-    public NetworkSessionInstanceClient(String endpoint) {
+    public NetworkSessionInstanceClient(String endpoint, String sessionId, ServerMetadata serverMetadata) {
         this.endpoint = endpoint;
+        this.sessionId = sessionId;
         this.client = new OkHttpClient().newBuilder()
                 .connectTimeout(600, TimeUnit.SECONDS)
                 .readTimeout(600, TimeUnit.SECONDS)
