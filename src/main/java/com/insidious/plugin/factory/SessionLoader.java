@@ -72,12 +72,6 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback, Disp
     }
 
     public void addSessionCallbackListener(GetProjectSessionsCallback getProjectSessionsCallback, SourceModel sourceModel, String packageName) {
-		
-		// ping network for discovery
-    	// TODO: filter logic: hostname, packageName, date start and end
-		List<ExecutionSession> listExecutionSession = sessionDiscovery(sourceModel, packageName);
-		lastResult.addAll(listExecutionSession);
-
         this.listeners.add(getProjectSessionsCallback);
         if (lastResult != null) {
             getProjectSessionsCallback.success(lastResult);
