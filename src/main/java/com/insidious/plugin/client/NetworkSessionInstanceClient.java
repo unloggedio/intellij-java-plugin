@@ -99,6 +99,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     private List<TestCandidateBareBone> localTestCandidateBareBone;
 	private TestCandidateMetadata localTestCandidateMetadata;
 	private List<ExecutionSession> executionSessionList;
+    private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
 
     public NetworkSessionInstanceClient(String endpoint, String sessionId, ServerMetadata serverMetadata) {
         this.endpoint = endpoint;
@@ -108,6 +109,13 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
                 .readTimeout(600, TimeUnit.SECONDS)
                 .writeTimeout(600, TimeUnit.SECONDS)
                 .build();
+
+        String agentServerUrl = serverMetadata.getAgentServerUrl();
+        if (agentServerUrl == null || agentServerUrl.length() < 6) {
+            agentServerUrl = "http://localhost:12100";
+        }
+        this.unloggedSdkApiAgentClient =
+                new UnloggedSdkApiAgentClient(agentServerUrl);
     }
 
     private void get(String url, Callback callback) {
@@ -1201,7 +1209,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
 	@Override
 	public UnloggedSdkApiAgentClient getAgent() {
-        return null;
+        return this.unloggedSdkApiAgentClient;
 	}
 
 	@Override
