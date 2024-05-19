@@ -100,10 +100,12 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	private TestCandidateMetadata localTestCandidateMetadata;
 	private List<ExecutionSession> executionSessionList;
     private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
+    private Project project;
 
-    public NetworkSessionInstanceClient(String endpoint, String sessionId, ServerMetadata serverMetadata) {
+    public NetworkSessionInstanceClient(String endpoint, String sessionId, ServerMetadata serverMetadata, Project project) {
         this.endpoint = endpoint;
         this.sessionId = sessionId;
+        this.project = project;
         this.client = new OkHttpClient().newBuilder()
                 .connectTimeout(600, TimeUnit.SECONDS)
                 .readTimeout(600, TimeUnit.SECONDS)
@@ -1194,7 +1196,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
 	@Override
 	public Project getProject() {
-        return null;
+        return this.project;
 	}
 
 	@Override
