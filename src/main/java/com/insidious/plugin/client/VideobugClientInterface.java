@@ -1,24 +1,19 @@
 package com.insidious.plugin.client;
 
 import com.insidious.common.FilteredDataEventsRequest;
-import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.callbacks.*;
-import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
-//import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.pojo.*;
 
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -45,6 +40,7 @@ public interface VideobugClientInterface {
 
     DataResponse<ExecutionSession> fetchProjectSessions() throws APICallException, IOException;
 
+    public void setPackageName(String packageName);
     
     default List<TracePoint> getTracePoints(DataResponse<DataEventWithSessionId> traceResponse) {
         return traceResponse.getItems().stream()

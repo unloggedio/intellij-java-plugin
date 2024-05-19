@@ -3,7 +3,6 @@
  import com.insidious.common.FilteredDataEventsRequest;
  import com.insidious.common.weaver.TypeInfo;
  import com.insidious.plugin.callbacks.*;
- import com.insidious.plugin.client.exception.SessionNotSelectedException;
  import com.insidious.plugin.client.pojo.DataResponse;
  import com.insidious.plugin.client.pojo.ExecutionSession;
  import com.insidious.plugin.client.pojo.SigninRequest;
@@ -34,6 +33,7 @@
      private SessionInstanceInterface sessionInstance;
      private ProjectItem currentProject;
      private File sessionPathFile;
+     private String packageName;
 
      public VideobugLocalClient(String pathToSessions, Project project, ActiveSessionManager sessionManager) {
          this.project = project;
@@ -324,6 +324,11 @@
      @Override
      public void setSessionInstance(SessionInstanceInterface sessionInstance) {
          this.sessionInstance = sessionInstance;
+     }
+
+     @Override
+     public void setPackageName(String packageName) {
+         this.packageName = packageName;
      }
 
  }
