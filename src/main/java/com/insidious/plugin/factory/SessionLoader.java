@@ -42,6 +42,7 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback, Disp
     private final List<GetProjectSessionsCallback> listeners = new ArrayList<>();
     private VideobugClientInterface client;
     private List<ExecutionSession> lastResult = new ArrayList<>();
+    private Project project;
 
     public SessionLoader() {
         ourPool = Executors.newFixedThreadPool(1, new DefaultThreadFactory("UnloggedAppThreadPool"));
@@ -138,6 +139,10 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback, Disp
         if (lastResult != null) {
             getProjectSessionsCallback.success(lastResult);
         }
+    }
+
+    public void setProject(Project project) {
+        this.project = project;
     }
 
     public void setClient(VideobugClientInterface client) {
