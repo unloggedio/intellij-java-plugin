@@ -49,7 +49,7 @@ public class StompFilter {
     private JPanel includedClassesButtonPanel;
     private JPanel includedMethodsButtonPanel;
     private JPanel excludedMethodsButtonPanel;
-    private JPanel sourcePreferencesPanel;
+    private JPanel sourcePanel;
     private JPanel classFiltersPanel;
     private JPanel performanceFiltersPanel;
     private JPanel mainPanelFilters;
@@ -65,7 +65,6 @@ public class StompFilter {
     private JLabel remoteServerLabel;
     private JLabel remoteServerLink;
     private JTextField enterYourServerUrlTextField;
-    private JButton howToSetupServerButton;
     private JPanel setupInfoPanel;
     private JPanel setupInfo;
     private JButton setupInfoCancelButton;
@@ -75,6 +74,8 @@ public class StompFilter {
     private JPanel serverListButton;
     private JButton serverListCancelButton;
     private JButton serverListSaveButton;
+    private JLabel setupText;
+    private JPanel sourcePreferencesPanel;
     private ComponentLifecycleListener<StompFilter> componentLifecycleListener;
     private DefaultListModel<String> modelIncludedClasses;
     private DefaultListModel<String> modelExcludedClasses;
