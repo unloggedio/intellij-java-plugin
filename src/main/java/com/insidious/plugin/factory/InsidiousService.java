@@ -200,6 +200,11 @@ final public class InsidiousService implements
         // TODO: if-else for session mode
 //        this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
 
+        this.client = new NetworkClient();
+        SourceModel sourceModel = configurationState.getSourceModel();
+        this.client.setSourceModel(sourceModel);
+
+
         // test networkSessionInstanceClient
 		logger.info("--------------------");
 		NetworkSessionInstanceClient networkSessionInstanceClient = new NetworkSessionInstanceClient("http://localhost:8123");
@@ -735,9 +740,9 @@ final public class InsidiousService implements
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             this.sessionLoader = ApplicationManager.getApplication().getService(SessionLoader.class);
             this.sessionLoader.setClient(this.client);
-			SourceModel sourceModel = configurationState.getSourceModel();
-			String packageName = project.getName();
-            this.sessionLoader.addSessionCallbackListener(sessionListener, sourceModel, packageName);
+            this.sessionLoader.setProject(this.project);
+			
+            this.sessionLoader.addSessionCallbackListener(sessionListener);
             cdl.countDown();
         });
         try {
@@ -2152,7 +2157,6 @@ final public class InsidiousService implements
 
     }
 
-    ServerMetadata serverMetadata = null;
     public ServerMetadata getServerMetadata(SourceModel sourceModel, String sessionId){
 
         String url = sourceModel.getServerEndpoint() + "/session/getServerMetadata" + "?sessionId=" + sessionId;
