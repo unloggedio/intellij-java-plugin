@@ -19,6 +19,7 @@ import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.*;
 import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.constants.SessionMode;
 import com.insidious.plugin.coverage.ClassCoverageData;
 import com.insidious.plugin.coverage.CodeCoverageData;
 import com.insidious.plugin.coverage.MethodCoverageData;
@@ -60,6 +61,7 @@ import com.intellij.debugger.ui.HotSwapStatusListener;
 import com.intellij.debugger.ui.HotSwapUIImpl;
 import com.intellij.diff.DiffManager;
 import com.intellij.diff.requests.SimpleDiffRequest;
+import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
@@ -84,6 +86,8 @@ import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
@@ -104,6 +108,7 @@ import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
 import io.netty.util.concurrent.DefaultThreadFactory;
+import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
@@ -742,6 +747,8 @@ final public class InsidiousService implements
         }
         return;
     }
+
+
 
 //    public void addLiveView() {
 //        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
