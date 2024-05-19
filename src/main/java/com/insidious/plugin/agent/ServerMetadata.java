@@ -11,6 +11,9 @@ public class ServerMetadata {
     private Date createdAt;
     private String timezone;
 
+    public ServerMetadata() {
+    }
+
     public String getHostname() {
         return hostname;
     }
@@ -46,9 +49,6 @@ public class ServerMetadata {
     public ServerMetadata(String includePackageName, String agentVersion) {
         this.includePackageName = includePackageName;
         this.agentVersion = agentVersion;
-    }
-
-    public ServerMetadata() {
     }
 
     public String getAgentServerPort() {
