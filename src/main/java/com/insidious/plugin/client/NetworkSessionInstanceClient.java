@@ -26,6 +26,7 @@ import com.insidious.plugin.ui.methodscope.CandidateFilterType;
 import com.insidious.plugin.ui.stomp.StompFilterModel;
 import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.StringUtils;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
@@ -51,6 +52,10 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     private String token;
 	private OkHttpClient client;
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    private boolean shutdown = false;
+    private final Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
+
+
 
 	// endpoint attributes
 	private String ping = "/session/ping";
@@ -1181,7 +1186,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
 	@Override
 	public synchronized void close() {
-        return;
+        this.shutdown = true;
     }
 
 	@Override
@@ -1206,6 +1211,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
 	@Override
 	public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
+        // TODO: implement this method
         return null;
 	}
 
@@ -1216,8 +1222,38 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
 	@Override
 	public void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
-        return;
+        List<Parameter> methodArguments = methodCallExpression.getArguments();
+
+        for (Parameter methodArgument : methodArguments) {
+            //param is enum then we set it to enum type
+            checkAndSetParameterEnumIfYesMakeNameCamelCase(methodArgument);
+        }
+        // check for the return value type if its enum
+        checkAndSetParameterEnumIfYesMakeNameCamelCase(methodCallExpression.getReturnValue());
 	}
+
+
+    private void checkAndSetParameterEnumIfYesMakeNameCamelCase(Parameter param) {
+        if (param == null || param.getType() == null)
+            return;
+
+        String currParamType = param.getType();
+
+        // TODO: this.classInfoIndexByName.get(currParamType) should be a API
+        ClassInfo currClass = this.classInfoIndexByName.get(currParamType);
+
+        if (currClass != null && currClass.isEnum()) {
+            param.setIsEnum(true);
+
+            // curr param name converted to camelCase
+            List<String> names = param.getNamesList();
+            if (names != null && names.size() > 0) {
+                String modifiedName = StringUtils.convertSnakeCaseToCamelCase(names.get(0));
+                names.remove(0);
+                names.add(0, modifiedName);
+            }
+        }
+    }
 
     @Override
     public void unlockNextScan() {
@@ -1226,6 +1262,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
     @Override
     public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest){
+        // TODO: implement this
         return null;
     }
 
