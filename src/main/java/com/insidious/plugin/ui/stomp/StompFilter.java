@@ -76,6 +76,7 @@ public class StompFilter {
     private JButton serverListSaveButton;
     private JLabel setupText;
     private JPanel sourcePreferencesPanel;
+    private JPanel remotePanel;
     private ComponentLifecycleListener<StompFilter> componentLifecycleListener;
     private DefaultListModel<String> modelIncludedClasses;
     private DefaultListModel<String> modelExcludedClasses;
