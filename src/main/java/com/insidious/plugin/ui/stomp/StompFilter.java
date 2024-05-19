@@ -56,6 +56,25 @@ public class StompFilter {
     private JButton applyButton;
     private JButton cancelButton;
     private JButton resetToDefaultButton;
+    private JRadioButton localhostRadio;
+    private JRadioButton remoteRadio;
+    private JPanel sourceModePanel;
+    private JLabel sourceModeLabel;
+    private JPanel sourceModeOption;
+    private JPanel remoteServerPanel;
+    private JLabel remoteServerLabel;
+    private JLabel remoteServerLink;
+    private JTextField enterYourServerUrlTextField;
+    private JButton howToSetupServerButton;
+    private JPanel setupInfoPanel;
+    private JPanel setupInfo;
+    private JButton setupInfoCancelButton;
+    private JButton setupInfoSaveButton;
+    private JPanel serverList;
+    private JRadioButton a12000001RadioButton;
+    private JPanel serverListButton;
+    private JButton serverListCancelButton;
+    private JButton serverListSaveButton;
     private ComponentLifecycleListener<StompFilter> componentLifecycleListener;
     private DefaultListModel<String> modelIncludedClasses;
     private DefaultListModel<String> modelExcludedClasses;
@@ -76,7 +95,7 @@ public class StompFilter {
 
 
         new GotItTooltip("Unlogged.Stomp.Filter.Checkbox",
-                "Make the filter always set to the method focussed in your editor by enabling this", project)
+                "Make the filter always sourceModePanel to the method focussed in your editor by enabling this", project)
                 .withPosition(Balloon.Position.above)
                 .show((JPanel) followEditorCheckBox.getParent().getParent(), GotItTooltip.RIGHT_MIDDLE);
 
@@ -1115,5 +1134,9 @@ public class StompFilter {
 
     public void setOnCloseListener(ComponentLifecycleListener<StompFilter> componentLifecycleListener) {
         this.componentLifecycleListener = componentLifecycleListener;
+    }
+
+    private void createUIComponents() {
+        // TODO: place custom component creation code here
     }
 }
