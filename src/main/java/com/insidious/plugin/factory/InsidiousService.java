@@ -175,6 +175,7 @@ final public class InsidiousService implements
     private Content libraryWindowContent;
     private LibraryComponent libraryToolWindow;
     private ToolWindow toolWindow;
+	private ServerMetadata serverMetadata = null; 
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -402,6 +403,12 @@ final public class InsidiousService implements
             }
 
             private ServerMetadata checkSessionBelongsToProject(ExecutionSession session, Project project) {
+
+                if (session.getSessionMode() == SessionMode.REMOTE) {
+                    ServerMetadata serverMetadata = getServerMetadata(sourceModel, session.getSessionId());
+                    return serverMetadata;
+                }
+
                 if (checkCache.containsKey(session.getSessionId())) {
                     return checkCache.get(session.getSessionId());
                 }
@@ -2132,4 +2139,83 @@ final public class InsidiousService implements
         return candidateBones.stream().map(e -> getTestCandidateById(e.getId(), true)).collect(Collectors.toList());
 
     }
+
+    ServerMetadata serverMetadata = null;
+    public ServerMetadata getServerMetadata(SourceModel sourceModel, String sessionId){
+
+        String url = sourceModel.getServerEndpoint() + "/session/getServerMetadata" + "?sessionId=" + sessionId;
+        logger.info("get server metadata url = " + url);
+        CountDownLatch latch = new CountDownLatch(1);
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    String responseBody = Objects.requireNonNull(response.body()).string();
+                    serverMetadata = objectMapper.readValue(responseBody, ServerMetadata.class);
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return serverMetadata;
+    }
+
+
+	// TODO: move to a util class
+    private void get(String url, Callback callback) {
+
+        final OkHttpClient httpClient = new OkHttpClient().newBuilder()
+                .connectTimeout(600, TimeUnit.SECONDS)
+                .readTimeout(600, TimeUnit.SECONDS)
+                .writeTimeout(600, TimeUnit.SECONDS)
+                .build();
+
+        Request.Builder builder = new Request.Builder().url(url);
+        Request request = builder.build();
+        Call call = httpClient.newCall(request);
+        call.enqueue(callback);
+
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            String dots = "";
+            while (true) {
+                try {
+                    Thread.sleep(500);
+                    if (call.isExecuted()) {
+                        break;
+                    }
+
+                    dots = dots + ".";
+                    if (dots.length() > 3) {
+                        dots = ".";
+                    }
+                    ProgressIndicatorProvider.getGlobalProgressIndicator()
+                            .setText2("Query is in progress " + dots);
+                    if (ProgressIndicatorProvider.getGlobalProgressIndicator()
+                            .isCanceled()) {
+                        throw new ProcessCanceledException();
+                    }
+
+                } catch (InterruptedException e) {
+                    throw new ProcessCanceledException(e);
+                }
+            }
+        }
+
+    }
+
 }
