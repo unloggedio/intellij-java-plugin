@@ -188,7 +188,12 @@ final public class InsidiousService implements
 
         String pathToSessions = Constants.HOME_PATH + "/sessions";
         FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
-        this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
+
+
+        configurationState = project.getService(InsidiousConfigurationState.class);
+
+        // TODO: if-else for session mode
+//        this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
 
         // test networkSessionInstanceClient
 		logger.info("--------------------");
@@ -524,7 +529,7 @@ final public class InsidiousService implements
 //        ConnectionCheckerService connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgentClient);
 //        connectionCheckerThreadPool.submit(connectionCheckerService);
         junitTestCaseWriter = new JUnitTestCaseWriter(project, objectMapper);
-        configurationState = project.getService(InsidiousConfigurationState.class);
+
 
         mockManager = new MockManager(configurationState);
 
