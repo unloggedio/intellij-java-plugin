@@ -198,11 +198,12 @@ final public class InsidiousService implements
         configurationState = project.getService(InsidiousConfigurationState.class);
 
         // TODO: if-else for session mode
+
+        SourceModel sourceModel = configurationState.getSourceModel();
+
 //        this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
 
-        this.client = new NetworkClient();
-        SourceModel sourceModel = configurationState.getSourceModel();
-        this.client.setSourceModel(sourceModel);
+        this.client = new NetworkClient(sourceModel);
 
 
         // test networkSessionInstanceClient
