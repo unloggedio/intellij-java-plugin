@@ -1,7 +1,10 @@
 package com.insidious.plugin.ui.stomp;
 
+import com.insidious.plugin.constants.SessionMode;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
+import com.insidious.plugin.ui.SessionInstanceChangeListener;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
+import com.insidious.plugin.upload.SourceModel;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -11,11 +14,13 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.ui.GotItTooltip;
+import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -58,22 +63,19 @@ public class StompFilter {
     private JButton resetToDefaultButton;
     private JRadioButton localhostRadio;
     private JRadioButton remoteRadio;
-    private JPanel sourceModePanel;
-    private JLabel sourceModeLabel;
     private JPanel sourceModeOption;
     private JPanel remoteServerPanel;
-    private JLabel remoteServerLabel;
     private JLabel remoteServerLink;
-    private JTextField enterYourServerUrlTextField;
+    private JTextField serverLinkField;
     private JPanel setupInfoPanel;
     private JPanel setupInfo;
-    private JButton setupInfoCancelButton;
-    private JButton setupInfoSaveButton;
+    private JButton linkCancelButton;
+    private JButton linkSaveButton;
     private JPanel serverList;
     private JRadioButton a12000001RadioButton;
     private JPanel serverListButton;
-    private JButton serverListCancelButton;
-    private JButton serverListSaveButton;
+    private JButton finalCancelButton;
+    private JButton finalSaveButton;
     private JLabel setupText;
     private JPanel sourcePreferencesPanel;
     private JPanel remotePanel;
@@ -82,12 +84,20 @@ public class StompFilter {
     private DefaultListModel<String> modelExcludedClasses;
     private DefaultListModel<String> modelIncludedMethods;
     private DefaultListModel<String> modelExcludedMethods;
+    private SessionInstanceChangeListener insidiousService;
     private ButtonGroup serverModeButton;
+    private SourceModel sourceModel;
+    private SessionMode localSessionMode;
+    private String localServerEndpoint;
+    private List<String> localSessionId;
 
 
-    public StompFilter(StompFilterModel stompFilterModel, MethodUnderTest lastMethodFocussed, Project project) {
+    public StompFilter(SessionInstanceChangeListener insidiousService, StompFilterModel stompFilterModel, SourceModel sourceModel, MethodUnderTest lastMethodFocussed, Project project) {
         originalStompFilterModel = new StompFilterModel(stompFilterModel);
         this.stompFilterModel = new StompFilterModel(originalStompFilterModel);
+        this.sourceModel = sourceModel;
+        this.insidiousService = insidiousService;
+
         int stompFilterPanelWidth = 300;
 
         cancelButton.addActionListener(e -> {
