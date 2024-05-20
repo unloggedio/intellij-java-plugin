@@ -82,6 +82,7 @@ public class StompFilter {
     private DefaultListModel<String> modelExcludedClasses;
     private DefaultListModel<String> modelIncludedMethods;
     private DefaultListModel<String> modelExcludedMethods;
+    private ButtonGroup serverModeButton;
 
 
     public StompFilter(StompFilterModel stompFilterModel, MethodUnderTest lastMethodFocussed, Project project) {
@@ -94,6 +95,31 @@ public class StompFilter {
                 componentLifecycleListener.onClose(StompFilter.this);
             }
         });
+
+        serverModeButton = new ButtonGroup();
+        serverModeButton.add(localhostRadio);
+        serverModeButton.add(remoteRadio);
+
+        remotePanel.setVisible(false);
+        remoteRadio.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                remotePanel.setVisible(true);
+                mainPanel.revalidate();
+                mainPanel.repaint();
+            }
+        });
+
+        localhostRadio.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                remotePanel.setVisible(false);
+                mainPanel.revalidate();
+                mainPanel.repaint();
+            }
+        });
+
+
 
 
         new GotItTooltip("Unlogged.Stomp.Filter.Checkbox",
