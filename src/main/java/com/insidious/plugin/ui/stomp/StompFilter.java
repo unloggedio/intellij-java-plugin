@@ -135,13 +135,66 @@ public class StompFilter {
         localhostRadio.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                localSessionMode = SessionMode.LOCAL;
                 remotePanel.setVisible(false);
                 mainPanel.revalidate();
                 mainPanel.repaint();
             }
         });
 
+        serverModeButton = new ButtonGroup();
+        serverModeButton.add(localhostRadio);
+        serverModeButton.add(remoteRadio);
 
+
+        // server link logic
+        String placeholderText = "Enter your server URL here";
+        serverLinkField.setText(placeholderText);
+        serverLinkField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (serverLinkField.getText().equals(placeholderText)) {
+                    serverLinkField.setText("");
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (serverLinkField.getText().isEmpty()) {
+                    serverLinkField.setText(placeholderText);
+                }
+            }
+        });
+
+        linkCancelButton.addActionListener(e -> {
+            serverLinkField.setText(placeholderText);
+        });
+
+        linkSaveButton.addActionListener(e -> {
+            localServerEndpoint = serverLinkField.getText();
+        });
+
+        // final row button logic
+        finalCancelButton.addActionListener(e -> {
+            if (componentLifecycleListener != null) {
+                componentLifecycleListener.onClose(StompFilter.this);
+            }
+        });
+
+
+        finalSaveButton.addActionListener(e -> {
+            this.sourceModel.setSessionMode(this.localSessionMode);
+            this.sourceModel.setServerEndpoint(this.localServerEndpoint);
+            this.sourceModel.setSessionId(this.localSessionId);
+            this.insidiousService.modifySessionInstance(sourceModel);
+
+            componentLifecycleListener.onClose(StompFilter.this);
+        });
+
+
+
+
+        // sourceMode tab end code
 
 
         new GotItTooltip("Unlogged.Stomp.Filter.Checkbox",
