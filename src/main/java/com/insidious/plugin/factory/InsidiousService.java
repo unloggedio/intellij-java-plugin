@@ -196,9 +196,9 @@ final public class InsidiousService implements
 
         configurationState = project.getService(InsidiousConfigurationState.class);
 
-        SourceModel sourceModel = configurationState.getSourceModel();
-		if (sourceModel.getSessionMode() == SessionMode.LOCAL) {
-      		this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
+        this.sourceModel = configurationState.getSourceModel();
+		if (sourceModel.getSessionMode() == SessionMode.REMOTE) {
+            this.client = new NetworkClient(sourceModel);
 		}
 		else {
             // plugin runs in local mode, if no mode is defined in configuration file
@@ -1369,7 +1369,7 @@ final public class InsidiousService implements
         this.classModifiedFlagMap.clear();
         logger.info("Loading new session: " + executionSession.getSessionId() + " => " + project.getName());
 		SourceModel sourceModel = configurationState.getSourceModel();
-        final SessionInstanceInterface sessionInstance = sessionManager.createSessionInstance(executionSession, serverMetadata, sourceModel, project);
+        SessionInstanceInterface sessionInstance = sessionManager.createSessionInstance(executionSession, serverMetadata, sourceModel, project);
 
         currentState.setSessionInstance(sessionInstance);
         sessionInstance.addTestCandidateListener(this);
