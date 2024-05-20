@@ -201,7 +201,9 @@ final public class InsidiousService implements
       		this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
 		}
 		else {
-			this.client = new NetworkClient(sourceModel);
+            // plugin runs in local mode, if no mode is defined in configuration file
+            // This case will happen when the plugin is installed, but the setting is never saved
+            this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
 		}
 
         // test networkSessionInstanceClient
