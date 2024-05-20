@@ -37,10 +37,7 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.record.AtomicRecordService;
-import com.insidious.plugin.ui.InsidiousCaretListener;
-import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
-import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import com.insidious.plugin.ui.UnloggedSDKOnboarding;
+import com.insidious.plugin.ui.*;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.library.ItemFilterType;
 import com.insidious.plugin.ui.library.LibraryComponent;
@@ -180,7 +177,9 @@ final public class InsidiousService implements
     private Content libraryWindowContent;
     private LibraryComponent libraryToolWindow;
     private ToolWindow toolWindow;
-	private ServerMetadata serverMetadata = null; 
+	private ServerMetadata serverMetadata = null;
+    private SourceModel sourceModel;
+    private String pathToSessions;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -191,7 +190,7 @@ final public class InsidiousService implements
 
         sessionManager = ApplicationManager.getApplication().getService(ActiveSessionManager.class);
 
-        String pathToSessions = Constants.HOME_PATH + "/sessions";
+        this.pathToSessions = Constants.HOME_PATH + "/sessions";
         FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
 
 
@@ -741,7 +740,7 @@ final public class InsidiousService implements
             this.sessionLoader = ApplicationManager.getApplication().getService(SessionLoader.class);
             this.sessionLoader.setClient(this.client);
             this.sessionLoader.setProject(this.project);
-			
+
             this.sessionLoader.addSessionCallbackListener(sessionListener);
             cdl.countDown();
         });
@@ -786,7 +785,7 @@ final public class InsidiousService implements
 //        testDesignerContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
 //        contentManager.addContent(testDesignerContent);
 
-        stompWindow = new StompComponent(this);
+        this.stompWindow = new StompComponent(this);
         if (stompComponentThreadPool != null) {
             stompComponentThreadPool.shutdownNow();
         }
@@ -870,6 +869,18 @@ final public class InsidiousService implements
 
     public VideobugClientInterface getClient() {
         return client;
+    }
+
+    public void setClient(VideobugClientInterface client) {
+        this.client = client;
+    }
+
+    public SourceModel getSourceModel() {
+        return this.sourceModel;
+    }
+
+    public void setSourceModel (SourceModel sourceModel) {
+        this.sourceModel = sourceModel;
     }
 
     @Override
