@@ -8,8 +8,8 @@ import com.insidious.plugin.constants.SessionMode;
 public class SourceModel {
 	private String serverEndpoint;
 	private SourceFilter sourceFilter;
-	private List<String> selectedSessionId;
-	private SessionMode sessionMode; 
+	private List<String> sessionId;
+	private SessionMode sessionMode;
 
 	public SourceModel() {
 	}
@@ -30,12 +30,12 @@ public class SourceModel {
 		this.sourceFilter = sourceFilter;
 	}
 
-	public List<String> getSelectedSessionId() {
-		return this.selectedSessionId;
+	public List<String> getSessionId() {
+		return this.sessionId;
 	}
 
-	public void setSelectedSessionId(List<String> selectedSessionId) {
-		this.selectedSessionId = selectedSessionId;
+	public void setSessionId(List<String> sessionId) {
+		this.sessionId = sessionId;
 	}
 
 	public SessionMode getSessionMode() {
