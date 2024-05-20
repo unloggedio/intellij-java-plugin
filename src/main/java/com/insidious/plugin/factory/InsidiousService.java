@@ -132,7 +132,7 @@ import static com.intellij.psi.PsiModifier.ABSTRACT;
 @Storage("insidious.xml")
 @Service(Service.Level.PROJECT)
 final public class InsidiousService implements
-        Disposable, NewTestCandidateIdentifiedListener {
+        Disposable, NewTestCandidateIdentifiedListener, SessionInstanceChangeListener {
     public static final Set<String> SKIP_METHOD_IN_FOLLOW_FILTER = new HashSet<>(
             Arrays.asList("Object", "clone", "toString",
                     "equals", "finalize", "notify", "hashCode", "wait",
@@ -546,6 +546,19 @@ final public class InsidiousService implements
             populateFromEditors(null);
         }
 
+    }
+
+    @Override
+    public void modifySessionInstance(SourceModel sourceModel) {
+        this.sourceModel = sourceModel;
+        if (sourceModel.getSessionMode() == SessionMode.REMOTE) {
+            this.client = new NetworkClient(sourceModel);
+        }
+        else {
+            this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
+        }
+
+        this.sessionLoader.setClient(this.client);
     }
 
     //    @Unlogged
