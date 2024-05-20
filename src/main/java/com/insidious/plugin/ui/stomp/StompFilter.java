@@ -126,6 +126,7 @@ public class StompFilter {
         remoteRadio.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                localSessionMode = SessionMode.REMOTE;
                 remotePanel.setVisible(true);
                 mainPanel.revalidate();
                 mainPanel.repaint();
