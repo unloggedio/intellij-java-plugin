@@ -12,10 +12,6 @@ public class SourceModel {
 	private SessionMode sessionMode; 
 
 	public SourceModel() {
-		this.serverEndpoint = "http://localhost:8123";
-		this.sourceFilter = SourceFilter.ALL;
-		this.selectedSessionId = new ArrayList<>();
-		this.sessionMode = SessionMode.REMOTE;
 	}
 
 	public String getServerEndpoint() {
