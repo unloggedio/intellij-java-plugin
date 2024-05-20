@@ -32,6 +32,7 @@ import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
+import com.insidious.plugin.upload.SourceModel;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
@@ -436,7 +437,8 @@ public class StompComponent implements
 
     private void showFiltersComponentPopup(Project project, InsidiousService insidiousService) {
         StompFilterModel originalFilter = new StompFilterModel(stompFilterModel);
-        StompFilter stompFilter = new StompFilter(stompFilterModel, lastMethodFocussed, project);
+        SourceModel sourceModel = insidiousService.getSourceModel();
+        StompFilter stompFilter = new StompFilter(insidiousService, stompFilterModel, sourceModel, lastMethodFocussed, project);
         JComponent component = stompFilter.getComponent();
 
         ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
@@ -1638,5 +1640,9 @@ public class StompComponent implements
             southPanel.getParent().repaint();
         });
 
+    }
+
+    public void setSessionInstance (SessionInstance sessionInstance) {
+        this.sessionInstance = sessionInstance;
     }
 }
