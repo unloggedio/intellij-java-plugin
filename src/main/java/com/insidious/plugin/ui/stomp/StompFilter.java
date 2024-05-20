@@ -106,10 +106,22 @@ public class StompFilter {
             }
         });
 
-        serverModeButton = new ButtonGroup();
-        serverModeButton.add(localhostRadio);
-        serverModeButton.add(remoteRadio);
 
+        // sourceMode tab start code
+
+
+        // styling logic
+        sourceModeOption.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.LIGHT_GRAY), "<html><b>Select source to scan</b></html>",
+                TitledBorder.LEADING, TitledBorder.TOP));
+
+        remotePanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.LIGHT_GRAY), "<html><b>Remote Server Details</b></html>",
+                TitledBorder.LEADING, TitledBorder.TOP));
+
+
+
+        // radio button and remote panel logic
         remotePanel.setVisible(false);
         remoteRadio.addActionListener(new ActionListener() {
             @Override
