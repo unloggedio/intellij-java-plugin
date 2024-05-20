@@ -86,7 +86,6 @@ public class NetworkClient implements VideobugClientInterface{
 
     @Override
     public void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback) {
-//        String packageName = "org.unlogged.demo.gradle";
         List<ExecutionSession> listExecutionSession = sessionDiscovery(this.sourceModel, this.packageName);
         getProjectSessionsCallback.success(listExecutionSession);
     }

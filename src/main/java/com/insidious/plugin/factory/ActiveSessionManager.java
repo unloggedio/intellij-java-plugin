@@ -40,20 +40,20 @@ public class ActiveSessionManager {
 
         // create a session instance
         SessionInstanceInterface sessionInstance;
-        if (sessionMode == SessionMode.LOCAL) {
+        if (sessionMode == SessionMode.REMOTE) {
+            logger.info("attempting to create a session instance from remote process");
+            sessionInstance = new NetworkSessionInstanceClient(sessionNetworkUrl, executionSession.getSessionId(), serverMetadata, project);
+        }
+        else {
             logger.info("attempting to create a session instance from local process");
             try {
                 sessionInstance = new SessionInstance(executionSession, serverMetadata, project);
-             } catch (SQLException | IOException e) {
-                 logger.error("Failed to initialize session instance: " + e.getMessage(), e);
-                 InsidiousNotification.notifyMessage("Failed to initialize session instance: " + e.getMessage(),
-                         NotificationType.ERROR);
-                 throw new RuntimeException(e);
-             }
-        }
-        else {
-            logger.info("attempting to create a session instance from remote process");
-            sessionInstance = new NetworkSessionInstanceClient(sessionNetworkUrl, executionSession.getSessionId(), serverMetadata, project);
+            } catch (SQLException | IOException e) {
+                logger.error("Failed to initialize session instance: " + e.getMessage(), e);
+                InsidiousNotification.notifyMessage("Failed to initialize session instance: " + e.getMessage(),
+                        NotificationType.ERROR);
+                throw new RuntimeException(e);
+            }
         }
 
         sessionInstanceMap.put(executionSession.getSessionId(), sessionInstance);
