@@ -62,6 +62,9 @@ public class ExecutionSession {
     }
 
 	public SessionMode getSessionMode() {
+        if (this.sessionMode == null) {
+            this.sessionMode = SessionMode.LOCAL;
+        }
 		return this.sessionMode;
 	}
 
