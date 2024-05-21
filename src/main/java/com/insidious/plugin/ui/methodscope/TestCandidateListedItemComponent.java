@@ -102,11 +102,9 @@ public class TestCandidateListedItemComponent {
                     eventProperties.put("className", psiClass.getQualifiedClassName());
                     eventProperties.put("methodName", storedCandidate.getMethod().getName());
                     UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
-                    statusLabel.setText("Executing");
-                    candidateLifeListener.executeCandidate(
-                            Collections.singletonList(candidateMetadata), psiClass,
-                            new ReplayAllExecutionContext(ExecutionRequestSourceType.Single, false),
-                            (candidateMetadata, agentCommandResponse, diffResult) -> {
+                    listener.executeCandidate(
+                            Collections.singletonList(candidateMetadata), psiClass, "individual",
+                            (testCandidate, agentCommandResponse, diffResult) -> {
                                 insidiousService.updateMethodHashForExecutedMethod(method);
                                 candidateLifeListener.onCandidateSelected(new StoredCandidate(candidateMetadata));
                                 insidiousService.triggerGutterIconReload();

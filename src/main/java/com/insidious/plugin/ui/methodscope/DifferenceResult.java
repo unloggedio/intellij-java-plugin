@@ -1,5 +1,7 @@
 package com.insidious.plugin.ui.methodscope;
 
+import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.agent.AgentCommand;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 
@@ -10,13 +12,17 @@ public class DifferenceResult {
     private final List<DifferenceInstance> differenceInstanceList;
     private final Map<String, Object> leftOnly;
     private final Map<String, Object> rightOnly;
-    private DiffResultType diffResultType;
-    //    private MethodAdapter methodAdapter;
+    private MethodAdapter methodAdapter;
     private AgentCommandRequest command;
-    private AgentCommandResponse<?> response;
-    private boolean useIndividualContext = false;
-    private String batchID = null;
+    private AgentCommandResponse response;
+    public enum EXECUTION_MODE {DIRECT_INVOKE, ATOMIC_RUN_INDIVIDUAL, ATOMIC_RUN_REPLAY}
     private EXECUTION_MODE executionMode;
+    public Map<String, Object> getLeftOnly() {
+        return leftOnly;
+    }
+    public Map<String, Object> getRightOnly() {
+        return rightOnly;
+    }
 
     public DifferenceResult(List<DifferenceInstance> differenceInstanceList,
                             DiffResultType diffResultType,
@@ -56,13 +62,13 @@ public class DifferenceResult {
         this.diffResultType = type;
     }
 
-//    public MethodAdapter getMethodAdapter() {
-//        return methodAdapter;
-//    }
+    public MethodAdapter getMethodAdapter() {
+        return methodAdapter;
+    }
 
-//    public void setMethodAdapter(MethodAdapter methodAdapter) {
-//        this.methodAdapter = methodAdapter;
-//    }
+    public void setMethodAdapter(MethodAdapter methodAdapter) {
+        this.methodAdapter = methodAdapter;
+    }
 
     public AgentCommandRequest getCommand() {
         return command;
@@ -93,22 +99,12 @@ public class DifferenceResult {
         return "DifferenceResult{" +
                 "differenceInstanceList=" + differenceInstanceList +
                 ", diffResultType=" + diffResultType +
-                ", useIndividualContext=" + useIndividualContext +
                 ", leftOnly=" + leftOnly +
                 ", rightOnly=" + rightOnly +
+                ", methodAdapter=" + methodAdapter +
                 ", command=" + command +
                 ", response=" + response +
                 ", executionMode=" + executionMode +
                 '}';
     }
-
-    public String getBatchID() {
-        return batchID;
-    }
-
-    public void setBatchID(String batchID) {
-        this.batchID = batchID;
-    }
-
-    public enum EXECUTION_MODE {DIRECT_INVOKE, ATOMIC_RUN_INDIVIDUAL, ATOMIC_RUN_REPLAY}
 }

@@ -241,78 +241,8 @@ public class DiffUtils {
         }
     }
 
-    public static Map<String, Map<String, ?>> compareObjectNodes(JsonNode node1, JsonNode node2) {
-        Map<String, Map<String, ?>> differencesMap = new LinkedHashMap<>();
-        compareObjectNodes(node1, node2, "", differencesMap);
-        return differencesMap;
-    }
-
-    private static void compareObjectNodes(JsonNode node1, JsonNode node2, String path,
-                                           Map<String, Map<String, ?>> differencesMap) {
-        Map<String, Object> leftOnly = new HashMap<>();
-        Map<String, Object> rightOnly = new HashMap<>();
-        Map<String, String> common = new HashMap<>();
-        Map<String, ValueDifference> differences = new HashMap<>();
-
-        Iterator<String> fieldNames = node1.fieldNames();
-
-        int leftFieldNameCount = 0;
-        while (fieldNames.hasNext()) {
-            leftFieldNameCount++;
-            String fieldName = fieldNames.next();
-            JsonNode value1 = node1.get(fieldName);
-            JsonNode value2 = node2.get(fieldName);
-
-            if (value2 == null) {
-                leftOnly.put(fieldName, value1.toString());
-            } else if (value1.equals(value2)) {
-                common.put(fieldName, value1.toString());
-            } else {
-                if (value1.isObject() && value2.isObject()) {
-                    compareObjectNodes(value1, value2, path + fieldName + ".", differencesMap);
-                } else {
-                    if (value1.isTextual()) {
-                        differences.put(fieldName, new ValueDifference(value1.textValue(), value2.textValue()));
-                    } else {
-                        differences.put(fieldName, new ValueDifference(value1.toString(), value2.toString()));
-                    }
-                }
-            }
-        }
-
-        fieldNames = node2.fieldNames();
-        int rightFieldNameCount = 0;
-        while (fieldNames.hasNext()) {
-            rightFieldNameCount++;
-            String fieldName = fieldNames.next();
-            JsonNode value1 = node1.get(fieldName);
-            if (value1 == null) {
-                rightOnly.put(fieldName, node2.get(fieldName).toString());
-            }
-        }
-        if (leftFieldNameCount == 0 && rightFieldNameCount > 0) {
-            leftOnly.put(Objects.equals(path, "") ? "/" : path, node1.toString());
-        } else if (leftFieldNameCount > 0 && rightFieldNameCount == 0) {
-            rightOnly.put(Objects.equals(path, "") ? "/" : path, node2.toString());
-        } else if (leftFieldNameCount == 0 && rightFieldNameCount == 0) {
-            if (node1.equals(node2)) {
-                common.put(Objects.equals(path, "") ? "/" : path, node1.toString());
-            } else {
-                differences.put(Objects.equals(path, "") ? "/" : path,
-                        new ValueDifference(node1.toString(), node2.toString()));
-            }
-        } else {
-            // both objects had fields
-        }
-
-        differencesMap.put("left", leftOnly);
-        differencesMap.put("right", rightOnly);
-        differencesMap.put("common", common);
-        differencesMap.put("differences", differences);
-    }
-
-
-    public static Map<String, Object> getFlatMapFor(String s1) {
+    static public Map<String, Object> getFlatMapFor(String s1) {
+        ObjectMapper om = new ObjectMapper();
         try {
             Map<String, Object> m1;
             if (s1 == null || s1.isEmpty() || s1.equals("null")) {

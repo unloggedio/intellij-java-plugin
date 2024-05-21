@@ -45,10 +45,6 @@
         </action>
 
         <action class="com.insidious.plugin.actions.ToggleReporting">
-            <keyboard-shortcut keymap="$default" first-keystroke="alt F9"/>
-        </action>
-
-        <action class="com.insidious.plugin.actions.AutoExecutorOptions">
             <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F8"/>
         </action>
 
