@@ -24,6 +24,7 @@ import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,7 +35,6 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.*;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
