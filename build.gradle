@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.jetbrains.intellij' version '1.17.0'
+    id 'org.jetbrains.intellij' version '1.17.3'
     id 'com.palantir.git-version' version '0.14.0'
 }
 
@@ -15,7 +15,7 @@ def getGitHash = { ->
 
 
 group 'org.videobug'
-version '2024.1.5-' + getGitHash()
+version '2024.1.9-' + getGitHash()
 
 
 compileJava {
@@ -173,8 +173,8 @@ patchPluginXml {
 }
 
 publishPlugin {
-    token = "perm:c2hhcmR1bGxhdmVrYXI=.OTItOTgzNg==.jtYdVSDkwcwSWZMhCu5BVma7V3VRFY"
-    channels = ['alpha']
+    token = "perm:c2hhcmR1bGxhdmVrYXI=.OTItMTAwMzA=.ZtumD3AexEy1NbzN66xWyJppVwMugG"
+    channels = ['stable']
 }
 
 test {

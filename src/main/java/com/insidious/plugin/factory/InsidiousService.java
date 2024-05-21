@@ -155,6 +155,7 @@ final public class InsidiousService implements
     private final ActiveSessionManager sessionManager;
     private final CurrentState currentState = new CurrentState();
     private final MockManager mockManager;
+    private final EditorFactoryListener editorFactoryListener;
     Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
@@ -457,9 +458,9 @@ final public class InsidiousService implements
                         }
                     }
                     if (!foundIncludePackage) {
-//                        checkCache.put(session.getSessionId(), new ServerMetadata());
-                        logger.warn(
-                                "Package not found in the params, marked as session not matching: " + session.getLogFilePath());
+//                        checkCache.put(session.getSessionId(), null);
+//                        logger.warn(
+//                                "Package not found in the params, marked as session not matching: " + session.getLogFilePath());
 //                        return null;
                     }
                     String serverMetadataJson = logFileInputStream.readLine();
@@ -468,7 +469,6 @@ final public class InsidiousService implements
                         serverMetadata = objectMapper.readValue(serverMetadataJson,
                                 ServerMetadata.class);
                     } catch (Exception e) {
-                        checkCache.put(session.getSessionId(), new ServerMetadata());
                         logger.warn("Failed to read server metadata from log: [" + serverMetadataJson + "]", e);
                         InsidiousNotification.notifyMessage("Found session at [" + session.getPath() + "] " +
                                         "but couldn't connect to server because of missing server metadata.",
@@ -516,9 +516,12 @@ final public class InsidiousService implements
         multicaster.addCaretListener(listener, this);
         multicaster.addDocumentListener(listener, this);
 
-        EditorFactory.getInstance().addEditorFactoryListener(new EditorFactoryListener() {
+        editorFactoryListener = new EditorFactoryListener() {
             @Override
             public void editorCreated(@NotNull EditorFactoryEvent event) {
+                if (project.isDisposed()) {
+                    return;
+                }
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
                     DumbService.getInstance(project)
                             .runReadActionInSmartMode(() -> {
@@ -530,11 +533,18 @@ final public class InsidiousService implements
 
             @Override
             public void editorReleased(@NotNull EditorFactoryEvent event) {
+                if (project.isDisposed()) {
+                    return;
+                }
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    populateFromEditors(event);
+                    DumbService.getInstance(project)
+                            .runReadActionInSmartMode(() -> {
+                                populateFromEditors(event);
+                            });
                 });
             }
-        }, this);
+        };
+        EditorFactory.getInstance().addEditorFactoryListener(editorFactoryListener, this);
 
 
 //        ConnectionCheckerService connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgentClient);
@@ -599,8 +609,9 @@ final public class InsidiousService implements
                         NotificationType.ERROR);
                 return;
             }
-            classChosenListener.classSelected(new ClassUnderTest(ApplicationManager.getApplication().runReadAction(
-                    (Computable<String>) () -> JvmClassUtil.getJvmClassName(singleImplementation))));
+            String qualifiedClassName = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> JvmClassUtil.getJvmClassName(singleImplementation));
+            classChosenListener.classSelected(new ClassUnderTest(qualifiedClassName));
             return;
         }
 
@@ -905,6 +916,8 @@ final public class InsidiousService implements
         UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_DISPOSED", eventProperties);
         logger.warn("Disposing InsidiousService for project: " + project.getName());
         connectionCheckerThreadPool.shutdownNow();
+        EditorFactory.getInstance().removeEditorFactoryListener(editorFactoryListener);
+
         if (stompComponentThreadPool != null) {
             stompComponentThreadPool.shutdownNow();
         }
@@ -972,7 +985,7 @@ final public class InsidiousService implements
         StompFilterModel stompFilterModel = configurationState.getFilterModel();
         stompFilterModel.setFollowEditor(false);
         stompFilterModel.clearIncluded();
-        stompFilterModel.addClassAndSuperClasses(method.getContainingClass().getSource());
+        addClassAndSuperClasses(method.getContainingClass().getSource(), stompFilterModel);
         stompFilterModel.getIncludedMethodNames().clear();
         stompFilterModel.getIncludedMethodNames().add(ApplicationManager.getApplication().runReadAction(
                 (Computable<String>) method::getName));
@@ -1389,6 +1402,7 @@ final public class InsidiousService implements
 //                    contentManager.removeContent(stompWindowContent, true);
 //                }
 
+                stompWindow.clear();
                 stompWindow.setSession(sessionInstance);
                 stompWindow.loadNewCandidates();
 
@@ -1847,7 +1861,6 @@ final public class InsidiousService implements
 
     public void onAgentDisconnected() {
         JSONObject props = new JSONObject();
-        props.put("sessionId", currentState.getSessionInstance().getExecutionSession().getSessionId());
         props.put("project", project.getName());
         UsageInsightTracker.getInstance().RecordEvent("AGENT_DISCONNECTED", props);
 
@@ -2145,7 +2158,7 @@ final public class InsidiousService implements
                                 PsiClass.class));
 
                 for (PsiClass psiClass : classes) {
-                    changed = stompFilterModel.addFromClassRecursively(psiClass) || changed;
+                    changed = addFromClassRecursively(psiClass, stompFilterModel) || changed;
                 }
             }
         }
@@ -2153,6 +2166,61 @@ final public class InsidiousService implements
             stompWindow.resetAndReload();
         }
     }
+
+    public boolean addFromClassRecursively(PsiClass psiClass, StompFilterModel stompFilterModel) {
+        boolean changed;
+        changed = addClassAndSuperClasses(psiClass, stompFilterModel);
+        changed = addInterfaces(psiClass, stompFilterModel) || changed;
+        changed = addMethods(psiClass, stompFilterModel) || changed;
+        return changed;
+    }
+
+
+    public boolean addMethods(PsiClass psiClass, StompFilterModel stompFilterModel) {
+        Set<String> methodNames = new HashSet<>();
+        for (PsiMethod method : ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiMethod[]>) psiClass::getMethods)) {
+            String name = ApplicationManager.getApplication()
+                    .runReadAction((Computable<String>) method::getName);
+            if (InsidiousService.SKIP_METHOD_IN_FOLLOW_FILTER.contains(name)) {
+                continue;
+            }
+            methodNames.add(name);
+        }
+        return stompFilterModel.getIncludedMethodNames().addAll(methodNames);
+    }
+
+
+    public boolean addClassAndSuperClasses(PsiClass psiClass, StompFilterModel stompFilterModel) {
+        Set<String> classNames = new HashSet<>();
+
+        boolean changed = false;
+        while (psiClass != null) {
+            PsiClass finalPsiClass = psiClass;
+            String qualifiedName = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) finalPsiClass::getQualifiedName);
+            if ("java.lang.Object".equals(qualifiedName)) {
+                break;
+            }
+            classNames.add(qualifiedName);
+            changed = addMethods(psiClass, stompFilterModel) || changed;
+            changed = addInterfaces(psiClass, stompFilterModel) || changed;
+            psiClass = ApplicationManager.getApplication().runReadAction(
+                    (Computable<PsiClass>) finalPsiClass::getSuperClass);
+        }
+        return stompFilterModel.getIncludedClassNames().addAll(classNames) || changed;
+    }
+
+    public boolean addInterfaces(PsiClass psiClass, StompFilterModel stompFilterModel) {
+        boolean changed = false;
+        PsiClass[] interfaces = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiClass[]>) psiClass::getInterfaces);
+        for (PsiClass type : interfaces) {
+            changed = addClassAndSuperClasses(type, stompFilterModel) || changed;
+        }
+        return changed;
+    }
+
 
     public void hideBottomSplit() {
         stompWindow.hideBottomSplit();
@@ -2174,7 +2242,7 @@ final public class InsidiousService implements
 
     public List<TestCandidateMetadata> getCandidatesForMethod(MethodAdapter methodElement) {
         StompFilterModel filterModel = new StompFilterModel();
-        filterModel.addFromClassRecursively(methodElement.getContainingClass().getSource());
+        addFromClassRecursively(methodElement.getContainingClass().getSource(), filterModel);
         filterModel.getIncludedMethodNames().clear();
         filterModel.getIncludedMethodNames().add(methodElement.getName());
         List<TestCandidateBareBone> candidateBones = currentState.getSessionInstance()

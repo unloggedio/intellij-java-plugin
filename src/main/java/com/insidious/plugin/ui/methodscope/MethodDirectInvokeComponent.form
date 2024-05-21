@@ -13,7 +13,7 @@
         <margin top="5" left="5" bottom="5" right="5"/>
         <constraints border-constraint="North"/>
         <properties/>
-        <border type="none"/>
+        <border type="bevel-lowered"/>
         <children>
           <component id="5b07a" class="javax.swing.JLabel" binding="methodNameLabel">
             <constraints>

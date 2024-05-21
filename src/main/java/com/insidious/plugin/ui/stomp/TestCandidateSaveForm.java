@@ -788,7 +788,8 @@ public class TestCandidateSaveForm {
 
         PsiMethod finalCandidateTargetMethod = candidateTargetMethod;
         List<PsiMethodCallExpression> allCallExpressions = ApplicationManager.getApplication().runReadAction(
-                (Computable<List<PsiMethodCallExpression>>) () -> getAllCallExpressions(finalCandidateTargetMethod));
+                (Computable<List<PsiMethodCallExpression>>) () -> getAllCallExpressions(finalCandidateTargetMethod,
+                        new LinkedList<String>()));
 
         MethodUnderTest storedCandidateTargetMethod = storedCandidate.getMethod();
 
@@ -847,7 +848,8 @@ public class TestCandidateSaveForm {
 
     }
 
-    private List<PsiMethodCallExpression> getAllCallExpressions(PsiMethod targetMethod) {
+    private List<PsiMethodCallExpression> getAllCallExpressions(PsiMethod targetMethod,
+                                                                LinkedList<String> methodStack) {
 //        @Nullable PsiClass containingClass = targetMethod.getContainingClass();
         List<PsiMethodCallExpression> psiMethodCallExpressions = new ArrayList<>(PsiTreeUtil.findChildrenOfType(
                 targetMethod, PsiMethodCallExpression.class));
@@ -884,7 +886,15 @@ public class TestCandidateSaveForm {
                     // for possible support of injection in future
                     collectedCalls.add(psiMethodCallExpression);
                 }
-                List<PsiMethodCallExpression> subCalls = getAllCallExpressions(subTargetMethod);
+                String stackKey =
+                        ApplicationManager.getApplication().runReadAction(
+                                (Computable<String>) () -> targetMethod.getContainingClass().getQualifiedName() + "." + targetMethod.getName());
+                if (methodStack.contains(stackKey)) {
+                    continue;
+                }
+                methodStack.add(stackKey);
+                List<PsiMethodCallExpression> subCalls = getAllCallExpressions(subTargetMethod, methodStack);
+                methodStack.remove(stackKey);
                 collectedCalls.addAll(subCalls);
             } else {
                 collectedCalls.add(psiMethodCallExpression);

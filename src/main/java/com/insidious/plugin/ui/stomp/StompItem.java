@@ -447,7 +447,7 @@ public class StompItem {
                 JsonNode value = ClassTypeUtils.getValueForParameter(argument);
                 String name = argument.getName();
                 if (name == null) {
-                    name = "Arg" + i;
+                    name = "[" + i + "]";
                 }
                 parametersNode.set(name, value);
             }
@@ -474,7 +474,7 @@ public class StompItem {
         if (returnValueTag.getToolTipText() == null
                 || returnValueTag.getToolTipText().isEmpty()) {
             JsonNode valueForParameter = ClassTypeUtils.getValueForParameter(mainMethod.getReturnValue());
-            String prettyPrintedArgumentsHtml = "{}";
+            String prettyPrintedArgumentsHtml = valueForParameter.toString();
             if (valueForParameter.isNumber()
                     && (mainMethod.getReturnValue().getType() == null ||
                     (mainMethod.getReturnValue().getType().length() != 1 &&
@@ -510,9 +510,8 @@ public class StompItem {
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
                 checkLoadedCandidate();
                 Pair<PsiMethod, PsiSubstitutor> targetPsiMethod =
-                        ApplicationManager.getApplication().runReadAction(
-                                (Computable<Pair<PsiMethod, PsiSubstitutor>>) () -> ClassTypeUtils.getPsiMethod(
-                                        loadedCandidate.getMainMethod(), insidiousService.getProject()));
+                        ClassTypeUtils.getPsiMethod(
+                                loadedCandidate.getMainMethod(), insidiousService.getProject());
                 if (targetPsiMethod != null) {
                     MethodUnderTest methodUnderTest1 = ApplicationManager.getApplication().runReadAction(
                             (Computable<MethodUnderTest>) () -> MethodUnderTest.fromPsiCallExpression(

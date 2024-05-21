@@ -42,6 +42,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
@@ -363,7 +364,8 @@ public class MethodDirectInvokeComponent
             return;
         }
 //        createBoilerplateButton.setVisible(false);
-        this.chooseClassAndDirectInvoke();
+        DumbService.getInstance(insidiousService.getProject()).runWhenSmart(
+                this::chooseClassAndDirectInvoke);
     }
 
     public void renderForMethod(MethodAdapter methodElement1, List<String> methodArgumentValues) {
@@ -686,8 +688,10 @@ public class MethodDirectInvokeComponent
     }
 
     private void chooseClassAndDirectInvoke() {
-        insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(),
-                this::classSelected);
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(),
+                    this::classSelected);
+        });
     }
 
     @Override

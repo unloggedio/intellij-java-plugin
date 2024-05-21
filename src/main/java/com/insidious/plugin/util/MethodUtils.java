@@ -7,6 +7,7 @@ import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
+import com.intellij.debugger.engine.JVMNameUtil;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.EmptySubstitutor;
@@ -40,7 +41,7 @@ public class MethodUtils {
                     String[] parameterCanonicalStrings = new String[methodParameters.length];
                     for (int i = 0; i < methodParameters.length; i++) {
                         ParameterAdapter methodParameter = methodParameters[i];
-                        parameterCanonicalStrings[i] = methodParameter.getType().getCanonicalText();
+                        parameterCanonicalStrings[i] = JVMNameUtil.getJVMQualifiedName(methodParameter.getType()).toString();
                     }
                     agentCommandRequest.setParameterTypes(List.of(parameterCanonicalStrings));
 

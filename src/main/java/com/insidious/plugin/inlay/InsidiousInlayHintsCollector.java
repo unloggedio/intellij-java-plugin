@@ -29,7 +29,6 @@ import com.intellij.openapi.editor.markup.EffectType;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.ui.popup.ActiveIcon;
-import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.TextRange;
@@ -39,7 +38,6 @@ import com.intellij.psi.impl.source.PsiMethodImpl;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.testFramework.LightVirtualFile;
-import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.IconUtil;
@@ -211,7 +209,9 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
                 // we only deal with top level calls
                 return true;
             }
-            createInlinePresentationsForCallExpression(methodCallExpression, editor, inlayHintsSink);
+            DumbService.getInstance(editor.getProject()).runReadActionInSmartMode(() -> {
+                createInlinePresentationsForCallExpression(methodCallExpression, editor, inlayHintsSink);
+            });
         }
 
         return true;
@@ -298,7 +298,14 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
         Map<PsiMethodCallExpression, List<DeclaredMock>> declaredMockMap
                 = new HashMap<>();
         for (PsiMethodCallExpression mockableCall : mockableCalls) {
-            MethodUnderTest methodUnderTest = MethodUnderTest.fromPsiCallExpression(mockableCall);
+            MethodUnderTest methodUnderTest;
+            try {
+
+                methodUnderTest = MethodUnderTest.fromPsiCallExpression(mockableCall);
+            } catch (Throwable th) {
+//                logger.warn("Failed to create method under test: " + mockableCall, th);
+                continue;
+            }
             List<DeclaredMock> declaredMocks = insidiousService.getDeclaredMocksOf(methodUnderTest);
             for (DeclaredMock declaredMock : declaredMocks) {
                 if (insidiousService.isMockEnabled(declaredMock)) {

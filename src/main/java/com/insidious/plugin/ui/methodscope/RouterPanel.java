@@ -21,6 +21,7 @@ public class RouterPanel {
     private JLabel fuzzyTestLabel;
     private JPanel mainPanel;
     private JLabel replayJunitTest;
+    private JPanel runtimeActionPanel;
 
     public RouterPanel(RouterListener routerListener) {
 

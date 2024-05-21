@@ -240,7 +240,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
     }
 
     private void publishEvent(ScanEventType scanEventType) {
-        logger.warn("publishEvent [" + sessionScanEventListeners.size() + "] ScanEventType: " + scanEventType);
+//        logger.warn("publishEvent [" + sessionScanEventListeners.size() + "] ScanEventType: " + scanEventType);
         switch (scanEventType) {
 
             case START:
@@ -1018,6 +1018,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         Set<Long> ids = new HashSet<>(Arrays.asList(valueIds));
 
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
+        logger.warn("Reading data from file [" + bytes.length + "] => " + dataEvents.event().entries().size() + " events ");
 
         return dataEvents.event()
                 .entries()
@@ -1550,6 +1551,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 
         Set<Integer> ids = new HashSet<>(Arrays.asList(probeIds));
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
+        logger.warn("Reading data from file [" + bytes.length + "] => " + dataEvents.event().entries().size() + " events ");
 
         return dataEvents.event()
                 .entries()
@@ -1605,6 +1607,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 
         KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(
                 new ByteBufferKaitaiStream(bytesWithName.getBytes()));
+        logger.warn("Reading data from file [" + bytesWithName.getBytes().length + "] => " + eventsContainer.event().entries().size() + " events ");
 
 
         checkProgressIndicator(null, "Mapping " + eventsContainer.event()
@@ -1807,6 +1810,8 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                 .entries();
         io.close();
         long end = new Date().getTime();
+        logger.warn("Reading data from file [" + "] => " + events.size() + " events ");
+
         logger.warn("Read events took: " + (end - start) + " ms");
         return events;
     }
@@ -1852,6 +1857,8 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                 .entries();
         kaitaiStream.close();
         long end = new Date().getTime();
+        logger.warn("Reading data from file [" + "] => " + events.size() + " events ");
+
         logger.warn("Read events took: " + ((end - start) / 1000));
         return events;
     }
@@ -2301,6 +2308,12 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
     private void scanDataAndBuildReplay() {
         if (probeInfoIndex == null) {
             logger.warn("probe info index is not ready: " + this.executionSession.getPath());
+            try {
+                refreshSessionArchivesList(true);
+            } catch (IOException e) {
+                logger.warn("failed to refresh session archives", e);
+                // throw new RuntimeException(e);
+            }
             return;
         }
         if (isSessionCorrupted) {
@@ -2444,6 +2457,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return newTestCaseIdentified;
 
     }
+    long idToStopAt = 2541064L;
 
     private void updateObjectInfoIndex(Long eventValue) throws IOException {
         if (this.sessionArchives == null) {
@@ -2541,6 +2555,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         logger.warn(
                 "processing [" + eventsSublist.size() + "] events from [" + logFileList.size() + "] log files: " + eventsSublist.get(
                         eventsSublist.size() - 1).block().eventId());
+        List<String> incomingMethodParameters = new ArrayList<>();
         for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
             KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = e.block();
@@ -2587,7 +2602,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
             if (threadState.candidateSize() != 0 && line != 0) {
                 threadState.getTopCandidate().addLineCovered(line);
             }
-            if (eventBlock.eventId() == 145200) {
+            if (eventBlock.eventId() == idToStopAt) {
                 logger.warn("sdf");
             }
             switch (probeInfo.getEventType()) {
@@ -3085,6 +3100,8 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                     methodCall = null;
                     // a method_entry event can come in without a corresponding event for call,
                     // in which case this is actually a separate method call
+                    incomingMethodParameters = MethodSignatureParser.parseMethodSignature(
+                            methodInfo.getMethodDesc());
                     if (threadState.getCallStackSize() > 0) {
                         methodCall = threadState.getTopCall();
                         String expectedClassName = ClassTypeUtils.getDescriptorToDottedClassName(
@@ -3220,16 +3237,11 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                         existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         isModified = true;
                     }
-//                    if (existingParameter.getType() == null) {
-//                        ObjectInfoDocument objectInfo = objectInfoIndex.get(existingParameter.getValue());
-//                        if (objectInfo != null) {
-//                            TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-//                            if (!typeInfo.getTypeName().contains(".$")) {
-//                                existingParameter.setType(typeInfo.getTypeName());
-//                            }
-//                            isModified = true;
-//                        }
-//                    }
+                    if (existingParameter.getType() == null && incomingMethodParameters.size() > 0) {
+                        String paramType = incomingMethodParameters.remove(0);
+                        existingParameter.setType(paramType);
+                        isModified = true;
+                    }
                     saveProbe = true;
 
                     topCall = threadState.getTopCall();
@@ -3406,7 +3418,15 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                         isModified = eventValue != 0;
                     }
 
+                    if (existingParameter.getType() == null && incomingMethodParameters.size() > 0) {
+                        String paramType = incomingMethodParameters.remove(0);
+                        existingParameter.setType(paramType);
+                        isModified = true;
+                    }
+
+
                     if (existingParameter.getType() == null && eventValue != 0) {
+
                         ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
                         if (probeInfo.getValueDesc() == Descriptor.Object) {
 

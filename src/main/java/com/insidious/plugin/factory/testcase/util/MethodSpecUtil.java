@@ -38,49 +38,6 @@ public class MethodSpecUtil {
     }
 
 
-    public static MethodSpec createInjectFieldMethod() {
-        MethodSpec.Builder fieldInjectorMethod = MethodSpec.methodBuilder("injectField");
-        fieldInjectorMethod.addModifiers(javax.lang.model.element.Modifier.PRIVATE);
-        fieldInjectorMethod.addException(Exception.class);
-
-        fieldInjectorMethod.addParameter(Object.class, "targetInstance");
-        fieldInjectorMethod.addParameter(String.class, "name");
-        fieldInjectorMethod.addParameter(Object.class, "targetObject");
-
-        fieldInjectorMethod.addCode(CodeBlock.of("" +
-                        "        Class<?> aClass;\n" +
-                        "        if (targetInstance instanceof Class) {\n" +
-                        "            aClass = (Class) targetInstance;\n" +
-                        "            while (!aClass.equals(Object.class)) {\n" +
-                        "                try {\n" +
-                        "                    $T targetField = aClass.getDeclaredField(name);\n" +
-                        "                    targetField.setAccessible(true);\n" +
-                        "                    targetField.set(targetInstance, targetObject);\n" +
-                        "                } catch (NoSuchFieldException nsfe) {\n" +
-                        "                    // nothing to set\n" +
-                        "                }\n" +
-                        "                aClass = aClass.getSuperclass();\n" +
-                        "            }\n" +
-                        "\n" +
-                        "        } else {\n" +
-                        "            aClass = targetInstance.getClass();\n" +
-                        "\n" +
-                        "            while (!aClass.equals(Object.class)) {\n" +
-                        "                try {\n" +
-                        "                    Field targetField = aClass.getDeclaredField(name);\n" +
-                        "                    targetField.setAccessible(true);\n" +
-                        "                    targetField.set(targetInstance, targetObject);\n" +
-                        "                } catch (NoSuchFieldException nsfe) {\n" +
-                        "                    // nothing to set\n" +
-                        "                }\n" +
-                        "                aClass = aClass.getSuperclass();\n" +
-                        "            }\n" +
-                        "\n" +
-                        "        }\n",
-                ClassName.bestGuess("java.lang.reflect.Field")));
-
-        return fieldInjectorMethod.build();
-    }
 
 
 }
