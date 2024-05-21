@@ -40,6 +40,11 @@ public class NetworkClient implements VideobugClientInterface{
 	}
 
     @Override
+    public void setSourceModel(SourceModel sourceModel){
+        this.sourceModel = sourceModel;
+    }
+
+    @Override
     public void setPackageName(String packageName) {
         this.packageName = packageName;
     }

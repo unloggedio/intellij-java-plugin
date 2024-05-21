@@ -10,6 +10,7 @@
  import com.insidious.plugin.factory.ActiveSessionManager;
  import com.insidious.plugin.pojo.SearchQuery;
  import com.insidious.plugin.pojo.TracePoint;
+ import com.insidious.plugin.upload.SourceModel;
  import com.intellij.openapi.diagnostic.Logger;
  import com.intellij.openapi.progress.ProcessCanceledException;
  import com.intellij.openapi.progress.ProgressIndicatorProvider;
@@ -34,6 +35,7 @@
      private ProjectItem currentProject;
      private File sessionPathFile;
      private String packageName;
+     private SourceModel sourceModel;
 
      public VideobugLocalClient(String pathToSessions, Project project, ActiveSessionManager sessionManager) {
          this.project = project;
@@ -331,4 +333,8 @@
          this.packageName = packageName;
      }
 
+     @Override
+     public void setSourceModel (SourceModel sourceModel) {
+         this.sourceModel = sourceModel;
+     }
  }

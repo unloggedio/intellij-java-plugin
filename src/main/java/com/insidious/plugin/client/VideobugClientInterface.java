@@ -11,6 +11,7 @@ import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.upload.SourceModel;
 
 
 import java.io.IOException;
@@ -18,7 +19,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public interface VideobugClientInterface {
+public interface  VideobugClientInterface {
     ExecutionSession getCurrentSession();
 
     void setSessionInstance(SessionInstanceInterface sessionInstance);
@@ -86,4 +87,6 @@ public interface VideobugClientInterface {
     SessionInstanceInterface getSessionInstance();
 
     ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filterRequest);
+
+    void setSourceModel (SourceModel sourceModel);
 }
