@@ -561,7 +561,7 @@ final public class InsidiousService implements
     }
 
     @Override
-    public void modifySessionInstance(SourceModel sourceModel) {
+    public VideobugClientInterface modifySessionInstance(SourceModel sourceModel) {
         this.sourceModel = sourceModel;
         if (sourceModel.getSessionMode() == SessionMode.REMOTE) {
             this.client = new NetworkClient(sourceModel);
@@ -571,6 +571,8 @@ final public class InsidiousService implements
         }
 
         this.sessionLoader.setClient(this.client);
+
+        return this.client;
     }
 
     //    @Unlogged
