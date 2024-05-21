@@ -190,8 +190,12 @@ public class StompFilter {
             serverLinkField.setText(placeholderText);
         });
 
+
+        remoteButtonGroup = new ButtonGroup();
         linkSaveButton.addActionListener(e -> {
             localServerEndpoint = serverLinkField.getText();
+            this.sourceModel.setServerEndpoint(this.localServerEndpoint);
+            client.setSourceModel(sourceModel);
 
         });
 
