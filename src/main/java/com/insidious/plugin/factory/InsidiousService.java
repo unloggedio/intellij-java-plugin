@@ -280,10 +280,10 @@ final public class InsidiousService implements
                         }
                     }
                     if (!foundIncludePackage) {
-                        checkCache.put(session.getSessionId(), null);
-                        logger.warn(
-                                "Package not found in the params, marked as session not matching: " + session.getLogFilePath());
-                        return null;
+//                        checkCache.put(session.getSessionId(), null);
+//                        logger.warn(
+//                                "Package not found in the params, marked as session not matching: " + session.getLogFilePath());
+//                        return null;
                     }
                     String serverMetadataJson = logFileInputStream.readLine();
                     ServerMetadata serverMetadata;
@@ -418,8 +418,9 @@ final public class InsidiousService implements
                         NotificationType.ERROR);
                 return;
             }
-            classChosenListener.classSelected(new ClassUnderTest(ApplicationManager.getApplication().runReadAction(
-                    (Computable<String>) () -> JvmClassUtil.getJvmClassName(singleImplementation))));
+            String qualifiedClassName = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> JvmClassUtil.getJvmClassName(singleImplementation));
+            classChosenListener.classSelected(new ClassUnderTest(qualifiedClassName));
             return;
         }
 

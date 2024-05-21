@@ -66,6 +66,8 @@ public class SessionEventReader implements Runnable {
                 List<KaitaiInsidiousEventParser.Block> eventsFromFileOld = getEventsFromFileOld(sessionArchive,
                         logFile.getName());
                 EventSet eventSetFromLogFile = new EventSet(logFile, eventsFromFileOld);
+                logger.warn("Reading data from file [" + logFile.getName() + "] => " + eventsFromFileOld.size() + " events ");
+
                 currentBufferSize += eventsFromFileOld.size();
                 eventSetQueue.put(eventSetFromLogFile);
             } catch (IOException | InterruptedException e) {

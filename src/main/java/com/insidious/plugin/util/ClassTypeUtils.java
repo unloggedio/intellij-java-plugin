@@ -13,6 +13,7 @@ import com.insidious.plugin.MethodSignatureParser;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
+import com.intellij.debugger.engine.JVMNameUtil;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmPrimitiveTypeKind;
 import com.intellij.lang.jvm.types.JvmType;
@@ -259,7 +260,6 @@ public class ClassTypeUtils {
         return containerClassName;
 
     }
-
 
 
     /**
@@ -576,8 +576,15 @@ public class ClassTypeUtils {
             methodName = methodName.split("\\$")[1];
             isLambda = true;
         }
-        List<Pair<PsiMethod, PsiSubstitutor>> methodsByNameList = classPsiElement.findMethodsAndTheirSubstitutorsByName(
-                methodName, false);
+        List<Pair<PsiMethod, PsiSubstitutor>> methodsByNameList;
+        if (methodName.equals("<init>")) {
+            classPsiElement.getConstructors();
+            methodsByNameList = classPsiElement.findMethodsAndTheirSubstitutorsByName(
+                    getSimpleClassName(classPsiElement.getQualifiedName()), false);
+        } else {
+            methodsByNameList = classPsiElement.findMethodsAndTheirSubstitutorsByName(
+                    methodName, false);
+        }
 
         if (methodsByNameList.size() == 1) {
             // should we verify parameters ?

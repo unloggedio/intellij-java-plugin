@@ -595,6 +595,10 @@ public class MethodCallExpression implements Expression, Serializable {
                 '}';
     }
 
+    public boolean isConstructor() {
+        return methodName.equals("<init>");
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(id, threadId);

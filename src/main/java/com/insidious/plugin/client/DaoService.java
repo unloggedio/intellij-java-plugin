@@ -808,10 +808,8 @@ public class DaoService {
                 returnParam.setTypeForced(
                         ClassTypeUtils.getDescriptorToDottedClassName(eventProbe.getValueDesc().getString()));
             }
-            if (returnParam.getType() != null && returnParam.getType()
-                    .contains("$HibernateProxy")) {
-                returnParam.setTypeForced(
-                        returnParam.getType().substring(0, returnParam.getType().indexOf("$Hibernate"))
+            if (returnParam.getType() != null && returnParam.getType().contains("$HibernateProxy")) {
+                returnParam.setTypeForced(returnParam.getType().substring(0, returnParam.getType().indexOf("$Hibernate"))
                 );
             }
             returnParam.setProbeAndProbeInfo(returnDataEvent, eventProbe);

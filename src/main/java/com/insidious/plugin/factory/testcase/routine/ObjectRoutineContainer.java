@@ -249,6 +249,10 @@ public class ObjectRoutineContainer {
                     continue;
                 }
 
+                if (parameter.isPrimitiveType()) {
+                    continue;
+                }
+
                 classVariableContainer.add(parameter);
                 MethodCallExpression injectMethodCall = new MethodCallExpression(
                         "injectField", testUtilClassSubject, Arrays.asList(mainSubject, parameter),

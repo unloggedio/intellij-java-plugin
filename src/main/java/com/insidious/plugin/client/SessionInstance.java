@@ -1015,6 +1015,7 @@ public class SessionInstance implements Runnable {
         Set<Long> ids = new HashSet<>(Arrays.asList(valueIds));
 
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
+        logger.warn("Reading data from file [" + bytes.length + "] => " + dataEvents.event().entries().size() + " events ");
 
         return dataEvents.event()
                 .entries()
@@ -1544,6 +1545,7 @@ public class SessionInstance implements Runnable {
 
         Set<Integer> ids = new HashSet<>(Arrays.asList(probeIds));
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
+        logger.warn("Reading data from file [" + bytes.length + "] => " + dataEvents.event().entries().size() + " events ");
 
         return dataEvents.event()
                 .entries()
@@ -1598,6 +1600,7 @@ public class SessionInstance implements Runnable {
 
         KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(
                 new ByteBufferKaitaiStream(bytesWithName.getBytes()));
+        logger.warn("Reading data from file [" + bytesWithName.getBytes().length + "] => " + eventsContainer.event().entries().size() + " events ");
 
 
         checkProgressIndicator(null, "Mapping " + eventsContainer.event()
@@ -1799,6 +1802,8 @@ public class SessionInstance implements Runnable {
                 .entries();
         io.close();
         long end = new Date().getTime();
+        logger.warn("Reading data from file [" + "] => " + events.size() + " events ");
+
         logger.warn("Read events took: " + (end - start) + " ms");
         return events;
     }
@@ -1844,6 +1849,8 @@ public class SessionInstance implements Runnable {
                 .entries();
         kaitaiStream.close();
         long end = new Date().getTime();
+        logger.warn("Reading data from file [" + "] => " + events.size() + " events ");
+
         logger.warn("Read events took: " + ((end - start) / 1000));
         return events;
     }
@@ -2440,6 +2447,7 @@ public class SessionInstance implements Runnable {
         return newTestCaseIdentified;
 
     }
+    long idToStopAt = 2541064L;
 
     private void updateObjectInfoIndex(Long eventValue) throws IOException {
         if (this.sessionArchives == null) {
@@ -2584,7 +2592,7 @@ public class SessionInstance implements Runnable {
             if (threadState.candidateSize() != 0 && line != 0) {
                 threadState.getTopCandidate().addLineCovered(line);
             }
-            if (eventBlock.eventId() == 145200) {
+            if (eventBlock.eventId() == idToStopAt) {
                 logger.warn("sdf");
             }
             switch (probeInfo.getEventType()) {
