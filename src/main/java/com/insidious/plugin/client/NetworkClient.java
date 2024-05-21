@@ -86,7 +86,7 @@ public class NetworkClient implements VideobugClientInterface{
 
     @Override
     public void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback) {
-        List<ExecutionSession> listExecutionSession = sessionDiscovery(this.sourceModel, this.packageName);
+        List<ExecutionSession> listExecutionSession = this.sessionDiscovery();
         getProjectSessionsCallback.success(listExecutionSession);
     }
 
@@ -209,14 +209,14 @@ public class NetworkClient implements VideobugClientInterface{
 
     }
 
-    public List<ExecutionSession> sessionDiscovery(SourceModel sourceModel, String packageName){
+    public List<ExecutionSession> sessionDiscovery(){
 
         List<ExecutionSession> executionSessionList = new ArrayList<>();
-        if (sourceModel.getServerEndpoint() == "") {
+        if (this.sourceModel.getServerEndpoint() == "") {
             return executionSessionList;
         }
 
-        String url = sourceModel.getServerEndpoint() + "/discovery" + "?packageName=" + packageName;
+        String url = this.sourceModel.getServerEndpoint() + "/discovery" + "?packageName=" + this.packageName;
         logger.info("discovery call url = " + url);
         CountDownLatch latch = new CountDownLatch(1);
         get(url, new Callback() {
