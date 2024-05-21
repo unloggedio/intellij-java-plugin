@@ -563,8 +563,9 @@ public class ClassTypeUtils {
 
     public static Pair<PsiMethod, PsiSubstitutor> getPsiMethod(MethodCallExpression methodCallExpression, Project project) {
         String subjectClassName = ClassTypeUtils.getDescriptorToDottedClassName(methodCallExpression.getSubject().getType());
-        PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
-                GlobalSearchScope.allScope(project));
+        PsiClass classPsiElement = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project).findClass(subjectClassName,
+                        GlobalSearchScope.allScope(project)));
         if (classPsiElement == null) {
             logger.warn("Class not found [" + subjectClassName + "]");
             return null;
@@ -579,11 +580,14 @@ public class ClassTypeUtils {
         List<Pair<PsiMethod, PsiSubstitutor>> methodsByNameList;
         if (methodName.equals("<init>")) {
             classPsiElement.getConstructors();
-            methodsByNameList = classPsiElement.findMethodsAndTheirSubstitutorsByName(
-                    getSimpleClassName(classPsiElement.getQualifiedName()), false);
+            methodsByNameList = ApplicationManager.getApplication().runReadAction(
+                    (Computable<List<Pair<PsiMethod, PsiSubstitutor>>>) () -> classPsiElement.findMethodsAndTheirSubstitutorsByName(
+                            getSimpleClassName(classPsiElement.getQualifiedName()), false));
         } else {
-            methodsByNameList = classPsiElement.findMethodsAndTheirSubstitutorsByName(
-                    methodName, false);
+            String finalMethodName = methodName;
+            methodsByNameList = ApplicationManager.getApplication().runReadAction(
+                    (Computable<List<Pair<PsiMethod, PsiSubstitutor>>>) () -> classPsiElement.findMethodsAndTheirSubstitutorsByName(
+                            finalMethodName, false));
         }
 
         if (methodsByNameList.size() == 1) {

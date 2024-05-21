@@ -209,7 +209,9 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
                 // we only deal with top level calls
                 return true;
             }
-            createInlinePresentationsForCallExpression(methodCallExpression, editor, inlayHintsSink);
+            DumbService.getInstance(editor.getProject()).runReadActionInSmartMode(() -> {
+                createInlinePresentationsForCallExpression(methodCallExpression, editor, inlayHintsSink);
+            });
         }
 
         return true;
@@ -301,7 +303,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
                 methodUnderTest = MethodUnderTest.fromPsiCallExpression(mockableCall);
             } catch (Throwable th) {
-                logger.warn("Failed to create method under test: " + mockableCall, th);
+//                logger.warn("Failed to create method under test: " + mockableCall, th);
                 continue;
             }
             List<DeclaredMock> declaredMocks = insidiousService.getDeclaredMocksOf(methodUnderTest);

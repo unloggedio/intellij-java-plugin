@@ -45,6 +45,7 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.DumbService;
@@ -415,10 +416,17 @@ public class StompComponent implements
             return;
         }
 
+        if (DumbService.getInstance(project).isDumb()) {
+            InsidiousNotification.notifyMessage("Please try after indexing is finished",
+                    NotificationType.INFORMATION);
+            return;
+        }
+
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             JSONObject eventProperties = new JSONObject();
             eventProperties.put("count", selectedCandidates.size());
             UsageInsightTracker.getInstance().RecordEvent("ACTION_GENERATE_JUNIT", eventProperties);
+
 
             ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
                 ProgressIndicator progressIndicator = ProgressManager.getInstance()
@@ -426,9 +434,11 @@ public class StompComponent implements
                 progressIndicator.setIndeterminate(false);
                 progressIndicator.setFraction(0);
                 onGenerateJunitTestCaseRequest(selectedCandidates, new TestCaseGenerationConfiguration(
-                        TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Jackson, ResourceEmbedMode.IN_CODE
+                        TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Jackson,
+                        ResourceEmbedMode.IN_CODE
                 ));
             }, "Generate JUnit Tests", true, project);
+
 
         });
     }
@@ -583,12 +593,9 @@ public class StompComponent implements
                         return insidiousService.getTestCandidateById(candidateBareBone.getId(), false);
                     });
             MethodCallExpression mainMethod = loadedCandidate.getMainMethod();
-            PsiMethod methodPsiElement = ApplicationManager.getApplication().runReadAction(
-                    (Computable<PsiMethod>) () -> {
-                        Pair<PsiMethod, PsiSubstitutor> psiMethod = ClassTypeUtils.getPsiMethod(mainMethod,
-                                insidiousService.getProject());
-                        return psiMethod == null ? null : psiMethod.getFirst();
-                    });
+            Pair<PsiMethod, PsiSubstitutor> psiMethod = ClassTypeUtils.getPsiMethod(mainMethod,
+                    insidiousService.getProject());
+            PsiMethod methodPsiElement = psiMethod == null ? null : psiMethod.getFirst();
             if (methodPsiElement == null) {
                 InsidiousNotification.notifyMessage("Failed to identify method in source for " +
                         mainMethod.getMethodName(), NotificationType.WARNING);
@@ -965,10 +972,8 @@ public class StompComponent implements
             TestCandidateMetadata selectedCandidate = ApplicationManager.getApplication().runReadAction(
                     (Computable<TestCandidateMetadata>) () -> insidiousService.getTestCandidateById(
                             candidateBareBone.getId(), true));
-            PsiMethod methodPsiElement = ApplicationManager
-                    .getApplication().runReadAction(
-                            (Computable<PsiMethod>) () -> ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
-                                    insidiousService.getProject()).getFirst());
+            PsiMethod methodPsiElement = ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
+                    insidiousService.getProject()).getFirst();
             if (methodPsiElement == null) {
                 InsidiousNotification.notifyMessage("Failed to identify method in source for " +
                         selectedCandidate.getMainMethod().getMethodName(), NotificationType.WARNING);
@@ -1049,7 +1054,6 @@ public class StompComponent implements
 
     @Override
     public void onGenerateJunitTestCaseRequest(List<TestCandidateBareBone> storedCandidate, TestCaseGenerationConfiguration generationConfiguration) {
-        DumbService instance = DumbService.getInstance(insidiousService.getProject());
 
         TestCaseService testCaseService = insidiousService.getTestCaseService();
         if (testCaseService == null) {
@@ -1063,18 +1067,10 @@ public class StompComponent implements
 
             try {
 
-                CountDownLatch cdl = new CountDownLatch(1);
-                try {
-                    generateTestCaseSingle(generationConfiguration, testCaseService, testCandidateShell);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    cdl.countDown();
-                }
+                generateTestCaseSingle(generationConfiguration, testCaseService, testCandidateShell);
 
-                cdl.await();
-                instance.waitForSmartMode();
-
+            } catch (ProcessCanceledException pce) {
+                //
             } catch (Exception e) {
                 logger.error("Failed to generate test case", e);
                 InsidiousNotification.notifyMessage(
@@ -1092,8 +1088,8 @@ public class StompComponent implements
             TestCaseGenerationConfiguration generationConfiguration,
             TestCaseService testCaseService,
             TestCandidateBareBone testCandidateShell) throws Exception {
-        TestCandidateMetadata loadedTestCandidate = ApplicationManager.getApplication().executeOnPooledThread(
-                () -> insidiousService.getTestCandidateById(testCandidateShell.getId(), true)).get();
+        TestCandidateMetadata loadedTestCandidate = insidiousService.getTestCandidateById(testCandidateShell.getId(),
+                true);
         Parameter testSubject = loadedTestCandidate.getTestSubject();
         if (testSubject.isException()) {
             return true;
@@ -1110,7 +1106,19 @@ public class StompComponent implements
 
         generationConfiguration.setTestMethodName(
                 "test" + methodName.substring(0, 1).toUpperCase(Locale.ROOT) + methodName.substring(1));
-        TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+        TestCaseUnit testCaseUnit = DumbService.getInstance(project)
+                .tryRunReadActionInSmartMode(() -> {
+                    try {
+                        return testCaseService.buildTestCaseUnit(generationConfiguration);
+                    } catch (ProcessCanceledException pce) {
+                        return null;
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }, "Building test");
+        if (testCaseUnit == null) {
+            return false;
+        }
         List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
         testCaseUnit1.add(testCaseUnit);
         TestSuite testSuite = new TestSuite(testCaseUnit1);

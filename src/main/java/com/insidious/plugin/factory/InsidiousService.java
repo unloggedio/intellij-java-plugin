@@ -1999,9 +1999,8 @@ final public class InsidiousService implements
             classNames.add(qualifiedName);
             changed = addMethods(psiClass, stompFilterModel) || changed;
             changed = addInterfaces(psiClass, stompFilterModel) || changed;
-            psiClass = DumbService.getInstance(psiClass.getProject())
-                    .runReadActionInSmartMode(() -> ApplicationManager.getApplication().runReadAction(
-                            (Computable<PsiClass>) finalPsiClass::getSuperClass));
+            psiClass = ApplicationManager.getApplication().runReadAction(
+                    (Computable<PsiClass>) finalPsiClass::getSuperClass);
         }
         return stompFilterModel.getIncludedClassNames().addAll(classNames) || changed;
     }

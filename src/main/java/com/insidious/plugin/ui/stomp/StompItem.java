@@ -510,9 +510,8 @@ public class StompItem {
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
                 checkLoadedCandidate();
                 Pair<PsiMethod, PsiSubstitutor> targetPsiMethod =
-                        ApplicationManager.getApplication().runReadAction(
-                                (Computable<Pair<PsiMethod, PsiSubstitutor>>) () -> ClassTypeUtils.getPsiMethod(
-                                        loadedCandidate.getMainMethod(), insidiousService.getProject()));
+                        ClassTypeUtils.getPsiMethod(
+                                loadedCandidate.getMainMethod(), insidiousService.getProject());
                 if (targetPsiMethod != null) {
                     MethodUnderTest methodUnderTest1 = ApplicationManager.getApplication().runReadAction(
                             (Computable<MethodUnderTest>) () -> MethodUnderTest.fromPsiCallExpression(
