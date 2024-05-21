@@ -89,4 +89,6 @@ public interface  VideobugClientInterface {
     ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filterRequest);
 
     void setSourceModel (SourceModel sourceModel);
+
+    List<ExecutionSession> sessionDiscovery();
 }

@@ -337,4 +337,10 @@
      public void setSourceModel (SourceModel sourceModel) {
          this.sourceModel = sourceModel;
      }
+
+     @Override
+     public List<ExecutionSession> sessionDiscovery() {
+         return new ArrayList<ExecutionSession> ();
+     }
+
  }
