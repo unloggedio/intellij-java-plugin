@@ -202,12 +202,8 @@ public class StompFilter {
             }
         });
 
-
         finalSaveButton.addActionListener(e -> {
-            this.sourceModel.setSessionMode(this.localSessionMode);
-            this.sourceModel.setServerEndpoint(this.localServerEndpoint);
             this.sourceModel.setSessionId(this.localSessionId);
-            this.insidiousService.modifySessionInstance(sourceModel);
 
             componentLifecycleListener.onClose(StompFilter.this);
         });
