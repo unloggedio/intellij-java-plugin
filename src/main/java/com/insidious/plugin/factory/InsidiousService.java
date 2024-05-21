@@ -180,10 +180,6 @@ final public class InsidiousService implements
 	private ServerMetadata serverMetadata = null;
     private SourceModel sourceModel;
     private String pathToSessions;
-    private AtomicTestContainer atomicTestContainerWindow;
-    private MethodAdapter currentMethod;
-    private boolean hasShownIndexWaitNotification = false;
-    private String basePackage = null;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -1504,73 +1500,7 @@ final public class InsidiousService implements
         return currentState.getSessionInstance();
     }
 
-
-    @Override
-    public GutterState getGutterStateFor(MethodAdapter method) {
-
-        //check for agent here before other comps
-        if (!agentStateProvider.doesAgentExist()) {
-            return GutterState.NO_AGENT;
-        }
-
-        // agent exists but cannot connect with agent server
-        // so no process is running with the agent
-        if (!agentStateProvider.isAgentRunning() || sessionInstance == null) {
-            return GutterState.PROCESS_NOT_RUNNING;
-        }
-
-        List<TestCandidateMetadata> candidates = ApplicationManager.getApplication().runReadAction(
-                (Computable<List<TestCandidateMetadata>>) () -> getTestCandidateMetadata(method));
-
-        // process is running, but no test candidates for this method
-        if (candidates.size() == 0) {
-            return GutterState.PROCESS_RUNNING;
-        }
-
-        // process is running, and there were test candidates for this method
-        // so check if we have executed this before
-
-        //check for change
-        String hashKey = method.getContainingClass().getQualifiedName() + "#" + method.getName();
-
-        // we havent checked anything for this method earlier
-        // store method hash for diffs
-        // use pojo to store this info instead of string
-        String methodText = method.getText();
-        if (!this.methodHash.containsKey(hashKey)) {
-            //register new hash
-            this.methodHash.put(hashKey, methodText.hashCode());
-        }
-
-        int lastHash = this.methodHash.get(hashKey);
-        int currentHash = methodText.hashCode();
-
-        if (lastHash != currentHash) {
-            //re-execute as there are hash diffs
-            //update hash after execution is complete for this method,
-            //to prevent state change before exec complete.
-            return GutterState.EXECUTE;
-        }
-
-        if (!executionRecord.containsKey(hashKey)) {
-            return GutterState.DATA_AVAILABLE;
-        }
-
-        DifferenceResult differenceResult = executionRecord.get(hashKey);
-        switch (differenceResult.getDiffResultType()) {
-            case DIFF:
-                return GutterState.DIFF;
-            case NO_ORIGINAL:
-                return GutterState.NO_DIFF;
-            case SAME:
-                return GutterState.NO_DIFF;
-            default:
-                return GutterState.DIFF;
-        }
-    }
-
-    public List<TestCandidateMetadata> getTestCandidateMetadata(MethodAdapter method) {
-
+    public List<String> getInterfacesWithSameSignature(MethodAdapter method) {
         String methodName = method.getName();
         ClassAdapter containingClass = method.getContainingClass();
         ClassAdapter[] interfaceList = containingClass.getInterfaces();
@@ -1693,12 +1623,9 @@ final public class InsidiousService implements
         } else {
             executionRecord.put(keyName, newDiffRecord);
         }
-        addExecutionRecord(newDiffRecord);
-    }
-
-    public void addExecutionRecord(DifferenceResult result)
-    {
-        reportingService.addRecord(result);
+        addExecutionRecord(new AutoExecutorReportRecord(newDiffRecord,
+                currentState.getSessionInstance().getProcessedFileCount(),
+                currentState.getSessionInstance().getTotalFileCount()));
     }
 
     public void addExecutionRecord(AutoExecutorReportRecord result) {
@@ -2143,10 +2070,6 @@ final public class InsidiousService implements
 
     public void reloadLibrary() {
         libraryToolWindow.reloadItems();
-    }
-
-    public void toggleReportGeneration() {
-        this.reportingService.toggleReportMode();
     }
 
 

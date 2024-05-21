@@ -18,6 +18,7 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
 
     private static final Logger logger = LoggerUtil.getInstance(UnloggedGutterNavigationHandler.class);
     private final GutterState state;
+
     public UnloggedGutterNavigationHandler(GutterState state) {
         this.state = state;
     }
