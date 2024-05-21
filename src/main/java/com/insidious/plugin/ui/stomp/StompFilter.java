@@ -1,11 +1,15 @@
 package com.insidious.plugin.ui.stomp;
 
+import com.insidious.plugin.autoexecutor.GlobalJavaSearchContext;
+import com.insidious.plugin.client.VideobugClientInterface;
+import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.constants.SessionMode;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.SessionInstanceChangeListener;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.upload.SourceModel;
 import com.intellij.icons.AllIcons;
+import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
@@ -13,6 +17,10 @@ import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.Balloon;
+import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.*;
+import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
@@ -27,6 +35,8 @@ import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.*;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.List;
 
 import static com.intellij.uiDesigner.core.GridConstraints.ALIGN_FILL;
@@ -71,14 +81,14 @@ public class StompFilter {
     private JPanel setupInfo;
     private JButton linkCancelButton;
     private JButton linkSaveButton;
-    private JPanel serverList;
-    private JRadioButton a12000001RadioButton;
     private JPanel serverListButton;
     private JButton finalCancelButton;
     private JButton finalSaveButton;
     private JLabel setupText;
     private JPanel sourcePreferencesPanel;
     private JPanel remotePanel;
+    private JScrollPane remoteListScroll;
+    private JPanel remoteListPanel;
     private ComponentLifecycleListener<StompFilter> componentLifecycleListener;
     private DefaultListModel<String> modelIncludedClasses;
     private DefaultListModel<String> modelExcludedClasses;
@@ -90,6 +100,9 @@ public class StompFilter {
     private SessionMode localSessionMode;
     private String localServerEndpoint;
     private List<String> localSessionId;
+    private VideobugClientInterface client;
+    private Project project;
+    private ButtonGroup remoteButtonGroup;
 
 
     public StompFilter(SessionInstanceChangeListener insidiousService, StompFilterModel stompFilterModel, SourceModel sourceModel, MethodUnderTest lastMethodFocussed, Project project) {
@@ -97,6 +110,7 @@ public class StompFilter {
         this.stompFilterModel = new StompFilterModel(originalStompFilterModel);
         this.sourceModel = sourceModel;
         this.insidiousService = insidiousService;
+        this.project = project;
 
         int stompFilterPanelWidth = 300;
 
@@ -127,16 +141,21 @@ public class StompFilter {
             @Override
             public void actionPerformed(ActionEvent e) {
                 localSessionMode = SessionMode.REMOTE;
+                sourceModel.setSessionMode(localSessionMode);
+                client = insidiousService.modifySessionInstance(sourceModel);
+
                 remotePanel.setVisible(true);
                 mainPanel.revalidate();
                 mainPanel.repaint();
             }
         });
-
         localhostRadio.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 localSessionMode = SessionMode.LOCAL;
+                sourceModel.setSessionMode(localSessionMode);
+                client = insidiousService.modifySessionInstance(sourceModel);
+
                 remotePanel.setVisible(false);
                 mainPanel.revalidate();
                 mainPanel.repaint();
