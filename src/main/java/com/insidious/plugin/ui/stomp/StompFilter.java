@@ -173,6 +173,7 @@ public class StompFilter {
 
         linkSaveButton.addActionListener(e -> {
             localServerEndpoint = serverLinkField.getText();
+
         });
 
         // final row button logic
