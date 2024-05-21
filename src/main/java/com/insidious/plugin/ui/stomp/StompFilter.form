@@ -569,24 +569,24 @@
                       </grid>
                     </children>
                   </grid>
-                  <grid id="2534c" binding="serverList" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                    <margin top="0" left="0" bottom="0" right="0"/>
+                  <scrollpane id="9d3eb" binding="remoteListScroll">
                     <constraints>
-                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                     </constraints>
-                    <properties/>
-                    <border type="etched"/>
+                    <properties>
+                      <visible value="true"/>
+                    </properties>
+                    <border type="none"/>
                     <children>
-                      <component id="bfe9" class="javax.swing.JRadioButton" binding="a12000001RadioButton" default-binding="true">
-                        <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                        <properties>
-                          <text value="&lt;html&gt;12:00:00 01 Jan 2024 hostname&lt;br&gt;packagename&lt;/html&gt;"/>
-                        </properties>
-                      </component>
+                      <grid id="7d02f" binding="remoteListPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                        <margin top="0" left="0" bottom="0" right="0"/>
+                        <constraints/>
+                        <properties/>
+                        <border type="none"/>
+                        <children/>
+                      </grid>
                     </children>
-                  </grid>
+                  </scrollpane>
                 </children>
               </grid>
               <grid id="9a927" binding="serverListButton" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
