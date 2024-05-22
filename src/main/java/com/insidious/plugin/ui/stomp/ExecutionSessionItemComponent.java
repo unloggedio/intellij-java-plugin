@@ -24,10 +24,10 @@ public class ExecutionSessionItemComponent {
         String projectId = executionSession.getProjectId();
 
         String radioButtonText = "<html> <small>" + timeVal + "</small> " + hostname + "<br>" + projectId + "</html>";
-        JRadioButton localButton = new JRadioButton(radioButtonText);
-        localButton.setMargin(JBUI.insets(10, 20));
-        localButton.setBorder(BorderFactory.createCompoundBorder(
-                localButton.getBorder(),
+        radioButton.setText(radioButtonText);
+        radioButton.setMargin(JBUI.insets(10, 20));
+        radioButton.setBorder(BorderFactory.createCompoundBorder(
+                radioButton.getBorder(),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)));
     }
 

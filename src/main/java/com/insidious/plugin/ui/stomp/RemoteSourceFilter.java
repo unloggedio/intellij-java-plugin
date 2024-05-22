@@ -6,6 +6,7 @@ import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.constants.SessionMode;
 import com.insidious.plugin.ui.SessionInstanceChangeListener;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
+import com.insidious.plugin.upload.SourceFilter;
 import com.insidious.plugin.upload.SourceModel;
 import com.intellij.notification.NotificationType;
 import com.intellij.ui.JBColor;
@@ -19,6 +20,8 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class RemoteSourceFilter {
@@ -110,6 +113,8 @@ public class RemoteSourceFilter {
         });
 
 
+        ButtonGroup buttonGroup = new ButtonGroup();
+        HashMap<ButtonModel, ExecutionSession> modelToSessionMap = new HashMap<>();
         linkSaveButton.addActionListener(e -> {
 
             // remove old session data
@@ -135,13 +140,13 @@ public class RemoteSourceFilter {
 
             }
 
-            ButtonGroup buttonGroup = new ButtonGroup();
             serverListPanel.setLayout(new BoxLayout(serverListPanel, BoxLayout.Y_AXIS));
             for (ExecutionSession executionSession : executionSessionList) {
 
                 ExecutionSessionItemComponent esic = new ExecutionSessionItemComponent(executionSession);
                 serverListPanel.add(esic.getComponent());
                 buttonGroup.add(esic.getRadioComponent());
+                modelToSessionMap.put(esic.getRadioComponent().getModel(), executionSession);
             }
 
             serverListPanel.revalidate();
@@ -160,26 +165,20 @@ public class RemoteSourceFilter {
 
         finalSaveButton.addActionListener(e -> {
 
-//            if (this.sourceModel.getSessionMode() == SessionMode.REMOTE) {
-//                // get selected execution session
-//                ButtonModel selectedButton = remoteButtonGroup.getSelection();
-//                int buttonIndex = -1;
-//                for (int i=0;i<=listButtonModel.size()-1;i++) {
-//                    if (listButtonModel.get(i) == selectedButton) {
-//                        buttonIndex = i;
-//                        break;
-//                    }
-//                }
-//
-//                // make the list of sessionId
-//                String sessionId = this.executionSessionList.get(buttonIndex).getSessionId();
-//                List<String> listSessionId = new ArrayList<>();
-//                listSessionId.add(sessionId);
-//
-//                this.sourceModel.setSourceFilter(SourceFilter.SELECTED_ONLY);
-//                this.sourceModel.setSessionId(listSessionId);
-//                this.client.setSourceModel(this.sourceModel);
-//            }
+            if (this.sourceModel.getSessionMode() == SessionMode.REMOTE) {
+
+                ButtonModel buttonModel = buttonGroup.getSelection();
+                ExecutionSession executionSession = modelToSessionMap.get(buttonModel);
+
+                // make the list of sessionId
+                String sessionId = executionSession.getSessionId();
+                List<String> listSessionId = new ArrayList<>();
+                listSessionId.add(sessionId);
+
+                this.sourceModel.setSourceFilter(SourceFilter.SELECTED_ONLY);
+                this.sourceModel.setSessionId(listSessionId);
+                this.client.setSourceModel(this.sourceModel);
+            }
 
             componentLifecycleListener.onClose();
         });
