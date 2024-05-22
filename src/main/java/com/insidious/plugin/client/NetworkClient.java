@@ -224,8 +224,7 @@ public class NetworkClient implements UnloggedClientInterface {
             return executionSessionList;
         }
 
-        String url = this.sourceModel.getServerEndpoint() + "/discovery" + "?packageName=" + this.packageName;
-        logger.info("discovery call url = " + url);
+        String url = this.sourceModel.getServerEndpoint() + "/discovery";
         CountDownLatch latch = new CountDownLatch(1);
         get(url, new Callback() {
             @Override
