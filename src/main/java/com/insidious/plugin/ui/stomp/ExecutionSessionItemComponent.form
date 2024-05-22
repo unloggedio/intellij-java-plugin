@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="com.insidious.plugin.ui.stomp.ExecutionSessionItemComponent">
+  <grid id="27dc6" layout-manager="BorderLayout" hgap="0" vgap="0">
+    <constraints>
+      <xy x="20" y="20" width="375" height="94"/>
+    </constraints>
+    <properties/>
+    <border type="none"/>
+    <children>
+      <component id="ee429" class="javax.swing.JRadioButton" binding="a12000001RadioButton" default-binding="true">
+        <constraints border-constraint="Center"/>
+        <properties>
+          <text value="&lt;html&gt;12:00:00 01 Jan 2024 hostname&lt;br&gt;packagename&lt;/html&gt;"/>
+        </properties>
+      </component>
+    </children>
+  </grid>
+</form>

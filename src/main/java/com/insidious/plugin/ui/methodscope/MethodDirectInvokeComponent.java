@@ -13,7 +13,6 @@ import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
-import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
@@ -56,8 +55,6 @@ import javax.swing.*;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.*;
@@ -238,7 +235,7 @@ public class MethodDirectInvokeComponent
                 centerPanel.removeAll();
                 if (isShowingRouter) {
                     isShowingRouter = false;
-                    componentLifecycleListener.onClose(MethodDirectInvokeComponent.this);
+                    componentLifecycleListener.onClose();
                 } else {
                     centerPanel.add(routerPanel.getComponent(), BorderLayout.CENTER);
                     isShowingRouter = true;

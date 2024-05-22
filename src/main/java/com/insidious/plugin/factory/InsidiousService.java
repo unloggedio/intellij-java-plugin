@@ -1,9 +1,6 @@
 package com.insidious.plugin.factory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.insidious.common.cqengine.TypeInfoDocument;
-import com.insidious.common.weaver.ClassInfo;
-import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
@@ -27,9 +24,7 @@ import com.insidious.plugin.coverage.PackageCoverageData;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
-import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.insidious.plugin.pojo.MethodCallExpression;
-import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
@@ -58,7 +53,6 @@ import com.intellij.debugger.ui.HotSwapStatusListener;
 import com.intellij.debugger.ui.HotSwapUIImpl;
 import com.intellij.diff.DiffManager;
 import com.intellij.diff.requests.SimpleDiffRequest;
-import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
@@ -156,6 +150,9 @@ final public class InsidiousService implements
     private final CurrentState currentState = new CurrentState();
     private final MockManager mockManager;
     private final EditorFactoryListener editorFactoryListener;
+    private final AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
+    private final ReportingService reportingService = new ReportingService(this);
+    private final String pathToSessions;
     Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
@@ -170,17 +167,14 @@ final public class InsidiousService implements
     private Content directMethodInvokeContent;
     private Content atomicTestContent;
     private Content stompWindowContent;
-    private AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
-    private ReportingService reportingService = new ReportingService(this);
     private Content onboardingWindowContent;
     private UnloggedSDKOnboarding onboardingWindow;
     private boolean addedStompWindow;
     private Content libraryWindowContent;
     private LibraryComponent libraryToolWindow;
     private ToolWindow toolWindow;
-	private ServerMetadata serverMetadata = null;
+    private ServerMetadata serverMetadata = null;
     private SourceModel sourceModel;
-    private String pathToSessions;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -198,14 +192,13 @@ final public class InsidiousService implements
         configurationState = project.getService(InsidiousConfigurationState.class);
 
         this.sourceModel = configurationState.getSourceModel();
-		if (sourceModel.getSessionMode() == SessionMode.REMOTE) {
+        if (sourceModel.getSessionMode() == SessionMode.REMOTE) {
             this.client = new NetworkClient(sourceModel);
-		}
-		else {
+        } else {
             // plugin runs in local mode, if no mode is defined in configuration file
             // This case will happen when the plugin is installed, but the setting is never saved
             this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
-		}
+        }
 
         // test networkSessionInstanceClient
 //		logger.info("--------------------");
@@ -560,21 +553,6 @@ final public class InsidiousService implements
 
     }
 
-    @Override
-    public VideobugClientInterface modifySessionInstance(SourceModel sourceModel) {
-        this.sourceModel = sourceModel;
-        if (sourceModel.getSessionMode() == SessionMode.REMOTE) {
-            this.client = new NetworkClient(sourceModel);
-        }
-        else {
-            this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
-        }
-
-        this.sessionLoader.setClient(this.client);
-
-        return this.client;
-    }
-
     //    @Unlogged
     public static void main(String[] args) {
 
@@ -584,6 +562,19 @@ final public class InsidiousService implements
         return agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
     }
 
+    @Override
+    public VideobugClientInterface modifySessionInstance(SourceModel sourceModel) {
+        this.sourceModel = sourceModel;
+        if (sourceModel.getSessionMode() == SessionMode.REMOTE) {
+            this.client = new NetworkClient(sourceModel);
+        } else {
+            this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
+        }
+
+        this.sessionLoader.setClient(this.client);
+
+        return this.client;
+    }
 
     public void chooseClassImplementation(String className, ClassChosenListener classChosenListener) {
 
@@ -781,7 +772,6 @@ final public class InsidiousService implements
     }
 
 
-
 //    public void addLiveView() {
 //        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
 //        if (!liveViewAdded) {
@@ -907,7 +897,7 @@ final public class InsidiousService implements
         return this.sourceModel;
     }
 
-    public void setSourceModel (SourceModel sourceModel) {
+    public void setSourceModel(SourceModel sourceModel) {
         this.sourceModel = sourceModel;
     }
 
@@ -1383,8 +1373,9 @@ final public class InsidiousService implements
         this.methodHash.clear();
         this.classModifiedFlagMap.clear();
         logger.info("Loading new session: " + executionSession.getSessionId() + " => " + project.getName());
-		SourceModel sourceModel = configurationState.getSourceModel();
-        SessionInstanceInterface sessionInstance = sessionManager.createSessionInstance(executionSession, serverMetadata, sourceModel, project);
+        SourceModel sourceModel = configurationState.getSourceModel();
+        SessionInstanceInterface sessionInstance = sessionManager.createSessionInstance(executionSession,
+                serverMetadata, sourceModel, project);
 
         currentState.setSessionInstance(sessionInstance);
         sessionInstance.addTestCandidateListener(this);
@@ -2253,7 +2244,7 @@ final public class InsidiousService implements
 
     }
 
-    public ServerMetadata getServerMetadata(SourceModel sourceModel, String sessionId){
+    public ServerMetadata getServerMetadata(SourceModel sourceModel, String sessionId) {
 
         String url = sourceModel.getServerEndpoint() + "/session/getServerMetadata" + "?sessionId=" + sessionId;
         logger.info("get server metadata url = " + url);
@@ -2288,7 +2279,7 @@ final public class InsidiousService implements
     }
 
 
-	// TODO: move to a util class
+    // TODO: move to a util class
     private void get(String url, Callback callback) {
 
         final OkHttpClient httpClient = new OkHttpClient().newBuilder()

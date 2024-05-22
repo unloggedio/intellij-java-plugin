@@ -215,7 +215,7 @@ public class TestCandidateSaveForm {
                                     storedCandidate, project1));
 
                     if (progressIndicator.isCanceled()) {
-                        componentLifecycleListener.onClose(TestCandidateSaveForm.this);
+                        componentLifecycleListener.onClose();
                         return null;
                     }
 
@@ -311,7 +311,7 @@ public class TestCandidateSaveForm {
                                     )
                             );
 
-                    componentLifecycleListener.onClose(TestCandidateSaveForm.this);
+                    componentLifecycleListener.onClose();
                 });
 
 
@@ -324,11 +324,11 @@ public class TestCandidateSaveForm {
             eventProperties.put("count", candidateMetadataList.size());
             UsageInsightTracker.getInstance().RecordEvent("TCSF_CLOSED", eventProperties);
 
-            componentLifecycleListener.onClose(TestCandidateSaveForm.this);
+            componentLifecycleListener.onClose();
         });
 
         if (progressIndicator.isCanceled()) {
-            componentLifecycleListener.onClose(TestCandidateSaveForm.this);
+            componentLifecycleListener.onClose();
             return;
         }
 

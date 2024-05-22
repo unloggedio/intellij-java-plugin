@@ -1,6 +1,5 @@
 package com.insidious.plugin.util;
 
-import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.factory.InsidiousService;

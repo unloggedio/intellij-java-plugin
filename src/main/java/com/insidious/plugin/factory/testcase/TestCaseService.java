@@ -5,7 +5,6 @@ import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.client.ParameterNameFactory;
-import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -59,8 +58,7 @@ public class TestCaseService {
 
     public TestCaseService(SessionInstanceInterface sessionInstance) {
         this.sessionInstance = sessionInstance;
-        // this.project = sessionInstance.getProject();
-		this.project = null;
+        this.project = sessionInstance.getProject();
     }
 
 

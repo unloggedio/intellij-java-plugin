@@ -477,7 +477,7 @@ public class StompComponent implements
                 .createPopup();
 
         component.setMaximumSize(new Dimension(500, 800));
-        ComponentLifecycleListener<StompFilter> componentLifecycleListener = component1 -> {
+        ComponentLifecycleListener<StompFilter> componentLifecycleListener = () -> {
             unloggedPreferencesPopup.cancel();
             if (originalFilter.equals(stompFilterModel)) {
                 return;
@@ -540,7 +540,7 @@ public class StompComponent implements
 
 
                     saveFormReference = new TestCandidateSaveForm(sourceCandidates, candidateLifeListener,
-                            component -> {
+                            () -> {
                                 ApplicationManager.getApplication().invokeLater(() -> {
                                     hideBottomSplit();
                                     scrollContainer.revalidate();
@@ -1355,7 +1355,7 @@ public class StompComponent implements
             onSaveListener.onSaveDeclaredMock(declaredMock);
             mainPanel.revalidate();
             mainPanel.repaint();
-        }, component -> {
+        }, () -> {
             insidiousService.showRouterForMethod(javaMethodAdapter);
             scrollContainer.revalidate();
             scrollContainer.repaint();
@@ -1448,7 +1448,7 @@ public class StompComponent implements
     }
 
     @Override
-    public void onClose(MethodDirectInvokeComponent methodDirectInvokeComponent) {
+    public void onClose() {
         removeDirectInvoke();
 
     }
