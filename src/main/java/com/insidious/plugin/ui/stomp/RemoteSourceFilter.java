@@ -115,6 +115,10 @@ public class RemoteSourceFilter {
 
 
         linkSaveButton.addActionListener(e -> {
+
+            // remove old session data
+            serverListPanel.removeAll();
+
             localServerEndpoint = serverLinkField.getText();
             try {
                 URI uri = new URI(localServerEndpoint);
@@ -127,7 +131,7 @@ public class RemoteSourceFilter {
             client.setSourceModel(sourceModel);
             List<ExecutionSession> executionSessionList = List.of();
             try {
-                executionSessionList = client.sessionDiscovery();
+                executionSessionList = client.sessionDiscovery(false);
             } catch (Throwable th) {
                 InsidiousNotification.notifyMessage("Failed to connect to server: " + th.getMessage(),
                         NotificationType.ERROR);
@@ -152,6 +156,8 @@ public class RemoteSourceFilter {
                         localButton.getBorder(),
                         BorderFactory.createEmptyBorder(10, 10, 10, 10)));
                 serverListPanel.add(localButton);
+//                listButtonModel.add(localButton.getModel());
+//                remoteListPanel.add(localButton);
             }
 
             serverListPanel.revalidate();
@@ -169,7 +175,28 @@ public class RemoteSourceFilter {
         });
 
         finalSaveButton.addActionListener(e -> {
-            sourceModel.setSessionId(this.localSessionId);
+
+//            if (this.sourceModel.getSessionMode() == SessionMode.REMOTE) {
+//                // get selected execution session
+//                ButtonModel selectedButton = remoteButtonGroup.getSelection();
+//                int buttonIndex = -1;
+//                for (int i=0;i<=listButtonModel.size()-1;i++) {
+//                    if (listButtonModel.get(i) == selectedButton) {
+//                        buttonIndex = i;
+//                        break;
+//                    }
+//                }
+//
+//                // make the list of sessionId
+//                String sessionId = this.executionSessionList.get(buttonIndex).getSessionId();
+//                List<String> listSessionId = new ArrayList<>();
+//                listSessionId.add(sessionId);
+//
+//                this.sourceModel.setSourceFilter(SourceFilter.SELECTED_ONLY);
+//                this.sourceModel.setSessionId(listSessionId);
+//                this.client.setSourceModel(this.sourceModel);
+//            }
+
             componentLifecycleListener.onClose();
         });
 

@@ -6,10 +6,10 @@ import java.util.List;
 import com.insidious.plugin.constants.SessionMode;
 
 public class SourceModel {
-	private String serverEndpoint = "http://localhost:8123";
-	private SourceFilter sourceFilter = SourceFilter.ALL;
-	private List<String> sessionId = new ArrayList<>();
-	private SessionMode sessionMode = SessionMode.LOCAL;
+	private SessionMode sessionMode;
+	private String serverEndpoint;
+	private SourceFilter sourceFilter;
+	private List<String> sessionId;
 
 	public SourceModel() {
 	}

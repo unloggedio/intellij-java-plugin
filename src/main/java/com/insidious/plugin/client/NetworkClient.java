@@ -13,6 +13,7 @@ import com.insidious.plugin.constants.SessionMode;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TracePoint;
+import com.insidious.plugin.upload.SourceFilter;
 import com.insidious.plugin.upload.SourceModel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -34,6 +35,7 @@ public class NetworkClient implements UnloggedClientInterface {
     private SourceModel sourceModel;
     private String packageName;
     private SessionInstanceInterface sessionInstance;
+    private List<ExecutionSession> executionSessionList;
 
 	public NetworkClient(SourceModel sourceModel) {
 		this.sourceModel = sourceModel;
@@ -91,7 +93,7 @@ public class NetworkClient implements UnloggedClientInterface {
 
     @Override
     public void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback) {
-        List<ExecutionSession> listExecutionSession = this.sessionDiscovery();
+        List<ExecutionSession> listExecutionSession = this.sessionDiscovery(true);
         getProjectSessionsCallback.success(listExecutionSession);
     }
 
@@ -215,9 +217,9 @@ public class NetworkClient implements UnloggedClientInterface {
     }
 
     @Override
-    public List<ExecutionSession> sessionDiscovery(){
+    public List<ExecutionSession> sessionDiscovery(Boolean filterSession){
 
-        List<ExecutionSession> executionSessionList = new ArrayList<>();
+        executionSessionList = new ArrayList<>();
         if (this.sourceModel.getServerEndpoint() == "") {
             return executionSessionList;
         }
@@ -254,6 +256,23 @@ public class NetworkClient implements UnloggedClientInterface {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+
+
+        if (filterSession) {
+            if (sourceModel.getSourceFilter() == SourceFilter.SELECTED_ONLY) {
+                List<ExecutionSession> filterExecutionSession = new ArrayList<>();
+                List<String> selectedExecutionSessionId = sourceModel.getSessionId();
+
+                for (int i=0;i<=executionSessionList.size()-1;i++) {
+                    ExecutionSession executionSession = executionSessionList.get(i);
+                    if (selectedExecutionSessionId.contains(executionSession.getSessionId())) {
+                        filterExecutionSession.add(executionSession);
+                    }
+                }
+                executionSessionList = filterExecutionSession;
+            }
+        }
+
 
         return executionSessionList;
     }

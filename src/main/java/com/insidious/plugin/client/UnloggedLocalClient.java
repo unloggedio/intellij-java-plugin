@@ -339,7 +339,7 @@
      }
 
      @Override
-     public List<ExecutionSession> sessionDiscovery() {
+     public List<ExecutionSession> sessionDiscovery(Boolean filterSession) {
          return new ArrayList<ExecutionSession> ();
      }
 

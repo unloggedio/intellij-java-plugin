@@ -90,5 +90,5 @@ public interface UnloggedClientInterface {
 
     void setSourceModel (SourceModel sourceModel);
 
-    List<ExecutionSession> sessionDiscovery();
+    List<ExecutionSession> sessionDiscovery(Boolean filterSession);
 }
