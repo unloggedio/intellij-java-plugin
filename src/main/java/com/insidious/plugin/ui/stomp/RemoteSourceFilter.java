@@ -43,7 +43,7 @@ public class RemoteSourceFilter {
     private JPanel setupInfoPanel;
     //    private JButton linkCancelButton;
     private JButton linkSaveButton;
-    private JPanel serverListPanel;
+    private JScrollPane serverListScroll;
     private JPanel serverListButton;
     private JButton finalCancelButton;
     private JButton finalSaveButton;
@@ -51,6 +51,7 @@ public class RemoteSourceFilter {
     private JPanel setupInfo;
     private JLabel remoteServerLink;
     private JLabel setupText;
+    private JPanel serverListPanel;
     private UnloggedClientInterface client;
 
     public RemoteSourceFilter(SourceModel sourceModel,
@@ -151,8 +152,8 @@ public class RemoteSourceFilter {
 
             serverListPanel.revalidate();
             serverListPanel.repaint();
-            mainPanel.repaint();
             mainPanel.revalidate();
+            mainPanel.repaint();
         });
 
 
