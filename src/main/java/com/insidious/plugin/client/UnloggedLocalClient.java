@@ -22,9 +22,9 @@
  import java.util.concurrent.Executors;
  import java.util.concurrent.ScheduledExecutorService;
 
- public class VideobugLocalClient implements VideobugClientInterface {
+ public class UnloggedLocalClient implements UnloggedClientInterface {
 
-     private static final Logger logger = Logger.getInstance(VideobugLocalClient.class.getName());
+     private static final Logger logger = Logger.getInstance(UnloggedLocalClient.class.getName());
      private final String pathToSessions;
 //     private final NetworkSessionInstanceClient networkClient;
      private final ScheduledExecutorService threadPoolExecutor5Seconds =
@@ -37,7 +37,7 @@
      private String packageName;
      private SourceModel sourceModel;
 
-     public VideobugLocalClient(String pathToSessions, Project project, ActiveSessionManager sessionManager) {
+     public UnloggedLocalClient(String pathToSessions, Project project, ActiveSessionManager sessionManager) {
          this.project = project;
          this.sessionManager = sessionManager;
          if (!pathToSessions.endsWith("/")) {

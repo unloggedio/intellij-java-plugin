@@ -4,7 +4,7 @@ import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.client.VideobugClientInterface;
+import com.insidious.plugin.client.UnloggedClientInterface;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.model.ReplayData;
@@ -37,7 +37,7 @@ import java.util.Vector;
 public class EventLogWindow {
     private final int paginationSize = 500;
     private final Project project;
-    private final VideobugClientInterface clientInterface;
+    private final UnloggedClientInterface clientInterface;
     private ReplayData replayData;
     private DefaultTableModel tableModel = null;
     private JPanel filterPanel;
@@ -58,7 +58,7 @@ public class EventLogWindow {
     private ReplayData replayData1;
     private Logger logger = LoggerUtil.getInstance(EventLogWindow.class);
 
-    public EventLogWindow(Project project, VideobugClientInterface clientInterface) {
+    public EventLogWindow(Project project, UnloggedClientInterface clientInterface) {
         this.project = project;
         this.clientInterface = clientInterface;
 

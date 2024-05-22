@@ -99,7 +99,7 @@ public class StompFilter {
         // sourceMode tab start code
 
 
-        this.remoteSourceFilter = new RemoteSourceFilter(sourceModel, componentLifecycleListener, insidiousService);
+        this.remoteSourceFilter = new RemoteSourceFilter(sourceModel, insidiousService);
         sourcePreferencesPanel.add(remoteSourceFilter.getComponent(), BorderLayout.CENTER);
 
 
@@ -1148,6 +1148,7 @@ public class StompFilter {
 
     public void setOnCloseListener(ComponentLifecycleListener<StompFilter> componentLifecycleListener) {
         this.componentLifecycleListener = componentLifecycleListener;
+        remoteSourceFilter.setOnCloseListener(componentLifecycleListener);
     }
 
     private void createUIComponents() {

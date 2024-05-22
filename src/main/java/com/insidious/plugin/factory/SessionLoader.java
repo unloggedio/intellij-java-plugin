@@ -1,38 +1,26 @@
 package com.insidious.plugin.factory;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.insidious.plugin.adapter.java.JavaClassAdapter;
 import com.insidious.plugin.autoexecutor.GlobalJavaSearchContext;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
-import com.insidious.plugin.client.VideobugClientInterface;
+import com.insidious.plugin.client.UnloggedClientInterface;
 import com.insidious.plugin.client.pojo.ExecutionSession;
-import com.insidious.plugin.constants.SessionMode;
-import com.insidious.plugin.upload.SourceModel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.ProcessCanceledException;
-import com.intellij.openapi.progress.ProgressIndicatorProvider;
-import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.search.FileTypeIndex;
 import io.netty.util.concurrent.DefaultThreadFactory;
-import okhttp3.*;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class SessionLoader implements Runnable, GetProjectSessionsCallback, Disposable {
 
@@ -40,7 +28,7 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback, Disp
     private static final Logger logger = LoggerUtil.getInstance(SessionLoader.class);
     private final ExecutorService ourPool;
     private final List<GetProjectSessionsCallback> listeners = new ArrayList<>();
-    private VideobugClientInterface client;
+    private UnloggedClientInterface client;
     private List<ExecutionSession> lastResult = new ArrayList<>();
     private Project project;
 
@@ -145,7 +133,7 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback, Disp
         this.project = project;
     }
 
-    public void setClient(VideobugClientInterface client) {
+    public void setClient(UnloggedClientInterface client) {
         this.client = client;
     }
 

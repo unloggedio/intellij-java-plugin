@@ -1,7 +1,7 @@
 package com.insidious.plugin.util;
 
 import com.insidious.plugin.client.SessionInstanceInterface;
-import com.insidious.plugin.client.VideobugClientInterface;
+import com.insidious.plugin.client.UnloggedClientInterface;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -22,8 +22,8 @@ public class TestCaseUtils {
 
     private static final Logger logger = LoggerUtil.getInstance(TestCaseUtils.class);
 
-    public static void generateAllTestCandidateCases(InsidiousService insidiousService, VideobugClientInterface videobugClientInterface) throws Exception {
-        SessionInstanceInterface sessionInstance = videobugClientInterface.getSessionInstance();
+    public static void generateAllTestCandidateCases(InsidiousService insidiousService, UnloggedClientInterface unloggedClientInterface) throws Exception {
+        SessionInstanceInterface sessionInstance = unloggedClientInterface.getSessionInstance();
         TestCaseService testCaseService = new TestCaseService(sessionInstance);
 
         TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(

@@ -3,7 +3,7 @@ package com.insidious.plugin.extension.model;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
-import com.insidious.plugin.client.VideobugClientInterface;
+import com.insidious.plugin.client.UnloggedClientInterface;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.util.ClassTypeUtils;
@@ -24,10 +24,10 @@ public class ReplayData {
     Map<Long, ObjectInfo> objectInfoMap;
     Map<Integer, TypeInfo> typeInfoMap;
     Map<Integer, MethodInfo> methodInfoMap;
-    private VideobugClientInterface client;
+    private UnloggedClientInterface client;
 
     public ReplayData(
-            VideobugClientInterface client,
+            UnloggedClientInterface client,
             FilteredDataEventsRequest filteredDataEventsRequest,
             List<DataEventWithSessionId> dataList,
             Map<Integer, ClassInfo> classInfo,
@@ -79,7 +79,7 @@ public class ReplayData {
         return null;
     }
 
-    public void setClient(VideobugClientInterface client) {
+    public void setClient(UnloggedClientInterface client) {
         this.client = client;
     }
 

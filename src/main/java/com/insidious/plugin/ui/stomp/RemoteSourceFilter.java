@@ -1,7 +1,7 @@
 package com.insidious.plugin.ui.stomp;
 
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.client.VideobugClientInterface;
+import com.insidious.plugin.client.UnloggedClientInterface;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.constants.SessionMode;
 import com.insidious.plugin.ui.SessionInstanceChangeListener;
@@ -21,14 +21,15 @@ import java.awt.event.FocusEvent;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 public class RemoteSourceFilter {
 
-    private final ComponentLifecycleListener<StompFilter> componentLifecycleListener;
     private final SessionInstanceChangeListener insidiousService;
-    private SourceModel sourceModel;
+    private final SourceModel sourceModel;
+    private ComponentLifecycleListener<StompFilter> componentLifecycleListener;
     private SessionMode localSessionMode;
     private String localServerEndpoint;
     private List<String> localSessionId;
@@ -51,13 +52,11 @@ public class RemoteSourceFilter {
     private JPanel mainPanel;
     private JLabel setupText;
     private JPanel setupInfo;
-    private VideobugClientInterface client;
+    private UnloggedClientInterface client;
 
     public RemoteSourceFilter(SourceModel sourceModel,
-                              ComponentLifecycleListener<StompFilter> componentLifecycleListener,
                               SessionInstanceChangeListener insidiousService) {
         this.sourceModel = sourceModel;
-        this.componentLifecycleListener = componentLifecycleListener;
         this.insidiousService = insidiousService;
         sourceModeOption.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.LIGHT_GRAY),
@@ -77,7 +76,7 @@ public class RemoteSourceFilter {
             public void actionPerformed(ActionEvent e) {
                 localSessionMode = SessionMode.REMOTE;
                 sourceModel.setSessionMode(localSessionMode);
-                client = insidiousService.modifySessionInstance(sourceModel);
+                client = insidiousService.setUnloggedClient(sourceModel);
 
                 remotePanel.setVisible(true);
                 mainPanel.revalidate();
@@ -87,7 +86,7 @@ public class RemoteSourceFilter {
         localhostRadio.addActionListener(e -> {
             localSessionMode = SessionMode.LOCAL;
             sourceModel.setSessionMode(localSessionMode);
-            client = insidiousService.modifySessionInstance(sourceModel);
+            client = insidiousService.setUnloggedClient(sourceModel);
 
             remotePanel.setVisible(false);
             mainPanel.revalidate();
@@ -126,7 +125,15 @@ public class RemoteSourceFilter {
             }
             this.sourceModel.setServerEndpoint(this.localServerEndpoint);
             client.setSourceModel(sourceModel);
-            List<ExecutionSession> executionSessionList = client.sessionDiscovery();
+            List<ExecutionSession> executionSessionList = List.of();
+            try {
+                executionSessionList = client.sessionDiscovery();
+            } catch (Throwable th) {
+                InsidiousNotification.notifyMessage("Failed to connect to server: " + th.getMessage(),
+                        NotificationType.ERROR);
+                return;
+
+            }
 
             serverListPanel.setLayout(new BoxLayout(serverListPanel, BoxLayout.Y_AXIS));
             for (ExecutionSession executionSession : executionSessionList) {
@@ -171,5 +178,9 @@ public class RemoteSourceFilter {
 
     public Component getComponent() {
         return mainPanel;
+    }
+
+    public void setOnCloseListener(ComponentLifecycleListener<StompFilter> componentLifecycleListener) {
+        this.componentLifecycleListener = componentLifecycleListener;
     }
 }

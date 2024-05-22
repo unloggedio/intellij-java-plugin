@@ -27,9 +27,9 @@ import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class NetworkClient implements VideobugClientInterface{
+public class NetworkClient implements UnloggedClientInterface {
 
-    private static final Logger logger = LoggerUtil.getInstance(VideobugClientInterface.class);
+    private static final Logger logger = LoggerUtil.getInstance(UnloggedClientInterface.class);
 
     private SourceModel sourceModel;
     private String packageName;

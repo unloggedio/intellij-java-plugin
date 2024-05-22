@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public interface  VideobugClientInterface {
+public interface UnloggedClientInterface {
     ExecutionSession getCurrentSession();
 
     void setSessionInstance(SessionInstanceInterface sessionInstance);
