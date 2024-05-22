@@ -41,8 +41,6 @@ public interface UnloggedClientInterface {
 
     DataResponse<ExecutionSession> fetchProjectSessions() throws APICallException, IOException;
 
-    public void setPackageName(String packageName);
-    
     default List<TracePoint> getTracePoints(DataResponse<DataEventWithSessionId> traceResponse) {
         return traceResponse.getItems().stream()
                 .map(e -> TracePoint.fromDataEvent(e, traceResponse))

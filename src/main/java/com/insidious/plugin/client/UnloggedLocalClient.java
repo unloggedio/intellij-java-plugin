@@ -34,7 +34,6 @@
      private SessionInstanceInterface sessionInstance;
      private ProjectItem currentProject;
      private File sessionPathFile;
-     private String packageName;
      private SourceModel sourceModel;
 
      public UnloggedLocalClient(String pathToSessions, Project project, ActiveSessionManager sessionManager) {
@@ -326,11 +325,6 @@
      @Override
      public void setSessionInstance(SessionInstanceInterface sessionInstance) {
          this.sessionInstance = sessionInstance;
-     }
-
-     @Override
-     public void setPackageName(String packageName) {
-         this.packageName = packageName;
      }
 
      @Override

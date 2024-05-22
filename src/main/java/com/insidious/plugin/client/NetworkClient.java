@@ -33,7 +33,6 @@ public class NetworkClient implements UnloggedClientInterface {
     private static final Logger logger = LoggerUtil.getInstance(UnloggedClientInterface.class);
 
     private SourceModel sourceModel;
-    private String packageName;
     private SessionInstanceInterface sessionInstance;
     private List<ExecutionSession> executionSessionList;
 
@@ -44,11 +43,6 @@ public class NetworkClient implements UnloggedClientInterface {
     @Override
     public void setSourceModel(SourceModel sourceModel){
         this.sourceModel = sourceModel;
-    }
-
-    @Override
-    public void setPackageName(String packageName) {
-        this.packageName = packageName;
     }
 
     @Override
