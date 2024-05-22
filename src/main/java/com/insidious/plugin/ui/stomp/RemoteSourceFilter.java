@@ -36,7 +36,6 @@ public class RemoteSourceFilter {
     private JRadioButton remoteRadio;
     private JPanel remotePanel;
     private JPanel remoteServerPanel;
-    private JLabel remoteServerLink;
     private JTextField serverLinkField;
     private JPanel setupInfoPanel;
     //    private JButton linkCancelButton;
@@ -46,8 +45,9 @@ public class RemoteSourceFilter {
     private JButton finalCancelButton;
     private JButton finalSaveButton;
     private JPanel mainPanel;
-    private JLabel setupText;
     private JPanel setupInfo;
+    private JLabel remoteServerLink;
+    private JLabel setupText;
     private UnloggedClientInterface client;
 
     public RemoteSourceFilter(SourceModel sourceModel,
@@ -125,7 +125,7 @@ public class RemoteSourceFilter {
             }
             this.sourceModel.setServerEndpoint(this.localServerEndpoint);
             client.setSourceModel(sourceModel);
-            List<ExecutionSession> executionSessionList = List.of();
+            List<ExecutionSession> executionSessionList;
             try {
                 executionSessionList = client.sessionDiscovery(false);
             } catch (Throwable th) {
