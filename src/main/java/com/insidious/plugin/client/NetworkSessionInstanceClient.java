@@ -12,6 +12,7 @@ import com.insidious.plugin.agent.UnloggedSdkApiAgentClient;
 import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
 import com.insidious.plugin.client.TypeInfoDocumentClient.TypeInfoDocumentClientDeserializer;
 import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.constants.SessionMode;
 import com.insidious.plugin.coverage.CodeCoverageData;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.CandidateSearchQuery;
@@ -1168,6 +1169,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 					ObjectMapper objectMapper = new ObjectMapper();
 					String responseBody = Objects.requireNonNull(response.body()).string();
 					executionSession = objectMapper.readValue(responseBody, ExecutionSession.class);
+                    executionSession.setSessionMode(SessionMode.REMOTE);
                 } finally {
                     response.close();
                     latch.countDown();
@@ -1290,7 +1292,9 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 					ExecutionSession[] executionSessionLocal = objectMapper.readValue(responseBody, ExecutionSession[].class);
 					executionSessionList = new ArrayList<>();
 					for (int i=0;i<=executionSessionLocal.length-1;i++) {
-						executionSessionList.add(executionSessionLocal[i]);
+                        ExecutionSession temp = executionSessionLocal[i];
+                        temp.setSessionMode(SessionMode.REMOTE);
+						executionSessionList.add(temp);
 					}
                 } finally {
                     response.close();
