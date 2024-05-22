@@ -9,7 +9,6 @@ import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.upload.SourceModel;
 import com.intellij.notification.NotificationType;
 import com.intellij.ui.JBColor;
-import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -20,9 +19,6 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class RemoteSourceFilter {
@@ -139,25 +135,13 @@ public class RemoteSourceFilter {
 
             }
 
+            ButtonGroup buttonGroup = new ButtonGroup();
             serverListPanel.setLayout(new BoxLayout(serverListPanel, BoxLayout.Y_AXIS));
             for (ExecutionSession executionSession : executionSessionList) {
 
-                Date date = executionSession.getCreatedAt();
-                SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE dd-MM-yyyy HH:mm");
-                String timeVal = dateFormat.format(date);
-
-                String hostname = executionSession.getHostname();
-                String projectId = executionSession.getProjectId();
-
-                String radioButtonText = "<html> <small>" + timeVal + "</small> " + hostname + "<br>" + projectId + "</html>";
-                JRadioButton localButton = new JRadioButton(radioButtonText);
-                localButton.setMargin(JBUI.insets(10, 20));
-                localButton.setBorder(BorderFactory.createCompoundBorder(
-                        localButton.getBorder(),
-                        BorderFactory.createEmptyBorder(10, 10, 10, 10)));
-                serverListPanel.add(localButton);
-//                listButtonModel.add(localButton.getModel());
-//                remoteListPanel.add(localButton);
+                ExecutionSessionItemComponent esic = new ExecutionSessionItemComponent(executionSession);
+                serverListPanel.add(esic.getComponent());
+                buttonGroup.add(esic.getRadioComponent());
             }
 
             serverListPanel.revalidate();

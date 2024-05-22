@@ -392,9 +392,9 @@ final public class InsidiousService implements
 
         mockManager = new MockManager(configurationState);
 
-        if (configurationState.getFilterModel().isFollowEditor()) {
-            populateFromEditors(null);
-        }
+//        if (configurationState.getFilterModel().isFollowEditor()) {
+//            populateFromEditors(null);
+//        }
 
     }
 
