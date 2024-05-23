@@ -89,7 +89,7 @@ public class VersionManager {
             // When running unit tests, no jar is built, so we load a copy of the file that we saved during build.gradle.
             // Possibly this also is the case during debugging, therefore we save in bin/main instead of bin/test.
             try {
-                inputStream = new FileInputStream("bin/main/version.properties");
+                inputStream = this.getClass().getClassLoader().getResourceAsStream("version.properties");
                 versionProperties.load(inputStream);
                 gitLastTag = versionProperties.getProperty("gitLastTag", "last-tag-not-found");
                 gitHash = versionProperties.getProperty("gitHash", "git-hash-not-found");
@@ -98,7 +98,7 @@ public class VersionManager {
                 version = versionProperties.getProperty("version", "git-version-not-found");
 
             } catch (IOException e) {
-                log.warn("failed to load verion.properties file: " + e.getMessage());
+                log.warn("failed to load version.properties file: " + e.getMessage());
             }
         }
         if (inputStream != null) {

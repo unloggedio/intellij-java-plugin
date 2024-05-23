@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.mocking;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.mocking.DeclaredMock;
@@ -119,7 +120,7 @@ public class MockDefinitionListPanel implements OnSaveListener {
                 methodUnderTest, methodUnderTest.getSignature(), new ArrayList<>(),
                 CandidateFilterType.METHOD, false
         );
-        SessionInstance sessionInstance = insidiousService.getSessionInstance();
+        SessionInstanceInterface sessionInstance = insidiousService.getSessionInstance();
         if (sessionInstance == null) {
             InsidiousNotification.notifyMessage("" +
                             "No session found. Please start your application with unlogged-sdk to create a session",

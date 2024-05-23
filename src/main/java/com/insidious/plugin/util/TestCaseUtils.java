@@ -1,8 +1,7 @@
 package com.insidious.plugin.util;
 
-import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.client.VideobugClientInterface;
-import com.insidious.plugin.factory.CandidateSearchQuery;
+import com.insidious.plugin.client.SessionInstanceInterface;
+import com.insidious.plugin.client.UnloggedClientInterface;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -11,7 +10,7 @@ import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import com.insidious.plugin.ui.stomp.FilterModel;
+import com.insidious.plugin.ui.stomp.StompFilterModel;
 import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.intellij.openapi.diagnostic.Logger;
 
@@ -23,8 +22,8 @@ public class TestCaseUtils {
 
     private static final Logger logger = LoggerUtil.getInstance(TestCaseUtils.class);
 
-    public static void generateAllTestCandidateCases(InsidiousService insidiousService, VideobugClientInterface videobugClientInterface) throws Exception {
-        SessionInstance sessionInstance = videobugClientInterface.getSessionInstance();
+    public static void generateAllTestCandidateCases(InsidiousService insidiousService, UnloggedClientInterface unloggedClientInterface) throws Exception {
+        SessionInstanceInterface sessionInstance = unloggedClientInterface.getSessionInstance();
         TestCaseService testCaseService = new TestCaseService(sessionInstance);
 
         TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
@@ -63,7 +62,7 @@ public class TestCaseUtils {
             }
 
 
-        }, 0, new FilterModel(), new AtomicInteger(1));
+        }, 0, new StompFilterModel(), new AtomicInteger(1));
     }
 
 }

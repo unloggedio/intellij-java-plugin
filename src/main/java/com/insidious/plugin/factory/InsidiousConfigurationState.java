@@ -1,7 +1,8 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.ui.library.LibraryFilterState;
-import com.insidious.plugin.ui.stomp.FilterModel;
+import com.insidious.plugin.ui.stomp.StompFilterModel;
+import com.insidious.plugin.upload.SourceModel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
@@ -33,7 +34,9 @@ public final class InsidiousConfigurationState
     @OptionTag(converter = LibraryFilterModelConverter.class)
     private final LibraryFilterState libraryFilterModel = new LibraryFilterState();
     @OptionTag(converter = FilterModelConverter.class)
-    private FilterModel filterModel = new FilterModel();
+    private StompFilterModel stompFilterModel = new StompFilterModel();
+    @OptionTag(converter = SourceModelConverter.class)
+    private SourceModel sourceModel = new SourceModel();
 
 
     public InsidiousConfigurationState() {
@@ -43,11 +46,22 @@ public final class InsidiousConfigurationState
         return libraryFilterModel;
     }
 
-    public FilterModel getFilterModel() {
-        if (filterModel == null) {
-            filterModel = new FilterModel();
+    public StompFilterModel getFilterModel() {
+        if (stompFilterModel == null) {
+            stompFilterModel = new StompFilterModel();
         }
-        return filterModel;
+        return stompFilterModel;
+    }
+
+    public SourceModel getSourceModel() {
+        if (sourceModel == null) {
+            this.sourceModel = new SourceModel();
+        }
+        return this.sourceModel;
+    }
+
+    public void setSourceModel(SourceModel sourceModel) {
+        this.sourceModel = sourceModel;
     }
 
     @Override

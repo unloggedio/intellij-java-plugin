@@ -1,5 +1,6 @@
 package com.insidious.plugin.util;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ObjectMapperInstance {
@@ -16,6 +17,7 @@ public class ObjectMapperInstance {
     public static synchronized ObjectMapper getInstance() {
         if (instance == null) {
             instance = new ObjectMapper();
+            instance.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
             // Additional configuration for ObjectMapper can be added here
         }
         return instance;

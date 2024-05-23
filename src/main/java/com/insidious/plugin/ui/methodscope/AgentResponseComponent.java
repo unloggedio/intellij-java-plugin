@@ -1,6 +1,6 @@
 package com.insidious.plugin.ui.methodscope;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.insidious.plugin.agent.AgentCommandResponse;
@@ -15,7 +15,6 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import static com.insidious.plugin.util.ParameterUtils.processResponseForFloatAndDoubleTypes;
 
@@ -157,13 +156,9 @@ public class AgentResponseComponent implements ResponsePreviewComponent {
         this.mainTable.repaint();
     }
 
-    private void renderTableForResponse(Map<String, Object> rightOnly) {
+    private void renderTableForResponse(JsonNode rightOnly) {
         ObjectNode objectNode;
-        try {
-            objectNode = JsonTreeUtils.flatten(objectMapper.readTree(objectMapper.writeValueAsString(rightOnly)));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        objectNode = JsonTreeUtils.flatten(rightOnly);
         ResponseMapTable newModel = new ResponseMapTable(objectNode);
         this.mainTable.setModel(newModel);
         this.mainTable.revalidate();

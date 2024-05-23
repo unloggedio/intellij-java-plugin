@@ -33,6 +33,7 @@ public class TestCaseGenerationConfiguration {
     private String testMethodName;
     private boolean useMockitoAnnotations;
     private List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
+    private boolean addFieldMocksCheckBox;
 
     public TestCaseGenerationConfiguration(
             TestFramework testFramework,
@@ -149,5 +150,13 @@ public class TestCaseGenerationConfiguration {
 
     public boolean useMockitoAnnotations() {
         return useMockitoAnnotations;
+    }
+
+    public boolean isAddFieldMocksCheckBox() {
+        return addFieldMocksCheckBox;
+    }
+
+    public void setAddFieldMocksCheckBox(boolean addFieldMocksCheckBox) {
+        this.addFieldMocksCheckBox = addFieldMocksCheckBox;
     }
 }

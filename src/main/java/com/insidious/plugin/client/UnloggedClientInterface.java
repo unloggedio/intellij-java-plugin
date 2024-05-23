@@ -1,32 +1,28 @@
 package com.insidious.plugin.client;
 
 import com.insidious.common.FilteredDataEventsRequest;
-import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.callbacks.*;
-import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
-//import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.upload.SourceModel;
 
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public interface VideobugClientInterface {
+public interface UnloggedClientInterface {
     ExecutionSession getCurrentSession();
 
-    void setSessionInstance(SessionInstance sessionInstance);
+    void setSessionInstance(SessionInstanceInterface sessionInstance);
 
     void signup(String serverUrl, String username, String password, SignUpCallback callback);
 
@@ -45,7 +41,6 @@ public interface VideobugClientInterface {
 
     DataResponse<ExecutionSession> fetchProjectSessions() throws APICallException, IOException;
 
-    
     default List<TracePoint> getTracePoints(DataResponse<DataEventWithSessionId> traceResponse) {
         return traceResponse.getItems().stream()
                 .map(e -> TracePoint.fromDataEvent(e, traceResponse))
@@ -87,7 +82,11 @@ public interface VideobugClientInterface {
     TypeInfo getTypeInfoByName(String sessionId, String type);
 
 
-    SessionInstance getSessionInstance();
+    SessionInstanceInterface getSessionInstance();
 
     ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filterRequest);
+
+    void setSourceModel (SourceModel sourceModel);
+
+    List<ExecutionSession> sessionDiscovery(Boolean filterSession);
 }

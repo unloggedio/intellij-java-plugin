@@ -52,7 +52,6 @@ public class UnloggedSDKOnboarding {
     private JTextArea gradleTextArea;
     private JButton gradleCopyButton;
     private JTextArea mavenDependencyAreaAnnotation;
-    private JPanel topAligner;
     private JPanel infoPanel;
     private JLabel headingLabel;
     private JPanel mainContent;
@@ -73,7 +72,7 @@ public class UnloggedSDKOnboarding {
     private JPanel step4ContainerPanel;
     private JLabel emailButton;
     private JLabel githubButton;
-    private JButton doneButton;
+//    private JButton doneButton;
     private JPanel gradleDependencyContents;
     private JScrollPane extraMavenTextAreaScrollPanel;
     private JCheckBox usingMavenCompilerPluginCheckBox;
@@ -88,11 +87,11 @@ public class UnloggedSDKOnboarding {
         extraMavenTextAreaScrollPanel.setBorder(BorderFactory.createEmptyBorder());
         extraMavenTextAreaScrollPanel.setVisible(false);
 
-		doneButton.setOpaque(true);
-        doneButton.setBorderPainted(true);
-        doneButton.setContentAreaFilled(true);
+//		doneButton.setOpaque(true);
+//        doneButton.setBorderPainted(true);
+//        doneButton.setContentAreaFilled(true);
 
-        copyCodeButtonMaven.addActionListener(e -> copyCode(PROJECT_TYPE.MAVEN));
+        copyCodeButtonMaven.addActionListener(e -> copyCode(ProjectType.MAVEN));
 
         discordButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         discordButton.addMouseListener(new MouseAdapter() {
@@ -118,7 +117,7 @@ public class UnloggedSDKOnboarding {
             }
         });
 
-        gradleCopyButton.addActionListener(e -> copyCode(PROJECT_TYPE.GRADLE));
+        gradleCopyButton.addActionListener(e -> copyCode(ProjectType.GRADLE));
 
         primaryTabbedPane.setIconAt(0, UIUtils.MAVEN_ICON);
         primaryTabbedPane.setIconAt(1, UIUtils.GRADLE_ICON);
@@ -212,15 +211,15 @@ public class UnloggedSDKOnboarding {
         );
         step4ContainerPanel.add(step4Label, new GridConstraints());
 
-        doneButton.addActionListener(e -> {
-            mainPanel.removeAll();
-            insidiousService.showCallYourApplicationScreen(this);
-        });
+//        doneButton.addActionListener(e -> {
+//            mainPanel.removeAll();
+//            insidiousService.showCallYourApplicationScreen(this);
+//        });
 
     }
 
-    public void copyCode(PROJECT_TYPE type) {
-        if (type.equals(PROJECT_TYPE.MAVEN)) {
+    public void copyCode(ProjectType type) {
+        if (type.equals(ProjectType.MAVEN)) {
             String dependency = mavenDependencyArea.getText();
             if (!currentJDK.equals("JDK 1.8")) {
                 dependency = dependency + "\n" + mavenDependencyAreaAnnotation.getText();
@@ -292,5 +291,5 @@ public class UnloggedSDKOnboarding {
         mainPanel.repaint();
     }
 
-    private enum PROJECT_TYPE {MAVEN, GRADLE}
+    private enum ProjectType {MAVEN, GRADLE}
 }

@@ -3,9 +3,12 @@ package com.insidious.plugin.client;
 
 
 public class TestCandidateMethodAggregate implements Comparable<TestCandidateMethodAggregate> {
-    private final String className;
+    private String className;
     String methodName;
     Integer count;
+
+    public TestCandidateMethodAggregate() {
+    }
 
     public TestCandidateMethodAggregate(String className, String methodName, Integer count) {
         this.className = className;

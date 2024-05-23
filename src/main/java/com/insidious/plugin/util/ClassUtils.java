@@ -1,5 +1,6 @@
 package com.insidious.plugin.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.java.JavaParameterAdapter;
@@ -31,6 +32,9 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiTypesUtil;
 import com.intellij.psi.util.TypeConversionUtil;
 
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -218,20 +222,19 @@ public class ClassUtils {
                 return "{}";
             }
             if (parameterTypeCanonicalText.equals("java.util.Date")) {
-                return String.valueOf(new Date().getTime());
+                return getCurrentTimeAsString();
             }
             if (parameterTypeCanonicalText.equals("java.sql.Timestamp")) {
-                return String.valueOf(new Date().getTime());
+                return getCurrentTimeAsString();
             }
             if (parameterTypeCanonicalText.equals("java.time.Instant")) {
-//                Date date = new Date();
-                return String.valueOf(new Date().getTime() / 1000);
+                return getCurrentTimeAsString();
             }
             if (parameterTypeCanonicalText.equals("org.joda.time.Instant")) {
-                return String.valueOf(new Date().getTime());
+                return getCurrentTimeAsString();
             }
             if (parameterTypeCanonicalText.equals("org.joda.time.DateTime")) {
-                return String.valueOf(new Date().getTime());
+                return getCurrentTimeAsString();
             }
             if (
                     parameterTypeCanonicalText.equals("org.springframework.security.core.GrantedAuthority")
@@ -407,6 +410,11 @@ public class ClassUtils {
             creationStack.remove(parameterTypeCanonicalText);
         }
 
+    }
+
+    private static String getCurrentTimeAsString() {
+        Instant now = Instant.now();
+        return String.format("\"%s\"", ZonedDateTime.now().toLocalDateTime());
     }
 
     public static void chooseClassImplementation(ClassAdapter psiClass, boolean showUI, ClassChosenListener classChosenListener) {

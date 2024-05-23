@@ -1,16 +1,15 @@
 package com.insidious.plugin.ui.stomp;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.TestCandidateLifeListener;
 import com.insidious.plugin.client.ScanProgress;
+import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.client.SessionScanEventListener;
-import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.SemanticVersion;
@@ -33,6 +32,7 @@ import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
+import com.insidious.plugin.upload.SourceModel;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
@@ -47,17 +47,17 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
-import com.intellij.psi.PsiClass;
+import com.intellij.openapi.util.Pair;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiMethodCallExpression;
-import com.intellij.psi.impl.JavaPsiImplementationHelper;
-import com.intellij.psi.search.searches.ClassInheritorsSearch;
+import com.intellij.psi.PsiSubstitutor;
 import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
@@ -98,13 +98,14 @@ public class StompComponent implements
     private final SimpleDateFormat dateFormat;
     private final Map<TestCandidateBareBone, Component> candidateMetadataStompItemMap = new HashMap<>();
     private final InsidiousConfigurationState configurationState;
-    private final FilterModel filterModel;
+    private final StompFilterModel stompFilterModel;
     private final AtomicRecordService atomicRecordService;
     private final Set<Long> pinnedItems = new HashSet<>();
     private final ActionToolbarImpl actionToolbar;
     private final UnloggedSDKOnboarding unloggedSDKOnboarding;
     private final Map<String, AtomicInteger> countByMethodName = new HashMap<>();
     private final AnAction filterAction;
+    private final Project project;
     BlockingQueue<TestCandidateBareBone> incomingQueue = new ArrayBlockingQueue<>(100);
     int totalAcceptedCount = 0;
     private JPanel mainPanel;
@@ -125,6 +126,7 @@ public class StompComponent implements
     private JPanel actionToolbarContainer;
     private JPanel timelineControlPanel;
     private JPanel topContainerPanel;
+    private JSplitPane splitPane;
     private long lastEventId = 0;
     private MethodDirectInvokeComponent directInvokeComponent = null;
     private TestCandidateSaveForm saveFormReference;
@@ -132,15 +134,16 @@ public class StompComponent implements
     private AtomicInteger candidateQueryLatch;
     private MethodUnderTest lastMethodFocussed;
     private boolean shownGotItNofiticaton = false;
+    private SessionInstanceInterface sessionInstance;
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
-        Project project = insidiousService.getProject();
+        this.project = insidiousService.getProject();
         atomicRecordService = project.getService(AtomicRecordService.class);
         configurationState = project.getService(InsidiousConfigurationState.class);
 
         filterAppliedLabel.setVisible(false);
-        filterModel = configurationState.getFilterModel();
+        stompFilterModel = configurationState.getFilterModel();
 
 
         itemPanel = new JPanel();
@@ -183,59 +186,41 @@ public class StompComponent implements
         AnAction generateJunitTestAction = new AnAction(() -> "JUnit", AllIcons.Scope.Tests) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                System.err.println("generate junit test");
-                if (selectedCandidates.size() < 1) {
-                    InsidiousNotification.notifyMessage("Select records to generate JUnit Test",
-                            NotificationType.INFORMATION);
-                    return;
-                }
-
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    JSONObject eventProperties = new JSONObject();
-                    eventProperties.put("count", selectedCandidates.size());
-                    UsageInsightTracker.getInstance().RecordEvent("ACTION_GENERATE_JUNIT", eventProperties);
-
-                    ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
-                        ProgressIndicator progressIndicator = ProgressManager.getInstance()
-                                .getProgressIndicator();//(project, "New project...");
-                        progressIndicator.setIndeterminate(false);
-                        progressIndicator.setFraction(0);
-                        onGenerateJunitTestCaseRequest(selectedCandidates);
-                    }, "Generate JUnit Tests", true, project);
-
-                });
+                createJunitFromSelected();
             }
 
             @Override
             public boolean displayTextInToolbar() {
                 return true;
             }
+
+
         };
 
-        AnAction replaySelectionAction = new AnAction(() -> "Replay", AllIcons.Actions.RestartFrame) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                System.err.println("replay selected");
-                if (selectedCandidates.size() < 1) {
-                    InsidiousNotification.notifyMessage("Select records to replay", NotificationType.INFORMATION);
-                    return;
-                }
-                JSONObject eventProperties = new JSONObject();
-                eventProperties.put("count", selectedCandidates.size());
-                UsageInsightTracker.getInstance().RecordEvent("ACTION_REPLAY_SELECT", eventProperties);
-
-                InsidiousNotification.notifyMessage("Replayed " + selectedCandidates.size() + " records",
-                        NotificationType.INFORMATION);
-                for (TestCandidateBareBone selectedCandidate : selectedCandidates) {
-                    executeSingleTestCandidate(selectedCandidate);
-                }
-            }
-
-            @Override
-            public boolean displayTextInToolbar() {
-                return true;
-            }
-        };
+//        AnAction replaySelectionAction = new AnAction(() -> "Replay", AllIcons.Actions.RestartFrame) {
+//            @Override
+//            public void actionPerformed(@NotNull AnActionEvent e) {
+//                System.err.println("replay selected");
+//                if (selectedCandidates.size() < 1) {
+//                    InsidiousNotification.notifyMessage("Select records to replay", NotificationType.INFORMATION);
+//                    return;
+//                }
+//                JSONObject eventProperties = new JSONObject();
+//                eventProperties.put("count", selectedCandidates.size());
+//                UsageInsightTracker.getInstance().RecordEvent("ACTION_REPLAY_SELECT", eventProperties);
+//
+//                InsidiousNotification.notifyMessage("Replayed " + selectedCandidates.size() + " records",
+//                        NotificationType.INFORMATION);
+//                for (TestCandidateBareBone selectedCandidate : selectedCandidates) {
+//                    executeSingleTestCandidate(selectedCandidate);
+//                }
+//            }
+//
+//            @Override
+//            public boolean displayTextInToolbar() {
+//                return true;
+//            }
+//        };
 
 
         filterAction = new AnAction(() -> "Filter", AllIcons.General.Filter) {
@@ -257,7 +242,7 @@ public class StompComponent implements
 
         List<AnAction> action11 = List.of(
                 filterAction,
-                replaySelectionAction,
+//                replaySelectionAction,
                 generateJunitTestAction,
                 saveAction
         );
@@ -290,19 +275,7 @@ public class StompComponent implements
         AnAction selectAllAction = new AnAction(() -> "Select All", AllIcons.Actions.Selectall) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
-                if (selectedCandidates.size() != stompItems.size()) {
-                    selectedCandidates.clear();
-                    for (StompItem stompItem : stompItems) {
-                        stompItem.setSelected(true);
-                        selectedCandidates.add(stompItem.getTestCandidate());
-                    }
-                } else {
-                    selectedCandidates.clear();
-                    for (StompItem stompItem : stompItems) {
-                        stompItem.setSelected(false);
-                    }
-                }
-                updateControlPanel();
+                selectAll();
             }
         };
 
@@ -347,7 +320,7 @@ public class StompComponent implements
             @Override
             public void mouseClicked(MouseEvent e) {
                 JSONObject eventProperties = new JSONObject();
-                eventProperties.put("filter", filterModel.toString());
+                eventProperties.put("filter", stompFilterModel.toString());
                 UsageInsightTracker.getInstance().RecordEvent("CLEAR_FILTER", eventProperties);
 
                 clearFilter();
@@ -359,13 +332,14 @@ public class StompComponent implements
         });
 
 
-        ConnectedAndWaiting connectedAndWaiting = new ConnectedAndWaiting();
-        JPanel component = (JPanel) connectedAndWaiting.getComponent();
-        component.setAlignmentY(1.0f);
+//        ConnectedAndWaiting connectedAndWaiting = new ConnectedAndWaiting();
+//        JPanel component = (JPanel) connectedAndWaiting.getComponent();
+//        component.setAlignmentY(1.0f);
 
         scanEventListener = new SessionScanEventListener() {
             @Override
             public void started() {
+                logger.warn("setConnectedAndWaiting: " + StompComponent.this.hashCode());
                 lastEventId = 0;
                 setConnectedAndWaiting();
                 stompStatusComponent.addRightStatus("last-updated", "Last updated at " + simpleTime(new Date()));
@@ -385,7 +359,7 @@ public class StompComponent implements
             }
 
             @Override
-            public void ended() {
+            public synchronized void ended() {
                 disconnected();
                 stompStatusComponent.removeRightStatus("last-updated");
                 stompStatusComponent.removeRightStatus("scan-progress");
@@ -407,15 +381,74 @@ public class StompComponent implements
 
 
         unloggedSDKOnboarding = new UnloggedSDKOnboarding(insidiousService);
+        itemPanel.removeAll();
         itemPanel.add(unloggedSDKOnboarding.getComponent(), createGBCForProcessStartedComponent());
+        itemPanel.add(new JPanel(), createGBCForFakeComponent(), itemPanel.getComponentCount());
 
 //        saveReplayButton.setEnabled(false);
         updateFilterLabel();
+        directInvokeComponent = new MethodDirectInvokeComponent(insidiousService, this);
+        JComponent content = directInvokeComponent.getContent();
+        content.setMinimumSize(new Dimension(-1, 400));
+        content.setMaximumSize(new Dimension(-1, 500));
+
+     }
+
+    private void selectAll() {
+        if (selectedCandidates.size() != stompItems.size()) {
+            selectedCandidates.clear();
+            for (StompItem stompItem : stompItems) {
+                stompItem.setSelected(true);
+                selectedCandidates.add(stompItem.getTestCandidate());
+            }
+        } else {
+            selectedCandidates.clear();
+            for (StompItem stompItem : stompItems) {
+                stompItem.setSelected(false);
+            }
+        }
+        updateControlPanel();
+    }
+
+    private void createJunitFromSelected() {
+        System.err.println("generate junit test");
+        if (selectedCandidates.isEmpty()) {
+            InsidiousNotification.notifyMessage("Select records to generate JUnit Test",
+                    NotificationType.INFORMATION);
+            return;
+        }
+
+        if (DumbService.getInstance(project).isDumb()) {
+            InsidiousNotification.notifyMessage("Please try after indexing is finished",
+                    NotificationType.INFORMATION);
+            return;
+        }
+
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("count", selectedCandidates.size());
+            UsageInsightTracker.getInstance().RecordEvent("ACTION_GENERATE_JUNIT", eventProperties);
+
+
+            ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
+                ProgressIndicator progressIndicator = ProgressManager.getInstance()
+                        .getProgressIndicator();//(project, "New project...");
+                progressIndicator.setIndeterminate(false);
+                progressIndicator.setFraction(0);
+                onGenerateJunitTestCaseRequest(selectedCandidates, new TestCaseGenerationConfiguration(
+                        TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Jackson,
+                        ResourceEmbedMode.IN_CODE
+                ));
+            }, "Generate JUnit Tests", true, project);
+
+
+        });
     }
 
     private void showFiltersComponentPopup(Project project, InsidiousService insidiousService) {
-        FilterModel originalFilter = new FilterModel(filterModel);
-        StompFilter stompFilter = new StompFilter(filterModel, lastMethodFocussed, project);
+        StompFilterModel originalFilter = new StompFilterModel(stompFilterModel);
+        SourceModel sourceModel = insidiousService.getSourceModel();
+        StompFilter stompFilter = new StompFilter(insidiousService, stompFilterModel, sourceModel, lastMethodFocussed, project);
         JComponent component = stompFilter.getComponent();
 
         ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
@@ -444,26 +477,23 @@ public class StompComponent implements
                 .createPopup();
 
         component.setMaximumSize(new Dimension(500, 800));
-        ComponentLifecycleListener<StompFilter> componentLifecycleListener = new ComponentLifecycleListener<StompFilter>() {
-            @Override
-            public void onClose(StompFilter component) {
-                unloggedPreferencesPopup.cancel();
-                if (originalFilter.equals(filterModel)) {
-                    return;
-                }
-                if (filterModel.followEditor) {
-                    lastMethodFocussed = null;
-                    ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                        onMethodFocussed(insidiousService.getCurrentMethod());
-                    });
-                }
-                JSONObject eventProperties = new JSONObject();
-                eventProperties.put("filter", filterModel.toString());
-                UsageInsightTracker.getInstance().RecordEvent("FILTER_UPDATED", eventProperties);
-
-                updateFilterLabel();
-                resetAndReload();
+        ComponentLifecycleListener<StompFilter> componentLifecycleListener = () -> {
+            unloggedPreferencesPopup.cancel();
+            if (originalFilter.equals(stompFilterModel)) {
+                return;
             }
+            if (stompFilterModel.followEditor) {
+                lastMethodFocussed = null;
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    insidiousService.populateFromEditors(null);
+                });
+            }
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("filter", stompFilterModel.toString());
+            UsageInsightTracker.getInstance().RecordEvent("FILTER_UPDATED", eventProperties);
+
+            updateFilterLabel();
+            resetAndReload();
         };
 
         stompFilter.setOnCloseListener(componentLifecycleListener);
@@ -472,10 +502,10 @@ public class StompComponent implements
     }
 
     private void clearFilter() {
-        filterModel.getIncludedMethodNames().clear();
-        filterModel.getExcludedMethodNames().clear();
-        filterModel.getIncludedClassNames().clear();
-        filterModel.getExcludedClassNames().clear();
+        stompFilterModel.getIncludedMethodNames().clear();
+        stompFilterModel.getExcludedMethodNames().clear();
+        stompFilterModel.getIncludedClassNames().clear();
+        stompFilterModel.getExcludedClassNames().clear();
     }
 
     private void saveSelected() {
@@ -510,9 +540,9 @@ public class StompComponent implements
 
 
                     saveFormReference = new TestCandidateSaveForm(sourceCandidates, candidateLifeListener,
-                            component -> {
+                            () -> {
                                 ApplicationManager.getApplication().invokeLater(() -> {
-                                    southPanel.removeAll();
+                                    hideBottomSplit();
                                     scrollContainer.revalidate();
                                     scrollContainer.repaint();
                                 });
@@ -520,10 +550,11 @@ public class StompComponent implements
                     cdl.countDown();
 
                     ApplicationManager.getApplication().invokeLater(() -> {
-                        JPanel component = saveFormReference.getComponent();
+                        JPanel saveFormComponent = saveFormReference.getComponent();
                         southPanel.removeAll();
-                        component.setMaximumSize(new Dimension(600, 800));
-                        southPanel.add(component, BorderLayout.SOUTH);
+                        splitPane.setDividerLocation(100);
+                        saveFormComponent.setMaximumSize(new Dimension(600, 800));
+                        southPanel.add(saveFormComponent, BorderLayout.CENTER);
                         southPanel.revalidate();
                         southPanel.repaint();
                         southPanel.getParent().revalidate();
@@ -541,8 +572,9 @@ public class StompComponent implements
 
     }
 
-    private void resetAndReload() {
+    public void resetAndReload() {
         ApplicationManager.getApplication().invokeLater(() -> {
+            updateFilterLabel();
             resetTimeline();
             if (candidateQueryLatch != null) {
                 candidateQueryLatch.decrementAndGet();
@@ -563,12 +595,13 @@ public class StompComponent implements
                     .runReadAction((Computable<TestCandidateMetadata>) () -> {
                         return insidiousService.getTestCandidateById(candidateBareBone.getId(), false);
                     });
-            PsiMethod methodPsiElement = ApplicationManager.getApplication().runReadAction(
-                    (Computable<PsiMethod>) () -> ClassTypeUtils.getPsiMethod(loadedCandidate.getMainMethod(),
-                            insidiousService.getProject()).getFirst());
+            MethodCallExpression mainMethod = loadedCandidate.getMainMethod();
+            Pair<PsiMethod, PsiSubstitutor> psiMethod = ClassTypeUtils.getPsiMethod(mainMethod,
+                    insidiousService.getProject());
+            PsiMethod methodPsiElement = psiMethod == null ? null : psiMethod.getFirst();
             if (methodPsiElement == null) {
                 InsidiousNotification.notifyMessage("Failed to identify method in source for " +
-                        loadedCandidate.getMainMethod().getMethodName(), NotificationType.WARNING);
+                        mainMethod.getMethodName(), NotificationType.WARNING);
                 return;
             }
             long batchTime = System.currentTimeMillis();
@@ -618,7 +651,7 @@ public class StompComponent implements
                         .withHeader("Filter whats visible")
                         .withIcon(UIUtils.UNLOGGED_ICON_DARK_SVG)
                         .withLink("Enable Follow Method Filter", () -> {
-                            filterModel.setFollowEditor(true);
+                            stompFilterModel.setFollowEditor(true);
                             InsidiousNotification.notifyMessage(
                                     "Filter will follow method focussed in editor", NotificationType.INFORMATION
                             );
@@ -644,23 +677,23 @@ public class StompComponent implements
         }
         String className = testCandidateMetadata.getMethodUnderTest().getClassName();
         String methodName = testCandidateMetadata.getMethodUnderTest().getName();
-        if (!filterModel.getIncludedClassNames().isEmpty()) {
-            if (!filterModel.getIncludedClassNames().contains(className)) {
+        if (!stompFilterModel.getIncludedClassNames().isEmpty()) {
+            if (!stompFilterModel.getIncludedClassNames().contains(className)) {
                 return false;
             }
         }
-        if (!filterModel.getIncludedMethodNames().isEmpty()) {
-            if (!filterModel.getIncludedMethodNames().contains(methodName)) {
+        if (!stompFilterModel.getIncludedMethodNames().isEmpty()) {
+            if (!stompFilterModel.getIncludedMethodNames().contains(methodName)) {
                 return false;
             }
         }
-        if (!filterModel.getExcludedClassNames().isEmpty()) {
-            if (filterModel.getExcludedClassNames().contains(className)) {
+        if (!stompFilterModel.getExcludedClassNames().isEmpty()) {
+            if (stompFilterModel.getExcludedClassNames().contains(className)) {
                 return false;
             }
         }
-        if (!filterModel.getExcludedMethodNames().isEmpty()) {
-            if (filterModel.getExcludedMethodNames().contains(methodName)) {
+        if (!stompFilterModel.getExcludedMethodNames().isEmpty()) {
+            if (stompFilterModel.getExcludedMethodNames().contains(methodName)) {
                 return false;
             }
         }
@@ -695,7 +728,7 @@ public class StompComponent implements
 
         JPanel dateAndTimePanel = createDateAndTimePanel(createTimeLineComponent(comp1),
                 Date.from(Instant.ofEpochMilli(testCandidateMetadata.getCreatedAt())));
-        rowPanel.add(dateAndTimePanel, BorderLayout.EAST);
+        rowPanel.add(dateAndTimePanel, BorderLayout.WEST);
         stompItem.setStompRowItem(rowPanel);
 
 
@@ -828,21 +861,21 @@ public class StompComponent implements
     }
 
     private JPanel createDateAndTimePanel(JPanel lineContainer, Date date) {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+//        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         JPanel comp = new JPanel();
         BorderLayout mgr = new BorderLayout();
         comp.setLayout(mgr);
-        JLabel hello = new JLabel(String.format("          %s", sdf.format(date)));
-        Font font = hello.getFont();
-        hello.setFont(font.deriveFont(10.0f));
-        hello.setForeground(Color.decode("#8C8C8C"));
-        hello.setUI(new VerticalLabelUI(true));
-        comp.add(hello, BorderLayout.CENTER);
+//        JLabel timeLabel = new JLabel(String.format("          %s", sdf.format(date)));
+//        Font font = timeLabel.getFont();
+//        timeLabel.setFont(font.deriveFont(10.0f));
+//        timeLabel.setForeground(Color.decode("#8C8C8C"));
+//        timeLabel.setUI(new VerticalLabelUI(true));
+//        comp.add(timeLabel, BorderLayout.CENTER);
 
 
         comp.add(lineContainer, BorderLayout.WEST);
-        comp.setSize(new Dimension(50, -1));
-        comp.setPreferredSize(new Dimension(50, -1));
+        comp.setSize(new Dimension(40, -1));
+        comp.setPreferredSize(new Dimension(40, -1));
         return comp;
     }
 
@@ -854,7 +887,7 @@ public class StompComponent implements
         comp1.setUI(new VerticalLabelUI(true));
 
 //        comp.add(comp1, BorderLayout.CENTER);
-        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 17, 0, 4));
+        lineContainer.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 4));
         comp.add(lineContainer, BorderLayout.WEST);
         comp.setSize(new Dimension(50, -1));
         comp.setPreferredSize(new Dimension(50, -1));
@@ -942,10 +975,8 @@ public class StompComponent implements
             TestCandidateMetadata selectedCandidate = ApplicationManager.getApplication().runReadAction(
                     (Computable<TestCandidateMetadata>) () -> insidiousService.getTestCandidateById(
                             candidateBareBone.getId(), true));
-            PsiMethod methodPsiElement = ApplicationManager
-                    .getApplication().runReadAction(
-                            (Computable<PsiMethod>) () -> ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
-                                    insidiousService.getProject()).getFirst());
+            PsiMethod methodPsiElement = ClassTypeUtils.getPsiMethod(selectedCandidate.getMainMethod(),
+                    insidiousService.getProject()).getFirst();
             if (methodPsiElement == null) {
                 InsidiousNotification.notifyMessage("Failed to identify method in source for " +
                         selectedCandidate.getMainMethod().getMethodName(), NotificationType.WARNING);
@@ -954,15 +985,11 @@ public class StompComponent implements
 
             JavaMethodAdapter method = new JavaMethodAdapter(methodPsiElement);
             showDirectInvoke(method);
-            try {
-                directInvokeComponent.renderForMethod(method,
-                        selectedCandidate.getMainMethod().getArguments()
-                                .stream().map(e -> new String(e.getProb().getSerializedValue()))
-                                .collect(Collectors.toList()));
-                directInvokeComponent.triggerExecute();
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
+            directInvokeComponent.renderForMethod(method,
+                    selectedCandidate.getMainMethod().getArguments()
+                            .stream().map(e -> new String(e.getProb().getSerializedValue()))
+                            .collect(Collectors.toList()));
+            directInvokeComponent.triggerExecute();
         }
 
     }
@@ -1029,12 +1056,8 @@ public class StompComponent implements
     }
 
     @Override
-    public void onGenerateJunitTestCaseRequest(List<TestCandidateBareBone> storedCandidate) {
-        DumbService instance = DumbService.getInstance(insidiousService.getProject());
+    public void onGenerateJunitTestCaseRequest(List<TestCandidateBareBone> storedCandidate, TestCaseGenerationConfiguration generationConfiguration) {
 
-        TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Jackson, ResourceEmbedMode.IN_CODE
-        );
         TestCaseService testCaseService = insidiousService.getTestCaseService();
         if (testCaseService == null) {
             InsidiousNotification.notifyMessage("Please start the application with unlogged-sdk to generate JUnit " +
@@ -1047,18 +1070,10 @@ public class StompComponent implements
 
             try {
 
-                CountDownLatch cdl = new CountDownLatch(1);
-                try {
-                    generateTestCaseSingle(generationConfiguration, testCaseService, testCandidateShell);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    cdl.countDown();
-                }
+                generateTestCaseSingle(generationConfiguration, testCaseService, testCandidateShell);
 
-                cdl.await();
-                instance.waitForSmartMode();
-
+            } catch (ProcessCanceledException pce) {
+                //
             } catch (Exception e) {
                 logger.error("Failed to generate test case", e);
                 InsidiousNotification.notifyMessage(
@@ -1076,8 +1091,8 @@ public class StompComponent implements
             TestCaseGenerationConfiguration generationConfiguration,
             TestCaseService testCaseService,
             TestCandidateBareBone testCandidateShell) throws Exception {
-        TestCandidateMetadata loadedTestCandidate = ApplicationManager.getApplication().executeOnPooledThread(
-                () -> insidiousService.getTestCandidateById(testCandidateShell.getId(), true)).get();
+        TestCandidateMetadata loadedTestCandidate = insidiousService.getTestCandidateById(testCandidateShell.getId(),
+                true);
         Parameter testSubject = loadedTestCandidate.getTestSubject();
         if (testSubject.isException()) {
             return true;
@@ -1094,7 +1109,19 @@ public class StompComponent implements
 
         generationConfiguration.setTestMethodName(
                 "test" + methodName.substring(0, 1).toUpperCase(Locale.ROOT) + methodName.substring(1));
-        TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+        TestCaseUnit testCaseUnit = DumbService.getInstance(project)
+                .tryRunReadActionInSmartMode(() -> {
+                    try {
+                        return testCaseService.buildTestCaseUnit(generationConfiguration);
+                    } catch (ProcessCanceledException pce) {
+                        return null;
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }, "Building test");
+        if (testCaseUnit == null) {
+            return false;
+        }
         List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
         testCaseUnit1.add(testCaseUnit);
         TestSuite testSuite = new TestSuite(testCaseUnit1);
@@ -1132,12 +1159,12 @@ public class StompComponent implements
 
                                 switch (parts[1]) {
                                     case "class":
-                                        filterModel.getIncludedClassNames().add(fullyQualifiedClassname);
-                                        filterModel.getExcludedClassNames().remove(fullyQualifiedClassname);
+                                        stompFilterModel.getIncludedClassNames().add(fullyQualifiedClassname);
+                                        stompFilterModel.getExcludedClassNames().remove(fullyQualifiedClassname);
                                         break;
                                     case "method":
-                                        filterModel.getIncludedMethodNames().add(methodName);
-                                        filterModel.getExcludedMethodNames().remove(methodName);
+                                        stompFilterModel.getIncludedMethodNames().add(methodName);
+                                        stompFilterModel.getExcludedMethodNames().remove(methodName);
                                         break;
                                 }
 
@@ -1147,12 +1174,12 @@ public class StompComponent implements
 
                                 switch (parts[1]) {
                                     case "class":
-                                        filterModel.getIncludedClassNames().remove(fullyQualifiedClassname);
-                                        filterModel.getExcludedClassNames().add(fullyQualifiedClassname);
+                                        stompFilterModel.getIncludedClassNames().remove(fullyQualifiedClassname);
+                                        stompFilterModel.getExcludedClassNames().add(fullyQualifiedClassname);
                                         break;
                                     case "method":
-                                        filterModel.getIncludedMethodNames().remove(methodName);
-                                        filterModel.getExcludedMethodNames().add(methodName);
+                                        stompFilterModel.getIncludedMethodNames().remove(methodName);
+                                        stompFilterModel.getExcludedMethodNames().add(methodName);
                                         break;
                                 }
 
@@ -1173,10 +1200,10 @@ public class StompComponent implements
 
     private void updateFilterLabel() {
         StringBuilder tooltipText = new StringBuilder();
-        int total = filterModel.getIncludedClassNames().size()
-                + filterModel.getIncludedMethodNames().size()
-                + filterModel.getExcludedClassNames().size()
-                + filterModel.getExcludedMethodNames().size();
+        int total = stompFilterModel.getIncludedClassNames().size()
+                + stompFilterModel.getIncludedMethodNames().size()
+                + stompFilterModel.getExcludedClassNames().size()
+                + stompFilterModel.getExcludedMethodNames().size();
         if (total == 0) {
             clearFilterLabel.setVisible(false);
             filterAppliedLabel.setVisible(false);
@@ -1220,10 +1247,9 @@ public class StompComponent implements
         normalizeItemPanelComponents();
 
 
-        GridBagConstraints gbcForFakeComponent = createGBCForFakeComponent();
-        gbcForFakeComponent.gridy = itemPanel.getComponentCount();
-        itemPanel.add(new JPanel(), gbcForFakeComponent, itemPanel.getComponentCount());
-        itemPanel.add(unloggedSDKOnboarding.getComponent(), createGBCForProcessStartedComponent());
+        itemPanel.add(unloggedSDKOnboarding.getComponent(),
+                createGBCForLeftMainComponent(itemPanel.getComponentCount()));
+        itemPanel.add(new JPanel(), createGBCForFakeComponent(), itemPanel.getComponentCount());
 
         selectedCandidates.clear();
         updateControlPanel();
@@ -1239,12 +1265,15 @@ public class StompComponent implements
 
 
     public void resetTimeline() {
+        if (sessionInstance == null) {
+            return;
+        }
         lastEventId = 0;
 
         List<Component> itemsToNotDelete = new ArrayList<>();
         List<StompItem> pinnedStomps = new ArrayList<>();
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            if (insidiousService.getSessionInstance().isScanEnable() &&  insidiousService.getSessionInstance().isConnected()) {
+            if (sessionInstance.isScanEnable() && sessionInstance.isConnected()) {
                 ApplicationManager.getApplication().invokeLater(stompStatusComponent::setConnected);
             } else {
                 ApplicationManager.getApplication().invokeLater(stompStatusComponent::setDisconnected);
@@ -1291,37 +1320,27 @@ public class StompComponent implements
         }
     }
 
-    private void disconnected() {
+    public void disconnected() {
         if (candidateQueryLatch != null) {
             candidateQueryLatch.decrementAndGet();
             candidateQueryLatch = null;
         }
+        logger.warn("setDisconnected: " + stompStatusComponent.hashCode());
         stompStatusComponent.setDisconnected();
     }
 
     public void showDirectInvoke(MethodAdapter method) {
-        if (directInvokeComponent == null) {
-            directInvokeComponent = new MethodDirectInvokeComponent(insidiousService, this);
-            JComponent content = directInvokeComponent.getContent();
-            content.setMinimumSize(new Dimension(-1, 400));
-            content.setMaximumSize(new Dimension(-1, 500));
-        }
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            try {
-                directInvokeComponent.renderForMethod(method, null);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-        });
-        ApplicationManager.getApplication().invokeLater(() -> {
-            southPanel.removeAll();
-            southPanel.add(directInvokeComponent.getContent(), BorderLayout.CENTER);
+            directInvokeComponent.setMethod(method);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                splitPane.setDividerLocation(200);
+                southPanel.removeAll();
+                southPanel.add(directInvokeComponent.getContent(), BorderLayout.CENTER);
+                historyStreamScrollPanel.revalidate();
+                historyStreamScrollPanel.repaint();
+            });
 
-            southPanel.revalidate();
-            southPanel.repaint();
-            historyStreamScrollPanel.revalidate();
-            historyStreamScrollPanel.repaint();
         });
 
     }
@@ -1336,18 +1355,19 @@ public class StompComponent implements
             onSaveListener.onSaveDeclaredMock(declaredMock);
             mainPanel.revalidate();
             mainPanel.repaint();
-        }, component -> {
-            southPanel.removeAll();
+        }, () -> {
+            insidiousService.showRouterForMethod(javaMethodAdapter);
             scrollContainer.revalidate();
             scrollContainer.repaint();
         });
-        JComponent content = mockEditor.getComponent();
-        content.setMinimumSize(new Dimension(-1, 500));
-        content.setMaximumSize(new Dimension(-1, 600));
+        JComponent mockEditorComponent = mockEditor.getComponent();
+        mockEditorComponent.setMinimumSize(new Dimension(-1, 500));
+        mockEditorComponent.setMaximumSize(new Dimension(-1, 600));
 
         ApplicationManager.getApplication().invokeLater(() -> {
+            splitPane.setDividerLocation(200);
             southPanel.removeAll();
-            southPanel.add(content, BorderLayout.CENTER);
+            southPanel.add(mockEditorComponent, BorderLayout.CENTER);
             scrollContainer.revalidate();
             scrollContainer.repaint();
             historyStreamScrollPanel.revalidate();
@@ -1359,12 +1379,7 @@ public class StompComponent implements
 
 
     public void removeDirectInvoke() {
-        southPanel.remove(directInvokeComponent.getContent());
-        directInvokeComponent = null;
-        southPanel.revalidate();
-        southPanel.repaint();
-        scrollContainer.revalidate();
-        scrollContainer.repaint();
+        hideBottomSplit();
     }
 
     private void setConnectedAndWaiting() {
@@ -1397,19 +1412,34 @@ public class StompComponent implements
     }
 
     private void setConnected() {
+        logger.warn("setConnected: " + stompStatusComponent.hashCode());
         stompStatusComponent.setConnected();
     }
 
     public synchronized void loadNewCandidates() {
+        if (sessionInstance == null) {
+            return;
+        }
         if (candidateQueryLatch != null) {
             return;
         }
         candidateQueryLatch = new AtomicInteger(1);
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            insidiousService
-                    .getSessionInstance()
-                    .getTestCandidates(this, lastEventId, filterModel, candidateQueryLatch);
+            if (sessionInstance.isConnected() && sessionInstance.isScanEnable()) {
+                setConnected();
+            } else {
+                disconnected();
+            }
+        });
+
+        countByMethodName.clear();
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            if (candidateQueryLatch == null) {
+                candidateQueryLatch = new AtomicInteger(1);
+            }
+            sessionInstance
+                    .getTestCandidates(this, lastEventId, stompFilterModel, candidateQueryLatch);
         });
     }
 
@@ -1418,7 +1448,7 @@ public class StompComponent implements
     }
 
     @Override
-    public void onClose(MethodDirectInvokeComponent methodDirectInvokeComponent) {
+    public void onClose() {
         removeDirectInvoke();
 
     }
@@ -1488,10 +1518,10 @@ public class StompComponent implements
 
         int count = countAtomic.incrementAndGet();
         if (count > 40) {
-            if (!filterModel.getIncludedClassNames().contains(className) ||
-                    !filterModel.getIncludedMethodNames().contains(methodName)) {
-                filterModel.getExcludedMethodNames().add(methodName);
-                filterModel.getExcludedClassNames().add(className);
+            if (!stompFilterModel.getIncludedClassNames().contains(className) ||
+                    !stompFilterModel.getIncludedMethodNames().contains(methodName)) {
+                stompFilterModel.getExcludedMethodNames().add(methodName);
+                stompFilterModel.getExcludedClassNames().add(className);
                 InsidiousNotification.notifyMessage("Excluded [" + key + "] from live view. If you want to see them " +
                                 "include the class [" + className + "] and method [" + methodName + "] in filters.",
                         NotificationType.INFORMATION);
@@ -1503,31 +1533,6 @@ public class StompComponent implements
         if (testCandidateMetadata.getExitProbeIndex() > lastEventId) {
             lastEventId = testCandidateMetadata.getExitProbeIndex();
         }
-//        if (stompItems.size() > 0) {
-//
-////            StompItem last = stompItems.get(stompItems.size() - 1);
-////            long gapStartIndex = last.getTestCandidate().getExitProbeIndex();
-////            long gapEndIndex = testCandidateMetadata.getEntryProbeIndex();
-////            int count = insidiousService.getMethodCallCountBetween(gapStartIndex, gapEndIndex);
-////            if (count > 0) {
-////                AFewCallsLater aFewCallsLater = new AFewCallsLater(gapStartIndex, gapEndIndex, count,
-////                        this);
-////
-////                JScrollBar verticalScrollBar = historyStreamScrollPanel.getVerticalScrollBar();
-////                int scrollPosition = verticalScrollBar.getValue();
-////
-////                JPanel labelPanel = aFewCallsLater.getComponent();
-////
-////                JPanel rowPanel = new JPanel(new BorderLayout());
-////                rowPanel.add(labelPanel, BorderLayout.CENTER);
-////                rowPanel.add(createLinePanel(createLineComponent()), BorderLayout.EAST);
-////                GridBagConstraints gbcForLeftMainComponent = createGBCForLeftMainComponent(
-////                        itemPanel.getComponentCount());
-//////                makeSpace(0);
-////                itemPanel.add(rowPanel, gbcForLeftMainComponent, 0);
-////
-////            }
-//        }
         addCandidateToUi(testCandidateMetadata, itemPanel.getComponentCount());
         itemPanel.revalidate();
         scrollContainer.revalidate();
@@ -1536,11 +1541,13 @@ public class StompComponent implements
 
     }
 
-    public void setSession(ExecutionSession executionSession) {
+    public void setSession(SessionInstanceInterface sessionInstance) {
         if (candidateQueryLatch != null) {
             candidateQueryLatch.decrementAndGet();
             candidateQueryLatch = null;
         }
+        this.sessionInstance = sessionInstance;
+        sessionInstance.addSessionScanEventListener(getScanEventListener());
     }
 
     public void onMethodFocussed(MethodAdapter method) {
@@ -1548,31 +1555,29 @@ public class StompComponent implements
             lastMethodFocussed = null;
             return;
         }
-        String newMethodName = method.getName();
-        ClassAdapter containingClass = method.getContainingClass();
-        List<String> newClassNameList = new ArrayList<>();
-        newClassNameList.add(containingClass.getQualifiedName());
-        for (ClassAdapter aSuper : containingClass.getSupers()) {
-            newClassNameList.add(aSuper.getQualifiedName());
-        }
+//        ClassAdapter containingClass = method.getContainingClass();
+//        List<String> newClassNameList = new ArrayList<>();
+//        newClassNameList.add(containingClass.getQualifiedName());
+//        for (ClassAdapter aSuper : containingClass.getSupers()) {
+//            newClassNameList.add(aSuper.getQualifiedName());
+//        }
 
-        JavaPsiImplementationHelper jsp = JavaPsiImplementationHelper.getInstance(method.getProject());
 
-        Collection<PsiClass> childClasses = ClassInheritorsSearch.search(
-                ApplicationManager.getApplication().runReadAction(
-                        (Computable<PsiClass>) () -> method.getPsiMethod().getContainingClass())).findAll();
-
-        for (PsiClass childClass : childClasses) {
-            ApplicationManager.getApplication().runReadAction(
-                    (Computable<String>) () -> {
-                        String name = childClass.getQualifiedName();
-                        newClassNameList.add(name);
-                        for (PsiClass anInterface : childClass.getInterfaces()) {
-                            newClassNameList.add(anInterface.getQualifiedName());
-                        }
-                        return name;
-                    });
-        }
+//        Collection<PsiClass> childClasses = ClassInheritorsSearch.search(
+//                ApplicationManager.getApplication().runReadAction(
+//                        (Computable<PsiClass>) () -> method.getPsiMethod().getContainingClass())).findAll();
+//
+//        for (PsiClass childClass : childClasses) {
+//            ApplicationManager.getApplication().runReadAction(
+//                    (Computable<String>) () -> {
+//                        String name = childClass.getQualifiedName();
+//                        newClassNameList.add(name);
+//                        for (PsiClass anInterface : childClass.getInterfaces()) {
+//                            newClassNameList.add(anInterface.getQualifiedName());
+//                        }
+//                        return name;
+//                    });
+//        }
 
 
         MethodUnderTest newMethodAdapter = ApplicationManager.getApplication().runReadAction(
@@ -1585,26 +1590,6 @@ public class StompComponent implements
         }
 
         lastMethodFocussed = newMethodAdapter;
-        if (filterModel.isFollowEditor()) {
-
-            if (filterModel.getIncludedMethodNames().size() == 1 && filterModel.getIncludedMethodNames()
-                    .contains(newMethodName)) {
-                if (filterModel.getIncludedClassNames().size() == 1 && filterModel.getIncludedClassNames()
-                        .containsAll(newClassNameList)) {
-                    if (filterModel.getExcludedClassNames().size() == 0 && filterModel.getExcludedMethodNames()
-                            .size() == 0) {
-                        // already set
-                        return;
-                    }
-                }
-            }
-
-            clearFilter();
-            filterModel.getIncludedMethodNames().add(newMethodName);
-            filterModel.getIncludedClassNames().addAll(newClassNameList);
-            updateFilterLabel();
-            resetAndReload();
-        }
     }
 
     public void showOnboardingScreen(UnloggedOnboardingScreenV2 screen) {
@@ -1628,5 +1613,48 @@ public class StompComponent implements
         notification.setSubtitle("Use unlogged-sdk:" + requiredVersion.toString());
         notification.setIcon(UIUtils.UNLOGGED_ICON_DARK_SVG);
         Notifications.Bus.notify(notification);
+    }
+
+    public void hideBottomSplit() {
+        southPanel.removeAll();
+        splitPane.setDividerLocation(splitPane.getHeight());
+    }
+
+    public void createJunitFromSelectedReplay() {
+
+    }
+
+    public int selectVisibleCandidates() {
+        selectedCandidates.clear();
+        selectAll();
+
+        return selectedCandidates.size();
+    }
+
+    public List<TestCandidateBareBone> getSelectedCandidates() {
+        return selectedCandidates;
+    }
+
+    public void showRouterForMethod(MethodAdapter methodAdapter) {
+        if (directInvokeComponent != null) {
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                directInvokeComponent.setMethod(methodAdapter);
+            });
+        }
+        ApplicationManager.getApplication().invokeLater(() -> {
+            splitPane.setDividerLocation(50);
+            southPanel.removeAll();
+            southPanel.add(directInvokeComponent.getContent(), BorderLayout.CENTER);
+            directInvokeComponent.showRouter();
+            southPanel.revalidate();
+            southPanel.repaint();
+            southPanel.getParent().revalidate();
+            southPanel.getParent().repaint();
+        });
+
+    }
+
+    public void setSessionInstance (SessionInstance sessionInstance) {
+        this.sessionInstance = sessionInstance;
     }
 }

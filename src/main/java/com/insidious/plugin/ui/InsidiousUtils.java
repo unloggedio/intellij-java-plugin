@@ -48,9 +48,17 @@ public class InsidiousUtils {
                                     .getFilesByName(project, finalFileName, GlobalSearchScope.projectScope(project)));
             if (searchResult.length == 0) {
 
-                newFile = JavaPsiFacade.getInstance(project)
-                        .findClass(ClassTypeUtils.getDescriptorToDottedClassName(className), GlobalSearchScope.allScope(project))
-                        .getContainingFile().getVirtualFile();
+                String finalClassName = className;
+                newFile = ApplicationManager.getApplication().runReadAction((Computable<VirtualFile>) () ->
+                {
+                    String descriptorToDottedClassName = ClassTypeUtils.getDescriptorToDottedClassName(finalClassName);
+                    PsiClass aClass = JavaPsiFacade.getInstance(project)
+                            .findClass(descriptorToDottedClassName, GlobalSearchScope.allScope(project));
+                    if (aClass == null) {
+                        return null;
+                    }
+                    return aClass.getContainingFile().getVirtualFile();
+                });
                 if (newFile == null) {
                     return;
                 }

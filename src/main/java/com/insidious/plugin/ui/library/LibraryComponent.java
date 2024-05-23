@@ -9,7 +9,6 @@ import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.record.AtomicRecordService;
-import com.insidious.plugin.ui.ImagePanel;
 import com.insidious.plugin.ui.InsidiousUtils;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
@@ -514,7 +513,7 @@ public class LibraryComponent {
         component.setMaximumSize(new Dimension(500, 800));
         ComponentLifecycleListener<LibraryFilter> componentLifecycleListener = new ComponentLifecycleListener<LibraryFilter>() {
             @Override
-            public void onClose(LibraryFilter component) {
+            public void onClose() {
                 unloggedPreferencesPopup.cancel();
                 updateFilterLabel();
                 reloadItems();
@@ -923,7 +922,7 @@ public class LibraryComponent {
             scrollContainer.revalidate();
             scrollContainer.repaint();
             onSaveListener.onSaveDeclaredMock(declaredMockUpdated);
-        }, component -> {
+        }, () -> {
             southPanel.removeAll();
             scrollContainer.revalidate();
             scrollContainer.repaint();

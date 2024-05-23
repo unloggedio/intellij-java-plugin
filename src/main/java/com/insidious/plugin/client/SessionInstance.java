@@ -1,5 +1,6 @@
 package com.insidious.plugin.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.index.hash.HashIndex;
 import com.googlecode.cqengine.index.radixinverted.InvertedRadixTreeIndex;
@@ -41,7 +42,7 @@ import com.insidious.plugin.pojo.dao.ClassDefinition;
 import com.insidious.plugin.pojo.dao.LogFile;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
-import com.insidious.plugin.ui.stomp.FilterModel;
+import com.insidious.plugin.ui.stomp.StompFilterModel;
 import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.insidious.plugin.util.*;
 import com.intellij.notification.NotificationType;
@@ -82,12 +83,11 @@ import java.util.zip.ZipInputStream;
 import static com.insidious.common.weaver.EventType.*;
 import static com.insidious.plugin.client.DatFileType.*;
 
-public class SessionInstance implements Runnable {
+public class SessionInstance implements SessionInstanceInterface, Runnable {
     private static final Logger logger = LoggerUtil.getInstance(SessionInstance.class);
     private final File sessionDirectory;
     private final ExecutionSession executionSession;
     private final Map<String, String> cacheEntries = new HashMap<>();
-    private final ConnectionCheckerService connectionCheckerService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private final ExecutorService executorPool;
     private final ZipConsumer zipConsumer;
@@ -101,6 +101,7 @@ public class SessionInstance implements Runnable {
     private final List<SessionScanEventListener> sessionScanEventListeners = new ArrayList<>();
     private final List<NewTestCandidateIdentifiedListener> testCandidateListener = new ArrayList<>();
     private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
+    private ConnectionCheckerService connectionCheckerService = null;
     //    private final DatabasePipe databasePipe;
     private DaoService daoService;
     private boolean scanEnable = false;
@@ -124,8 +125,12 @@ public class SessionInstance implements Runnable {
     public SessionInstance(ExecutionSession executionSession, ServerMetadata serverMetadata, Project project) throws SQLException,
             IOException {
         this.project = project;
+        String agentServerUrl = serverMetadata.getAgentServerUrl();
+        if (agentServerUrl == null || agentServerUrl.length() < 6) {
+            agentServerUrl = "http://localhost:12100";
+        }
         this.unloggedSdkApiAgentClient =
-                new UnloggedSdkApiAgentClient(serverMetadata.getAgentServerUrl());
+                new UnloggedSdkApiAgentClient(agentServerUrl);
         this.connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgentClient);
 
 
@@ -137,7 +142,6 @@ public class SessionInstance implements Runnable {
             boolean created = sessionLockFile.createNewFile();
             if (created) {
                 scanEnable = true;
-                sessionLockFile.deleteOnExit();
                 logger.warn("scan lock file created: " + project.getName());
             } else {
                 logger.warn("scan lock file wasn't created, scanning is disabled: " + project.getName());
@@ -188,9 +192,12 @@ public class SessionInstance implements Runnable {
                     new DefaultThreadFactory("UnloggedSessionThreadPool", true));
             executorPool.submit(this);
             executorPool.submit(zipConsumer);
-            executorPool.submit(this.connectionCheckerService);
+            if (this.connectionCheckerService != null) {
+                executorPool.submit(this.connectionCheckerService);
+            }
             executorPool.submit(() -> {
                 try {
+                    logger.warn("publishEvent(ScanEventType.START)");
                     publishEvent(ScanEventType.START);
                     this.sessionArchives = refreshSessionArchivesList(false);
                 } catch (IOException e) {
@@ -222,16 +229,19 @@ public class SessionInstance implements Runnable {
         return dataEvent;
     }
 
+    @Override
     public boolean isScanEnable() {
         return scanEnable;
     }
 
+	@Override
     public boolean isConnected() {
         AgentCommandResponse<ServerMetadata> pingResponse = unloggedSdkApiAgentClient.ping();
         return ResponseType.NORMAL.equals(pingResponse.getResponseType());
     }
 
     private void publishEvent(ScanEventType scanEventType) {
+//        logger.warn("publishEvent [" + sessionScanEventListeners.size() + "] ScanEventType: " + scanEventType);
         switch (scanEventType) {
 
             case START:
@@ -277,6 +287,7 @@ public class SessionInstance implements Runnable {
         return logFileMap;
     }
 
+	@Override
     public ExecutionSession getExecutionSession() {
         return executionSession;
     }
@@ -1008,6 +1019,7 @@ public class SessionInstance implements Runnable {
         Set<Long> ids = new HashSet<>(Arrays.asList(valueIds));
 
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
+        logger.warn("Reading data from file [" + bytes.length + "] => " + dataEvents.event().entries().size() + " events ");
 
         return dataEvents.event()
                 .entries()
@@ -1034,6 +1046,7 @@ public class SessionInstance implements Runnable {
                 .collect(Collectors.toList());
     }
 
+	@Override
     public TypeInfo getTypeInfo(Integer typeId) {
 
         Map<String, TypeInfo> result = archiveIndex.getTypesById(new HashSet<>(Collections.singletonList(typeId)));
@@ -1044,6 +1057,7 @@ public class SessionInstance implements Runnable {
         return new TypeInfo(typeId, "unidentified type", "", 0, 0, "", new int[0]);
     }
 
+	@Override
     public TypeInfo getTypeInfo(String name) {
 
         if (archiveIndex != null) {
@@ -1056,6 +1070,7 @@ public class SessionInstance implements Runnable {
         return new TypeInfo(-1, name, "", 0, 0, "", new int[0]);
     }
 
+	@Override
     public List<TypeInfoDocument> getAllTypes() {
         return new ArrayList<>(archiveIndex.Types());
     }
@@ -1537,6 +1552,7 @@ public class SessionInstance implements Runnable {
 
         Set<Integer> ids = new HashSet<>(Arrays.asList(probeIds));
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
+        logger.warn("Reading data from file [" + bytes.length + "] => " + dataEvents.event().entries().size() + " events ");
 
         return dataEvents.event()
                 .entries()
@@ -1565,6 +1581,7 @@ public class SessionInstance implements Runnable {
                 .collect(Collectors.toList());
     }
 
+    @Override
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) {
         File archiveToServe = null;
         for (File sessionArchive : this.sessionArchives) {
@@ -1591,6 +1608,7 @@ public class SessionInstance implements Runnable {
 
         KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(
                 new ByteBufferKaitaiStream(bytesWithName.getBytes()));
+        logger.warn("Reading data from file [" + bytesWithName.getBytes().length + "] => " + eventsContainer.event().entries().size() + " events ");
 
 
         checkProgressIndicator(null, "Mapping " + eventsContainer.event()
@@ -1753,6 +1771,7 @@ public class SessionInstance implements Runnable {
 //        return objects;
 //    }
 
+	@Override
     public ClassWeaveInfo getClassWeaveInfo() {
 
 
@@ -1792,6 +1811,8 @@ public class SessionInstance implements Runnable {
                 .entries();
         io.close();
         long end = new Date().getTime();
+        logger.warn("Reading data from file [" + "] => " + events.size() + " events ");
+
         logger.warn("Read events took: " + (end - start) + " ms");
         return events;
     }
@@ -1837,10 +1858,13 @@ public class SessionInstance implements Runnable {
                 .entries();
         kaitaiStream.close();
         long end = new Date().getTime();
+        logger.warn("Reading data from file [" + "] => " + events.size() + " events ");
+
         logger.warn("Read events took: " + ((end - start) / 1000));
         return events;
     }
 
+    @Override
     public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
 
         List<DataEventWithSessionId> dataEventList = new LinkedList<>();
@@ -1850,6 +1874,13 @@ public class SessionInstance implements Runnable {
 
 
         final long objectId = filteredDataEventsRequest.getObjectId();
+//        if (this.sessionArchives == null) {
+        try {
+            this.sessionArchives = refreshSessionArchivesList(false);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+//        }
 
         LinkedList<File> sessionArchivesLocal = new LinkedList<>(this.sessionArchives);
 
@@ -2193,7 +2224,9 @@ public class SessionInstance implements Runnable {
 
                 NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
                         INDEX_OBJECT_DAT_FILE.getFileName());
-                assert objectIndexBytes != null;
+                if (objectIndexBytes == null) {
+                    continue;
+                }
                 ArchiveIndex objectsIndex;
                 try {
                     objectsIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
@@ -2268,6 +2301,7 @@ public class SessionInstance implements Runnable {
 
     }
 
+    @Override
     public void unlockNextScan() {
         scanLock.offer(1);
     }
@@ -2275,6 +2309,12 @@ public class SessionInstance implements Runnable {
     private void scanDataAndBuildReplay() {
         if (probeInfoIndex == null) {
             logger.warn("probe info index is not ready: " + this.executionSession.getPath());
+            try {
+                refreshSessionArchivesList(true);
+            } catch (IOException e) {
+                logger.warn("failed to refresh session archives", e);
+                // throw new RuntimeException(e);
+            }
             return;
         }
         if (isSessionCorrupted) {
@@ -2350,6 +2390,11 @@ public class SessionInstance implements Runnable {
             properties.put("project", this.project.getName());
             properties.put("session", executionSession.getPath());
             properties.put("message", e.getMessage());
+            try {
+                properties.put("stacktrace", ObjectMapperInstance.getInstance().writeValueAsBytes(e.getStackTrace()));
+            } catch (JsonProcessingException ex) {
+//                throw new RuntimeException(ex);
+            }
             UsageInsightTracker.getInstance().RecordEvent("SESSION_CORRUPT", properties);
             if (shutdown) {
                 scanEnable = false;
@@ -2413,6 +2458,7 @@ public class SessionInstance implements Runnable {
         return newTestCaseIdentified;
 
     }
+    long idToStopAt = 2541064L;
 
     private void updateObjectInfoIndex(Long eventValue) throws IOException {
         if (this.sessionArchives == null) {
@@ -2507,7 +2553,10 @@ public class SessionInstance implements Runnable {
         MethodInfo methodInfo = new MethodInfo(0, 0, null, null, null, 0, null, null);
         String existingParameterType;
         Parameter parameterInstance = new Parameter();
-        logger.warn("processing [" + eventsSublist.size() + "] events from [" + logFileList.size() + "] log files");
+        logger.warn(
+                "processing [" + eventsSublist.size() + "] events from [" + logFileList.size() + "] log files: " + eventsSublist.get(
+                        eventsSublist.size() - 1).block().eventId());
+        List<String> incomingMethodParameters = new ArrayList<>();
         for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
             KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = e.block();
@@ -2553,6 +2602,9 @@ public class SessionInstance implements Runnable {
             int line = probeInfo.getLine();
             if (threadState.candidateSize() != 0 && line != 0) {
                 threadState.getTopCandidate().addLineCovered(line);
+            }
+            if (eventBlock.eventId() == idToStopAt) {
+                logger.warn("sdf");
             }
             switch (probeInfo.getEventType()) {
 
@@ -3049,6 +3101,8 @@ public class SessionInstance implements Runnable {
                     methodCall = null;
                     // a method_entry event can come in without a corresponding event for call,
                     // in which case this is actually a separate method call
+                    incomingMethodParameters = MethodSignatureParser.parseMethodSignature(
+                            methodInfo.getMethodDesc());
                     if (threadState.getCallStackSize() > 0) {
                         methodCall = threadState.getTopCall();
                         String expectedClassName = ClassTypeUtils.getDescriptorToDottedClassName(
@@ -3184,16 +3238,11 @@ public class SessionInstance implements Runnable {
                         existingParameter.setProbeAndProbeInfo(dataEvent, probeInfo);
                         isModified = true;
                     }
-//                    if (existingParameter.getType() == null) {
-//                        ObjectInfoDocument objectInfo = objectInfoIndex.get(existingParameter.getValue());
-//                        if (objectInfo != null) {
-//                            TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-//                            if (!typeInfo.getTypeName().contains(".$")) {
-//                                existingParameter.setType(typeInfo.getTypeName());
-//                            }
-//                            isModified = true;
-//                        }
-//                    }
+                    if (existingParameter.getType() == null && incomingMethodParameters.size() > 0) {
+                        String paramType = incomingMethodParameters.remove(0);
+                        existingParameter.setType(paramType);
+                        isModified = true;
+                    }
                     saveProbe = true;
 
                     topCall = threadState.getTopCall();
@@ -3338,6 +3387,11 @@ public class SessionInstance implements Runnable {
                     }
                     break;
 
+                case METHOD_THROW:
+                    dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                    logger.warn("METHOD_THROW: " + dataEvent);
+                    break;
+
 
                 case METHOD_NORMAL_EXIT:
 
@@ -3370,7 +3424,15 @@ public class SessionInstance implements Runnable {
 
                     }
 
+                    if (existingParameter.getType() == null && incomingMethodParameters.size() > 0) {
+                        String paramType = incomingMethodParameters.remove(0);
+                        existingParameter.setType(paramType);
+                        isModified = true;
+                    }
+
+
                     if (existingParameter.getType() == null && eventValue != 0) {
+
                         ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
                         if (probeInfo.getValueDesc() == Descriptor.Object) {
 
@@ -3456,6 +3518,10 @@ public class SessionInstance implements Runnable {
                         com.insidious.plugin.pojo.dao.TestCandidateMetadata newCurrent = threadState.getTopCandidate();
                         com.insidious.plugin.pojo.dao.MethodCallExpression newCurrentMainMethod = methodCallMap.get(
                                 newCurrent.getMainMethod());
+                        if (newCurrentMainMethod == null ||
+                                methodCallSubjectTypeMap.get(newCurrentMainMethod.getId()) == null) {
+                            logger.warn("hello");
+                        }
 
                         if (methodCallSubjectTypeMap.get(newCurrentMainMethod.getId())
                                 .equals(methodCallSubjectTypeMap.get(completed.getMainMethod()))) {
@@ -3706,6 +3772,7 @@ public class SessionInstance implements Runnable {
         }
     }
 
+	@Override
     public CodeCoverageData createCoverageData() {
 
         List<MethodDefinition> allMethods = daoService.getAllMethodDefinitions();
@@ -3865,6 +3932,7 @@ public class SessionInstance implements Runnable {
         return daoService.getTestCandidateAggregates();
     }
 
+	@Override
     public List<TestCandidateMethodAggregate> getTestCandidateAggregatesByClassName(String className) {
         return daoService.getTestCandidateAggregatesForType(className);
     }
@@ -3873,6 +3941,7 @@ public class SessionInstance implements Runnable {
 //        return daoService.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
 //    }
 
+	@Override
     public List<TestCandidateMetadata> getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
         try {
             return daoService.getTestCandidatesForAllMethod(candidateSearchQuery);
@@ -3884,6 +3953,7 @@ public class SessionInstance implements Runnable {
         }
     }
 
+	@Override
     public List<MethodCallExpression> getMethodCallExpressions(CandidateSearchQuery candidateSearchQuery) {
         try {
             return daoService.getMethodCallExpressions(candidateSearchQuery);
@@ -3895,15 +3965,18 @@ public class SessionInstance implements Runnable {
         }
     }
 
+	@Override
     public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception {
         return daoService.getConstructorCandidate(parameter);
     }
 
+	@Override
     public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
         TestCandidateMetadata testCandidateMetadata = daoService.getTestCandidateById(testCandidateId, loadCalls);
         return testCandidateMetadata;
     }
 
+	@Override
     public void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
         List<Parameter> methodArguments = methodCallExpression.getArguments();
 
@@ -3935,7 +4008,7 @@ public class SessionInstance implements Runnable {
         }
     }
 
-
+	@Override
     public synchronized void close() {
         if (shutdown) {
             // already shutdown
@@ -3944,6 +4017,7 @@ public class SessionInstance implements Runnable {
         shutdown = true;
         logger.warn("Closing session instance: " + executionSession.getPath());
         publishEvent(ScanEventType.ENDED);
+        removeAllScanEventListeners();
         try {
             if (zipConsumer != null) {
                 zipConsumer.close();
@@ -3993,6 +4067,7 @@ public class SessionInstance implements Runnable {
         }
     }
 
+	@Override
     public void addTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener) {
         this.testCandidateListener.add(testCandidateListener);
     }
@@ -4001,63 +4076,70 @@ public class SessionInstance implements Runnable {
         this.testCandidateListener.remove(testCandidateListener);
     }
 
+	@Override
     public Map<String, ClassInfo> getClassIndex() {
         return classInfoIndexByName;
     }
 
+	@Override
     public void getTestCandidates(
             Consumer<List<TestCandidateBareBone>> testCandidateReceiver,
             long afterEventId,
-            FilterModel filterModel, AtomicInteger cdl) {
-
-        try {
-
-
-            int page = 0;
-            int limit = 50;
-            int count = 0;
-            int attempt = 0;
-            long currentAfterEventId = afterEventId;
-            while (true) {
-                attempt++;
-                if (shutdown) {
-                    cdl.decrementAndGet();
-                    break;
-                }
-                if (cdl.get() < 1) {
-                    logger.warn(
-                            "shutting down query started at [" + afterEventId + "] currently at item [" + count +
-                                    "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
-                    break;
-                }
-                List<TestCandidateBareBone> testCandidateMetadataList = daoService
-                        .getTestCandidatePaginated(currentAfterEventId, 0, limit, filterModel);
-                if (testCandidateMetadataList.size() > 0) {
-                    count += testCandidateMetadataList.size();
-                    testCandidateReceiver.accept(testCandidateMetadataList);
-                    currentAfterEventId = testCandidateMetadataList.get(0).getId() + 1;
-                }
-                if (testCandidateMetadataList.size() < limit) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
+            StompFilterModel stompFilterModel, AtomicInteger cdl) {
+        int page = 0;
+        int limit = 50;
+        int count = 0;
+        int attempt = 0;
+        long currentAfterEventId = afterEventId;
+        while (true) {
+            attempt++;
+            if (shutdown) {
+                cdl.decrementAndGet();
+                break;
+            }
+            if (cdl.get() < 1) {
+                logger.warn(
+                        "shutting down query started at [" + afterEventId + "] currently at item [" + count +
+                                "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
+                break;
+            }
+            List<TestCandidateBareBone> testCandidateMetadataList = getTestCandidatePaginatedByStompFilterModel(
+                    stompFilterModel,
+                    currentAfterEventId, limit);
+            if (cdl.get() < 1) {
+                logger.warn(
+                        "shutting down query started at [" + afterEventId + "] currently at item [" + count +
+                                "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
+                break;
+            }
+            if (testCandidateMetadataList.size() > 0) {
+                count += testCandidateMetadataList.size();
+                testCandidateReceiver.accept(testCandidateMetadataList);
+                currentAfterEventId = testCandidateMetadataList.get(0).getId() + 1;
+            }
+            if (testCandidateMetadataList.size() < limit) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
             }
-
-        } catch (SQLException e) {
-            // failed to load candidates hmm
-            e.printStackTrace();
-            throw new RuntimeException(e);
         }
-
     }
 
+    @Override
+    public List<TestCandidateBareBone> getTestCandidatePaginatedByStompFilterModel(StompFilterModel stompFilterModel,
+                                                                                   long currentAfterEventId, int limit) {
+        return daoService
+                .getTestCandidatePaginated(currentAfterEventId, 0, limit, stompFilterModel);
+    }
+
+	@Override
     public Project getProject() {
         return project;
     }
 
+	@Override
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
         return daoService.getClassMethodCallAggregates(qualifiedName);
     }
@@ -4072,7 +4154,7 @@ public class SessionInstance implements Runnable {
                     publishEvent(ScanEventType.WAITING);
                 }
             } catch (InterruptedException ie) {
-//                ie.printStackTrace();
+                ie.printStackTrace();
                 logger.warn("scan checker interrupted");
 //                return;
             } catch (Exception e) {
@@ -4083,43 +4165,57 @@ public class SessionInstance implements Runnable {
         }
     }
 
+	@Override
     public MethodDefinition getMethodDefinition(MethodUnderTest methodUnderTest1) {
         return daoService.getAllMethodDefinitionBySignature(methodUnderTest1.getClassName(),
                 methodUnderTest1.getName(), methodUnderTest1.getSignature());
     }
 
+	@Override
     public int getMethodCallCountBetween(long start, long end) {
         return daoService.getCallCountBetween(start, end);
     }
 
+	@Override
     public void addSessionScanEventListener(SessionScanEventListener listener) {
+        this.sessionScanEventListeners.clear();
         this.sessionScanEventListeners.add(listener);
-        if (scanEnable) {
+        if (scanEnable && connectionCheckerService.isConnected()) {
             listener.started();
         }
     }
 
+	@Override
     public List<TestCandidateMetadata> getTestCandidateBetween(long eventId, long eventId1) throws SQLException {
         return daoService.getTestCandidateBetween(eventId, eventId1);
     }
 
+	@Override
     public List<MethodCallExpression> getMethodCallsBetween(long start, long end) {
         return daoService.getCallsBetween(start, end);
     }
 
+	@Override
     public int getProcessedFileCount() {
         return daoService.getProcessedFileCount();
     }
 
+	@Override
     public int getTotalFileCount() {
         return daoService.getTotalFileCount();
     }
 
+	@Override
     public List<UnloggedTimingTag> getTimingTags(long id) {
         return daoService.getTimingTags(id);
     }
 
+	@Override
     public UnloggedSdkApiAgentClient getAgent() {
         return unloggedSdkApiAgentClient;
+    }
+
+    public void removeAllScanEventListeners() {
+        sessionScanEventListeners.clear();
     }
 }

@@ -4,12 +4,16 @@ import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.agent.ServerMetadata;
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.constants.SessionMode;
+import com.insidious.plugin.upload.SourceModel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 
+import com.insidious.plugin.client.NetworkSessionInstanceClient;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -21,24 +25,37 @@ public class ActiveSessionManager {
 
 
     private static final Logger logger = LoggerUtil.getInstance(ActiveSessionManager.class);
-    private final Map<String, SessionInstance> sessionInstanceMap = new HashMap<>();
+    private final Map<String, SessionInstanceInterface> sessionInstanceMap = new HashMap<>();
 
     public ActiveSessionManager() {
     }
 
-    public synchronized SessionInstance createSessionInstance(ExecutionSession executionSession, ServerMetadata serverMetadata, Project project) {
+    public synchronized SessionInstanceInterface createSessionInstance(ExecutionSession executionSession, ServerMetadata serverMetadata, SourceModel sourceModel, Project project) {
         if (sessionInstanceMap.containsKey(executionSession.getSessionId())) {
             return sessionInstanceMap.get(executionSession.getSessionId());
         }
-        SessionInstance sessionInstance;
-        try {
-            sessionInstance = new SessionInstance(executionSession, serverMetadata, project);
-        } catch (SQLException | IOException e) {
-            logger.error("Failed to initialize session instance: " + e.getMessage(), e);
-            InsidiousNotification.notifyMessage("Failed to initialize session instance: " + e.getMessage(),
-                    NotificationType.ERROR);
-            throw new RuntimeException(e);
+
+        SessionMode sessionMode = sourceModel.getSessionMode();
+        String sessionNetworkUrl = sourceModel.getServerEndpoint();
+
+        // create a session instance
+        SessionInstanceInterface sessionInstance;
+        if (sessionMode == SessionMode.REMOTE) {
+            logger.info("attempting to create a session instance from remote process");
+            sessionInstance = new NetworkSessionInstanceClient(sessionNetworkUrl, executionSession.getSessionId(), serverMetadata, project);
         }
+        else {
+            logger.info("attempting to create a session instance from local process");
+            try {
+                sessionInstance = new SessionInstance(executionSession, serverMetadata, project);
+            } catch (SQLException | IOException e) {
+                logger.error("Failed to initialize session instance: " + e.getMessage(), e);
+                InsidiousNotification.notifyMessage("Failed to initialize session instance: " + e.getMessage(),
+                        NotificationType.ERROR);
+                throw new RuntimeException(e);
+            }
+        }
+
         sessionInstanceMap.put(executionSession.getSessionId(), sessionInstance);
         return sessionInstance;
     }
@@ -51,7 +68,7 @@ public class ActiveSessionManager {
             return;
         }
 
-        SessionInstance sessionInstance = sessionInstanceMap.get(executionSession.getSessionId());
+        SessionInstanceInterface sessionInstance = sessionInstanceMap.get(executionSession.getSessionId());
         if (sessionInstance == null) {
             logger.warn("called to delete unknown session id: " + executionSession.getSessionId()
                     + " -> " + sessionPath);
@@ -83,7 +100,7 @@ public class ActiveSessionManager {
         }
     }
 
-    public void closeSession(SessionInstance sessionInstance) {
+    public void closeSession(SessionInstanceInterface sessionInstance) {
         sessionInstanceMap.remove(sessionInstance.getExecutionSession().getSessionId());
         sessionInstance.close();
     }

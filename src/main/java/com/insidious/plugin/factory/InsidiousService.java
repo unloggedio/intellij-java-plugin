@@ -17,6 +17,7 @@ import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.*;
 import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.constants.SessionMode;
 import com.insidious.plugin.coverage.ClassCoverageData;
 import com.insidious.plugin.coverage.CodeCoverageData;
 import com.insidious.plugin.coverage.MethodCoverageData;
@@ -39,9 +40,11 @@ import com.insidious.plugin.ui.library.LibraryComponent;
 import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
-import com.insidious.plugin.ui.stomp.FilterModel;
 import com.insidious.plugin.ui.stomp.StompComponent;
+import com.insidious.plugin.ui.stomp.StompFilterModel;
+import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
+import com.insidious.plugin.upload.SourceModel;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
@@ -64,7 +67,10 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.editor.EditorKind;
 import com.intellij.openapi.editor.event.EditorEventMulticaster;
+import com.intellij.openapi.editor.event.EditorFactoryEvent;
+import com.intellij.openapi.editor.event.EditorFactoryListener;
 import com.intellij.openapi.editor.impl.EditorFactoryImpl;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
@@ -72,6 +78,8 @@ import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
@@ -83,6 +91,7 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.content.Content;
@@ -91,6 +100,8 @@ import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
 import io.netty.util.concurrent.DefaultThreadFactory;
+import okhttp3.*;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import java.awt.*;
@@ -116,7 +127,11 @@ import static com.intellij.psi.PsiModifier.ABSTRACT;
 @Storage("insidious.xml")
 @Service(Service.Level.PROJECT)
 final public class InsidiousService implements
-        Disposable, NewTestCandidateIdentifiedListener {
+        Disposable, NewTestCandidateIdentifiedListener, SessionInstanceChangeListener {
+    public static final Set<String> SKIP_METHOD_IN_FOLLOW_FILTER = new HashSet<>(
+            Arrays.asList("Object", "clone", "toString",
+                    "equals", "finalize", "notify", "hashCode", "wait",
+                    "getClass"));
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     final static private int TOOL_WINDOW_WIDTH = 400;
@@ -135,10 +150,14 @@ final public class InsidiousService implements
     private final ActiveSessionManager sessionManager;
     private final CurrentState currentState = new CurrentState();
     private final MockManager mockManager;
+    private final EditorFactoryListener editorFactoryListener;
+    private final AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
+    private final ReportingService reportingService = new ReportingService(this);
+    private final String pathToSessions;
     Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
-    private VideobugClientInterface client;
+    private UnloggedClientInterface client;
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
     private TestCaseService testCaseService;
@@ -149,14 +168,14 @@ final public class InsidiousService implements
     private Content directMethodInvokeContent;
     private Content atomicTestContent;
     private Content stompWindowContent;
-    private final AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
-    private final ReportingService reportingService = new ReportingService(this);
     private Content onboardingWindowContent;
     private UnloggedSDKOnboarding onboardingWindow;
     private boolean addedStompWindow;
     private Content libraryWindowContent;
     private LibraryComponent libraryToolWindow;
     private ToolWindow toolWindow;
+    private ServerMetadata serverMetadata = null;
+    private SourceModel sourceModel;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -167,9 +186,15 @@ final public class InsidiousService implements
 
         sessionManager = ApplicationManager.getApplication().getService(ActiveSessionManager.class);
 
-        String pathToSessions = Constants.HOME_PATH + "/sessions";
+        this.pathToSessions = Constants.HOME_PATH + "/sessions";
         FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
-        this.client = new VideobugLocalClient(pathToSessions, project, sessionManager);
+
+
+        configurationState = project.getService(InsidiousConfigurationState.class);
+
+        this.sourceModel = configurationState.getSourceModel();
+        setUnloggedClient(sourceModel);
+
         sessionListener = new GetProjectSessionsCallback() {
             private final Map<String, ServerMetadata> checkCache = new HashMap<>();
             private ExecutionSession currentSession;
@@ -188,7 +213,7 @@ final public class InsidiousService implements
                     return;
                 }
 
-                if (executionSessionList.size() == 0) {
+                if (executionSessionList.isEmpty()) {
                     logger.debug("no sessions found");
                     // the currently loaded session has been deleted
                     if (currentSession != null && currentSession.getSessionId().equals("na")) {
@@ -210,6 +235,7 @@ final public class InsidiousService implements
                     if (serverMetadata == null) {
                         return;
                     }
+                    onAgentConnected(serverMetadata);
 
                 } else if (currentSession.getSessionId().equals(mostRecentSession.getSessionId())) {
                     // already using this session
@@ -224,16 +250,30 @@ final public class InsidiousService implements
                                     "recent session found [" + mostRecentSession.getSessionId() + "]");
                 }
                 currentSession = mostRecentSession;
-                setSession(mostRecentSession, serverMetadata);
+                try {
+                    setSession(mostRecentSession, serverMetadata);
+                } catch (Throwable t) {
+                    InsidiousNotification.notifyMessage("Failed to load session: " + t.getMessage(),
+                            NotificationType.ERROR);
+                }
             }
 
-            private ServerMetadata checkSessionBelongsToProject(ExecutionSession mostRecentSession, Project project) {
-                if (checkCache.containsKey(mostRecentSession.getSessionId())) {
-                    return checkCache.get(mostRecentSession.getSessionId());
+            private ServerMetadata checkSessionBelongsToProject(ExecutionSession session, Project project) {
+
+                if (session.getSessionMode() == SessionMode.REMOTE) {
+                    ServerMetadata serverMetadata = getServerMetadata(sourceModel, session.getSessionId());
+                    return serverMetadata;
+                }
+
+                if (checkCache.containsKey(session.getSessionId())) {
+                    return checkCache.get(session.getSessionId());
                 }
                 try {
-                    String executionLogFile = mostRecentSession.getLogFilePath();
+                    String executionLogFile = session.getLogFilePath();
                     File logFile = new File(executionLogFile);
+                    if (!logFile.exists()) {
+                        return null;
+                    }
                     BufferedReader logFileInputStream = new BufferedReader(
                             new InputStreamReader(Files.newInputStream(logFile.toPath())));
                     // do not remove
@@ -242,8 +282,8 @@ final public class InsidiousService implements
                     String agentParamsLine = logFileInputStream.readLine();
                     if (!agentParamsLine.startsWith("Params: ")) {
                         logger.warn(
-                                "The third line is not Params line, marked as session not matching: " + mostRecentSession.getLogFilePath());
-                        checkCache.put(mostRecentSession.getSessionId(), null);
+                                "The third line is not Params line, marked as session not matching: " + session.getLogFilePath());
+                        checkCache.put(session.getSessionId(), null);
                         return null;
                     }
                     String[] paramParts = agentParamsLine.substring("Params: ".length()).split(",");
@@ -257,10 +297,10 @@ final public class InsidiousService implements
                         }
                     }
                     if (!foundIncludePackage) {
-                        checkCache.put(mostRecentSession.getSessionId(), null);
-                        logger.warn(
-                                "Package not found in the params, marked as session not matching: " + mostRecentSession.getLogFilePath());
-                        return null;
+//                        checkCache.put(session.getSessionId(), null);
+//                        logger.warn(
+//                                "Package not found in the params, marked as session not matching: " + session.getLogFilePath());
+//                        return null;
                     }
                     String serverMetadataJson = logFileInputStream.readLine();
                     ServerMetadata serverMetadata;
@@ -268,11 +308,11 @@ final public class InsidiousService implements
                         serverMetadata = objectMapper.readValue(serverMetadataJson,
                                 ServerMetadata.class);
                     } catch (Exception e) {
-                        checkCache.put(mostRecentSession.getSessionId(), null);
                         logger.warn("Failed to read server metadata from log: [" + serverMetadataJson + "]", e);
-                        InsidiousNotification.notifyMessage("Found session at [" + mostRecentSession.getPath() + "] " +
+                        InsidiousNotification.notifyMessage("Found session at [" + session.getPath() + "] " +
                                         "but couldn't connect to server because of missing server metadata.",
                                 NotificationType.ERROR);
+                        checkCache.put(session.getSessionId(), null);
                         return null;
                     }
 
@@ -283,21 +323,24 @@ final public class InsidiousService implements
                     if (locatedPackage == null) {
                         logger.warn("Package for agent [" + finalIncludedPackagedName + "] NOTFOUND in current " +
                                 "project [" + project.getName() + "]" +
-                                " -> " + mostRecentSession.getLogFilePath());
-                        checkCache.put(mostRecentSession.getSessionId(), null);
-                        return null;
+                                " -> " + session.getLogFilePath());
+//                        checkCache.put(session.getSessionId(), new ServerMetadata());
+//                        return new ServerMetadata();
+                    } else {
+
+                        logger.warn("Package for agent [" + finalIncludedPackagedName + "] FOUND in current " +
+                                "project [" + project.getName() + "]" +
+                                " -> " + session.getLogFilePath());
                     }
-                    logger.warn("Package for agent [" + finalIncludedPackagedName + "] FOUND in current " +
-                            "project [" + project.getName() + "]" +
-                            " -> " + mostRecentSession.getLogFilePath());
 
 
-                    checkCache.put(mostRecentSession.getSessionId(), serverMetadata);
+                    checkCache.put(session.getSessionId(), serverMetadata);
                     return serverMetadata;
 
 
                 } catch (Exception e) {
-                    checkCache.put(mostRecentSession.getSessionId(), null);
+                    logger.warn("Failed to check session: " + session.getLogFilePath(), e);
+                    checkCache.put(session.getSessionId(), null);
                     return null;
                 }
 
@@ -312,13 +355,47 @@ final public class InsidiousService implements
         multicaster.addCaretListener(listener, this);
         multicaster.addDocumentListener(listener, this);
 
+        editorFactoryListener = new EditorFactoryListener() {
+            @Override
+            public void editorCreated(@NotNull EditorFactoryEvent event) {
+                if (project.isDisposed()) {
+                    return;
+                }
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    DumbService.getInstance(project)
+                            .runReadActionInSmartMode(() -> {
+                                populateFromEditors(null);
+                            });
+                });
+
+            }
+
+            @Override
+            public void editorReleased(@NotNull EditorFactoryEvent event) {
+                if (project.isDisposed()) {
+                    return;
+                }
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    DumbService.getInstance(project)
+                            .runReadActionInSmartMode(() -> {
+                                populateFromEditors(event);
+                            });
+                });
+            }
+        };
+        EditorFactory.getInstance().addEditorFactoryListener(editorFactoryListener, this);
+
 
 //        ConnectionCheckerService connectionCheckerService = new ConnectionCheckerService(unloggedSdkApiAgentClient);
 //        connectionCheckerThreadPool.submit(connectionCheckerService);
         junitTestCaseWriter = new JUnitTestCaseWriter(project, objectMapper);
-        configurationState = project.getService(InsidiousConfigurationState.class);
+
 
         mockManager = new MockManager(configurationState);
+
+//        if (configurationState.getFilterModel().isFollowEditor()) {
+//            populateFromEditors(null);
+//        }
 
     }
 
@@ -329,6 +406,22 @@ final public class InsidiousService implements
 
     private static String getClassMethodHashKey(AgentCommandRequest agentCommandRequest) {
         return agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
+    }
+
+    @Override
+    public UnloggedClientInterface setUnloggedClient(SourceModel sourceModel) {
+        this.sourceModel = sourceModel;
+        if (sourceModel.getSessionMode() == SessionMode.REMOTE) {
+            this.client = new NetworkClient(sourceModel);
+        } else {
+            this.client = new UnloggedLocalClient(pathToSessions, project, sessionManager);
+        }
+
+        if (this.sessionLoader != null) {
+            this.sessionLoader.setClient(this.client);
+        }
+
+        return this.client;
     }
 
     public void chooseClassImplementation(String className, ClassChosenListener classChosenListener) {
@@ -350,15 +443,16 @@ final public class InsidiousService implements
         if (implementations.length == 1) {
             PsiClass singleImplementation = (PsiClass) implementations[0];
             if (ApplicationManager.getApplication().runReadAction(
-                    (Computable<Boolean>) () -> singleImplementation.isInterface()) || ApplicationManager.getApplication()
+                    (Computable<Boolean>) singleImplementation::isInterface) || ApplicationManager.getApplication()
                     .runReadAction(
                             (Computable<Boolean>) () -> singleImplementation.hasModifierProperty(ABSTRACT))) {
                 InsidiousNotification.notifyMessage("No implementations found for " + className,
                         NotificationType.ERROR);
                 return;
             }
-            classChosenListener.classSelected(new ClassUnderTest(ApplicationManager.getApplication().runReadAction(
-                    (Computable<String>) () -> JvmClassUtil.getJvmClassName(singleImplementation))));
+            String qualifiedClassName = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> JvmClassUtil.getJvmClassName(singleImplementation));
+            classChosenListener.classSelected(new ClassUnderTest(qualifiedClassName));
             return;
         }
 
@@ -369,7 +463,7 @@ final public class InsidiousService implements
                         .filter(e -> !e.hasModifierProperty(ABSTRACT))
                         .collect(Collectors.toList()));
 
-        if (implementationOptions.size() == 0) {
+        if (implementationOptions.isEmpty()) {
             InsidiousNotification.notifyMessage("No implementations found for " + className,
                     NotificationType.ERROR);
             return;
@@ -413,6 +507,22 @@ final public class InsidiousService implements
         return reportingService;
     }
 
+//    public void generateAndSaveTestCase(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
+//        TestCaseService testCaseService = getTestCaseService();
+//        if (testCaseService == null) {
+//            return;
+//        }
+//        TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+//        ArrayList<TestCaseUnit> testCaseScripts = new ArrayList<>();
+//        testCaseScripts.add(testCaseUnit);
+//        TestSuite testSuite = new TestSuite(testCaseScripts);
+//        junitTestCaseWriter.saveTestSuite(testSuite);
+//    }
+
+//    public TestCaseGenerationConfiguration generateMethodBoilerplate(MethodAdapter methodAdapter) {
+//        return testCaseDesignerWindow.generateTestCaseBoilerPlace(methodAdapter);
+//    }
+
     public MethodAdapter getCurrentMethod() {
         return this.currentState.getCurrentMethod();
     }
@@ -444,22 +554,6 @@ final public class InsidiousService implements
         clipboard.setContents(selection, null);
     }
 
-//    public void generateAndSaveTestCase(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
-//        TestCaseService testCaseService = getTestCaseService();
-//        if (testCaseService == null) {
-//            return;
-//        }
-//        TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-//        ArrayList<TestCaseUnit> testCaseScripts = new ArrayList<>();
-//        testCaseScripts.add(testCaseUnit);
-//        TestSuite testSuite = new TestSuite(testCaseScripts);
-//        junitTestCaseWriter.saveTestSuite(testSuite);
-//    }
-
-//    public TestCaseGenerationConfiguration generateMethodBoilerplate(MethodAdapter methodAdapter) {
-//        return testCaseDesignerWindow.generateTestCaseBoilerPlace(methodAdapter);
-//    }
-
     public TestCaseUnit getTestCandidateCode(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
 //        TestCaseService testCaseService;
         if (testCaseService == null) {
@@ -484,6 +578,14 @@ final public class InsidiousService implements
 
     }
 
+//    public void generateAndUploadReport() throws APICallException, IOException {
+//        UsageInsightTracker.getInstance()
+//                .RecordEvent("DiagnosticReport", null);
+//        DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project,
+//                this.currentModule);
+//        diagnosticService.generateAndUploadReport();
+//    }
+
     private synchronized void initiateUI() {
         logger.info("initiate ui");
         if (toolWindow != null) {
@@ -504,6 +606,7 @@ final public class InsidiousService implements
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             this.sessionLoader = ApplicationManager.getApplication().getService(SessionLoader.class);
             this.sessionLoader.setClient(this.client);
+            this.sessionLoader.setProject(this.project);
             this.sessionLoader.addSessionCallbackListener(sessionListener);
             cdl.countDown();
         });
@@ -514,6 +617,25 @@ final public class InsidiousService implements
         }
         return;
     }
+
+
+//    public void addLiveView() {
+//        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
+//        if (!liveViewAdded) {
+//            toolWindow.getContentManager().addContent(liveWindowContent);
+//            toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
+//            liveViewAdded = true;
+//            try {
+//                liveViewWindow.setTreeStateToLoading();
+//                liveViewWindow.loadInfoBanner();
+//            } catch (Exception e) {
+//                //exception setting state
+//                logger.error("Failed to start scan after proceed.");
+//            }
+//        } else {
+//            toolWindow.getContentManager().setSelectedContent(liveWindowContent);
+//        }
+//    }
 
     public void addAllTabs() {
         ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
@@ -528,14 +650,39 @@ final public class InsidiousService implements
 //        testDesignerContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
 //        contentManager.addContent(testDesignerContent);
 
-        onboardingWindow = new UnloggedSDKOnboarding(this);
+        this.stompWindow = new StompComponent(this);
+        if (stompComponentThreadPool != null) {
+            stompComponentThreadPool.shutdownNow();
+        }
+        stompComponentThreadPool = Executors.newScheduledThreadPool(2);
+        stompComponentThreadPool.scheduleWithFixedDelay(stompWindow, 0, 1, TimeUnit.MILLISECONDS);
 
-        onboardingWindowContent = contentFactory.createContent(
-                onboardingWindow.getComponent(), "Setup", false);
+        stompWindowContent =
+                contentFactory.createContent(stompWindow.getComponent(), "Live", false);
 
-        onboardingWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        onboardingWindowContent.setIcon(UIUtils.UNLOGGED_SETUP);
-        contentManager.addContent(onboardingWindowContent);
+        stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
+        contentManager.addContent(stompWindowContent, 0);
+        contentManager.setSelectedContent(stompWindowContent);
+
+
+        libraryToolWindow = new LibraryComponent(project);
+
+        libraryWindowContent = contentFactory.createContent(
+                libraryToolWindow.getComponent(), "Library", false);
+        libraryWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        libraryWindowContent.setIcon(UIUtils.LIBRARY_ICON);
+        contentManager.addContent(libraryWindowContent);
+
+
+//        onboardingWindow = new UnloggedSDKOnboarding(this);
+//
+//        onboardingWindowContent = contentFactory.createContent(
+//                onboardingWindow.getComponent(), "Setup", false);
+//
+//        onboardingWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+//        onboardingWindowContent.setIcon(UIUtils.UNLOGGED_SETUP);
+//        contentManager.addContent(onboardingWindowContent);
 
 
         // stomp window
@@ -585,21 +732,21 @@ final public class InsidiousService implements
 //
     }
 
-    public VideobugClientInterface getClient() {
+    public UnloggedClientInterface getClient() {
         return client;
     }
 
-    public void toggleReportGeneration() {
-        reportingService.toggleReportMode();
+    public void setClient(UnloggedClientInterface client) {
+        this.client = client;
     }
 
-//    public void generateAndUploadReport() throws APICallException, IOException {
-//        UsageInsightTracker.getInstance()
-//                .RecordEvent("DiagnosticReport", null);
-//        DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project,
-//                this.currentModule);
-//        diagnosticService.generateAndUploadReport();
-//    }
+    public SourceModel getSourceModel() {
+        return this.sourceModel;
+    }
+
+    public void setSourceModel(SourceModel sourceModel) {
+        this.sourceModel = sourceModel;
+    }
 
     @Override
     public void dispose() {
@@ -608,6 +755,8 @@ final public class InsidiousService implements
         UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_DISPOSED", eventProperties);
         logger.warn("Disposing InsidiousService for project: " + project.getName());
         connectionCheckerThreadPool.shutdownNow();
+        EditorFactory.getInstance().removeEditorFactoryListener(editorFactoryListener);
+
         if (stompComponentThreadPool != null) {
             stompComponentThreadPool.shutdownNow();
         }
@@ -628,24 +777,6 @@ final public class InsidiousService implements
         }
         UsageInsightTracker.getInstance().close();
     }
-
-//    public void addLiveView() {
-//        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
-//        if (!liveViewAdded) {
-//            toolWindow.getContentManager().addContent(liveWindowContent);
-//            toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
-//            liveViewAdded = true;
-//            try {
-//                liveViewWindow.setTreeStateToLoading();
-//                liveViewWindow.loadInfoBanner();
-//            } catch (Exception e) {
-//                //exception setting state
-//                logger.error("Failed to start scan after proceed.");
-//            }
-//        } else {
-//            toolWindow.getContentManager().setSelectedContent(liveWindowContent);
-//        }
-//    }
 
     public Project getProject() {
         return project;
@@ -690,11 +821,17 @@ final public class InsidiousService implements
             return;
         }
 
-        FilterModel stompFilterModel = configurationState.getFilterModel();
-        stompFilterModel.setFollowEditor(true);
+        StompFilterModel stompFilterModel = configurationState.getFilterModel();
+        stompFilterModel.setFollowEditor(false);
+        stompFilterModel.clearIncluded();
+        addClassAndSuperClasses(method.getContainingClass().getSource(), stompFilterModel);
+        stompFilterModel.getIncludedMethodNames().clear();
+        stompFilterModel.getIncludedMethodNames().add(ApplicationManager.getApplication().runReadAction(
+                (Computable<String>) method::getName));
         stompWindow.onMethodFocussed(null);
         stompWindow.onMethodFocussed(method);
-        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
+        stompWindow.resetAndReload();
+//        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
 
     }
 
@@ -1069,7 +1206,7 @@ final public class InsidiousService implements
 
     public void setSession(ExecutionSession executionSession, ServerMetadata serverMetadata) {
 
-        SessionInstance currentSession = currentState.getSessionInstance();
+        SessionInstanceInterface currentSession = currentState.getSessionInstance();
         if (currentSession != null) {
             try {
                 logger.info("Closing existing session: " + currentSession.getExecutionSession().getSessionId());
@@ -1083,8 +1220,10 @@ final public class InsidiousService implements
         this.methodHash.clear();
         this.classModifiedFlagMap.clear();
         logger.info("Loading new session: " + executionSession.getSessionId() + " => " + project.getName());
-        final SessionInstance sessionInstance = sessionManager.createSessionInstance(executionSession, serverMetadata,
-                project);
+        SourceModel sourceModel = configurationState.getSourceModel();
+        SessionInstanceInterface sessionInstance = sessionManager.createSessionInstance(executionSession,
+                serverMetadata, sourceModel, project);
+
         currentState.setSessionInstance(sessionInstance);
         sessionInstance.addTestCandidateListener(this);
 
@@ -1096,45 +1235,15 @@ final public class InsidiousService implements
             removeOnboardingTab();
 
             ApplicationManager.getApplication().invokeLater(() -> {
-                ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
-                ContentManager contentManager = toolWindow.getContentManager();
+//                ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
+//                ContentManager contentManager = toolWindow.getContentManager();
 
-                if (stompWindowContent != null) {
-                    contentManager.removeContent(stompWindowContent, true);
-                }
+//                if (stompWindowContent != null) {
+//                    contentManager.removeContent(stompWindowContent, true);
+//                }
 
-                if (stompWindow != null) {
-                    stompWindow.dispose();
-                }
-
-
-                stompWindow = new StompComponent(this);
-                if (stompComponentThreadPool != null) {
-                    stompComponentThreadPool.shutdownNow();
-                }
-                stompComponentThreadPool = Executors.newScheduledThreadPool(2);
-                stompComponentThreadPool.scheduleWithFixedDelay(stompWindow, 0, 1, TimeUnit.MILLISECONDS);
-
-                stompWindowContent =
-                        contentFactory.createContent(stompWindow.getComponent(), "Live", false);
-                stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-                stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
-                contentManager.addContent(stompWindowContent, 0);
-                contentManager.setSelectedContent(stompWindowContent);
-
-
-                if (libraryToolWindow == null) {
-                    libraryToolWindow = new LibraryComponent(project);
-
-                    libraryWindowContent = contentFactory.createContent(
-                            libraryToolWindow.getComponent(), "Library", false);
-                    libraryWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-                    libraryWindowContent.setIcon(UIUtils.LIBRARY_ICON);
-                    contentManager.addContent(libraryWindowContent);
-                }
-
-
-                sessionInstance.addSessionScanEventListener(stompWindow.getScanEventListener());
+                stompWindow.clear();
+                stompWindow.setSession(sessionInstance);
                 stompWindow.loadNewCandidates();
 
 
@@ -1161,7 +1270,7 @@ final public class InsidiousService implements
 
     public void updateCoverageReport() {
 
-        SessionInstance sessionInstance = currentState.getSessionInstance();
+        SessionInstanceInterface sessionInstance = currentState.getSessionInstance();
         if (coverageReportComponent == null || sessionInstance == null) {
             return;
         }
@@ -1190,7 +1299,7 @@ final public class InsidiousService implements
                 for (MethodCoverageData methodCoverageData : methodCoverageList) {
                     String key = fqcn + "#" + methodCoverageData.getMethodName() + "#" + methodCoverageData.getMethodSignature();
                     List<StoredCandidate> methodCandidates = candidateMapByMethodName.get(key);
-                    if (methodCandidates != null && methodCandidates.size() > 0) {
+                    if (methodCandidates != null && !methodCandidates.isEmpty()) {
                         int coveredLineCount = methodCandidates.stream()
                                 .flatMap(e -> e.getLineNumbers().stream())
                                 .collect(Collectors.toSet())
@@ -1227,7 +1336,7 @@ final public class InsidiousService implements
     }
 
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
-        SessionInstance sessionInstance = currentState.getSessionInstance();
+        SessionInstanceInterface sessionInstance = currentState.getSessionInstance();
         if (sessionInstance == null || sessionInstance.getExecutionSession().getSessionId().equals("na")) {
             return new ClassMethodAggregates();
         }
@@ -1241,7 +1350,7 @@ final public class InsidiousService implements
         return currentState.getSessionInstance().getExecutionSession();
     }
 
-    public SessionInstance getSessionInstance() {
+    public SessionInstanceInterface getSessionInstance() {
         return currentState.getSessionInstance();
     }
 
@@ -1584,17 +1693,19 @@ final public class InsidiousService implements
 
         }
 
-        triggerGutterIconReload();
+//        triggerGutterIconReload();
     }
 
     public void onAgentDisconnected() {
-        UsageInsightTracker.getInstance().RecordEvent("AGENT_DISCONNECTED", null);
+        JSONObject props = new JSONObject();
+        props.put("project", project.getName());
+        UsageInsightTracker.getInstance().RecordEvent("AGENT_DISCONNECTED", props);
 
         if (libraryToolWindow != null) {
             libraryToolWindow.setMockStatus(false);
         }
         if (stompWindow != null) {
-            stompWindow.getScanEventListener().ended();
+            stompWindow.disconnected();
         }
 
         removeCurrentActiveHighlights();
@@ -1616,8 +1727,11 @@ final public class InsidiousService implements
     }
 
     public TestCandidateMetadata getTestCandidateById(long eventId, boolean loadCalls) {
-        SessionInstance sessionInstance = getSessionInstance();
+        SessionInstanceInterface sessionInstance = getSessionInstance();
         TestCandidateMetadata testCandidateMetadata = sessionInstance.getTestCandidateById(eventId, loadCalls);
+        if (testCandidateMetadata == null) {
+            return null;
+        }
 
         TestCandidateMetadata tm = ApplicationManager.getApplication()
                 .runReadAction((Computable<TestCandidateMetadata>) () -> {
@@ -1775,7 +1889,7 @@ final public class InsidiousService implements
 
     }
 
-    public void showDirectInvoke(MethodAdapter method) {
+    public void showRouterForMethod(MethodAdapter method) {
         if (stompWindow == null) {
             if (toolWindow == null) {
                 initiateUI();
@@ -1789,15 +1903,15 @@ final public class InsidiousService implements
                 }
             }
         }
+        if (stompWindow != null) {
+            stompWindow.onMethodFocussed(method);
+        }
 
         ApplicationManager.getApplication().invokeLater(() -> {
             toolWindow.show();
             if (stompWindowContent != null) {
-                stompWindow.showDirectInvoke(method);
+                stompWindow.showRouterForMethod(method);
                 toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    stompWindow.onMethodFocussed(method);
-                });
             }
         });
 
@@ -1808,12 +1922,6 @@ final public class InsidiousService implements
         libraryToolWindow.reloadItems();
     }
 
-    public void showCallYourApplicationScreen(UnloggedSDKOnboarding unloggedSDKOnboarding) {
-        if (onboardingWindow != null) {
-            UnloggedOnboardingScreenV2 screen = new UnloggedOnboardingScreenV2();
-            unloggedSDKOnboarding.showStep2(screen);
-        }
-    }
 
     public void highlightTimingInformation(TestCandidateMetadata candidateMetadata, MethodUnderTest methodUnderTest) {
 
@@ -1838,4 +1946,223 @@ final public class InsidiousService implements
         availableTimingTags.clear();
         forceRedrawInlayHints();
     }
+
+    public void populateFromEditors(EditorFactoryEvent event) {
+        Editor[] allEditors = ApplicationManager.getApplication().getService(EditorFactory.class)
+                .getAllEditors();
+
+        Editor skip = null;
+        if (event != null) {
+            skip = event.getEditor();
+        }
+
+        List<Editor> selected = new ArrayList<>();
+        for (Editor editor : allEditors) {
+            if (editor.getProject() == null) {
+                continue;
+            }
+            if (editor.getProject().equals(project) && editor.getEditorKind().equals(EditorKind.MAIN_EDITOR)) {
+                if (skip != null && skip.equals(editor)) {
+                    continue;
+                }
+                selected.add(editor);
+
+            }
+        }
+        InsidiousConfigurationState ics = getProject().getService(InsidiousConfigurationState.class);
+        StompFilterModel stompFilterModel = ics.getFilterModel();
+        if (!stompFilterModel.isFollowEditor()) {
+            return;
+        }
+        boolean changed = false;
+
+
+        stompFilterModel.clearIncluded();
+
+        for (Editor editor : selected) {
+            if (editor.getEditorKind().equals(EditorKind.MAIN_EDITOR)) {
+
+
+                PsiFile psiFile = ApplicationManager.getApplication().runReadAction(
+                        (Computable<PsiFile>) () -> PsiDocumentManager.getInstance(project)
+                                .getPsiFile(editor.getDocument()));
+                if (!(psiFile instanceof PsiJavaFile)) {
+                    continue;
+                }
+
+                Collection<PsiClass> classes = ApplicationManager.getApplication().runReadAction(
+                        (Computable<Collection<PsiClass>>) () -> PsiTreeUtil.findChildrenOfType(psiFile,
+                                PsiClass.class));
+
+                for (PsiClass psiClass : classes) {
+                    changed = addFromClassRecursively(psiClass, stompFilterModel) || changed;
+                }
+            }
+        }
+        if (stompWindow != null) {
+            stompWindow.resetAndReload();
+        }
+    }
+
+    public boolean addFromClassRecursively(PsiClass psiClass, StompFilterModel stompFilterModel) {
+        boolean changed;
+        changed = addClassAndSuperClasses(psiClass, stompFilterModel);
+        changed = addInterfaces(psiClass, stompFilterModel) || changed;
+        changed = addMethods(psiClass, stompFilterModel) || changed;
+        return changed;
+    }
+
+
+    public boolean addMethods(PsiClass psiClass, StompFilterModel stompFilterModel) {
+        Set<String> methodNames = new HashSet<>();
+        for (PsiMethod method : ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiMethod[]>) psiClass::getMethods)) {
+            String name = ApplicationManager.getApplication()
+                    .runReadAction((Computable<String>) method::getName);
+            if (InsidiousService.SKIP_METHOD_IN_FOLLOW_FILTER.contains(name)) {
+                continue;
+            }
+            methodNames.add(name);
+        }
+        return stompFilterModel.getIncludedMethodNames().addAll(methodNames);
+    }
+
+
+    public boolean addClassAndSuperClasses(PsiClass psiClass, StompFilterModel stompFilterModel) {
+        Set<String> classNames = new HashSet<>();
+
+        boolean changed = false;
+        while (psiClass != null) {
+            PsiClass finalPsiClass = psiClass;
+            String qualifiedName = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) finalPsiClass::getQualifiedName);
+            if ("java.lang.Object".equals(qualifiedName)) {
+                break;
+            }
+            classNames.add(qualifiedName);
+            changed = addMethods(psiClass, stompFilterModel) || changed;
+            changed = addInterfaces(psiClass, stompFilterModel) || changed;
+            psiClass = ApplicationManager.getApplication().runReadAction(
+                    (Computable<PsiClass>) finalPsiClass::getSuperClass);
+        }
+        return stompFilterModel.getIncludedClassNames().addAll(classNames) || changed;
+    }
+
+    public boolean addInterfaces(PsiClass psiClass, StompFilterModel stompFilterModel) {
+        boolean changed = false;
+        PsiClass[] interfaces = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiClass[]>) psiClass::getInterfaces);
+        for (PsiClass type : interfaces) {
+            changed = addClassAndSuperClasses(type, stompFilterModel) || changed;
+        }
+        return changed;
+    }
+
+
+    public void hideBottomSplit() {
+        stompWindow.hideBottomSplit();
+    }
+
+    public void createJunitFromSelectedReplay() {
+        List<TestCandidateBareBone> selectedCandidates = stompWindow.getSelectedCandidates();
+
+
+    }
+
+    public int selectVisibleCandidates() {
+        return stompWindow.selectVisibleCandidates();
+    }
+
+    public List<TestCandidateBareBone> getSelectedCandidates() {
+        return stompWindow.getSelectedCandidates();
+    }
+
+    public List<TestCandidateMetadata> getCandidatesForMethod(MethodAdapter methodElement) {
+        StompFilterModel filterModel = new StompFilterModel();
+        addFromClassRecursively(methodElement.getContainingClass().getSource(), filterModel);
+        filterModel.getIncludedMethodNames().clear();
+        filterModel.getIncludedMethodNames().add(methodElement.getName());
+        List<TestCandidateBareBone> candidateBones = currentState.getSessionInstance()
+                .getTestCandidatePaginatedByStompFilterModel(filterModel, 0, 10);
+        return candidateBones.stream().map(e -> getTestCandidateById(e.getId(), true)).collect(Collectors.toList());
+
+    }
+
+    public ServerMetadata getServerMetadata(SourceModel sourceModel, String sessionId) {
+
+        String url = sourceModel.getServerEndpoint() + "/session/getServerMetadata" + "?sessionId=" + sessionId;
+        logger.info("get server metadata url = " + url);
+        CountDownLatch latch = new CountDownLatch(1);
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered");
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    String responseBody = Objects.requireNonNull(response.body()).string();
+                    serverMetadata = objectMapper.readValue(responseBody, ServerMetadata.class);
+                } finally {
+                    response.close();
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return serverMetadata;
+    }
+
+
+    // TODO: move to a util class
+    private void get(String url, Callback callback) {
+
+        final OkHttpClient httpClient = new OkHttpClient().newBuilder()
+                .connectTimeout(600, TimeUnit.SECONDS)
+                .readTimeout(600, TimeUnit.SECONDS)
+                .writeTimeout(600, TimeUnit.SECONDS)
+                .build();
+
+        Request.Builder builder = new Request.Builder().url(url);
+        Request request = builder.build();
+        Call call = httpClient.newCall(request);
+        call.enqueue(callback);
+
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            String dots = "";
+            while (true) {
+                try {
+                    Thread.sleep(500);
+                    if (call.isExecuted()) {
+                        break;
+                    }
+
+                    dots = dots + ".";
+                    if (dots.length() > 3) {
+                        dots = ".";
+                    }
+                    ProgressIndicatorProvider.getGlobalProgressIndicator()
+                            .setText2("Query is in progress " + dots);
+                    if (ProgressIndicatorProvider.getGlobalProgressIndicator()
+                            .isCanceled()) {
+                        throw new ProcessCanceledException();
+                    }
+
+                } catch (InterruptedException e) {
+                    throw new ProcessCanceledException(e);
+                }
+            }
+        }
+
+    }
+
 }

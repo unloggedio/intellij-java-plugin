@@ -1,15 +1,15 @@
 package com.insidious.plugin.ui.methodscope;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 
 import java.util.List;
-import java.util.Map;
 
 public class DifferenceResult {
     private final List<DifferenceInstance> differenceInstanceList;
-    private final Map<String, Object> leftOnly;
-    private final Map<String, Object> rightOnly;
+    private final JsonNode leftOnly;
+    private final JsonNode rightOnly;
     private DiffResultType diffResultType;
     //    private MethodAdapter methodAdapter;
     private AgentCommandRequest command;
@@ -20,8 +20,8 @@ public class DifferenceResult {
 
     public DifferenceResult(List<DifferenceInstance> differenceInstanceList,
                             DiffResultType diffResultType,
-                            Map<String, Object> leftOnly,
-                            Map<String, Object> rightOnly) {
+                            JsonNode leftOnly,
+                            JsonNode rightOnly) {
         this.differenceInstanceList = differenceInstanceList;
         this.diffResultType = diffResultType;
         this.leftOnly = leftOnly;
@@ -36,11 +36,11 @@ public class DifferenceResult {
         return useIndividualContext;
     }
 
-    public Map<String, Object> getLeftOnly() {
+    public JsonNode getLeftOnly() {
         return leftOnly;
     }
 
-    public Map<String, Object> getRightOnly() {
+    public JsonNode getRightOnly() {
         return rightOnly;
     }
 

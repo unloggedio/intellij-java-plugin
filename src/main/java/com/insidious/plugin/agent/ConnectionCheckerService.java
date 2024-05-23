@@ -44,4 +44,7 @@ public class ConnectionCheckerService implements Runnable {
         }
     }
 
+    public boolean isConnected() {
+        return currentState;
+    }
 }

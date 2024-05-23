@@ -45,7 +45,7 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
 //            insidiousService.compileAndExecuteWithAgentForMethod(methodAdapter);
 //        } else {
         insidiousService.methodFocussedHandler(methodAdapter);
-        insidiousService.showDirectInvoke(methodAdapter);
+        insidiousService.showRouterForMethod(methodAdapter);
 //            insidiousService.focusAtomicTestsWindow();
 //        }
     }

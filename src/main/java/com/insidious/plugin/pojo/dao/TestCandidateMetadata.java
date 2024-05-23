@@ -78,7 +78,7 @@ public class TestCandidateMetadata {
     }
 
     public Set<Long> getFields() {
-        if (fields == null || fields.length() < 1) {
+        if (fields == null || fields.isEmpty()) {
             return Collections.emptySet();
         }
         return Arrays.stream(fields.split(","))

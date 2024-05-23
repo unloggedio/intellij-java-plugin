@@ -68,7 +68,7 @@ public class LibraryFilter {
 
         cancelButton.addActionListener(e -> {
             if (componentLifecycleListener != null) {
-                componentLifecycleListener.onClose(LibraryFilter.this);
+                componentLifecycleListener.onClose();
             }
         });
 
@@ -94,7 +94,7 @@ public class LibraryFilter {
             originalFilterModel.getExcludedClassNames().addAll(filterModel.getExcludedClassNames());
 
             originalFilterModel.candidateFilterType = filterModel.candidateFilterType;
-            componentLifecycleListener.onClose(LibraryFilter.this);
+            componentLifecycleListener.onClose();
         });
 
         includedClassesList.setFixedCellWidth(libraryFilterPanelWidth);

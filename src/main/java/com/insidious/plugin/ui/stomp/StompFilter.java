@@ -1,7 +1,10 @@
 package com.insidious.plugin.ui.stomp;
 
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
+import com.insidious.plugin.ui.SessionInstanceChangeListener;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
+import com.insidious.plugin.upload.SourceFilter;
+import com.insidious.plugin.upload.SourceModel;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -28,8 +31,9 @@ import static com.intellij.uiDesigner.core.GridConstraints.ALIGN_FILL;
 import static com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL;
 
 public class StompFilter {
-    private final FilterModel originalFilterModel;
-    private FilterModel filterModel;
+    private final StompFilterModel originalStompFilterModel;
+    private final RemoteSourceFilter remoteSourceFilter;
+    private StompFilterModel stompFilterModel;
     private JTabbedPane mainPanel;
     private JCheckBox followEditorCheckBox;
     private JList<String> includedClassesList;
@@ -49,67 +53,90 @@ public class StompFilter {
     private JPanel includedClassesButtonPanel;
     private JPanel includedMethodsButtonPanel;
     private JPanel excludedMethodsButtonPanel;
-    private JPanel sourcePreferencesPanel;
     private JPanel classFiltersPanel;
     private JPanel performanceFiltersPanel;
     private JPanel mainPanelFilters;
     private JButton applyButton;
     private JButton cancelButton;
     private JButton resetToDefaultButton;
-    private JPanel followCheckBoxParent;
+    private JPanel sourcePreferencesPanel;
+    //    private JRadioButton localhostRadio;
+//    private JRadioButton remoteRadio;
+//    private JPanel sourceModeOption;
+//    private JTextField serverLinkField;
+//    private JButton linkCancelButton;
+//    private JButton linkSaveButton;
+//    private JButton finalCancelButton;
+//    private JButton finalSaveButton;
+//    private JPanel sourcePreferencesPanel;
+//    private JPanel remotePanel;
     private ComponentLifecycleListener<StompFilter> componentLifecycleListener;
     private DefaultListModel<String> modelIncludedClasses;
     private DefaultListModel<String> modelExcludedClasses;
     private DefaultListModel<String> modelIncludedMethods;
     private DefaultListModel<String> modelExcludedMethods;
+    private SessionInstanceChangeListener insidiousService;
+    private ButtonGroup serverModeButton;
 
 
-    public StompFilter(FilterModel filterModel, MethodUnderTest lastMethodFocussed, Project project) {
-        originalFilterModel = new FilterModel(filterModel);
-        this.filterModel = new FilterModel(originalFilterModel);
+    public StompFilter(SessionInstanceChangeListener insidiousService,
+                       StompFilterModel stompFilterModel,
+                       SourceModel sourceModel,
+                       MethodUnderTest lastMethodFocussed,
+                       Project project) {
+        originalStompFilterModel = new StompFilterModel(stompFilterModel);
+        this.stompFilterModel = new StompFilterModel(originalStompFilterModel);
+        this.insidiousService = insidiousService;
+
         int stompFilterPanelWidth = 300;
 
         cancelButton.addActionListener(e -> {
             if (componentLifecycleListener != null) {
-                componentLifecycleListener.onClose(StompFilter.this);
+                componentLifecycleListener.onClose();
             }
         });
 
 
+        // sourceMode tab start code
+
+
+        this.remoteSourceFilter = new RemoteSourceFilter(sourceModel, insidiousService);
+        sourcePreferencesPanel.add(remoteSourceFilter.getComponent(), BorderLayout.CENTER);
+
+
+        // sourceMode tab end code
+
+
         new GotItTooltip("Unlogged.Stomp.Filter.Checkbox",
-                "Make the filter always set to the method focussed in your editor by enabling this", project)
+                "Make the filter always sourceModePanel to the method focussed in your editor by enabling this",
+                project)
                 .withPosition(Balloon.Position.above)
                 .show((JPanel) followEditorCheckBox.getParent().getParent(), GotItTooltip.RIGHT_MIDDLE);
 
 
         applyButton.addActionListener(e -> {
-            originalFilterModel.setFollowEditor(filterModel.followEditor);
-//            if (filterModel.followEditor) {
-//                InsidiousNotification.notifyMessage(
-//                        "Filter will follow method focussed in editor", NotificationType.INFORMATION
-//                );
-//            }
+            originalStompFilterModel.setFollowEditor(stompFilterModel.followEditor);
 
-            originalFilterModel.getIncludedClassNames().clear();
-            originalFilterModel.getIncludedClassNames().addAll(filterModel.getIncludedClassNames());
+            originalStompFilterModel.getIncludedClassNames().clear();
+            originalStompFilterModel.getIncludedClassNames().addAll(stompFilterModel.getIncludedClassNames());
 
 
-            originalFilterModel.getIncludedMethodNames().clear();
-            originalFilterModel.getIncludedMethodNames().addAll(filterModel.getIncludedMethodNames());
+            originalStompFilterModel.getIncludedMethodNames().clear();
+            originalStompFilterModel.getIncludedMethodNames().addAll(stompFilterModel.getIncludedMethodNames());
 
 
-            originalFilterModel.getExcludedMethodNames().clear();
-            originalFilterModel.getExcludedMethodNames().addAll(filterModel.getExcludedMethodNames());
+            originalStompFilterModel.getExcludedMethodNames().clear();
+            originalStompFilterModel.getExcludedMethodNames().addAll(stompFilterModel.getExcludedMethodNames());
 
 
-            originalFilterModel.getExcludedClassNames().clear();
-            originalFilterModel.getExcludedClassNames().addAll(filterModel.getExcludedClassNames());
+            originalStompFilterModel.getExcludedClassNames().clear();
+            originalStompFilterModel.getExcludedClassNames().addAll(stompFilterModel.getExcludedClassNames());
 
-            originalFilterModel.getExcludedClassNames().clear();
-            originalFilterModel.getExcludedClassNames().addAll(filterModel.getExcludedClassNames());
+            originalStompFilterModel.getExcludedClassNames().clear();
+            originalStompFilterModel.getExcludedClassNames().addAll(stompFilterModel.getExcludedClassNames());
 
-            originalFilterModel.candidateFilterType = filterModel.candidateFilterType;
-            componentLifecycleListener.onClose(StompFilter.this);
+            originalStompFilterModel.candidateFilterType = stompFilterModel.candidateFilterType;
+            componentLifecycleListener.onClose();
         });
 
         includedClassesList.setFixedCellWidth(stompFilterPanelWidth);
@@ -117,11 +144,11 @@ public class StompFilter {
         includedMethodsList.setFixedCellWidth(stompFilterPanelWidth);
         excludedMethodsList.setFixedCellWidth(stompFilterPanelWidth);
 
-        setUiModels(filterModel);
+        setUiModels(stompFilterModel);
         resetToDefaultButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                filterModel.setFrom(originalFilterModel);
+                stompFilterModel.setFrom(originalStompFilterModel);
             }
         });
 
@@ -130,92 +157,92 @@ public class StompFilter {
 
         ActionToolbarImpl excludedClassToolbar = createActionToolbar("Excluded Classes",
                 new StompToolbarActionListener() {
-            @Override
-            public void onAdd() {
-                JPanel centerPanel = new JPanel();
-                centerPanel.setLayout(new BorderLayout());
-                JTextField newNameTextField = new JTextField();
-
-                if (lastMethodFocussed != null) {
-                    String name = lastMethodFocussed.getClassName();
-                    newNameTextField.setText(name);
-                }
-
-
-                Dimension current = newNameTextField.getMinimumSize();
-                newNameTextField.setMinimumSize(new Dimension(300, (int) current.getHeight()));
-                centerPanel.add(newNameTextField, BorderLayout.CENTER);
-
-
-                excludedClassesButtonPanel.setVisible(false);
-
-                GridConstraints constraints = new GridConstraints();
-                constraints.setFill(FILL_HORIZONTAL);
-                constraints.setVSizePolicy(ALIGN_FILL);
-                excludedClassesControlPanel.add(centerPanel, constraints);
-                excludedClassesControlPanel.setToolTipText("Press enter to submit, escape to cancel");
-
-                newNameTextField.registerKeyboardAction(new ActionListener() {
                     @Override
-                    public void actionPerformed(ActionEvent e) {
-                        String newName = newNameTextField.getText().trim();
-                        modelExcludedClasses.addElement(newName);
-                        filterModel.getExcludedClassNames().add(newName);
-                        excludedClassesControlPanel.remove(centerPanel);
-                        excludedClassesButtonPanel.setVisible(true);
+                    public void onAdd() {
+                        JPanel centerPanel = new JPanel();
+                        centerPanel.setLayout(new BorderLayout());
+                        JTextField newNameTextField = new JTextField();
+
+                        if (lastMethodFocussed != null) {
+                            String name = lastMethodFocussed.getClassName();
+                            newNameTextField.setText(name);
+                        }
+
+
+                        Dimension current = newNameTextField.getMinimumSize();
+                        newNameTextField.setMinimumSize(new Dimension(300, (int) current.getHeight()));
+                        centerPanel.add(newNameTextField, BorderLayout.CENTER);
+
+
+                        excludedClassesButtonPanel.setVisible(false);
+
+                        GridConstraints constraints = new GridConstraints();
+                        constraints.setFill(FILL_HORIZONTAL);
+                        constraints.setVSizePolicy(ALIGN_FILL);
+                        excludedClassesControlPanel.add(centerPanel, constraints);
+                        excludedClassesControlPanel.setToolTipText("Press enter to submit, escape to cancel");
+
+                        newNameTextField.registerKeyboardAction(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                String newName = newNameTextField.getText().trim();
+                                modelExcludedClasses.addElement(newName);
+                                stompFilterModel.getExcludedClassNames().add(newName);
+                                excludedClassesControlPanel.remove(centerPanel);
+                                excludedClassesButtonPanel.setVisible(true);
+                            }
+                        }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
+
+                        newNameTextField.registerKeyboardAction(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                excludedClassesControlPanel.remove(centerPanel);
+                                excludedClassesButtonPanel.setVisible(true);
+                            }
+                        }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
+                        newNameTextField.addFocusListener(new FocusListener() {
+                            @Override
+                            public void focusGained(FocusEvent e) {
+
+                            }
+
+                            @Override
+                            public void focusLost(FocusEvent e) {
+                                excludedClassesControlPanel.remove(centerPanel);
+                                excludedClassesButtonPanel.setVisible(true);
+                            }
+                        });
+
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            newNameTextField.requestFocus();
+                            newNameTextField.select(0, newNameTextField.getText().length());
+                        });
+
+
                     }
-                }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
 
-                newNameTextField.registerKeyboardAction(new ActionListener() {
                     @Override
-                    public void actionPerformed(ActionEvent e) {
-                        excludedClassesControlPanel.remove(centerPanel);
-                        excludedClassesButtonPanel.setVisible(true);
-                    }
-                }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
-                newNameTextField.addFocusListener(new FocusListener() {
-                    @Override
-                    public void focusGained(FocusEvent e) {
-
+                    public void onRemove() {
+                        List<String> selectedValues = excludedClassesList.getSelectedValuesList();
+                        for (String selectedValue : selectedValues) {
+                            stompFilterModel.getExcludedClassNames().remove(selectedValue);
+                            modelExcludedClasses.removeElement(selectedValue);
+                        }
                     }
 
                     @Override
-                    public void focusLost(FocusEvent e) {
-                        excludedClassesControlPanel.remove(centerPanel);
-                        excludedClassesButtonPanel.setVisible(true);
+                    public void onCopy() {
+                        String fromClipboard = getFromClipboard();
+                        if (fromClipboard == null) return;
+
+                        String[] lines = fromClipboard.split("\n");
+                        for (String line : lines) {
+                            line = line.trim();
+                            modelExcludedClasses.addElement(line);
+                            stompFilterModel.getExcludedClassNames().add(line);
+                        }
                     }
                 });
-
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    newNameTextField.requestFocus();
-                    newNameTextField.select(0, newNameTextField.getText().length());
-                });
-
-
-            }
-
-            @Override
-            public void onRemove() {
-                List<String> selectedValues = excludedClassesList.getSelectedValuesList();
-                for (String selectedValue : selectedValues) {
-                    filterModel.getExcludedClassNames().remove(selectedValue);
-                    modelExcludedClasses.removeElement(selectedValue);
-                }
-            }
-
-            @Override
-            public void onCopy() {
-                String fromClipboard = getFromClipboard();
-                if (fromClipboard == null) return;
-
-                String[] lines = fromClipboard.split("\n");
-                for (String line : lines) {
-                    line = line.trim();
-                    modelExcludedClasses.addElement(line);
-                    filterModel.getExcludedClassNames().add(line);
-                }
-            }
-        });
 
         excludedClassesButtonPanel.add(excludedClassToolbar.getComponent(), BorderLayout.WEST);
 
@@ -358,87 +385,87 @@ public class StompFilter {
 
         ActionToolbarImpl includedClassesToolbar = createActionToolbar("Included Classes",
                 new StompToolbarActionListener() {
-            @Override
-            public void onAdd() {
-                JPanel centerPanel = new JPanel();
-                centerPanel.setLayout(new BorderLayout());
-                JTextField newNameTextField = new JTextField();
-
-                if (lastMethodFocussed != null) {
-                    String name = lastMethodFocussed.getClassName();
-                    newNameTextField.setText(name);
-                }
-
-
-                Dimension current = newNameTextField.getMinimumSize();
-                newNameTextField.setMinimumSize(new Dimension(300, (int) current.getHeight()));
-                centerPanel.add(newNameTextField, BorderLayout.CENTER);
-
-
-                includedClassesButtonPanel.setVisible(false);
-
-                GridConstraints constraints = new GridConstraints();
-                constraints.setFill(FILL_HORIZONTAL);
-                constraints.setVSizePolicy(ALIGN_FILL);
-                includedClassesControlPanel.add(centerPanel, constraints);
-                includedClassesControlPanel.setToolTipText("Press enter to submit, escape to cancel");
-
-                newNameTextField.registerKeyboardAction(e1 -> {
-                    String newName = newNameTextField.getText().trim();
-                    modelIncludedClasses.addElement(newName);
-                    filterModel.getIncludedClassNames().add(newName);
-                    includedClassesControlPanel.remove(centerPanel);
-                    includedClassesButtonPanel.setVisible(true);
-                }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
-
-                newNameTextField.registerKeyboardAction(e12 -> {
-                    includedClassesControlPanel.remove(centerPanel);
-                    includedClassesButtonPanel.setVisible(true);
-                }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
-                newNameTextField.addFocusListener(new FocusListener() {
                     @Override
-                    public void focusGained(FocusEvent e) {
+                    public void onAdd() {
+                        JPanel centerPanel = new JPanel();
+                        centerPanel.setLayout(new BorderLayout());
+                        JTextField newNameTextField = new JTextField();
+
+                        if (lastMethodFocussed != null) {
+                            String name = lastMethodFocussed.getClassName();
+                            newNameTextField.setText(name);
+                        }
+
+
+                        Dimension current = newNameTextField.getMinimumSize();
+                        newNameTextField.setMinimumSize(new Dimension(300, (int) current.getHeight()));
+                        centerPanel.add(newNameTextField, BorderLayout.CENTER);
+
+
+                        includedClassesButtonPanel.setVisible(false);
+
+                        GridConstraints constraints = new GridConstraints();
+                        constraints.setFill(FILL_HORIZONTAL);
+                        constraints.setVSizePolicy(ALIGN_FILL);
+                        includedClassesControlPanel.add(centerPanel, constraints);
+                        includedClassesControlPanel.setToolTipText("Press enter to submit, escape to cancel");
+
+                        newNameTextField.registerKeyboardAction(e1 -> {
+                            String newName = newNameTextField.getText().trim();
+                            modelIncludedClasses.addElement(newName);
+                            stompFilterModel.getIncludedClassNames().add(newName);
+                            includedClassesControlPanel.remove(centerPanel);
+                            includedClassesButtonPanel.setVisible(true);
+                        }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
+
+                        newNameTextField.registerKeyboardAction(e12 -> {
+                            includedClassesControlPanel.remove(centerPanel);
+                            includedClassesButtonPanel.setVisible(true);
+                        }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
+                        newNameTextField.addFocusListener(new FocusListener() {
+                            @Override
+                            public void focusGained(FocusEvent e) {
+
+                            }
+
+                            @Override
+                            public void focusLost(FocusEvent e) {
+                                includedClassesControlPanel.remove(centerPanel);
+                                includedClassesButtonPanel.setVisible(true);
+                            }
+                        });
+
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            newNameTextField.requestFocus();
+                            newNameTextField.select(0, newNameTextField.getText().length());
+                        });
+
 
                     }
 
                     @Override
-                    public void focusLost(FocusEvent e) {
-                        includedClassesControlPanel.remove(centerPanel);
-                        includedClassesButtonPanel.setVisible(true);
+                    public void onRemove() {
+                        List<String> selectedValues = includedClassesList.getSelectedValuesList();
+                        for (String selectedValue : selectedValues) {
+                            stompFilterModel.getIncludedClassNames().remove(selectedValue);
+                            modelIncludedClasses.removeElement(selectedValue);
+                        }
+
+                    }
+
+                    @Override
+                    public void onCopy() {
+                        String fromClipboard = getFromClipboard();
+                        if (fromClipboard == null) return;
+
+                        String[] lines = fromClipboard.split("\n");
+                        for (String line : lines) {
+                            line = line.trim();
+                            modelIncludedClasses.addElement(line);
+                            stompFilterModel.getIncludedClassNames().add(line);
+                        }
                     }
                 });
-
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    newNameTextField.requestFocus();
-                    newNameTextField.select(0, newNameTextField.getText().length());
-                });
-
-
-            }
-
-            @Override
-            public void onRemove() {
-                List<String> selectedValues = includedClassesList.getSelectedValuesList();
-                for (String selectedValue : selectedValues) {
-                    filterModel.getIncludedClassNames().remove(selectedValue);
-                    modelIncludedClasses.removeElement(selectedValue);
-                }
-
-            }
-
-            @Override
-            public void onCopy() {
-                String fromClipboard = getFromClipboard();
-                if (fromClipboard == null) return;
-
-                String[] lines = fromClipboard.split("\n");
-                for (String line : lines) {
-                    line = line.trim();
-                    modelIncludedClasses.addElement(line);
-                    filterModel.getIncludedClassNames().add(line);
-                }
-            }
-        });
 
         includedClassesButtonPanel.add(includedClassesToolbar.getComponent(), BorderLayout.WEST);
 
@@ -575,97 +602,98 @@ public class StompFilter {
 
         ActionToolbarImpl includedMethodsToolbar = createActionToolbar("Included Methods",
                 new StompToolbarActionListener() {
-            @Override
-            public void onAdd() {
-                JPanel centerPanel = new JPanel();
-                centerPanel.setLayout(new BorderLayout());
-                JTextField newNameTextField = new JTextField();
-
-                if (lastMethodFocussed != null) {
-                    String name = lastMethodFocussed.getName();
-                    newNameTextField.setText(name);
-                }
-
-                ActionListener saveAction = e13 -> {
-                    String newName = newNameTextField.getText().trim();
-                    modelIncludedMethods.addElement(newName);
-                    filterModel.getIncludedMethodNames().add(newName);
-                    includedMethodsControlPanel.remove(centerPanel);
-                    includedMethodsButtonPanel.setVisible(true);
-                };
-
-
-                Dimension current = newNameTextField.getMinimumSize();
-                newNameTextField.setMinimumSize(new Dimension(200, (int) current.getHeight()));
-                centerPanel.add(newNameTextField, BorderLayout.CENTER);
-                JButton addButton = new JButton();
-                addButton.setText("Add (↵)");
-                addButton.setMinimumSize(new Dimension(100, 30));
-                addButton.setMaximumSize(new Dimension(100, 30));
-                addButton.setPreferredSize(new Dimension(100, 30));
-                addButton.addActionListener(saveAction);
-                centerPanel.add(addButton, BorderLayout.EAST);
-
-
-                includedMethodsButtonPanel.setVisible(false);
-
-                GridConstraints constraints = new GridConstraints();
-                constraints.setFill(FILL_HORIZONTAL);
-                constraints.setVSizePolicy(ALIGN_FILL);
-                includedMethodsControlPanel.add(centerPanel, constraints);
-                includedMethodsControlPanel.setToolTipText("Press enter to submit, escape to cancel");
-
-                newNameTextField.registerKeyboardAction(saveAction, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0),
-                        JComponent.WHEN_FOCUSED);
-
-                newNameTextField.registerKeyboardAction(e14 -> {
-                    includedMethodsControlPanel.remove(centerPanel);
-                    includedMethodsButtonPanel.setVisible(true);
-                }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
-                newNameTextField.addFocusListener(new FocusListener() {
                     @Override
-                    public void focusGained(FocusEvent e) {
+                    public void onAdd() {
+                        JPanel centerPanel = new JPanel();
+                        centerPanel.setLayout(new BorderLayout());
+                        JTextField newNameTextField = new JTextField();
+
+                        if (lastMethodFocussed != null) {
+                            String name = lastMethodFocussed.getName();
+                            newNameTextField.setText(name);
+                        }
+
+                        ActionListener saveAction = e13 -> {
+                            String newName = newNameTextField.getText().trim();
+                            modelIncludedMethods.addElement(newName);
+                            stompFilterModel.getIncludedMethodNames().add(newName);
+                            includedMethodsControlPanel.remove(centerPanel);
+                            includedMethodsButtonPanel.setVisible(true);
+                        };
+
+
+                        Dimension current = newNameTextField.getMinimumSize();
+                        newNameTextField.setMinimumSize(new Dimension(200, (int) current.getHeight()));
+                        centerPanel.add(newNameTextField, BorderLayout.CENTER);
+                        JButton addButton = new JButton();
+                        addButton.setText("Add (↵)");
+                        addButton.setMinimumSize(new Dimension(100, 30));
+                        addButton.setMaximumSize(new Dimension(100, 30));
+                        addButton.setPreferredSize(new Dimension(100, 30));
+                        addButton.addActionListener(saveAction);
+                        centerPanel.add(addButton, BorderLayout.EAST);
+
+
+                        includedMethodsButtonPanel.setVisible(false);
+
+                        GridConstraints constraints = new GridConstraints();
+                        constraints.setFill(FILL_HORIZONTAL);
+                        constraints.setVSizePolicy(ALIGN_FILL);
+                        includedMethodsControlPanel.add(centerPanel, constraints);
+                        includedMethodsControlPanel.setToolTipText("Press enter to submit, escape to cancel");
+
+                        newNameTextField.registerKeyboardAction(saveAction,
+                                KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0),
+                                JComponent.WHEN_FOCUSED);
+
+                        newNameTextField.registerKeyboardAction(e14 -> {
+                            includedMethodsControlPanel.remove(centerPanel);
+                            includedMethodsButtonPanel.setVisible(true);
+                        }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
+                        newNameTextField.addFocusListener(new FocusListener() {
+                            @Override
+                            public void focusGained(FocusEvent e) {
+
+                            }
+
+                            @Override
+                            public void focusLost(FocusEvent e) {
+                                includedMethodsControlPanel.remove(centerPanel);
+                                includedMethodsButtonPanel.setVisible(true);
+                            }
+                        });
+
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            newNameTextField.requestFocus();
+                            newNameTextField.select(0, newNameTextField.getText().length());
+                        });
+
 
                     }
 
                     @Override
-                    public void focusLost(FocusEvent e) {
-                        includedMethodsControlPanel.remove(centerPanel);
-                        includedMethodsButtonPanel.setVisible(true);
+                    public void onRemove() {
+                        List<String> selectedValues = includedMethodsList.getSelectedValuesList();
+                        for (String selectedValue : selectedValues) {
+                            stompFilterModel.getIncludedMethodNames().remove(selectedValue);
+                            modelIncludedMethods.removeElement(selectedValue);
+                        }
+
+                    }
+
+                    @Override
+                    public void onCopy() {
+                        String fromClipboard = getFromClipboard();
+                        if (fromClipboard == null) return;
+
+                        String[] lines = fromClipboard.split("\n");
+                        for (String line : lines) {
+                            line = line.trim();
+                            modelIncludedMethods.addElement(line);
+                            stompFilterModel.getIncludedMethodNames().add(line);
+                        }
                     }
                 });
-
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    newNameTextField.requestFocus();
-                    newNameTextField.select(0, newNameTextField.getText().length());
-                });
-
-
-            }
-
-            @Override
-            public void onRemove() {
-                List<String> selectedValues = includedMethodsList.getSelectedValuesList();
-                for (String selectedValue : selectedValues) {
-                    filterModel.getIncludedMethodNames().remove(selectedValue);
-                    modelIncludedMethods.removeElement(selectedValue);
-                }
-
-            }
-
-            @Override
-            public void onCopy() {
-                String fromClipboard = getFromClipboard();
-                if (fromClipboard == null) return;
-
-                String[] lines = fromClipboard.split("\n");
-                for (String line : lines) {
-                    line = line.trim();
-                    modelIncludedMethods.addElement(line);
-                    filterModel.getIncludedMethodNames().add(line);
-                }
-            }
-        });
 
         includedMethodsButtonPanel.add(includedMethodsToolbar.getComponent(), BorderLayout.WEST);
 
@@ -812,89 +840,89 @@ public class StompFilter {
 
         ActionToolbarImpl excludedMethodToolbar = createActionToolbar("Excluded Methods",
                 new StompToolbarActionListener() {
-            @Override
-            public void onAdd() {
-                JPanel centerPanel = new JPanel();
-                centerPanel.setLayout(new BorderLayout());
-                JTextField newNameTextField = new JTextField();
-
-                if (lastMethodFocussed != null) {
-                    String name = lastMethodFocussed.getName();
-                    newNameTextField.setText(name);
-                    newNameTextField.setSelectionEnd(0);
-                    newNameTextField.setSelectionEnd(name.length());
-                }
-
-
-                Dimension current = newNameTextField.getMinimumSize();
-                newNameTextField.setMinimumSize(new Dimension(300, (int) current.getHeight()));
-                centerPanel.add(newNameTextField, BorderLayout.CENTER);
-
-
-                excludedMethodsButtonPanel.setVisible(false);
-
-                GridConstraints constraints = new GridConstraints();
-                constraints.setFill(FILL_HORIZONTAL);
-                constraints.setVSizePolicy(ALIGN_FILL);
-                excludedMethodsControlPanel.add(centerPanel, constraints);
-                excludedMethodsControlPanel.setToolTipText("Press enter to submit, escape to cancel");
-
-                newNameTextField.registerKeyboardAction(e15 -> {
-                    String newName = newNameTextField.getText().trim();
-                    modelExcludedMethods.addElement(newName);
-                    filterModel.getExcludedMethodNames().add(newName);
-                    excludedMethodsControlPanel.remove(centerPanel);
-                    excludedMethodsButtonPanel.setVisible(true);
-                }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
-
-                newNameTextField.registerKeyboardAction(e16 -> {
-                    excludedMethodsControlPanel.remove(centerPanel);
-                    excludedMethodsButtonPanel.setVisible(true);
-                }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
-                newNameTextField.addFocusListener(new FocusListener() {
                     @Override
-                    public void focusGained(FocusEvent e) {
+                    public void onAdd() {
+                        JPanel centerPanel = new JPanel();
+                        centerPanel.setLayout(new BorderLayout());
+                        JTextField newNameTextField = new JTextField();
+
+                        if (lastMethodFocussed != null) {
+                            String name = lastMethodFocussed.getName();
+                            newNameTextField.setText(name);
+                            newNameTextField.setSelectionEnd(0);
+                            newNameTextField.setSelectionEnd(name.length());
+                        }
+
+
+                        Dimension current = newNameTextField.getMinimumSize();
+                        newNameTextField.setMinimumSize(new Dimension(300, (int) current.getHeight()));
+                        centerPanel.add(newNameTextField, BorderLayout.CENTER);
+
+
+                        excludedMethodsButtonPanel.setVisible(false);
+
+                        GridConstraints constraints = new GridConstraints();
+                        constraints.setFill(FILL_HORIZONTAL);
+                        constraints.setVSizePolicy(ALIGN_FILL);
+                        excludedMethodsControlPanel.add(centerPanel, constraints);
+                        excludedMethodsControlPanel.setToolTipText("Press enter to submit, escape to cancel");
+
+                        newNameTextField.registerKeyboardAction(e15 -> {
+                            String newName = newNameTextField.getText().trim();
+                            modelExcludedMethods.addElement(newName);
+                            stompFilterModel.getExcludedMethodNames().add(newName);
+                            excludedMethodsControlPanel.remove(centerPanel);
+                            excludedMethodsButtonPanel.setVisible(true);
+                        }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JComponent.WHEN_FOCUSED);
+
+                        newNameTextField.registerKeyboardAction(e16 -> {
+                            excludedMethodsControlPanel.remove(centerPanel);
+                            excludedMethodsButtonPanel.setVisible(true);
+                        }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_FOCUSED);
+                        newNameTextField.addFocusListener(new FocusListener() {
+                            @Override
+                            public void focusGained(FocusEvent e) {
+
+                            }
+
+                            @Override
+                            public void focusLost(FocusEvent e) {
+                                excludedMethodsControlPanel.remove(centerPanel);
+                                excludedMethodsButtonPanel.setVisible(true);
+                            }
+                        });
+
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            newNameTextField.requestFocus();
+                            newNameTextField.select(0, newNameTextField.getText().length());
+                        });
+
 
                     }
 
                     @Override
-                    public void focusLost(FocusEvent e) {
-                        excludedMethodsControlPanel.remove(centerPanel);
-                        excludedMethodsButtonPanel.setVisible(true);
+                    public void onRemove() {
+                        List<String> selectedValues = excludedMethodsList.getSelectedValuesList();
+                        for (String selectedValue : selectedValues) {
+                            stompFilterModel.getExcludedMethodNames().remove(selectedValue);
+                            modelExcludedMethods.removeElement(selectedValue);
+                        }
+
+                    }
+
+                    @Override
+                    public void onCopy() {
+                        String fromClipboard = getFromClipboard();
+                        if (fromClipboard == null) return;
+
+                        String[] lines = fromClipboard.split("\n");
+                        for (String line : lines) {
+                            line = line.trim();
+                            modelExcludedMethods.addElement(line);
+                            stompFilterModel.getExcludedMethodNames().add(line);
+                        }
                     }
                 });
-
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    newNameTextField.requestFocus();
-                    newNameTextField.select(0, newNameTextField.getText().length());
-                });
-
-
-            }
-
-            @Override
-            public void onRemove() {
-                List<String> selectedValues = excludedMethodsList.getSelectedValuesList();
-                for (String selectedValue : selectedValues) {
-                    filterModel.getExcludedMethodNames().remove(selectedValue);
-                    modelExcludedMethods.removeElement(selectedValue);
-                }
-
-            }
-
-            @Override
-            public void onCopy() {
-                String fromClipboard = getFromClipboard();
-                if (fromClipboard == null) return;
-
-                String[] lines = fromClipboard.split("\n");
-                for (String line : lines) {
-                    line = line.trim();
-                    modelExcludedMethods.addElement(line);
-                    filterModel.getExcludedMethodNames().add(line);
-                }
-            }
-        });
 
         excludedMethodsButtonPanel.add(excludedMethodToolbar.getComponent(), BorderLayout.WEST);
 
@@ -1028,7 +1056,7 @@ public class StompFilter {
 //        });
 
         followEditorCheckBox.addActionListener(e -> {
-            filterModel.setFollowEditor(followEditorCheckBox.isSelected());
+            stompFilterModel.setFollowEditor(followEditorCheckBox.isSelected());
         });
 
 
@@ -1075,27 +1103,27 @@ public class StompFilter {
 
     }
 
-    private void setUiModels(FilterModel filterModel) {
+    private void setUiModels(StompFilterModel stompFilterModel) {
         modelIncludedClasses = new DefaultListModel<>();
-        modelIncludedClasses.addAll(filterModel.getIncludedClassNames());
+        modelIncludedClasses.addAll(stompFilterModel.getIncludedClassNames());
 
         includedClassesList.setModel(modelIncludedClasses);
         includedClassesList.setBorder(BorderFactory.createEmptyBorder());
 
         modelExcludedClasses = new DefaultListModel<>();
-        modelExcludedClasses.addAll(filterModel.getExcludedClassNames());
+        modelExcludedClasses.addAll(stompFilterModel.getExcludedClassNames());
         excludedClassesList.setModel(modelExcludedClasses);
 
         modelIncludedMethods = new DefaultListModel<>();
-        modelIncludedMethods.addAll(filterModel.getIncludedMethodNames());
+        modelIncludedMethods.addAll(stompFilterModel.getIncludedMethodNames());
         includedMethodsList.setModel(modelIncludedMethods);
 
 
         modelExcludedMethods = new DefaultListModel<>();
-        modelExcludedMethods.addAll(filterModel.getExcludedMethodNames());
+        modelExcludedMethods.addAll(stompFilterModel.getExcludedMethodNames());
         excludedMethodsList.setModel(modelExcludedMethods);
 
-        if (filterModel.isFollowEditor()) {
+        if (stompFilterModel.isFollowEditor()) {
             followEditorCheckBox.setSelected(true);
         }
 
@@ -1121,5 +1149,10 @@ public class StompFilter {
 
     public void setOnCloseListener(ComponentLifecycleListener<StompFilter> componentLifecycleListener) {
         this.componentLifecycleListener = componentLifecycleListener;
+        remoteSourceFilter.setOnCloseListener(componentLifecycleListener);
+    }
+
+    private void createUIComponents() {
+        // TODO: place custom component creation code here
     }
 }
