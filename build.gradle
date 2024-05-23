@@ -148,7 +148,7 @@ runPluginVerifier {
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    version = '2024.1.1'
+    version = '2022.3.3'
     plugins = ['com.intellij.java', 'maven', 'gradle', 'org.jetbrains.kotlin']
     updateSinceUntilBuild = false
     sameSinceUntilBuild = true
