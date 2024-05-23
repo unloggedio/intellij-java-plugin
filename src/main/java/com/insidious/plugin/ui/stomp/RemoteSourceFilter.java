@@ -1,6 +1,9 @@
 package com.insidious.plugin.ui.stomp;
 
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.adapter.java.JavaClassAdapter;
+import com.insidious.plugin.autoexecutor.AutoExecutionConsumer;
+import com.insidious.plugin.autoexecutor.GlobalJavaSearchContext;
 import com.insidious.plugin.client.UnloggedClientInterface;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.constants.SessionMode;
@@ -8,8 +11,21 @@ import com.insidious.plugin.ui.SessionInstanceChangeListener;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.upload.SourceFilter;
 import com.insidious.plugin.upload.SourceModel;
+import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.PsiManager;
+import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.ui.JBColor;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -19,6 +35,7 @@ import java.awt.event.ActionListener;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
@@ -68,7 +85,7 @@ public class RemoteSourceFilter {
             remoteRadio.setSelected(true);
             serverLinkField.setText(this.sourceModel.getServerEndpoint());
             remotePanel.setVisible(true);
-            createRemoteSessionList();
+            sessionDiscoveryBackground();
         }
         mainPanel.revalidate();
         mainPanel.repaint();
@@ -121,8 +138,7 @@ public class RemoteSourceFilter {
             }
             this.sourceModel.setServerEndpoint(this.localServerEndpoint);
             client.setSourceModel(sourceModel);
-
-            createRemoteSessionList();
+            sessionDiscoveryBackground();
         });
 
 
@@ -154,24 +170,14 @@ public class RemoteSourceFilter {
         });
     }
 
-    private void createRemoteSessionList() {
+    private void createRemoteSessionList(List<ExecutionSession> executionSessionList) {
         // remove old session data
         this.buttonGroup = new ButtonGroup();
         this.modelToSessionMap = new HashMap<>();
         serverListPanel.removeAll();
 
-        List<ExecutionSession> executionSessionList;
-        try {
-            executionSessionList = client.sessionDiscovery(false);
-        } catch (Throwable th) {
-            InsidiousNotification.notifyMessage("Failed to connect to server: " + th.getMessage(),
-                    NotificationType.ERROR);
-            return;
-        }
-
         serverListScroll.setVisible(true);
         serverListPanel.setLayout(new BoxLayout(serverListPanel, BoxLayout.Y_AXIS));
-        serverListPanel.removeAll();
         List<String> prevSelectedSessionId = this.sourceModel.getSessionId();
         for (ExecutionSession executionSession : executionSessionList) {
 
@@ -189,6 +195,25 @@ public class RemoteSourceFilter {
         mainPanel.revalidate();
         mainPanel.repaint();
     }
+
+    private void sessionDiscoveryBackground() {
+
+        Task.Backgroundable executeAll = new Task.Backgroundable(this.insidiousService.getProject(), "Session discovery", false) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                try {
+                    List<ExecutionSession> executionSessionList = client.sessionDiscovery(false);
+                    createRemoteSessionList(executionSessionList);
+                } catch (Throwable th) {
+                    InsidiousNotification.notifyMessage("Failed to connect to server: " + th.getMessage(),
+                            NotificationType.ERROR);
+                }
+            }
+        };
+        ProgressManager.getInstance().run(executeAll);
+    }
+
+
     public Component getComponent() {
         return mainPanel;
     }
