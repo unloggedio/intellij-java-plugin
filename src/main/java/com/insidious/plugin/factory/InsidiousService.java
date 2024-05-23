@@ -423,6 +423,11 @@ final public class InsidiousService implements
         return this.client;
     }
 
+    @Override
+    public UnloggedClientInterface getUnloggedClient() {
+        return this.client;
+    }
+
     public void chooseClassImplementation(String className, ClassChosenListener classChosenListener) {
 
 

@@ -6,4 +6,6 @@ import com.insidious.plugin.upload.SourceModel;
 public interface SessionInstanceChangeListener {
 
     UnloggedClientInterface setUnloggedClient(SourceModel sourceModel);
+
+    UnloggedClientInterface getUnloggedClient();
 }
