@@ -16,8 +16,6 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -57,6 +55,7 @@ public class RemoteSourceFilter {
     public RemoteSourceFilter(SourceModel sourceModel,
                               SessionInstanceChangeListener insidiousService) {
         this.sourceModel = sourceModel;
+        serverListScroll.setVisible(false);
         this.insidiousService = insidiousService;
         sourceModeOption.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.LIGHT_GRAY),
@@ -93,27 +92,6 @@ public class RemoteSourceFilter {
             mainPanel.repaint();
         });
 
-
-        // server link logic
-        String placeholderText = "Enter your server URL here";
-        serverLinkField.setText(placeholderText);
-        serverLinkField.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (serverLinkField.getText().equals(placeholderText)) {
-                    serverLinkField.setText("");
-                }
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (serverLinkField.getText().isEmpty()) {
-                    serverLinkField.setText(placeholderText);
-                }
-            }
-        });
-
-
         ButtonGroup buttonGroup = new ButtonGroup();
         HashMap<ButtonModel, ExecutionSession> modelToSessionMap = new HashMap<>();
         linkSaveButton.addActionListener(e -> {
@@ -141,13 +119,19 @@ public class RemoteSourceFilter {
 
             }
 
+            serverListScroll.setVisible(true);
+
             serverListPanel.setLayout(new BoxLayout(serverListPanel, BoxLayout.Y_AXIS));
+            serverListPanel.removeAll();
             for (ExecutionSession executionSession : executionSessionList) {
 
                 ExecutionSessionItemComponent esic = new ExecutionSessionItemComponent(executionSession);
                 serverListPanel.add(esic.getComponent());
                 buttonGroup.add(esic.getRadioComponent());
                 modelToSessionMap.put(esic.getRadioComponent().getModel(), executionSession);
+            }
+            if (executionSessionList.size() == 0) {
+                serverListPanel.add(new JLabel("No sessions found, click \"Check\" to try again"));
             }
 
             serverListPanel.revalidate();

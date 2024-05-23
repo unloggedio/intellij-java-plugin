@@ -12,19 +12,26 @@ public class ExecutionSessionItemComponent {
     private final ExecutionSession executionSession;
     private JRadioButton radioButton;
     private JPanel mainPanel;
+    private JLabel dateTimeLabel;
+    private JLabel hostnameLabel;
+    private JLabel packageNameLabel;
 
     public ExecutionSessionItemComponent(ExecutionSession executionSession) {
 
         this.executionSession = executionSession;
         Date date = executionSession.getCreatedAt();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE dd-MM-yyyy HH:mm");
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd HH:mm");
         String timeVal = dateFormat.format(date);
 
         String hostname = executionSession.getHostname();
         String projectId = executionSession.getProjectId();
 
-        String radioButtonText = "<html> <small>" + timeVal + "</small> " + hostname + "<br>" + projectId + "</html>";
-        radioButton.setText(radioButtonText);
+        packageNameLabel.setText(projectId);
+        hostnameLabel.setText(hostname);
+        dateTimeLabel.setText(timeVal);
+
+//        String radioButtonText = "<html> <small>" + timeVal + "</small> " + hostname + "<br>" + projectId + "</html>";
+//        radioButton.setText(radioButtonText);
         radioButton.setMargin(JBUI.insets(10, 20));
         radioButton.setBorder(BorderFactory.createCompoundBorder(
                 radioButton.getBorder(),
