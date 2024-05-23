@@ -29,7 +29,6 @@ public class RemoteSourceFilter {
     private ComponentLifecycleListener<StompFilter> componentLifecycleListener;
     private String localServerEndpoint;
     private List<String> localSessionId;
-
     private JPanel sourcePanel;
     private JPanel sourceModeOption;
     private JRadioButton localhostRadio;
@@ -100,6 +99,9 @@ public class RemoteSourceFilter {
         });
         localhostRadio.addActionListener(e -> {
             sourceModel.setSessionMode(SessionMode.LOCAL);
+            sourceModel.setServerEndpoint(null);
+            sourceModel.setSourceFilter(SourceFilter.MOST_RECENT);
+            sourceModel.setSessionId(null);
             client = insidiousService.setUnloggedClient(sourceModel);
 
             remotePanel.setVisible(false);
