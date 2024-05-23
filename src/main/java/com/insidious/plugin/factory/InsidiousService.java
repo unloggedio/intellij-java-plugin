@@ -2165,4 +2165,7 @@ final public class InsidiousService implements
 
     }
 
+    public void toggleReportGeneration() {
+        this.reportingService.toggleReportMode();
+    }
 }
