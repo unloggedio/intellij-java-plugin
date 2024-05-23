@@ -1,9 +1,6 @@
 package com.insidious.plugin.ui.stomp;
 
 import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.adapter.java.JavaClassAdapter;
-import com.insidious.plugin.autoexecutor.AutoExecutionConsumer;
-import com.insidious.plugin.autoexecutor.GlobalJavaSearchContext;
 import com.insidious.plugin.client.UnloggedClientInterface;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.constants.SessionMode;
@@ -11,19 +8,10 @@ import com.insidious.plugin.ui.SessionInstanceChangeListener;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.upload.SourceFilter;
 import com.insidious.plugin.upload.SourceModel;
-import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationType;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
-import com.intellij.openapi.util.Computable;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiJavaFile;
-import com.intellij.psi.PsiManager;
-import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.ui.JBColor;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,7 +23,6 @@ import java.awt.event.ActionListener;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
