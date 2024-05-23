@@ -51,6 +51,8 @@ public class RemoteSourceFilter {
     private JLabel setupText;
     private JPanel serverListPanel;
     private UnloggedClientInterface client;
+    private ButtonGroup buttonGroup;
+    private HashMap<ButtonModel, ExecutionSession> modelToSessionMap;
 
     public RemoteSourceFilter(SourceModel sourceModel,
                               SessionInstanceChangeListener insidiousService) {
@@ -92,13 +94,8 @@ public class RemoteSourceFilter {
             mainPanel.repaint();
         });
 
-        ButtonGroup buttonGroup = new ButtonGroup();
-        HashMap<ButtonModel, ExecutionSession> modelToSessionMap = new HashMap<>();
+
         linkSaveButton.addActionListener(e -> {
-
-            // remove old session data
-            serverListPanel.removeAll();
-
             localServerEndpoint = serverLinkField.getText();
             try {
                 URI uri = new URI(localServerEndpoint);
@@ -109,35 +106,8 @@ public class RemoteSourceFilter {
             }
             this.sourceModel.setServerEndpoint(this.localServerEndpoint);
             client.setSourceModel(sourceModel);
-            List<ExecutionSession> executionSessionList;
-            try {
-                executionSessionList = client.sessionDiscovery(false);
-            } catch (Throwable th) {
-                InsidiousNotification.notifyMessage("Failed to connect to server: " + th.getMessage(),
-                        NotificationType.ERROR);
-                return;
 
-            }
-
-            serverListScroll.setVisible(true);
-
-            serverListPanel.setLayout(new BoxLayout(serverListPanel, BoxLayout.Y_AXIS));
-            serverListPanel.removeAll();
-            for (ExecutionSession executionSession : executionSessionList) {
-
-                ExecutionSessionItemComponent esic = new ExecutionSessionItemComponent(executionSession);
-                serverListPanel.add(esic.getComponent());
-                buttonGroup.add(esic.getRadioComponent());
-                modelToSessionMap.put(esic.getRadioComponent().getModel(), executionSession);
-            }
-            if (executionSessionList.size() == 0) {
-                serverListPanel.add(new JLabel("No sessions found, click \"Check\" to try again"));
-            }
-
-            serverListPanel.revalidate();
-            serverListPanel.repaint();
-            mainPanel.revalidate();
-            mainPanel.repaint();
+            createRemoteSessionList();
         });
 
 
@@ -167,10 +137,43 @@ public class RemoteSourceFilter {
 
             componentLifecycleListener.onClose();
         });
-
-
     }
 
+    private void createRemoteSessionList() {
+        // remove old session data
+        this.buttonGroup = new ButtonGroup();
+        this.modelToSessionMap = new HashMap<>();
+        serverListPanel.removeAll();
+
+        List<ExecutionSession> executionSessionList;
+        try {
+            executionSessionList = client.sessionDiscovery(false);
+        } catch (Throwable th) {
+            InsidiousNotification.notifyMessage("Failed to connect to server: " + th.getMessage(),
+                    NotificationType.ERROR);
+            return;
+        }
+
+        serverListScroll.setVisible(true);
+        serverListPanel.setLayout(new BoxLayout(serverListPanel, BoxLayout.Y_AXIS));
+        serverListPanel.removeAll();
+        List<String> prevSelectedSessionId = this.sourceModel.getSessionId();
+        for (ExecutionSession executionSession : executionSessionList) {
+
+            ExecutionSessionItemComponent esic = new ExecutionSessionItemComponent(executionSession, prevSelectedSessionId);
+            serverListPanel.add(esic.getComponent());
+            buttonGroup.add(esic.getRadioComponent());
+            modelToSessionMap.put(esic.getRadioComponent().getModel(), executionSession);
+        }
+        if (executionSessionList.size() == 0) {
+            serverListPanel.add(new JLabel("No sessions found, click \"Check\" to try again"));
+        }
+
+        serverListPanel.revalidate();
+        serverListPanel.repaint();
+        mainPanel.revalidate();
+        mainPanel.repaint();
+    }
     public Component getComponent() {
         return mainPanel;
     }
