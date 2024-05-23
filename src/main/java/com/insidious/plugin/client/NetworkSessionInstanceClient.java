@@ -1154,6 +1154,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 	public ExecutionSession getExecutionSession() {
 
 		String url = this.endpoint + this.getExecutionSession + "?sessionId=" + this.sessionId;
+        logger.info("url get execution session = " + url);
         CountDownLatch latch = new CountDownLatch(1);
 
         get(url, new Callback() {
