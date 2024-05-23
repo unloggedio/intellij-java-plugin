@@ -27,7 +27,6 @@ public class RemoteSourceFilter {
     private final SessionInstanceChangeListener insidiousService;
     private final SourceModel sourceModel;
     private ComponentLifecycleListener<StompFilter> componentLifecycleListener;
-    private SessionMode localSessionMode;
     private String localServerEndpoint;
     private List<String> localSessionId;
 
@@ -91,8 +90,7 @@ public class RemoteSourceFilter {
         remoteRadio.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                localSessionMode = SessionMode.REMOTE;
-                sourceModel.setSessionMode(localSessionMode);
+                sourceModel.setSessionMode(SessionMode.REMOTE);
                 client = insidiousService.setUnloggedClient(sourceModel);
 
                 remotePanel.setVisible(true);
@@ -101,8 +99,7 @@ public class RemoteSourceFilter {
             }
         });
         localhostRadio.addActionListener(e -> {
-            localSessionMode = SessionMode.LOCAL;
-            sourceModel.setSessionMode(localSessionMode);
+            sourceModel.setSessionMode(SessionMode.LOCAL);
             client = insidiousService.setUnloggedClient(sourceModel);
 
             remotePanel.setVisible(false);
