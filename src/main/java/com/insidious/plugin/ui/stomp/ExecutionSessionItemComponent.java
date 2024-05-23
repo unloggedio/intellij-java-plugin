@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 public class ExecutionSessionItemComponent {
     private final ExecutionSession executionSession;
@@ -16,7 +17,7 @@ public class ExecutionSessionItemComponent {
     private JLabel hostnameLabel;
     private JLabel packageNameLabel;
 
-    public ExecutionSessionItemComponent(ExecutionSession executionSession) {
+    public ExecutionSessionItemComponent(ExecutionSession executionSession, List<String> prevSelectedSessionId ) {
 
         this.executionSession = executionSession;
         Date date = executionSession.getCreatedAt();
@@ -36,6 +37,10 @@ public class ExecutionSessionItemComponent {
         radioButton.setBorder(BorderFactory.createCompoundBorder(
                 radioButton.getBorder(),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)));
+
+        if ((prevSelectedSessionId!=null) && (prevSelectedSessionId.contains(executionSession.getSessionId()))) {
+            radioButton.setSelected(true);
+        }
     }
 
     public Component getComponent() {
