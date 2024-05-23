@@ -59,6 +59,23 @@ public class RemoteSourceFilter {
         this.sourceModel = sourceModel;
         serverListScroll.setVisible(false);
         this.insidiousService = insidiousService;
+
+        // load the old state
+        this.client = insidiousService.getUnloggedClient();
+        if (this.sourceModel.getSessionMode() == SessionMode.LOCAL) {
+            localhostRadio.setSelected(true);
+            remotePanel.setVisible(false);
+        }
+        else {
+            remoteRadio.setSelected(true);
+            serverLinkField.setText(this.sourceModel.getServerEndpoint());
+            remotePanel.setVisible(true);
+            createRemoteSessionList();
+        }
+        mainPanel.revalidate();
+        mainPanel.repaint();
+
+        // styling logic
         sourceModeOption.setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.LIGHT_GRAY),
                 "<html><b>Select source to scan</b></html>",
@@ -71,7 +88,6 @@ public class RemoteSourceFilter {
 
 
         // radio button and remote panel logic
-        remotePanel.setVisible(false);
         remoteRadio.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
