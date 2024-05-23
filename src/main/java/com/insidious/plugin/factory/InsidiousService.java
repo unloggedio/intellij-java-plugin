@@ -782,6 +782,7 @@ final public class InsidiousService implements
         UsageInsightTracker.getInstance().close();
     }
 
+    @Override
     public Project getProject() {
         return project;
     }
