@@ -1066,7 +1066,7 @@ public class UiTest {
                     pause(ofSeconds(1).toMillis());
 
                     idea.getSaveReplayButton().click();
-                    idea.getFirstJtextFiled().click();
+                    idea.getFirstJTextField().click();
                     keyboard.enterText("def1");
                     idea.getSaveAndClose().click();
                 });

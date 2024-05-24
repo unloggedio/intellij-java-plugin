@@ -37,7 +37,7 @@ public class UITestUtils {
         SAVE_REPLAY_BUTTON("//div[@text='Save Replay']"),
         SAVE_AND_CLOSE_SAVE_FORM("//div[@text='Save and close']"),
         DIRECT_INVOKE_EXECUTE_NEW("//div[@visible_text='Execute Method']"),
-        TEST_NAME_TF("//div[@class='JTextField']"),
+        JTEXT_FIELD("//div[@class='JTextField']"),
         FILTER_BUTTON_NEW("//div[@myicon='filter.svg']"),
         FILTER_FOLLOW_CHECK_BOX("//div[@class='JTabbedPane']//div[@class='JCheckBox']"),
         CHECK_BOX("//div[@class='JCheckBox']"),
@@ -52,6 +52,7 @@ public class UITestUtils {
         UNLINK_MOCK_POPUP_BUTTON("//div[@visible_text='Un-Mock']"),
         EDITOR_SCROLL_BAR("//div[@class='MyScrollPane']"),
         SAVE_MOCK_BUTTON("//div[@text='Save']"),
+        GIT_ROLLBACK_BUTTON("//div[@text='Rollback']"),
         MULTI_MOCK_SINGL_LINE_PANEL("//div[@class='EngravedLabel']"),
         EDIT_MOCK_ENTRY_BUTTON("//div[@myicon='edit.svg']"),
         MOCK_POPUP_SCROLL_PANEL("//div[@class='JScrollPane'][.//div[@class='JCheckBox']]"),
@@ -77,7 +78,15 @@ public class UITestUtils {
         MAVEN_TOOLBAR_BUTTON("//div[@text='Maven']"),
         MAVEN_REFRESH_SVG("//div[@myicon='refresh.svg']"),
         MAVEN_TOOLBAR_HIDE("//div[contains(@myvisibleactions, '[Options')]//div[@tooltiptext='Hide']]"),
-        MY_CONTENT_PANEL("//div[@class='MyContentPanel']");
+        MY_CONTENT_PANEL("//div[@class='MyContentPanel']"),
+        FILTER_TITLE_PANEL("//div[@class='TitlePanel']"),
+        REMOTE_SERVER_RADIO_BUTTON_LABEL("//div[@accessiblename='Remote Server Scanning for logs on the server' and @class='JRadioButton' and @text='<html>Remote Server<br><small>Scanning for logs on the server<small></html>']"),
+        LOCALHOST_RADIO_BUTTON_LABEL("//div[@accessiblename='Localhost Logs on your local machine' and @class='JRadioButton' and @text='<html>Localhost<br><small>Logs on your local machine</small></html>']"),
+        SESSIONS_LIST_BUTTON("//div[@text='Check for sessions']"),
+        TREE("//div[@class='Tree']"),
+        TERMINAL_PANEL("//div[@class='JBTerminalPanel']"),
+        GIT_ROLLBACK_CHANGES_VIEWPORT("//div[@class='ChangesBrowserTreeList']"),
+        GO_TO_DIRECT_INVOKE("//div[@defaulticon='execute.svg']");
 
         private String value;
 

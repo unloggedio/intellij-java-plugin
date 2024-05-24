@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.awt.*;
+import java.rmi.Remote;
 import java.time.Duration;
 import java.util.*;
 import java.util.List;
@@ -26,6 +27,282 @@ public class UITestsV2 {
     private RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8082");
     private final Keyboard keyboard = new Keyboard(remoteRobot);
 
+
+    @Test
+    public void testRemoteStartup() {
+        final WelcomeFrame welcomeFrame = remoteRobot.find(WelcomeFrame.class, ofSeconds(10));
+        welcomeFrame.getOpenProjectButton().click();
+
+        welcomeFrame.getProjectSelectorComboBox().click();
+        String projectName = "unlogged-spring-maven-demo";
+
+        keyboard.enterText("/" + projectName);
+        pause(ofSeconds(1).toMillis());
+        welcomeFrame.getOpenConfirmButton().click();
+
+        final IdeaFrame idea = remoteRobot.find(IdeaFrame.class, ofSeconds(10));
+        waitFor(ofMinutes(10), () -> !idea.isDumbMode());
+
+        //wait for a small duration so that file searches don't turn up empty
+        pause(ofSeconds(30).toMillis());
+
+        //for mac, open pom.xml
+        openFile("pom.xml", idea);
+
+        //open unlogged toolbar, copy and paste dependency
+        ComponentFixture unloggedToolbar = idea.getUnloggedToolbarComponent();
+        unloggedToolbar.moveMouse();
+        unloggedToolbar.click();
+        pause(ofSeconds(1).toMillis());
+
+        ComponentFixture copyButton = idea.findCopyButton();
+        copyButton.moveMouse();
+        copyButton.click();
+
+        //paste right after dependencies
+        TextEditorFixture textEditorFixture = idea.textEditor();
+        List<RemoteText> pomContents = textEditorFixture.getEditor().getData().getAll();
+        RemoteText dependencyText = pomContents.stream().filter(remoteText -> remoteText.getText().equals("dependencies")).toList().get(0);
+        int indexOfDependencies = pomContents.indexOf(dependencyText);
+        RemoteText closingTag = pomContents.get(indexOfDependencies + 1);
+        closingTag.click();
+        keyboard.hotKey(VK_RIGHT);
+        keyboard.hotKey(VK_ENTER);
+        keyboard.hotKey(VK_META, VK_V);
+
+        addUnloggedToStartFile("UnloggedDemoApplication", idea, "@Unlogged(serverEndpoint = \"http://18.188.85.130:8123\")");
+
+        //refresh maven before proceeding
+        ComponentFixture mavenIcon = idea.getMavenToolbarIcon();
+        mavenIcon.click();
+        pause(ofSeconds(1).toMillis());
+        idea.getMavenToolBarRefreshIcon().click();
+        pause(ofSeconds(1).toMillis());
+        mavenIcon.click();
+
+        //start application
+        openFile("start_project.sh", idea);
+        TextEditorFixture shellScript = idea.textEditor();
+        //click the first icon
+        boolean started = false;
+        while (!started) {
+            try {
+                GutterIcon gutterIcon = shellScript.getGutter().getIcons().get(0);
+                gutterIcon.moveMouse();
+                pause(ofMillis(250).toMillis());
+                gutterIcon.click();
+                started = true;
+            } catch (Exception e) {
+                pause(ofSeconds(2).toMillis());
+            }
+        }
+
+        pause(ofSeconds(60).toMillis());
+        idea.getUnloggedToolbarComponent().click();
+        pause(ofMillis(250).toMillis());
+        clearGotIts(idea);
+        idea.getTerminalToolWindowHideButton().click();
+
+        idea.getFilterButton().click();
+        pause(ofMillis(250).toMillis());
+
+        ComponentFixture titlePanel = idea.getMyContentPanel();
+        RemoteText sourcesTabText = titlePanel.getData().getAll().stream().filter(remoteText -> remoteText.getText().equals("Sources")).toList().get(0);
+        sourcesTabText.click();
+        idea.getRemoteButtonRadioLabel().click();
+        pause(ofMillis(250).toMillis());
+
+        ComponentFixture textField = idea.getFirstJTextField();
+        textField.click();
+
+        keyboard.hotKey(VK_META, VK_A);
+        keyboard.hotKey(VK_DELETE);
+
+        keyboard.enterText("http://18.188.85.130:8123");
+        idea.getListSessionsButton().click();
+
+        pause(ofSeconds(10).toMillis());
+
+        idea.getAllVisibleRadioButtons().get(2).click();
+        idea.getFilterApplyButton().click();
+
+        pause(ofSeconds(10).toMillis());
+        idea.getRefreshButton().click();
+
+        openFile("FutureController.java", idea);
+        pause(ofSeconds(2).toMillis());
+        expandJavaFile(idea.textEditor().getEditor());
+        clearGotIts(idea);
+
+        TextEditorFixture editor = idea.textEditor(Duration.ofSeconds(2));
+        List<GutterIcon> gutterIcons = editor.getGutter().getIcons().stream()
+                .filter(icon -> icon.toString().contains("profileBlue.svg"))
+                .toList();
+
+        List<Integer> lineNumbers = new ArrayList<>(gutterIcons.stream().map(GutterIcon::getLineNumber).toList());
+        Collections.sort(lineNumbers);
+
+        idea.getToolBarDeleteButton().click();
+        List<Integer> finalLineNumbers = lineNumbers;
+        TextEditorFixture finalEditor = editor;
+        gutterIcons.forEach(icon -> {
+            scrollToIcon(finalEditor, icon);
+            icon.click();
+            pause(ofMillis(250).toMillis());
+
+            String responseExpected = "String: string";
+            idea.getGoToDirectInvokeButton().click();
+            pause(ofMillis(250).toMillis());
+
+            if (icon.getLineNumber() == finalLineNumbers.get(0)) {
+                responseExpected = "String: yolo";
+            } else {
+                responseExpected = "String: method2";
+                ComponentFixture argumentsTree = idea.getTree();
+                List<RemoteText> remoteTexts = argumentsTree.getData().getAll();
+                remoteTexts.get(remoteTexts.size() - 1).click();
+
+                keyboard.enterText("method2");
+                keyboard.hotKey(VK_ENTER);
+            }
+            idea.getDirectInvokeExecuteButtonNew().click();
+            pause(ofSeconds(3).toMillis());
+
+            ComponentFixture responseTree = idea.getTree();
+            List<RemoteText> remoteTexts = responseTree.getData().getAll();
+            RemoteText responseValue = remoteTexts.get(remoteTexts.size() - 1);
+
+            Assertions.assertEquals(responseExpected, responseValue.getText());
+        });
+        pause(ofSeconds(10).toMillis());
+
+        ComponentFixture terminalToolbar = idea.getTerminalToolBarSelectable();
+        terminalToolbar.click();
+
+        ComponentFixture terminalContents = idea.getTerminalPanel();
+        RemoteText lastText = terminalContents.getData().getAll().get(terminalContents.getData().getAll().size() - 1);
+        lastText.click();
+
+        keyboard.hotKey(VK_CONTROL, VK_C);
+        pause(ofSeconds(10).toMillis());
+
+        idea.getTerminalToolWindowHideButton().click();
+        //restart and repeat in local mode
+        openAndRevertGitChangesForFile("UnloggedDemoApplication", idea);
+        addUnloggedToStartFile("UnloggedDemoApplication", idea, "@Unlogged");
+
+        openFile("start_project.sh", idea);
+        shellScript = idea.textEditor();
+        started = false;
+        while (!started) {
+            try {
+                GutterIcon gutterIcon = shellScript.getGutter().getIcons().get(0);
+                gutterIcon.moveMouse();
+                pause(ofMillis(250).toMillis());
+                gutterIcon.click();
+                started = true;
+            } catch (Exception e) {
+                pause(ofSeconds(2).toMillis());
+            }
+        }
+
+        idea.getTerminalToolWindowHideButton().click();
+
+        idea.getFilterButton().click();
+        pause(ofMillis(250).toMillis());
+
+        titlePanel = idea.getMyContentPanel();
+        sourcesTabText = titlePanel.getData().getAll().stream().filter(remoteText -> remoteText.getText().equals("Sources")).toList().get(0);
+        sourcesTabText.click();
+        idea.getLocalHostRadioButton().click();
+        idea.getFilterApplyButton().click();
+
+        idea.getRefreshButton().click();
+
+        openFile("FutureController.java", idea);
+        pause(ofSeconds(2).toMillis());
+        expandJavaFile(idea.textEditor().getEditor());
+        clearGotIts(idea);
+
+        editor = idea.textEditor(Duration.ofSeconds(2));
+        gutterIcons = editor.getGutter().getIcons().stream()
+                .filter(icon -> icon.toString().contains("profileBlue.svg"))
+                .toList();
+
+        lineNumbers = new ArrayList<>(gutterIcons.stream().map(GutterIcon::getLineNumber).toList());
+        Collections.sort(lineNumbers);
+
+        idea.getToolBarDeleteButton().click();
+        TextEditorFixture finalEditor1 = editor;
+        List<Integer> finalLineNumbers1 = lineNumbers;
+        gutterIcons.forEach(icon -> {
+            scrollToIcon(finalEditor1, icon);
+            icon.click();
+            pause(ofMillis(250).toMillis());
+
+            String responseExpected = "String: string";
+            idea.getGoToDirectInvokeButton().click();
+            pause(ofMillis(250).toMillis());
+
+            if (icon.getLineNumber() == finalLineNumbers1.get(0)) {
+                responseExpected = "String: yolo";
+            } else {
+                responseExpected = "String: method2";
+                ComponentFixture argumentsTree = idea.getTree();
+                List<RemoteText> remoteTexts = argumentsTree.getData().getAll();
+                remoteTexts.get(remoteTexts.size() - 1).click();
+
+                keyboard.enterText("method2");
+                keyboard.hotKey(VK_ENTER);
+            }
+            idea.getDirectInvokeExecuteButtonNew().click();
+            pause(ofSeconds(3).toMillis());
+
+            ComponentFixture responseTree = idea.getTree();
+            List<RemoteText> remoteTexts = responseTree.getData().getAll();
+            RemoteText responseValue = remoteTexts.get(remoteTexts.size() - 1);
+
+            Assertions.assertEquals(responseExpected, responseValue.getText());
+        });
+        pause(ofSeconds(10).toMillis());
+    }
+
+    private void addUnloggedToStartFile(String filename, IdeaFrame ideaFrame, String annotationText) {
+        openFile(filename, ideaFrame);
+        TextEditorFixture textEditorFixture = ideaFrame.textEditor();
+        expandJavaFile(textEditorFixture.getEditor());
+
+        List<RemoteText> mainClassContents = textEditorFixture.getEditor().getData().getAll();
+        RemoteText firstSemicolon = mainClassContents.stream().filter(text -> text.getText().equals(";")).toList().get(0);
+        firstSemicolon.click();
+        keyboard.hotKey(VK_RIGHT);
+        keyboard.hotKey(VK_ENTER);
+        keyboard.enterText("import io.unlogged.Unlogged;");
+
+        //refresh contents post text addition
+        mainClassContents = textEditorFixture.getEditor().getData().getAll();
+        RemoteText mainLabel = mainClassContents.stream().filter(text -> text.getText().equals("main")).toList().get(0);
+        int mainLabelIndex = mainClassContents.indexOf(mainLabel);
+        RemoteText spaceLabel = mainClassContents.get(mainLabelIndex - 7);
+        spaceLabel.click();
+        keyboard.hotKey(VK_ENTER);
+        keyboard.enterText(annotationText);
+        keyboard.hotKey(VK_ENTER);
+    }
+
+    private void openAndRevertGitChangesForFile(String filename, IdeaFrame ideaFrame) {
+        openFile(filename, ideaFrame);
+        pause(ofMillis(500).toMillis());
+
+        TextEditorFixture textEditorFixture = ideaFrame.textEditor();
+        RemoteText text = textEditorFixture.getEditor().getData().getAll().get(0);
+        text.click();
+
+        keyboard.hotKey(VK_ALT, VK_META, VK_Z);
+        pause(ofMillis(250).toMillis());
+        ideaFrame.getGitRollbackButton().click();
+        pause(ofSeconds(1).toMillis());
+    }
 
     @Test
     public void testFullFlow() {
@@ -132,7 +409,7 @@ public class UITestsV2 {
         } catch (Exception e) {
             Assertions.assertTrue(false);
         }
-
+        idea.getTerminalToolWindowHideButton().click();
         //call prep1
         prep_TC2(idea);
 
@@ -160,8 +437,6 @@ public class UITestsV2 {
         //clear got its
         clearGotIts(idea);
 
-        //hide terminal
-        idea.getTerminalToolWindowHideButton().click();
 
         //one more round of got it clear
         clearGotIts(idea);
@@ -173,6 +448,8 @@ public class UITestsV2 {
 
         scrollToIcon(editor, addDataGutter);
         addDataGutter.click();
+
+        idea.getGoToDirectInvokeButton().click();
         idea.getDirectInvokeExecuteButtonNew().click();
         pause(ofSeconds(5).toMillis());
 

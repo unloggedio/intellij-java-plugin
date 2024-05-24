@@ -4,6 +4,7 @@ import com.insidious.plugin.UITests.Utils.UITestUtils;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.data.RemoteComponent;
 import com.intellij.remoterobot.fixtures.*;
+import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -90,8 +91,8 @@ public class IdeaFrame extends CommonContainerFixture {
         return fixtureList.get(0);
     }
 
-    public ComponentFixture getFirstJtextFiled() {
-        List<ComponentFixture> fixtureList = UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.TEST_NAME_TF);
+    public ComponentFixture getFirstJTextField() {
+        List<ComponentFixture> fixtureList = UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.JTEXT_FIELD);
         return fixtureList.get(0);
     }
 
@@ -105,6 +106,10 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public ComponentFixture getDirectInvokeExecuteButtonNew() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.DIRECT_INVOKE_EXECUTE_NEW);
+    }
+
+    public ComponentFixture getGoToDirectInvokeButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GO_TO_DIRECT_INVOKE);
     }
 
     public ComponentFixture getFilterButton() {
@@ -275,5 +280,41 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public ComponentFixture getTerminalToolBarSelectable() {
         return UITestUtils.getContainerFixture(remoteRobot, UITestUtils.UITags.TERMINAL_TOOLBAR_SELECTABLE);
+    }
+
+    public ComponentFixture getFilterTop() {
+        return UITestUtils.getContainerFixture(remoteRobot, UITestUtils.UITags.FILTER_TITLE_PANEL);
+    }
+
+    public ComponentFixture getRemoteButtonRadioLabel() {
+        return UITestUtils.getContainerFixture(remoteRobot, UITestUtils.UITags.REMOTE_SERVER_RADIO_BUTTON_LABEL);
+    }
+
+    public ComponentFixture getListSessionsButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.SESSIONS_LIST_BUTTON);
+    }
+
+    public ComponentFixture getTree() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.TREE);
+    }
+
+    public ComponentFixture getTerminalPanel() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.TERMINAL_PANEL);
+    }
+
+    public ComponentFixture getGitRollbackViewport() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GIT_ROLLBACK_CHANGES_VIEWPORT);
+    }
+
+    public ComponentFixture getGitRollbackButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GIT_ROLLBACK_BUTTON);
+    }
+
+    public ContainerFixture getGitRollbackViewportAsContainer() {
+        return UITestUtils.getContainerFixture(remoteRobot, UITestUtils.UITags.GIT_ROLLBACK_CHANGES_VIEWPORT);
+    }
+
+    public ComponentFixture getLocalHostRadioButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.LOCALHOST_RADIO_BUTTON_LABEL);
     }
 }
