@@ -60,6 +60,8 @@ public class RemoteSourceFilter {
                               SessionInstanceChangeListener insidiousService) {
         this.sourceModel = sourceModel;
         serverListScroll.setVisible(false);
+        serverListScroll.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+//        remotePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         this.insidiousService = insidiousService;
 
         // load the old state
@@ -67,8 +69,7 @@ public class RemoteSourceFilter {
         if (this.sourceModel.getSessionMode() == SessionMode.LOCAL) {
             localhostRadio.setSelected(true);
             remotePanel.setVisible(false);
-        }
-        else {
+        } else {
             remoteRadio.setSelected(true);
             serverLinkField.setText(this.sourceModel.getServerEndpoint());
             remotePanel.setVisible(true);
@@ -78,15 +79,17 @@ public class RemoteSourceFilter {
         mainPanel.repaint();
 
         // styling logic
-        sourceModeOption.setBorder(BorderFactory.createTitledBorder(
+        sourceModeOption.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.LIGHT_GRAY),
-                "<html><b>Select source to scan</b></html>",
-                TitledBorder.LEADING, TitledBorder.TOP));
+                "Select source to scan",
+                TitledBorder.LEADING, TitledBorder.TOP
+        ), BorderFactory.createEmptyBorder(5, 5, 5, 5)));
 
-        remotePanel.setBorder(BorderFactory.createTitledBorder(
+        remotePanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.LIGHT_GRAY),
-                "<html><b>Remote Server Details</b></html>",
-                TitledBorder.LEADING, TitledBorder.TOP));
+                "Remote Server Configuration",
+                TitledBorder.LEADING, TitledBorder.TOP
+        ), BorderFactory.createEmptyBorder(5, 5, 5, 5)));
 
 
         // radio button and remote panel logic
@@ -168,13 +171,18 @@ public class RemoteSourceFilter {
         List<String> prevSelectedSessionId = this.sourceModel.getSessionId();
         for (ExecutionSession executionSession : executionSessionList) {
 
-            ExecutionSessionItemComponent esic = new ExecutionSessionItemComponent(executionSession, prevSelectedSessionId);
+            ExecutionSessionItemComponent esic = new ExecutionSessionItemComponent(executionSession);
             serverListPanel.add(esic.getComponent());
-            buttonGroup.add(esic.getRadioComponent());
-            modelToSessionMap.put(esic.getRadioComponent().getModel(), executionSession);
+            AbstractButton radioComponent = esic.getRadioComponent();
+            if ((prevSelectedSessionId != null) && (prevSelectedSessionId.contains(executionSession.getSessionId()))) {
+                radioComponent.setSelected(true);
+            }
+
+            buttonGroup.add(radioComponent);
+            modelToSessionMap.put(radioComponent.getModel(), executionSession);
         }
-        if (executionSessionList.size() == 0) {
-            serverListPanel.add(new JLabel("No sessions found, click \"Check\" to try again"));
+        if (executionSessionList.isEmpty()) {
+            serverListPanel.add(new JLabel("No sessions found, click \"Check for sessions\" to try again"));
         }
 
         serverListPanel.revalidate();
@@ -185,7 +193,8 @@ public class RemoteSourceFilter {
 
     private void sessionDiscoveryBackground() {
 
-        Task.Backgroundable executeAll = new Task.Backgroundable(this.insidiousService.getProject(), "Session discovery", false) {
+        Task.Backgroundable executeAll = new Task.Backgroundable(this.insidiousService.getProject(),
+                "Session discovery", false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
