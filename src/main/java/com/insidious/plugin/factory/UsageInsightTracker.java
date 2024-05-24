@@ -25,6 +25,7 @@ public class UsageInsightTracker {
     private final List<String> UsersToSkip = Arrays.asList(
             "artpar",
             "Amogh",
+            "akshatjain",
             "rssamarth",
             "testerfresher",
             "short-kt"
