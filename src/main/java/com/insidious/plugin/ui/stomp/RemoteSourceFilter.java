@@ -9,11 +9,13 @@ import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.upload.ExecutionSessionSource;
 import com.insidious.plugin.upload.SourceFilter;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.icons.AllIcons;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.ui.AnimatedIcon;
 
 import javax.swing.*;
 import java.awt.*;
@@ -29,6 +31,17 @@ public class RemoteSourceFilter {
     private static final Logger logger = LoggerUtil.getInstance(RemoteSourceFilter.class);
     //    private final InsidiousService insidiousService;
     private final ButtonGroup buttonGroup;
+    AnimatedIcon icon = new AnimatedIcon(
+            125,
+            AllIcons.Process.Step_1,
+            AllIcons.Process.Step_2,
+            AllIcons.Process.Step_3,
+            AllIcons.Process.Step_4,
+            AllIcons.Process.Step_5,
+            AllIcons.Process.Step_6,
+            AllIcons.Process.Step_7,
+            AllIcons.Process.Step_8
+    );
     private ExecutionSessionSource executionSessionSource;
     private ComponentLifecycleListener<StompFilter> componentLifecycleListener;
     private String localServerEndpoint;
@@ -71,8 +84,14 @@ public class RemoteSourceFilter {
             remoteRadio.setSelected(true);
             serverLinkField.setText(this.executionSessionSource.getServerEndpoint());
             remotePanel.setVisible(true);
-            List<ExecutionSession> list = sessionDiscoveryBackground(independentClientInstance);
-            createRemoteSessionList(list);
+            serverListScroll.setVisible(true);
+            showLoading();
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                List<ExecutionSession> list = sessionDiscoveryBackground(independentClientInstance);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    createRemoteSessionList(list);
+                });
+            });
         }
         mainPanel.revalidate();
         mainPanel.repaint();
@@ -83,7 +102,6 @@ public class RemoteSourceFilter {
 //                "Select source to scan",
 //                TitledBorder.LEADING, TitledBorder.TOP
 //        ), BorderFactory.createEmptyBorder(5, 5, 5, 5)));
-
 //        remotePanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(
 //                BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.LIGHT_GRAY),
 //                "Remote Server Configuration",
@@ -132,8 +150,7 @@ public class RemoteSourceFilter {
                 ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
                     ProgressIndicator progressIndicator = ProgressManager.getInstance()
                             .getProgressIndicator();//(project, "New project...");
-                    progressIndicator.setIndeterminate(false);
-                    progressIndicator.setFraction(0);
+                    progressIndicator.setIndeterminate(true);
                     List<ExecutionSession> list = sessionDiscoveryBackground(independentClientInstance);
                     createRemoteSessionList(list);
                 }, "Loading Sessions", false, insidiousService.getProject());
@@ -193,6 +210,11 @@ public class RemoteSourceFilter {
             }
             componentLifecycleListener.onClose();
         });
+    }
+
+    private void showLoading() {
+
+        serverListPanel.add(new JLabel("Loading sessions", icon, JLabel.CENTER));
     }
 
 
