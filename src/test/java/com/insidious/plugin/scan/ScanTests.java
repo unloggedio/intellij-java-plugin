@@ -3,7 +3,7 @@ package com.insidious.plugin.scan;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.insidious.plugin.agent.ServerMetadata;
 import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.client.VideobugLocalClient;
+import com.insidious.plugin.client.UnloggedLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.ActiveSessionManager;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -95,7 +95,7 @@ public class ScanTests {
         String sessionPath = SESSIONS_PATH + sessionFolder;
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getName()).thenReturn("test-project");
-        new VideobugLocalClient(sessionPath, project, new ActiveSessionManager());
+        new UnloggedLocalClient(sessionPath);
         ExecutionSession executionSession = new ExecutionSession();
         executionSession.setPath(sessionPath);
         executionSession.setSessionId("1");

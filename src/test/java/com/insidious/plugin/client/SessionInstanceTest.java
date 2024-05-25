@@ -33,7 +33,7 @@ public class SessionInstanceTest extends TestCase {
         String sessionPath = SESSIONS_PATH + "selogger-3";
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getName()).thenReturn("test-project");
-        new VideobugLocalClient(sessionPath, project, new ActiveSessionManager());
+        new UnloggedLocalClient(sessionPath);
         ExecutionSession executionSession = new ExecutionSession();
         executionSession.setPath(sessionPath);
         executionSession.setSessionId("1");
@@ -63,7 +63,7 @@ public class SessionInstanceTest extends TestCase {
         String sessionPath = SESSIONS_PATH + "selogger-3";
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getName()).thenReturn("test-project");
-        new VideobugLocalClient(sessionPath, project, new ActiveSessionManager());
+        new UnloggedLocalClient(sessionPath);
         ExecutionSession executionSession = new ExecutionSession();
         executionSession.setPath(sessionPath);
         executionSession.setSessionId("1");
@@ -93,7 +93,7 @@ public class SessionInstanceTest extends TestCase {
         String sessionPath = SESSIONS_PATH + "selogger-6";
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getName()).thenReturn("test-project");
-        new VideobugLocalClient(sessionPath, project, new ActiveSessionManager());
+        new UnloggedLocalClient(sessionPath);
         ExecutionSession executionSession = new ExecutionSession();
         executionSession.setPath(sessionPath);
         executionSession.setSessionId("1");

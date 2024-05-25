@@ -134,7 +134,7 @@ public class RemoteSourceFilter {
 
 
         checkNewSessionButton.addActionListener(e -> {
-            localServerEndpoint = serverLinkField.getText();
+            localServerEndpoint = getServerLinkFieldText();
             try {
                 URI uri = new URI(localServerEndpoint);
             } catch (URISyntaxException ex) {
@@ -174,7 +174,7 @@ public class RemoteSourceFilter {
             this.independentClientInstance = UnloggedClientFactory.createClient(executionSessionSource);
             ExecutionSession executionSession = null;
             if (this.executionSessionSource.getSessionMode() == ExecutionSessionSourceMode.REMOTE) {
-                localServerEndpoint = serverLinkField.getText();
+                localServerEndpoint = getServerLinkFieldText();
                 try {
                     URI uri = new URI(localServerEndpoint);
                 } catch (URISyntaxException ex) {
@@ -200,7 +200,7 @@ public class RemoteSourceFilter {
 
                 this.executionSessionSource.setSourceFilter(SourceFilter.SELECTED_ONLY);
                 this.executionSessionSource.setSessionId(listSessionId);
-                localServerEndpoint = serverLinkField.getText();
+                localServerEndpoint = getServerLinkFieldText();
                 this.independentClientInstance.setSourceModel(this.executionSessionSource);
             }
             insidiousService.setSessionSource(executionSessionSource);
@@ -210,6 +210,14 @@ public class RemoteSourceFilter {
             }
             componentLifecycleListener.onClose();
         });
+    }
+
+    private String getServerLinkFieldText() {
+        String text = serverLinkField.getText();
+        while (text.endsWith("/")) {
+            text = text.substring(0, text.length() - 1);
+        }
+        return text;
     }
 
     private void showLoading() {
