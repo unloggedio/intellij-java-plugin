@@ -14,9 +14,12 @@ import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
 import com.insidious.plugin.autoexecutor.AutomaticExecutorService;
 import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
-import com.insidious.plugin.client.*;
+import com.insidious.plugin.client.ClassMethodAggregates;
+import com.insidious.plugin.client.SessionInstanceInterface;
+import com.insidious.plugin.client.UnloggedClientInterface;
+import com.insidious.plugin.client.UnloggedTimingTag;
 import com.insidious.plugin.client.pojo.ExecutionSession;
-import com.insidious.plugin.constants.SessionMode;
+import com.insidious.plugin.constants.ExecutionSessionSourceMode;
 import com.insidious.plugin.coverage.ClassCoverageData;
 import com.insidious.plugin.coverage.CodeCoverageData;
 import com.insidious.plugin.coverage.MethodCoverageData;
@@ -32,7 +35,10 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
 import com.insidious.plugin.record.AtomicRecordService;
-import com.insidious.plugin.ui.*;
+import com.insidious.plugin.ui.InsidiousCaretListener;
+import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.ui.UnloggedSDKOnboarding;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.library.ItemFilterType;
 import com.insidious.plugin.ui.library.LibraryComponent;
@@ -42,8 +48,9 @@ import com.insidious.plugin.ui.mocking.OnSaveListener;
 import com.insidious.plugin.ui.stomp.StompComponent;
 import com.insidious.plugin.ui.stomp.StompFilterModel;
 import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
+import com.insidious.plugin.ui.stomp.UnloggedClientFactory;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
-import com.insidious.plugin.upload.SourceModel;
+import com.insidious.plugin.upload.ExecutionSessionSource;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
@@ -71,6 +78,7 @@ import com.intellij.openapi.editor.event.EditorEventMulticaster;
 import com.intellij.openapi.editor.event.EditorFactoryEvent;
 import com.intellij.openapi.editor.event.EditorFactoryListener;
 import com.intellij.openapi.editor.impl.EditorFactoryImpl;
+import com.intellij.openapi.editor.impl.EditorImpl;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
@@ -126,14 +134,20 @@ import static com.intellij.psi.PsiModifier.ABSTRACT;
 @Storage("insidious.xml")
 @Service(Service.Level.PROJECT)
 final public class InsidiousService implements
-        Disposable, NewTestCandidateIdentifiedListener, SessionInstanceChangeListener {
+        Disposable, NewTestCandidateIdentifiedListener {
     public static final Set<String> SKIP_METHOD_IN_FOLLOW_FILTER = new HashSet<>(
             Arrays.asList("Object", "clone", "toString",
                     "equals", "finalize", "notify", "hashCode", "wait",
                     "getClass"));
+    public static final String PATH_TO_SESSIONS;
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final static ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     final static private int TOOL_WINDOW_WIDTH = 400;
+
+    static {
+        PATH_TO_SESSIONS = Constants.HOME_PATH + "/sessions";
+    }
+
     private final ExecutorService connectionCheckerThreadPool = Executors.newFixedThreadPool(1,
             new DefaultThreadFactory("UnloggedProjectThreadPool", true));
     private final Map<String, DifferenceResult> executionRecord = new TreeMap<>();
@@ -152,7 +166,6 @@ final public class InsidiousService implements
     private final EditorFactoryListener editorFactoryListener;
     private final AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
     private final ReportingService reportingService = new ReportingService(this);
-    private final String pathToSessions;
     Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
@@ -174,7 +187,7 @@ final public class InsidiousService implements
     private LibraryComponent libraryToolWindow;
     private ToolWindow toolWindow;
     private ServerMetadata serverMetadata = null;
-    private SourceModel sourceModel;
+    private final Map<String, ServerMetadata> checkCache = new HashMap<>();
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -185,18 +198,15 @@ final public class InsidiousService implements
 
         sessionManager = ApplicationManager.getApplication().getService(ActiveSessionManager.class);
 
-        this.pathToSessions = Constants.HOME_PATH + "/sessions";
-        FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
+        FileSystems.getDefault().getPath(PATH_TO_SESSIONS).toFile().mkdirs();
 
 
         configurationState = project.getService(InsidiousConfigurationState.class);
 
-        this.sourceModel = configurationState.getSourceModel();
-        setUnloggedClient(sourceModel);
+        ExecutionSession currentExecutionSession = configurationState.getExecutionSession();
+        setUnloggedClient(UnloggedClientFactory.createClient(configurationState.getSourceModel()));
 
         sessionListener = new GetProjectSessionsCallback() {
-            private final Map<String, ServerMetadata> checkCache = new HashMap<>();
-            private ExecutionSession currentSession;
 
             @Override
             public void error(String message) {
@@ -205,6 +215,24 @@ final public class InsidiousService implements
 
             @Override
             public synchronized void success(List<ExecutionSession> executionSessionList) {
+                if (executionSessionList.size() > 1) {
+                    executionSessionList.sort(Comparator.comparing(ExecutionSession::getSessionId));
+                    logger.debug("Session list after sort by session id: " + executionSessionList);
+                    Collections.reverse(executionSessionList);
+                    logger.debug("Session list after reverse: " + executionSessionList);
+
+                    int i = -1;
+                    for (ExecutionSession executionSession : executionSessionList) {
+                        i++;
+                        if (i == 0) {
+                            continue;
+                        }
+                        logger.warn(
+                                "Deleting session: " + executionSession.getSessionId() + " => " + project.getName());
+                        sessionManager.cleanUpSessionDirectory(executionSession);
+                    }
+                }
+
                 if (DumbService.getInstance(project).isDumb()) {
 //                    DumbService.getInstance(project).runWhenSmart(() -> {
 //                        setSession(executionSession);
@@ -212,139 +240,24 @@ final public class InsidiousService implements
                     return;
                 }
 
+
                 if (executionSessionList.isEmpty()) {
                     logger.debug("no sessions found");
-                    // the currently loaded session has been deleted
-                    if (currentSession != null && currentSession.getSessionId().equals("na")) {
-                        // already na is set
-                        return;
-                    }
-                    currentSession = getCurrentExecutionSession();
                     return;
 
                 }
+                ExecutionSession currentSession = getCurrentExecutionSession();
                 ExecutionSession mostRecentSession = executionSessionList.get(0);
                 logger.debug(
                         "New session: [" + mostRecentSession.getSessionId() + "] vs existing session: " + currentSession);
 
-                ServerMetadata serverMetadata;
-                if (currentSession == null) {
-                    serverMetadata = checkSessionBelongsToProject(mostRecentSession, project);
-                    // no session currently loaded, and we can load a new sessions
-                    if (serverMetadata == null) {
-                        return;
-                    }
-                    onAgentConnected(serverMetadata);
-
-                } else if (currentSession.getSessionId().equals(mostRecentSession.getSessionId())) {
-                    // already using this session
-                    return;
-                } else {
-                    serverMetadata = checkSessionBelongsToProject(mostRecentSession, project);
-                    if (null == serverMetadata) {
-                        return;
-                    }
-                    logger.warn(
-                            "Current loaded session [" + currentSession.getSessionId() + "] is different from most " +
-                                    "recent session found [" + mostRecentSession.getSessionId() + "]");
-                }
-                currentSession = mostRecentSession;
                 try {
-                    setSession(mostRecentSession, serverMetadata);
+                    setSession(mostRecentSession);
                 } catch (Throwable t) {
                     InsidiousNotification.notifyMessage("Failed to load session: " + t.getMessage(),
                             NotificationType.ERROR);
                 }
             }
-
-            private ServerMetadata checkSessionBelongsToProject(ExecutionSession session, Project project) {
-
-                if (session.getSessionMode() == SessionMode.REMOTE) {
-                    ServerMetadata serverMetadata = getServerMetadata(sourceModel, session.getSessionId());
-                    return serverMetadata;
-                }
-
-                if (checkCache.containsKey(session.getSessionId())) {
-                    return checkCache.get(session.getSessionId());
-                }
-                try {
-                    String executionLogFile = session.getLogFilePath();
-                    File logFile = new File(executionLogFile);
-                    if (!logFile.exists()) {
-                        return null;
-                    }
-                    BufferedReader logFileInputStream = new BufferedReader(
-                            new InputStreamReader(Files.newInputStream(logFile.toPath())));
-                    // do not remove
-                    String javaVersionLine = logFileInputStream.readLine();
-                    String agentVersionLine = logFileInputStream.readLine();
-                    String agentParamsLine = logFileInputStream.readLine();
-                    if (!agentParamsLine.startsWith("Params: ")) {
-                        logger.warn(
-                                "The third line is not Params line, marked as session not matching: " + session.getLogFilePath());
-                        checkCache.put(session.getSessionId(), null);
-                        return null;
-                    }
-                    String[] paramParts = agentParamsLine.substring("Params: ".length()).split(",");
-                    boolean foundIncludePackage = false;
-                    String includedPackagedName = null;
-                    for (String paramPart : paramParts) {
-                        if (paramPart.startsWith("i=")) {
-                            foundIncludePackage = true;
-                            includedPackagedName = paramPart.substring("i=".length());
-                            break;
-                        }
-                    }
-                    if (!foundIncludePackage) {
-//                        checkCache.put(session.getSessionId(), null);
-//                        logger.warn(
-//                                "Package not found in the params, marked as session not matching: " + session.getLogFilePath());
-//                        return null;
-                    }
-                    String serverMetadataJson = logFileInputStream.readLine();
-                    ServerMetadata serverMetadata;
-                    try {
-                        serverMetadata = objectMapper.readValue(serverMetadataJson,
-                                ServerMetadata.class);
-                    } catch (Exception e) {
-                        logger.warn("Failed to read server metadata from log: [" + serverMetadataJson + "]", e);
-                        InsidiousNotification.notifyMessage("Found session at [" + session.getPath() + "] " +
-                                        "but couldn't connect to server because of missing server metadata.",
-                                NotificationType.ERROR);
-                        checkCache.put(session.getSessionId(), null);
-                        return null;
-                    }
-
-                    String finalIncludedPackagedName = includedPackagedName.replace('/', '.');
-                    PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
-                            (Computable<PsiPackage>) () -> JavaPsiFacade.getInstance(project)
-                                    .findPackage(finalIncludedPackagedName));
-                    if (locatedPackage == null) {
-                        logger.warn("Package for agent [" + finalIncludedPackagedName + "] NOTFOUND in current " +
-                                "project [" + project.getName() + "]" +
-                                " -> " + session.getLogFilePath());
-//                        checkCache.put(session.getSessionId(), new ServerMetadata());
-//                        return new ServerMetadata();
-                    } else {
-
-                        logger.warn("Package for agent [" + finalIncludedPackagedName + "] FOUND in current " +
-                                "project [" + project.getName() + "]" +
-                                " -> " + session.getLogFilePath());
-                    }
-
-
-                    checkCache.put(session.getSessionId(), serverMetadata);
-                    return serverMetadata;
-
-
-                } catch (Exception e) {
-                    logger.warn("Failed to check session: " + session.getLogFilePath(), e);
-                    checkCache.put(session.getSessionId(), null);
-                    return null;
-                }
-
-            }
-
         };
 
 
@@ -358,6 +271,14 @@ final public class InsidiousService implements
             @Override
             public void editorCreated(@NotNull EditorFactoryEvent event) {
                 if (project.isDisposed()) {
+                    return;
+                }
+                if (!(event.getEditor() instanceof EditorImpl)) {
+                    return;
+                }
+                EditorImpl editorImpl = (EditorImpl) event.getEditor();
+                VirtualFile vfile = editorImpl.getVirtualFile();
+                if (vfile == null || !vfile.isValid() || vfile.getCanonicalPath().startsWith("jar://")) {
                     return;
                 }
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -407,25 +328,15 @@ final public class InsidiousService implements
         return agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName() + "#" + agentCommandRequest.getMethodSignature();
     }
 
-    @Override
-    public UnloggedClientInterface setUnloggedClient(SourceModel sourceModel) {
-        this.sourceModel = sourceModel;
-        if (sourceModel.getSessionMode() == SessionMode.REMOTE) {
-            this.client = new NetworkClient(sourceModel);
-        } else {
-            this.client = new UnloggedLocalClient(pathToSessions, project, sessionManager);
-        }
-
-        if (this.sessionLoader != null) {
-            this.sessionLoader.setClient(this.client);
-        }
-
+    public UnloggedClientInterface getUnloggedClient() {
         return this.client;
     }
 
-    @Override
-    public UnloggedClientInterface getUnloggedClient() {
-        return this.client;
+    public void setUnloggedClient(UnloggedClientInterface executionSessionSource) {
+        this.client = executionSessionSource;
+        if (this.sessionLoader != null) {
+            this.sessionLoader.setClient(this.client);
+        }
     }
 
     public void chooseClassImplementation(String className, ClassChosenListener classChosenListener) {
@@ -511,6 +422,10 @@ final public class InsidiousService implements
         return reportingService;
     }
 
+    public MethodAdapter getCurrentMethod() {
+        return this.currentState.getCurrentMethod();
+    }
+
 //    public void generateAndSaveTestCase(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
 //        TestCaseService testCaseService = getTestCaseService();
 //        if (testCaseService == null) {
@@ -526,10 +441,6 @@ final public class InsidiousService implements
 //    public TestCaseGenerationConfiguration generateMethodBoilerplate(MethodAdapter methodAdapter) {
 //        return testCaseDesignerWindow.generateTestCaseBoilerPlace(methodAdapter);
 //    }
-
-    public MethodAdapter getCurrentMethod() {
-        return this.currentState.getCurrentMethod();
-    }
 
     public void init() {
 
@@ -582,14 +493,6 @@ final public class InsidiousService implements
 
     }
 
-//    public void generateAndUploadReport() throws APICallException, IOException {
-//        UsageInsightTracker.getInstance()
-//                .RecordEvent("DiagnosticReport", null);
-//        DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project,
-//                this.currentModule);
-//        diagnosticService.generateAndUploadReport();
-//    }
-
     private synchronized void initiateUI() {
         logger.info("initiate ui");
         if (toolWindow != null) {
@@ -610,7 +513,6 @@ final public class InsidiousService implements
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             this.sessionLoader = ApplicationManager.getApplication().getService(SessionLoader.class);
             this.sessionLoader.setClient(this.client);
-            this.sessionLoader.setProject(this.project);
             this.sessionLoader.addSessionCallbackListener(sessionListener);
             cdl.countDown();
         });
@@ -622,23 +524,12 @@ final public class InsidiousService implements
         return;
     }
 
-
-//    public void addLiveView() {
-//        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
-//        if (!liveViewAdded) {
-//            toolWindow.getContentManager().addContent(liveWindowContent);
-//            toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
-//            liveViewAdded = true;
-//            try {
-//                liveViewWindow.setTreeStateToLoading();
-//                liveViewWindow.loadInfoBanner();
-//            } catch (Exception e) {
-//                //exception setting state
-//                logger.error("Failed to start scan after proceed.");
-//            }
-//        } else {
-//            toolWindow.getContentManager().setSelectedContent(liveWindowContent);
-//        }
+//    public void generateAndUploadReport() throws APICallException, IOException {
+//        UsageInsightTracker.getInstance()
+//                .RecordEvent("DiagnosticReport", null);
+//        DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project,
+//                this.currentModule);
+//        diagnosticService.generateAndUploadReport();
 //    }
 
     public void addAllTabs() {
@@ -736,20 +627,31 @@ final public class InsidiousService implements
 //
     }
 
+
+//    public void addLiveView() {
+//        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
+//        if (!liveViewAdded) {
+//            toolWindow.getContentManager().addContent(liveWindowContent);
+//            toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
+//            liveViewAdded = true;
+//            try {
+//                liveViewWindow.setTreeStateToLoading();
+//                liveViewWindow.loadInfoBanner();
+//            } catch (Exception e) {
+//                //exception setting state
+//                logger.error("Failed to start scan after proceed.");
+//            }
+//        } else {
+//            toolWindow.getContentManager().setSelectedContent(liveWindowContent);
+//        }
+//    }
+
     public UnloggedClientInterface getClient() {
         return client;
     }
 
     public void setClient(UnloggedClientInterface client) {
         this.client = client;
-    }
-
-    public SourceModel getSourceModel() {
-        return this.sourceModel;
-    }
-
-    public void setSourceModel(SourceModel sourceModel) {
-        this.sourceModel = sourceModel;
     }
 
     @Override
@@ -759,7 +661,7 @@ final public class InsidiousService implements
         UsageInsightTracker.getInstance().RecordEvent("UNLOGGED_DISPOSED", eventProperties);
         logger.warn("Disposing InsidiousService for project: " + project.getName());
         connectionCheckerThreadPool.shutdownNow();
-        EditorFactory.getInstance().removeEditorFactoryListener(editorFactoryListener);
+//        EditorFactory.getInstance().removeEditorFactoryListener(editorFactoryListener);
 
         if (stompComponentThreadPool != null) {
             stompComponentThreadPool.shutdownNow();
@@ -782,9 +684,16 @@ final public class InsidiousService implements
         UsageInsightTracker.getInstance().close();
     }
 
-    @Override
     public Project getProject() {
         return project;
+    }
+
+    public ExecutionSessionSource getSessionSource() {
+        return configurationState.getSourceModel();
+    }
+
+    public void setSessionSource(ExecutionSessionSource ess) {
+        configurationState.setSourceModel(ess);
     }
 
     public void attachRawView() {
@@ -1209,8 +1118,7 @@ final public class InsidiousService implements
         return testCaseService;
     }
 
-    public void setSession(ExecutionSession executionSession, ServerMetadata serverMetadata) {
-
+    public void clearSession() {
         SessionInstanceInterface currentSession = currentState.getSessionInstance();
         if (currentSession != null) {
             try {
@@ -1224,28 +1132,147 @@ final public class InsidiousService implements
         this.executionRecord.clear();
         this.methodHash.clear();
         this.classModifiedFlagMap.clear();
-        logger.info("Loading new session: " + executionSession.getSessionId() + " => " + project.getName());
-        SourceModel sourceModel = configurationState.getSourceModel();
-        SessionInstanceInterface sessionInstance = sessionManager.createSessionInstance(executionSession,
-                serverMetadata, sourceModel, project);
+        stompWindow.clear();
+        currentState.setSessionInstance(null);
+    }
+
+    private ServerMetadata checkSessionBelongsToProject(ExecutionSession session, Project project) {
+
+        if (session.getSessionMode() == ExecutionSessionSourceMode.REMOTE) {
+            return getServerMetadata(configurationState.getSourceModel(), session.getSessionId());
+        }
+
+        if (checkCache.containsKey(session.getSessionId())) {
+            return checkCache.get(session.getSessionId());
+        }
+        try {
+            String executionLogFile = session.getLogFilePath();
+            File logFile = new File(executionLogFile);
+            if (!logFile.exists()) {
+                return null;
+            }
+            BufferedReader logFileInputStream = new BufferedReader(
+                    new InputStreamReader(Files.newInputStream(logFile.toPath())));
+            // do not remove
+            String javaVersionLine = logFileInputStream.readLine();
+            String agentVersionLine = logFileInputStream.readLine();
+            String agentParamsLine = logFileInputStream.readLine();
+            if (!agentParamsLine.startsWith("Params: ")) {
+                logger.warn(
+                        "The third line is not Params line, marked as session not matching: " + session.getLogFilePath());
+                checkCache.put(session.getSessionId(), null);
+                return null;
+            }
+            String[] paramParts = agentParamsLine.substring("Params: ".length()).split(",");
+            boolean foundIncludePackage = false;
+            String includedPackagedName = null;
+            for (String paramPart : paramParts) {
+                if (paramPart.startsWith("i=")) {
+                    foundIncludePackage = true;
+                    includedPackagedName = paramPart.substring("i=".length());
+                    break;
+                }
+            }
+            if (!foundIncludePackage) {
+//                        checkCache.put(session.getSessionId(), null);
+//                        logger.warn(
+//                                "Package not found in the params, marked as session not matching: " + session.getLogFilePath());
+//                        return null;
+            }
+            String serverMetadataJson = logFileInputStream.readLine();
+            ServerMetadata serverMetadata;
+            try {
+                serverMetadata = objectMapper.readValue(serverMetadataJson,
+                        ServerMetadata.class);
+            } catch (Exception e) {
+                logger.warn("Failed to read server metadata from log: [" + serverMetadataJson + "]", e);
+                InsidiousNotification.notifyMessage("Found session at [" + session.getPath() + "] " +
+                                "but couldn't connect to server because of missing server metadata.",
+                        NotificationType.ERROR);
+                checkCache.put(session.getSessionId(), null);
+                return null;
+            }
+
+            String finalIncludedPackagedName = includedPackagedName.replace('/', '.');
+            PsiPackage locatedPackage = ApplicationManager.getApplication().runReadAction(
+                    (Computable<PsiPackage>) () -> JavaPsiFacade.getInstance(project)
+                            .findPackage(finalIncludedPackagedName));
+            if (locatedPackage == null) {
+                logger.warn("Package for agent [" + finalIncludedPackagedName + "] NOTFOUND in current " +
+                        "project [" + project.getName() + "]" +
+                        " -> " + session.getLogFilePath());
+//                        checkCache.put(session.getSessionId(), new ServerMetadata());
+//                        return new ServerMetadata();
+            } else {
+
+                logger.warn("Package for agent [" + finalIncludedPackagedName + "] FOUND in current " +
+                        "project [" + project.getName() + "]" +
+                        " -> " + session.getLogFilePath());
+            }
+
+
+            checkCache.put(session.getSessionId(), serverMetadata);
+            return serverMetadata;
+
+
+        } catch (Exception e) {
+            logger.warn("Failed to check session: " + session.getLogFilePath(), e);
+            checkCache.put(session.getSessionId(), null);
+            return null;
+        }
+
+    }
+
+
+    public void setSession(ExecutionSession mostRecentSession) {
+
+        ServerMetadata serverMetadata;
+        if (currentState.getSessionInstance() == null) {
+            serverMetadata = checkSessionBelongsToProject(mostRecentSession, project);
+            // no session currently loaded, and we can load a new sessions
+            if (serverMetadata == null) {
+                return;
+            }
+            onAgentConnected(serverMetadata);
+
+        } else {
+            String currentSessionId = currentState.getSessionInstance()
+                    .getExecutionSession().getSessionId();
+            if (currentSessionId.equals(mostRecentSession.getSessionId())) {
+                // already using this session
+                return;
+            } else {
+                serverMetadata = checkSessionBelongsToProject(mostRecentSession, project);
+                if (null == serverMetadata) {
+                    return;
+                }
+                logger.warn(
+                        "Current loaded session [" + currentSessionId + "] is different from most " +
+                                "recent session found [" + mostRecentSession.getSessionId() + "]");
+            }
+        }
+
+        clearSession();
+        logger.info("Loading new session: " + mostRecentSession.getSessionId() + " => " + project.getName());
+        if (mostRecentSession.getProjectId() == null || mostRecentSession.getProjectId().isEmpty()) {
+            mostRecentSession.setProjectId(project.getName());
+        }
+        configurationState.setExecutionSession(mostRecentSession);
+        ExecutionSessionSource executionSessionSource = configurationState.getSourceModel();
+        SessionInstanceInterface sessionInstance = sessionManager.createSessionInstance(mostRecentSession,
+                serverMetadata, executionSessionSource, project);
 
         currentState.setSessionInstance(sessionInstance);
         sessionInstance.addTestCandidateListener(this);
 
         client.setSessionInstance(sessionInstance);
-        testCaseService = new TestCaseService(sessionInstance);
+        testCaseService = new TestCaseService(sessionInstance, project);
 
 
-        if (!executionSession.getSessionId().equals("na")) {
+        if (!mostRecentSession.getSessionId().equals("na")) {
             removeOnboardingTab();
 
             ApplicationManager.getApplication().invokeLater(() -> {
-//                ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
-//                ContentManager contentManager = toolWindow.getContentManager();
-
-//                if (stompWindowContent != null) {
-//                    contentManager.removeContent(stompWindowContent, true);
-//                }
 
                 stompWindow.clear();
                 stompWindow.setSession(sessionInstance);
@@ -1277,9 +1304,6 @@ final public class InsidiousService implements
 
         SessionInstanceInterface sessionInstance = currentState.getSessionInstance();
         if (coverageReportComponent == null || sessionInstance == null) {
-            return;
-        }
-        if (sessionInstance.getProject() != project) {
             return;
         }
         CodeCoverageData coverageData = sessionInstance.createCoverageData();
@@ -2007,7 +2031,7 @@ final public class InsidiousService implements
                 }
             }
         }
-        if (stompWindow != null) {
+        if (stompWindow != null && changed) {
             stompWindow.resetAndReload();
         }
     }
@@ -2027,7 +2051,7 @@ final public class InsidiousService implements
                 (Computable<PsiMethod[]>) psiClass::getMethods)) {
             String name = ApplicationManager.getApplication()
                     .runReadAction((Computable<String>) method::getName);
-            if (InsidiousService.SKIP_METHOD_IN_FOLLOW_FILTER.contains(name)) {
+            if (com.insidious.plugin.factory.InsidiousService.SKIP_METHOD_IN_FOLLOW_FILTER.contains(name)) {
                 continue;
             }
             methodNames.add(name);
@@ -2096,9 +2120,9 @@ final public class InsidiousService implements
 
     }
 
-    public ServerMetadata getServerMetadata(SourceModel sourceModel, String sessionId) {
+    public ServerMetadata getServerMetadata(ExecutionSessionSource executionSessionSource, String sessionId) {
 
-        String url = sourceModel.getServerEndpoint() + "/session/getServerMetadata" + "?sessionId=" + sessionId;
+        String url = executionSessionSource.getServerEndpoint() + "/session/getServerMetadata" + "?sessionId=" + sessionId;
         logger.info("get server metadata url = " + url);
         CountDownLatch latch = new CountDownLatch(1);
         get(url, new Callback() {
@@ -2111,7 +2135,7 @@ final public class InsidiousService implements
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                    ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
                     String responseBody = Objects.requireNonNull(response.body()).string();
                     serverMetadata = objectMapper.readValue(responseBody, ServerMetadata.class);
                 } finally {

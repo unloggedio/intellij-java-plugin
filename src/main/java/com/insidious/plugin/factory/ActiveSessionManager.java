@@ -1,19 +1,18 @@
 package com.insidious.plugin.factory;
 
-import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.agent.ServerMetadata;
+import com.insidious.plugin.client.NetworkSessionInstanceClient;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.client.pojo.ExecutionSession;
-import com.insidious.plugin.constants.SessionMode;
-import com.insidious.plugin.upload.SourceModel;
+import com.insidious.plugin.constants.ExecutionSessionSourceMode;
+import com.insidious.plugin.upload.ExecutionSessionSource;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 
-import com.insidious.plugin.client.NetworkSessionInstanceClient;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -26,25 +25,31 @@ public class ActiveSessionManager {
 
     private static final Logger logger = LoggerUtil.getInstance(ActiveSessionManager.class);
     private final Map<String, SessionInstanceInterface> sessionInstanceMap = new HashMap<>();
+    private final Map<String, Boolean> isDeletedSession = new HashMap<>();
 
     public ActiveSessionManager() {
     }
 
-    public synchronized SessionInstanceInterface createSessionInstance(ExecutionSession executionSession, ServerMetadata serverMetadata, SourceModel sourceModel, Project project) {
-        if (sessionInstanceMap.containsKey(executionSession.getSessionId())) {
-            return sessionInstanceMap.get(executionSession.getSessionId());
+    public synchronized SessionInstanceInterface createSessionInstance(
+            ExecutionSession executionSession,
+            ServerMetadata serverMetadata,
+            ExecutionSessionSource executionSessionSource,
+            Project project) {
+        String newSessionId = executionSession.getSessionId();
+        if (sessionInstanceMap.containsKey(newSessionId)) {
+            return sessionInstanceMap.get(newSessionId);
         }
 
-        SessionMode sessionMode = sourceModel.getSessionMode();
-        String sessionNetworkUrl = sourceModel.getServerEndpoint();
+        ExecutionSessionSourceMode executionSessionSourceMode = executionSessionSource.getSessionMode();
+        String sessionNetworkUrl = executionSessionSource.getServerEndpoint();
 
         // create a session instance
         SessionInstanceInterface sessionInstance;
-        if (sessionMode == SessionMode.REMOTE) {
+        if (executionSessionSourceMode == ExecutionSessionSourceMode.REMOTE) {
             logger.info("attempting to create a session instance from remote process");
-            sessionInstance = new NetworkSessionInstanceClient(sessionNetworkUrl, executionSession.getSessionId(), serverMetadata, project);
-        }
-        else {
+            sessionInstance = new NetworkSessionInstanceClient(sessionNetworkUrl, newSessionId,
+                    serverMetadata);
+        } else {
             logger.info("attempting to create a session instance from local process");
             try {
                 sessionInstance = new SessionInstance(executionSession, serverMetadata, project);
@@ -56,11 +61,9 @@ public class ActiveSessionManager {
             }
         }
 
-        sessionInstanceMap.put(executionSession.getSessionId(), sessionInstance);
+        sessionInstanceMap.put(newSessionId, sessionInstance);
         return sessionInstance;
     }
-
-    private final Map<String, Boolean> isDeletedSession = new HashMap<>();
 
     public synchronized void cleanUpSessionDirectory(ExecutionSession executionSession) {
         String sessionPath = executionSession.getPath();

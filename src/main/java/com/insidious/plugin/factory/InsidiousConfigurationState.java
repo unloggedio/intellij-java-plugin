@@ -1,14 +1,14 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.constants.ExecutionSessionSourceMode;
 import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.stomp.StompFilterModel;
-import com.insidious.plugin.upload.SourceModel;
-import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.upload.ExecutionSessionSource;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import com.intellij.util.xmlb.annotations.OptionTag;
 
@@ -22,21 +22,27 @@ import java.util.Map;
  */
 @State(
         name = "com.insidious.plugin.factory.InsidiousConfigurationState",
-        storages = @Storage("InsidiousPlugin.xml")
+        storages = @Storage("InsidiousConfiguration.xml")
 )
 @Service(Service.Level.PROJECT)
 public final class InsidiousConfigurationState
         implements PersistentStateComponent<InsidiousConfigurationState> {
 
-    private static final Logger logger = LoggerUtil.getInstance(InsidiousConfigurationState.class);
     private final Map<String, Boolean> classFieldMockActiveStatus = new HashMap<>();
     private final Map<String, Boolean> mockActiveStatus = new HashMap<>();
+
     @OptionTag(converter = LibraryFilterModelConverter.class)
     private final LibraryFilterState libraryFilterModel = new LibraryFilterState();
+
     @OptionTag(converter = FilterModelConverter.class)
     private StompFilterModel stompFilterModel = new StompFilterModel();
-    @OptionTag(converter = SourceModelConverter.class)
-    private SourceModel sourceModel = new SourceModel();
+
+    @OptionTag(converter = ExecutionSessionSourceConverter.class)
+    private ExecutionSessionSource executionSessionSource =
+            new ExecutionSessionSource(ExecutionSessionSourceMode.LOCAL);
+
+    @OptionTag(converter = ExecutionSessionConverter.class)
+    private ExecutionSession executionSession;
 
 
     public InsidiousConfigurationState() {
@@ -53,15 +59,12 @@ public final class InsidiousConfigurationState
         return stompFilterModel;
     }
 
-    public SourceModel getSourceModel() {
-        if (sourceModel == null) {
-            this.sourceModel = new SourceModel();
-        }
-        return this.sourceModel;
+    public ExecutionSessionSource getSourceModel() {
+        return this.executionSessionSource;
     }
 
-    public void setSourceModel(SourceModel sourceModel) {
-        this.sourceModel = sourceModel;
+    public void setSourceModel(ExecutionSessionSource executionSessionSource) {
+        this.executionSessionSource = executionSessionSource;
     }
 
     @Override
@@ -112,5 +115,13 @@ public final class InsidiousConfigurationState
         if (hasShownFeatures) {
             setShownFeatures();
         }
+    }
+
+    public ExecutionSession getExecutionSession() {
+        return executionSession;
+    }
+
+    public void setExecutionSession(ExecutionSession executionSession) {
+        this.executionSession = executionSession;
     }
 }

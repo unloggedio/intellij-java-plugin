@@ -24,7 +24,7 @@ public class TestCaseUtils {
 
     public static void generateAllTestCandidateCases(InsidiousService insidiousService, UnloggedClientInterface unloggedClientInterface) throws Exception {
         SessionInstanceInterface sessionInstance = unloggedClientInterface.getSessionInstance();
-        TestCaseService testCaseService = new TestCaseService(sessionInstance);
+        TestCaseService testCaseService = new TestCaseService(sessionInstance, insidiousService.getProject());
 
         TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
                 TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Gson, ResourceEmbedMode.IN_FILE

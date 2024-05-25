@@ -16,9 +16,7 @@ import com.intellij.psi.*;
 import com.intellij.psi.search.FileTypeIndex;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -30,7 +28,6 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback, Disp
     private final List<GetProjectSessionsCallback> listeners = new ArrayList<>();
     private UnloggedClientInterface client;
     private List<ExecutionSession> lastResult = new ArrayList<>();
-    private Project project;
 
     public SessionLoader() {
         ourPool = Executors.newFixedThreadPool(1, new DefaultThreadFactory("UnloggedAppThreadPool"));
@@ -74,10 +71,6 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback, Disp
         if (lastResult != null) {
             getProjectSessionsCallback.success(lastResult);
         }
-    }
-
-    public void setProject(Project project) {
-        this.project = project;
     }
 
     public void setClient(UnloggedClientInterface client) {

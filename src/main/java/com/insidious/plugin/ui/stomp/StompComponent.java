@@ -7,7 +7,6 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.callbacks.ExecutionRequestSourceType;
 import com.insidious.plugin.callbacks.TestCandidateLifeListener;
 import com.insidious.plugin.client.ScanProgress;
-import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.client.SessionScanEventListener;
 import com.insidious.plugin.factory.InsidiousConfigurationState;
@@ -23,7 +22,6 @@ import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
-import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.UnloggedOnboardingScreenV2;
 import com.insidious.plugin.ui.UnloggedSDKOnboarding;
@@ -32,7 +30,6 @@ import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
-import com.insidious.plugin.upload.SourceModel;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
@@ -99,7 +96,6 @@ public class StompComponent implements
     private final Map<TestCandidateBareBone, Component> candidateMetadataStompItemMap = new HashMap<>();
     private final InsidiousConfigurationState configurationState;
     private final StompFilterModel stompFilterModel;
-    private final AtomicRecordService atomicRecordService;
     private final Set<Long> pinnedItems = new HashSet<>();
     private final ActionToolbarImpl actionToolbar;
     private final UnloggedSDKOnboarding unloggedSDKOnboarding;
@@ -139,7 +135,6 @@ public class StompComponent implements
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
         this.project = insidiousService.getProject();
-        atomicRecordService = project.getService(AtomicRecordService.class);
         configurationState = project.getService(InsidiousConfigurationState.class);
 
         filterAppliedLabel.setVisible(false);
@@ -392,7 +387,7 @@ public class StompComponent implements
         content.setMinimumSize(new Dimension(-1, 400));
         content.setMaximumSize(new Dimension(-1, 500));
 
-     }
+    }
 
     private void selectAll() {
         if (selectedCandidates.size() != stompItems.size()) {
@@ -447,8 +442,7 @@ public class StompComponent implements
 
     private void showFiltersComponentPopup(Project project, InsidiousService insidiousService) {
         StompFilterModel originalFilter = new StompFilterModel(stompFilterModel);
-        SourceModel sourceModel = insidiousService.getSourceModel();
-        StompFilter stompFilter = new StompFilter(insidiousService, stompFilterModel, sourceModel, lastMethodFocussed, project);
+        StompFilter stompFilter = new StompFilter(insidiousService, stompFilterModel, lastMethodFocussed, project);
         JComponent component = stompFilter.getComponent();
 
         ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
@@ -573,13 +567,15 @@ public class StompComponent implements
     }
 
     public void resetAndReload() {
+        if (sessionInstance == null) {
+            return;
+        }
         ApplicationManager.getApplication().invokeLater(() -> {
             updateFilterLabel();
             resetTimeline();
             if (candidateQueryLatch != null) {
                 candidateQueryLatch.decrementAndGet();
             }
-            candidateQueryLatch = null;
             loadNewCandidates();
             itemPanel.revalidate();
             itemPanel.repaint();
@@ -744,7 +740,7 @@ public class StompComponent implements
             shownGotItNofiticaton = true;
             new GotItTooltip("Unlogged.Stomp.Item.Show",
                     "<html>Each method execution shows up here. <br>" +
-                            "Hover on and select by clicking the checkbox next to the pink icon<br>"
+                            "Hover on and select by clicking the checkbox<br>"
                             + "Right click to include/exclude </html>",
                     insidiousService.getProject())
                     .withPosition(Balloon.Position.below)
@@ -758,10 +754,6 @@ public class StompComponent implements
                     .show(component, GotItTooltip.BOTTOM_LEFT);
 
         }
-//        ApplicationManager.getApplication().invokeLater(() -> {
-//            verticalScrollBar1.setValue(max);
-//        });
-//        logger.warn("Component count is - " +itemPanel.getComponentCount());
 
     }
 
@@ -1321,10 +1313,6 @@ public class StompComponent implements
     }
 
     public void disconnected() {
-        if (candidateQueryLatch != null) {
-            candidateQueryLatch.decrementAndGet();
-            candidateQueryLatch = null;
-        }
         logger.warn("setDisconnected: " + stompStatusComponent.hashCode());
         stompStatusComponent.setDisconnected();
     }
@@ -1420,11 +1408,6 @@ public class StompComponent implements
         if (sessionInstance == null) {
             return;
         }
-        if (candidateQueryLatch != null) {
-            return;
-        }
-        candidateQueryLatch = new AtomicInteger(1);
-
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             if (sessionInstance.isConnected() && sessionInstance.isScanEnable()) {
                 setConnected();
@@ -1435,9 +1418,7 @@ public class StompComponent implements
 
         countByMethodName.clear();
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            if (candidateQueryLatch == null) {
-                candidateQueryLatch = new AtomicInteger(1);
-            }
+            candidateQueryLatch = new AtomicInteger(1);
             sessionInstance
                     .getTestCandidates(this, lastEventId, stompFilterModel, candidateQueryLatch);
         });
@@ -1544,10 +1525,10 @@ public class StompComponent implements
     public void setSession(SessionInstanceInterface sessionInstance) {
         if (candidateQueryLatch != null) {
             candidateQueryLatch.decrementAndGet();
-            candidateQueryLatch = null;
         }
         this.sessionInstance = sessionInstance;
         sessionInstance.addSessionScanEventListener(getScanEventListener());
+        resetAndReload();
     }
 
     public void onMethodFocussed(MethodAdapter method) {
@@ -1652,9 +1633,5 @@ public class StompComponent implements
             southPanel.getParent().repaint();
         });
 
-    }
-
-    public void setSessionInstance (SessionInstance sessionInstance) {
-        this.sessionInstance = sessionInstance;
     }
 }

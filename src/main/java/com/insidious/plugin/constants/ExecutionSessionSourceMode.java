@@ -1,6 +1,6 @@
 package com.insidious.plugin.constants;
 
-public enum SessionMode {
+public enum ExecutionSessionSourceMode {
     LOCAL,
     REMOTE
 }

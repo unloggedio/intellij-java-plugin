@@ -3,19 +3,21 @@ package com.insidious.plugin.client;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
-import com.insidious.plugin.constants.SessionMode;
+import com.insidious.plugin.constants.ExecutionSessionSourceMode;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.upload.SourceFilter;
-import com.insidious.plugin.upload.SourceModel;
+import com.insidious.plugin.upload.ExecutionSessionSource;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
@@ -32,17 +34,17 @@ public class NetworkClient implements UnloggedClientInterface {
 
     private static final Logger logger = LoggerUtil.getInstance(UnloggedClientInterface.class);
 
-    private SourceModel sourceModel;
+    private ExecutionSessionSource executionSessionSource;
     private SessionInstanceInterface sessionInstance;
     private List<ExecutionSession> executionSessionList;
 
-	public NetworkClient(SourceModel sourceModel) {
-		this.sourceModel = sourceModel;
+	public NetworkClient(ExecutionSessionSource executionSessionSource) {
+		this.executionSessionSource = executionSessionSource;
 	}
 
     @Override
-    public void setSourceModel(SourceModel sourceModel){
-        this.sourceModel = sourceModel;
+    public void setSourceModel(ExecutionSessionSource executionSessionSource){
+        this.executionSessionSource = executionSessionSource;
     }
 
     @Override
@@ -214,27 +216,27 @@ public class NetworkClient implements UnloggedClientInterface {
     public List<ExecutionSession> sessionDiscovery(Boolean filterSession){
 
         executionSessionList = new ArrayList<>();
-        if (this.sourceModel.getServerEndpoint() == "") {
+        if (this.executionSessionSource.getServerEndpoint() == "") {
             return executionSessionList;
         }
 
-        String url = this.sourceModel.getServerEndpoint() + "/discovery";
+        String url = this.executionSessionSource.getServerEndpoint() + "/discovery";
         CountDownLatch latch = new CountDownLatch(1);
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.warn("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                    ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
                     String responseBody = Objects.requireNonNull(response.body()).string();
                     ExecutionSession[] executionSessionLocal = objectMapper.readValue(responseBody, ExecutionSession[].class);
                     for (int i=0;i<=executionSessionLocal.length-1;i++) {
-                        executionSessionLocal[i].setSessionMode(SessionMode.REMOTE);
+                        executionSessionLocal[i].setSessionMode(ExecutionSessionSourceMode.REMOTE);
                         executionSessionList.add(executionSessionLocal[i]);
                     }
                 } finally {
@@ -252,9 +254,9 @@ public class NetworkClient implements UnloggedClientInterface {
 
 
         if (filterSession) {
-            if (sourceModel.getSourceFilter() == SourceFilter.SELECTED_ONLY) {
+            if (executionSessionSource.getSourceFilter() == SourceFilter.SELECTED_ONLY) {
                 List<ExecutionSession> filterExecutionSession = new ArrayList<>();
-                List<String> selectedExecutionSessionId = sourceModel.getSessionId();
+                List<String> selectedExecutionSessionId = executionSessionSource.getSessionId();
 
                 for (int i=0;i<=executionSessionList.size()-1;i++) {
                     ExecutionSession executionSession = executionSessionList.get(i);

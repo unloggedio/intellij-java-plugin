@@ -3,7 +3,7 @@
   <grid id="27dc6" binding="mainPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="5" left="5" bottom="5" right="5"/>
     <constraints>
-      <xy x="20" y="20" width="369" height="311"/>
+      <xy x="20" y="20" width="369" height="331"/>
     </constraints>
     <properties/>
     <border type="none"/>
@@ -21,10 +21,10 @@
         </border>
         <children>
           <grid id="315cf" binding="sourceModeOption" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="0" bottom="0" right="0"/>
+            <margin top="5" left="5" bottom="5" right="5"/>
             <constraints border-constraint="North"/>
             <properties/>
-            <border type="etched"/>
+            <border type="etched" title="Select source to scan"/>
             <children>
               <component id="f59b3" class="javax.swing.JRadioButton" binding="localhostRadio">
                 <constraints>
@@ -57,10 +57,10 @@
             <properties>
               <visible value="true"/>
             </properties>
-            <border type="none"/>
+            <border type="etched" title="Remote Server Configuration"/>
             <children>
               <grid id="cddef" binding="remoteServerPanel" layout-manager="GridLayoutManager" row-count="2" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                <margin top="0" left="0" bottom="0" right="0"/>
+                <margin top="5" left="5" bottom="5" right="5"/>
                 <constraints border-constraint="North"/>
                 <properties/>
                 <border type="none"/>
@@ -91,7 +91,7 @@
                         <properties/>
                         <border type="none"/>
                         <children>
-                          <component id="9b4e9" class="javax.swing.JButton" binding="linkSaveButton">
+                          <component id="9b4e9" class="javax.swing.JButton" binding="checkNewSessionButton">
                             <constraints>
                               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                             </constraints>
@@ -138,7 +138,7 @@
             </children>
           </grid>
           <grid id="68753" binding="serverListButton" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="0" bottom="0" right="0"/>
+            <margin top="5" left="5" bottom="5" right="5"/>
             <constraints border-constraint="South"/>
             <properties/>
             <border type="none"/>
@@ -155,7 +155,7 @@
                   <text value="Cancel"/>
                 </properties>
               </component>
-              <component id="d71f" class="javax.swing.JButton" binding="finalSaveButton">
+              <component id="d71f" class="javax.swing.JButton" binding="confirmSaveApplyButton">
                 <constraints>
                   <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="6" fill="0" indent="0" use-parent-layout="false">
                     <minimum-size width="70" height="-1"/>

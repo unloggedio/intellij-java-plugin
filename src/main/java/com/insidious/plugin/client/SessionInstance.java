@@ -90,7 +90,6 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private final ExecutorService executorPool;
     private final ZipConsumer zipConsumer;
-    private final Project project;
     private final Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
     private final Map<Long, com.insidious.plugin.pojo.dao.MethodCallExpression> methodCallMap = new HashMap<>();
     private final Map<Long, String> methodCallSubjectTypeMap = new HashMap<>();
@@ -100,6 +99,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
     private final List<SessionScanEventListener> sessionScanEventListeners = new ArrayList<>();
     private final List<NewTestCandidateIdentifiedListener> testCandidateListener = new ArrayList<>();
     private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
+    long idToStopAt = 2541064L;
     private ConnectionCheckerService connectionCheckerService = null;
     //    private final DatabasePipe databasePipe;
     private DaoService daoService;
@@ -123,7 +123,6 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 
     public SessionInstance(ExecutionSession executionSession, ServerMetadata serverMetadata, Project project) throws SQLException,
             IOException {
-        this.project = project;
         String agentServerUrl = serverMetadata.getAgentServerUrl();
         if (agentServerUrl == null || agentServerUrl.length() < 6) {
             agentServerUrl = "http://localhost:12100";
@@ -233,7 +232,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return scanEnable;
     }
 
-	@Override
+    @Override
     public boolean isConnected() {
         AgentCommandResponse<ServerMetadata> pingResponse = unloggedSdkApiAgentClient.ping();
         return ResponseType.NORMAL.equals(pingResponse.getResponseType());
@@ -286,11 +285,10 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return logFileMap;
     }
 
-	@Override
+    @Override
     public ExecutionSession getExecutionSession() {
         return executionSession;
     }
-
 
     private List<File> refreshSessionArchivesList(boolean forceRefresh) throws IOException {
         long start = new Date().getTime();
@@ -373,7 +371,6 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         logger.info("refresh session archives list in  [" + (end - start) + "] ms");
         return sessionFiles;
     }
-
 
     private void refreshWeaveInformationStream(String fileName) throws IOException {
         logger.warn("reading class weave info from: " + fileName);
@@ -555,23 +552,6 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 
     }
 
-    private ChronicleMap<Long, DataEventWithSessionId> createEventIndex() throws IOException {
-
-        checkProgressIndicator(null, "Loading event info index");
-        File probeIndexFile = FileSystems.getDefault()
-                .getPath(executionSession.getPath(), "index.event.dat")
-                .toFile();
-        DataEventWithSessionId averageValue = new DataEventWithSessionId();
-        averageValue.setSerializedValue(new byte[10000]);
-        ChronicleMapBuilder<Long, DataEventWithSessionId> probeInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
-                        DataEventWithSessionId.class)
-                .name("event-info-map")
-                .averageValue(averageValue)
-                .entries(100_000);
-        return probeInfoMapBuilder.createPersistedTo(probeIndexFile);
-
-    }
-
 //    private ChronicleMap<Integer, TypeInfoDocument> createTypeInfoIndex() throws IOException {
 //
 //        checkProgressIndicator(null, "Loading type info index");
@@ -614,52 +594,20 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //
 //    }
 
-    private ChronicleMap<Long, Parameter> createParameterIndex() throws IOException {
+    private ChronicleMap<Long, DataEventWithSessionId> createEventIndex() throws IOException {
 
-        File parameterIndexFile = FileSystems.getDefault()
-                .getPath(executionSession.getPath(), "index.parameter.dat")
+        checkProgressIndicator(null, "Loading event info index");
+        File probeIndexFile = FileSystems.getDefault()
+                .getPath(executionSession.getPath(), "index.event.dat")
                 .toFile();
-
-        Parameter averageValue = new Parameter(1L);
-        averageValue.setType("com.package.class.sub.package.ClassName");
-        DataEventWithSessionId prob = new DataEventWithSessionId(1L);
-        prob.setEventId(1L);
-        prob.setSerializedValue(new byte[2000]);
-        prob.setRecordedAt(1L);
-        prob.setProbeId(1);
-        prob.setThreadId(1L);
-        averageValue.setProbeAndProbeInfo(prob, new DataInfo(1, 2, 3, 4, 5,
-                EventType.CALL, Descriptor.Boolean, "some=attributes,here=fornothing,here=fornothing,here=fornothing"));
-
-        averageValue.setName("name1-name1-name1");
-        averageValue.setName("name2-name2");
-        averageValue.setName("name4");
-        List<Parameter> transformedTemplateMap = new ArrayList<>();
-
-        Parameter param1 = new Parameter(1L);
-        param1.setName("E");
-        transformedTemplateMap.add(param1);
-
-        Parameter param2 = new Parameter(1L);
-        param2.setName("F");
-        transformedTemplateMap.add(param2);
-
-        Parameter param3 = new Parameter(1L);
-        param3.setName("G");
-        transformedTemplateMap.add(param3);
-
-        averageValue.setTemplateMap(transformedTemplateMap);
-
-        int entries = 50_000;
-        if (executionSession.getSessionId().equals("na")) {
-            entries = 500;
-        }
-        ChronicleMapBuilder<Long, Parameter> parameterInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
-                        Parameter.class)
-                .name("parameter-info-map")
+        DataEventWithSessionId averageValue = new DataEventWithSessionId();
+        averageValue.setSerializedValue(new byte[10000]);
+        ChronicleMapBuilder<Long, DataEventWithSessionId> probeInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
+                        DataEventWithSessionId.class)
+                .name("event-info-map")
                 .averageValue(averageValue)
-                .entries(entries);
-        return parameterInfoMapBuilder.createPersistedTo(parameterIndexFile);
+                .entries(100_000);
+        return probeInfoMapBuilder.createPersistedTo(probeIndexFile);
 
     }
 
@@ -952,15 +900,52 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //        return tracePointList;
 //    }
 
-    private List<DataInfo> getProbeInfo(Set<Long> dataId) throws IOException {
+    private ChronicleMap<Long, Parameter> createParameterIndex() throws IOException {
 
-        throw new RuntimeException("who is using this");
+        File parameterIndexFile = FileSystems.getDefault()
+                .getPath(executionSession.getPath(), "index.parameter.dat")
+                .toFile();
 
-//        return classWeaveInfo.classInfo().stream()
-//                .map(KaitaiInsidiousClassWeaveParser.ClassInfo::probeList)
-//                .flatMap(Collection::stream)
-//                .filter(e -> dataId.contains(e.dataId()))
-//                .map(KaitaiUtils::toDataInfo).collect(Collectors.toList());
+        Parameter averageValue = new Parameter(1L);
+        averageValue.setType("com.package.class.sub.package.ClassName");
+        DataEventWithSessionId prob = new DataEventWithSessionId(1L);
+        prob.setEventId(1L);
+        prob.setSerializedValue(new byte[2000]);
+        prob.setRecordedAt(1L);
+        prob.setProbeId(1);
+        prob.setThreadId(1L);
+        averageValue.setProbeAndProbeInfo(prob, new DataInfo(1, 2, 3, 4, 5,
+                EventType.CALL, Descriptor.Boolean, "some=attributes,here=fornothing,here=fornothing,here=fornothing"));
+
+        averageValue.setName("name1-name1-name1");
+        averageValue.setName("name2-name2");
+        averageValue.setName("name4");
+        List<Parameter> transformedTemplateMap = new ArrayList<>();
+
+        Parameter param1 = new Parameter(1L);
+        param1.setName("E");
+        transformedTemplateMap.add(param1);
+
+        Parameter param2 = new Parameter(1L);
+        param2.setName("F");
+        transformedTemplateMap.add(param2);
+
+        Parameter param3 = new Parameter(1L);
+        param3.setName("G");
+        transformedTemplateMap.add(param3);
+
+        averageValue.setTemplateMap(transformedTemplateMap);
+
+        int entries = 50_000;
+        if (executionSession.getSessionId().equals("na")) {
+            entries = 500;
+        }
+        ChronicleMapBuilder<Long, Parameter> parameterInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
+                        Parameter.class)
+                .name("parameter-info-map")
+                .averageValue(averageValue)
+                .entries(entries);
+        return parameterInfoMapBuilder.createPersistedTo(parameterIndexFile);
 
     }
 
@@ -978,6 +963,18 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //        io.close();
 //        return classWeaveInfo1;
 //    }
+
+    private List<DataInfo> getProbeInfo(Set<Long> dataId) throws IOException {
+
+        throw new RuntimeException("who is using this");
+
+//        return classWeaveInfo.classInfo().stream()
+//                .map(KaitaiInsidiousClassWeaveParser.ClassInfo::probeList)
+//                .flatMap(Collection::stream)
+//                .filter(e -> dataId.contains(e.dataId()))
+//                .map(KaitaiUtils::toDataInfo).collect(Collectors.toList());
+
+    }
 
     private void readClassWeaveInfoStream(File sessionFile) throws IOException, FailedToReadClassWeaveException {
 
@@ -1018,7 +1015,8 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         Set<Long> ids = new HashSet<>(Arrays.asList(valueIds));
 
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
-        logger.warn("Reading data from file [" + bytes.length + "] => " + dataEvents.event().entries().size() + " events ");
+        logger.warn(
+                "Reading data from file [" + bytes.length + "] => " + dataEvents.event().entries().size() + " events ");
 
         return dataEvents.event()
                 .entries()
@@ -1045,7 +1043,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                 .collect(Collectors.toList());
     }
 
-	@Override
+    @Override
     public TypeInfo getTypeInfo(Integer typeId) {
 
         Map<String, TypeInfo> result = archiveIndex.getTypesById(new HashSet<>(Collections.singletonList(typeId)));
@@ -1056,7 +1054,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return new TypeInfo(typeId, "unidentified type", "", 0, 0, "", new int[0]);
     }
 
-	@Override
+    @Override
     public TypeInfo getTypeInfo(String name) {
 
         if (archiveIndex != null) {
@@ -1069,10 +1067,16 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return new TypeInfo(-1, name, "", 0, 0, "", new int[0]);
     }
 
-	@Override
+    @Override
     public List<TypeInfoDocument> getAllTypes() {
         return new ArrayList<>(archiveIndex.Types());
     }
+
+//    private ArchiveFilesIndex readEventIndex(byte[] bytes) throws IOException {
+//        KaitaiInsidiousIndexParser archiveIndex = new KaitaiInsidiousIndexParser(new ByteBufferKaitaiStream(bytes));
+//
+//        return new ArchiveFilesIndex(archiveIndex);
+//    }
 
     private List<String> listArchiveFiles(File sessionFile) throws IOException {
         if (zipFileListMap.containsKey(sessionFile.getName())) {
@@ -1101,12 +1105,6 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return files;
 
     }
-
-//    private ArchiveFilesIndex readEventIndex(byte[] bytes) throws IOException {
-//        KaitaiInsidiousIndexParser archiveIndex = new KaitaiInsidiousIndexParser(new ByteBufferKaitaiStream(bytes));
-//
-//        return new ArchiveFilesIndex(archiveIndex);
-//    }
 
     private ArchiveIndex readArchiveIndex(byte[] bytes, DatFileType indexFilterType) throws IOException {
 
@@ -1163,7 +1161,6 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 
         return new ArchiveIndex(typeInfoIndex, sII, oII, null);
     }
-
 
     private String bytesHex(byte[] bytes, String indexFilterType) {
         String md5Hex = DigestUtils.md5Hex(bytes);
@@ -1336,19 +1333,6 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                         .setText(text1);
             }
         }
-    }
-
-    private List<DataInfo> queryProbeFromFileByEventType(File sessionFile, Collection<EventType> eventTypes) {
-//        return classWeaveInfo.classInfo().stream()
-//                .map(KaitaiInsidiousClassWeaveParser.ClassInfo::probeList)
-//                .flatMap(Collection::stream)
-//                .filter(e -> eventTypes.size() == 0 ||
-//                        // dont check contains if the list is empty
-//                        eventTypes.contains(EventType.valueOf(e.eventType().name())))
-//                .map(KaitaiUtils::toDataInfo).collect(Collectors.toList());
-
-        return Collections.emptyList();
-
     }
 
 //    public void queryTracePointsByEventType(SearchQuery searchQuery, ClientCallBack<TracePoint> tracePointsCallback) {
@@ -1547,11 +1531,25 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //        }
 //    }
 
+    private List<DataInfo> queryProbeFromFileByEventType(File sessionFile, Collection<EventType> eventTypes) {
+//        return classWeaveInfo.classInfo().stream()
+//                .map(KaitaiInsidiousClassWeaveParser.ClassInfo::probeList)
+//                .flatMap(Collection::stream)
+//                .filter(e -> eventTypes.size() == 0 ||
+//                        // dont check contains if the list is empty
+//                        eventTypes.contains(EventType.valueOf(e.eventType().name())))
+//                .map(KaitaiUtils::toDataInfo).collect(Collectors.toList());
+
+        return Collections.emptyList();
+
+    }
+
     private List<DataEventWithSessionId> getDataEventsFromPathByProbeIds(byte[] bytes, Integer[] probeIds) {
 
         Set<Integer> ids = new HashSet<>(Arrays.asList(probeIds));
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
-        logger.warn("Reading data from file [" + bytes.length + "] => " + dataEvents.event().entries().size() + " events ");
+        logger.warn(
+                "Reading data from file [" + bytes.length + "] => " + dataEvents.event().entries().size() + " events ");
 
         return dataEvents.event()
                 .entries()
@@ -1580,6 +1578,50 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                 .collect(Collectors.toList());
     }
 
+//    private Set<ObjectInfoDocument> queryObjectsByTypeFromSessionArchive(SearchQuery searchQuery, File sessionArchive) {
+//
+//        checkProgressIndicator(null, "querying type names from: " + sessionArchive.getName());
+//
+//
+//        Set<Integer> typeIds = archiveIndex.queryTypeIdsByName(searchQuery);
+//
+//
+//        checkProgressIndicator(null, "Loading matched objects");
+//
+//
+//        NameWithBytes objectIndexFileBytes;
+//        objectIndexFileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
+//                INDEX_OBJECT_DAT_FILE.getFileName());
+//        if (objectIndexFileBytes == null) {
+//            logger.warn("object index file bytes are empty, skipping");
+//            return new HashSet<>();
+//        }
+//
+//
+//        ArchiveIndex objectIndex;
+//        try {
+//            objectIndex = readArchiveIndex(objectIndexFileBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
+//        } catch (IOException e) {
+////            e.printStackTrace();
+//            logger.warn("failed to read object index file: " + e.getMessage());
+//            return new HashSet<>();
+//
+//        }
+//        Query<ObjectInfoDocument> query = in(ObjectInfoDocument.OBJECT_TYPE_ID, typeIds);
+//        ResultSet<ObjectInfoDocument> typeInfoSearchResult = objectIndex.Objects()
+//                .retrieve(query);
+//        Set<ObjectInfoDocument> objects = typeInfoSearchResult.stream()
+//                .collect(Collectors.toSet());
+//        typeInfoSearchResult.close();
+//
+//        checkProgressIndicator(null,
+//                sessionArchive.getName() + " matched " + objects.size() + " objects of total " + objectIndex.Objects()
+//                        .size());
+//
+//
+//        return objects;
+//    }
+
     @Override
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) {
         File archiveToServe = null;
@@ -1607,7 +1649,8 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 
         KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(
                 new ByteBufferKaitaiStream(bytesWithName.getBytes()));
-        logger.warn("Reading data from file [" + bytesWithName.getBytes().length + "] => " + eventsContainer.event().entries().size() + " events ");
+        logger.warn("Reading data from file [" + bytesWithName.getBytes().length + "] => " + eventsContainer.event()
+                .entries().size() + " events ");
 
 
         checkProgressIndicator(null, "Mapping " + eventsContainer.event()
@@ -1726,61 +1769,6 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                 stringInfo, objectInfo, typeInfo, methodInfoIndex);
     }
 
-//    private Set<ObjectInfoDocument> queryObjectsByTypeFromSessionArchive(SearchQuery searchQuery, File sessionArchive) {
-//
-//        checkProgressIndicator(null, "querying type names from: " + sessionArchive.getName());
-//
-//
-//        Set<Integer> typeIds = archiveIndex.queryTypeIdsByName(searchQuery);
-//
-//
-//        checkProgressIndicator(null, "Loading matched objects");
-//
-//
-//        NameWithBytes objectIndexFileBytes;
-//        objectIndexFileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
-//                INDEX_OBJECT_DAT_FILE.getFileName());
-//        if (objectIndexFileBytes == null) {
-//            logger.warn("object index file bytes are empty, skipping");
-//            return new HashSet<>();
-//        }
-//
-//
-//        ArchiveIndex objectIndex;
-//        try {
-//            objectIndex = readArchiveIndex(objectIndexFileBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
-//        } catch (IOException e) {
-////            e.printStackTrace();
-//            logger.warn("failed to read object index file: " + e.getMessage());
-//            return new HashSet<>();
-//
-//        }
-//        Query<ObjectInfoDocument> query = in(ObjectInfoDocument.OBJECT_TYPE_ID, typeIds);
-//        ResultSet<ObjectInfoDocument> typeInfoSearchResult = objectIndex.Objects()
-//                .retrieve(query);
-//        Set<ObjectInfoDocument> objects = typeInfoSearchResult.stream()
-//                .collect(Collectors.toSet());
-//        typeInfoSearchResult.close();
-//
-//        checkProgressIndicator(null,
-//                sessionArchive.getName() + " matched " + objects.size() + " objects of total " + objectIndex.Objects()
-//                        .size());
-//
-//
-//        return objects;
-//    }
-
-	@Override
-    public ClassWeaveInfo getClassWeaveInfo() {
-
-
-        List<ClassInfo> classInfoList = new LinkedList<>();
-        List<MethodInfo> methodInfoList = new LinkedList<>();
-        List<DataInfo> dataInfoList = new LinkedList<>();
-
-        return new ClassWeaveInfo(classInfoList, methodInfoList, dataInfoList);
-    }
-
 
 //    private ArchiveFilesIndex getEventIndex(File sessionArchive) {
 //        NameWithBytes eventIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
@@ -1800,20 +1788,15 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //        return eventsIndex;
 //    }
 
-    private List<KaitaiInsidiousEventParser.Block> getEventsFromFile(File sessionArchive, String archiveFile) throws IOException {
-        long start = new Date().getTime();
-        logger.warn("Read events from file [1799]: " + archiveFile);
-        String eventFile = createFileOnDiskFromSessionArchiveFileV2(sessionArchive, archiveFile);
-        RandomAccessFileKaitaiStream io = new RandomAccessFileKaitaiStream(eventFile);
-        KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(io);
-        ArrayList<KaitaiInsidiousEventParser.Block> events = eventsContainer.event()
-                .entries();
-        io.close();
-        long end = new Date().getTime();
-        logger.warn("Reading data from file [" + "] => " + events.size() + " events ");
+    @Override
+    public ClassWeaveInfo getClassWeaveInfo() {
 
-        logger.warn("Read events took: " + (end - start) + " ms");
-        return events;
+
+        List<ClassInfo> classInfoList = new LinkedList<>();
+        List<MethodInfo> methodInfoList = new LinkedList<>();
+        List<DataInfo> dataInfoList = new LinkedList<>();
+
+        return new ClassWeaveInfo(classInfoList, methodInfoList, dataInfoList);
     }
 
 //    private List<KaitaiInsidiousEventParser.Block> getEventsFromFileOld(File sessionArchive, String archiveFile) throws IOException {
@@ -1829,6 +1812,22 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //        logger.warn("Read events took: " + (end - start) + " ms");
 //        return events;
 //    }
+
+    private List<KaitaiInsidiousEventParser.Block> getEventsFromFile(File sessionArchive, String archiveFile) throws IOException {
+        long start = new Date().getTime();
+        logger.warn("Read events from file [1799]: " + archiveFile);
+        String eventFile = createFileOnDiskFromSessionArchiveFileV2(sessionArchive, archiveFile);
+        RandomAccessFileKaitaiStream io = new RandomAccessFileKaitaiStream(eventFile);
+        KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(io);
+        ArrayList<KaitaiInsidiousEventParser.Block> events = eventsContainer.event()
+                .entries();
+        io.close();
+        long end = new Date().getTime();
+        logger.warn("Reading data from file [" + "] => " + events.size() + " events ");
+
+        logger.warn("Read events took: " + (end - start) + " ms");
+        return events;
+    }
 
     private String getFileStreamFromArchive(File sessionArchive, String archiveFile) throws FailedToReadClassWeaveException {
         long start = new Date().getTime();
@@ -2317,7 +2316,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
             return;
         }
         if (isSessionCorrupted) {
-            logger.warn("session is corrupted, not scanning new files: " + project.getName());
+            logger.warn("session is corrupted, not scanning new files: " + executionSession);
             if (!hasShownCorruptedNotification) {
                 hasShownCorruptedNotification = true;
                 InsidiousNotification.notifyMessage(
@@ -2386,7 +2385,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
             e.printStackTrace();
             logger.warn("Exception in scan and build session", e);
             JSONObject properties = new JSONObject();
-            properties.put("project", this.project.getName());
+            properties.put("project", executionSession.getPath());
             properties.put("session", executionSession.getPath());
             properties.put("message", e.getMessage());
             try {
@@ -2457,7 +2456,6 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return newTestCaseIdentified;
 
     }
-    long idToStopAt = 2541064L;
 
     private void updateObjectInfoIndex(Long eventValue) throws IOException {
         if (this.sessionArchives == null) {
@@ -3766,7 +3764,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         }
     }
 
-	@Override
+    @Override
     public CodeCoverageData createCoverageData() {
 
         List<MethodDefinition> allMethods = daoService.getAllMethodDefinitions();
@@ -3926,7 +3924,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         return daoService.getTestCandidateAggregates();
     }
 
-	@Override
+    @Override
     public List<TestCandidateMethodAggregate> getTestCandidateAggregatesByClassName(String className) {
         return daoService.getTestCandidateAggregatesForType(className);
     }
@@ -3935,7 +3933,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //        return daoService.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
 //    }
 
-	@Override
+    @Override
     public List<TestCandidateMetadata> getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
         try {
             return daoService.getTestCandidatesForAllMethod(candidateSearchQuery);
@@ -3947,7 +3945,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         }
     }
 
-	@Override
+    @Override
     public List<MethodCallExpression> getMethodCallExpressions(CandidateSearchQuery candidateSearchQuery) {
         try {
             return daoService.getMethodCallExpressions(candidateSearchQuery);
@@ -3959,18 +3957,18 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         }
     }
 
-	@Override
+    @Override
     public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception {
         return daoService.getConstructorCandidate(parameter);
     }
 
-	@Override
+    @Override
     public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
         TestCandidateMetadata testCandidateMetadata = daoService.getTestCandidateById(testCandidateId, loadCalls);
         return testCandidateMetadata;
     }
 
-	@Override
+    @Override
     public void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
         List<Parameter> methodArguments = methodCallExpression.getArguments();
 
@@ -4002,7 +4000,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         }
     }
 
-	@Override
+    @Override
     public synchronized void close() {
         if (shutdown) {
             // already shutdown
@@ -4061,7 +4059,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         }
     }
 
-	@Override
+    @Override
     public void addTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener) {
         this.testCandidateListener.add(testCandidateListener);
     }
@@ -4070,12 +4068,12 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         this.testCandidateListener.remove(testCandidateListener);
     }
 
-	@Override
+    @Override
     public Map<String, ClassInfo> getClassIndex() {
         return classInfoIndexByName;
     }
 
-	@Override
+    @Override
     public void getTestCandidates(
             Consumer<List<TestCandidateBareBone>> testCandidateReceiver,
             long afterEventId,
@@ -4128,12 +4126,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                 .getTestCandidatePaginated(currentAfterEventId, 0, limit, stompFilterModel);
     }
 
-	@Override
-    public Project getProject() {
-        return project;
-    }
-
-	@Override
+    @Override
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
         return daoService.getClassMethodCallAggregates(qualifiedName);
     }
@@ -4159,18 +4152,18 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         }
     }
 
-	@Override
+    @Override
     public MethodDefinition getMethodDefinition(MethodUnderTest methodUnderTest1) {
         return daoService.getAllMethodDefinitionBySignature(methodUnderTest1.getClassName(),
                 methodUnderTest1.getName(), methodUnderTest1.getSignature());
     }
 
-	@Override
+    @Override
     public int getMethodCallCountBetween(long start, long end) {
         return daoService.getCallCountBetween(start, end);
     }
 
-	@Override
+    @Override
     public void addSessionScanEventListener(SessionScanEventListener listener) {
         this.sessionScanEventListeners.clear();
         this.sessionScanEventListeners.add(listener);
@@ -4179,32 +4172,32 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         }
     }
 
-	@Override
+    @Override
     public List<TestCandidateMetadata> getTestCandidateBetween(long eventId, long eventId1) throws SQLException {
         return daoService.getTestCandidateBetween(eventId, eventId1);
     }
 
-	@Override
+    @Override
     public List<MethodCallExpression> getMethodCallsBetween(long start, long end) {
         return daoService.getCallsBetween(start, end);
     }
 
-	@Override
+    @Override
     public int getProcessedFileCount() {
         return daoService.getProcessedFileCount();
     }
 
-	@Override
+    @Override
     public int getTotalFileCount() {
         return daoService.getTotalFileCount();
     }
 
-	@Override
+    @Override
     public List<UnloggedTimingTag> getTimingTags(long id) {
         return daoService.getTimingTags(id);
     }
 
-	@Override
+    @Override
     public UnloggedSdkApiAgentClient getAgent() {
         return unloggedSdkApiAgentClient;
     }

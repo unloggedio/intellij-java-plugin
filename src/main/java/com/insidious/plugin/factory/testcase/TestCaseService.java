@@ -56,9 +56,9 @@ public class TestCaseService {
     private final SessionInstanceInterface sessionInstance;
     private final Project project;
 
-    public TestCaseService(SessionInstanceInterface sessionInstance) {
+    public TestCaseService(SessionInstanceInterface sessionInstance, Project project) {
         this.sessionInstance = sessionInstance;
-        this.project = sessionInstance.getProject();
+        this.project = project;
     }
 
 

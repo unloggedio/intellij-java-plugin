@@ -1,10 +1,8 @@
 package com.insidious.plugin.ui.stomp;
 
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
-import com.insidious.plugin.ui.SessionInstanceChangeListener;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
-import com.insidious.plugin.upload.SourceFilter;
-import com.insidious.plugin.upload.SourceModel;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -32,7 +30,7 @@ import static com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL;
 
 public class StompFilter {
     private final StompFilterModel originalStompFilterModel;
-    private final RemoteSourceFilter remoteSourceFilter;
+    private RemoteSourceFilter remoteSourceFilter;
     private StompFilterModel stompFilterModel;
     private JTabbedPane mainPanel;
     private JCheckBox followEditorCheckBox;
@@ -75,13 +73,12 @@ public class StompFilter {
     private DefaultListModel<String> modelExcludedClasses;
     private DefaultListModel<String> modelIncludedMethods;
     private DefaultListModel<String> modelExcludedMethods;
-    private SessionInstanceChangeListener insidiousService;
+    private InsidiousService insidiousService;
     private ButtonGroup serverModeButton;
 
 
-    public StompFilter(SessionInstanceChangeListener insidiousService,
+    public StompFilter(InsidiousService insidiousService,
                        StompFilterModel stompFilterModel,
-                       SourceModel sourceModel,
                        MethodUnderTest lastMethodFocussed,
                        Project project) {
         originalStompFilterModel = new StompFilterModel(stompFilterModel);
@@ -96,12 +93,19 @@ public class StompFilter {
             }
         });
 
+        mainPanel.addChangeListener(e -> {
+            int selected = mainPanel.getSelectedIndex();
+            if (selected == 1) {
+                if (remoteSourceFilter == null) {
+                    remoteSourceFilter = new RemoteSourceFilter(insidiousService);
+                    remoteSourceFilter.setOnCloseListener(componentLifecycleListener);
+                    sourcePreferencesPanel.add(remoteSourceFilter.getComponent(), BorderLayout.CENTER);
+                }
+            }
+        });
+
 
         // sourceMode tab start code
-
-
-        this.remoteSourceFilter = new RemoteSourceFilter(sourceModel, insidiousService);
-        sourcePreferencesPanel.add(remoteSourceFilter.getComponent(), BorderLayout.CENTER);
 
 
         // sourceMode tab end code
@@ -145,12 +149,7 @@ public class StompFilter {
         excludedMethodsList.setFixedCellWidth(stompFilterPanelWidth);
 
         setUiModels(stompFilterModel);
-        resetToDefaultButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                stompFilterModel.setFrom(originalStompFilterModel);
-            }
-        });
+        resetToDefaultButton.addActionListener(e -> stompFilterModel.setFrom(originalStompFilterModel));
 
 
         // ExcludedClass
@@ -1149,7 +1148,6 @@ public class StompFilter {
 
     public void setOnCloseListener(ComponentLifecycleListener<StompFilter> componentLifecycleListener) {
         this.componentLifecycleListener = componentLifecycleListener;
-        remoteSourceFilter.setOnCloseListener(componentLifecycleListener);
     }
 
     private void createUIComponents() {
