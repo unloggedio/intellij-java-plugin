@@ -67,7 +67,8 @@ public class ActiveSessionManager {
 
     public synchronized void cleanUpSessionDirectory(ExecutionSession executionSession) {
         String sessionPath = executionSession.getPath();
-        if (isDeletedSession.containsKey(sessionPath)) {
+        if (isDeletedSession.containsKey(
+                sessionPath)) {
             return;
         }
 

@@ -199,6 +199,7 @@ public class RemoteSourceFilter {
     private void createRemoteSessionList(List<ExecutionSession> executionSessionList) {
         // remove old session data
         Enumeration<AbstractButton> elements = buttonGroup.getElements();
+        serverListScroll.setVisible(true);
         while (elements.hasMoreElements()) {
             AbstractButton button = elements.nextElement();
             buttonGroup.remove(button);

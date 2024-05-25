@@ -1,9 +1,9 @@
 package com.insidious.plugin.client;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.weaver.TypeInfo;
-import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
@@ -14,8 +14,8 @@ import com.insidious.plugin.constants.ExecutionSessionSourceMode;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TracePoint;
-import com.insidious.plugin.upload.SourceFilter;
 import com.insidious.plugin.upload.ExecutionSessionSource;
+import com.insidious.plugin.upload.SourceFilter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.intellij.openapi.diagnostic.Logger;
@@ -38,23 +38,18 @@ public class NetworkClient implements UnloggedClientInterface {
     private SessionInstanceInterface sessionInstance;
     private List<ExecutionSession> executionSessionList;
 
-	public NetworkClient(ExecutionSessionSource executionSessionSource) {
-		this.executionSessionSource = executionSessionSource;
-	}
+    public NetworkClient(ExecutionSessionSource executionSessionSource) {
+        this.executionSessionSource = executionSessionSource;
+    }
 
     @Override
-    public void setSourceModel(ExecutionSessionSource executionSessionSource){
+    public void setSourceModel(ExecutionSessionSource executionSessionSource) {
         this.executionSessionSource = executionSessionSource;
     }
 
     @Override
     public ExecutionSession getCurrentSession() {
         return this.sessionInstance.getExecutionSession();
-    }
-
-    @Override
-    public void setSessionInstance(SessionInstanceInterface sessionInstance) {
-        this.sessionInstance = sessionInstance;
     }
 
     @Override
@@ -164,6 +159,11 @@ public class NetworkClient implements UnloggedClientInterface {
     }
 
     @Override
+    public void setSessionInstance(SessionInstanceInterface sessionInstance) {
+        this.sessionInstance = sessionInstance;
+    }
+
+    @Override
     public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
         ReplayData replayData = this.sessionInstance.fetchObjectHistoryByObjectId(filteredDataEventsRequest);
         replayData.setClient(this);
@@ -213,10 +213,10 @@ public class NetworkClient implements UnloggedClientInterface {
     }
 
     @Override
-    public List<ExecutionSession> sessionDiscovery(Boolean filterSession){
+    public List<ExecutionSession> sessionDiscovery(Boolean filterSession) {
 
         executionSessionList = new ArrayList<>();
-        if (this.executionSessionSource.getServerEndpoint() == "") {
+        if (Objects.equals(this.executionSessionSource.getServerEndpoint(), "")) {
             return executionSessionList;
         }
 
@@ -234,11 +234,12 @@ public class NetworkClient implements UnloggedClientInterface {
                 try {
                     ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    ExecutionSession[] executionSessionLocal = objectMapper.readValue(responseBody, ExecutionSession[].class);
-                    for (int i=0;i<=executionSessionLocal.length-1;i++) {
-                        executionSessionLocal[i].setSessionMode(ExecutionSessionSourceMode.REMOTE);
-                        executionSessionList.add(executionSessionLocal[i]);
-                    }
+                    List<ExecutionSession> executionSessionLocal = objectMapper.readValue(responseBody,
+                            new TypeReference<>() {
+                            });
+                    executionSessionLocal.forEach(
+                            executionSession -> executionSession.setSessionMode(ExecutionSessionSourceMode.REMOTE));
+                    executionSessionList.addAll(executionSessionLocal);
                 } finally {
                     response.close();
                     latch.countDown();
@@ -250,22 +251,6 @@ public class NetworkClient implements UnloggedClientInterface {
             latch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-        }
-
-
-        if (filterSession) {
-            if (executionSessionSource.getSourceFilter() == SourceFilter.SELECTED_ONLY) {
-                List<ExecutionSession> filterExecutionSession = new ArrayList<>();
-                List<String> selectedExecutionSessionId = executionSessionSource.getSessionId();
-
-                for (int i=0;i<=executionSessionList.size()-1;i++) {
-                    ExecutionSession executionSession = executionSessionList.get(i);
-                    if (selectedExecutionSessionId.contains(executionSession.getSessionId())) {
-                        filterExecutionSession.add(executionSession);
-                    }
-                }
-                executionSessionList = filterExecutionSession;
-            }
         }
 
 

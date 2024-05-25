@@ -51,6 +51,7 @@ import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.insidious.plugin.ui.stomp.UnloggedClientFactory;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.upload.ExecutionSessionSource;
+import com.insidious.plugin.upload.SourceFilter;
 import com.insidious.plugin.util.*;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.navigation.ImplementationSearcher;
@@ -166,6 +167,7 @@ final public class InsidiousService implements
     private final EditorFactoryListener editorFactoryListener;
     private final AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
     private final ReportingService reportingService = new ReportingService(this);
+    private final Map<String, ServerMetadata> checkCache = new HashMap<>();
     Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
@@ -187,7 +189,6 @@ final public class InsidiousService implements
     private LibraryComponent libraryToolWindow;
     private ToolWindow toolWindow;
     private ServerMetadata serverMetadata = null;
-    private final Map<String, ServerMetadata> checkCache = new HashMap<>();
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -227,9 +228,11 @@ final public class InsidiousService implements
                         if (i == 0) {
                             continue;
                         }
-                        logger.warn(
-                                "Deleting session: " + executionSession.getSessionId() + " => " + project.getName());
-                        sessionManager.cleanUpSessionDirectory(executionSession);
+                        if (executionSession.getSessionMode() == ExecutionSessionSourceMode.LOCAL){
+                            logger.warn(
+                                    "Deleting session: " + executionSession.getSessionId() + " => " + project.getName());
+                            sessionManager.cleanUpSessionDirectory(executionSession);
+                        }
                     }
                 }
 
@@ -238,6 +241,22 @@ final public class InsidiousService implements
 //                        setSession(executionSession);
 //                    });
                     return;
+                }
+
+                ExecutionSessionSource sessionSource = getSessionSource();
+                if (sessionSource.getSessionMode() == ExecutionSessionSourceMode.REMOTE) {
+                    if (sessionSource.getSourceFilter() == SourceFilter.SELECTED_ONLY) {
+                        List<ExecutionSession> filterExecutionSession = new ArrayList<>();
+                        List<String> selectedExecutionSessionId = sessionSource.getSessionId();
+
+                        for (int i = 0; i <= executionSessionList.size() - 1; i++) {
+                            ExecutionSession executionSession = executionSessionList.get(i);
+                            if (selectedExecutionSessionId.contains(executionSession.getSessionId())) {
+                                filterExecutionSession.add(executionSession);
+                            }
+                        }
+                        executionSessionList = filterExecutionSession;
+                    }
                 }
 
 
@@ -1133,6 +1152,7 @@ final public class InsidiousService implements
         this.methodHash.clear();
         this.classModifiedFlagMap.clear();
         stompWindow.clear();
+        stompWindow.setSession(null);
         currentState.setSessionInstance(null);
     }
 
@@ -1259,6 +1279,10 @@ final public class InsidiousService implements
         }
         configurationState.setExecutionSession(mostRecentSession);
         ExecutionSessionSource executionSessionSource = configurationState.getSourceModel();
+        if (executionSessionSource.getSessionMode() == ExecutionSessionSourceMode.LOCAL
+        && !Objects.equals(serverMetadata.getMode(), "local")) {
+            return;
+        }
         SessionInstanceInterface sessionInstance = sessionManager.createSessionInstance(mostRecentSession,
                 serverMetadata, executionSessionSource, project);
 

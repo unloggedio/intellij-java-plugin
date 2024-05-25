@@ -1527,7 +1527,9 @@ public class StompComponent implements
             candidateQueryLatch.decrementAndGet();
         }
         this.sessionInstance = sessionInstance;
-        sessionInstance.addSessionScanEventListener(getScanEventListener());
+        if (sessionInstance != null) {
+            sessionInstance.addSessionScanEventListener(getScanEventListener());
+        }
         resetAndReload();
     }
 

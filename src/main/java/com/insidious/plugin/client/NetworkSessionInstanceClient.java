@@ -948,7 +948,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.warn("failure encountered in isConnected", e);
                 latch.countDown();
             }
 
@@ -958,7 +958,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
                     ObjectMapper objectMapper = new ObjectMapper();
                     String responseBody = Objects.requireNonNull(response.body()).string();
                     Map<String, Boolean> jsonVal = objectMapper.readValue(responseBody,
-                            new TypeReference<Map<String, Boolean>>() {
+                            new TypeReference<>() {
                             });
                     isConnected = jsonVal.get("status");
                 } finally {
