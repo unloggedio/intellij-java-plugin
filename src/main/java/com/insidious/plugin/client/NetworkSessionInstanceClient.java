@@ -9,7 +9,6 @@ import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.agent.ServerMetadata;
 import com.insidious.plugin.agent.UnloggedSdkApiAgentClient;
-import com.insidious.plugin.client.TypeInfoClient.TypeInfoClientDeserializer;
 import com.insidious.plugin.client.TypeInfoDocumentClient.TypeInfoDocumentClientDeserializer;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.constants.ExecutionSessionSourceMode;
@@ -30,8 +29,6 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
 import com.insidious.plugin.util.StringUtils;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.ProcessCanceledException;
-import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import okhttp3.*;
 
 import java.io.IOException;
@@ -40,86 +37,76 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 
 public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
+    private static final TypeReference<List<TestCandidateMetadata>> TYPE_REFERENCE_LIST_TCM = new TypeReference<>() {};
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final Logger logger = LoggerUtil.getInstance(NetworkSessionInstanceClient.class);
     private final Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
     private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
+    private final String sessionId;
     // client attributes
-    private String endpoint;
+    private final String endpoint;
     private String token;
-    private OkHttpClient client;
+    private final OkHttpClient client;
     private boolean shutdown = false;
     // endpoint attributes
-    private String ping = "/session/ping";
-    private String isScanEnableEndpoint = "/session/isScanEnable";
-    private String getTypeInfoTypeString = "/session/getTypeInfoTypeString";
-    private String getTypeInfoTypeInt = "/session/getTypeInfoTypeInt";
-    private String getTotalFileCount = "/session/getTotalFileCount";
-    private String getTimingTags = "/session/getTimingTags";
-    private String getTestCandidatesForAllMethod = "/session/getTestCandidatesForAllMethod";
-    private String getTestCandidateById = "/session/getTestCandidateById";
-    private String getTestCandidateBetween = "/session/getTestCandidateBetween";
-    private String getTestCandidateAggregatesByClassName = "/session/getTestCandidateAggregatesByClassName";
-    private String getProcessedFileCount = "/session/getProcessedFileCount";
-    private String getMethodDefinition = "/session/getMethodDefinition";
-    private String getMethodCallsBetween = "/session/getMethodCallsBetween";
-    private String getMethodCallExpressions = "/session/getMethodCallExpressions";
-    private String getMethodCallCountBetween = "/session/getMethodCallCountBetween";
-    private String getInitTimestamp = "/session/getInitTimestamp";
-    private String getClassWeaveInfo = "/session/getClassWeaveInfo";
-    private String getClassIndex = "/session/getClassIndex";
-    private String getAllTypes = "/session/getAllTypes";
-    private String getTestCandidatePaginatedByStompFilterModel = "/session/getTestCandidatePaginatedByStompFilterModel";
-    private String getConstructorCandidate = "/session/getConstructorCandidate";
-    private String getExecutionSession = "/session/getExecutionSession";
-    private String discovery = "/discovery";
+    private static final String ping = "/session/ping";
+    private static final String isScanEnableEndpoint = "/session/isScanEnable";
+    private static final String getTypeInfoTypeString = "/session/getTypeInfoTypeString";
+    private static final String getTypeInfoTypeInt = "/session/getTypeInfoTypeInt";
+    private static final String getTotalFileCount = "/session/getTotalFileCount";
+    private static final String getTimingTags = "/session/getTimingTags";
+    private static final String getTestCandidatesForAllMethod = "/session/getTestCandidatesForAllMethod";
+    private static final String getTestCandidateById = "/session/getTestCandidateById";
+    private static final String getTestCandidateBetween = "/session/getTestCandidateBetween";
+    private static final String getTestCandidateAggregatesByClassName = "/session/getTestCandidateAggregatesByClassName";
+    private static final String getProcessedFileCount = "/session/getProcessedFileCount";
+    private static final String getMethodDefinition = "/session/getMethodDefinition";
+    private static final String getMethodCallsBetween = "/session/getMethodCallsBetween";
+    private static final String getMethodCallExpressions = "/session/getMethodCallExpressions";
+    private static final String getMethodCallCountBetween = "/session/getMethodCallCountBetween";
+    private static final String getInitTimestamp = "/session/getInitTimestamp";
+    private static final String getClassWeaveInfo = "/session/getClassWeaveInfo";
+    private static final String getClassIndex = "/session/getClassIndex";
+    private static final String getAllTypes = "/session/getAllTypes";
+    private static final String getTestCandidatePaginatedByStompFilterModel = "/session/getTestCandidatePaginatedByStompFilterModel";
+    private static final String getConstructorCandidate = "/session/getConstructorCandidate";
+    private static final String getExecutionSession = "/session/getExecutionSession";
+    private static final String discovery = "/discovery";
     // session instance attributes
     private boolean isConnected = false;
-    private String sessionId;
-    private ExecutionSession executionSession;
     private boolean scanEnable;
-    private TypeInfo typeInfo;
-    private int totalFileCount;
-    private List<UnloggedTimingTag> unloggedTimingTags;
-    private List<TestCandidateMetadata> localtcml;
-    private List<TestCandidateMethodAggregate> localtcma;
-    private List<MethodCallExpression> localMethodCallExpression;
-    private TestCandidateMetadata testCandidateMetadata;
-    private Integer processedFileCount;
-    private MethodDefinition localMethodDefinition;
-    private int methodCallCount;
-    private long initTimestamp;
-    private ClassWeaveInfo classWeaveInfo;
-    private Map<String, ClassInfo> classIndex;
-    private List<TypeInfoDocument> listTypeInfoDocument;
-    private TestCandidateMetadata localTestCandidateMetadata;
-    private List<ExecutionSession> executionSessionList;
 
     public NetworkSessionInstanceClient(String endpoint, String sessionId, ServerMetadata serverMetadata) {
         this.endpoint = endpoint;
         this.sessionId = sessionId;
         this.client = new OkHttpClient().newBuilder()
-                .connectTimeout(600, TimeUnit.SECONDS)
-                .readTimeout(600, TimeUnit.SECONDS)
-                .writeTimeout(600, TimeUnit.SECONDS)
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(5, TimeUnit.SECONDS)
+                .writeTimeout(5, TimeUnit.SECONDS)
                 .build();
 
         String agentServerUrl = serverMetadata.getAgentServerUrl();
         if (agentServerUrl == null || agentServerUrl.length() < 6) {
             agentServerUrl = "http://localhost:12100";
         }
-        this.unloggedSdkApiAgentClient =
-                new UnloggedSdkApiAgentClient(agentServerUrl);
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(TypeInfoDocumentClient.class, new TypeInfoDocumentClientDeserializer());
+        objectMapper.registerModule(module);
+
+        this.unloggedSdkApiAgentClient = new UnloggedSdkApiAgentClient(agentServerUrl);
     }
 
     private void get(String url, Callback callback) {
-        Request.Builder builder = new Request.Builder()
-                .url(url.startsWith("http") ? url : endpoint + url);
+        Request.Builder builder = new Request.Builder().url(url.startsWith("http") ? url : endpoint + url);
         if (token != null) {
             builder = builder.addHeader("Authorization", "Bearer " + token);
         }
@@ -127,31 +114,6 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         Call call = this.client.newCall(request);
         call.enqueue(callback);
 
-        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            String dots = "";
-            while (true) {
-                try {
-                    Thread.sleep(500);
-                    if (call.isExecuted()) {
-                        break;
-                    }
-
-                    dots = dots + ".";
-                    if (dots.length() > 3) {
-                        dots = ".";
-                    }
-                    ProgressIndicatorProvider.getGlobalProgressIndicator()
-                            .setText2("Query is in progress " + dots);
-                    if (ProgressIndicatorProvider.getGlobalProgressIndicator()
-                            .isCanceled()) {
-                        throw new ProcessCanceledException();
-                    }
-
-                } catch (InterruptedException e) {
-                    throw new ProcessCanceledException(e);
-                }
-            }
-        }
 
     }
 
@@ -196,21 +158,18 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    Map<String, Boolean> jsonVal = objectMapper.readValue(responseBody,
-                            new TypeReference<Map<String, Boolean>>() {
-                            });
+                    Map<String, Boolean> jsonVal = objectMapper.readValue(responseBody, new TypeReference<>() {
+                    });
                     scanEnable = jsonVal.get("scanEnable");
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -219,7 +178,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
         return scanEnable;
@@ -230,27 +189,22 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         String url = this.endpoint + this.getTypeInfoTypeString + "?sessionId=" + this.sessionId + "&name=" + name;
         CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<TypeInfo> typeInfo = new AtomicReference<>();
 
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
-                    SimpleModule module = new SimpleModule();
-                    module.addDeserializer(TypeInfoClient.class, new TypeInfoClientDeserializer());
-                    objectMapper.registerModule(module);
-
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
                     TypeInfoClient typeInfoClient = objectMapper.readValue(responseBody, TypeInfoClient.class);
-                    typeInfo = typeInfoClient.getTypeInfo();
+                    typeInfo.set(typeInfoClient.getTypeInfo());
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -259,10 +213,10 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
-        return typeInfo;
+        return typeInfo.get();
     }
 
     @Override
@@ -270,27 +224,22 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         String url = this.endpoint + this.getTypeInfoTypeInt + "?sessionId=" + this.sessionId + "&typeId=" + typeId;
         CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<TypeInfo> typeInfo = new AtomicReference<>();
 
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
-                    SimpleModule module = new SimpleModule();
-                    module.addDeserializer(TypeInfoClient.class, new TypeInfoClientDeserializer());
-                    objectMapper.registerModule(module);
-
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
                     TypeInfoClient typeInfoClient = objectMapper.readValue(responseBody, TypeInfoClient.class);
-                    typeInfo = typeInfoClient.getTypeInfo();
+                    typeInfo.set(typeInfoClient.getTypeInfo());
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -299,10 +248,10 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
-        return typeInfo;
+        return typeInfo.get();
     }
 
     @Override
@@ -311,24 +260,22 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         String url = this.endpoint + this.getTotalFileCount + "?sessionId=" + this.sessionId;
         CountDownLatch latch = new CountDownLatch(1);
 
+        AtomicInteger totalFileCount = new AtomicInteger();
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    Map<String, Integer> jsonVal = objectMapper.readValue(responseBody,
-                            new TypeReference<Map<String, Integer>>() {
-                            });
-                    totalFileCount = jsonVal.get("totalFileCount");
+                    Map<String, Integer> jsonVal = objectMapper.readValue(responseBody, new TypeReference<>() {
+                    });
+                    totalFileCount.set(jsonVal.get("totalFileCount"));
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -337,10 +284,10 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
-        return totalFileCount;
+        return totalFileCount.get();
     }
 
     @Override
@@ -348,28 +295,25 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         String url = this.endpoint + this.getTimingTags + "?sessionId=" + this.sessionId + "&id=" + id;
         CountDownLatch latch = new CountDownLatch(1);
+        ArrayList<UnloggedTimingTag> unloggedTimingTags = new ArrayList<>();
 
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
+                try (response) {
                     // define unloggedTimingTags
-                    ObjectMapper objectMapper = new ObjectMapper();
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    UnloggedTimingTag[] UnloggedTimingTagClientList = objectMapper.readValue(responseBody,
-                            UnloggedTimingTag[].class);
-                    unloggedTimingTags = new ArrayList<>();
-                    for (int i = 0; i <= UnloggedTimingTagClientList.length - 1; i++) {
-                        unloggedTimingTags.add(UnloggedTimingTagClientList[i]);
-                    }
+                    List<UnloggedTimingTag> UnloggedTimingTagClientList = objectMapper.readValue(responseBody,
+                            new TypeReference<>() {
+                            });
+                    unloggedTimingTags.addAll(UnloggedTimingTagClientList);
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -378,7 +322,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
         return unloggedTimingTags;
@@ -414,27 +358,22 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         String url = this.endpoint + this.getTestCandidatesForAllMethod + "?sessionId=" + this.sessionId + "&loadCalls=" + loadCalls + interfaceDataString + "&argumentsDescriptor=" + argumentsDescriptor + "&candidateFilterType=" + candidateFilterType + "&methodSignature=" + methodSignature + "&className=" + className + "&methodName=" + methodName;
         CountDownLatch latch = new CountDownLatch(1);
+        ArrayList<TestCandidateMetadata> localtcml = new ArrayList<>();
 
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    TestCandidateMetadata[] val = objectMapper.readValue(responseBody, TestCandidateMetadata[].class);
-
-                    localtcml = new ArrayList<>();
-                    for (int i = 0; i <= val.length - 1; i++) {
-                        localtcml.add(val[i]);
-                    }
+                    List<TestCandidateMetadata> val = objectMapper.readValue(responseBody, TYPE_REFERENCE_LIST_TCM);
+                    localtcml.addAll(val);
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -443,7 +382,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
         return localtcml;
@@ -454,22 +393,22 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         String url = this.endpoint + this.getTestCandidateById + "?sessionId=" + this.sessionId + "&testCandidateId=" + testCandidateId + "&loadCalls=" + loadCalls;
         CountDownLatch latch = new CountDownLatch(1);
-
+        AtomicReference<TestCandidateMetadata> testCandidateMetadata = new AtomicReference<>();
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    testCandidateMetadata = objectMapper.readValue(responseBody, TestCandidateMetadata.class);
+                    TestCandidateMetadata testCandidateMetadataR = objectMapper.readValue(responseBody,
+                            TestCandidateMetadata.class);
+                    testCandidateMetadata.set(testCandidateMetadataR);
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -478,10 +417,10 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
-        return testCandidateMetadata;
+        return testCandidateMetadata.get();
     }
 
     @Override
@@ -489,27 +428,22 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         String url = this.endpoint + this.getTestCandidateBetween + "?sessionId=" + this.sessionId + "&eventIdStart=" + eventIdStart + "&eventIdEnd=" + eventIdEnd;
         CountDownLatch latch = new CountDownLatch(1);
+        ArrayList<TestCandidateMetadata> localtcml = new ArrayList<>();
 
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    TestCandidateMetadata[] val = objectMapper.readValue(responseBody, TestCandidateMetadata[].class);
-
-                    localtcml = new ArrayList<>();
-                    for (int i = 0; i <= val.length - 1; i++) {
-                        localtcml.add(val[i]);
-                    }
+                    List<TestCandidateMetadata> val = objectMapper.readValue(responseBody, TYPE_REFERENCE_LIST_TCM);
+                    localtcml.addAll(val);
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -518,7 +452,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
         return localtcml;
@@ -530,27 +464,23 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         String url = this.endpoint + this.getTestCandidateAggregatesByClassName + "?sessionId=" + this.sessionId + "&className=" + className;
         CountDownLatch latch = new CountDownLatch(1);
 
+        ArrayList<TestCandidateMethodAggregate> localtcma = new ArrayList<>();
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    TestCandidateMethodAggregate[] val = objectMapper.readValue(responseBody,
-                            TestCandidateMethodAggregate[].class);
-
-                    localtcma = new ArrayList<>();
-                    for (int i = 0; i <= val.length - 1; i++) {
-                        localtcma.add(val[i]);
-                    }
+                    List<TestCandidateMethodAggregate> val = objectMapper.readValue(responseBody,
+                            new TypeReference<>() {
+                            });
+                    localtcma.addAll(val);
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -559,7 +489,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
         return localtcma;
@@ -570,23 +500,22 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         String url = this.endpoint + this.getProcessedFileCount + "?sessionId=" + this.sessionId;
         CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger processedFileCount = new AtomicInteger();
 
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 try {
-                    ObjectMapper objectMapper = new ObjectMapper();
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    Map<String, Integer> jsonVal = objectMapper.readValue(responseBody,
-                            new TypeReference<Map<String, Integer>>() {
-                            });
-                    processedFileCount = jsonVal.get("processedFileCount");
+                    Map<String, Integer> jsonVal = objectMapper.readValue(responseBody, new TypeReference<>() {
+                    });
+                    processedFileCount.set(jsonVal.get("processedFileCount"));
                 } finally {
                     response.close();
                     latch.countDown();
@@ -597,10 +526,10 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
-        return processedFileCount;
+        return processedFileCount.get();
     }
 
     @Override
@@ -611,22 +540,23 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         String className = methodUnderTest.getClassName();
         int methodHash = methodUnderTest.getMethodHash();
 
-        String url = this.endpoint + this.getMethodDefinition + "?sessionId=" + this.sessionId + "&name=" + name + "&signature=" + signature + "&className=" + className + "&methodHash=" + methodHash;
+        String url = this.endpoint + this.getMethodDefinition + "?sessionId=" + this.sessionId +
+                "&name=" + name + "&signature=" + signature + "&className=" + className + "&methodHash=" + methodHash;
         CountDownLatch latch = new CountDownLatch(1);
 
+        AtomicReference<MethodDefinition> methodDefinition = new AtomicReference<>();
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 try {
-                    ObjectMapper objectMapper = new ObjectMapper();
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    localMethodDefinition = objectMapper.readValue(responseBody, MethodDefinition.class);
+                    methodDefinition.set(objectMapper.readValue(responseBody, MethodDefinition.class));
                 } finally {
                     response.close();
                     latch.countDown();
@@ -637,10 +567,10 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
-        return localMethodDefinition;
+        return methodDefinition.get();
     }
 
     @Override
@@ -649,26 +579,22 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         String url = this.endpoint + this.getMethodCallsBetween + "?sessionId=" + this.sessionId + "&start=" + start + "&end=" + end;
         CountDownLatch latch = new CountDownLatch(1);
 
+        ArrayList<MethodCallExpression> localMethodCallExpression = new ArrayList<>();
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    MethodCallExpression[] val = objectMapper.readValue(responseBody, MethodCallExpression[].class);
-
-                    localMethodCallExpression = new ArrayList<>();
-                    for (int i = 0; i <= val.length - 1; i++) {
-                        localMethodCallExpression.add(val[i]);
-                    }
+                    List<MethodCallExpression> val = objectMapper.readValue(responseBody, new TypeReference<>() {
+                    });
+                    localMethodCallExpression.addAll(val);
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -677,7 +603,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
         return localMethodCallExpression;
@@ -713,27 +639,24 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         String url = this.endpoint + this.getMethodCallExpressions + "?sessionId=" + this.sessionId + "&loadCalls=" + loadCalls + interfaceDataString + "&argumentsDescriptor=" + argumentsDescriptor + "&candidateFilterType=" + candidateFilterType + "&methodSignature=" + methodSignature + "&className=" + className + "&methodName=" + methodName;
         CountDownLatch latch = new CountDownLatch(1);
+        ArrayList<MethodCallExpression> localMethodCallExpression = new ArrayList<>();
 
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    MethodCallExpression[] val = objectMapper.readValue(responseBody, MethodCallExpression[].class);
+                    List<MethodCallExpression> val = objectMapper.readValue(responseBody, new TypeReference<>() {
+                    });
+                    localMethodCallExpression.addAll(val);
 
-                    localMethodCallExpression = new ArrayList<>();
-                    for (int i = 0; i <= val.length - 1; i++) {
-                        localMethodCallExpression.add(val[i]);
-                    }
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -742,7 +665,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
         return localMethodCallExpression;
@@ -751,27 +674,26 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public int getMethodCallCountBetween(long start, long end) {
 
-        String url = this.endpoint + this.getMethodCallCountBetween + "?sessionId=" + this.sessionId + "&start=" + start + "&end=" + end;
+        String url = this.endpoint + this.getMethodCallCountBetween + "?sessionId=" + this.sessionId +
+                "&start=" + start + "&end=" + end;
         CountDownLatch latch = new CountDownLatch(1);
+        AtomicInteger methodCallCount = new AtomicInteger();
 
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    Map<String, Integer> jsonVal = objectMapper.readValue(responseBody,
-                            new TypeReference<Map<String, Integer>>() {
-                            });
-                    methodCallCount = jsonVal.get("methodCallCountBetween");
+                    Map<String, Integer> jsonVal = objectMapper.readValue(responseBody, new TypeReference<>() {
+                    });
+                    methodCallCount.set(jsonVal.get("methodCallCountBetween"));
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -780,35 +702,33 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
-        return methodCallCount;
+        return methodCallCount.get();
     }
 
     public long getInitTimestamp() {
 
         String url = this.endpoint + this.getInitTimestamp + "?sessionId=" + this.sessionId;
         CountDownLatch latch = new CountDownLatch(1);
+        AtomicLong initTimestamp = new AtomicLong();
 
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    Map<String, Long> jsonVal = objectMapper.readValue(responseBody,
-                            new TypeReference<Map<String, Long>>() {
-                            });
-                    initTimestamp = jsonVal.get("initTimestamp");
+                    Map<String, Long> jsonVal = objectMapper.readValue(responseBody, new TypeReference<>() {
+                    });
+                    initTimestamp.set(jsonVal.get("initTimestamp"));
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -817,10 +737,10 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
-        return initTimestamp;
+        return initTimestamp.get();
     }
 
     @Override
@@ -828,22 +748,21 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         String url = this.endpoint + this.getClassWeaveInfo + "?sessionId=" + this.sessionId;
         CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<ClassWeaveInfo> classWeaveInfo = new AtomicReference<>();
 
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    classWeaveInfo = objectMapper.readValue(responseBody, ClassWeaveInfo.class);
+                    classWeaveInfo.set(objectMapper.readValue(responseBody, ClassWeaveInfo.class));
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -852,12 +771,11 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
-        return classWeaveInfo;
+        return classWeaveInfo.get();
     }
-
 
     @Override
     public Map<String, ClassInfo> getClassIndex() {
@@ -865,20 +783,20 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         String url = this.endpoint + this.getClassIndex + "?sessionId=" + this.sessionId;
         CountDownLatch latch = new CountDownLatch(1);
 
+        AtomicReference<Map<String, ClassInfo>> classIndex = new AtomicReference<>();
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 try {
-                    ObjectMapper objectMapper = new ObjectMapper();
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    classIndex = objectMapper.readValue(responseBody, new TypeReference<Map<String, ClassInfo>>() {
-                    });
+                    classIndex.set(objectMapper.readValue(responseBody, new TypeReference<>() {
+                    }));
                 } finally {
                     response.close();
                     latch.countDown();
@@ -889,10 +807,10 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
-        return classIndex;
+        return classIndex.get();
     }
 
     @Override
@@ -900,6 +818,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         String url = this.endpoint + this.getAllTypes + "?sessionId=" + this.sessionId;
         CountDownLatch latch = new CountDownLatch(1);
+        ArrayList<TypeInfoDocument> listTypeInfoDocument = new ArrayList<>();
 
         get(url, new Callback() {
             @Override
@@ -910,20 +829,15 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
-                    SimpleModule module = new SimpleModule();
-                    module.addDeserializer(TypeInfoDocumentClient.class, new TypeInfoDocumentClientDeserializer());
-                    objectMapper.registerModule(module);
+                try (response) {
 
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    TypeInfoDocumentClient[] val = objectMapper.readValue(responseBody, TypeInfoDocumentClient[].class);
-                    listTypeInfoDocument = new ArrayList<>();
-                    for (int i = 0; i <= val.length - 1; i++) {
-                        listTypeInfoDocument.add(val[i].getTypeInfoDocument());
-                    }
+                    List<TypeInfoDocumentClient> val = objectMapper.readValue(responseBody, new TypeReference<>() {
+                    });
+                    listTypeInfoDocument.addAll(val.stream()
+                            .map(TypeInfoDocumentClient::getTypeInfoDocument)
+                            .collect(Collectors.toList()));
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -932,12 +846,11 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
         return listTypeInfoDocument;
     }
-
 
     @Override
     public boolean isConnected() {
@@ -954,15 +867,12 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    Map<String, Boolean> jsonVal = objectMapper.readValue(responseBody,
-                            new TypeReference<>() {
-                            });
+                    Map<String, Boolean> jsonVal = objectMapper.readValue(responseBody, new TypeReference<>() {
+                    });
                     isConnected = jsonVal.get("status");
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -971,7 +881,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
         return isConnected;
@@ -1008,7 +918,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
                                 "] => [" + currentAfterEventId + "] attempt [" + attempt + "]");
                 break;
             }
-            if (testCandidateMetadataList.size() > 0) {
+            if (!testCandidateMetadataList.isEmpty()) {
                 count += testCandidateMetadataList.size();
                 testCandidateReceiver.accept(testCandidateMetadataList);
                 currentAfterEventId = testCandidateMetadataList.get(0).getId() + 1;
@@ -1022,23 +932,21 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
             }
         }
     }
-    ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
-
 
     @Override
     public List<TestCandidateBareBone> getTestCandidatePaginatedByStompFilterModel(StompFilterModel stompFilterModel,
                                                                                    long currentAfterEventId,
                                                                                    int limit) {
-        String includedClassNamePart = "";
+        StringBuilder includedClassNamePart = new StringBuilder();
         Set<String> includedClassNames = stompFilterModel.getIncludedClassNames();
         for (String localIncludedClassName : includedClassNames) {
-            includedClassNamePart += "&includedClassNames=" + localIncludedClassName;
+            includedClassNamePart.append("&includedClassNames=").append(localIncludedClassName);
         }
 
-        String excludedClassNamePart = "";
+        StringBuilder excludedClassNamePart = new StringBuilder();
         Set<String> excludedClassNames = stompFilterModel.getExcludedClassNames();
         for (String localExcludedClassName : excludedClassNames) {
-            excludedClassNamePart += "&excludedClassNames" + localExcludedClassName;
+            excludedClassNamePart.append("&excludedClassNames").append(localExcludedClassName);
         }
 
         StringBuilder includedMethodName = new StringBuilder();
@@ -1080,7 +988,8 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
                         latch.countDown();
                         return;
                     }
-                    List<TestCandidateBareBone> val = objectMapper.readValue(body.byteStream(), new TypeReference<>() {});
+                    List<TestCandidateBareBone> val = objectMapper.readValue(body.byteStream(), new TypeReference<>() {
+                    });
                     localTestCandidateBareBone.addAll(val);
                 } finally {
                     latch.countDown();
@@ -1091,7 +1000,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
         return localTestCandidateBareBone;
@@ -1099,7 +1008,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     }
 
     @Override
-    public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception {
+    public TestCandidateMetadata getConstructorCandidate(Parameter parameter) {
 
         // {
         // 	"value": 0,
@@ -1125,24 +1034,25 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         boolean isEnum = parameter.getIsEnum();
         boolean isContainer = parameter.isContainer();
 
-        String url = this.endpoint + this.getConstructorCandidate + "?sessionId=" + this.sessionId + "&value=" + value + "&type=" + type + "&exception=" + exception + "&prob=" + "&stringValue=" + stringValue + "&index=" + index + "&creatorExpression=" + "&isEnum=" + isEnum + "&iscontainer=" + isContainer;
+        String url = this.endpoint + this.getConstructorCandidate + "?sessionId=" + this.sessionId +
+                "&value=" + value + "&type=" + type + "&exception=" + exception + "&prob=" +
+                "&stringValue=" + stringValue + "&index=" + index + "&creatorExpression=" +
+                "&isEnum=" + isEnum + "&iscontainer=" + isContainer;
         CountDownLatch latch = new CountDownLatch(1);
-
+        AtomicReference<TestCandidateMetadata> localTestCandidateMetadata = new AtomicReference<>();
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    localTestCandidateMetadata = objectMapper.readValue(responseBody, TestCandidateMetadata.class);
+                    localTestCandidateMetadata.set(objectMapper.readValue(responseBody, TestCandidateMetadata.class));
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -1151,10 +1061,10 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
-        return localTestCandidateMetadata;
+        return localTestCandidateMetadata.get();
 
     }
 
@@ -1165,22 +1075,22 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         logger.info("url get execution session = " + url);
         CountDownLatch latch = new CountDownLatch(1);
 
+        AtomicReference<ExecutionSession> executionSession = new AtomicReference<>();
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    executionSession = objectMapper.readValue(responseBody, ExecutionSession.class);
-                    executionSession.setSessionMode(ExecutionSessionSourceMode.REMOTE);
+                    ExecutionSession newValue = objectMapper.readValue(responseBody, ExecutionSession.class);
+                    newValue.setSessionMode(ExecutionSessionSourceMode.REMOTE);
+                    executionSession.set(newValue);
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -1189,10 +1099,10 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
-        return executionSession;
+        return executionSession.get();
     }
 
     @Override
@@ -1280,29 +1190,25 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     public List<ExecutionSession> sessionDiscovery(String packageName) {
         String url = this.endpoint + this.discovery + "?packageName=" + packageName;
         CountDownLatch latch = new CountDownLatch(1);
+        ArrayList<ExecutionSession> executionSessionList = new ArrayList<>();
 
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered");
+                logger.info("failure encountered", e);
                 latch.countDown();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
+                try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    ExecutionSession[] executionSessionLocal = objectMapper.readValue(responseBody,
-                            ExecutionSession[].class);
-                    executionSessionList = new ArrayList<>();
-                    for (int i = 0; i <= executionSessionLocal.length - 1; i++) {
-                        ExecutionSession temp = executionSessionLocal[i];
-                        temp.setSessionMode(ExecutionSessionSourceMode.REMOTE);
-                        executionSessionList.add(temp);
-                    }
+                    List<ExecutionSession> executionSessionLocal = objectMapper.readValue(responseBody,
+                            new TypeReference<>() {
+                            });
+                    executionSessionLocal.forEach(e -> e.setSessionMode(ExecutionSessionSourceMode.REMOTE));
+                    executionSessionList.addAll(executionSessionLocal);
                 } finally {
-                    response.close();
                     latch.countDown();
                 }
             }
@@ -1311,7 +1217,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+
         }
 
         return executionSessionList;
