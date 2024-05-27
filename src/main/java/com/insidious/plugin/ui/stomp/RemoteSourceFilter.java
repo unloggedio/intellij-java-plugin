@@ -5,6 +5,7 @@ import com.insidious.plugin.client.UnloggedClientInterface;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.constants.ExecutionSessionSourceMode;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.upload.ExecutionSessionSource;
 import com.insidious.plugin.upload.SourceFilter;
@@ -17,6 +18,8 @@ import com.intellij.ui.AnimatedIcon;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -61,10 +64,27 @@ public class RemoteSourceFilter {
     private JPanel mainPanel;
     private JPanel setupInfo;
     private JLabel remoteServerLink;
-    private JLabel setupText;
+    private JLabel howToSetupLabel;
     private JPanel serverListPanel;
     private UnloggedClientInterface independentClientInstance;
     private HashMap<ButtonModel, ExecutionSession> modelToSessionMap;
+
+    public void routeToServerReadme() {
+        String link = "https://read.unlogged.io/server/";
+        if (Desktop.isDesktopSupported()) {
+            try {
+                java.awt.Desktop.getDesktop()
+                        .browse(java.net.URI.create(link));
+            } catch (Exception e) {
+            }
+        } else {
+            //no browser
+        }
+        UsageInsightTracker.getInstance().RecordEvent(
+                "routeToServerReadme", null);
+    }
+
+
 
     public RemoteSourceFilter(InsidiousService insidiousService) {
         this.executionSessionSource = insidiousService.getSessionSource();
@@ -72,6 +92,14 @@ public class RemoteSourceFilter {
         serverListScroll.setVisible(false);
         serverListScroll.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         serverListPanel.setLayout(new BoxLayout(serverListPanel, BoxLayout.Y_AXIS));
+
+        howToSetupLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        howToSetupLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                routeToServerReadme();
+            }
+        });
 
         // load the old state
         this.independentClientInstance = UnloggedClientFactory.createClient(insidiousService.getSessionSource());
@@ -93,18 +121,6 @@ public class RemoteSourceFilter {
         }
         mainPanel.revalidate();
         mainPanel.repaint();
-
-        // styling logic
-//        sourceModeOption.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(
-//                BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.LIGHT_GRAY),
-//                "Select source to scan",
-//                TitledBorder.LEADING, TitledBorder.TOP
-//        ), BorderFactory.createEmptyBorder(5, 5, 5, 5)));
-//        remotePanel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createTitledBorder(
-//                BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.LIGHT_GRAY),
-//                "Remote Server Configuration",
-//                TitledBorder.LEADING, TitledBorder.TOP
-//        ), BorderFactory.createEmptyBorder(5, 5, 5, 5)));
 
 
         // radio button and remote panel logic

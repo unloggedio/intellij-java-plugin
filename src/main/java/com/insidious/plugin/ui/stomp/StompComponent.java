@@ -124,6 +124,7 @@ public class StompComponent implements
     private JPanel timelineControlPanel;
     private JPanel topContainerPanel;
     private JSplitPane splitPane;
+    private JLabel sourceLabelFilter;
     private long lastEventId = 0;
     private MethodDirectInvokeComponent directInvokeComponent = null;
     private TestCandidateSaveForm saveFormReference;
@@ -132,6 +133,7 @@ public class StompComponent implements
     private MethodUnderTest lastMethodFocussed;
     private boolean shownGotItNofiticaton = false;
     private SessionInstanceInterface sessionInstance;
+    private boolean hasShownVersionWarning;
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -219,6 +221,14 @@ public class StompComponent implements
 //        };
 
 
+        sourceLabelFilter.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        sourceLabelFilter.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showFiltersComponentPopup(project, insidiousService, 1);
+            }
+        });
+
         filterAction = new AnAction(() -> "Filter", AllIcons.General.Filter) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
@@ -226,7 +236,7 @@ public class StompComponent implements
                 eventProperties.put("count", selectedCandidates.size());
                 UsageInsightTracker.getInstance().RecordEvent("ACTION_FILTER", eventProperties);
 
-                showFiltersComponentPopup(project, insidiousService);
+                showFiltersComponentPopup(project, insidiousService, 0);
             }
 
             @Override
@@ -441,9 +451,10 @@ public class StompComponent implements
         });
     }
 
-    private void showFiltersComponentPopup(Project project, InsidiousService insidiousService) {
+    private void showFiltersComponentPopup(Project project, InsidiousService insidiousService, int selectedTabIndex) {
         StompFilterModel originalFilter = new StompFilterModel(stompFilterModel);
-        StompFilter stompFilter = new StompFilter(insidiousService, stompFilterModel, lastMethodFocussed, project);
+        StompFilter stompFilter = new StompFilter(insidiousService, stompFilterModel, lastMethodFocussed,
+                selectedTabIndex);
         JComponent component = stompFilter.getComponent();
 
         ComponentPopupBuilder gutterMethodComponentPopup = JBPopupFactory.getInstance()
@@ -494,6 +505,10 @@ public class StompComponent implements
         stompFilter.setOnCloseListener(componentLifecycleListener);
 
         unloggedPreferencesPopup.showCenteredInCurrentWindow(project);
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            stompFilter.setSelectedTab(selectedTabIndex);
+        });
     }
 
     private void clearFilter() {
@@ -568,12 +583,20 @@ public class StompComponent implements
     }
 
     public void resetAndReload() {
-        if (sessionInstance == null) {
-            return;
-        }
         ApplicationManager.getApplication().invokeLater(() -> {
             updateFilterLabel();
+            if (sessionInstance == null) {
+                return;
+            }
             resetTimeline();
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                if (sessionInstance.isScanEnable() && sessionInstance.isConnected()) {
+                    ApplicationManager.getApplication().invokeLater(stompStatusComponent::setConnected);
+                } else {
+                    ApplicationManager.getApplication().invokeLater(stompStatusComponent::setDisconnected);
+                }
+            });
+
             if (candidateQueryLatch != null) {
                 candidateQueryLatch.decrementAndGet();
             }
@@ -1206,7 +1229,10 @@ public class StompComponent implements
 
         String text = total + (total == 1 ? " filter" : " filters");
         ExecutionSessionSource source = configurationState.getExecutionSessionSource();
-        filterAppliedLabel.setText("[" + source.getSessionMode() + "] " + text);
+        sourceLabelFilter.setText(
+                "<html><small>[<font color=blue><u>" + source.getSessionMode() + "</u></font>] " + "</font></small></html>");
+        ;
+        filterAppliedLabel.setText("<html><small>" + text + "</small></html>");
 
         itemPanel.revalidate();
         itemPanel.repaint();
@@ -1260,20 +1286,10 @@ public class StompComponent implements
 
 
     public void resetTimeline() {
-        if (sessionInstance == null) {
-            return;
-        }
         lastEventId = 0;
 
         List<Component> itemsToNotDelete = new ArrayList<>();
         List<StompItem> pinnedStomps = new ArrayList<>();
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            if (sessionInstance.isScanEnable() && sessionInstance.isConnected()) {
-                ApplicationManager.getApplication().invokeLater(stompStatusComponent::setConnected);
-            } else {
-                ApplicationManager.getApplication().invokeLater(stompStatusComponent::setDisconnected);
-            }
-        });
         for (StompItem stompItem : stompItems) {
             if (stompItem.isPinned()) {
                 pinnedStomps.add(stompItem);
@@ -1589,7 +1605,11 @@ public class StompComponent implements
         }
     }
 
-    public void showVersionBadge(SemanticVersion currentVersion, SemanticVersion requiredVersion) {
+    public synchronized void showVersionBadge(SemanticVersion currentVersion, SemanticVersion requiredVersion) {
+        if (hasShownVersionWarning) {
+            return;
+        }
+        hasShownVersionWarning = true;
         Notification notification = new Notification(InsidiousNotification.DISPLAY_ID, "Update unlogged-sdk Version",
                 "You are using version " + currentVersion.toString() + " which is older than recommended version for" +
                         " this plugin " + requiredVersion + ". Please update the unlogged-sdk version in your pom" +
