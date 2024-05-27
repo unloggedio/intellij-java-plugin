@@ -174,9 +174,9 @@ public class NetworkClient implements UnloggedClientInterface {
     private void get(String url, Callback callback) {
 
         final OkHttpClient httpClient = new OkHttpClient().newBuilder()
-                .connectTimeout(600, TimeUnit.SECONDS)
-                .readTimeout(600, TimeUnit.SECONDS)
-                .writeTimeout(600, TimeUnit.SECONDS)
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(5, TimeUnit.SECONDS)
+                .writeTimeout(5, TimeUnit.SECONDS)
                 .build();
 
         Request.Builder builder = new Request.Builder().url(url);

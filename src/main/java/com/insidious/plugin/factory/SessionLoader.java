@@ -50,7 +50,7 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback, Disp
                 return;
             }
             logger.debug("Check for new sessions");
-            client.getProjectSessions(this);
+                client.getProjectSessions(this);
         } catch (Throwable th) {
             logger.warn("Session loader error: " + th.getMessage(), th);
         }

@@ -142,6 +142,7 @@ public class RemoteSourceFilter {
                         NotificationType.ERROR);
                 return;
             }
+            showLoading();
             this.executionSessionSource = new ExecutionSessionSource(ExecutionSessionSourceMode.REMOTE);
             this.executionSessionSource.setServerEndpoint(localServerEndpoint);
             independentClientInstance = UnloggedClientFactory.createClient(executionSessionSource);
@@ -171,26 +172,10 @@ public class RemoteSourceFilter {
         confirmSaveApplyButton.addActionListener(e -> {
 
             insidiousService.clearSession();
-            this.independentClientInstance = UnloggedClientFactory.createClient(executionSessionSource);
+            independentClientInstance = UnloggedClientFactory.createClient(executionSessionSource);
             ExecutionSession executionSession = null;
-            if (this.executionSessionSource.getSessionMode() == ExecutionSessionSourceMode.REMOTE) {
-                localServerEndpoint = getServerLinkFieldText();
-                try {
-                    URI uri = new URI(localServerEndpoint);
-                } catch (URISyntaxException ex) {
-                    InsidiousNotification.notifyMessage("Please enter a valid URL",
-                            NotificationType.ERROR);
-                    return;
-                }
-                this.executionSessionSource.setServerEndpoint(localServerEndpoint);
-
-
+            if (executionSessionSource.getSessionMode() == ExecutionSessionSourceMode.REMOTE) {
                 ButtonModel buttonModel = buttonGroup.getSelection();
-                if (buttonModel == null) {
-                    InsidiousNotification.notifyMessage("Select a session to load",
-                            NotificationType.WARNING);
-                    return;
-                }
                 executionSession = modelToSessionMap.get(buttonModel);
 
                 // make the list of sessionId
@@ -198,11 +183,10 @@ public class RemoteSourceFilter {
                 List<String> listSessionId = new ArrayList<>();
                 listSessionId.add(sessionId);
 
-                this.executionSessionSource.setSourceFilter(SourceFilter.SELECTED_ONLY);
-                this.executionSessionSource.setSessionId(listSessionId);
-                localServerEndpoint = getServerLinkFieldText();
-                this.independentClientInstance.setSourceModel(this.executionSessionSource);
+                executionSessionSource.setSourceFilter(SourceFilter.SELECTED_ONLY);
+                executionSessionSource.setSessionId(listSessionId);
             }
+            independentClientInstance.setSourceModel(this.executionSessionSource);
             insidiousService.setSessionSource(executionSessionSource);
             insidiousService.setUnloggedClient(independentClientInstance);
             if (executionSession != null) {
@@ -221,7 +205,7 @@ public class RemoteSourceFilter {
     }
 
     private void showLoading() {
-
+        serverListPanel.removeAll();
         serverListPanel.add(new JLabel("Loading sessions", icon, JLabel.CENTER));
     }
 
