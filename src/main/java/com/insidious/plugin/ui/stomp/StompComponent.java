@@ -133,6 +133,7 @@ public class StompComponent implements
     private MethodUnderTest lastMethodFocussed;
     private boolean shownGotItNofiticaton = false;
     private SessionInstanceInterface sessionInstance;
+    private boolean hasShownVersionWarning;
 
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -220,6 +221,7 @@ public class StompComponent implements
 //        };
 
 
+        sourceLabelFilter.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         sourceLabelFilter.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -1227,8 +1229,10 @@ public class StompComponent implements
 
         String text = total + (total == 1 ? " filter" : " filters");
         ExecutionSessionSource source = configurationState.getExecutionSessionSource();
-        sourceLabelFilter.setText("<html><small>[<font color=blue><u>" + source.getSessionMode() + "</u></font>] " + "</font></small></html>");;
-        filterAppliedLabel.setText("<html><small>" + "</font></small></html>");
+        sourceLabelFilter.setText(
+                "<html><small>[<font color=blue><u>" + source.getSessionMode() + "</u></font>] " + "</font></small></html>");
+        ;
+        filterAppliedLabel.setText("<html><small>" + text + "</small></html>");
 
         itemPanel.revalidate();
         itemPanel.repaint();
@@ -1601,7 +1605,11 @@ public class StompComponent implements
         }
     }
 
-    public void showVersionBadge(SemanticVersion currentVersion, SemanticVersion requiredVersion) {
+    public synchronized void showVersionBadge(SemanticVersion currentVersion, SemanticVersion requiredVersion) {
+        if (hasShownVersionWarning) {
+            return;
+        }
+        hasShownVersionWarning = true;
         Notification notification = new Notification(InsidiousNotification.DISPLAY_ID, "Update unlogged-sdk Version",
                 "You are using version " + currentVersion.toString() + " which is older than recommended version for" +
                         " this plugin " + requiredVersion + ". Please update the unlogged-sdk version in your pom" +
