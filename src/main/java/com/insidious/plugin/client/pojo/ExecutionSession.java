@@ -1,7 +1,7 @@
 package com.insidious.plugin.client.pojo;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.insidious.plugin.constants.SessionMode;
+import com.insidious.plugin.constants.ExecutionSessionSourceMode;
 
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -19,7 +19,7 @@ public class ExecutionSession {
     private String sessionId;
     private String hostname;
     private String path;
-	private SessionMode sessionMode;
+    private ExecutionSessionSourceMode executionSessionSourceMode;
 
     public String getSessionId() {
         return sessionId;
@@ -61,21 +61,21 @@ public class ExecutionSession {
         this.createdAt = createdAt;
     }
 
-	public SessionMode getSessionMode() {
-        if (this.sessionMode == null) {
-            this.sessionMode = SessionMode.LOCAL;
+    public ExecutionSessionSourceMode getSessionMode() {
+        if (this.executionSessionSourceMode == null) {
+            this.executionSessionSourceMode = ExecutionSessionSourceMode.LOCAL;
         }
-		return this.sessionMode;
-	}
+        return this.executionSessionSourceMode;
+    }
 
-	public void setSessionMode(SessionMode sessionMode) {
-		this.sessionMode = sessionMode;
-	}
+    public void setSessionMode(ExecutionSessionSourceMode executionSessionSourceMode) {
+        this.executionSessionSourceMode = executionSessionSourceMode;
+    }
 
     @Override
     public String toString() {
-        return "[" + hostname + "] " +
-                sessionId + " - " + createdAt;
+        return "[" + executionSessionSourceMode + "][" + hostname + "]" +
+                sessionId + "@" + createdAt;
     }
 
     public String getDatabaseConnectionString() {

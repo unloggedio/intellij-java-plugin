@@ -10,9 +10,9 @@ import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.pojo.*;
-import com.insidious.plugin.upload.SourceModel;
-
+import com.insidious.plugin.pojo.SearchQuery;
+import com.insidious.plugin.pojo.TracePoint;
+import com.insidious.plugin.upload.ExecutionSessionSource;
 
 import java.io.IOException;
 import java.util.List;
@@ -21,8 +21,6 @@ import java.util.stream.Collectors;
 
 public interface UnloggedClientInterface {
     ExecutionSession getCurrentSession();
-
-    void setSessionInstance(SessionInstanceInterface sessionInstance);
 
     void signup(String serverUrl, String username, String password, SignUpCallback callback);
 
@@ -51,18 +49,17 @@ public interface UnloggedClientInterface {
     void queryTracePointsByEventType(SearchQuery searchQuery, String sessionId,
                                      ClientCallBack<TracePoint> tracePointsCallback);
 
+    void queryTracePointsByTypes(SearchQuery classList, String sessionId, int historyDepth,
+                                 ClientCallBack<TracePoint> getProjectSessionErrorsCallback);
+
 //    ReplayData fetchObjectHistoryByObjectId(
 //            FilteredDataEventsRequest request
 //    ) throws SessionNotSelectedException;
-
-    void queryTracePointsByTypes(SearchQuery classList, String sessionId, int historyDepth,
-                                 ClientCallBack<TracePoint> getProjectSessionErrorsCallback);
 
     void queryTracePointsByValue(SearchQuery value, String sessionId,
                                  ClientCallBack<TracePoint> getProjectSessionErrorsCallback);
 
     ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws APICallException;
-
 
     String getToken();
 
@@ -81,12 +78,13 @@ public interface UnloggedClientInterface {
 
     TypeInfo getTypeInfoByName(String sessionId, String type);
 
-
     SessionInstanceInterface getSessionInstance();
+
+    void setSessionInstance(SessionInstanceInterface sessionInstance);
 
     ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filterRequest);
 
-    void setSourceModel (SourceModel sourceModel);
+    void setSourceModel(ExecutionSessionSource executionSessionSource);
 
     List<ExecutionSession> sessionDiscovery(Boolean filterSession);
 }

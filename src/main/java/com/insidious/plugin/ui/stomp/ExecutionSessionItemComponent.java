@@ -16,7 +16,7 @@ public class ExecutionSessionItemComponent {
     private JLabel hostnameLabel;
     private JLabel packageNameLabel;
 
-    public ExecutionSessionItemComponent(ExecutionSession executionSession) {
+    public ExecutionSessionItemComponent(ExecutionSession executionSession ) {
 
         this.executionSession = executionSession;
         Date date = executionSession.getCreatedAt();
@@ -36,6 +36,7 @@ public class ExecutionSessionItemComponent {
         radioButton.setBorder(BorderFactory.createCompoundBorder(
                 radioButton.getBorder(),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)));
+
     }
 
     public Component getComponent() {

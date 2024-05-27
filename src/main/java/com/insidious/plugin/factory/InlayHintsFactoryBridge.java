@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
@@ -7,8 +8,6 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -27,8 +26,7 @@ import java.util.stream.Stream;
  */
 public class InlayHintsFactoryBridge {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(InlayHintsFactoryBridge.class);
-
+    private static final com.intellij.openapi.diagnostic.Logger LOGGER = LoggerUtil.getInstance(InlayHintsFactoryBridge.class);
     private static final String[] INLAY_HINTS_PASS_FACTORY_CLASSES = {
             "com.intellij.codeInsight.hints.InlayHintsFactory",
             "com.intellij.codeInsight.hints.InlayHintsPassFactory"};

@@ -7,6 +7,16 @@ public class ServerMetadata {
     String agentVersion;
     String agentServerPort;
     private String agentServerUrl;
+    String mode;
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode;
+    }
+
     private String hostname;
     private Date createdAt;
     private String timezone;

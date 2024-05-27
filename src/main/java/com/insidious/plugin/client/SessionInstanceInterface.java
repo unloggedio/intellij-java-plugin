@@ -54,7 +54,6 @@ public interface SessionInstanceInterface {
 	public void close();
 	public void addSessionScanEventListener(SessionScanEventListener listener);
 	public void addTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener);
-	public Project getProject();
 	public CodeCoverageData createCoverageData();
 	public ClassMethodAggregates getClassMethodAggregates(String qualifiedName);
 	public UnloggedSdkApiAgentClient getAgent();
