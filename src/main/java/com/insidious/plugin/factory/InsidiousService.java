@@ -205,7 +205,7 @@ final public class InsidiousService implements
         configurationState = project.getService(InsidiousConfigurationState.class);
 
         ExecutionSession currentExecutionSession = configurationState.getExecutionSession();
-        setUnloggedClient(UnloggedClientFactory.createClient(configurationState.getSourceModel()));
+        setUnloggedClient(UnloggedClientFactory.createClient(configurationState.getExecutionSessionSource()));
 
         sessionListener = new GetProjectSessionsCallback() {
 
@@ -228,7 +228,7 @@ final public class InsidiousService implements
                         if (i == 0) {
                             continue;
                         }
-                        if (executionSession.getSessionMode() == ExecutionSessionSourceMode.LOCAL){
+                        if (executionSession.getSessionMode() == ExecutionSessionSourceMode.LOCAL) {
                             logger.warn(
                                     "Deleting session: " + executionSession.getSessionId() + " => " + project.getName());
                             sessionManager.cleanUpSessionDirectory(executionSession);
@@ -356,6 +356,7 @@ final public class InsidiousService implements
         if (this.sessionLoader != null) {
             this.sessionLoader.setClient(this.client);
         }
+        resetTimeline();
     }
 
     public void chooseClassImplementation(String className, ClassChosenListener classChosenListener) {
@@ -708,7 +709,7 @@ final public class InsidiousService implements
     }
 
     public ExecutionSessionSource getSessionSource() {
-        return configurationState.getSourceModel();
+        return configurationState.getExecutionSessionSource();
     }
 
     public void setSessionSource(ExecutionSessionSource ess) {
@@ -763,9 +764,15 @@ final public class InsidiousService implements
                 (Computable<String>) method::getName));
         stompWindow.onMethodFocussed(null);
         stompWindow.onMethodFocussed(method);
-        stompWindow.resetAndReload();
+        resetTimeline();
 //        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
 
+    }
+
+    public void resetTimeline() {
+        if (stompWindow != null) {
+            stompWindow.resetAndReload();
+        }
     }
 
     public void showLibrary() {
@@ -1159,7 +1166,7 @@ final public class InsidiousService implements
     private ServerMetadata checkSessionBelongsToProject(ExecutionSession session, Project project) {
 
         if (session.getSessionMode() == ExecutionSessionSourceMode.REMOTE) {
-            return getServerMetadata(configurationState.getSourceModel(), session.getSessionId());
+            return getServerMetadata(configurationState.getExecutionSessionSource(), session.getSessionId());
         }
 
         if (checkCache.containsKey(session.getSessionId())) {
@@ -1278,9 +1285,9 @@ final public class InsidiousService implements
             mostRecentSession.setProjectId(project.getName());
         }
         configurationState.setExecutionSession(mostRecentSession);
-        ExecutionSessionSource executionSessionSource = configurationState.getSourceModel();
+        ExecutionSessionSource executionSessionSource = configurationState.getExecutionSessionSource();
         if (executionSessionSource.getSessionMode() == ExecutionSessionSourceMode.LOCAL
-        && !Objects.equals(serverMetadata.getMode(), "local")) {
+                && !Objects.equals(serverMetadata.getMode(), "local")) {
             return;
         }
         SessionInstanceInterface sessionInstance = sessionManager.createSessionInstance(mostRecentSession,
@@ -2056,7 +2063,7 @@ final public class InsidiousService implements
             }
         }
         if (stompWindow != null && changed) {
-            stompWindow.resetAndReload();
+            resetTimeline();
         }
     }
 

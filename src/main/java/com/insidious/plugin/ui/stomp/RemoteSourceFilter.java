@@ -13,8 +13,6 @@ import com.intellij.icons.AllIcons;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.ui.AnimatedIcon;
 
 import javax.swing.*;
@@ -148,15 +146,8 @@ public class RemoteSourceFilter {
             independentClientInstance = UnloggedClientFactory.createClient(executionSessionSource);
 
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
-                    ProgressIndicator progressIndicator = ProgressManager.getInstance()
-                            .getProgressIndicator();//(project, "New project...");
-                    progressIndicator.setIndeterminate(true);
-                    List<ExecutionSession> list = sessionDiscoveryBackground(independentClientInstance);
-                    createRemoteSessionList(list);
-                }, "Loading Sessions", false, insidiousService.getProject());
-
-
+                List<ExecutionSession> list = sessionDiscoveryBackground(independentClientInstance);
+                createRemoteSessionList(list);
             });
 
         });

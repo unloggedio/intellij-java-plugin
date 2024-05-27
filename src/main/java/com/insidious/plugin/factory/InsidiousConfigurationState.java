@@ -59,7 +59,7 @@ public final class InsidiousConfigurationState
         return stompFilterModel;
     }
 
-    public ExecutionSessionSource getSourceModel() {
+    public ExecutionSessionSource getExecutionSessionSource() {
         return this.executionSessionSource;
     }
 

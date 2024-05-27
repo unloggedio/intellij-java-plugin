@@ -30,6 +30,7 @@ import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
+import com.insidious.plugin.upload.ExecutionSessionSource;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
@@ -137,7 +138,7 @@ public class StompComponent implements
         this.project = insidiousService.getProject();
         configurationState = project.getService(InsidiousConfigurationState.class);
 
-        filterAppliedLabel.setVisible(false);
+//        filterAppliedLabel.setVisible(false);
         stompFilterModel = configurationState.getFilterModel();
 
 
@@ -1198,12 +1199,14 @@ public class StompComponent implements
                 + stompFilterModel.getExcludedMethodNames().size();
         if (total == 0) {
             clearFilterLabel.setVisible(false);
-            filterAppliedLabel.setVisible(false);
+//            filterAppliedLabel.setVisible(false);
         } else {
             clearFilterLabel.setVisible(true);
-            filterAppliedLabel.setVisible(true);
-            filterAppliedLabel.setText(total + (total == 1 ? " filter" : " filters"));
         }
+
+        String text = total + (total == 1 ? " filter" : " filters");
+        ExecutionSessionSource source = configurationState.getExecutionSessionSource();
+        filterAppliedLabel.setText("[" + source.getSessionMode() + "] " + text);
 
         itemPanel.revalidate();
         itemPanel.repaint();
