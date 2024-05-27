@@ -80,9 +80,10 @@ public class UITestsV2 {
         pause(ofSeconds(1).toMillis());
         mavenIcon.click();
 
+        waitFor(ofMinutes(2), () -> !idea.isDumbMode());
+
         //start application
         openFile("start_project.sh", idea);
-        waitFor(ofMinutes(2), () -> !idea.isDumbMode());
         TextEditorFixture shellScript = idea.textEditor();
         //click the first icon
         boolean started = false;
