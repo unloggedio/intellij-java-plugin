@@ -101,6 +101,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         }
         SimpleModule module = new SimpleModule();
         module.addDeserializer(TypeInfoDocumentClient.class, new TypeInfoDocumentClientDeserializer());
+        module.addDeserializer(TypeInfoClient.class, new TypeInfoClient.TypeInfoClientDeserializer());
         objectMapper.registerModule(module);
 
         this.unloggedSdkApiAgentClient = new UnloggedSdkApiAgentClient(agentServerUrl);

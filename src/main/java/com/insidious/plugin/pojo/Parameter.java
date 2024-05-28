@@ -291,6 +291,10 @@ public class Parameter implements Serializable, BytesMarshallable {
         return dataInfo;
     }
 
+    public void setProbeInfo(DataInfo probeInfo) {
+        this.dataInfo = probeInfo;
+    }
+
     public void setProbeAndProbeInfo(DataEventWithSessionId prob, DataInfo probeInfo) {
         if (value == 0 && prob != null) {
             this.prob = prob;
