@@ -385,19 +385,19 @@ public class MethodDirectInvokeComponent
         if (existingRequests != null) {
             methodArgumentValues = existingRequests.getMethodParameters();
         } else {
-            SessionInstanceInterface sessionInstance = this.insidiousService.getSessionInstance();
-            if (sessionInstance != null) {
-                CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
-                        methodElement, CandidateFilterType.METHOD, false);
-
-                List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(query);
-                int candidateCount = methodTestCandidates.size();
-                if (candidateCount > 0) {
-                    TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(0);
-                    methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
-                            mostRecentTestCandidate);
-                }
-            }
+//            SessionInstanceInterface sessionInstance = this.insidiousService.getSessionInstance();
+//            if (sessionInstance != null) {
+//                CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
+//                        methodElement, CandidateFilterType.METHOD, false);
+//
+//                List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(query);
+//                int candidateCount = methodTestCandidates.size();
+//                if (candidateCount > 0) {
+//                    TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(0);
+//                    methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
+//                            mostRecentTestCandidate);
+//                }
+//            }
         }
 
         methodParameterContainer = new JPanel();

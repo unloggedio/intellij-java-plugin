@@ -139,7 +139,7 @@ public class StompComponent implements
         this.insidiousService = insidiousService;
         this.project = insidiousService.getProject();
         configurationState = project.getService(InsidiousConfigurationState.class);
-
+//        hideBottomSplit();
 //        filterAppliedLabel.setVisible(false);
         stompFilterModel = configurationState.getFilterModel();
 

@@ -16,7 +16,7 @@ def getGitHash = { ->
 
 group 'org.videobug'
 def remoteRobotVersion = "0.11.20"
-version '2024.1.9-' + getGitHash()
+version '2024.2.1-' + getGitHash()
 
 compileJava {
     sourceCompatibility = '11'

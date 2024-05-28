@@ -129,7 +129,7 @@
           <splitpane id="116f4" binding="splitPane">
             <constraints border-constraint="Center"/>
             <properties>
-              <dividerLocation value="512"/>
+              <dividerLocation value="1000"/>
               <orientation value="0"/>
               <resizeWeight value="1.0"/>
             </properties>
