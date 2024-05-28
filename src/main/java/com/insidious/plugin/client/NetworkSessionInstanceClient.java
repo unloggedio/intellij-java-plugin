@@ -79,6 +79,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     private static final String getTestCandidatePaginatedByStompFilterModel = "/session/getTestCandidatePaginatedByStompFilterModel";
     private static final String getConstructorCandidate = "/session/getConstructorCandidate";
     private static final String getExecutionSession = "/session/getExecutionSession";
+    private static final String getClassMethodAggregates = "/session/getClassMethodAggregates";
     private static final String discovery = "/discovery";
     // session instance attributes
     private boolean isConnected = false;
@@ -1127,8 +1128,36 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
     @Override
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
-        // TODO: implement this method
-        return null;
+        String url = this.endpoint + this.getClassMethodAggregates + this.sessionURL + "&qualifiedName=" + qualifiedName;
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<ClassMethodAggregates> classMethodAggregates = new AtomicReference<>();
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered", e);
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try (response) {
+                    String responseBody = Objects.requireNonNull(response.body()).string();
+                    ClassMethodAggregates classMethodAggregatesLocal = objectMapper.readValue(responseBody,
+                            ClassMethodAggregates.class);
+                    classMethodAggregates.set(classMethodAggregatesLocal);
+                } finally {
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+
+        }
+
+        return classMethodAggregates.get();
     }
 
     @Override
