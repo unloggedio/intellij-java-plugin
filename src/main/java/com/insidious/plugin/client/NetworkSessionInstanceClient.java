@@ -51,7 +51,6 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     private final Logger logger = LoggerUtil.getInstance(NetworkSessionInstanceClient.class);
     private final Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
     private final UnloggedSdkApiAgentClient unloggedSdkApiAgentClient;
-    private final String sessionId;
     // client attributes
     private final String endpoint;
     private String token;
@@ -84,10 +83,11 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     // session instance attributes
     private boolean isConnected = false;
     private boolean scanEnable;
+    private String sessionURL;
 
     public NetworkSessionInstanceClient(String endpoint, String sessionId, ServerMetadata serverMetadata) {
         this.endpoint = endpoint;
-        this.sessionId = sessionId;
+        this.sessionURL = "?sessionId=" + sessionId;
         this.client = new OkHttpClient().newBuilder()
                 .connectTimeout(5, TimeUnit.SECONDS)
                 .readTimeout(5, TimeUnit.SECONDS)
@@ -152,7 +152,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public boolean isScanEnable() {
 
-        String url = this.endpoint + this.isScanEnableEndpoint + "?sessionId=" + this.sessionId;
+        String url = this.endpoint + this.isScanEnableEndpoint + this.sessionURL;
         CountDownLatch latch = new CountDownLatch(1);
 
         get(url, new Callback() {
@@ -187,7 +187,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public TypeInfo getTypeInfo(String name) {
 
-        String url = this.endpoint + this.getTypeInfoTypeString + "?sessionId=" + this.sessionId + "&name=" + name;
+        String url = this.endpoint + this.getTypeInfoTypeString + this.sessionURL + "&name=" + name;
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<TypeInfo> typeInfo = new AtomicReference<>();
 
@@ -222,7 +222,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public TypeInfo getTypeInfo(Integer typeId) {
 
-        String url = this.endpoint + this.getTypeInfoTypeInt + "?sessionId=" + this.sessionId + "&typeId=" + typeId;
+        String url = this.endpoint + this.getTypeInfoTypeInt + this.sessionURL + "&typeId=" + typeId;
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<TypeInfo> typeInfo = new AtomicReference<>();
 
@@ -257,7 +257,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public int getTotalFileCount() {
 
-        String url = this.endpoint + this.getTotalFileCount + "?sessionId=" + this.sessionId;
+        String url = this.endpoint + this.getTotalFileCount + this.sessionURL;
         CountDownLatch latch = new CountDownLatch(1);
 
         AtomicInteger totalFileCount = new AtomicInteger();
@@ -293,7 +293,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public List<UnloggedTimingTag> getTimingTags(long id) {
 
-        String url = this.endpoint + this.getTimingTags + "?sessionId=" + this.sessionId + "&id=" + id;
+        String url = this.endpoint + this.getTimingTags + this.sessionURL + "&id=" + id;
         CountDownLatch latch = new CountDownLatch(1);
         ArrayList<UnloggedTimingTag> unloggedTimingTags = new ArrayList<>();
 
@@ -356,7 +356,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
             interfaceDataString += "&interfaceNames=" + interfaceNames.get(i);
         }
 
-        String url = this.endpoint + this.getTestCandidatesForAllMethod + "?sessionId=" + this.sessionId + "&loadCalls=" + loadCalls + interfaceDataString + "&argumentsDescriptor=" + argumentsDescriptor + "&candidateFilterType=" + candidateFilterType + "&methodSignature=" + methodSignature + "&className=" + className + "&methodName=" + methodName;
+        String url = this.endpoint + this.getTestCandidatesForAllMethod + this.sessionURL + "&loadCalls=" + loadCalls + interfaceDataString + "&argumentsDescriptor=" + argumentsDescriptor + "&candidateFilterType=" + candidateFilterType + "&methodSignature=" + methodSignature + "&className=" + className + "&methodName=" + methodName;
         CountDownLatch latch = new CountDownLatch(1);
         ArrayList<TestCandidateMetadata> localtcml = new ArrayList<>();
 
@@ -391,7 +391,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
 
-        String url = this.endpoint + this.getTestCandidateById + "?sessionId=" + this.sessionId + "&testCandidateId=" + testCandidateId + "&loadCalls=" + loadCalls;
+        String url = this.endpoint + this.getTestCandidateById + this.sessionURL + "&testCandidateId=" + testCandidateId + "&loadCalls=" + loadCalls;
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<TestCandidateMetadata> testCandidateMetadata = new AtomicReference<>();
         get(url, new Callback() {
@@ -426,7 +426,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public List<TestCandidateMetadata> getTestCandidateBetween(long eventIdStart, long eventIdEnd) throws SQLException {
 
-        String url = this.endpoint + this.getTestCandidateBetween + "?sessionId=" + this.sessionId + "&eventIdStart=" + eventIdStart + "&eventIdEnd=" + eventIdEnd;
+        String url = this.endpoint + this.getTestCandidateBetween + this.sessionURL + "&eventIdStart=" + eventIdStart + "&eventIdEnd=" + eventIdEnd;
         CountDownLatch latch = new CountDownLatch(1);
         ArrayList<TestCandidateMetadata> localtcml = new ArrayList<>();
 
@@ -461,7 +461,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public List<TestCandidateMethodAggregate> getTestCandidateAggregatesByClassName(String className) {
 
-        String url = this.endpoint + this.getTestCandidateAggregatesByClassName + "?sessionId=" + this.sessionId + "&className=" + className;
+        String url = this.endpoint + this.getTestCandidateAggregatesByClassName + this.sessionURL + "&className=" + className;
         CountDownLatch latch = new CountDownLatch(1);
 
         ArrayList<TestCandidateMethodAggregate> localtcma = new ArrayList<>();
@@ -498,7 +498,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public int getProcessedFileCount() {
 
-        String url = this.endpoint + this.getProcessedFileCount + "?sessionId=" + this.sessionId;
+        String url = this.endpoint + this.getProcessedFileCount + this.sessionURL;
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger processedFileCount = new AtomicInteger();
 
@@ -540,7 +540,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         String className = methodUnderTest.getClassName();
         int methodHash = methodUnderTest.getMethodHash();
 
-        String url = this.endpoint + this.getMethodDefinition + "?sessionId=" + this.sessionId +
+        String url = this.endpoint + this.getMethodDefinition + this.sessionURL +
                 "&name=" + name + "&signature=" + signature + "&className=" + className + "&methodHash=" + methodHash;
         CountDownLatch latch = new CountDownLatch(1);
 
@@ -576,7 +576,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public List<MethodCallExpression> getMethodCallsBetween(long start, long end) {
 
-        String url = this.endpoint + this.getMethodCallsBetween + "?sessionId=" + this.sessionId + "&start=" + start + "&end=" + end;
+        String url = this.endpoint + this.getMethodCallsBetween + this.sessionURL + "&start=" + start + "&end=" + end;
         CountDownLatch latch = new CountDownLatch(1);
 
         ArrayList<MethodCallExpression> localMethodCallExpression = new ArrayList<>();
@@ -637,7 +637,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
             interfaceDataString += "&interfaceNames=" + interfaceNames.get(i);
         }
 
-        String url = this.endpoint + this.getMethodCallExpressions + "?sessionId=" + this.sessionId + "&loadCalls=" + loadCalls + interfaceDataString + "&argumentsDescriptor=" + argumentsDescriptor + "&candidateFilterType=" + candidateFilterType + "&methodSignature=" + methodSignature + "&className=" + className + "&methodName=" + methodName;
+        String url = this.endpoint + this.getMethodCallExpressions + this.sessionURL + "&loadCalls=" + loadCalls + interfaceDataString + "&argumentsDescriptor=" + argumentsDescriptor + "&candidateFilterType=" + candidateFilterType + "&methodSignature=" + methodSignature + "&className=" + className + "&methodName=" + methodName;
         CountDownLatch latch = new CountDownLatch(1);
         ArrayList<MethodCallExpression> localMethodCallExpression = new ArrayList<>();
 
@@ -674,7 +674,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public int getMethodCallCountBetween(long start, long end) {
 
-        String url = this.endpoint + this.getMethodCallCountBetween + "?sessionId=" + this.sessionId +
+        String url = this.endpoint + this.getMethodCallCountBetween + this.sessionURL +
                 "&start=" + start + "&end=" + end;
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger methodCallCount = new AtomicInteger();
@@ -710,7 +710,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
     public long getInitTimestamp() {
 
-        String url = this.endpoint + this.getInitTimestamp + "?sessionId=" + this.sessionId;
+        String url = this.endpoint + this.getInitTimestamp + this.sessionURL;
         CountDownLatch latch = new CountDownLatch(1);
         AtomicLong initTimestamp = new AtomicLong();
 
@@ -746,7 +746,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public ClassWeaveInfo getClassWeaveInfo() {
 
-        String url = this.endpoint + this.getClassWeaveInfo + "?sessionId=" + this.sessionId;
+        String url = this.endpoint + this.getClassWeaveInfo + this.sessionURL;
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<ClassWeaveInfo> classWeaveInfo = new AtomicReference<>();
 
@@ -780,7 +780,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public Map<String, ClassInfo> getClassIndex() {
 
-        String url = this.endpoint + this.getClassIndex + "?sessionId=" + this.sessionId;
+        String url = this.endpoint + this.getClassIndex + this.sessionURL;
         CountDownLatch latch = new CountDownLatch(1);
 
         AtomicReference<Map<String, ClassInfo>> classIndex = new AtomicReference<>();
@@ -816,7 +816,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public List<TypeInfoDocument> getAllTypes() {
 
-        String url = this.endpoint + this.getAllTypes + "?sessionId=" + this.sessionId;
+        String url = this.endpoint + this.getAllTypes + this.sessionURL;
         CountDownLatch latch = new CountDownLatch(1);
         ArrayList<TypeInfoDocument> listTypeInfoDocument = new ArrayList<>();
 
@@ -965,7 +965,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         CandidateFilterType candidateFilterType = stompFilterModel.getCandidateFilterType();
 
 
-        String url = this.endpoint + this.getTestCandidatePaginatedByStompFilterModel + "?sessionId=" + this.sessionId +
+        String url = this.endpoint + this.getTestCandidatePaginatedByStompFilterModel + this.sessionURL +
                 includedClassNamePart + excludedClassNamePart + includedMethodName + excludedMethodName +
                 "&followEditor=" + followEditor + "&candidateFilterType=" + candidateFilterType +
                 "&currentAfterEventId=" + currentAfterEventId + "&limit=" + limit;
@@ -1034,7 +1034,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         boolean isEnum = parameter.getIsEnum();
         boolean isContainer = parameter.isContainer();
 
-        String url = this.endpoint + this.getConstructorCandidate + "?sessionId=" + this.sessionId +
+        String url = this.endpoint + this.getConstructorCandidate + this.sessionURL +
                 "&value=" + value + "&type=" + type + "&exception=" + exception + "&prob=" +
                 "&stringValue=" + stringValue + "&index=" + index + "&creatorExpression=" +
                 "&isEnum=" + isEnum + "&iscontainer=" + isContainer;
@@ -1071,7 +1071,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public ExecutionSession getExecutionSession() {
 
-        String url = this.endpoint + this.getExecutionSession + "?sessionId=" + this.sessionId;
+        String url = this.endpoint + this.getExecutionSession + this.sessionURL;
         logger.info("url get execution session = " + url);
         CountDownLatch latch = new CountDownLatch(1);
 
