@@ -83,7 +83,7 @@
                     anchor="right" factoryClass="com.insidious.plugin.factory.InsidiousToolWindowFactory"/>
 
         <applicationService serviceImplementation="com.insidious.plugin.factory.ActiveSessionManager"/>
-        <applicationService serviceImplementation="com.insidious.plugin.factory.SessionLoader"/>
+        <projectService serviceImplementation="com.insidious.plugin.factory.SessionLoader"/>
         <!--        <applicationService serviceImplementation="com.insidious.plugin.factory.ApplicationConfigurationState"/>-->
 
 

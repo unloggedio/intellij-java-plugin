@@ -529,7 +529,7 @@ final public class InsidiousService implements
 
         CountDownLatch cdl = new CountDownLatch(1);
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            this.sessionLoader = ApplicationManager.getApplication().getService(SessionLoader.class);
+            this.sessionLoader = project.getService(SessionLoader.class);
             this.sessionLoader.setClient(this.client);
             this.sessionLoader.addSessionCallbackListener(sessionListener);
             cdl.countDown();
