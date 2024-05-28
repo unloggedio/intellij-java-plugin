@@ -14,8 +14,6 @@ import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.intellij.openapi.diagnostic.Logger;
 
 import java.util.*;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static com.insidious.plugin.util.ParameterUtils.processResponseForFloatAndDoubleTypes;
 
@@ -321,7 +319,12 @@ public class DiffUtils {
             if (s1 == null || s1.isEmpty() || s1.equals("null")) {
                 m1 = objectMapper.getNodeFactory().objectNode();
             } else {
-                JsonNode map = objectMapper.readTree(s1);
+                JsonNode map;
+                try {
+                    map = objectMapper.readTree(s1);
+                } catch (Exception e) {
+                    map = objectMapper.getNodeFactory().textNode(s1);
+                }
                 m1 = map;
                 m1 = flatten(m1);
             }

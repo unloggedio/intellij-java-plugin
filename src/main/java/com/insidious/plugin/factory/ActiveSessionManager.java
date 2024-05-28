@@ -53,7 +53,7 @@ public class ActiveSessionManager {
             logger.info("attempting to create a session instance from local process");
             try {
                 sessionInstance = new SessionInstance(executionSession, serverMetadata, project);
-            } catch (SQLException | IOException e) {
+            } catch (Throwable e) {
                 logger.error("Failed to initialize session instance: " + e.getMessage(), e);
                 InsidiousNotification.notifyMessage("Failed to initialize session instance: " + e.getMessage(),
                         NotificationType.ERROR);
