@@ -1162,7 +1162,6 @@ final public class InsidiousService implements
     }
 
     private ServerMetadata checkSessionBelongsToProject(ExecutionSession session, Project project) {
-
         if (session.getSessionMode() == ExecutionSessionSourceMode.REMOTE) {
             return getServerMetadata(configurationState.getExecutionSessionSource(), session.getSessionId());
         }
@@ -1185,7 +1184,7 @@ final public class InsidiousService implements
             if (!agentParamsLine.startsWith("Params: ")) {
                 logger.warn(
                         "The third line is not Params line, marked as session not matching: " + session.getLogFilePath() + ": " + agentParamsLine);
-                checkCache.put(session.getSessionId(), null);
+//                checkCache.put(session.getSessionId(), null);
                 return null;
             }
             String[] paramParts = agentParamsLine.substring("Params: ".length()).split(",");
