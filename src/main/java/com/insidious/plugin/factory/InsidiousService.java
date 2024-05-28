@@ -1181,7 +1181,7 @@ final public class InsidiousService implements
             String javaVersionLine = logFileInputStream.readLine();
             String agentVersionLine = logFileInputStream.readLine();
             String agentParamsLine = logFileInputStream.readLine();
-            if (!agentParamsLine.startsWith("Params: ")) {
+            if (agentParamsLine == null || !agentParamsLine.startsWith("Params: ")) {
                 logger.warn(
                         "The third line is not Params line, marked as session not matching: " + session.getLogFilePath() + ": " + agentParamsLine);
 //                checkCache.put(session.getSessionId(), null);
