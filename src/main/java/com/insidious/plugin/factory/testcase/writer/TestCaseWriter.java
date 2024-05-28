@@ -39,7 +39,6 @@ import com.intellij.psi.util.PsiTypesUtil;
 import org.objectweb.asm.Opcodes;
 
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class TestCaseWriter {
@@ -154,8 +153,7 @@ public class TestCaseWriter {
     }
 
     private List<TestCandidateMetadata> createBoilerplateTestCandidate(MethodAdapter methodAdapter1,
-                                                                       boolean addFieldMocksCheckBox)
-            throws ExecutionException, InterruptedException {
+                                                                       boolean addFieldMocksCheckBox) {
 
         if (methodAdapter1.getContainingClass() == null) {
             return new ArrayList<>();
@@ -778,25 +776,18 @@ public class TestCaseWriter {
         }
 
         List<TestCandidateMetadata> testCandidateMetadataList = null;
-        try {
-            testCandidateMetadataList = ApplicationManager.getApplication()
-                    .executeOnPooledThread(() -> ApplicationManager.getApplication().runReadAction(
-                            (Computable<List<TestCandidateMetadata>>) () -> {
-                                try {
-                                    return createBoilerplateTestCandidate(methodAdapter1,
-                                            generationConfiguration.isAddFieldMocksCheckBox());
-                                } catch (ExecutionException | InterruptedException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            })).get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-        if (testCandidateMetadataList == null) {
-            InsidiousNotification.notifyMessage("Failed to create test case boilerplate", NotificationType.ERROR);
-            return null;
+//        try {
+        testCandidateMetadataList = createBoilerplateTestCandidate(methodAdapter1,
+                generationConfiguration.isAddFieldMocksCheckBox());
 
-        }
+//        } catch (InterruptedException | ExecutionException e) {
+//            throw new RuntimeException(e);
+//        }
+//        if (testCandidateMetadataList == null) {
+//            InsidiousNotification.notifyMessage("Failed to create test case boilerplate", NotificationType.ERROR);
+//            return null;
+//
+//        }
 
 
         return testCandidateMetadataList;
