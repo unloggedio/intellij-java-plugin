@@ -1239,6 +1239,10 @@ public class StompComponent implements
         historyStreamScrollPanel.revalidate();
         historyStreamScrollPanel.repaint();
 
+        if (this.sessionInstance != null && this.sessionInstance.isConnected()) {
+            setConnected();
+        }
+
 
     }
 

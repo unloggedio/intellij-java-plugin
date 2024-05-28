@@ -4,6 +4,7 @@ import com.insidious.plugin.constants.ExecutionSessionSourceMode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class ExecutionSessionSource {
     private ExecutionSessionSourceMode sessionSourceMode = ExecutionSessionSourceMode.LOCAL;
@@ -20,6 +21,21 @@ public class ExecutionSessionSource {
 
     public String getServerEndpoint() {
         return this.serverEndpoint;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ExecutionSessionSource)) return false;
+        ExecutionSessionSource that = (ExecutionSessionSource) o;
+        return sessionSourceMode == that.sessionSourceMode && Objects.equals(serverEndpoint,
+                that.serverEndpoint) && sourceFilter == that.sourceFilter && Objects.equals(sessionId,
+                that.sessionId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(sessionSourceMode, serverEndpoint, sourceFilter, sessionId);
     }
 
     public void setServerEndpoint(String serverEndpoint) {
