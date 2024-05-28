@@ -1278,8 +1278,6 @@ final public class InsidiousService implements
         }
 
         clearSession();
-        logger.info(
-                "Loading new session: " + mostRecentSession.getSessionId() + " => " + project.getName() + " => " + serverMetadata);
         if (mostRecentSession.getProjectId() == null || mostRecentSession.getProjectId().isEmpty()) {
             mostRecentSession.setProjectId(project.getName());
         }
@@ -1289,6 +1287,9 @@ final public class InsidiousService implements
                 && !Objects.equals(serverMetadata.getMode(), "local")) {
             return;
         }
+        logger.info(
+                "Loading new session: " + mostRecentSession.getSessionId() + " => " + project.getName() + " => " + serverMetadata);
+
         SessionInstanceInterface sessionInstance = sessionManager.createSessionInstance(mostRecentSession,
                 serverMetadata, executionSessionSource, project);
 
