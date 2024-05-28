@@ -228,11 +228,9 @@ final public class InsidiousService implements
                         if (i == 0) {
                             continue;
                         }
-                        if (executionSession.getSessionMode() == ExecutionSessionSourceMode.LOCAL) {
-                            logger.warn(
-                                    "Deleting session: " + executionSession.getSessionId() + " => " + project.getName());
-                            sessionManager.cleanUpSessionDirectory(executionSession);
-                        }
+                        logger.warn("Deleting session: " +
+                                executionSession.getSessionId() + " => " + project.getName());
+                        sessionManager.cleanUpSessionDirectory(executionSession);
                     }
                 }
 
@@ -1280,7 +1278,8 @@ final public class InsidiousService implements
         }
 
         clearSession();
-        logger.info("Loading new session: " + mostRecentSession.getSessionId() + " => " + project.getName());
+        logger.info(
+                "Loading new session: " + mostRecentSession.getSessionId() + " => " + project.getName() + " => " + serverMetadata);
         if (mostRecentSession.getProjectId() == null || mostRecentSession.getProjectId().isEmpty()) {
             mostRecentSession.setProjectId(project.getName());
         }
