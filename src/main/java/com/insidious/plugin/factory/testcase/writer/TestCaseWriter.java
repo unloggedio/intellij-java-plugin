@@ -107,20 +107,27 @@ public class TestCaseWriter {
     static public void setParameterTypeFromPsiType(Parameter parameter, PsiType psiType, boolean isReturnParameter) {
         if (psiType instanceof PsiClassType) {
             PsiClassType returnClassType = (PsiClassType) psiType;
-            if (returnClassType.getCanonicalText().equals(returnClassType.getName())) {
-                logger.warn("return class type canonical text[" + returnClassType.getCanonicalText()
+            String canonicalText = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> returnClassType.getCanonicalText());
+            if (canonicalText.equals(returnClassType.getName())) {
+                logger.warn("return class type canonical text[" + canonicalText
                         + "] is same as its name [" + returnClassType.getName() + "]");
                 // this is a generic template type <T>, and not a real class
                 parameter.setTypeForced("java.lang.Object");
                 return;
             }
-            parameter.setTypeForced(psiTypeToJvmType(returnClassType.rawType().getCanonicalText(), isReturnParameter));
-            if (returnClassType.hasParameters()) {
+            parameter.setTypeForced(psiTypeToJvmType(
+                    ApplicationManager.getApplication().runReadAction(
+                            (Computable<String>) () -> returnClassType.rawType().getCanonicalText()), isReturnParameter));
+            boolean b = ApplicationManager.getApplication().runReadAction(
+                    (Computable<Boolean>) returnClassType::hasParameters);
+            if (b) {
                 ClassUtils.extractTemplateMap(returnClassType, parameter.getTemplateMap());
                 parameter.setContainer(true);
             }
         } else {
-            parameter.setTypeForced(psiTypeToJvmType(psiType.getCanonicalText(), isReturnParameter));
+            parameter.setTypeForced(psiTypeToJvmType(ApplicationManager.getApplication().runReadAction(
+                            (Computable<String>) () -> psiType.getCanonicalText()), isReturnParameter));
         }
     }
 
@@ -279,14 +286,20 @@ public class TestCaseWriter {
 
         testCandidateMetadata.setTestSubject(testSubjectParameter);
 
-        if (!methodAdapter1.isConstructor() && returnType1 != null && !returnType1.getCanonicalText().equals("void")) {
-            Parameter assertionExpectedValue = new Parameter();
-            assertionExpectedValue.setName(returnValue.getName() + "Expected");
-            assertionExpectedValue.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
+        if (!methodAdapter1.isConstructor() && returnType1 != null) {
+            PsiType finalReturnType = returnType1;
+            String canonicalText = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> finalReturnType.getCanonicalText());
+            if (!canonicalText.equals("void")) {
+                Parameter assertionExpectedValue = new Parameter();
+                assertionExpectedValue.setName(returnValue.getName() + "Expected");
+                assertionExpectedValue.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
 
-            TestCaseWriter.setParameterTypeFromPsiType(assertionExpectedValue, returnType1, true);
-            TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, assertionExpectedValue, returnValue);
-            testCandidateMetadata.getAssertionList().add(testAssertion);
+                TestCaseWriter.setParameterTypeFromPsiType(assertionExpectedValue, returnType1, true);
+                TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, assertionExpectedValue,
+                        returnValue);
+                testCandidateMetadata.getAssertionList().add(testAssertion);
+            }
         }
 
         // fields

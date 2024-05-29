@@ -692,7 +692,8 @@ public class ClassUtils {
     extractTemplateMap(PsiClassType classReferenceType, List<Parameter> templateMap) {
         char templateChar = 'D';
         boolean hasGenericTemplate = false;
-        PsiType[] typeTemplateParameters = classReferenceType.getParameters();
+        PsiType[] typeTemplateParameters = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiType[]>) () -> classReferenceType.getParameters());
         for (PsiType typeTemplateParameter : typeTemplateParameters) {
             templateChar++;
             Parameter value = new Parameter();
