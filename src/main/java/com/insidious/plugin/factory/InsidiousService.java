@@ -228,7 +228,7 @@ final public class InsidiousService implements
                         if (i == 0) {
                             continue;
                         }
-                        logger.warn("Deleting session: " +
+                        logger.info("Deleting session: " +
                                 executionSession.getSessionId() + " => " + project.getName());
                         sessionManager.cleanUpSessionDirectory(executionSession);
                     }

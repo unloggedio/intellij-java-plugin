@@ -87,7 +87,7 @@ public class RemoteSourceFilter {
 
 
     public RemoteSourceFilter(InsidiousService insidiousService) {
-        this.executionSessionSource = insidiousService.getSessionSource();
+        this.executionSessionSource = new ExecutionSessionSource(insidiousService.getSessionSource());
         this.buttonGroup = new ButtonGroup();
         serverListScroll.setVisible(false);
         serverListScroll.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -245,7 +245,17 @@ public class RemoteSourceFilter {
                 radioComponent.setSelected(true);
             }
 
-            radioComponent.addActionListener(e -> confirmSaveApplyButton.setEnabled(true));
+            radioComponent.addActionListener(e -> {
+                confirmSaveApplyButton.setEnabled(true);
+                ButtonModel buttonModel = buttonGroup.getSelection();
+                ExecutionSession executionSession1 = modelToSessionMap.get(buttonModel);
+
+                // make the list of sessionId
+                String sessionId = executionSession1.getSessionId();
+                List<String> listSessionId = new ArrayList<>();
+                listSessionId.add(sessionId);
+                executionSessionSource.setSessionId(listSessionId);
+            });
 
             buttonGroup.add(radioComponent);
             modelToSessionMap.put(radioComponent.getModel(), executionSession);
