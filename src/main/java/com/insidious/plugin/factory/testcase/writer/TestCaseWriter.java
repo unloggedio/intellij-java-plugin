@@ -135,7 +135,9 @@ public class TestCaseWriter {
         int methodAccess = 0;
         if (modifierList != null) {
             for (PsiElement child : modifierList.getChildren()) {
-                switch (child.getText()) {
+                String text = ApplicationManager.getApplication().runReadAction(
+                        (Computable<String>) child::getText);
+                switch (text) {
                     case "private":
                         methodAccess = methodAccess | Opcodes.ACC_PRIVATE;
                         break;
@@ -152,7 +154,7 @@ public class TestCaseWriter {
                         methodAccess = methodAccess | Opcodes.ACC_FINAL;
                         break;
                     default:
-                        logger.warn("unhandled modifier: " + child.getText());
+                        logger.warn("unhandled modifier: " + text);
                 }
             }
         }
@@ -693,8 +695,10 @@ public class TestCaseWriter {
         for (ParameterAdapter parameter : selectedConstructor.getParameters()) {
 
             PsiType parameterType = parameter.getType();
+            String canonicalText = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> parameterType.getCanonicalText());
             List<Parameter> fieldParameterByType = fieldContainer
-                    .getParametersByType(parameterType.getCanonicalText());
+                    .getParametersByType(canonicalText);
             String parameterName = parameter.getName();
 //            if (fieldParameterByType.isEmpty()) {
 //                Parameter fieldParamByName = fieldContainer.getParameterByName(parameterName);
@@ -730,9 +734,10 @@ public class TestCaseWriter {
                     argumentProbe.setSerializedValue("\"\"".getBytes());
                 } else {
 
-                    String parameterClassName = parameterType.getCanonicalText();
+                    String parameterClassName = canonicalText;
                     if (parameterType instanceof PsiClassReferenceType) {
-                        parameterClassName = ((PsiClassReferenceType) parameterType).rawType().getCanonicalText();
+                        parameterClassName = ApplicationManager.getApplication().runReadAction(
+                                (Computable<String>) () -> ((PsiClassReferenceType) parameterType).rawType().getCanonicalText());
                     }
                     ClassAdapter parameterClassReference = getClassByName(parameterClassName,
                             currentClass.getProject());

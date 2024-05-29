@@ -471,9 +471,12 @@ public class TestCaseService {
             typeNames.add(fieldParameterType);
 
             TypeInfo fieldTypeInfo = sessionInstance.getTypeInfo(fieldParameterType);
-            for (int interfaceTypeId : fieldTypeInfo.getInterfaces()) {
-                TypeInfo interfaceTypeInfo = sessionInstance.getTypeInfo(interfaceTypeId);
-                typeNames.add(interfaceTypeInfo.getTypeNameFromClass());
+            int[] interfaces = fieldTypeInfo.getInterfaces();
+            if (interfaces != null) {
+                for (int interfaceTypeId : interfaces) {
+                    TypeInfo interfaceTypeInfo = sessionInstance.getTypeInfo(interfaceTypeId);
+                    typeNames.add(interfaceTypeInfo.getTypeNameFromClass());
+                }
             }
 
 
