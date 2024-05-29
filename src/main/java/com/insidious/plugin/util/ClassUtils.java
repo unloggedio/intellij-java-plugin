@@ -697,7 +697,8 @@ public class ClassUtils {
         for (PsiType typeTemplateParameter : typeTemplateParameters) {
             templateChar++;
             Parameter value = new Parameter();
-            String canonicalText = typeTemplateParameter.getCanonicalText();
+            String canonicalText = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> typeTemplateParameter.getCanonicalText());
             // <? super ClassName>
             if (canonicalText.contains(" super ")) {
                 canonicalText = canonicalText.substring(
