@@ -39,7 +39,6 @@ import com.intellij.psi.util.PsiTypesUtil;
 import org.objectweb.asm.Opcodes;
 
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class TestCaseWriter {
@@ -108,20 +107,27 @@ public class TestCaseWriter {
     static public void setParameterTypeFromPsiType(Parameter parameter, PsiType psiType, boolean isReturnParameter) {
         if (psiType instanceof PsiClassType) {
             PsiClassType returnClassType = (PsiClassType) psiType;
-            if (returnClassType.getCanonicalText().equals(returnClassType.getName())) {
-                logger.warn("return class type canonical text[" + returnClassType.getCanonicalText()
+            String canonicalText = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> returnClassType.getCanonicalText());
+            if (canonicalText.equals(returnClassType.getName())) {
+                logger.warn("return class type canonical text[" + canonicalText
                         + "] is same as its name [" + returnClassType.getName() + "]");
                 // this is a generic template type <T>, and not a real class
                 parameter.setTypeForced("java.lang.Object");
                 return;
             }
-            parameter.setTypeForced(psiTypeToJvmType(returnClassType.rawType().getCanonicalText(), isReturnParameter));
-            if (returnClassType.hasParameters()) {
+            parameter.setTypeForced(psiTypeToJvmType(
+                    ApplicationManager.getApplication().runReadAction(
+                            (Computable<String>) () -> returnClassType.rawType().getCanonicalText()), isReturnParameter));
+            boolean b = ApplicationManager.getApplication().runReadAction(
+                    (Computable<Boolean>) returnClassType::hasParameters);
+            if (b) {
                 ClassUtils.extractTemplateMap(returnClassType, parameter.getTemplateMap());
                 parameter.setContainer(true);
             }
         } else {
-            parameter.setTypeForced(psiTypeToJvmType(psiType.getCanonicalText(), isReturnParameter));
+            parameter.setTypeForced(psiTypeToJvmType(ApplicationManager.getApplication().runReadAction(
+                            (Computable<String>) () -> psiType.getCanonicalText()), isReturnParameter));
         }
     }
 
@@ -129,7 +135,9 @@ public class TestCaseWriter {
         int methodAccess = 0;
         if (modifierList != null) {
             for (PsiElement child : modifierList.getChildren()) {
-                switch (child.getText()) {
+                String text = ApplicationManager.getApplication().runReadAction(
+                        (Computable<String>) child::getText);
+                switch (text) {
                     case "private":
                         methodAccess = methodAccess | Opcodes.ACC_PRIVATE;
                         break;
@@ -146,7 +154,7 @@ public class TestCaseWriter {
                         methodAccess = methodAccess | Opcodes.ACC_FINAL;
                         break;
                     default:
-                        logger.warn("unhandled modifier: " + child.getText());
+                        logger.warn("unhandled modifier: " + text);
                 }
             }
         }
@@ -154,8 +162,7 @@ public class TestCaseWriter {
     }
 
     private List<TestCandidateMetadata> createBoilerplateTestCandidate(MethodAdapter methodAdapter1,
-                                                                       boolean addFieldMocksCheckBox)
-            throws ExecutionException, InterruptedException {
+                                                                       boolean addFieldMocksCheckBox) {
 
         if (methodAdapter1.getContainingClass() == null) {
             return new ArrayList<>();
@@ -281,14 +288,20 @@ public class TestCaseWriter {
 
         testCandidateMetadata.setTestSubject(testSubjectParameter);
 
-        if (!methodAdapter1.isConstructor() && returnType1 != null && !returnType1.getCanonicalText().equals("void")) {
-            Parameter assertionExpectedValue = new Parameter();
-            assertionExpectedValue.setName(returnValue.getName() + "Expected");
-            assertionExpectedValue.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
+        if (!methodAdapter1.isConstructor() && returnType1 != null) {
+            PsiType finalReturnType = returnType1;
+            String canonicalText = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> finalReturnType.getCanonicalText());
+            if (!canonicalText.equals("void")) {
+                Parameter assertionExpectedValue = new Parameter();
+                assertionExpectedValue.setName(returnValue.getName() + "Expected");
+                assertionExpectedValue.setProbeAndProbeInfo(new DataEventWithSessionId(), new DataInfo());
 
-            TestCaseWriter.setParameterTypeFromPsiType(assertionExpectedValue, returnType1, true);
-            TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, assertionExpectedValue, returnValue);
-            testCandidateMetadata.getAssertionList().add(testAssertion);
+                TestCaseWriter.setParameterTypeFromPsiType(assertionExpectedValue, returnType1, true);
+                TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, assertionExpectedValue,
+                        returnValue);
+                testCandidateMetadata.getAssertionList().add(testAssertion);
+            }
         }
 
         // fields
@@ -682,8 +695,10 @@ public class TestCaseWriter {
         for (ParameterAdapter parameter : selectedConstructor.getParameters()) {
 
             PsiType parameterType = parameter.getType();
+            String canonicalText = ApplicationManager.getApplication().runReadAction(
+                    (Computable<String>) () -> parameterType.getCanonicalText());
             List<Parameter> fieldParameterByType = fieldContainer
-                    .getParametersByType(parameterType.getCanonicalText());
+                    .getParametersByType(canonicalText);
             String parameterName = parameter.getName();
 //            if (fieldParameterByType.isEmpty()) {
 //                Parameter fieldParamByName = fieldContainer.getParameterByName(parameterName);
@@ -719,9 +734,10 @@ public class TestCaseWriter {
                     argumentProbe.setSerializedValue("\"\"".getBytes());
                 } else {
 
-                    String parameterClassName = parameterType.getCanonicalText();
+                    String parameterClassName = canonicalText;
                     if (parameterType instanceof PsiClassReferenceType) {
-                        parameterClassName = ((PsiClassReferenceType) parameterType).rawType().getCanonicalText();
+                        parameterClassName = ApplicationManager.getApplication().runReadAction(
+                                (Computable<String>) () -> ((PsiClassReferenceType) parameterType).rawType().getCanonicalText());
                     }
                     ClassAdapter parameterClassReference = getClassByName(parameterClassName,
                             currentClass.getProject());
@@ -778,25 +794,18 @@ public class TestCaseWriter {
         }
 
         List<TestCandidateMetadata> testCandidateMetadataList = null;
-        try {
-            testCandidateMetadataList = ApplicationManager.getApplication()
-                    .executeOnPooledThread(() -> ApplicationManager.getApplication().runReadAction(
-                            (Computable<List<TestCandidateMetadata>>) () -> {
-                                try {
-                                    return createBoilerplateTestCandidate(methodAdapter1,
-                                            generationConfiguration.isAddFieldMocksCheckBox());
-                                } catch (ExecutionException | InterruptedException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            })).get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-        if (testCandidateMetadataList == null) {
-            InsidiousNotification.notifyMessage("Failed to create test case boilerplate", NotificationType.ERROR);
-            return null;
+//        try {
+        testCandidateMetadataList = createBoilerplateTestCandidate(methodAdapter1,
+                generationConfiguration.isAddFieldMocksCheckBox());
 
-        }
+//        } catch (InterruptedException | ExecutionException e) {
+//            throw new RuntimeException(e);
+//        }
+//        if (testCandidateMetadataList == null) {
+//            InsidiousNotification.notifyMessage("Failed to create test case boilerplate", NotificationType.ERROR);
+//            return null;
+//
+//        }
 
 
         return testCandidateMetadataList;
