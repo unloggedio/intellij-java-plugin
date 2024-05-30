@@ -24,6 +24,7 @@ import static org.assertj.swing.timing.Pause.pause;
 //To run these :
 //1. Run "runIdeForUiTests"
 //2. Once an ide instance is created run the tests below.
+@Deprecated
 public class UiTest {
     private RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8082");
     private final Keyboard keyboard = new Keyboard(remoteRobot);

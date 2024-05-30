@@ -22,6 +22,7 @@ import static java.awt.event.KeyEvent.*;
 import static java.time.Duration.*;
 import static org.assertj.swing.timing.Pause.pause;
 
+@Deprecated
 public class UITestsV2 {
 
     private RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8082");
