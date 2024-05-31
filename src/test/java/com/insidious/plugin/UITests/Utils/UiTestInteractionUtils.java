@@ -22,8 +22,10 @@ public class UiTestInteractionUtils {
         gotItTexts.forEach(text -> text.click());
     }
 
-    public static void addUnloggedToStartFile(RemoteRobotController controller, String filename, String annotationText) {
-        openFile(filename, controller);
+    public static void addUnloggedToStartFile(RemoteRobotController controller, String filename, String annotationText, boolean openFile) {
+        if (openFile) {
+            openFile(filename, controller);
+        }
         TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
         expandJavaFile(textEditorFixture.getEditor());
 

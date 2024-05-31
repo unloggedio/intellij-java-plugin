@@ -107,7 +107,7 @@ public class UiTestsV3 {
         //TODO : revert changes if annotations are already present
 
         step("Add annotation and start project", () -> {
-            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText);
+            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText, true);
             executeShellScriptAndWait(controller, projectInfo.getStartScriptName(), projectInfo.getStartupWaitDuration());
         });
 
@@ -211,7 +211,7 @@ public class UiTestsV3 {
 
         step("Add annotation and start project", () -> {
             UiTestInteractionUtils.openAndRevertGitChangesForFile(projectInfo.getMainClassName(), controller);
-            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText);
+            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText, false);
             executeShellScriptAndWait(controller, projectInfo.getStartScriptName(), projectInfo.getStartupWaitDuration());
         });
 
@@ -288,7 +288,7 @@ public class UiTestsV3 {
 
         step("Add annotation and start project", () -> {
             UiTestInteractionUtils.openAndRevertGitChangesForFile(projectInfo.getMainClassName(), controller);
-            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText);
+            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText, false);
             executeShellScriptAndWait(controller, projectInfo.getStartScriptName(), projectInfo.getStartupWaitDuration());
         });
 
