@@ -326,9 +326,9 @@ public class UiTestsV3 {
             }
         });
 
-//        step("Stop process", () -> {
-//            stopProcessInTerminal(controller);
-//        });
+        step("Stop process", () -> {
+            stopProcessInTerminal(controller);
+        });
     }
 
 
@@ -345,6 +345,29 @@ public class UiTestsV3 {
             Assertions.assertTrue(controller.getIdeaFrame().getLocalHostRadioButton().isShowing());
             Assertions.assertTrue(controller.getIdeaFrame().getRemoteButtonRadioLabel().isShowing());
 
+            controller.getIdeaFrame().getFilterCancel().click();
+        });
+
+//        step("Stop process", () -> {
+//            stopProcessInTerminal(controller);
+//        });
+    }
+
+    @Test
+    @Order(6)
+    public void serverIssues_30_local() {
+        //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
+        //Assumes unlogged plugin window is open
+        step("open Filters, switch to remote and assert JTextField contains default PrePopulated URL", () -> {
+            ComponentFixture localMarker = controller.getIdeaFrame().getLocalModeHyperlink();
+            localMarker.click();
+            pause(ofMillis(250).toMillis());
+
+            controller.getIdeaFrame().getRemoteButtonRadioLabel().click();
+            ComponentFixture textField = controller.getIdeaFrame().getFirstJTextField();
+            RemoteText prePopulatedUrl = textField.getData().getAll().get(0);
+
+            Assertions.assertEquals(TestConstants.DEFAULT_PRE_POPULATED_URL, prePopulatedUrl.getText());
             controller.getIdeaFrame().getFilterCancel().click();
         });
 
