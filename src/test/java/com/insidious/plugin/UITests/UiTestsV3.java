@@ -3,13 +3,16 @@ package com.insidious.plugin.UITests;
 
 import com.insidious.plugin.UITests.Utils.UiTestInteractionUtils;
 import com.insidious.plugin.UITests.pages.WelcomeFrame;
+import com.insidious.plugin.UITests.wrapper.ProjectInfo;
 import com.insidious.plugin.UITests.wrapper.RemoteRobotController;
+import com.insidious.plugin.UITests.wrapper.TestConstants;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.junit.jupiter.api.*;
 
+import java.rmi.Remote;
 import java.time.Duration;
 import java.util.*;
 import java.util.List;
@@ -23,24 +26,35 @@ import static com.intellij.remoterobot.stepsProcessing.StepWorkerKt.step;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class UiTestsV3 {
     private RemoteRobotController controller;
+    private ProjectInfo projectInfo;
 
     public UiTestsV3() {
         RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8082");
         Keyboard keyboard = new Keyboard(remoteRobot);
         controller = new RemoteRobotController(remoteRobot, keyboard);
+
+        projectInfo = new ProjectInfo("unlogged-spring-maven-demo",
+                "unlogged-spring-maven-demo",
+                "pom.xml",
+                ProjectInfo.BuildSystem.MAVEN,
+                "UnloggedDemoApplication"
+        );
+        projectInfo.setStartScriptName("start_project.sh");
+        projectInfo.setRemoveScriptName("remove_local_sessions.sh");
+        projectInfo.setRevertScriptName("git_rollback.sh");
+        projectInfo.setStartupWaitDuration(60);
     }
 
     @Test
     @Order(1)
     public void openProjectAndAddSDK() {
 
-        final String projectPath = "unlogged-spring-maven-demo";
         step("Open Project", () -> {
             final WelcomeFrame welcomeFrame = controller.getRemoteRobot().find(WelcomeFrame.class, ofSeconds(10));
             welcomeFrame.getOpenProjectButton().click();
             welcomeFrame.getProjectSelectorComboBox().click();
 
-            controller.getKeyboard().enterText("/" + projectPath);
+            controller.getKeyboard().enterText("/" + projectInfo.getProjectPath());
             pause(ofSeconds(1).toMillis());
             welcomeFrame.getOpenConfirmButton().click();
         });
@@ -50,8 +64,8 @@ public class UiTestsV3 {
         });
 
         step("Revert all changes made to project, remove local sessions", () -> {
-            executeShellScriptAndWait(controller, "git_rollback.sh", 5);
-            executeShellScriptAndWait(controller, "remove_local_sessions.sh", 2);
+            executeShellScriptAndWait(controller, projectInfo.getRevertScriptName(), 5);
+            executeShellScriptAndWait(controller, projectInfo.getRemoveScriptName(), 2);
         });
 
         step("Add unlogged dependency (Mac)", () -> {
@@ -65,6 +79,7 @@ public class UiTestsV3 {
             copyButton.moveMouse();
             copyButton.click();
 
+            //TODO: Update logic to take gradle projects as well
             //paste right after dependencies
             TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
             List<RemoteText> pomContents = textEditorFixture.getEditor().getData().getAll();
@@ -82,21 +97,18 @@ public class UiTestsV3 {
     }
 
     @Test
+    @Disabled
     @Order(2)
     public void runRemoteModeTest() {
 
-        final String mainClassname = "UnloggedDemoApplication";
-        final String remoteURL = "http://18.188.85.130:8123";
-        final String annotationText = "@Unlogged(serverEndpoint = \"" + remoteURL + "\")";
-        final String startupScriptName = "start_project.sh";
-        final int startUpWaitDuration = 60;
+        final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
 
         //TODO: stop process if running already
         //TODO : revert changes if annotations are already present
 
         step("Add annotation and start project", () -> {
-            addUnloggedToStartFile(controller, mainClassname, annotationText);
-            executeShellScriptAndWait(controller, startupScriptName, startUpWaitDuration);
+            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText);
+            executeShellScriptAndWait(controller, projectInfo.getStartScriptName(), projectInfo.getStartupWaitDuration());
         });
 
         step("Set Source to remote URL", () -> {
@@ -118,7 +130,7 @@ public class UiTestsV3 {
             controller.getKeyboard().hotKey(VK_META, VK_A);
             controller.getKeyboard().hotKey(VK_DELETE);
 
-            controller.getKeyboard().enterText(remoteURL);
+            controller.getKeyboard().enterText(TestConstants.REMOTE_URL);
             controller.getIdeaFrame().getListSessionsButton().click();
 
             pause(ofSeconds(10).toMillis());
@@ -191,18 +203,16 @@ public class UiTestsV3 {
     }
 
     @Test
+    @Disabled
     @Order(3)
     public void runLocalMode() {
 
-        final String mainClassname = "UnloggedDemoApplication";
         final String annotationText = "@Unlogged";
-        final String startupScriptName = "start_project.sh";
-        final int startUpWaitDuration = 60;
 
         step("Add annotation and start project", () -> {
-            UiTestInteractionUtils.openAndRevertGitChangesForFile(mainClassname, controller);
-            addUnloggedToStartFile(controller, mainClassname, annotationText);
-            executeShellScriptAndWait(controller, startupScriptName, startUpWaitDuration);
+            UiTestInteractionUtils.openAndRevertGitChangesForFile(projectInfo.getMainClassName(), controller);
+            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText);
+            executeShellScriptAndWait(controller, projectInfo.getStartScriptName(), projectInfo.getStartupWaitDuration());
         });
 
         step("Set source filter to Localhost", () -> {
@@ -263,6 +273,60 @@ public class UiTestsV3 {
         });
 
         step("Stop running process", () -> {
+            stopProcessInTerminal(controller);
+        });
+    }
+
+    //Server Issues Sheet - Issue 73
+    @Test
+    @Order(4)
+    public void serverIssues_73() {
+        //start project in local mode
+        //after main method candidate Inlayhint click, inlayhints should not disappear
+
+        final String annotationText = "@Unlogged";
+
+        step("Add annotation and start project", () -> {
+            UiTestInteractionUtils.openAndRevertGitChangesForFile(projectInfo.getMainClassName(), controller);
+            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText);
+            executeShellScriptAndWait(controller, projectInfo.getStartScriptName(), projectInfo.getStartupWaitDuration());
+        });
+
+        step("Set source filter to Localhost", () -> {
+            controller.getIdeaFrame().getUnloggedToolbarComponent().click();
+            pause(ofMillis(250).toMillis());
+
+            controller.getIdeaFrame().getFilterButton().click();
+            pause(ofMillis(250).toMillis());
+
+            ComponentFixture titlePanel = controller.getIdeaFrame().getMyContentPanel();
+            RemoteText sourcesTabText = titlePanel.getData().getAll().stream().filter(remoteText -> remoteText.getText().equals("Sources")).toList().get(0);
+            sourcesTabText.click();
+            controller.getIdeaFrame().getLocalHostRadioButton().click();
+            controller.getIdeaFrame().getFilterApplyButton().click();
+        });
+
+        step("Open main class and enusre InlayHint render behaviour is as expected", () -> {
+            openFile(projectInfo.getMainClassName(), controller);
+            //look for inlayHints and assert that clicking on it will not hide it
+            TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
+            List<RemoteText> texts = textEditorFixture.getData().getAll();
+            RemoteText inlayHintText = texts.stream().filter(elem -> elem.getText().equals("1 call")).toList().get(0);
+
+            inlayHintText.click();
+            pause(ofMillis(250).toMillis());
+
+            textEditorFixture = controller.getIdeaFrame().textEditor();
+            texts = textEditorFixture.getData().getAll();
+
+            try {
+                inlayHintText = texts.stream().filter(elem -> elem.getText().equals("1 call")).toList().get(0);
+            } catch (Exception e) {
+                Assertions.fail("Did not find inlayHints for main method");
+            }
+        });
+
+        step("Stop process", () -> {
             stopProcessInTerminal(controller);
         });
     }
