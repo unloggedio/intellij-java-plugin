@@ -142,6 +142,14 @@ public class IdeaFrame extends CommonContainerFixture {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.FILTER_APPLY);
     }
 
+    public ComponentFixture getFilterCancel() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.FILTER_CANCEL);
+    }
+
+    public ComponentFixture getLocalModeHyperlink() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.LOCAL_HYPERLINK_FILTER);
+    }
+
     public ComponentFixture getSelectAllText() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.SELECT_ALL_FILTER);
     }

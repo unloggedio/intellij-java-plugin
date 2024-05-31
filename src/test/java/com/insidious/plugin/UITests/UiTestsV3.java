@@ -12,7 +12,6 @@ import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.junit.jupiter.api.*;
 
-import java.rmi.Remote;
 import java.time.Duration;
 import java.util.*;
 import java.util.List;
@@ -278,6 +277,7 @@ public class UiTestsV3 {
     }
 
     //Server Issues Sheet - Issue 73
+    //Also is the start of local test chain
     @Test
     @Order(4)
     public void serverIssues_73() {
@@ -324,6 +324,28 @@ public class UiTestsV3 {
             } catch (Exception e) {
                 Assertions.fail("Did not find inlayHints for main method");
             }
+        });
+
+//        step("Stop process", () -> {
+//            stopProcessInTerminal(controller);
+//        });
+    }
+
+
+    @Test
+    @Order(5)
+    public void serverIssues_20_local() {
+        //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
+        //unlogged toolbar assumed to be open before this.
+        step("Look for Local and ensure it opens filters", () -> {
+            ComponentFixture localMarker = controller.getIdeaFrame().getLocalModeHyperlink();
+            localMarker.click();
+            pause(ofMillis(250).toMillis());
+
+            Assertions.assertTrue(controller.getIdeaFrame().getLocalHostRadioButton().isShowing());
+            Assertions.assertTrue(controller.getIdeaFrame().getRemoteButtonRadioLabel().isShowing());
+
+            controller.getIdeaFrame().getFilterCancel().click();
         });
 
         step("Stop process", () -> {

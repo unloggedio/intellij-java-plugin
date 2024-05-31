@@ -42,6 +42,7 @@ public class UITestUtils {
         FILTER_FOLLOW_CHECK_BOX("//div[@class='JTabbedPane']//div[@class='JCheckBox']"),
         CHECK_BOX("//div[@class='JCheckBox']"),
         FILTER_APPLY("//div[@text='Apply']"),
+        FILTER_CANCEL("//div[@text='Cancel']"),
         SELECT_ALL_FILTER("//div[@visible_text='Select all']"),
         SAVE_FORM_CONFIRM("//div[@text='Confirm']"),
         SAVE_GLOBAL("//div[@visible_text='Save']"),
@@ -86,6 +87,7 @@ public class UITestUtils {
         TREE("//div[@class='Tree']"),
         TERMINAL_PANEL("//div[@class='JBTerminalPanel']"),
         GIT_ROLLBACK_CHANGES_VIEWPORT("//div[@class='ChangesBrowserTreeList']"),
+        LOCAL_HYPERLINK_FILTER("//div[@accessiblename='[Local]']"),
         GO_TO_DIRECT_INVOKE("//div[@defaulticon='execute.svg']");
 
         private String value;
