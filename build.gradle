@@ -15,7 +15,7 @@ def getGitHash = { ->
 
 
 group 'org.videobug'
-version '2024.2.6-' + getGitHash()
+version '2024.2.7-' + getGitHash()
 
 
 compileJava {
@@ -174,7 +174,7 @@ patchPluginXml {
 
 publishPlugin {
     token = "perm:c2hhcmR1bGxhdmVrYXI=.OTItMTAwMzA=.ZtumD3AexEy1NbzN66xWyJppVwMugG"
-    channels = ['alpha']
+    channels = ['stable']
 }
 
 test {
