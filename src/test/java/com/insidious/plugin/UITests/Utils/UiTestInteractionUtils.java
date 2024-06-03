@@ -2,6 +2,7 @@ package com.insidious.plugin.UITests.Utils;
 
 import com.insidious.plugin.UITests.pages.IdeaFrame;
 import com.insidious.plugin.UITests.wrapper.RemoteRobotController;
+import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
@@ -50,7 +51,10 @@ public class UiTestInteractionUtils {
     public static void scrollToIcon(TextEditorFixture editorFixture, GutterIcon icon) {
         Integer startingOffset = editorFixture.getEditor().callJs("local.get('editor').getDocument().getLineStartOffset(" + (icon.getLineNumber()) + ")", true);
         editorFixture.getEditor().scrollToOffset(startingOffset);
-        System.out.println("Scrolling down to line number : " + icon.getLineNumber() + ", Offset : " + startingOffset);
+    }
+
+    public static int getLineNumberFromOffset(TextEditorFixture editorFixture, int offset) {
+        return editorFixture.getEditor().callJs("local.get('editor').getDocument().getLineNumber(" + offset + ")", true);
     }
 
     public static void interactWithMockEditPanel(String mockname, Map<Integer, String> subValues, IdeaFrame ideaFrame, String type, Keyboard keyboard) {
@@ -96,6 +100,12 @@ public class UiTestInteractionUtils {
     public static void openFile(String filename, RemoteRobotController controller) {
         controller.getKeyboard().hotKey(VK_META, VK_SHIFT, VK_O);
         controller.getKeyboard().enterText(filename);
+        controller.getKeyboard().hotKey(VK_ENTER);
+    }
+
+    public static void searchFirstInCurrentFile(RemoteRobotController controller, String identifier) {
+        controller.getKeyboard().hotKey(VK_META, VK_F);
+        controller.getKeyboard().enterText(identifier);
         controller.getKeyboard().hotKey(VK_ENTER);
     }
 

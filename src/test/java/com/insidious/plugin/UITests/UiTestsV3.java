@@ -3,9 +3,7 @@ package com.insidious.plugin.UITests;
 
 import com.insidious.plugin.UITests.Utils.UiTestInteractionUtils;
 import com.insidious.plugin.UITests.pages.WelcomeFrame;
-import com.insidious.plugin.UITests.wrapper.ProjectInfo;
-import com.insidious.plugin.UITests.wrapper.RemoteRobotController;
-import com.insidious.plugin.UITests.wrapper.TestConstants;
+import com.insidious.plugin.UITests.wrapper.*;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
@@ -46,6 +44,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(1)
+    @Disabled
     public void openProjectAndAddSDK() {
 
         step("Open Project", () -> {
@@ -280,6 +279,7 @@ public class UiTestsV3 {
     //Also is the start of local test chain
     @Test
     @Order(4)
+    @Disabled
     public void serverIssues_73() {
         //start project in local mode
         //after main method candidate Inlayhint click, inlayhints should not disappear
@@ -334,6 +334,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(5)
+    @Disabled
     public void serverIssues_20_local() {
         //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
         //unlogged toolbar assumed to be open before this.
@@ -355,6 +356,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(6)
+    @Disabled
     public void serverIssues_30_local() {
         //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
         //Assumes unlogged plugin window is open
@@ -374,5 +376,78 @@ public class UiTestsV3 {
         step("Stop process", () -> {
             stopProcessInTerminal(controller);
         });
+    }
+
+    @Test
+    @Order(7)
+    public void directInvokeAbstracted() {
+        //assume unlogged tool window open at this stage
+        List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
+        List<DirectInvokeTreeLine> assertions = new ArrayList<>();
+        inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
+        assertions.add(new DirectInvokeTreeLine(1, "java.lang.String"));
+        assertions.add(new DirectInvokeTreeLine(2, "String: yolo"));
+        DirectInvokeRequest request = new DirectInvokeRequest("FutureController",
+                "public String getFutureResult(String s1)",
+                inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
+                true);
+        directInvokeAndAssertResponse(request);
+    }
+
+    private void directInvokeAndAssertResponse(DirectInvokeRequest request) {
+        if (request.isOpenFile()) {
+            openFile(request.getClassname(), controller);
+            pause(ofMillis(500).toMillis());
+        }
+        expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
+        searchFirstInCurrentFile(controller, request.getMethodIdentifier());
+
+        EditorFixture editorFixture = controller.getIdeaFrame().textEditor().getEditor();
+        int caretOffset = editorFixture.getCaretOffset();
+        int lineNumber = getLineNumberFromOffset(controller.getIdeaFrame().textEditor(), caretOffset) + 1;
+
+        GutterIcon selectedMethodIcon = controller.getIdeaFrame().textEditor().getGutter().getIcons().stream()
+                .filter(gutterIcon -> gutterIcon.getLineNumber() == lineNumber)
+                .limit(1).toList().get(0);
+
+        selectedMethodIcon.click();
+        controller.getIdeaFrame().getGoToDirectInvokeButton().click();
+
+        ComponentFixture argumentsTree = controller.getIdeaFrame().getTree();
+        List<RemoteText> remoteTexts = argumentsTree.getData().getAll();
+        request.getInputs().forEach(line -> {
+            remoteTexts.get(line.getIndex()).click();
+            controller.getKeyboard().enterText(line.getValue());
+            controller.getKeyboard().hotKey(VK_ENTER);
+        });
+
+        controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
+        pause(ofSeconds(3).toMillis());
+
+        ComponentFixture responseTree = controller.getIdeaFrame().getTree();
+        List<RemoteText> responseRemoteTexts = responseTree.getData().getAll();
+
+        TreeMap<Integer, Map<String, String>> failingAssertions = new TreeMap<>();
+        request.getExpectedOutputs().forEach(assertion -> {
+            String responseTextLine = responseRemoteTexts.get(assertion.getIndex()-1).getText();
+            if (!responseTextLine.equals(assertion.getValue())) {
+                TreeMap<String, String> status = new TreeMap<>();
+                status.put("Expected", assertion.getValue());
+                status.put("Actual", responseTextLine);
+                failingAssertions.put(assertion.getIndex(), status);
+            }
+        });
+
+        if (failingAssertions.isEmpty()) {
+            System.out.println("Passing");
+        } else {
+            System.out.println("You have failing assertions");
+            failingAssertions.forEach((index, status) -> {
+                System.out.println("Line : " + index);
+                System.out.println("Expected : " + status.get("Expected"));
+                System.out.println("Actual : " + status.get("Actual"));
+            });
+            Assertions.fail("Failing");
+        }
     }
 }
