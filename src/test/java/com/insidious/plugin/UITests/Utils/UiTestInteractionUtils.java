@@ -1,14 +1,17 @@
 package com.insidious.plugin.UITests.Utils;
 
 import com.insidious.plugin.UITests.pages.IdeaFrame;
+import com.insidious.plugin.UITests.wrapper.DirectInvokeRequest;
 import com.insidious.plugin.UITests.wrapper.RemoteRobotController;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
+import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import static java.awt.event.KeyEvent.*;
 import static java.awt.event.KeyEvent.VK_A;
@@ -181,5 +184,63 @@ public class UiTestInteractionUtils {
         controller.getIdeaFrame().getMavenToolBarRefreshIcon().click();
         pause(ofSeconds(1).toMillis());
         mavenIcon.click();
+    }
+
+    public static void directInvokeAndAssertResponse(DirectInvokeRequest request, RemoteRobotController controller) {
+        if (request.isOpenFile()) {
+            openFile(request.getClassname(), controller);
+            pause(ofMillis(500).toMillis());
+        }
+        expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
+        searchFirstInCurrentFile(controller, request.getMethodIdentifier());
+
+        EditorFixture editorFixture = controller.getIdeaFrame().textEditor().getEditor();
+        int caretOffset = editorFixture.getCaretOffset();
+        int lineNumber = getLineNumberFromOffset(controller.getIdeaFrame().textEditor(), caretOffset) + 1;
+
+        GutterIcon selectedMethodIcon = controller.getIdeaFrame().textEditor().getGutter().getIcons().stream()
+                .filter(gutterIcon -> gutterIcon.getLineNumber() == lineNumber)
+                .limit(1).toList().get(0);
+
+        selectedMethodIcon.click();
+        controller.getIdeaFrame().getGoToDirectInvokeButton().click();
+
+        ComponentFixture argumentsTree = controller.getIdeaFrame().getTree();
+        List<RemoteText> remoteTexts = argumentsTree.getData().getAll();
+        request.getInputs().forEach(line -> {
+            remoteTexts.get(line.getIndex()).click();
+            controller.getKeyboard().enterText(line.getValue());
+            controller.getKeyboard().hotKey(VK_ENTER);
+        });
+
+        controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
+        pause(ofSeconds(3).toMillis());
+
+        ComponentFixture responseTree = controller.getIdeaFrame().getTree();
+        Assertions.assertNotNull(responseTree);
+        List<RemoteText> responseRemoteTexts = responseTree.getData().getAll();
+
+        TreeMap<Integer, Map<String, String>> failingAssertions = new TreeMap<>();
+        request.getExpectedOutputs().forEach(assertion -> {
+            String responseTextLine = responseRemoteTexts.get(assertion.getIndex() - 1).getText();
+            if (!responseTextLine.equals(assertion.getValue())) {
+                TreeMap<String, String> status = new TreeMap<>();
+                status.put("Expected", assertion.getValue());
+                status.put("Actual", responseTextLine);
+                failingAssertions.put(assertion.getIndex(), status);
+            }
+        });
+
+        if (failingAssertions.isEmpty()) {
+            System.out.println("Passing");
+        } else {
+            System.out.println("You have failing assertions");
+            failingAssertions.forEach((index, status) -> {
+                System.out.println("Line : " + index);
+                System.out.println("Expected : " + status.get("Expected"));
+                System.out.println("Actual : " + status.get("Actual"));
+            });
+            Assertions.fail("Failing");
+        }
     }
 }

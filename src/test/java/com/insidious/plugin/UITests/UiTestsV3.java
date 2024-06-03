@@ -44,7 +44,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(1)
-    @Disabled
+//    @Disabled
     public void openProjectAndAddSDK() {
 
         step("Open Project", () -> {
@@ -95,7 +95,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Disabled
+//    @Disabled
     @Order(2)
     public void runRemoteModeTest() {
 
@@ -144,55 +144,28 @@ public class UiTestsV3 {
         //TODO : abstract method to navigate and DirectInvoke methods and assert their responses
         //TODO : re-add inlay hint assertion once #44 is merged
         step("Execute methods and assert responses", () -> {
-            openFile("FutureController.java", controller);
-            pause(ofSeconds(2).toMillis());
-            expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
-            clearGotIts(controller);
 
-            TextEditorFixture editor = controller.getIdeaFrame().textEditor(Duration.ofSeconds(2));
-            List<GutterIcon> gutterIcons = editor.getGutter().getIcons().stream()
-                    .filter(icon -> icon.toString().contains("profileBlue.svg"))
-                    .toList();
+            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
+            List<DirectInvokeTreeLine> assertions = new ArrayList<>();
+            inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
+            assertions.add(new DirectInvokeTreeLine(1, "java.lang.String"));
+            assertions.add(new DirectInvokeTreeLine(2, "String: yolo"));
+            DirectInvokeRequest request = new DirectInvokeRequest("FutureController",
+                    "public String getFutureResult(String s1)",
+                    inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
+                    true);
+            UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
 
-            List<Integer> lineNumbers = new ArrayList<>(gutterIcons.stream().map(GutterIcon::getLineNumber).toList());
-            Collections.sort(lineNumbers);
-
-            controller.getIdeaFrame().getToolBarDeleteButton().click();
-            gutterIcons.forEach(icon -> {
-                UiTestInteractionUtils.scrollToIcon(editor, icon);
-                icon.click();
-                pause(ofMillis(250).toMillis());
-
-                String responseExpected = "String: string";
-                controller.getIdeaFrame().getGoToDirectInvokeButton().click();
-                pause(ofMillis(250).toMillis());
-
-                if (icon.getLineNumber() == lineNumbers.get(0)) {
-                    responseExpected = "String: yolo";
-                } else {
-                    responseExpected = "String: method2";
-                    ComponentFixture argumentsTree = controller.getIdeaFrame().getTree();
-                    List<RemoteText> remoteTexts = argumentsTree.getData().getAll();
-                    remoteTexts.get(remoteTexts.size() - 1).click();
-
-                    controller.getKeyboard().enterText("method2");
-                    controller.getKeyboard().hotKey(VK_ENTER);
-                }
-                controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
-                pause(ofSeconds(3).toMillis());
-
-                ComponentFixture responseTree = controller.getIdeaFrame().getTree();
-                List<RemoteText> remoteTexts = responseTree.getData().getAll();
-                RemoteText responseValue = remoteTexts.get(remoteTexts.size() - 1);
-
-                Assertions.assertEquals(responseExpected, responseValue.getText());
-            });
-            pause(ofSeconds(10).toMillis());
-            ComponentFixture terminalToolbar = controller.getIdeaFrame().getTerminalToolBarSelectable();
-            terminalToolbar.click();
-            ComponentFixture terminalContents = controller.getIdeaFrame().getTerminalPanel();
-            RemoteText lastText = terminalContents.getData().getAll().get(terminalContents.getData().getAll().size() - 1);
-            lastText.click();
+            inputLines = new ArrayList<>();
+            assertions = new ArrayList<>();
+            inputLines.add(new DirectInvokeTreeLine(1, "OptionalTest"));
+            assertions.add(new DirectInvokeTreeLine(1, "java.lang.String"));
+            assertions.add(new DirectInvokeTreeLine(2, "String: OptionalTest"));
+            request = new DirectInvokeRequest("FutureController",
+                    "public String getFutureResultOptional(String s1)",
+                    inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
+                    true);
+            UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
         });
 
         step("Stop running process", () -> {
@@ -201,7 +174,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Disabled
+//    @Disabled
     @Order(3)
     public void runLocalMode() {
 
@@ -225,49 +198,27 @@ public class UiTestsV3 {
         });
 
         step("DirectInvoke and assert results", () -> {
-            openFile("FutureController.java", controller);
-            pause(ofSeconds(2).toMillis());
-            expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
-            clearGotIts(controller);
+            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
+            List<DirectInvokeTreeLine> assertions = new ArrayList<>();
+            inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
+            assertions.add(new DirectInvokeTreeLine(1, "java.lang.String"));
+            assertions.add(new DirectInvokeTreeLine(2, "String: yolo"));
+            DirectInvokeRequest request = new DirectInvokeRequest("FutureController",
+                    "public String getFutureResult(String s1)",
+                    inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
+                    true);
+            UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
 
-            TextEditorFixture editor = controller.getIdeaFrame().textEditor(Duration.ofSeconds(2));
-            List<GutterIcon> gutterIcons = editor.getGutter().getIcons().stream()
-                    .filter(icon -> icon.toString().contains("profileBlue.svg"))
-                    .toList();
-
-            List<Integer> lineNumbers = new ArrayList<>(gutterIcons.stream().map(GutterIcon::getLineNumber).toList());
-            Collections.sort(lineNumbers);
-
-            controller.getIdeaFrame().getToolBarDeleteButton().click();
-            gutterIcons.forEach(icon -> {
-                scrollToIcon(editor, icon);
-                icon.click();
-                pause(ofMillis(250).toMillis());
-
-                String responseExpected = "String: string";
-                controller.getIdeaFrame().getGoToDirectInvokeButton().click();
-                pause(ofMillis(250).toMillis());
-
-                if (icon.getLineNumber() == lineNumbers.get(0)) {
-                    responseExpected = "String: yolo";
-                } else {
-                    responseExpected = "String: method2";
-                    ComponentFixture argumentsTree = controller.getIdeaFrame().getTree();
-                    List<RemoteText> remoteTexts = argumentsTree.getData().getAll();
-                    remoteTexts.get(remoteTexts.size() - 1).click();
-
-                    controller.getKeyboard().enterText("method2");
-                    controller.getKeyboard().hotKey(VK_ENTER);
-                }
-                controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
-                pause(ofSeconds(3).toMillis());
-
-                ComponentFixture responseTree = controller.getIdeaFrame().getTree();
-                List<RemoteText> remoteTexts = responseTree.getData().getAll();
-                RemoteText responseValue = remoteTexts.get(remoteTexts.size() - 1);
-
-                Assertions.assertEquals(responseExpected, responseValue.getText());
-            });
+            inputLines = new ArrayList<>();
+            assertions = new ArrayList<>();
+            inputLines.add(new DirectInvokeTreeLine(1, "OptionalTest"));
+            assertions.add(new DirectInvokeTreeLine(1, "java.lang.String"));
+            assertions.add(new DirectInvokeTreeLine(2, "String: OptionalTest"));
+            request = new DirectInvokeRequest("FutureController",
+                    "public String getFutureResultOptional(String s1)",
+                    inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
+                    false);
+            UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
         });
 
         step("Stop running process", () -> {
@@ -279,7 +230,7 @@ public class UiTestsV3 {
     //Also is the start of local test chain
     @Test
     @Order(4)
-    @Disabled
+//    @Disabled
     public void serverIssues_73() {
         //start project in local mode
         //after main method candidate Inlayhint click, inlayhints should not disappear
@@ -334,7 +285,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(5)
-    @Disabled
+//    @Disabled
     public void serverIssues_20_local() {
         //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
         //unlogged toolbar assumed to be open before this.
@@ -356,7 +307,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(6)
-    @Disabled
+//    @Disabled
     public void serverIssues_30_local() {
         //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
         //Assumes unlogged plugin window is open
@@ -378,8 +329,8 @@ public class UiTestsV3 {
         });
     }
 
-    @Test
-    @Order(7)
+    //    @Test
+//    @Order(7)
     public void directInvokeAbstracted() {
         //assume unlogged tool window open at this stage
         List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
@@ -391,63 +342,6 @@ public class UiTestsV3 {
                 "public String getFutureResult(String s1)",
                 inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
                 true);
-        directInvokeAndAssertResponse(request);
-    }
-
-    private void directInvokeAndAssertResponse(DirectInvokeRequest request) {
-        if (request.isOpenFile()) {
-            openFile(request.getClassname(), controller);
-            pause(ofMillis(500).toMillis());
-        }
-        expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
-        searchFirstInCurrentFile(controller, request.getMethodIdentifier());
-
-        EditorFixture editorFixture = controller.getIdeaFrame().textEditor().getEditor();
-        int caretOffset = editorFixture.getCaretOffset();
-        int lineNumber = getLineNumberFromOffset(controller.getIdeaFrame().textEditor(), caretOffset) + 1;
-
-        GutterIcon selectedMethodIcon = controller.getIdeaFrame().textEditor().getGutter().getIcons().stream()
-                .filter(gutterIcon -> gutterIcon.getLineNumber() == lineNumber)
-                .limit(1).toList().get(0);
-
-        selectedMethodIcon.click();
-        controller.getIdeaFrame().getGoToDirectInvokeButton().click();
-
-        ComponentFixture argumentsTree = controller.getIdeaFrame().getTree();
-        List<RemoteText> remoteTexts = argumentsTree.getData().getAll();
-        request.getInputs().forEach(line -> {
-            remoteTexts.get(line.getIndex()).click();
-            controller.getKeyboard().enterText(line.getValue());
-            controller.getKeyboard().hotKey(VK_ENTER);
-        });
-
-        controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
-        pause(ofSeconds(3).toMillis());
-
-        ComponentFixture responseTree = controller.getIdeaFrame().getTree();
-        List<RemoteText> responseRemoteTexts = responseTree.getData().getAll();
-
-        TreeMap<Integer, Map<String, String>> failingAssertions = new TreeMap<>();
-        request.getExpectedOutputs().forEach(assertion -> {
-            String responseTextLine = responseRemoteTexts.get(assertion.getIndex()-1).getText();
-            if (!responseTextLine.equals(assertion.getValue())) {
-                TreeMap<String, String> status = new TreeMap<>();
-                status.put("Expected", assertion.getValue());
-                status.put("Actual", responseTextLine);
-                failingAssertions.put(assertion.getIndex(), status);
-            }
-        });
-
-        if (failingAssertions.isEmpty()) {
-            System.out.println("Passing");
-        } else {
-            System.out.println("You have failing assertions");
-            failingAssertions.forEach((index, status) -> {
-                System.out.println("Line : " + index);
-                System.out.println("Expected : " + status.get("Expected"));
-                System.out.println("Actual : " + status.get("Actual"));
-            });
-            Assertions.fail("Failing");
-        }
+        UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
     }
 }
