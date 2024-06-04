@@ -247,8 +247,7 @@ public class UiTestsV3 {
         });
 
         step("Set source filter to Localhost", () -> {
-            controller.getIdeaFrame().getUnloggedToolbarComponent().click();
-            pause(ofMillis(250).toMillis());
+            openUnloggedToolbarIfNotOpen(controller, 1);
 
             controller.getIdeaFrame().getFilterButton().click();
             pause(ofMillis(250).toMillis());
@@ -293,6 +292,8 @@ public class UiTestsV3 {
         //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
         //unlogged toolbar assumed to be open before this.
         step("Look for Local and ensure it opens filters", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 1);
+
             ComponentFixture localMarker = controller.getIdeaFrame().getLocalModeHyperlink();
             localMarker.click();
             pause(ofMillis(250).toMillis());
@@ -315,6 +316,8 @@ public class UiTestsV3 {
         //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
         //Assumes unlogged plugin window is open
         step("open Filters, switch to remote and assert JTextField contains default PrePopulated URL", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 1);
+
             ComponentFixture localMarker = controller.getIdeaFrame().getLocalModeHyperlink();
             localMarker.click();
             pause(ofMillis(250).toMillis());
