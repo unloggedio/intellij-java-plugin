@@ -19,6 +19,13 @@ public class ExecutionSessionSource {
     public ExecutionSessionSource() {
     }
 
+    public ExecutionSessionSource(ExecutionSessionSource copyFrom) {
+        this.sessionSourceMode = copyFrom.sessionSourceMode;
+        this.serverEndpoint = copyFrom.serverEndpoint;
+        this.sourceFilter = copyFrom.sourceFilter;
+        this.sessionId = new ArrayList<>(copyFrom.sessionId);
+    }
+
     public String getServerEndpoint() {
         return this.serverEndpoint;
     }

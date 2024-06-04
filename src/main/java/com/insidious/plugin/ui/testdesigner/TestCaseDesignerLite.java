@@ -148,6 +148,11 @@ public class TestCaseDesignerLite {
                 currentTestGenerationConfiguration.getCallExpressionList().addAll(tcm.getCallsList());
             }
 
+        } else {
+            currentTestGenerationConfiguration.getTestCandidateMetadataList().addAll(configuration.getTestCandidateMetadataList());
+            currentTestGenerationConfiguration.getCallExpressionList().addAll(configuration.getCallExpressionList());
+            currentTestGenerationConfiguration.setTestMethodName(configuration.getTestMethodName());
+
         }
 
         addFieldMocksCheckBox.addActionListener(e -> {

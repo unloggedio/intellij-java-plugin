@@ -74,7 +74,7 @@ public class ActiveSessionManager {
 
         SessionInstanceInterface sessionInstance = sessionInstanceMap.get(executionSession.getSessionId());
         if (sessionInstance == null) {
-            logger.warn("called to delete unknown session id: " + executionSession.getSessionId()
+            logger.info("called to delete unknown session id: " + executionSession.getSessionId()
                     + " -> " + sessionPath);
         } else {
             closeSession(sessionInstance);

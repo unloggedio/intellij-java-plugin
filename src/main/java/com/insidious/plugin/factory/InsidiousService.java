@@ -228,11 +228,9 @@ final public class InsidiousService implements
                         if (i == 0) {
                             continue;
                         }
-                        if (executionSession.getSessionMode() == ExecutionSessionSourceMode.LOCAL) {
-                            logger.warn(
-                                    "Deleting session: " + executionSession.getSessionId() + " => " + project.getName());
-                            sessionManager.cleanUpSessionDirectory(executionSession);
-                        }
+                        logger.info("Deleting session: " +
+                                executionSession.getSessionId() + " => " + project.getName());
+                        sessionManager.cleanUpSessionDirectory(executionSession);
                     }
                 }
 
@@ -531,7 +529,7 @@ final public class InsidiousService implements
 
         CountDownLatch cdl = new CountDownLatch(1);
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            this.sessionLoader = ApplicationManager.getApplication().getService(SessionLoader.class);
+            this.sessionLoader = project.getService(SessionLoader.class);
             this.sessionLoader.setClient(this.client);
             this.sessionLoader.addSessionCallbackListener(sessionListener);
             cdl.countDown();
@@ -1164,7 +1162,6 @@ final public class InsidiousService implements
     }
 
     private ServerMetadata checkSessionBelongsToProject(ExecutionSession session, Project project) {
-
         if (session.getSessionMode() == ExecutionSessionSourceMode.REMOTE) {
             return getServerMetadata(configurationState.getExecutionSessionSource(), session.getSessionId());
         }
@@ -1184,10 +1181,10 @@ final public class InsidiousService implements
             String javaVersionLine = logFileInputStream.readLine();
             String agentVersionLine = logFileInputStream.readLine();
             String agentParamsLine = logFileInputStream.readLine();
-            if (!agentParamsLine.startsWith("Params: ")) {
+            if (agentParamsLine == null || !agentParamsLine.startsWith("Params: ")) {
                 logger.warn(
                         "The third line is not Params line, marked as session not matching: " + session.getLogFilePath() + ": " + agentParamsLine);
-                checkCache.put(session.getSessionId(), null);
+//                checkCache.put(session.getSessionId(), null);
                 return null;
             }
             String[] paramParts = agentParamsLine.substring("Params: ".length()).split(",");
@@ -1260,7 +1257,6 @@ final public class InsidiousService implements
             if (serverMetadata == null) {
                 return;
             }
-            onAgentConnected(serverMetadata);
 
         } else {
             String currentSessionId = currentState.getSessionInstance()
@@ -1280,7 +1276,6 @@ final public class InsidiousService implements
         }
 
         clearSession();
-        logger.info("Loading new session: " + mostRecentSession.getSessionId() + " => " + project.getName());
         if (mostRecentSession.getProjectId() == null || mostRecentSession.getProjectId().isEmpty()) {
             mostRecentSession.setProjectId(project.getName());
         }
@@ -1290,6 +1285,10 @@ final public class InsidiousService implements
                 && !Objects.equals(serverMetadata.getMode(), "local")) {
             return;
         }
+        onAgentConnected(serverMetadata);
+        logger.info(
+                "Loading new session: " + mostRecentSession.getSessionId() + " => " + project.getName() + " => " + serverMetadata);
+
         SessionInstanceInterface sessionInstance = sessionManager.createSessionInstance(mostRecentSession,
                 serverMetadata, executionSessionSource, project);
 
