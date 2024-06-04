@@ -139,7 +139,7 @@ public class StompComponent implements
         this.insidiousService = insidiousService;
         this.project = insidiousService.getProject();
         configurationState = project.getService(InsidiousConfigurationState.class);
-
+//        hideBottomSplit();
 //        filterAppliedLabel.setVisible(false);
         stompFilterModel = configurationState.getFilterModel();
 
@@ -1238,6 +1238,10 @@ public class StompComponent implements
         itemPanel.repaint();
         historyStreamScrollPanel.revalidate();
         historyStreamScrollPanel.repaint();
+
+        if (this.sessionInstance != null && this.sessionInstance.isConnected()) {
+            setConnected();
+        }
 
 
     }

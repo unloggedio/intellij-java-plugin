@@ -15,7 +15,7 @@ def getGitHash = { ->
 
 
 group 'org.videobug'
-version '2024.1.9-' + getGitHash()
+version '2024.2.1-' + getGitHash()
 
 
 compileJava {
@@ -140,7 +140,7 @@ runPluginVerifier {
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    version = '2024.1.1'
+    version = '2023.2.3'
     plugins = ['com.intellij.java', 'maven', 'gradle', 'org.jetbrains.kotlin']
     updateSinceUntilBuild = false
     sameSinceUntilBuild = true

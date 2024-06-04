@@ -178,27 +178,31 @@ public class RemoteSourceFilter {
 
         confirmSaveApplyButton.addActionListener(e -> {
 
-            insidiousService.clearSession();
-            independentClientInstance = UnloggedClientFactory.createClient(executionSessionSource);
-            ExecutionSession executionSession = null;
-            if (executionSessionSource.getSessionMode() == ExecutionSessionSourceMode.REMOTE) {
-                ButtonModel buttonModel = buttonGroup.getSelection();
-                executionSession = modelToSessionMap.get(buttonModel);
+            if (!this.executionSessionSource.equals(insidiousService.getSessionSource())) {
+                insidiousService.clearSession();
+                independentClientInstance = UnloggedClientFactory.createClient(executionSessionSource);
+                ExecutionSession executionSession = null;
+                if (executionSessionSource.getSessionMode() == ExecutionSessionSourceMode.REMOTE) {
+                    ButtonModel buttonModel = buttonGroup.getSelection();
+                    executionSession = modelToSessionMap.get(buttonModel);
 
-                // make the list of sessionId
-                String sessionId = executionSession.getSessionId();
-                List<String> listSessionId = new ArrayList<>();
-                listSessionId.add(sessionId);
+                    // make the list of sessionId
+                    String sessionId = executionSession.getSessionId();
+                    List<String> listSessionId = new ArrayList<>();
+                    listSessionId.add(sessionId);
 
-                executionSessionSource.setSourceFilter(SourceFilter.SELECTED_ONLY);
-                executionSessionSource.setSessionId(listSessionId);
+                    executionSessionSource.setSourceFilter(SourceFilter.SELECTED_ONLY);
+                    executionSessionSource.setSessionId(listSessionId);
+                }
+                independentClientInstance.setSourceModel(this.executionSessionSource);
+                insidiousService.setSessionSource(executionSessionSource);
+                insidiousService.setUnloggedClient(independentClientInstance);
+                if (executionSession != null) {
+                    insidiousService.setSession(executionSession);
+                }
             }
-            independentClientInstance.setSourceModel(this.executionSessionSource);
-            insidiousService.setSessionSource(executionSessionSource);
-            insidiousService.setUnloggedClient(independentClientInstance);
-            if (executionSession != null) {
-                insidiousService.setSession(executionSession);
-            }
+
+
             componentLifecycleListener.onClose();
         });
     }
