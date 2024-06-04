@@ -1,5 +1,6 @@
 package com.insidious.plugin.UITests.Utils;
 
+import com.insidious.plugin.UITests.UIElementNotFoundException;
 import com.insidious.plugin.UITests.pages.IdeaFrame;
 import com.insidious.plugin.UITests.wrapper.DirectInvokeRequest;
 import com.insidious.plugin.UITests.wrapper.RemoteRobotController;
@@ -102,7 +103,9 @@ public class UiTestInteractionUtils {
 
     public static void openFile(String filename, RemoteRobotController controller) {
         controller.getKeyboard().hotKey(VK_META, VK_SHIFT, VK_O);
+        pause(ofMillis(250).toMillis());
         controller.getKeyboard().enterText(filename);
+        pause(ofMillis(250).toMillis());
         controller.getKeyboard().hotKey(VK_ENTER);
     }
 
@@ -186,7 +189,7 @@ public class UiTestInteractionUtils {
         mavenIcon.click();
     }
 
-    public static void directInvokeAndAssertResponse(DirectInvokeRequest request, RemoteRobotController controller) {
+    public static void directInvokeMethod(DirectInvokeRequest request, RemoteRobotController controller) {
         if (request.isOpenFile()) {
             openFile(request.getClassname(), controller);
             pause(ofMillis(500).toMillis());
@@ -212,8 +215,11 @@ public class UiTestInteractionUtils {
             controller.getKeyboard().enterText(line.getValue());
             controller.getKeyboard().hotKey(VK_ENTER);
         });
-
         controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
+    }
+
+    public static void directInvokeAndAssertResponse(DirectInvokeRequest request, RemoteRobotController controller) {
+        directInvokeMethod(request, controller);
         pause(ofSeconds(3).toMillis());
 
         ComponentFixture responseTree = controller.getIdeaFrame().getTree();
@@ -241,6 +247,16 @@ public class UiTestInteractionUtils {
                 System.out.println("Actual : " + status.get("Actual"));
             });
             Assertions.fail("Failing");
+        }
+    }
+
+    public static void openUnloggedToolbarIfNotOpen(RemoteRobotController controller, int waitDurationSeconds) {
+        try {
+            //Check if filter button is visible
+            controller.getIdeaFrame().getFilterButton();
+        } catch (UIElementNotFoundException notFoundException) {
+            controller.getIdeaFrame().getUnloggedToolbarComponent().click();
+            pause(ofSeconds(waitDurationSeconds).toMillis());
         }
     }
 }

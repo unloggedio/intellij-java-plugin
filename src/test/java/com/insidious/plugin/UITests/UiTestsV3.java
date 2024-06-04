@@ -95,7 +95,7 @@ public class UiTestsV3 {
     }
 
     @Test
-//    @Disabled
+    @Disabled
     @Order(2)
     public void runRemoteModeTest() {
 
@@ -110,7 +110,7 @@ public class UiTestsV3 {
         });
 
         step("Set Source to remote URL", () -> {
-            controller.getIdeaFrame().getUnloggedToolbarComponent().click();
+            openUnloggedToolbarIfNotOpen(controller, 2);
             clearGotIts(controller);
 
             controller.getIdeaFrame().getFilterButton().click();
@@ -187,6 +187,9 @@ public class UiTestsV3 {
         });
 
         step("Set source filter to Localhost", () -> {
+            UiTestInteractionUtils.openUnloggedToolbarIfNotOpen(controller, 2);
+            clearGotIts(controller);
+
             controller.getIdeaFrame().getFilterButton().click();
             pause(ofMillis(250).toMillis());
 
@@ -205,7 +208,7 @@ public class UiTestsV3 {
             assertions.add(new DirectInvokeTreeLine(2, "String: yolo"));
             DirectInvokeRequest request = new DirectInvokeRequest("FutureController",
                     "public String getFutureResult(String s1)",
-                    inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
+                    inputLines, assertions, List.of(AssertionOptions.DIRECT_INVOKE_RESPONSE),
                     true);
             UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
 
@@ -216,8 +219,8 @@ public class UiTestsV3 {
             assertions.add(new DirectInvokeTreeLine(2, "String: OptionalTest"));
             request = new DirectInvokeRequest("FutureController",
                     "public String getFutureResultOptional(String s1)",
-                    inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
-                    false);
+                    inputLines, assertions, List.of(AssertionOptions.DIRECT_INVOKE_RESPONSE),
+                    true);
             UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
         });
 
@@ -327,21 +330,5 @@ public class UiTestsV3 {
         step("Stop process", () -> {
             stopProcessInTerminal(controller);
         });
-    }
-
-    //    @Test
-//    @Order(7)
-    public void directInvokeAbstracted() {
-        //assume unlogged tool window open at this stage
-        List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
-        List<DirectInvokeTreeLine> assertions = new ArrayList<>();
-        inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
-        assertions.add(new DirectInvokeTreeLine(1, "java.lang.String"));
-        assertions.add(new DirectInvokeTreeLine(2, "String: yolo"));
-        DirectInvokeRequest request = new DirectInvokeRequest("FutureController",
-                "public String getFutureResult(String s1)",
-                inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
-                true);
-        UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
     }
 }
