@@ -1,6 +1,6 @@
 package com.insidious.plugin.UITests.wrapper;
 
-public class ProjectInfo {
+public class LocalProjectInfo {
     private String projectName;
     private String projectPath;
     private String buildFile;
@@ -11,7 +11,7 @@ public class ProjectInfo {
     private String mainClassName;
     private int startupWaitDuration;
 
-    public ProjectInfo(String projectName, String projectPath, String buildFile, BuildSystem buildSystem, String mainClassName) {
+    public LocalProjectInfo(String projectName, String projectPath, String buildFile, BuildSystem buildSystem, String mainClassName) {
         this.projectName = projectName;
         this.projectPath = projectPath;
         this.buildFile = buildFile;

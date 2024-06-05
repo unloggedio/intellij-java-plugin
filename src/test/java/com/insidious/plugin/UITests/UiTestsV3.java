@@ -10,7 +10,6 @@ import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.junit.jupiter.api.*;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.List;
 
@@ -24,23 +23,23 @@ import static com.intellij.remoterobot.stepsProcessing.StepWorkerKt.step;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class UiTestsV3 {
     private RemoteRobotController controller;
-    private ProjectInfo projectInfo;
+    private LocalProjectInfo localProjectInfo;
 
     public UiTestsV3() {
         RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8082");
         Keyboard keyboard = new Keyboard(remoteRobot);
         controller = new RemoteRobotController(remoteRobot, keyboard);
 
-        projectInfo = new ProjectInfo("unlogged-spring-maven-demo",
+        localProjectInfo = new LocalProjectInfo("unlogged-spring-maven-demo",
                 "unlogged-spring-maven-demo",
                 "pom.xml",
-                ProjectInfo.BuildSystem.MAVEN,
+                LocalProjectInfo.BuildSystem.MAVEN,
                 "UnloggedDemoApplication"
         );
-        projectInfo.setStartScriptName("start_project.sh");
-        projectInfo.setRemoveScriptName("remove_local_sessions.sh");
-        projectInfo.setRevertScriptName("git_rollback.sh");
-        projectInfo.setStartupWaitDuration(60);
+        localProjectInfo.setStartScriptName("start_project.sh");
+        localProjectInfo.setRemoveScriptName("remove_local_sessions.sh");
+        localProjectInfo.setRevertScriptName("git_rollback.sh");
+        localProjectInfo.setStartupWaitDuration(60);
     }
 
     @Test
@@ -53,7 +52,7 @@ public class UiTestsV3 {
             welcomeFrame.getOpenProjectButton().click();
             welcomeFrame.getProjectSelectorComboBox().click();
 
-            controller.getKeyboard().enterText("/" + projectInfo.getProjectPath());
+            controller.getKeyboard().enterText("/" + localProjectInfo.getProjectPath());
             pause(ofSeconds(1).toMillis());
             welcomeFrame.getOpenConfirmButton().click();
         });
@@ -63,8 +62,8 @@ public class UiTestsV3 {
         });
 
         step("Revert all changes made to project, remove local sessions", () -> {
-            executeShellScriptAndWait(controller, projectInfo.getRevertScriptName(), 5);
-            executeShellScriptAndWait(controller, projectInfo.getRemoveScriptName(), 2);
+            executeShellScriptAndWait(controller, localProjectInfo.getRevertScriptName(), 5);
+            executeShellScriptAndWait(controller, localProjectInfo.getRemoveScriptName(), 2);
         });
 
         step("Add unlogged dependency (Mac)", () -> {
@@ -106,8 +105,8 @@ public class UiTestsV3 {
         //TODO : revert changes if annotations are already present
 
         step("Add annotation and start project", () -> {
-            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText, true);
-            executeShellScriptAndWait(controller, projectInfo.getStartScriptName(), projectInfo.getStartupWaitDuration());
+            addUnloggedToStartFile(controller, localProjectInfo.getMainClassName(), annotationText, true);
+            executeShellScriptAndWait(controller, localProjectInfo.getStartScriptName(), localProjectInfo.getStartupWaitDuration());
         });
 
         step("Set Source to remote URL", () -> {
@@ -182,9 +181,9 @@ public class UiTestsV3 {
         final String annotationText = "@Unlogged";
 
         step("Add annotation and start project", () -> {
-            UiTestInteractionUtils.openAndRevertGitChangesForFile(projectInfo.getMainClassName(), controller);
-            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText, false);
-            executeShellScriptAndWait(controller, projectInfo.getStartScriptName(), projectInfo.getStartupWaitDuration());
+            UiTestInteractionUtils.openAndRevertGitChangesForFile(localProjectInfo.getMainClassName(), controller);
+            addUnloggedToStartFile(controller, localProjectInfo.getMainClassName(), annotationText, false);
+            executeShellScriptAndWait(controller, localProjectInfo.getStartScriptName(), localProjectInfo.getStartupWaitDuration());
         });
 
         step("Set source filter to Localhost", () -> {
@@ -242,9 +241,9 @@ public class UiTestsV3 {
         final String annotationText = "@Unlogged";
 
         step("Add annotation and start project", () -> {
-            UiTestInteractionUtils.openAndRevertGitChangesForFile(projectInfo.getMainClassName(), controller);
-            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText, false);
-            executeShellScriptAndWait(controller, projectInfo.getStartScriptName(), projectInfo.getStartupWaitDuration());
+            UiTestInteractionUtils.openAndRevertGitChangesForFile(localProjectInfo.getMainClassName(), controller);
+            addUnloggedToStartFile(controller, localProjectInfo.getMainClassName(), annotationText, false);
+            executeShellScriptAndWait(controller, localProjectInfo.getStartScriptName(), localProjectInfo.getStartupWaitDuration());
         });
 
         step("Set source filter to Localhost", () -> {
@@ -261,7 +260,7 @@ public class UiTestsV3 {
         });
 
         step("Open main class and enusre InlayHint render behaviour is as expected", () -> {
-            openFile(projectInfo.getMainClassName(), controller);
+            openFile(localProjectInfo.getMainClassName(), controller);
             //look for inlayHints and assert that clicking on it will not hide it
             TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
             List<RemoteText> texts = textEditorFixture.getData().getAll();
@@ -336,8 +335,6 @@ public class UiTestsV3 {
         });
     }
 
-    @Test
-    @Order(7)
     public void debugFilterInteraction() {
         List<String> includedClasses = new ArrayList<>();
         includedClasses.add("org.unlogged.demo.jspdemo.wfm.SerializationUtils");
@@ -350,5 +347,15 @@ public class UiTestsV3 {
                 true);
 
         setFilterOptionsForCurrentView(controller, filterOptions);
+    }
+
+    @Test
+    @Order(7)
+    public void testCloneAndOpenFlow() {
+        GitProjectInfo projectUnderTest = new GitProjectInfo("unlogged-spring-maven-demo",
+                "https://github.com/unloggedio/unlogged-spring-maven-demo.git",
+                "ui_test_clean", "pom.xml", LocalProjectInfo.BuildSystem.MAVEN, 60,
+                true);
+        cloneAndOpenProject(controller, projectUnderTest);
     }
 }

@@ -1,0 +1,77 @@
+package com.insidious.plugin.UITests.wrapper;
+
+public class GitProjectInfo {
+    private String projectName;
+    private String gitUrl;
+    private String gitBranch;
+    private String buildFile;
+    private LocalProjectInfo.BuildSystem buildSystem;
+    private int startupWaitDuration;
+    private boolean switchBranchOnOpen;
+
+    public GitProjectInfo(String projectName, String gitUrl, String gitBranch, String buildFile, LocalProjectInfo.BuildSystem buildSystem, int startupWaitDuration, boolean switchBranchOnOpen) {
+        this.projectName = projectName;
+        this.gitUrl = gitUrl;
+        this.gitBranch = gitBranch;
+        this.buildFile = buildFile;
+        this.buildSystem = buildSystem;
+        this.startupWaitDuration = startupWaitDuration;
+        this.switchBranchOnOpen = switchBranchOnOpen;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+
+    public String getGitUrl() {
+        return gitUrl;
+    }
+
+    public void setGitUrl(String gitUrl) {
+        this.gitUrl = gitUrl;
+    }
+
+    public String getGitBranch() {
+        return gitBranch;
+    }
+
+    public void setGitBranch(String gitBranch) {
+        this.gitBranch = gitBranch;
+    }
+
+    public String getBuildFile() {
+        return buildFile;
+    }
+
+    public void setBuildFile(String buildFile) {
+        this.buildFile = buildFile;
+    }
+
+    public LocalProjectInfo.BuildSystem getBuildSystem() {
+        return buildSystem;
+    }
+
+    public void setBuildSystem(LocalProjectInfo.BuildSystem buildSystem) {
+        this.buildSystem = buildSystem;
+    }
+
+    public int getStartupWaitDuration() {
+        return startupWaitDuration;
+    }
+
+    public void setStartupWaitDuration(int startupWaitDuration) {
+        this.startupWaitDuration = startupWaitDuration;
+    }
+
+    public boolean isSwitchBranchOnOpen() {
+        return switchBranchOnOpen;
+    }
+
+    public void setSwitchBranchOnOpen(boolean switchBranchOnOpen) {
+        this.switchBranchOnOpen = switchBranchOnOpen;
+    }
+}

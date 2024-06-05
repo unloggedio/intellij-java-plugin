@@ -30,6 +30,9 @@ public class UITestUtils {
         ADD_ICON("//div[@accessiblename='Add' and @class='ActionButton' and @myaction='Add (null)']"),
         CREATE_NEW_PROJECT("//div[(@class='MainButton' and @text='New Project') or (@accessiblename='New Project' and @class='JButton')]"),
         OPEN_PROJECT("//div[@accessiblename.key='action.WelcomeScreen.OpenProject.text']"),
+        CREATE_FROM_VCS_OPTION("//div[@defaulticon='fromVCSTab.svg']"),
+        VCS_CREATE_URL_TEXT_FIELD("//div[@class='TextFieldWithHistory']"),
+        VCS_CREATE_CLONE_BUTTON("//div[@text='Clone']"),
         MORE_ACTIONS("//div[@accessiblename='More Actions']"),
         OPEN_PROJECT_TEXT_FIELD("//div[@class='BorderlessTextField']"),
         EXPAND_ALL("//div[contains(@myaction.key, 'action.ExpandAll.text')]"),
@@ -94,6 +97,7 @@ public class UITestUtils {
         GIT_ROLLBACK_CHANGES_VIEWPORT("//div[@class='ChangesBrowserTreeList']"),
         LOCAL_HYPERLINK_FILTER("//div[@accessiblename='[Local]']"),
         CLEAR_FILTERS_LABEL("//div[@visible_text='Clear filters']"),
+        GIT_MENUBAR_OPTION("//div[@accessiblename='Git' and @class='ActionMenu' and @text='Git']"),
         GO_TO_DIRECT_INVOKE("//div[@defaulticon='execute.svg']");
 
         private String value;
