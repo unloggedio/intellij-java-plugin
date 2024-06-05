@@ -1,6 +1,8 @@
 package com.insidious.plugin.UITests.Utils;
 
 import com.insidious.plugin.UITests.UIElementNotFoundException;
+import com.insidious.plugin.UITests.wrapper.FilterOptions;
+import com.insidious.plugin.UITests.wrapper.RemoteRobotController;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.fixtures.ContainerFixture;
@@ -9,6 +11,8 @@ import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import java.util.List;
 
 import static com.intellij.remoterobot.search.locators.Locators.byXpath;
+import static java.awt.event.KeyEvent.VK_ENTER;
+import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofSeconds;
 import static org.assertj.swing.timing.Pause.pause;
 
@@ -23,6 +27,7 @@ public class UITestUtils {
         UNLOGGED_DIRECT_INVOKE_TAB_HEADER("//div[@text='Direct Invoke']"),
         UNLOGGED_DIRECT_INVOKE_EXECUTE_BUTTON("//div[@class='JButton' and @text='Execute method']"),
         DEBUG_BUTTON("//div[@myicon='startDebugger.svg']"),
+        ADD_ICON("//div[@accessiblename='Add' and @class='ActionButton' and @myaction='Add (null)']"),
         CREATE_NEW_PROJECT("//div[(@class='MainButton' and @text='New Project') or (@accessiblename='New Project' and @class='JButton')]"),
         OPEN_PROJECT("//div[@accessiblename.key='action.WelcomeScreen.OpenProject.text']"),
         MORE_ACTIONS("//div[@accessiblename='More Actions']"),
@@ -88,6 +93,7 @@ public class UITestUtils {
         TERMINAL_PANEL("//div[@class='JBTerminalPanel']"),
         GIT_ROLLBACK_CHANGES_VIEWPORT("//div[@class='ChangesBrowserTreeList']"),
         LOCAL_HYPERLINK_FILTER("//div[@accessiblename='[Local]']"),
+        CLEAR_FILTERS_LABEL("//div[@visible_text='Clear filters']"),
         GO_TO_DIRECT_INVOKE("//div[@defaulticon='execute.svg']");
 
         private String value;
@@ -194,5 +200,59 @@ public class UITestUtils {
             }
         }
         throw new UIElementNotFoundException("Component with XPATH : " + xpath + " not found on UI");
+    }
+
+    public static void setFilterOptionsForCurrentView(RemoteRobotController controller, FilterOptions filterOptions) {
+        if (filterOptions.isClearFilters()) {
+            try {
+                controller.getIdeaFrame().getClearFiltersLabel().click();
+            } catch (Exception e) {
+                //No filters were active
+            }
+        }
+
+        controller.getIdeaFrame().getFilterButton().click();
+        pause(ofMillis(500).toMillis());
+        List<ComponentFixture> fixtures = controller.getIdeaFrame().getAllAddIconComponents();
+        System.out.println("Fixture List Size : " + fixtures.size());
+        assert fixtures.size() == 4;
+
+        //set Included classes
+        filterOptions.getIncludedClasses().forEach(option -> {
+            fixtures.get(0).click();
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().enterText(option);
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().hotKey(VK_ENTER);
+        });
+
+        //set Excluded classes
+        filterOptions.getExcludedClasses().forEach(option -> {
+            fixtures.get(1).click();
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().enterText(option);
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().hotKey(VK_ENTER);
+        });
+
+        //set included methods
+        filterOptions.getIncludedMethods().forEach(option -> {
+            fixtures.get(2).click();
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().enterText(option);
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().hotKey(VK_ENTER);
+        });
+
+        //set excluded methods
+        filterOptions.getExcludedMethods().forEach(option -> {
+            fixtures.get(3).click();
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().enterText(option);
+            pause(ofMillis(250).toMillis());
+            controller.getKeyboard().hotKey(VK_ENTER);
+        });
+
+        controller.getIdeaFrame().getFilterApplyButton().click();
     }
 }

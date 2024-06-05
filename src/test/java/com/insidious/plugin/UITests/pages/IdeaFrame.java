@@ -325,4 +325,12 @@ public class IdeaFrame extends CommonContainerFixture {
     public ComponentFixture getLocalHostRadioButton() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.LOCALHOST_RADIO_BUTTON_LABEL);
     }
+
+    public List<ComponentFixture> getAllAddIconComponents() {
+        return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.ADD_ICON);
+    }
+
+    public ComponentFixture getClearFiltersLabel() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.CLEAR_FILTERS_LABEL);
+    }
 }

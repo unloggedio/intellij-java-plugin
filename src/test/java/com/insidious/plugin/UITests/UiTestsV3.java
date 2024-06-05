@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.List;
 
+import static com.insidious.plugin.UITests.Utils.UITestUtils.setFilterOptionsForCurrentView;
 import static com.insidious.plugin.UITests.Utils.UiTestInteractionUtils.*;
 import static java.awt.event.KeyEvent.*;
 import static java.time.Duration.*;
@@ -44,7 +45,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(1)
-//    @Disabled
+    @Disabled
     public void openProjectAndAddSDK() {
 
         step("Open Project", () -> {
@@ -174,7 +175,7 @@ public class UiTestsV3 {
     }
 
     @Test
-//    @Disabled
+    @Disabled
     @Order(3)
     public void runLocalMode() {
 
@@ -233,7 +234,7 @@ public class UiTestsV3 {
     //Also is the start of local test chain
     @Test
     @Order(4)
-//    @Disabled
+    @Disabled
     public void serverIssues_73() {
         //start project in local mode
         //after main method candidate Inlayhint click, inlayhints should not disappear
@@ -287,7 +288,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(5)
-//    @Disabled
+    @Disabled
     public void serverIssues_20_local() {
         //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
         //unlogged toolbar assumed to be open before this.
@@ -311,7 +312,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(6)
-//    @Disabled
+    @Disabled
     public void serverIssues_30_local() {
         //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
         //Assumes unlogged plugin window is open
@@ -333,5 +334,21 @@ public class UiTestsV3 {
         step("Stop process", () -> {
             stopProcessInTerminal(controller);
         });
+    }
+
+    @Test
+    @Order(7)
+    public void debugFilterInteraction() {
+        List<String> includedClasses = new ArrayList<>();
+        includedClasses.add("org.unlogged.demo.jspdemo.wfm.SerializationUtils");
+        List<String> includedMethods = new ArrayList<>();
+        includedMethods.add("getObjectFor");
+        FilterOptions filterOptions = new FilterOptions(includedClasses,
+                new ArrayList<>(),
+                includedMethods,
+                new ArrayList<>(),
+                true);
+
+        setFilterOptionsForCurrentView(controller, filterOptions);
     }
 }
