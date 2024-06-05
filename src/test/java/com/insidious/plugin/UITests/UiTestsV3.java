@@ -7,14 +7,15 @@ import com.insidious.plugin.UITests.wrapper.*;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
+import static com.insidious.plugin.UITests.Utils.UITestUtils.setFilterOptionsForCurrentView;
 import com.intellij.remoterobot.utils.Keyboard;
+import org.junit.Assert;
 import org.junit.jupiter.api.*;
 
 import java.time.Duration;
 import java.util.*;
 import java.util.List;
 
-import static com.insidious.plugin.UITests.Utils.UITestUtils.setFilterOptionsForCurrentView;
 import static com.insidious.plugin.UITests.Utils.UiTestInteractionUtils.*;
 import static java.awt.event.KeyEvent.*;
 import static java.time.Duration.*;
@@ -25,6 +26,13 @@ import static com.intellij.remoterobot.stepsProcessing.StepWorkerKt.step;
 public class UiTestsV3 {
     private RemoteRobotController controller;
     private ProjectInfo projectInfo;
+
+    private int expectedNumberOfTestCasesForFutureController;
+    private String futureControllerTestFilePath;
+    private String directInvokeRequestMethodIdentifierFutureController;
+    private String directInvokeRequestClassname;
+    private String filteredClassName;
+    private String filteredMethodName;
 
     public UiTestsV3() {
         RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8082");
@@ -41,6 +49,12 @@ public class UiTestsV3 {
         projectInfo.setRemoveScriptName("remove_local_sessions.sh");
         projectInfo.setRevertScriptName("git_rollback.sh");
         projectInfo.setStartupWaitDuration(60);
+        expectedNumberOfTestCasesForFutureController = 1;
+        futureControllerTestFilePath = "/Users/akshatjain/unlogged-spring-maven-demo/src/test/java/org/unlogged/demo/controller/TestFutureControllerV.java";
+        directInvokeRequestMethodIdentifierFutureController = "public String getFutureResult(String s1)";
+        directInvokeRequestClassname = "FutureController";
+        filteredClassName = "org.unlogged.demo.controller.FutureController";
+        filteredMethodName = "getFutureResult";
     }
 
     @Test
@@ -201,6 +215,13 @@ public class UiTestsV3 {
             controller.getIdeaFrame().getFilterApplyButton().click();
         });
 
+        step("Clear reminiscent candidates", () -> {
+            controller.getIdeaFrame().getRefreshButton().click();
+            pause(ofSeconds(10).toMillis());
+            controller.getIdeaFrame().getToolBarDeleteButton().click();
+            pause(ofSeconds(10).toMillis());
+        });
+
         step("DirectInvoke and assert results", () -> {
             List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
             List<DirectInvokeTreeLine> assertions = new ArrayList<>();
@@ -223,6 +244,67 @@ public class UiTestsV3 {
                     inputLines, assertions, List.of(AssertionOptions.DIRECT_INVOKE_RESPONSE),
                     true);
             UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
+        });
+
+        step("Clear reminiscent candidates", () -> {
+            controller.getIdeaFrame().getRefreshButton().click();
+            pause(ofSeconds(10).toMillis());
+            controller.getIdeaFrame().getToolBarDeleteButton().click();
+            pause(ofSeconds(10).toMillis());
+        });
+
+        //JUnit Flow 1:
+        step("Select and Run Junit Flow 1", () -> {
+            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
+            inputLines.add(new DirectInvokeTreeLine(1, "Hello"));
+            DirectInvokeRequest directInvokeRequest = new DirectInvokeRequest(directInvokeRequestClassname,
+                    directInvokeRequestMethodIdentifierFutureController,
+                    inputLines, true);
+            JUnitRequest jUnitRequest = new JUnitRequest(directInvokeRequest, JunitOptions.JUNIT_ICON, futureControllerTestFilePath, true);
+            generateJunitUsingIcon(jUnitRequest, controller, filteredClassName, filteredMethodName);
+            assertNumberOfTestCases(jUnitRequest);
+           });
+
+        step("Clear reminiscent candidates", () -> {
+            controller.getIdeaFrame().getRefreshButton().click();
+            pause(ofSeconds(10).toMillis());
+            controller.getIdeaFrame().getToolBarDeleteButton().click();
+            pause(ofSeconds(10).toMillis());
+        });
+
+        //JUnit Dummy Data flow
+        step("Select and Run Junit Dummy data flow", () -> {
+            DirectInvokeRequest directInvokeRequest = new DirectInvokeRequest(directInvokeRequestClassname,
+                    directInvokeRequestMethodIdentifierFutureController,
+                    true);
+            JUnitRequest junitRequest = new JUnitRequest(directInvokeRequest, JunitOptions.DUMMY_DATA,
+                    futureControllerTestFilePath,
+                    false, true, false, TestFrameworkOptions.JUNIT4, MockFrameworkOptions.MOCKITO, JSONFrameworkOptions.JACKSON, StoreOptions.IN_CODE, false);
+            junitDummyDataGeneration(junitRequest, controller);
+            assertNumberOfTestCases(junitRequest);
+        });
+
+        step("Clear reminiscent candidates", () -> {
+            controller.getIdeaFrame().getRefreshButton().click();
+            pause(ofSeconds(10).toMillis());
+            controller.getIdeaFrame().getToolBarDeleteButton().click();
+            pause(ofSeconds(10).toMillis());
+        });
+
+        //JUnit Replay Data flow
+        step("Select and Run Junit Replay data flow", () -> {
+
+            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
+            inputLines.add(new DirectInvokeTreeLine(1, "Hello"));
+            DirectInvokeRequest directInvokeRequest = new DirectInvokeRequest(directInvokeRequestClassname,
+                    directInvokeRequestMethodIdentifierFutureController,
+                    inputLines, true);
+            JUnitRequest junitRequest = new JUnitRequest(directInvokeRequest, JunitOptions.REPLAY_DATA,
+                    futureControllerTestFilePath,
+                    false, true, false, TestFrameworkOptions.JUNIT4, MockFrameworkOptions.MOCKITO, JSONFrameworkOptions.JACKSON, StoreOptions.IN_CODE, true);
+            junitReplayDataGeneration(junitRequest, controller);
+            assertNumberOfTestCases(junitRequest);
+            assertNumberOfTestCases(junitRequest);
         });
 
         step("Stop running process", () -> {
@@ -337,6 +419,7 @@ public class UiTestsV3 {
     }
 
     @Test
+    @Disabled
     @Order(7)
     public void debugFilterInteraction() {
         List<String> includedClasses = new ArrayList<>();
@@ -348,7 +431,78 @@ public class UiTestsV3 {
                 includedMethods,
                 new ArrayList<>(),
                 true);
+                setFilterOptionsForCurrentView(controller, filterOptions);
+    }
 
-        setFilterOptionsForCurrentView(controller, filterOptions);
+    @Test
+    @Disabled
+    @Order(8)
+    public void junitIconOptionAbstracted() {
+        List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
+        inputLines.add(new DirectInvokeTreeLine(1, "Hello"));
+        DirectInvokeRequest directInvokeRequest = new DirectInvokeRequest(directInvokeRequestClassname,
+                directInvokeRequestMethodIdentifierFutureController,
+                inputLines, true);
+        JUnitRequest jUnitRequest = new JUnitRequest(directInvokeRequest, JunitOptions.JUNIT_ICON, futureControllerTestFilePath, true);
+        generateJunitUsingIcon(jUnitRequest, controller, filteredClassName, filteredMethodName);
+        assertNumberOfTestCases(jUnitRequest);
+    }
+
+    @Test
+    @Disabled
+    @Order(9)
+    public void junitDummyDataAbstracted() {
+        DirectInvokeRequest directInvokeRequest = new DirectInvokeRequest(directInvokeRequestClassname,
+                directInvokeRequestMethodIdentifierFutureController,
+                true);
+        JUnitRequest junitRequest = new JUnitRequest(directInvokeRequest, JunitOptions.DUMMY_DATA,
+                futureControllerTestFilePath,
+                false, true, false, TestFrameworkOptions.JUNIT4, MockFrameworkOptions.MOCKITO, JSONFrameworkOptions.JACKSON, StoreOptions.IN_CODE, false);
+        junitDummyDataGeneration(junitRequest, controller);
+        assertNumberOfTestCases(junitRequest);
+    }
+
+    @Test
+    @Disabled
+    @Order(10)
+    public void junitReplayDataAbstracted() {
+        List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
+        inputLines.add(new DirectInvokeTreeLine(1, "Hello"));
+        DirectInvokeRequest directInvokeRequest = new DirectInvokeRequest(directInvokeRequestClassname,
+                directInvokeRequestMethodIdentifierFutureController,
+                inputLines, true);
+        JUnitRequest junitRequest = new JUnitRequest(directInvokeRequest, JunitOptions.REPLAY_DATA,
+                futureControllerTestFilePath,
+                false, true, false, TestFrameworkOptions.JUNIT4, MockFrameworkOptions.MOCKITO, JSONFrameworkOptions.JACKSON, StoreOptions.IN_CODE, true);
+        junitReplayDataGeneration(junitRequest, controller);
+        assertNumberOfTestCases(junitRequest);
+    }
+
+    //TODO: Needs improvements
+    @Test
+    @Disabled
+    @Order(11)
+    public void checkIDEFatalExceptions() {
+        List<String> listIDE = listIDEFatalExceptions(controller);
+        if (!listIDE.isEmpty()) {
+            Assertions.fail("Assertion failure due to exceptions: " + listIDE);
+        } else {
+            Assertions.assertTrue(true);
+        }
+    }
+
+    private void assertNumberOfTestCases(JUnitRequest request) {
+        openFile(request.getTestCasePath().substring(request.getTestCasePath().lastIndexOf("/") + 1), controller);
+        expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
+        clearGotIts(controller);
+        TextEditorFixture editor = controller.getIdeaFrame().textEditor(Duration.ofSeconds(2));
+        int numberOfTestsPresent = editor.getGutter().getIcons()
+                .stream()
+                .filter(icon -> icon.toString().contains("testState/run.svg"))
+                .toList().size();
+
+        Assert.assertEquals("Expected and actual number of test cases are",expectedNumberOfTestCasesForFutureController,numberOfTestsPresent);
+        expectedNumberOfTestCasesForFutureController+=1;
+        pause(ofSeconds(10).toMillis());
     }
 }

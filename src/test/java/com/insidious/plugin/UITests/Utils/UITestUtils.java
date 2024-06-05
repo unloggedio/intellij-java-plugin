@@ -43,7 +43,7 @@ public class UITestUtils {
         SAVE_AND_CLOSE_SAVE_FORM("//div[@text='Save and close']"),
         DIRECT_INVOKE_EXECUTE_NEW("//div[@visible_text='Execute Method']"),
         JTEXT_FIELD("//div[@class='JTextField']"),
-        FILTER_BUTTON_NEW("//div[@myicon='filter.svg']"),
+        FILTER_BUTTON_NEW("//div[@visible_text='Filter']"),
         FILTER_FOLLOW_CHECK_BOX("//div[@class='JTabbedPane']//div[@class='JCheckBox']"),
         CHECK_BOX("//div[@class='JCheckBox']"),
         FILTER_APPLY("//div[@text='Apply']"),
@@ -63,7 +63,6 @@ public class UITestUtils {
         EDIT_MOCK_ENTRY_BUTTON("//div[@myicon='edit.svg']"),
         MOCK_POPUP_SCROLL_PANEL("//div[@class='JScrollPane'][.//div[@class='JCheckBox']]"),
         MOCK_POPUP_CLOSE_ICON("//div[@tooltiptext='Close']"),
-        TOOLBAR_SELECT_ALL("//div[@myicon='selectall.svg']"),
         TOOLBAR_REFRESH("//div[@myicon='refresh.svg']"),
         TOOLBAR_DELETE_ICON("//div[@myicon='gc.svg']"),
         JUNIT_TOP_TOOLBAR("//div[@myicon='tests.svg']"),
@@ -92,9 +91,19 @@ public class UITestUtils {
         TREE("//div[@class='Tree']"),
         TERMINAL_PANEL("//div[@class='JBTerminalPanel']"),
         GIT_ROLLBACK_CHANGES_VIEWPORT("//div[@class='ChangesBrowserTreeList']"),
+        BOILERPLATE_TEST_DUMMY_DATA("//div[@visible_text='Boilerplate test (dummy data)']"),
+        BOILERPLATE_TEST_REPLAY_DATA("//div[@visible_text='Boilerplate test (replay data)']"),
+        BOILERPLATE_TEST_SAVE_BUTTON("//div[@myvisibleactions='[Preview (null), Save (null)]']//div[@visible_text='Save']"),
+        METHOD_INSPECTOR_BACK_BUTTON("//div[@myicon='back.svg']"),
+        TOOLBAR_SELECT_ALL("//div[@myicon='selectall.svg']"),
+        FATAL_ERROR_READ_ICON("//div[@class='IdeErrorsIcon']"),
+        FATA_ERROR_MESSAGE_TAB("//div[@class='JTextArea']"),
+        FATAL_ERROR_NEXT_BUTTON("//div[@tooltiptext='Next']"),
         LOCAL_HYPERLINK_FILTER("//div[@accessiblename='[Local]']"),
-        CLEAR_FILTERS_LABEL("//div[@visible_text='Clear filters']"),
-        GO_TO_DIRECT_INVOKE("//div[@defaulticon='execute.svg']");
+        GO_TO_DIRECT_INVOKE("//div[@defaulticon='execute.svg']"),
+        CLEAR_FILTERS_SHORTCUT("//div[@visible_text='Clear filters']"),
+        ADD_ICON_INSIDE_FILTER("//div[contains(@tooltiptext, 'Press')]//div[@myicon='add.svg']"),
+        CLEAR_FILTERS_LABEL("//div[@visible_text='Clear filters']");
 
         private String value;
 
