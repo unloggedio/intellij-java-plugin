@@ -85,7 +85,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     private boolean isConnected = false;
     private boolean scanEnable;
     private String sessionURL;
-    private ExecutionSession executionSession;
+    private ExecutionSession executionSession = null;
 
     public NetworkSessionInstanceClient(String endpoint, String sessionId, ServerMetadata serverMetadata) {
         this.endpoint = endpoint;
@@ -158,7 +158,6 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         logger.info("url get execution session = " + url);
         CountDownLatch latch = new CountDownLatch(1);
 
-        AtomicReference<ExecutionSession> executionSession = new AtomicReference<>();
         get(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -170,9 +169,8 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
             public void onResponse(Call call, Response response) throws IOException {
                 try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    ExecutionSession newValue = objectMapper.readValue(responseBody, ExecutionSession.class);
-                    newValue.setSessionMode(ExecutionSessionSourceMode.REMOTE);
-                    executionSession.set(newValue);
+                    executionSession = objectMapper.readValue(responseBody, ExecutionSession.class);
+                    executionSession.setSessionMode(ExecutionSessionSourceMode.REMOTE);
                 } finally {
                     latch.countDown();
                 }
@@ -184,8 +182,6 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         } catch (InterruptedException e) {
 
         }
-
-        this.executionSession = executionSession.get();
     }
 
     @Override
