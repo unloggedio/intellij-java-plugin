@@ -85,6 +85,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     private boolean isConnected = false;
     private boolean scanEnable;
     private String sessionURL;
+    private ExecutionSession executionSession;
 
     public NetworkSessionInstanceClient(String endpoint, String sessionId, ServerMetadata serverMetadata) {
         this.endpoint = endpoint;
@@ -104,6 +105,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         module.addDeserializer(TypeInfoClient.class, new TypeInfoClient.TypeInfoClientDeserializer());
         objectMapper.registerModule(module);
 
+        getExecutionSessionFromServer();
         this.unloggedSdkApiAgentClient = new UnloggedSdkApiAgentClient(agentServerUrl);
     }
 
@@ -149,6 +151,41 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
         return this.client.newCall(request)
                 .execute();
+    }
+
+    private void getExecutionSessionFromServer() {
+        String url = this.endpoint + this.getExecutionSession + this.sessionURL;
+        logger.info("url get execution session = " + url);
+        CountDownLatch latch = new CountDownLatch(1);
+
+        AtomicReference<ExecutionSession> executionSession = new AtomicReference<>();
+        get(url, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                logger.info("failure encountered", e);
+                latch.countDown();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try (response) {
+                    String responseBody = Objects.requireNonNull(response.body()).string();
+                    ExecutionSession newValue = objectMapper.readValue(responseBody, ExecutionSession.class);
+                    newValue.setSessionMode(ExecutionSessionSourceMode.REMOTE);
+                    executionSession.set(newValue);
+                } finally {
+                    latch.countDown();
+                }
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+
+        }
+
+        this.executionSession = executionSession.get();
     }
 
     @Override
@@ -1072,39 +1109,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
     @Override
     public ExecutionSession getExecutionSession() {
-
-        String url = this.endpoint + this.getExecutionSession + this.sessionURL;
-        logger.info("url get execution session = " + url);
-        CountDownLatch latch = new CountDownLatch(1);
-
-        AtomicReference<ExecutionSession> executionSession = new AtomicReference<>();
-        get(url, new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered", e);
-                latch.countDown();
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                try (response) {
-                    String responseBody = Objects.requireNonNull(response.body()).string();
-                    ExecutionSession newValue = objectMapper.readValue(responseBody, ExecutionSession.class);
-                    newValue.setSessionMode(ExecutionSessionSourceMode.REMOTE);
-                    executionSession.set(newValue);
-                } finally {
-                    latch.countDown();
-                }
-            }
-        });
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-
-        }
-
-        return executionSession.get();
+        return this.executionSession;
     }
 
     @Override
