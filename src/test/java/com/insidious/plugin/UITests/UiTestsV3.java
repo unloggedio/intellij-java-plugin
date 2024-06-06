@@ -7,7 +7,9 @@ import com.insidious.plugin.UITests.wrapper.*;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
+
 import static com.insidious.plugin.UITests.Utils.UITestUtils.setFilterOptionsForCurrentView;
+
 import com.intellij.remoterobot.utils.Keyboard;
 import org.junit.Assert;
 import org.junit.jupiter.api.*;
@@ -25,7 +27,7 @@ import static com.intellij.remoterobot.stepsProcessing.StepWorkerKt.step;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class UiTestsV3 {
     private RemoteRobotController controller;
-    private ProjectInfo projectInfo;
+    private LocalProjectInfo localProjectInfo;
 
     private int expectedNumberOfTestCasesForFutureController;
     private String futureControllerTestFilePath;
@@ -39,22 +41,16 @@ public class UiTestsV3 {
         Keyboard keyboard = new Keyboard(remoteRobot);
         controller = new RemoteRobotController(remoteRobot, keyboard);
 
-        projectInfo = new ProjectInfo("unlogged-spring-maven-demo",
+        localProjectInfo = new LocalProjectInfo("unlogged-spring-maven-demo",
                 "unlogged-spring-maven-demo",
                 "pom.xml",
-                ProjectInfo.BuildSystem.MAVEN,
+                LocalProjectInfo.BuildSystem.MAVEN,
                 "UnloggedDemoApplication"
         );
-        projectInfo.setStartScriptName("start_project.sh");
-        projectInfo.setRemoveScriptName("remove_local_sessions.sh");
-        projectInfo.setRevertScriptName("git_rollback.sh");
-        projectInfo.setStartupWaitDuration(60);
-        expectedNumberOfTestCasesForFutureController = 1;
-        futureControllerTestFilePath = "/Users/akshatjain/unlogged-spring-maven-demo/src/test/java/org/unlogged/demo/controller/TestFutureControllerV.java";
-        directInvokeRequestMethodIdentifierFutureController = "public String getFutureResult(String s1)";
-        directInvokeRequestClassname = "FutureController";
-        filteredClassName = "org.unlogged.demo.controller.FutureController";
-        filteredMethodName = "getFutureResult";
+        localProjectInfo.setStartScriptName("start_project.sh");
+        localProjectInfo.setRemoveScriptName("remove_local_sessions.sh");
+        localProjectInfo.setRevertScriptName("git_rollback.sh");
+        localProjectInfo.setStartupWaitDuration(60);
     }
 
     @Test
@@ -67,7 +63,7 @@ public class UiTestsV3 {
             welcomeFrame.getOpenProjectButton().click();
             welcomeFrame.getProjectSelectorComboBox().click();
 
-            controller.getKeyboard().enterText("/" + projectInfo.getProjectPath());
+            controller.getKeyboard().enterText("/" + localProjectInfo.getProjectPath());
             pause(ofSeconds(1).toMillis());
             welcomeFrame.getOpenConfirmButton().click();
         });
@@ -77,8 +73,8 @@ public class UiTestsV3 {
         });
 
         step("Revert all changes made to project, remove local sessions", () -> {
-            executeShellScriptAndWait(controller, projectInfo.getRevertScriptName(), 5);
-            executeShellScriptAndWait(controller, projectInfo.getRemoveScriptName(), 2);
+            executeShellScriptAndWait(controller, localProjectInfo.getRevertScriptName(), 5);
+            executeShellScriptAndWait(controller, localProjectInfo.getRemoveScriptName(), 2);
         });
 
         step("Add unlogged dependency (Mac)", () -> {
@@ -120,8 +116,8 @@ public class UiTestsV3 {
         //TODO : revert changes if annotations are already present
 
         step("Add annotation and start project", () -> {
-            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText, true);
-            executeShellScriptAndWait(controller, projectInfo.getStartScriptName(), projectInfo.getStartupWaitDuration());
+            addUnloggedToStartFile(controller, localProjectInfo.getMainClassName(), annotationText, true);
+            executeShellScriptAndWait(controller, localProjectInfo.getStartScriptName(), localProjectInfo.getStartupWaitDuration());
         });
 
         step("Set Source to remote URL", () -> {
@@ -196,9 +192,9 @@ public class UiTestsV3 {
         final String annotationText = "@Unlogged";
 
         step("Add annotation and start project", () -> {
-            UiTestInteractionUtils.openAndRevertGitChangesForFile(projectInfo.getMainClassName(), controller);
-            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText, false);
-            executeShellScriptAndWait(controller, projectInfo.getStartScriptName(), projectInfo.getStartupWaitDuration());
+            UiTestInteractionUtils.openAndRevertGitChangesForFile(localProjectInfo.getMainClassName(), controller);
+            addUnloggedToStartFile(controller, localProjectInfo.getMainClassName(), annotationText, false);
+            executeShellScriptAndWait(controller, localProjectInfo.getStartScriptName(), localProjectInfo.getStartupWaitDuration());
         });
 
         step("Set source filter to Localhost", () -> {
@@ -263,7 +259,7 @@ public class UiTestsV3 {
             JUnitRequest jUnitRequest = new JUnitRequest(directInvokeRequest, JunitOptions.JUNIT_ICON, futureControllerTestFilePath, true);
             generateJunitUsingIcon(jUnitRequest, controller, filteredClassName, filteredMethodName);
             assertNumberOfTestCases(jUnitRequest);
-           });
+        });
 
         step("Clear reminiscent candidates", () -> {
             controller.getIdeaFrame().getRefreshButton().click();
@@ -324,9 +320,9 @@ public class UiTestsV3 {
         final String annotationText = "@Unlogged";
 
         step("Add annotation and start project", () -> {
-            UiTestInteractionUtils.openAndRevertGitChangesForFile(projectInfo.getMainClassName(), controller);
-            addUnloggedToStartFile(controller, projectInfo.getMainClassName(), annotationText, false);
-            executeShellScriptAndWait(controller, projectInfo.getStartScriptName(), projectInfo.getStartupWaitDuration());
+            UiTestInteractionUtils.openAndRevertGitChangesForFile(localProjectInfo.getMainClassName(), controller);
+            addUnloggedToStartFile(controller, localProjectInfo.getMainClassName(), annotationText, false);
+            executeShellScriptAndWait(controller, localProjectInfo.getStartScriptName(), localProjectInfo.getStartupWaitDuration());
         });
 
         step("Set source filter to Localhost", () -> {
@@ -343,7 +339,7 @@ public class UiTestsV3 {
         });
 
         step("Open main class and enusre InlayHint render behaviour is as expected", () -> {
-            openFile(projectInfo.getMainClassName(), controller);
+            openFile(localProjectInfo.getMainClassName(), controller);
             //look for inlayHints and assert that clicking on it will not hide it
             TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
             List<RemoteText> texts = textEditorFixture.getData().getAll();
@@ -431,7 +427,7 @@ public class UiTestsV3 {
                 includedMethods,
                 new ArrayList<>(),
                 true);
-                setFilterOptionsForCurrentView(controller, filterOptions);
+        setFilterOptionsForCurrentView(controller, filterOptions);
     }
 
     @Test
@@ -463,7 +459,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Disabled
+//    @Disabled
     @Order(10)
     public void junitReplayDataAbstracted() {
         List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
@@ -480,7 +476,6 @@ public class UiTestsV3 {
 
     //TODO: Needs improvements
     @Test
-    @Disabled
     @Order(11)
     public void checkIDEFatalExceptions() {
         List<String> listIDE = listIDEFatalExceptions(controller);
@@ -501,8 +496,18 @@ public class UiTestsV3 {
                 .filter(icon -> icon.toString().contains("testState/run.svg"))
                 .toList().size();
 
-        Assert.assertEquals("Expected and actual number of test cases are",expectedNumberOfTestCasesForFutureController,numberOfTestsPresent);
-        expectedNumberOfTestCasesForFutureController+=1;
+        Assert.assertEquals("Expected and actual number of test cases are", expectedNumberOfTestCasesForFutureController, numberOfTestsPresent);
+        expectedNumberOfTestCasesForFutureController += 1;
         pause(ofSeconds(10).toMillis());
+    }
+
+    @Test
+    @Order(12)
+    public void testCloneAndOpenFlow() {
+        GitProjectInfo projectUnderTest = new GitProjectInfo("unlogged-spring-maven-demo",
+                "https://github.com/unloggedio/unlogged-spring-maven-demo.git",
+                "ui_test_clean", "pom.xml", LocalProjectInfo.BuildSystem.MAVEN, 60,
+                true);
+        cloneAndOpenProject(controller, projectUnderTest);
     }
 }

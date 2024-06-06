@@ -39,4 +39,16 @@ public class WelcomeFrame extends CommonContainerFixture {
     public ComponentFixture getOpenConfirmButton() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.OPEN_PROJECT_OK_BUTTON);
     }
+
+    public ComponentFixture getVcsCreateOption() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.CREATE_FROM_VCS_OPTION);
+    }
+
+    public ComponentFixture getVcsRepoUrlTextField() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.VCS_CREATE_URL_TEXT_FIELD);
+    }
+
+    public ComponentFixture getVcsCloneButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.VCS_CREATE_CLONE_BUTTON);
+    }
 }

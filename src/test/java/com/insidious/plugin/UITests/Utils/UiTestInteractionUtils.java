@@ -2,9 +2,11 @@ package com.insidious.plugin.UITests.Utils;
 
 import com.insidious.plugin.UITests.UIElementNotFoundException;
 import com.insidious.plugin.UITests.pages.IdeaFrame;
+import com.insidious.plugin.UITests.pages.WelcomeFrame;
 import com.insidious.plugin.UITests.wrapper.DirectInvokeRequest;
 import com.insidious.plugin.UITests.wrapper.FilterOptions;
 import com.insidious.plugin.UITests.wrapper.JUnitRequest;
+import com.insidious.plugin.UITests.wrapper.GitProjectInfo;
 import com.insidious.plugin.UITests.wrapper.RemoteRobotController;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.*;
@@ -271,15 +273,15 @@ public class UiTestInteractionUtils {
         List<String> ideExceptions = new ArrayList<>();
         try {
             controller.getIdeaFrame().getFatalIdeExceptionIcon().click();
-            int totalIdeExceptions = controller.getIdeaFrame().getFatalErrorNextButton().getData().getAll().size()+2;
+            int totalIdeExceptions = controller.getIdeaFrame().getFatalErrorNextButton().getData().getAll().size() + 2;
 
             int i = 0;
             do {
                 ideExceptions.add(controller.getIdeaFrame().getFatalErrorMessageTab().getData().getAll().get(0).getText());
                 controller.getIdeaFrame().getFatalErrorNextButton().click();
                 i++;
-            } while(i < totalIdeExceptions);
-        } catch(Exception e) {
+            } while (i < totalIdeExceptions);
+        } catch (Exception e) {
             Assert.assertTrue("No IDE exceptions occured", true);
         }
         return ideExceptions;
@@ -287,7 +289,7 @@ public class UiTestInteractionUtils {
 
 
     public static void generateJunitUsingIcon(JUnitRequest request, RemoteRobotController controller, String filteredClassName, String filteredMethodName) {
-        if(request.isExecutionOnDemand()) directInvokeMethod(request.getDirectInvokeRequest(), controller);
+        if (request.isExecutionOnDemand()) directInvokeMethod(request.getDirectInvokeRequest(), controller);
         clearGotIts(controller);
         controller.getIdeaFrame().getMethodInspectorBackButton().click();
         controller.getIdeaFrame().getMethodInspectorBackButton().click();
@@ -339,7 +341,7 @@ public class UiTestInteractionUtils {
     public static void junitReplayDataGeneration(JUnitRequest request, RemoteRobotController controller) {
 
         DirectInvokeRequest directInvokeRequest = request.getDirectInvokeRequest();
-        if(request.isExecutionOnDemand()) directInvokeMethod(directInvokeRequest, controller);
+        if (request.isExecutionOnDemand()) directInvokeMethod(directInvokeRequest, controller);
 
         searchFirstInCurrentFile(controller, directInvokeRequest.getMethodIdentifier());
         EditorFixture editorFixture = controller.getIdeaFrame().textEditor().getEditor();
@@ -357,5 +359,40 @@ public class UiTestInteractionUtils {
         //TODO: Can also assert test case path here
         controller.getIdeaFrame().getBoilerplateTestSaveButton().click();
         pause(ofSeconds(5).toMillis());
+    }
+
+    public static void executeDeterministicShellCommand(RemoteRobotController controller, String command, int waitDurationInSeconds) {
+        controller.getIdeaFrame().getTerminalToolBarSelectable().click();
+        pause(ofSeconds(3).toMillis());
+
+        //click in the window to shift focus there
+        List<RemoteText> terminalCharacters = controller.getIdeaFrame().getTerminalPanel().getData().getAll();
+        if (terminalCharacters.size() > 0) {
+            terminalCharacters.get(terminalCharacters.size() - 1).click();
+        }
+
+        controller.getKeyboard().enterText(command);
+        pause(ofMillis(50).toMillis());
+
+        controller.getKeyboard().hotKey(VK_ENTER);
+        pause(ofSeconds(waitDurationInSeconds).toMillis());
+        controller.getIdeaFrame().getTerminalToolWindowHideButton().click();
+    }
+
+    public static void cloneAndOpenProject(RemoteRobotController controller, GitProjectInfo projectUnderTest) {
+        WelcomeFrame welcomeFrame = controller.getRemoteRobot().find(WelcomeFrame.class, ofSeconds(10));
+        welcomeFrame.getVcsCreateOption().click();
+        pause(ofMillis(250).toMillis());
+        welcomeFrame.getVcsRepoUrlTextField().click();
+
+        controller.getKeyboard().enterText(projectUnderTest.getGitUrl());
+        pause(ofMillis(250).toMillis());
+        welcomeFrame.getVcsCloneButton().click();
+
+        pause(ofSeconds(50).toMillis());
+
+        if (projectUnderTest.isSwitchBranchOnOpen()) {
+            executeDeterministicShellCommand(controller, "git checkout " + projectUnderTest.getGitBranch(), 2);
+        }
     }
 }

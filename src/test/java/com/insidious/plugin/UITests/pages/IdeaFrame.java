@@ -371,4 +371,8 @@ public class IdeaFrame extends CommonContainerFixture {
     public ComponentFixture getClearFiltersLabel() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.CLEAR_FILTERS_LABEL);
     }
+
+    public ComponentFixture getGitMenuBar() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GIT_MENUBAR_OPTION);
+    }
 }
