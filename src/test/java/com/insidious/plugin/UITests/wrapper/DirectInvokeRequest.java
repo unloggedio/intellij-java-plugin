@@ -21,6 +21,19 @@ public class DirectInvokeRequest {
         this.expectedOutputs = expectedOutputs;
     }
 
+    public DirectInvokeRequest(String classname, String methodIdentifier, List<DirectInvokeTreeLine> inputs, boolean openFile) {
+        this.classname = classname;
+        this.methodIdentifier = methodIdentifier;
+        this.inputs = inputs;
+        this.openFile = openFile;
+    }
+
+    public DirectInvokeRequest(String classname, String methodIdentifier, boolean openFile) {
+        this.classname = classname;
+        this.methodIdentifier = methodIdentifier;
+        this.openFile = openFile;
+    }
+
     public String getClassname() {
         return classname;
     }

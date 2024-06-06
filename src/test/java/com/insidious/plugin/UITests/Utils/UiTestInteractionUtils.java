@@ -4,6 +4,8 @@ import com.insidious.plugin.UITests.UIElementNotFoundException;
 import com.insidious.plugin.UITests.pages.IdeaFrame;
 import com.insidious.plugin.UITests.pages.WelcomeFrame;
 import com.insidious.plugin.UITests.wrapper.DirectInvokeRequest;
+import com.insidious.plugin.UITests.wrapper.FilterOptions;
+import com.insidious.plugin.UITests.wrapper.JUnitRequest;
 import com.insidious.plugin.UITests.wrapper.GitProjectInfo;
 import com.insidious.plugin.UITests.wrapper.RemoteRobotController;
 import com.intellij.remoterobot.RemoteRobot;
@@ -11,11 +13,15 @@ import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.junit.jupiter.api.Assertions;
+import org.junit.Assert;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.*;
 
+import static com.insidious.plugin.UITests.Utils.UITestUtils.setFilterOptionsForCurrentView;
 import static java.awt.event.KeyEvent.*;
 import static java.awt.event.KeyEvent.VK_A;
 import static java.time.Duration.ofMillis;
@@ -193,7 +199,7 @@ public class UiTestInteractionUtils {
 
     public static void directInvokeMethod(DirectInvokeRequest request, RemoteRobotController controller) {
         if (request.isOpenFile()) {
-            openFile(request.getClassname(), controller);
+            openFile(request.getClassname() + ".java", controller);
             pause(ofMillis(500).toMillis());
         }
         expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
@@ -218,6 +224,7 @@ public class UiTestInteractionUtils {
             controller.getKeyboard().hotKey(VK_ENTER);
         });
         controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
+        pause(ofSeconds(3).toMillis());
     }
 
     public static void directInvokeAndAssertResponse(DirectInvokeRequest request, RemoteRobotController controller) {
@@ -260,6 +267,98 @@ public class UiTestInteractionUtils {
             controller.getIdeaFrame().getUnloggedToolbarComponent().click();
             pause(ofSeconds(waitDurationSeconds).toMillis());
         }
+    }
+
+    public static List<String> listIDEFatalExceptions(RemoteRobotController controller) {
+        List<String> ideExceptions = new ArrayList<>();
+        try {
+            controller.getIdeaFrame().getFatalIdeExceptionIcon().click();
+            int totalIdeExceptions = controller.getIdeaFrame().getFatalErrorNextButton().getData().getAll().size() + 2;
+
+            int i = 0;
+            do {
+                ideExceptions.add(controller.getIdeaFrame().getFatalErrorMessageTab().getData().getAll().get(0).getText());
+                controller.getIdeaFrame().getFatalErrorNextButton().click();
+                i++;
+            } while (i < totalIdeExceptions);
+        } catch (Exception e) {
+            Assert.assertTrue("No IDE exceptions occured", true);
+        }
+        return ideExceptions;
+    }
+
+
+    public static void generateJunitUsingIcon(JUnitRequest request, RemoteRobotController controller, String filteredClassName, String filteredMethodName) {
+        if (request.isExecutionOnDemand()) directInvokeMethod(request.getDirectInvokeRequest(), controller);
+        clearGotIts(controller);
+        controller.getIdeaFrame().getMethodInspectorBackButton().click();
+        controller.getIdeaFrame().getMethodInspectorBackButton().click();
+        List<String> includedClasses = new ArrayList<>();
+        includedClasses.add(filteredClassName);
+        List<String> includedMethods = new ArrayList<>();
+        includedMethods.add(filteredMethodName);
+        FilterOptions filterOptions = new FilterOptions(includedClasses,
+                new ArrayList<>(),
+                includedMethods,
+                new ArrayList<>(),
+                true);
+        setFilterOptionsForCurrentView(controller, filterOptions);
+        controller.getIdeaFrame().getRefreshButton().click();
+        controller.getIdeaFrame().getFirstCheckbox().click();
+        clearGotIts(controller);
+        controller.getIdeaFrame().getJunitTopToolbarIcon().click();
+        pause(ofSeconds(5).toMillis());
+    }
+
+    public static void junitDummyDataGeneration(JUnitRequest request, RemoteRobotController controller) {
+
+        DirectInvokeRequest directInvokeRequest = request.getDirectInvokeRequest();
+        if (directInvokeRequest.isOpenFile()) {
+            openFile(directInvokeRequest.getClassname() + ".java", controller);
+            pause(ofMillis(500).toMillis());
+        }
+        expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
+        searchFirstInCurrentFile(controller, directInvokeRequest.getMethodIdentifier());
+
+
+        EditorFixture editorFixture = controller.getIdeaFrame().textEditor().getEditor();
+        int caretOffset = editorFixture.getCaretOffset();
+        int lineNumber = getLineNumberFromOffset(controller.getIdeaFrame().textEditor(), caretOffset) + 1;
+
+        GutterIcon selectedMethodIcon = controller.getIdeaFrame().textEditor().getGutter().getIcons().stream()
+                .filter(gutterIcon -> gutterIcon.getLineNumber() == lineNumber)
+                .limit(1).toList().get(0);
+
+        selectedMethodIcon.click();
+        controller.getIdeaFrame().getGoToBoilerplateTestDummyData().click();
+        pause(ofSeconds(5).toMillis());
+        //TODO: Add steps to use other elements of the Junit request
+        //TODO: Can also assert test case path here
+        controller.getIdeaFrame().getBoilerplateTestSaveButton().click();
+        pause(ofSeconds(5).toMillis());
+    }
+
+    public static void junitReplayDataGeneration(JUnitRequest request, RemoteRobotController controller) {
+
+        DirectInvokeRequest directInvokeRequest = request.getDirectInvokeRequest();
+        if (request.isExecutionOnDemand()) directInvokeMethod(directInvokeRequest, controller);
+
+        searchFirstInCurrentFile(controller, directInvokeRequest.getMethodIdentifier());
+        EditorFixture editorFixture = controller.getIdeaFrame().textEditor().getEditor();
+        int caretOffset = editorFixture.getCaretOffset();
+        int lineNumber = getLineNumberFromOffset(controller.getIdeaFrame().textEditor(), caretOffset) + 1;
+
+        GutterIcon selectedMethodIcon = controller.getIdeaFrame().textEditor().getGutter().getIcons().stream()
+                .filter(gutterIcon -> gutterIcon.getLineNumber() == lineNumber)
+                .limit(1).toList().get(0);
+
+        selectedMethodIcon.click();
+        controller.getIdeaFrame().getGoToBoilerplateTestReplayData().click();
+        pause(ofSeconds(5).toMillis());
+        //TODO: Add steps to use other elements of the Junit request
+        //TODO: Can also assert test case path here
+        controller.getIdeaFrame().getBoilerplateTestSaveButton().click();
+        pause(ofSeconds(5).toMillis());
     }
 
     public static void executeDeterministicShellCommand(RemoteRobotController controller, String command, int waitDurationInSeconds) {

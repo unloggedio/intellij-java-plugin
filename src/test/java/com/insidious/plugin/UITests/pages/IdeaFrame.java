@@ -112,6 +112,25 @@ public class IdeaFrame extends CommonContainerFixture {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GO_TO_DIRECT_INVOKE);
     }
 
+    public ComponentFixture getClearFiltersShortcutButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.CLEAR_FILTERS_SHORTCUT);
+    }
+    public ComponentFixture getAddIconInsideFilter() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.ADD_ICON_INSIDE_FILTER);
+    }
+
+    public ComponentFixture getGoToBoilerplateTestDummyData() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.BOILERPLATE_TEST_DUMMY_DATA);
+    }
+
+    public ComponentFixture getGoToBoilerplateTestReplayData() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.BOILERPLATE_TEST_REPLAY_DATA);
+    }
+
+    public ComponentFixture getBoilerplateTestSaveButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.BOILERPLATE_TEST_SAVE_BUTTON);
+    }
+
     public ComponentFixture getFilterButton() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.FILTER_BUTTON_NEW);
     }
@@ -132,6 +151,9 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public List<ComponentFixture> getAllVisibleCheckBoxes() {
         return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.CHECK_BOX);
+    }
+    public ComponentFixture getFirstCheckbox() {
+        return getAllVisibleCheckBoxes().get(0);
     }
 
     public List<ComponentFixture> getAllVisibleRadioButtons() {
@@ -216,6 +238,22 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public ComponentFixture getSelectAllicon() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.TOOLBAR_SELECT_ALL);
+    }
+
+    public ComponentFixture getFatalIdeExceptionIcon() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.FATAL_ERROR_READ_ICON);
+    }
+
+    public ComponentFixture getFatalErrorMessageTab() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.FATA_ERROR_MESSAGE_TAB);
+    }
+
+    public ComponentFixture getFatalErrorNextButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.FATAL_ERROR_NEXT_BUTTON);
+    }
+
+    public ComponentFixture getMethodInspectorBackButton() {
+        return UITestUtils.getComponentFixture(remoteRobot,UITestUtils.UITags.METHOD_INSPECTOR_BACK_BUTTON);
     }
 
 
