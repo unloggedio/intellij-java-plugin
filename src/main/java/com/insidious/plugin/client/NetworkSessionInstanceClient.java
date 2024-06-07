@@ -367,36 +367,19 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public List<TestCandidateMetadata> getTestCandidatesForAllMethod(CandidateSearchQuery candidateSearchQuery) {
 
-        boolean loadCalls = candidateSearchQuery.isLoadCalls();
-        List<String> interfaceNames = candidateSearchQuery.getInterfaceNames();
-        String argumentsDescriptor = candidateSearchQuery.getArgumentsDescriptor();
-        CandidateFilterType candidateFilterType = candidateSearchQuery.getCandidateFilterType();
-        String methodSignature = "string";
-        try {
-            methodSignature = candidateSearchQuery.getMethodSignature();
-        } catch (Exception e) {
-        }
-        String className = "string";
-        try {
-            className = candidateSearchQuery.getClassName();
-        } catch (Exception e) {
-        }
-        String methodName = "string";
-        try {
-            methodName = candidateSearchQuery.getMethodName();
-        } catch (Exception e) {
-        }
-
-        String interfaceDataString = "";
-        for (int i = 0; i <= interfaceNames.size() - 1; i++) {
-            interfaceDataString += "&interfaceNames=" + interfaceNames.get(i);
-        }
-
-        String url = this.endpoint + this.getTestCandidatesForAllMethod + this.sessionURL + "&loadCalls=" + loadCalls + interfaceDataString + "&argumentsDescriptor=" + argumentsDescriptor + "&candidateFilterType=" + candidateFilterType + "&methodSignature=" + methodSignature + "&className=" + className + "&methodName=" + methodName;
+        String url = this.endpoint + this.getTestCandidatesForAllMethod + this.sessionURL;
         CountDownLatch latch = new CountDownLatch(1);
         ArrayList<TestCandidateMetadata> localtcml = new ArrayList<>();
 
-        get(url, new Callback() {
+        String jsonCandidateSearchQuery;
+        try {
+            jsonCandidateSearchQuery = objectMapper.writeValueAsString(candidateSearchQuery);
+        } catch (JsonProcessingException e) {
+            logger.error("Error converting candidateSearchQuery to JSON", e);
+            return Collections.emptyList();
+        }
+
+        post(url, jsonCandidateSearchQuery, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 logger.info("failure encountered", e);
@@ -571,17 +554,19 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public MethodDefinition getMethodDefinition(MethodUnderTest methodUnderTest) {
 
-        String name = methodUnderTest.getName();
-        String signature = methodUnderTest.getSignature();
-        String className = methodUnderTest.getClassName();
-        int methodHash = methodUnderTest.getMethodHash();
-
-        String url = this.endpoint + this.getMethodDefinition + this.sessionURL +
-                "&name=" + name + "&signature=" + signature + "&className=" + className + "&methodHash=" + methodHash;
+        String url = this.endpoint + this.getMethodDefinition + this.sessionURL;
         CountDownLatch latch = new CountDownLatch(1);
 
+        String jsonMethodUnderTest;
+        try {
+            jsonMethodUnderTest = objectMapper.writeValueAsString(methodUnderTest);
+        } catch (JsonProcessingException e) {
+            logger.error("Error converting methodUnderTest to JSON", e);
+            return null;
+        }
+
         AtomicReference<MethodDefinition> methodDefinition = new AtomicReference<>();
-        get(url, new Callback() {
+        post(url, jsonMethodUnderTest, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 logger.info("failure encountered", e);
@@ -648,36 +633,19 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public List<MethodCallExpression> getMethodCallExpressions(CandidateSearchQuery candidateSearchQuery) {
 
-        boolean loadCalls = candidateSearchQuery.isLoadCalls();
-        List<String> interfaceNames = candidateSearchQuery.getInterfaceNames();
-        String argumentsDescriptor = candidateSearchQuery.getArgumentsDescriptor();
-        CandidateFilterType candidateFilterType = candidateSearchQuery.getCandidateFilterType();
-        String methodSignature = "string";
-        try {
-            methodSignature = candidateSearchQuery.getMethodSignature();
-        } catch (Exception e) {
-        }
-        String className = "string";
-        try {
-            className = candidateSearchQuery.getClassName();
-        } catch (Exception e) {
-        }
-        String methodName = "string";
-        try {
-            methodName = candidateSearchQuery.getMethodName();
-        } catch (Exception e) {
-        }
-
-        String interfaceDataString = "";
-        for (int i = 0; i <= interfaceNames.size() - 1; i++) {
-            interfaceDataString += "&interfaceNames=" + interfaceNames.get(i);
-        }
-
-        String url = this.endpoint + this.getMethodCallExpressions + this.sessionURL + "&loadCalls=" + loadCalls + interfaceDataString + "&argumentsDescriptor=" + argumentsDescriptor + "&candidateFilterType=" + candidateFilterType + "&methodSignature=" + methodSignature + "&className=" + className + "&methodName=" + methodName;
+        String url = this.endpoint + this.getMethodCallExpressions + this.sessionURL;
         CountDownLatch latch = new CountDownLatch(1);
         ArrayList<MethodCallExpression> localMethodCallExpression = new ArrayList<>();
 
-        get(url, new Callback() {
+        String jsonCandidateSearchQuery;
+        try {
+            jsonCandidateSearchQuery = objectMapper.writeValueAsString(candidateSearchQuery);
+        } catch (JsonProcessingException e) {
+            logger.error("Error converting candidateSearchQuery to JSON", e);
+            return Collections.emptyList();
+        }
+
+        post(url, jsonCandidateSearchQuery, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 logger.info("failure encountered", e);
@@ -710,8 +678,7 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public int getMethodCallCountBetween(long start, long end) {
 
-        String url = this.endpoint + this.getMethodCallCountBetween + this.sessionURL +
-                "&start=" + start + "&end=" + end;
+        String url = this.endpoint + this.getMethodCallCountBetween + this.sessionURL + "&start=" + start + "&end=" + end;
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger methodCallCount = new AtomicInteger();
 
@@ -1024,37 +991,19 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public TestCandidateMetadata getConstructorCandidate(Parameter parameter) {
 
-        // {
-        // 	"value": 0,
-        // 	"type": null,
-        // 	"exception": false,
-        // 	"prob": null,
-        // 	"names": [],
-        // 	"stringValue": "string",
-        // 	"index": 0,
-        // 	"creatorExpression": null,
-        // 	"templateMap": [],
-        // 	"isEnum": true,
-        // 	"iscontainer": true
-        // }
-
-
-        long value = parameter.getValue();
-        String type = parameter.getType();
-        boolean exception = parameter.isException();
-        String stringValue = parameter.getStringValue();
-        int index = parameter.getIndex();
-        MethodCallExpression methodCallExpression = parameter.getCreatorExpression();
-        boolean isEnum = parameter.getIsEnum();
-        boolean isContainer = parameter.isContainer();
-
-        String url = this.endpoint + this.getConstructorCandidate + this.sessionURL +
-                "&value=" + value + "&type=" + type + "&exception=" + exception + "&prob=" +
-                "&stringValue=" + stringValue + "&index=" + index + "&creatorExpression=" +
-                "&isEnum=" + isEnum + "&iscontainer=" + isContainer;
+        String url = this.endpoint + this.getConstructorCandidate + this.sessionURL;
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<TestCandidateMetadata> localTestCandidateMetadata = new AtomicReference<>();
-        get(url, new Callback() {
+
+        String jsonParameter;
+        try {
+            jsonParameter = objectMapper.writeValueAsString(parameter);
+        } catch (JsonProcessingException e) {
+            logger.error("Error converting parameter to JSON", e);
+            return null;
+        }
+
+        post(url, jsonParameter, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 logger.info("failure encountered", e);
