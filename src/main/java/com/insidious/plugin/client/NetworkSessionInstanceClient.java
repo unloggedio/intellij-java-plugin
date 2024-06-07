@@ -1,5 +1,6 @@
 package com.insidious.plugin.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -972,42 +973,20 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     public List<TestCandidateBareBone> getTestCandidatePaginatedByStompFilterModel(StompFilterModel stompFilterModel,
                                                                                    long currentAfterEventId,
                                                                                    int limit) {
-        StringBuilder includedClassNamePart = new StringBuilder();
-        Set<String> includedClassNames = stompFilterModel.getIncludedClassNames();
-        for (String localIncludedClassName : includedClassNames) {
-            includedClassNamePart.append("&includedClassNames=").append(localIncludedClassName);
-        }
-
-        StringBuilder excludedClassNamePart = new StringBuilder();
-        Set<String> excludedClassNames = stompFilterModel.getExcludedClassNames();
-        for (String localExcludedClassName : excludedClassNames) {
-            excludedClassNamePart.append("&excludedClassNames").append(localExcludedClassName);
-        }
-
-        StringBuilder includedMethodName = new StringBuilder();
-        Set<String> includedMethodNames = stompFilterModel.getIncludedMethodNames();
-        for (String localIncludedMethodName : includedMethodNames) {
-            includedMethodName.append("&includedMethodNames=").append(localIncludedMethodName);
-        }
-
-        StringBuilder excludedMethodName = new StringBuilder();
-        Set<String> excludedMethodNames = stompFilterModel.getExcludedMethodNames();
-        for (String localExcludedMethodNames : excludedMethodNames) {
-            excludedMethodName.append("&excludedMethodNames=").append(localExcludedMethodNames);
-        }
-
-        boolean followEditor = stompFilterModel.isFollowEditor();
-        CandidateFilterType candidateFilterType = stompFilterModel.getCandidateFilterType();
-
-
         String url = this.endpoint + this.getTestCandidatePaginatedByStompFilterModel + this.sessionURL +
-                includedClassNamePart + excludedClassNamePart + includedMethodName + excludedMethodName +
-                "&followEditor=" + followEditor + "&candidateFilterType=" + candidateFilterType +
                 "&currentAfterEventId=" + currentAfterEventId + "&limit=" + limit;
         CountDownLatch latch = new CountDownLatch(1);
         ArrayList<TestCandidateBareBone> localTestCandidateBareBone = new ArrayList<>();
 
-        get(url, new Callback() {
+        String jsonStompFilterModel;
+        try {
+            jsonStompFilterModel = objectMapper.writeValueAsString(stompFilterModel);
+        } catch (JsonProcessingException e) {
+            logger.error("Error converting StompFilterModel to JSON", e);
+            return Collections.emptyList();
+        }
+
+        post(url, jsonStompFilterModel, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 logger.warn("failure getTestCandidatePaginatedByStompFilterModel: ", e);
