@@ -21,4 +21,12 @@ public class ClassMethodAggregates {
     public MethodCallAggregate getMethodAggregate(String name) {
         return methodCallAggregateMap.get(name);
     }
+
+    public Map<String, MethodCallAggregate> getMethodCallAggregateMap() {
+        return this.methodCallAggregateMap;
+    }
+
+    public void setMethodCallAggregateMap(Map<String, MethodCallAggregate> methodCallAggregateMap) {
+        this.methodCallAggregateMap = methodCallAggregateMap;
+    }
 }

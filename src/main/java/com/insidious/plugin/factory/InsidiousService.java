@@ -1258,7 +1258,6 @@ final public class InsidiousService implements
             if (serverMetadata == null) {
                 return;
             }
-            onAgentConnected(serverMetadata);
 
         } else {
             String currentSessionId = currentState.getSessionInstance()
@@ -1287,6 +1286,7 @@ final public class InsidiousService implements
                 && !Objects.equals(serverMetadata.getMode(), "local")) {
             return;
         }
+        onAgentConnected(serverMetadata);
         logger.info(
                 "Loading new session: " + mostRecentSession.getSessionId() + " => " + project.getName() + " => " + serverMetadata);
 
