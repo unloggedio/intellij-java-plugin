@@ -115,6 +115,7 @@ public class IdeaFrame extends CommonContainerFixture {
     public ComponentFixture getClearFiltersShortcutButton() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.CLEAR_FILTERS_SHORTCUT);
     }
+
     public ComponentFixture getAddIconInsideFilter() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.ADD_ICON_INSIDE_FILTER);
     }
@@ -152,6 +153,7 @@ public class IdeaFrame extends CommonContainerFixture {
     public List<ComponentFixture> getAllVisibleCheckBoxes() {
         return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.CHECK_BOX);
     }
+
     public ComponentFixture getFirstCheckbox() {
         return getAllVisibleCheckBoxes().get(0);
     }
@@ -160,8 +162,12 @@ public class IdeaFrame extends CommonContainerFixture {
         return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.RADIO_BUTTON);
     }
 
-    public ComponentFixture getFilterApplyButton() {
+    public ComponentFixture getApplyButtonGeneric() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.FILTER_APPLY);
+    }
+
+    public ComponentFixture getOKButtonGeneric() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.OK_BUTTON_GENERIC);
     }
 
     public ComponentFixture getFilterCancel() {
@@ -253,7 +259,7 @@ public class IdeaFrame extends CommonContainerFixture {
     }
 
     public ComponentFixture getMethodInspectorBackButton() {
-        return UITestUtils.getComponentFixture(remoteRobot,UITestUtils.UITags.METHOD_INSPECTOR_BACK_BUTTON);
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.METHOD_INSPECTOR_BACK_BUTTON);
     }
 
 
@@ -374,5 +380,21 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public ComponentFixture getGitMenuBar() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GIT_MENUBAR_OPTION);
+    }
+
+    public ComponentFixture getJDKComboBox() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.JDK_COMBO_BOX);
+    }
+
+    public ComponentFixture getMyListComponent() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MY_LIST);
+    }
+
+    public ComponentFixture getDownloadButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.DOWNLOAD_BUTTON);
+    }
+
+    public ComponentFixture getBackButtonFromOptions() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.BACK_BUTTON_OPTION);
     }
 }

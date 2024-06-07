@@ -2,16 +2,18 @@ package com.insidious.plugin.UITests.Utils;
 
 import com.insidious.plugin.UITests.UIElementNotFoundException;
 import com.insidious.plugin.UITests.wrapper.FilterOptions;
+import com.insidious.plugin.UITests.wrapper.GitProjectInfo;
 import com.insidious.plugin.UITests.wrapper.RemoteRobotController;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.fixtures.ContainerFixture;
+import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 
 import java.util.List;
 
 import static com.intellij.remoterobot.search.locators.Locators.byXpath;
-import static java.awt.event.KeyEvent.VK_ENTER;
+import static java.awt.event.KeyEvent.*;
 import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofSeconds;
 import static org.assertj.swing.timing.Pause.pause;
@@ -39,6 +41,7 @@ public class UITestUtils {
         STOP_BUTTON("//div[contains(@myaction.key, 'action.stop')]"),
         HIDE_DEBUG_TOOLBAR("//div[contains(@myvisibleactions, '[Options')]//div[@myaction.key='tool.window.hide.action.name']"),
         OPEN_PROJECT_OK_BUTTON("//div[@text.key='button.ok']"),
+        OK_BUTTON_GENERIC("//div[@text='OK']"),
         LOCATE_FILE("//div[@tooltiptext.key='action.SelectOpenedFileInProjectView.text']"),
         REPLAY_TAB("//div[@text='Replay']"),
         REPLAY_EXECUTE_BUTTON("//div[@defaulticon='execute-button-outlined.svg']"),
@@ -107,7 +110,11 @@ public class UITestUtils {
         ADD_ICON_INSIDE_FILTER("//div[contains(@tooltiptext, 'Press')]//div[@myicon='add.svg']"),
         CLEAR_FILTERS_LABEL("//div[@visible_text='Clear filters']"),
         GIT_MENUBAR_OPTION("//div[@accessiblename='Git' and @class='ActionMenu' and @text='Git']"),
-        GO_TO_DIRECT_INVOKE("//div[@defaulticon='execute.svg']");
+        GO_TO_DIRECT_INVOKE("//div[@defaulticon='execute.svg']"),
+        JDK_COMBO_BOX("//div[@class='JdkComboBox']"),
+        DOWNLOAD_BUTTON("//div[@text='Download']"),
+        BACK_BUTTON_OPTION("//div[@myicon='back.svg']"),
+        MY_LIST("//div[@class='MyList']");
 
         private String value;
 
@@ -265,6 +272,37 @@ public class UITestUtils {
             pause(ofMillis(250).toMillis());
             controller.getKeyboard().hotKey(VK_ENTER);
         });
-        controller.getIdeaFrame().getFilterApplyButton().click();
+        controller.getIdeaFrame().getApplyButtonGeneric().click();
+    }
+
+    public static void setSdkVersion(RemoteRobotController controller, GitProjectInfo projectUnderTest) {
+        controller.getKeyboard().hotKey(VK_META, VK_SEMICOLON);
+        controller.getIdeaFrame().getJDKComboBox().click();
+
+        ComponentFixture myListFixture = controller.getIdeaFrame().getMyListComponent();
+        List<RemoteText> remoteTexts = myListFixture.getData().getAll();
+
+        pause(ofSeconds(7).toMillis());
+
+        RemoteText addNewOption = remoteTexts.stream().filter(text -> text.getText().equals("Add SDK")).toList().get(0);
+        addNewOption.moveMouse();
+        pause(ofSeconds(1).toMillis());
+
+        ComponentFixture addListOptions = controller.getIdeaFrame().getComponentByXpath("//div[contains(@visible_text, 'JDK...')]");
+        addListOptions.getData().getAll().get(0).click();
+        pause(ofSeconds(3).toMillis());
+
+        controller.getIdeaFrame().getComponentByXpath("//div[@class='ComboBox']").click();
+        pause(ofMillis(500).toMillis());
+        myListFixture = controller.getIdeaFrame().getMyListComponent();
+        List<RemoteText> javaVersions = myListFixture.getData().getAll();
+
+        RemoteText version17Text = javaVersions.stream().filter(elem -> elem.getText().equals(projectUnderTest.getJdkVersion())).toList().get(0);
+        version17Text.click();
+
+        pause(ofMillis(500).toMillis());
+        controller.getIdeaFrame().getDownloadButton().click();
+        controller.getIdeaFrame().getApplyButtonGeneric().click();
+        controller.getIdeaFrame().getOKButtonGeneric().click();
     }
 }

@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.List;
 
+import static com.insidious.plugin.UITests.Utils.UITestUtils.setSdkVersion;
 import static com.insidious.plugin.UITests.Utils.UiTestInteractionUtils.*;
 import static java.awt.event.KeyEvent.*;
 import static java.time.Duration.*;
@@ -28,7 +29,7 @@ import static com.intellij.remoterobot.stepsProcessing.StepWorkerKt.step;
 public class UiTestsV3 {
     private RemoteRobotController controller;
     private LocalProjectInfo localProjectInfo;
-
+    private GitProjectInfo projectUnderTest;
     private int expectedNumberOfTestCasesForFutureController;
     private String futureControllerTestFilePath;
     private String directInvokeRequestMethodIdentifierFutureController;
@@ -51,11 +52,16 @@ public class UiTestsV3 {
         localProjectInfo.setRemoveScriptName("remove_local_sessions.sh");
         localProjectInfo.setRevertScriptName("git_rollback.sh");
         localProjectInfo.setStartupWaitDuration(60);
+
+        projectUnderTest = new GitProjectInfo("unlogged-spring-maven-demo",
+                "https://github.com/unloggedio/unlogged-spring-maven-demo.git",
+                "ui_test_clean", "pom.xml", LocalProjectInfo.BuildSystem.MAVEN, 60,
+                true, "17");
     }
 
-    @Test
-    @Order(1)
-    @Disabled
+    //    @Test
+//    @Order(1)
+//    @Disabled
     public void openProjectAndAddSDK() {
 
         step("Open Project", () -> {
@@ -106,7 +112,49 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Disabled
+    @Order(1)
+    public void cloneAndAddSDK() {
+        step("Clone project - fresh state, change branch and setup sdk version", () -> {
+            cloneAndOpenProject(controller, projectUnderTest);
+            //setup sdk version and wait till index is complete, then start tests in normal flow
+            setSdkVersion(controller, projectUnderTest);
+            controller.waitForIndex();
+        });
+
+        step("Revert all changes made to project, remove local sessions", () -> {
+            executeShellScriptAndWait(controller, localProjectInfo.getRevertScriptName(), 5);
+            executeShellScriptAndWait(controller, localProjectInfo.getRemoveScriptName(), 2);
+        });
+
+        step("Add unlogged dependency (Mac)", () -> {
+            openFile(projectUnderTest.getBuildFile(), controller);
+            ComponentFixture unloggedToolbar = controller.getIdeaFrame().getUnloggedToolbarComponent();
+            unloggedToolbar.moveMouse();
+            unloggedToolbar.click();
+            pause(ofSeconds(1).toMillis());
+
+            ComponentFixture copyButton = controller.getIdeaFrame().findCopyButton();
+            copyButton.moveMouse();
+            copyButton.click();
+
+            //TODO: Update logic to take gradle projects as well
+            //paste right after dependencies
+            TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
+            List<RemoteText> pomContents = textEditorFixture.getEditor().getData().getAll();
+            RemoteText dependencyText = pomContents.stream().filter(remoteText -> remoteText.getText().equals("dependencies")).toList().get(0);
+            int indexOfDependencies = pomContents.indexOf(dependencyText);
+            RemoteText closingTag = pomContents.get(indexOfDependencies + 1);
+            closingTag.click();
+            controller.getKeyboard().hotKey(VK_RIGHT);
+            controller.getKeyboard().hotKey(VK_ENTER);
+            controller.getKeyboard().hotKey(VK_META, VK_V);
+
+            performMavenSync(controller);
+            controller.waitForIndex();
+        });
+    }
+
+    @Test
     @Order(2)
     public void runRemoteModeTest() {
 
@@ -145,7 +193,7 @@ public class UiTestsV3 {
             pause(ofSeconds(10).toMillis());
 
             controller.getIdeaFrame().getAllVisibleRadioButtons().get(2).click();
-            controller.getIdeaFrame().getFilterApplyButton().click();
+            controller.getIdeaFrame().getApplyButtonGeneric().click();
 
             pause(ofSeconds(5).toMillis());
 
@@ -185,7 +233,6 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Disabled
     @Order(3)
     public void runLocalMode() {
 
@@ -208,7 +255,9 @@ public class UiTestsV3 {
             RemoteText sourcesTabText = titlePanel.getData().getAll().stream().filter(remoteText -> remoteText.getText().equals("Sources")).toList().get(0);
             sourcesTabText.click();
             controller.getIdeaFrame().getLocalHostRadioButton().click();
-            controller.getIdeaFrame().getFilterApplyButton().click();
+            controller.getIdeaFrame().getApplyButtonGeneric().click();
+
+            clearGotIts(controller);
         });
 
         step("Clear reminiscent candidates", () -> {
@@ -242,66 +291,66 @@ public class UiTestsV3 {
             UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
         });
 
-        step("Clear reminiscent candidates", () -> {
-            controller.getIdeaFrame().getRefreshButton().click();
-            pause(ofSeconds(10).toMillis());
-            controller.getIdeaFrame().getToolBarDeleteButton().click();
-            pause(ofSeconds(10).toMillis());
-        });
-
-        //JUnit Flow 1:
-        step("Select and Run Junit Flow 1", () -> {
-            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
-            inputLines.add(new DirectInvokeTreeLine(1, "Hello"));
-            DirectInvokeRequest directInvokeRequest = new DirectInvokeRequest(directInvokeRequestClassname,
-                    directInvokeRequestMethodIdentifierFutureController,
-                    inputLines, true);
-            JUnitRequest jUnitRequest = new JUnitRequest(directInvokeRequest, JunitOptions.JUNIT_ICON, futureControllerTestFilePath, true);
-            generateJunitUsingIcon(jUnitRequest, controller, filteredClassName, filteredMethodName);
-            assertNumberOfTestCases(jUnitRequest);
-        });
-
-        step("Clear reminiscent candidates", () -> {
-            controller.getIdeaFrame().getRefreshButton().click();
-            pause(ofSeconds(10).toMillis());
-            controller.getIdeaFrame().getToolBarDeleteButton().click();
-            pause(ofSeconds(10).toMillis());
-        });
-
-        //JUnit Dummy Data flow
-        step("Select and Run Junit Dummy data flow", () -> {
-            DirectInvokeRequest directInvokeRequest = new DirectInvokeRequest(directInvokeRequestClassname,
-                    directInvokeRequestMethodIdentifierFutureController,
-                    true);
-            JUnitRequest junitRequest = new JUnitRequest(directInvokeRequest, JunitOptions.DUMMY_DATA,
-                    futureControllerTestFilePath,
-                    false, true, false, TestFrameworkOptions.JUNIT4, MockFrameworkOptions.MOCKITO, JSONFrameworkOptions.JACKSON, StoreOptions.IN_CODE, false);
-            junitDummyDataGeneration(junitRequest, controller);
-            assertNumberOfTestCases(junitRequest);
-        });
-
-        step("Clear reminiscent candidates", () -> {
-            controller.getIdeaFrame().getRefreshButton().click();
-            pause(ofSeconds(10).toMillis());
-            controller.getIdeaFrame().getToolBarDeleteButton().click();
-            pause(ofSeconds(10).toMillis());
-        });
-
-        //JUnit Replay Data flow
-        step("Select and Run Junit Replay data flow", () -> {
-
-            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
-            inputLines.add(new DirectInvokeTreeLine(1, "Hello"));
-            DirectInvokeRequest directInvokeRequest = new DirectInvokeRequest(directInvokeRequestClassname,
-                    directInvokeRequestMethodIdentifierFutureController,
-                    inputLines, true);
-            JUnitRequest junitRequest = new JUnitRequest(directInvokeRequest, JunitOptions.REPLAY_DATA,
-                    futureControllerTestFilePath,
-                    false, true, false, TestFrameworkOptions.JUNIT4, MockFrameworkOptions.MOCKITO, JSONFrameworkOptions.JACKSON, StoreOptions.IN_CODE, true);
-            junitReplayDataGeneration(junitRequest, controller);
-            assertNumberOfTestCases(junitRequest);
-            assertNumberOfTestCases(junitRequest);
-        });
+//        step("Clear reminiscent candidates", () -> {
+//            controller.getIdeaFrame().getRefreshButton().click();
+//            pause(ofSeconds(10).toMillis());
+//            controller.getIdeaFrame().getToolBarDeleteButton().click();
+//            pause(ofSeconds(10).toMillis());
+//        });
+//
+//        //JUnit Flow 1:
+//        step("Select and Run Junit Flow 1", () -> {
+//            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
+//            inputLines.add(new DirectInvokeTreeLine(1, "Hello"));
+//            DirectInvokeRequest directInvokeRequest = new DirectInvokeRequest(directInvokeRequestClassname,
+//                    directInvokeRequestMethodIdentifierFutureController,
+//                    inputLines, true);
+//            JUnitRequest jUnitRequest = new JUnitRequest(directInvokeRequest, JunitOptions.JUNIT_ICON, futureControllerTestFilePath, true);
+//            generateJunitUsingIcon(jUnitRequest, controller, filteredClassName, filteredMethodName);
+//            assertNumberOfTestCases(jUnitRequest);
+//        });
+//
+//        step("Clear reminiscent candidates", () -> {
+//            controller.getIdeaFrame().getRefreshButton().click();
+//            pause(ofSeconds(10).toMillis());
+//            controller.getIdeaFrame().getToolBarDeleteButton().click();
+//            pause(ofSeconds(10).toMillis());
+//        });
+//
+//        //JUnit Dummy Data flow
+//        step("Select and Run Junit Dummy data flow", () -> {
+//            DirectInvokeRequest directInvokeRequest = new DirectInvokeRequest(directInvokeRequestClassname,
+//                    directInvokeRequestMethodIdentifierFutureController,
+//                    true);
+//            JUnitRequest junitRequest = new JUnitRequest(directInvokeRequest, JunitOptions.DUMMY_DATA,
+//                    futureControllerTestFilePath,
+//                    false, true, false, TestFrameworkOptions.JUNIT4, MockFrameworkOptions.MOCKITO, JSONFrameworkOptions.JACKSON, StoreOptions.IN_CODE, false);
+//            junitDummyDataGeneration(junitRequest, controller);
+//            assertNumberOfTestCases(junitRequest);
+//        });
+//
+//        step("Clear reminiscent candidates", () -> {
+//            controller.getIdeaFrame().getRefreshButton().click();
+//            pause(ofSeconds(10).toMillis());
+//            controller.getIdeaFrame().getToolBarDeleteButton().click();
+//            pause(ofSeconds(10).toMillis());
+//        });
+//
+//        //JUnit Replay Data flow
+//        step("Select and Run Junit Replay data flow", () -> {
+//
+//            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
+//            inputLines.add(new DirectInvokeTreeLine(1, "Hello"));
+//            DirectInvokeRequest directInvokeRequest = new DirectInvokeRequest(directInvokeRequestClassname,
+//                    directInvokeRequestMethodIdentifierFutureController,
+//                    inputLines, true);
+//            JUnitRequest junitRequest = new JUnitRequest(directInvokeRequest, JunitOptions.REPLAY_DATA,
+//                    futureControllerTestFilePath,
+//                    false, true, false, TestFrameworkOptions.JUNIT4, MockFrameworkOptions.MOCKITO, JSONFrameworkOptions.JACKSON, StoreOptions.IN_CODE, true);
+//            junitReplayDataGeneration(junitRequest, controller);
+//            assertNumberOfTestCases(junitRequest);
+//            assertNumberOfTestCases(junitRequest);
+//        });
 
         step("Stop running process", () -> {
             stopProcessInTerminal(controller);
@@ -312,7 +361,6 @@ public class UiTestsV3 {
     //Also is the start of local test chain
     @Test
     @Order(4)
-    @Disabled
     public void serverIssues_73() {
         //start project in local mode
         //after main method candidate Inlayhint click, inlayhints should not disappear
@@ -335,7 +383,11 @@ public class UiTestsV3 {
             RemoteText sourcesTabText = titlePanel.getData().getAll().stream().filter(remoteText -> remoteText.getText().equals("Sources")).toList().get(0);
             sourcesTabText.click();
             controller.getIdeaFrame().getLocalHostRadioButton().click();
-            controller.getIdeaFrame().getFilterApplyButton().click();
+            controller.getIdeaFrame().getApplyButtonGeneric().click();
+        });
+
+        step("Close Options menu if open", () -> {
+            closeOptionsTabIfOpen(controller);
         });
 
         step("Open main class and enusre InlayHint render behaviour is as expected", () -> {
@@ -358,18 +410,22 @@ public class UiTestsV3 {
             }
         });
 
-        step("Stop process", () -> {
-            stopProcessInTerminal(controller);
-        });
+//        step("Stop process", () -> {
+//            stopProcessInTerminal(controller);
+//        });
     }
 
 
     @Test
     @Order(5)
-    @Disabled
     public void serverIssues_20_local() {
         //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
         //unlogged toolbar assumed to be open before this.
+
+        step("Close Options menu if open", () -> {
+            closeOptionsTabIfOpen(controller);
+        });
+
         step("Look for Local and ensure it opens filters", () -> {
             openUnloggedToolbarIfNotOpen(controller, 1);
 
@@ -390,10 +446,13 @@ public class UiTestsV3 {
 
     @Test
     @Order(6)
-    @Disabled
     public void serverIssues_30_local() {
         //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
         //Assumes unlogged plugin window is open
+
+        step("Close Options menu if open", () -> {
+            closeOptionsTabIfOpen(controller);
+        });
         step("open Filters, switch to remote and assert JTextField contains default PrePopulated URL", () -> {
             openUnloggedToolbarIfNotOpen(controller, 1);
 
@@ -459,7 +518,7 @@ public class UiTestsV3 {
     }
 
     @Test
-//    @Disabled
+    @Disabled
     @Order(10)
     public void junitReplayDataAbstracted() {
         List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
@@ -477,6 +536,7 @@ public class UiTestsV3 {
     //TODO: Needs improvements
     @Test
     @Order(11)
+    @Disabled
     public void checkIDEFatalExceptions() {
         List<String> listIDE = listIDEFatalExceptions(controller);
         if (!listIDE.isEmpty()) {
@@ -499,15 +559,5 @@ public class UiTestsV3 {
         Assert.assertEquals("Expected and actual number of test cases are", expectedNumberOfTestCasesForFutureController, numberOfTestsPresent);
         expectedNumberOfTestCasesForFutureController += 1;
         pause(ofSeconds(10).toMillis());
-    }
-
-    @Test
-    @Order(12)
-    public void testCloneAndOpenFlow() {
-        GitProjectInfo projectUnderTest = new GitProjectInfo("unlogged-spring-maven-demo",
-                "https://github.com/unloggedio/unlogged-spring-maven-demo.git",
-                "ui_test_clean", "pom.xml", LocalProjectInfo.BuildSystem.MAVEN, 60,
-                true);
-        cloneAndOpenProject(controller, projectUnderTest);
     }
 }

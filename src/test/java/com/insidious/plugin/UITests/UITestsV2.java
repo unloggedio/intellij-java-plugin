@@ -11,8 +11,6 @@ import com.intellij.remoterobot.utils.Keyboard;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.awt.*;
-import java.rmi.Remote;
 import java.time.Duration;
 import java.util.*;
 import java.util.List;
@@ -127,7 +125,7 @@ public class UITestsV2 {
         pause(ofSeconds(10).toMillis());
 
         idea.getAllVisibleRadioButtons().get(2).click();
-        idea.getFilterApplyButton().click();
+        idea.getApplyButtonGeneric().click();
 
         pause(ofSeconds(10).toMillis());
         idea.getRefreshButton().click();
@@ -218,7 +216,7 @@ public class UITestsV2 {
         sourcesTabText = titlePanel.getData().getAll().stream().filter(remoteText -> remoteText.getText().equals("Sources")).toList().get(0);
         sourcesTabText.click();
         idea.getLocalHostRadioButton().click();
-        idea.getFilterApplyButton().click();
+        idea.getApplyButtonGeneric().click();
 
         idea.getRefreshButton().click();
 

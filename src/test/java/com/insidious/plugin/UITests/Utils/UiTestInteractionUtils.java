@@ -8,7 +8,6 @@ import com.insidious.plugin.UITests.wrapper.FilterOptions;
 import com.insidious.plugin.UITests.wrapper.JUnitRequest;
 import com.insidious.plugin.UITests.wrapper.GitProjectInfo;
 import com.insidious.plugin.UITests.wrapper.RemoteRobotController;
-import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
@@ -363,7 +362,7 @@ public class UiTestInteractionUtils {
 
     public static void executeDeterministicShellCommand(RemoteRobotController controller, String command, int waitDurationInSeconds) {
         controller.getIdeaFrame().getTerminalToolBarSelectable().click();
-        pause(ofSeconds(3).toMillis());
+        pause(ofSeconds(10).toMillis());
 
         //click in the window to shift focus there
         List<RemoteText> terminalCharacters = controller.getIdeaFrame().getTerminalPanel().getData().getAll();
@@ -393,6 +392,18 @@ public class UiTestInteractionUtils {
 
         if (projectUnderTest.isSwitchBranchOnOpen()) {
             executeDeterministicShellCommand(controller, "git checkout " + projectUnderTest.getGitBranch(), 2);
+        }
+    }
+
+    public static void closeOptionsTabIfOpen(RemoteRobotController controller) {
+        boolean done = false;
+        while (!done) {
+            try {
+                controller.getIdeaFrame().getBackButtonFromOptions().click();
+                pause(ofMillis(250).toMillis());
+            } catch (Exception e) {
+                done = true;
+            }
         }
     }
 }

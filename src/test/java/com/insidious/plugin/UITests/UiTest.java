@@ -466,7 +466,7 @@ public class UiTest {
         final ComponentFixture followCheckBox = idea.getFilterFollowCheckbox();
         followCheckBox.click();
 
-        idea.getFilterApplyButton().click();
+        idea.getApplyButtonGeneric().click();
 
         //disable this after testing
 //        tryToSaveAll(idea);
