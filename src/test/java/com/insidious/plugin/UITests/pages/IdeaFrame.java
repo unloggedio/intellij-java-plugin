@@ -202,8 +202,16 @@ public class IdeaFrame extends CommonContainerFixture {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MAVEN_TOOLBAR_BUTTON);
     }
 
+    public ComponentFixture getGradleToolbarIcon() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GRADLE_TOOLBAR_BUTTON);
+    }
+
     public ComponentFixture getMavenToolBarRefreshIcon() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MAVEN_REFRESH_SVG);
+    }
+
+    public ComponentFixture getGradleToolBarRefreshIcon() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GRADLE_REFRESH_ICON);
     }
 
     public List<ComponentFixture> getMockPopupScrollPanelCandidates() {
@@ -396,5 +404,29 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public ComponentFixture getBackButtonFromOptions() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.BACK_BUTTON_OPTION);
+    }
+
+    public ComponentFixture getJTabbedPane() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.TABBED_PANE);
+    }
+
+    public ComponentFixture getMyTreeComponent() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.MY_TREE_COMPONENT);
+    }
+
+    public ComponentFixture getGradleBuildWithOption() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GRADLE_OPTIONS_BUILD_WITH);
+    }
+
+    public ComponentFixture getSdkComboBox() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.SDK_COMBO_BOX);
+    }
+
+    public ComponentFixture getNotificationTab() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.NOTIFICATIONS_TAB);
+    }
+
+    public List<ComponentFixture> getTestGenerationFailureBalloonNotification() {
+        return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.TEST_GENERATION_FALIED_INDEX_POPUP);
     }
 }

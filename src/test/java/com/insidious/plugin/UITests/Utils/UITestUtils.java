@@ -87,6 +87,7 @@ public class UITestUtils {
         TERMINAL_TOOL_WINDOW_HIDE_BUTTON("//div[@class='ToolWindowHeader'][.//div[@text='Terminal:']]//div[@tooltiptext='Hide']"),
         CANCEL_MOCK_BUTTON("//div[@text='Cancel']"),
         MAVEN_TOOLBAR_BUTTON("//div[@text='Maven']"),
+        GRADLE_TOOLBAR_BUTTON("//div[@text='Gradle']"),
         MAVEN_REFRESH_SVG("//div[@myicon='refresh.svg']"),
         MAVEN_TOOLBAR_HIDE("//div[contains(@myvisibleactions, '[Options')]//div[@tooltiptext='Hide']]"),
         MY_CONTENT_PANEL("//div[@class='MyContentPanel']"),
@@ -114,7 +115,15 @@ public class UITestUtils {
         JDK_COMBO_BOX("//div[@class='JdkComboBox']"),
         DOWNLOAD_BUTTON("//div[@text='Download']"),
         BACK_BUTTON_OPTION("//div[@myicon='back.svg']"),
-        MY_LIST("//div[@class='MyList']");
+        GET_FROM_VCS_V2("//div[@visible_text='Get from VCS']"),
+        MY_LIST("//div[@class='MyList']"),
+        TABBED_PANE("//div[@class='JTabbedPane']"),
+        MY_TREE_COMPONENT("//div[@class='MyTree']"),
+        NOTIFICATIONS_TAB("//div[@text='Notifications']"),
+        TEST_GENERATION_FALIED_INDEX_POPUP("//div[@accessiblename='Test Generation can start only after indexing is complete!' and @class='JEditorPane']"),
+        SDK_COMBO_BOX("//div[@class='SdkComboBox']"),
+        GRADLE_OPTIONS_BUILD_WITH("//div[@accessiblename='Build and run using:' and @class='ComboBox']"),
+        GRADLE_REFRESH_ICON("//div[@tooltiptext='Reload All Gradle Projects']");
 
         private String value;
 

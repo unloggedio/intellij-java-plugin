@@ -11,6 +11,7 @@ import com.intellij.remoterobot.utils.Keyboard;
 import org.junit.jupiter.api.Assertions;
 import org.junit.Assert;
 
+import java.rmi.Remote;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -47,11 +48,24 @@ public class UiTestInteractionUtils {
         mainClassContents = textEditorFixture.getEditor().getData().getAll();
         RemoteText mainLabel = mainClassContents.stream().filter(text -> text.getText().equals("main")).toList().get(0);
         int mainLabelIndex = mainClassContents.indexOf(mainLabel);
-        RemoteText spaceLabel = mainClassContents.get(mainLabelIndex - 7);
-        spaceLabel.click();
+        RemoteText publicMethodLabel = getFirstPublicKeywordOnLeft(mainClassContents, mainLabelIndex);
+        if (publicMethodLabel == null) {
+            Assertions.fail("Main class is not valid");
+        }
+        publicMethodLabel.click();
         controller.getKeyboard().hotKey(VK_ENTER);
         controller.getKeyboard().enterText(annotationText);
         controller.getKeyboard().hotKey(VK_ENTER);
+    }
+
+    private static RemoteText getFirstPublicKeywordOnLeft(List<RemoteText> sourceTexts, int indexOfMain) {
+        for (int i = indexOfMain - 1; i >= 0; i--) {
+            RemoteText text = sourceTexts.get(i);
+            if (text.getText().equals("public")) {
+                return text;
+            }
+        }
+        return null;
     }
 
     public static void scrollToIcon(TextEditorFixture editorFixture, GutterIcon icon) {
@@ -104,10 +118,13 @@ public class UiTestInteractionUtils {
     }
 
     public static void openFileIfNeeded(String filename, RemoteRobotController controller) {
-        TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
-        if (textEditorFixture.getEditor().getFileName().equals(filename)) {
-            //don't open if file is already open
-            return;
+        try {
+            TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
+            if (textEditorFixture.getEditor().getFileName().equals(filename)) {
+                //don't open if file is already open
+                return;
+            }
+        } catch (Exception e) {
         }
 
         controller.getKeyboard().hotKey(VK_META, VK_SHIFT, VK_O);
@@ -124,6 +141,9 @@ public class UiTestInteractionUtils {
     }
 
     public static void expandJavaFile(EditorFixture editor) {
+        editor.scrollToOffset(1);
+        RemoteText packageText = editor.findText("package");
+        packageText.click();
         for (RemoteText text : editor.getData().getAll()) {
             if (text.getText().equals("...")) {
                 text.click();
@@ -197,12 +217,22 @@ public class UiTestInteractionUtils {
         mavenIcon.click();
     }
 
+    public static void performGradleSync(RemoteRobotController controller) {
+        ComponentFixture gradleIcon = controller.getIdeaFrame().getGradleToolbarIcon();
+        gradleIcon.click();
+        pause(ofSeconds(1).toMillis());
+        controller.getIdeaFrame().getGradleToolBarRefreshIcon().click();
+        pause(ofSeconds(1).toMillis());
+        gradleIcon.click();
+    }
+
     public static void directInvokeMethod(DirectInvokeRequest request, RemoteRobotController controller) {
         if (request.isOpenFile()) {
             openFileIfNeeded(request.getClassname(), controller);
             pause(ofMillis(500).toMillis());
         }
         expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
+        pause(ofMillis(250).toMillis());
         searchFirstInCurrentFile(controller, request.getMethodIdentifier());
 
         EditorFixture editorFixture = controller.getIdeaFrame().textEditor().getEditor();
@@ -325,14 +355,24 @@ public class UiTestInteractionUtils {
             openFileIfNeeded(directInvokeRequest.getClassname(), controller);
             pause(ofMillis(500).toMillis());
         }
-//        expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
+        expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
         searchFirstInCurrentFile(controller, directInvokeRequest.getMethodIdentifier());
 
         EditorFixture editorFixture = controller.getIdeaFrame().textEditor().getEditor();
         int caretOffset = editorFixture.getCaretOffset();
         int lineNumber = getLineNumberFromOffset(controller.getIdeaFrame().textEditor(), caretOffset) + 1;
 
+        List<GutterIcon> icons = controller.getIdeaFrame().textEditor().getGutter().getIcons().stream()
+                .filter(icon -> icon.toString().contains("profileBlue.svg"))
+                .toList();
+
+        System.out.println("Line number selected : "+lineNumber);
+        for (GutterIcon icon : icons) {
+            System.out.println("Line number - > " + icon.getLineNumber());
+        }
+
         GutterIcon selectedMethodIcon = controller.getIdeaFrame().textEditor().getGutter().getIcons().stream()
+                .filter(icon -> icon.toString().contains("profileBlue.svg"))
                 .filter(gutterIcon -> gutterIcon.getLineNumber() == lineNumber)
                 .limit(1).toList().get(0);
 
@@ -393,10 +433,16 @@ public class UiTestInteractionUtils {
         controller.getIdeaFrame().getTerminalToolWindowHideButton().click();
     }
 
+    //selects buttons based on state - if other projects are present or not
     public static void cloneAndOpenProject(RemoteRobotController controller, GitProjectInfo projectUnderTest) {
         WelcomeFrame welcomeFrame = controller.getRemoteRobot().find(WelcomeFrame.class, ofSeconds(10));
-        welcomeFrame.getVcsCreateOption().click();
-        pause(ofMillis(250).toMillis());
+        try {
+            welcomeFrame.getVcsCreateOption().click();
+            pause(ofMillis(250).toMillis());
+        } catch (Exception e) {
+            welcomeFrame.getVcsCreateButtonV2().click();
+            pause(ofMillis(250).toMillis());
+        }
         welcomeFrame.getVcsRepoUrlTextField().click();
 
         controller.getKeyboard().enterText(projectUnderTest.getGitUrl());
@@ -420,5 +466,162 @@ public class UiTestInteractionUtils {
                 done = true;
             }
         }
+    }
+
+    public static void runIntelliJIdeaAction(RemoteRobotController controller, String option, int waitDurationInSeconds) {
+        controller.getKeyboard().hotKey(VK_META, VK_SHIFT, VK_A);
+        pause(ofMillis(250).toMillis());
+        controller.getKeyboard().enterText(option);
+        pause(ofSeconds(2).toMillis());
+        controller.getKeyboard().hotKey(VK_ENTER);
+        pause(ofSeconds(waitDurationInSeconds).toMillis());
+    }
+
+    public static void runIntelliJIdeaActionV2(RemoteRobotController controller, String option, int waitDurationInSeconds) {
+        controller.getKeyboard().hotKey(VK_META, VK_SHIFT, VK_O);
+        pause(ofMillis(250).toMillis());
+        controller.getKeyboard().enterText(option);
+        pause(ofSeconds(2).toMillis());
+        controller.getKeyboard().hotKey(VK_ENTER);
+        pause(ofSeconds(waitDurationInSeconds).toMillis());
+    }
+
+    public static void addUnloggedDependenciesToBuildFile(RemoteRobotController controller, GitProjectInfo projectUnderTest) {
+        if (projectUnderTest.getBuildSystem().equals(LocalProjectInfo.BuildSystem.MAVEN)) {
+            addMavenDependenciesAndSync(controller, projectUnderTest.getBuildFile());
+        } else if (projectUnderTest.getBuildSystem().equals(LocalProjectInfo.BuildSystem.GRADLE)) {
+            addGradleDependencies(controller, projectUnderTest.getBuildFile());
+        }
+    }
+
+    public static void addMavenDependenciesAndSync(RemoteRobotController controller, String pomFile) {
+        openFileIfNeeded(pomFile, controller);
+        ComponentFixture unloggedToolbar = controller.getIdeaFrame().getUnloggedToolbarComponent();
+        unloggedToolbar.moveMouse();
+        unloggedToolbar.click();
+        pause(ofSeconds(1).toMillis());
+
+        //go to index where dependency needs to be added
+        TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
+        List<RemoteText> pomContents = textEditorFixture.getEditor().getData().getAll();
+        RemoteText dependencyText = pomContents.stream().filter(remoteText -> remoteText.getText().equals("dependencies")).toList().get(0);
+        int indexOfDependencies = pomContents.indexOf(dependencyText);
+        RemoteText closingTag = pomContents.get(indexOfDependencies + 1);
+
+        try {
+            ComponentFixture copyButton = controller.getIdeaFrame().findCopyButton();
+            copyButton.moveMouse();
+            copyButton.click();
+
+            pause(ofMillis(250).toMillis());
+
+            closingTag.click();
+            //paste
+            controller.getKeyboard().hotKey(VK_RIGHT);
+            controller.getKeyboard().hotKey(VK_ENTER);
+            controller.getKeyboard().hotKey(VK_META, VK_V);
+        } catch (Exception e) {
+            //copy button not in sight, manually add text
+            closingTag.click();
+            controller.getKeyboard().enterText(TestConstants.MAVEN_DEPENDENCY_TEMPLATE);
+        }
+        performMavenSync(controller);
+        controller.waitForIndex();
+    }
+
+    public static void addGradleDependencies(RemoteRobotController controller, String buildGradleFile) {
+        openFileIfNeeded(buildGradleFile, controller);
+        ComponentFixture unloggedToolbar = controller.getIdeaFrame().getUnloggedToolbarComponent();
+        unloggedToolbar.moveMouse();
+        unloggedToolbar.click();
+        pause(ofSeconds(1).toMillis());
+
+        //go to index where dependency needs to be added
+        TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
+        List<RemoteText> gradleFileContents = textEditorFixture.getEditor().getData().getAll();
+        RemoteText dependencyText = gradleFileContents.stream().filter(remoteText -> remoteText.getText().equals("dependencies")).toList().get(0);
+        int indexOfDependencies = gradleFileContents.indexOf(dependencyText);
+        RemoteText previousElement = gradleFileContents.get(indexOfDependencies - 1);
+
+        try {
+            ComponentFixture JTabbedPaneFixture = controller.getIdeaFrame().getJTabbedPane();
+            RemoteText gradleOption = JTabbedPaneFixture.getData().getAll().stream().filter(remoteText -> remoteText.getText().equals("Gradle")).toList().get(0);
+
+            gradleOption.click();
+            pause(ofMillis(125).toMillis());
+
+            ComponentFixture copyButton = controller.getIdeaFrame().findCopyButton();
+            copyButton.moveMouse();
+            copyButton.click();
+
+            pause(ofMillis(250).toMillis());
+            previousElement.click();
+            //paste
+            controller.getKeyboard().hotKey(VK_RIGHT);
+            controller.getKeyboard().hotKey(VK_ENTER);
+            controller.getKeyboard().hotKey(VK_META, VK_V);
+        } catch (Exception e) {
+            //copy button not in sight, manually add text
+            previousElement.click();
+            controller.getKeyboard().enterText(TestConstants.GRADLE_DEPENDENCY_TEMPLATE);
+        }
+
+        performGradleSync(controller);
+        controller.waitForIndex();
+    }
+
+    public static void setIntelliJAsGradleBuilder(RemoteRobotController controller, GitProjectInfo projectInfo) {
+        runIntelliJIdeaAction(controller, "Settings", 3);
+        ComponentFixture myTreeComponent = controller.getIdeaFrame().getMyTreeComponent();
+        try {
+            RemoteText gradleOption = myTreeComponent.getData().getAll().stream().filter(text -> text.getText().equals("Gradle")).toList().get(0);
+            gradleOption.click();
+        } catch (Exception e) {
+            try {
+                RemoteText buildTools = myTreeComponent.getData().getAll().stream().filter(text -> text.getText().equals("Build Tools")).toList().get(0);
+                buildTools.doubleClick();
+                myTreeComponent = controller.getIdeaFrame().getMyTreeComponent();
+                RemoteText gradleOption = myTreeComponent.getData().getAll().stream().filter(text -> text.getText().equals("Gradle")).toList().get(0);
+                gradleOption.click();
+            } catch (Exception e1) {
+                RemoteText buildOptions = myTreeComponent.getData().getAll().stream().filter(text -> text.getText().equals("Build, Execution, Deployment")).toList().get(0);
+                buildOptions.doubleClick();
+                myTreeComponent = controller.getIdeaFrame().getMyTreeComponent();
+                RemoteText buildTools = myTreeComponent.getData().getAll().stream().filter(text -> text.getText().equals("Build Tools")).toList().get(0);
+                buildTools.doubleClick();
+                myTreeComponent = controller.getIdeaFrame().getMyTreeComponent();
+                RemoteText gradleOption = myTreeComponent.getData().getAll().stream().filter(text -> text.getText().equals("Gradle")).toList().get(0);
+                gradleOption.click();
+            }
+        }
+
+        ComponentFixture comboBoxFixture = controller.getIdeaFrame().getGradleBuildWithOption();
+        List<RemoteText> remoteTexts = comboBoxFixture.getData().getAll();
+
+        boolean needsSwitch = remoteTexts.stream().anyMatch(text -> text.getText().equals("Gradle"));
+        if (needsSwitch) {
+            remoteTexts.get(0).click();
+            controller.getKeyboard().hotKey(VK_DOWN);
+            controller.getKeyboard().hotKey(VK_ENTER);
+
+            pause(ofMillis(250).toMillis());
+            controller.getIdeaFrame().getApplyButtonGeneric().click();
+        }
+        ComponentFixture sdkComboBox = controller.getIdeaFrame().getSdkComboBox();
+        remoteTexts = sdkComboBox.getData().getAll();
+
+        remoteTexts.forEach(text -> System.out.println("Text : " + text.getText()));
+        boolean shouldSwitch = remoteTexts.stream().noneMatch(text -> text.getText().contains(projectInfo.getJdkVersion()) ||
+                text.getText().contains("Project SDK"));
+        if (shouldSwitch) {
+            remoteTexts.get(0).click();
+            controller.getKeyboard().hotKey(VK_UP);
+            controller.getKeyboard().hotKey(VK_ENTER);
+
+            pause(ofMillis(250).toMillis());
+            controller.getIdeaFrame().getApplyButtonGeneric().click();
+        }
+        controller.getIdeaFrame().getOKButtonGeneric().click();
+        controller.waitForIndex();
     }
 }

@@ -11,6 +11,8 @@ public class GitProjectInfo {
     private String jdkVersion;
     private String testBasePath;
 
+    private LocalProjectInfo localProjectInfo;
+
     public GitProjectInfo(String projectName, String gitUrl, String gitBranch, String buildFile, LocalProjectInfo.BuildSystem buildSystem, int startupWaitDuration, boolean switchBranchOnOpen, String jdkVersion, String testBasePath) {
         this.projectName = projectName;
         this.gitUrl = gitUrl;
@@ -93,5 +95,13 @@ public class GitProjectInfo {
 
     public void setTestBasePath(String testBasePath) {
         this.testBasePath = testBasePath;
+    }
+
+    public LocalProjectInfo getLocalProjectInfo() {
+        return localProjectInfo;
+    }
+
+    public void setLocalProjectInfo(LocalProjectInfo localProjectInfo) {
+        this.localProjectInfo = localProjectInfo;
     }
 }

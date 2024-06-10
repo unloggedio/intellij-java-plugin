@@ -7,14 +7,9 @@ import com.insidious.plugin.UITests.wrapper.*;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
-
-import static com.insidious.plugin.UITests.Utils.UITestUtils.setFilterOptionsForCurrentView;
-
 import com.intellij.remoterobot.utils.Keyboard;
-import org.junit.Assert;
 import org.junit.jupiter.api.*;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.List;
 
@@ -24,34 +19,26 @@ import static java.awt.event.KeyEvent.*;
 import static java.time.Duration.*;
 import static org.assertj.swing.timing.Pause.pause;
 import static com.intellij.remoterobot.stepsProcessing.StepWorkerKt.step;
+import static com.insidious.plugin.UITests.Utils.UITestUtils.setFilterOptionsForCurrentView;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class UiTestsV3 {
     private RemoteRobotController controller;
-    private LocalProjectInfo localProjectInfo;
     private GitProjectInfo projectUnderTest;
-    private int expectedNumberOfTestCasesForFutureController;
 
     public UiTestsV3() {
         RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8082");
         Keyboard keyboard = new Keyboard(remoteRobot);
         controller = new RemoteRobotController(remoteRobot, keyboard);
 
-        localProjectInfo = new LocalProjectInfo("unlogged-spring-maven-demo",
-                "unlogged-spring-maven-demo",
-                "pom.xml",
-                LocalProjectInfo.BuildSystem.MAVEN,
-                "UnloggedDemoApplication.java"
-        );
-        localProjectInfo.setStartScriptName("start_project.sh");
-        localProjectInfo.setRemoveScriptName("remove_local_sessions.sh");
-        localProjectInfo.setRevertScriptName("git_rollback.sh");
-        localProjectInfo.setStartupWaitDuration(60);
+        LocalProjectInfo localProjectInfo = new LocalProjectInfo("unlogged-spring-maven-demo", "start_project.sh",
+                "git_rollback.sh", "remove_local_sessions.sh", "UnloggedDemoApplication.java", 60);
 
         projectUnderTest = new GitProjectInfo("unlogged-spring-maven-demo",
                 "https://github.com/unloggedio/unlogged-spring-maven-demo.git",
                 "ui_test_clean", "pom.xml", LocalProjectInfo.BuildSystem.MAVEN, 60,
                 true, "17", "src/test/java/org/unlogged/demo");
+        projectUnderTest.setLocalProjectInfo(localProjectInfo);
     }
 
     //    @Test
@@ -64,7 +51,7 @@ public class UiTestsV3 {
             welcomeFrame.getOpenProjectButton().click();
             welcomeFrame.getProjectSelectorComboBox().click();
 
-            controller.getKeyboard().enterText("/" + localProjectInfo.getProjectPath());
+            controller.getKeyboard().enterText("/" + projectUnderTest.getLocalProjectInfo().getProjectPath());
             pause(ofSeconds(1).toMillis());
             welcomeFrame.getOpenConfirmButton().click();
         });
@@ -74,8 +61,8 @@ public class UiTestsV3 {
         });
 
         step("Revert all changes made to project, remove local sessions", () -> {
-            executeShellScriptAndWait(controller, localProjectInfo.getRevertScriptName(), 5);
-            executeShellScriptAndWait(controller, localProjectInfo.getRemoveScriptName(), 2);
+            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getRevertScriptName(), 5);
+            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getRemoveScriptName(), 2);
         });
 
         step("Add unlogged dependency (Mac)", () -> {
@@ -118,42 +105,19 @@ public class UiTestsV3 {
         });
 
         step("Revert all changes made to project, remove local sessions", () -> {
-            executeShellScriptAndWait(controller, localProjectInfo.getRevertScriptName(), 5);
-            executeShellScriptAndWait(controller, localProjectInfo.getRemoveScriptName(), 2);
+            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getRevertScriptName(), 5);
+            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getRemoveScriptName(), 2);
         });
 
         step("Add unlogged dependency (Mac)", () -> {
-            openFileIfNeeded(projectUnderTest.getBuildFile(), controller);
-            ComponentFixture unloggedToolbar = controller.getIdeaFrame().getUnloggedToolbarComponent();
-            unloggedToolbar.moveMouse();
-            unloggedToolbar.click();
-            pause(ofSeconds(1).toMillis());
-
-            ComponentFixture copyButton = controller.getIdeaFrame().findCopyButton();
-            copyButton.moveMouse();
-            copyButton.click();
-
-            //TODO: Update logic to take gradle projects as well
-            //paste right after dependencies
-            TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
-            List<RemoteText> pomContents = textEditorFixture.getEditor().getData().getAll();
-            RemoteText dependencyText = pomContents.stream().filter(remoteText -> remoteText.getText().equals("dependencies")).toList().get(0);
-            int indexOfDependencies = pomContents.indexOf(dependencyText);
-            RemoteText closingTag = pomContents.get(indexOfDependencies + 1);
-            closingTag.click();
-            controller.getKeyboard().hotKey(VK_RIGHT);
-            controller.getKeyboard().hotKey(VK_ENTER);
-            controller.getKeyboard().hotKey(VK_META, VK_V);
-
-            performMavenSync(controller);
-            controller.waitForIndex();
+            addUnloggedDependenciesToBuildFile(controller, projectUnderTest);
         });
     }
 
     @Test
     @Order(2)
     @Disabled
-    public void runRemoteModeTest() {
+    public void remote_mode_general() {
 
         final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
 
@@ -161,8 +125,8 @@ public class UiTestsV3 {
         //TODO : revert changes if annotations are already present
 
         step("Add annotation and start project", () -> {
-            addUnloggedToStartFile(controller, localProjectInfo.getMainClassName(), annotationText, true);
-            executeShellScriptAndWait(controller, localProjectInfo.getStartScriptName(), localProjectInfo.getStartupWaitDuration());
+            addUnloggedToStartFile(controller, projectUnderTest.getLocalProjectInfo().getMainClassName(), annotationText, true);
+            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getStartScriptName(), projectUnderTest.getLocalProjectInfo().getStartupWaitDuration());
         });
 
         step("Set Source to remote URL", () -> {
@@ -232,14 +196,14 @@ public class UiTestsV3 {
     @Test
     @Disabled
     @Order(3)
-    public void runLocalMode() {
+    public void run_mode_local_general() {
 
         final String annotationText = "@Unlogged";
 
         step("Add annotation and start project", () -> {
-            UiTestInteractionUtils.openAndRevertGitChangesForFile(localProjectInfo.getMainClassName(), controller);
-            addUnloggedToStartFile(controller, localProjectInfo.getMainClassName(), annotationText, false);
-            executeShellScriptAndWait(controller, localProjectInfo.getStartScriptName(), localProjectInfo.getStartupWaitDuration());
+            UiTestInteractionUtils.openAndRevertGitChangesForFile(projectUnderTest.getLocalProjectInfo().getMainClassName(), controller);
+            addUnloggedToStartFile(controller, projectUnderTest.getLocalProjectInfo().getMainClassName(), annotationText, false);
+            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getStartScriptName(), projectUnderTest.getLocalProjectInfo().getStartupWaitDuration());
         });
 
         step("Set source filter to Localhost", () -> {
@@ -311,9 +275,9 @@ public class UiTestsV3 {
         final String annotationText = "@Unlogged";
 
         step("Add annotation and start project", () -> {
-            UiTestInteractionUtils.openAndRevertGitChangesForFile(localProjectInfo.getMainClassName(), controller);
-            addUnloggedToStartFile(controller, localProjectInfo.getMainClassName(), annotationText, false);
-            executeShellScriptAndWait(controller, localProjectInfo.getStartScriptName(), localProjectInfo.getStartupWaitDuration());
+            UiTestInteractionUtils.openAndRevertGitChangesForFile(projectUnderTest.getLocalProjectInfo().getMainClassName(), controller);
+            addUnloggedToStartFile(controller, projectUnderTest.getLocalProjectInfo().getMainClassName(), annotationText, false);
+            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getStartScriptName(), projectUnderTest.getLocalProjectInfo().getStartupWaitDuration());
         });
 
         step("Set source filter to Localhost", () -> {
@@ -334,7 +298,7 @@ public class UiTestsV3 {
         });
 
         step("Open main class and enusre InlayHint render behaviour is as expected", () -> {
-            openFileIfNeeded(localProjectInfo.getMainClassName(), controller);
+            openFileIfNeeded(projectUnderTest.getLocalProjectInfo().getMainClassName(), controller);
             //look for inlayHints and assert that clicking on it will not hide it
             TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
             List<RemoteText> texts = textEditorFixture.getData().getAll();
@@ -358,9 +322,257 @@ public class UiTestsV3 {
 //        });
     }
 
-
+    //72
     @Test
     @Order(5)
+    @Disabled
+    public void serverIssues_72() {
+
+        //project is already up and running in local mode
+        step("Save Candidates from one of FutureController's methods", () -> {
+
+            //clear notifications before generating tests
+            controller.getIdeaFrame().getNotificationTab().click();
+            //click on clear all if it exists
+            try {
+                controller.getIdeaFrame().getComponentByXpath("//div[@class='LinkLabel']").click();
+            } catch (Exception e) {
+            }
+
+            openUnloggedToolbarIfNotOpen(controller, 1);
+
+            //save all
+            controller.getIdeaFrame().getSelectAllicon().click();
+            pause(ofMillis(500).toMillis());
+
+            controller.getIdeaFrame().getJunitTopToolbarIcon().click();
+            pause(ofMillis(250).toMillis());
+
+            //Notification shouldn't pop up saying test case failed to generate
+            Assertions.assertTrue(controller.getIdeaFrame().getTestGenerationFailureBalloonNotification().isEmpty() ||
+                    controller.getIdeaFrame().getTestGenerationFailureBalloonNotification() == null);
+        });
+    }
+
+    @Test
+    @Order(6)
+    @Disabled
+    public void serverIssue_46() {
+        //set filter to remote mode
+        //don't select a session from remote, try to click on apply
+        //asser that the filter tab is still open
+
+        step("Set Source to remote URL, but click on apply without selecting a session", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 2);
+            clearGotIts(controller);
+
+            controller.getIdeaFrame().getFilterButton().click();
+            pause(ofMillis(250).toMillis());
+
+            ComponentFixture titlePanel = controller.getIdeaFrame().getMyContentPanel();
+            RemoteText sourcesTabText = titlePanel.getData().getAll().stream().filter(remoteText -> remoteText.getText().equals("Sources")).toList().get(0);
+            sourcesTabText.click();
+            controller.getIdeaFrame().getRemoteButtonRadioLabel().click();
+            pause(ofMillis(250).toMillis());
+
+            ComponentFixture textField = controller.getIdeaFrame().getFirstJTextField();
+            textField.click();
+
+            controller.getKeyboard().hotKey(VK_META, VK_A);
+            controller.getKeyboard().hotKey(VK_DELETE);
+
+            controller.getKeyboard().enterText(TestConstants.REMOTE_URL);
+            controller.getIdeaFrame().getListSessionsButton().click();
+
+            pause(ofSeconds(7).toMillis());
+            int numberOfRadioButtons = controller.getIdeaFrame().getAllVisibleRadioButtons().size();
+
+            controller.getIdeaFrame().getApplyButtonGeneric().click();
+            pause(ofSeconds(5).toMillis());
+
+            Assertions.assertTrue(controller.getIdeaFrame().getAllVisibleRadioButtons().size() == numberOfRadioButtons);
+
+            controller.getIdeaFrame().getFilterCancel().click();
+        });
+    }
+
+    @Test
+    @Order(7)
+    @Disabled
+    public void serverIssue_36_local() {
+        step("Select remote mode filter, then cancel, ensure that candidates are generated afterwards", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 2);
+            clearGotIts(controller);
+
+            controller.getIdeaFrame().getFilterButton().click();
+            pause(ofMillis(250).toMillis());
+
+            ComponentFixture titlePanel = controller.getIdeaFrame().getMyContentPanel();
+            RemoteText sourcesTabText = titlePanel.getData().getAll().stream().filter(remoteText -> remoteText.getText().equals("Sources")).toList().get(0);
+            sourcesTabText.click();
+            controller.getIdeaFrame().getRemoteButtonRadioLabel().click();
+            pause(ofMillis(250).toMillis());
+
+            ComponentFixture textField = controller.getIdeaFrame().getFirstJTextField();
+            textField.click();
+
+            controller.getKeyboard().hotKey(VK_META, VK_A);
+            controller.getKeyboard().hotKey(VK_DELETE);
+
+            controller.getKeyboard().enterText(TestConstants.REMOTE_URL);
+            controller.getIdeaFrame().getListSessionsButton().click();
+
+            pause(ofSeconds(7).toMillis());
+            controller.getIdeaFrame().getFilterCancel().click();
+        });
+
+        step("Clear all previous candidates", () -> {
+            controller.getIdeaFrame().getToolBarDeleteButton().click();
+            pause(ofMillis(500).toMillis());
+        });
+
+        step("DirectInvoke a method and make sure that ", () -> {
+            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
+            List<DirectInvokeTreeLine> assertions = new ArrayList<>();
+            inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
+            assertions.add(new DirectInvokeTreeLine(1, "java.lang.String"));
+            assertions.add(new DirectInvokeTreeLine(2, "String: yolo"));
+            DirectInvokeRequest request = new DirectInvokeRequest("FutureController.java",
+                    "public String getFutureResult(String s1)",
+                    inputLines, assertions, List.of(AssertionOptions.DIRECT_INVOKE_RESPONSE),
+                    true);
+            UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
+            pause(ofSeconds(2).toMillis());
+
+            //2 candidates are supposed to be generated for a successful direct Invoke form the above method
+            Assertions.assertEquals(2, controller.getIdeaFrame().getAllVisibleCheckBoxes().size());
+        });
+    }
+
+    @Test
+    @Order(8)
+    @Disabled
+    public void serverIssue_37() {
+        //set filter to remote mode
+        //don't select a session from remote, try to click on apply
+        //asser that the filter tab is still open
+
+        step("Clear all previous notifications if they are present", () -> {
+            controller.getIdeaFrame().getNotificationTab().click();
+            try {
+                controller.getIdeaFrame().getComponentByXpath("//div[@class='LinkLabel']").click();
+            } catch (Exception e) {
+            }
+        });
+
+        step("Set Source to remote URL after a failed attempt at applying remote changes", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 2);
+            clearGotIts(controller);
+
+            controller.getIdeaFrame().getFilterButton().click();
+            pause(ofMillis(250).toMillis());
+
+            ComponentFixture titlePanel = controller.getIdeaFrame().getMyContentPanel();
+            RemoteText sourcesTabText = titlePanel.getData().getAll().stream().filter(remoteText -> remoteText.getText().equals("Sources")).toList().get(0);
+            sourcesTabText.click();
+            controller.getIdeaFrame().getRemoteButtonRadioLabel().click();
+            pause(ofMillis(250).toMillis());
+
+            ComponentFixture textField = controller.getIdeaFrame().getFirstJTextField();
+            textField.click();
+
+            controller.getKeyboard().hotKey(VK_META, VK_A);
+            controller.getKeyboard().hotKey(VK_DELETE);
+
+            controller.getKeyboard().enterText(TestConstants.REMOTE_URL);
+            controller.getIdeaFrame().getListSessionsButton().click();
+            pause(ofSeconds(7).toMillis());
+
+            controller.getIdeaFrame().getApplyButtonGeneric().click();
+            pause(ofSeconds(5).toMillis());
+        });
+
+        //Assert that nothing shows up in notifications
+        controller.getIdeaFrame().getNotificationTab().click();
+        try {
+            controller.getIdeaFrame().getComponentByXpath("//div[@class='LinkLabel']").click();
+            Assertions.fail("Got a notification when not expected");
+        } catch (Exception e) {
+            //pass
+        }
+    }
+
+    @Test
+    @Order(9)
+    public void serverIssue_51() {
+        final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
+
+        step("Add annotation and start project", () -> {
+            UiTestInteractionUtils.openAndRevertGitChangesForFile(projectUnderTest.getLocalProjectInfo().getMainClassName(), controller);
+            addUnloggedToStartFile(controller, projectUnderTest.getLocalProjectInfo().getMainClassName(), annotationText, false);
+            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getStartScriptName(), projectUnderTest.getLocalProjectInfo().getStartupWaitDuration());
+        });
+
+        step("Set Source to remote URL", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 2);
+            clearGotIts(controller);
+
+            controller.getIdeaFrame().getFilterButton().click();
+            pause(ofMillis(250).toMillis());
+
+            ComponentFixture titlePanel = controller.getIdeaFrame().getMyContentPanel();
+            RemoteText sourcesTabText = titlePanel.getData().getAll().stream().filter(remoteText -> remoteText.getText().equals("Sources")).toList().get(0);
+            sourcesTabText.click();
+            controller.getIdeaFrame().getRemoteButtonRadioLabel().click();
+            pause(ofMillis(250).toMillis());
+
+            ComponentFixture textField = controller.getIdeaFrame().getFirstJTextField();
+            textField.click();
+
+            controller.getKeyboard().hotKey(VK_META, VK_A);
+            controller.getKeyboard().hotKey(VK_DELETE);
+
+            controller.getKeyboard().enterText(TestConstants.REMOTE_URL);
+            controller.getIdeaFrame().getListSessionsButton().click();
+            pause(ofSeconds(7).toMillis());
+
+            controller.getIdeaFrame().getAllVisibleRadioButtons().get(2).click();
+            controller.getIdeaFrame().getApplyButtonGeneric().click();
+
+            pause(ofSeconds(5).toMillis());
+        });
+
+        step("Clear notifications", () -> {
+            controller.getIdeaFrame().getNotificationTab().click();
+            try {
+                controller.getIdeaFrame().getComponentByXpath("//div[@class='LinkLabel']").click();
+            } catch (Exception e) {
+            }
+        });
+
+        step("Switch to localhost source", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 1);
+            controller.getIdeaFrame().getFilterButton().click();
+            pause(ofMillis(250).toMillis());
+
+            ComponentFixture titlePanel = controller.getIdeaFrame().getMyContentPanel();
+            RemoteText sourcesTabText = titlePanel.getData().getAll().stream().filter(remoteText -> remoteText.getText().equals("Sources")).toList().get(0);
+            sourcesTabText.click();
+            controller.getIdeaFrame().getLocalHostRadioButton().click();
+            controller.getIdeaFrame().getApplyButtonGeneric().click();
+        });
+
+        //Assert no new notifications
+        controller.getIdeaFrame().getNotificationTab().click();
+        try {
+            controller.getIdeaFrame().getComponentByXpath("//div[@class='LinkLabel']").click();
+            Assertions.fail("Got a notification when not expected");
+        } catch (Exception e) {
+            //pass
+        }
+    }
+
+    @Test
     @Disabled
     public void serverIssues_20_local() {
         //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
@@ -389,7 +601,6 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(6)
     @Disabled
     public void serverIssues_30_local() {
         //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
@@ -420,8 +631,7 @@ public class UiTestsV3 {
 
     @Test
     @Disabled
-    @Order(7)
-    public void debugFilterInteraction() {
+    public void filterInteraction_sanity() {
         List<String> includedClasses = new ArrayList<>();
         includedClasses.add("org.unlogged.demo.jspdemo.wfm.SerializationUtils");
         List<String> includedMethods = new ArrayList<>();
@@ -436,8 +646,7 @@ public class UiTestsV3 {
 
     @Test
     @Disabled
-    @Order(8)
-    public void junitIconOptionAbstracted() {
+    public void junit_icon_sanity() {
         List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
         List<DirectInvokeTreeLine> assertions = new ArrayList<>();
         inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
@@ -457,8 +666,7 @@ public class UiTestsV3 {
 
     @Test
     @Disabled
-    @Order(9)
-    public void junitDummyDataAbstracted() {
+    public void junit_dummy_data_boiler_plate_sanity() {
         List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
         List<DirectInvokeTreeLine> assertions = new ArrayList<>();
         inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
@@ -478,8 +686,7 @@ public class UiTestsV3 {
 
     @Test
     @Disabled
-    @Order(10)
-    public void junitReplayDataAbstracted() {
+    public void junit_replay_data_sanity() {
         List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
         List<DirectInvokeTreeLine> assertions = new ArrayList<>();
         inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
@@ -499,9 +706,8 @@ public class UiTestsV3 {
 
     //TODO: Needs improvements
     @Test
-    @Order(11)
     @Disabled
-    public void checkIDEFatalExceptions() {
+    public void ide_errors_checkIDEFatalExceptions_sanity() {
         List<String> listIDE = listIDEFatalExceptions(controller);
         if (!listIDE.isEmpty()) {
             Assertions.fail("Assertion failure due to exceptions: " + listIDE);
@@ -511,29 +717,6 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(12)
-    @Disabled
-    public void serverIssues_14() {
-
-        List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
-        List<DirectInvokeTreeLine> assertions = new ArrayList<>();
-        inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
-        assertions.add(new DirectInvokeTreeLine(1, "java.lang.String"));
-        assertions.add(new DirectInvokeTreeLine(2, "String: yolo"));
-        DirectInvokeRequest request = new DirectInvokeRequest("FutureController.java",
-                "public String getFutureResult(String s1)",
-                inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
-                true);
-        JunitGenerationRequest junitGenerationRequest = JunitGenerationRequest.fromDirectInvokeRequest(request,
-                projectUnderTest, false, JunitGenerationMethod.DUMMY_DATA,
-                JunitGenerationOptions.defaultOptions());
-        junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("org.unlogged.demo.controller.FutureController"),
-                new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true));
-        generateJunitTestCaseForMethod(controller, junitGenerationRequest);
-    }
-
-    @Test
-    @Order(13)
     @Disabled
     public void serverIssue_44() {
         final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
@@ -542,8 +725,8 @@ public class UiTestsV3 {
         //TODO : revert changes if annotations are already present
 
         step("Add annotation and start project", () -> {
-            addUnloggedToStartFile(controller, localProjectInfo.getMainClassName(), annotationText, true);
-            executeShellScriptAndWait(controller, localProjectInfo.getStartScriptName(), localProjectInfo.getStartupWaitDuration());
+            addUnloggedToStartFile(controller, projectUnderTest.getLocalProjectInfo().getMainClassName(), annotationText, true);
+            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getStartScriptName(), projectUnderTest.getLocalProjectInfo().getStartupWaitDuration());
         });
 
         step("Set Source to remote URL", () -> {
@@ -577,7 +760,7 @@ public class UiTestsV3 {
         });
 
         step("Open main class and enusre InlayHint render behaviour is as expected", () -> {
-            openFileIfNeeded(localProjectInfo.getMainClassName(), controller);
+            openFileIfNeeded(projectUnderTest.getLocalProjectInfo().getMainClassName(), controller);
             //look for inlayHints and assert that clicking on it will not hide it
             TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
             //Type something to reload inlayhints
@@ -612,7 +795,6 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(14)
     @Disabled
     public void serverIssue_52() {
         //assume project  is running in remote mode
@@ -640,7 +822,6 @@ public class UiTestsV3 {
 
     //Does not require project to be running
     @Test
-    @Order(15)
     @Disabled
     public void serverIssues_23() {
         int switchCount = 10;
@@ -662,7 +843,7 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(16)
+    @Disabled
     public void serverIssues_7() {
         final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "/" + "\")";
 
@@ -670,8 +851,8 @@ public class UiTestsV3 {
         //TODO : revert changes if annotations are already present
 
         step("Add annotation and start project", () -> {
-            addUnloggedToStartFile(controller, localProjectInfo.getMainClassName(), annotationText, true);
-            executeShellScriptAndWait(controller, localProjectInfo.getStartScriptName(), localProjectInfo.getStartupWaitDuration());
+            addUnloggedToStartFile(controller, projectUnderTest.getLocalProjectInfo().getMainClassName(), annotationText, true);
+            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getStartScriptName(), projectUnderTest.getLocalProjectInfo().getStartupWaitDuration());
         });
 
         step("Set Source to remote URL", () -> {
@@ -716,18 +897,144 @@ public class UiTestsV3 {
         });
     }
 
-    private void assertNumberOfTestCases(JunitGenerationRequest request) {
-        openFileIfNeeded(request.getTestBasePath().substring(request.getTestBasePath().lastIndexOf("/") + 1), controller);
-        expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
-        clearGotIts(controller);
-        TextEditorFixture editor = controller.getIdeaFrame().textEditor(Duration.ofSeconds(2));
-        int numberOfTestsPresent = editor.getGutter().getIcons()
-                .stream()
-                .filter(icon -> icon.toString().contains("testState/run.svg"))
-                .toList().size();
 
-        Assert.assertEquals("Expected and actual number of test cases are", expectedNumberOfTestCasesForFutureController, numberOfTestsPresent);
-        expectedNumberOfTestCasesForFutureController += 1;
-        pause(ofSeconds(10).toMillis());
+    //change count from this point
+    @Test
+    @Disabled
+    public void gradle_project_run() {
+        projectUnderTest = new GitProjectInfo("unlogged-spring-gradel-demo",
+                "https://github.com/unloggedio/unlogged-spring-gradle-demo.git",
+                "ui_test_clean", "build.gradle", LocalProjectInfo.BuildSystem.GRADLE, 65,
+                true, "17", "src/test/java/org/unlogged/demo");
+        LocalProjectInfo localProjectInfo = new LocalProjectInfo("unlogged-spring-maven-demo", "start_project.sh",
+                "git_rollback.sh", "remove_local_sessions.sh", "Application.java", 60);
+        projectUnderTest.setLocalProjectInfo(localProjectInfo);
+
+        try {
+            if (controller.getIdeaFrame() != null) {
+                UiTestInteractionUtils.runIntelliJIdeaAction(controller, "Close Project", 20);
+            }
+        } catch (Exception e) {
+
+        }
+
+        step("Clone project - fresh state, change branch and setup sdk version", () -> {
+            cloneAndOpenProject(controller, projectUnderTest);
+            //setup sdk version and wait till index is complete, then start tests in normal flow
+            setSdkVersion(controller, projectUnderTest);
+            controller.waitForIndex();
+        });
+
+        step("Set gradle Options : ", () -> {
+            setIntelliJAsGradleBuilder(controller, projectUnderTest);
+            controller.waitForIndex();
+        });
+
+        //add assertions for exceptions popping up in notifications
+
+        step("Revert all changes made to project, remove local sessions", () -> {
+            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getRevertScriptName(), 5);
+            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getRemoveScriptName(), 2);
+        });
+
+        //add gradle dependencies
+        step("Add Gradle dependencies", () -> {
+            addUnloggedDependenciesToBuildFile(controller, projectUnderTest);
+        });
     }
+
+    @Test
+    @Disabled
+    public void serverIssue_14() {
+        final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
+
+        step("Add annotation and start project", () -> {
+            addUnloggedToStartFile(controller, projectUnderTest.getLocalProjectInfo().getMainClassName(), annotationText, true);
+            executeShellScriptAndWait(controller, projectUnderTest.getLocalProjectInfo().getStartScriptName(), projectUnderTest.getLocalProjectInfo().getStartupWaitDuration());
+        });
+
+        step("Set Source to remote URL", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 2);
+            clearGotIts(controller);
+
+            controller.getIdeaFrame().getFilterButton().click();
+            pause(ofMillis(250).toMillis());
+
+            ComponentFixture titlePanel = controller.getIdeaFrame().getMyContentPanel();
+            RemoteText sourcesTabText = titlePanel.getData().getAll().stream().filter(remoteText -> remoteText.getText().equals("Sources")).toList().get(0);
+            sourcesTabText.click();
+            controller.getIdeaFrame().getRemoteButtonRadioLabel().click();
+            pause(ofMillis(250).toMillis());
+
+            ComponentFixture textField = controller.getIdeaFrame().getFirstJTextField();
+            textField.click();
+
+            controller.getKeyboard().hotKey(VK_META, VK_A);
+            controller.getKeyboard().hotKey(VK_DELETE);
+
+            controller.getKeyboard().enterText(TestConstants.REMOTE_URL);
+            controller.getIdeaFrame().getListSessionsButton().click();
+
+            pause(ofSeconds(10).toMillis());
+
+            controller.getIdeaFrame().getAllVisibleRadioButtons().get(2).click();
+            controller.getIdeaFrame().getApplyButtonGeneric().click();
+
+            pause(ofSeconds(5).toMillis());
+
+            //TODO: Add an assertion to number of candidates expected here or assert candidates
+        });
+
+        step("Try to generate dummy data boilerplate Junit code.", () -> {
+            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
+            List<DirectInvokeTreeLine> assertions = new ArrayList<>();
+            inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
+            assertions.add(new DirectInvokeTreeLine(1, "java.lang.String"));
+            assertions.add(new DirectInvokeTreeLine(2, "String: yolo"));
+            DirectInvokeRequest request = new DirectInvokeRequest("ReactiveStudentService.java",
+                    "public boolean updateStudent(Student student)",
+                    inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
+                    true);
+            JunitGenerationRequest junitGenerationRequest = JunitGenerationRequest.fromDirectInvokeRequest(request,
+                    projectUnderTest, false, JunitGenerationMethod.DUMMY_DATA,
+                    JunitGenerationOptions.defaultOptions());
+            junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("org.unlogged.demo.gradle.service.ReactiveStudentService"),
+                    new ArrayList<>(), List.of("updateStudent"), new ArrayList<>(), true));
+            generateJunitTestCaseForMethod(controller, junitGenerationRequest);
+        });
+
+
+        step("Stop running process", () -> {
+            stopProcessInTerminal(controller);
+        });
+    }
+
+    @Test
+    @Disabled
+    public void config_sanity_debug() {
+        projectUnderTest = new GitProjectInfo("unlogged-spring-gradel-demo",
+                "https://github.com/unloggedio/unlogged-spring-gradle-demo.git",
+                "ui_test_clean", "build.gradle", LocalProjectInfo.BuildSystem.GRADLE, 65,
+                true, "17", "src/test/java/org/unlogged/demo");
+        LocalProjectInfo localProjectInfo = new LocalProjectInfo("unlogged-spring-maven-demo", "start_project.sh",
+                "git_rollback.sh", "remove_local_sessions.sh", "UnloggedDemoApplication.java", 60);
+        projectUnderTest.setLocalProjectInfo(localProjectInfo);
+
+
+    }
+
+//    private void assertNumberOfTestCases(JunitGenerationRequest request) {
+//        openFileIfNeeded(request.getTestBasePath().substring(request.getTestBasePath().lastIndexOf("/") + 1), controller);
+//        expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
+//        clearGotIts(controller);
+//        TextEditorFixture editor = controller.getIdeaFrame().textEditor(Duration.ofSeconds(2));
+//        int numberOfTestsPresent = editor.getGutter().getIcons()
+//                .stream()
+//                .filter(icon -> icon.toString().contains("testState/run.svg"))
+//                .toList().size();
+//
+//        Assert.assertEquals("Expected and actual number of test cases are", expectedNumberOfTestCasesForFutureController, numberOfTestsPresent);
+//        expectedNumberOfTestCasesForFutureController += 1;
+//        pause(ofSeconds(10).toMillis());
+//    }
 }

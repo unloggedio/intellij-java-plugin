@@ -51,4 +51,8 @@ public class WelcomeFrame extends CommonContainerFixture {
     public ComponentFixture getVcsCloneButton() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.VCS_CREATE_CLONE_BUTTON);
     }
+
+    public ComponentFixture getVcsCreateButtonV2() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GET_FROM_VCS_V2);
+    }
 }

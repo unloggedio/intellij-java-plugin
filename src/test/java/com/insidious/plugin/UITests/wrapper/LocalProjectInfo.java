@@ -1,54 +1,20 @@
 package com.insidious.plugin.UITests.wrapper;
 
 public class LocalProjectInfo {
-    private String projectName;
-    private String projectPath;
-    private String buildFile;
-    private BuildSystem buildSystem;
     private String startScriptName;
     private String revertScriptName;
     private String removeScriptName;
     private String mainClassName;
     private int startupWaitDuration;
+    private String projectPath;
 
-    public LocalProjectInfo(String projectName, String projectPath, String buildFile, BuildSystem buildSystem, String mainClassName) {
-        this.projectName = projectName;
-        this.projectPath = projectPath;
-        this.buildFile = buildFile;
-        this.buildSystem = buildSystem;
+    public LocalProjectInfo(String projectPath, String startScriptName, String revertScriptName, String removeScriptName, String mainClassName, int startupWaitDuration) {
+        this.startScriptName = startScriptName;
+        this.revertScriptName = revertScriptName;
+        this.removeScriptName = removeScriptName;
         this.mainClassName = mainClassName;
-    }
-
-    public String getProjectName() {
-        return projectName;
-    }
-
-    public void setProjectName(String projectName) {
-        this.projectName = projectName;
-    }
-
-    public String getProjectPath() {
-        return projectPath;
-    }
-
-    public void setProjectPath(String projectPath) {
+        this.startupWaitDuration = startupWaitDuration;
         this.projectPath = projectPath;
-    }
-
-    public String getBuildFile() {
-        return buildFile;
-    }
-
-    public void setBuildFile(String buildFile) {
-        this.buildFile = buildFile;
-    }
-
-    public BuildSystem getBuildSystem() {
-        return buildSystem;
-    }
-
-    public void setBuildSystem(BuildSystem buildSystem) {
-        this.buildSystem = buildSystem;
     }
 
     public String getMainClassName() {
@@ -89,6 +55,14 @@ public class LocalProjectInfo {
 
     public void setStartupWaitDuration(int startupWaitDuration) {
         this.startupWaitDuration = startupWaitDuration;
+    }
+
+    public String getProjectPath() {
+        return projectPath;
+    }
+
+    public void setProjectPath(String projectPath) {
+        this.projectPath = projectPath;
     }
 
     public enum BuildSystem {MAVEN, GRADLE}
