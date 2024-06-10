@@ -9,8 +9,9 @@ public class GitProjectInfo {
     private int startupWaitDuration;
     private boolean switchBranchOnOpen;
     private String jdkVersion;
+    private String testBasePath;
 
-    public GitProjectInfo(String projectName, String gitUrl, String gitBranch, String buildFile, LocalProjectInfo.BuildSystem buildSystem, int startupWaitDuration, boolean switchBranchOnOpen, String jdkVersion) {
+    public GitProjectInfo(String projectName, String gitUrl, String gitBranch, String buildFile, LocalProjectInfo.BuildSystem buildSystem, int startupWaitDuration, boolean switchBranchOnOpen, String jdkVersion, String testBasePath) {
         this.projectName = projectName;
         this.gitUrl = gitUrl;
         this.gitBranch = gitBranch;
@@ -19,6 +20,7 @@ public class GitProjectInfo {
         this.startupWaitDuration = startupWaitDuration;
         this.switchBranchOnOpen = switchBranchOnOpen;
         this.jdkVersion = jdkVersion;
+        this.testBasePath = testBasePath;
     }
 
     public String getProjectName() {
@@ -83,5 +85,13 @@ public class GitProjectInfo {
 
     public void setJdkVersion(String jdkVersion) {
         this.jdkVersion = jdkVersion;
+    }
+
+    public String getTestBasePath() {
+        return testBasePath;
+    }
+
+    public void setTestBasePath(String testBasePath) {
+        this.testBasePath = testBasePath;
     }
 }
