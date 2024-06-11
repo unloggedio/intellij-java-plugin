@@ -503,16 +503,18 @@ public class UiTestInteractionUtils {
         pause(ofSeconds(waitDurationInSeconds).toMillis());
     }
 
-    public static void addUnloggedDependenciesToBuildFile(RemoteRobotController controller, GitProjectInfo projectUnderTest) {
+    public static void addUnloggedDependenciesToBuildFile(RemoteRobotController controller, GitProjectInfo projectUnderTest, boolean open) {
         if (projectUnderTest.getBuildSystem().equals(LocalProjectInfo.BuildSystem.MAVEN)) {
-            addMavenDependenciesAndSync(controller, projectUnderTest.getBuildFile());
+            addMavenDependenciesAndSync(controller, projectUnderTest.getBuildFile(), open);
         } else if (projectUnderTest.getBuildSystem().equals(LocalProjectInfo.BuildSystem.GRADLE)) {
-            addGradleDependencies(controller, projectUnderTest.getBuildFile());
+            addGradleDependencies(controller, projectUnderTest.getBuildFile(), open);
         }
     }
 
-    public static void addMavenDependenciesAndSync(RemoteRobotController controller, String pomFile) {
-        openFileIfNeeded(pomFile, controller);
+    public static void addMavenDependenciesAndSync(RemoteRobotController controller, String pomFile, boolean open) {
+        if (open) {
+            openFileIfNeeded(pomFile, controller);
+        }
         ComponentFixture unloggedToolbar = controller.getIdeaFrame().getUnloggedToolbarComponent();
         unloggedToolbar.moveMouse();
         unloggedToolbar.click();
@@ -546,8 +548,10 @@ public class UiTestInteractionUtils {
         controller.waitForIndex();
     }
 
-    public static void addGradleDependencies(RemoteRobotController controller, String buildGradleFile) {
-        openFileIfNeeded(buildGradleFile, controller);
+    public static void addGradleDependencies(RemoteRobotController controller, String buildGradleFile, boolean open) {
+        if (open) {
+            openFileIfNeeded(buildGradleFile, controller);
+        }
         ComponentFixture unloggedToolbar = controller.getIdeaFrame().getUnloggedToolbarComponent();
         unloggedToolbar.moveMouse();
         unloggedToolbar.click();

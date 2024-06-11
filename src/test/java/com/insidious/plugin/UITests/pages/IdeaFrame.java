@@ -4,7 +4,6 @@ import com.insidious.plugin.UITests.Utils.UITestUtils;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.data.RemoteComponent;
 import com.intellij.remoterobot.fixtures.*;
-import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -428,6 +427,10 @@ public class IdeaFrame extends CommonContainerFixture {
 
     public ComponentFixture getNotificationsClearAll() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.NOTIFICATIONS_CLEAR_ALL);
+    }
+
+    public ComponentFixture getClearSelectionHyperlink() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.CLEAR_SELECTIONS_CANSDIDATE);
     }
 
     public List<ComponentFixture> getTestGenerationFailureBalloonNotification() {

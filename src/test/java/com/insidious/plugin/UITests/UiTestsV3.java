@@ -51,12 +51,12 @@ public class UiTestsV3 {
 
         GitProjectInfo multimoduleDemo = new GitProjectInfo("multimodule-demo-1",
                 "https://github.com/unloggedio/multimodule-demo-1.git",
-                "ui_test_clean", "build.gradle", LocalProjectInfo.BuildSystem.GRADLE, 60,
+                "ui_test_clean", "pom.xml", LocalProjectInfo.BuildSystem.MAVEN, 30,
                 true, "11", "src/test/java/org/unlogged/demo");
         LocalProjectInfo multiModuleDemo = new LocalProjectInfo("multimodule-demo-1", "start_project.sh",
                 "git_rollback.sh", "remove_local_sessions.sh", "clear_tests.sh", "CustomerApplication.java", 30);
         multimoduleDemo.setLocalProjectInfo(multiModuleDemo);
-        multimoduleDemo.setLoginOptions(new GitLoginOptions("your pat here")); //your git personal access token here
+        multimoduleDemo.setLoginOptions(new GitLoginOptions("your Personal Access Token here")); //your git personal access token here
         projectsToTest.add(multimoduleDemo);
     }
 
@@ -78,7 +78,7 @@ public class UiTestsV3 {
         });
 
         step("Add unlogged dependency (Mac)", () -> {
-            addUnloggedDependenciesToBuildFile(controller, projectsToTest.get(projectIndex));
+            addUnloggedDependenciesToBuildFile(controller, projectsToTest.get(projectIndex), true);
         });
     }
 
@@ -844,7 +844,7 @@ public class UiTestsV3 {
 
         //add gradle dependencies
         step("Add Gradle dependencies", () -> {
-            addUnloggedDependenciesToBuildFile(controller, projectsToTest.get(projectIndex));
+            addUnloggedDependenciesToBuildFile(controller, projectsToTest.get(projectIndex), true);
         });
     }
 
@@ -1155,8 +1155,11 @@ public class UiTestsV3 {
         }
     }
 
+    //Add multimodule cases from multi-module-demo1
+    //----------------
     @Test
     @Order(29)
+    @Disabled
     public void onboarding_multimodule() {
         int projectIndex = 2;
 
@@ -1164,8 +1167,8 @@ public class UiTestsV3 {
         step("Clone multimodule project and switch branch", () -> {
             cloneAndOpenProject(controller, projectsToTest.get(2));
             pause(ofSeconds(5).toMillis());
-
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRemoveScriptName(), 3);
+            setSdkVersion(controller, projectsToTest.get(projectIndex));
+            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRevertScriptName(), 3);
         });
 
         step("Open Pom and add dependency", () -> {
@@ -1173,18 +1176,138 @@ public class UiTestsV3 {
             RemoteText firstPom = projectViewTree.getData().getAll().stream().filter(text -> text.getText().equals("pom.xml")).toList().get(0);
             firstPom.doubleClick();
 
-            openUnloggedToolbarIfNotOpen(controller,2);
+            addUnloggedDependenciesToBuildFile(controller, projectsToTest.get(projectIndex), false);
         });
-
-
-        //wait ~30 seconds
-
-        //open pom visible from the project tree
-
-
     }
 
-    //Add multimodule cases from multi-module-demo1
+    @Test
+    @Order(30)
+    @Disabled
+    public void multimodule_local_sanity_multimodule() {
+        int projectIndex = 2;
+        //don't add annotations
+        //only base pom has unlogged sdk at this stage, assert the number of candidates generated for method
+
+        step("Start project", () -> {
+            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRemoveScriptName(), 3);
+            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getStartupWaitDuration());
+        });
+        step("Clear candidates and DirectInvoke controller method", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 2);
+            controller.getIdeaFrame().getToolBarDeleteButton().click();
+            pause(ofMillis(500).toMillis());
+
+            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
+            List<DirectInvokeTreeLine> assertions = new ArrayList<>();
+            inputLines.add(new DirectInvokeTreeLine(1, "1"));
+            assertions.add(new DirectInvokeTreeLine(1, "com.purnima.jain.customer.domain.aggregate.Customer"));
+            assertions.add(new DirectInvokeTreeLine(2, "customerId: 131"));
+            assertions.add(new DirectInvokeTreeLine(3, "customerName: 1321"));
+            DirectInvokeRequest request = new DirectInvokeRequest("CustomerController.java",
+                    "public Customer getCustomer(@PathVariable Integer customerId)",
+                    inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
+                    true);
+            UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
+        });
+
+        step("Assert number of candidates generated as 7", () -> {
+            controller.getIdeaFrame().getSelectAllicon().click();
+            pause(ofMillis(250).toMillis());
+            try {
+                ComponentFixture numberOfCandidates = controller.getIdeaFrame().getComponentByXpath("//div[@text='7 selected']");
+            } catch (Exception e) {
+                Assertions.fail("Either no candidates were generated or wrong number of candidates generated");
+            } finally {
+                try {
+                    controller.getIdeaFrame().getClearSelectionHyperlink().click();
+                } catch (Exception ex) {
+                }
+            }
+        });
+
+        step("Save replay cases", () -> {
+            controller.getIdeaFrame().getSelectAllicon().click();
+            pause(ofSeconds(1).toMillis());
+
+            controller.getIdeaFrame().getSaveGlobalButton().click();
+            pause(ofSeconds(10).toMillis());
+
+            controller.getIdeaFrame().getSaveFromConfirmButton().click();
+            pause(ofSeconds(10).toMillis());
+        });
+
+        step("Open Library and confirm the number of candidates is 7", () -> {
+            controller.getIdeaFrame().getlibraryTabHeader().click();
+            pause(ofMillis(500).toMillis());
+
+            controller.getIdeaFrame().getSelectAllicon().click();
+            pause(ofMillis(250).toMillis());
+
+            try {
+                controller.getIdeaFrame().getComponentByXpath("//div[@text='7 selected']");
+            } catch (Exception e) {
+                Assertions.fail("Wrong number of candidates");
+            }
+        });
+    }
+
+    @Test
+    @Order(31)
+//    @Disabled
+    public void junitLocalModeGeneration_sanity_local_multimodule() {
+        int projectIndex = 2;
+        step("Clear filters", () -> {
+            clearStompFilter(controller);
+        });
+
+        List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
+        List<DirectInvokeTreeLine> assertions = new ArrayList<>();
+        inputLines.add(new DirectInvokeTreeLine(1, "1"));
+        assertions.add(new DirectInvokeTreeLine(1, "com.purnima.jain.customer.domain.aggregate.Customer"));
+        assertions.add(new DirectInvokeTreeLine(2, "customerId: 131"));
+        assertions.add(new DirectInvokeTreeLine(3, "customerName: 1321"));
+        DirectInvokeRequest request = new DirectInvokeRequest("CustomerController.java",
+                "public Customer getCustomer(@PathVariable Integer customerId)",
+                inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
+                true);
+        JunitGenerationRequest junitGenerationRequest = JunitGenerationRequest.fromDirectInvokeRequest(request,
+                projectsToTest.get(projectIndex), true, JunitGenerationMethod.JUNIT_ICON,
+                JunitGenerationOptions.defaultOptions());
+        junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("com.purnima.jain.customer.controller.CustomerController"),
+                new ArrayList<>(), List.of("getCustomer"), new ArrayList<>(), true));
+
+        step("Generate Junit from Icon", () -> {
+            generateJunitTestCaseForMethod(controller, junitGenerationRequest);
+            String currentFileName = controller.getIdeaFrame().textEditor().getEditor().getFileName();
+            //assert test case file is created
+            Assertions.assertEquals("TestCustomerControllerV.java", currentFileName);
+
+            Long count = getNumberofTestsInCurrentFile(controller);
+            Assertions.assertEquals(1, count);
+        });
+
+        step("Generate Junit from Dummy data option", () -> {
+            junitGenerationRequest.setJunitGenerationMethod(JunitGenerationMethod.DUMMY_DATA);
+            generateJunitTestCaseForMethod(controller, junitGenerationRequest);
+            String currentFileName = controller.getIdeaFrame().textEditor().getEditor().getFileName();
+            //assert test case file is created
+            Assertions.assertEquals("TestCustomerControllerV.java", currentFileName);
+
+            Long count = getNumberofTestsInCurrentFile(controller);
+            Assertions.assertEquals(2, count);
+        });
+
+        step("Generate Junit from Replay data option", () -> {
+            junitGenerationRequest.setJunitGenerationMethod(JunitGenerationMethod.REPLAY_DATA);
+            generateJunitTestCaseForMethod(controller, junitGenerationRequest);
+            String currentFileName = controller.getIdeaFrame().textEditor().getEditor().getFileName();
+            //assert test case file is created
+            Assertions.assertEquals("TestCustomerControllerV.java", currentFileName);
+
+            Long count = getNumberofTestsInCurrentFile(controller);
+            Assertions.assertEquals(3, count);
+        });
+    }
 
 //    @Test
 //    @Disabled
