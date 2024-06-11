@@ -43,6 +43,10 @@ public class RemoteRobotController {
         if (ideaFrameReference == null) {
             getIdeaFrame();
         }
-        waitFor(ofMinutes(10), () -> !ideaFrameReference.isDumbMode());
+        waitFor(ofMinutes(3), () -> !ideaFrameReference.isDumbMode());
+    }
+
+    public void unsertIdeaFrame() {
+        this.ideaFrameReference = null;
     }
 }

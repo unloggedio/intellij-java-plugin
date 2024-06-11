@@ -366,7 +366,7 @@ public class UiTestInteractionUtils {
                 .filter(icon -> icon.toString().contains("profileBlue.svg"))
                 .toList();
 
-        System.out.println("Line number selected : "+lineNumber);
+        System.out.println("Line number selected : " + lineNumber);
         for (GutterIcon icon : icons) {
             System.out.println("Line number - > " + icon.getLineNumber());
         }
@@ -449,7 +449,24 @@ public class UiTestInteractionUtils {
         pause(ofMillis(250).toMillis());
         welcomeFrame.getVcsCloneButton().click();
 
-        pause(ofSeconds(50).toMillis());
+        pause(ofSeconds(30).toMillis());
+
+        if (projectUnderTest.getLoginOptions() != null) {
+            System.out.println("Not null");
+            try {
+                welcomeFrame.getGitUseTokenOprionButton().click();
+                pause(ofSeconds(1).toMillis());
+
+                controller.getKeyboard().enterText(projectUnderTest.getLoginOptions().getPersonalAccessToken());
+                pause(ofMillis(250).toMillis());
+
+                welcomeFrame.getGitPatLoginButton().click();
+                pause(ofSeconds(10).toMillis());
+            } catch (Exception e) {
+                System.out.println("Exception e : " + e);
+                e.printStackTrace();
+            }
+        }
 
         if (projectUnderTest.isSwitchBranchOnOpen()) {
             executeDeterministicShellCommand(controller, "git checkout " + projectUnderTest.getGitBranch(), 2);
@@ -622,6 +639,23 @@ public class UiTestInteractionUtils {
             controller.getIdeaFrame().getApplyButtonGeneric().click();
         }
         controller.getIdeaFrame().getOKButtonGeneric().click();
-        controller.waitForIndex();
+    }
+
+    public static Long getNumberofTestsInCurrentFile(RemoteRobotController controller) {
+        TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
+        //assumes no tests are run
+        return textEditorFixture.getGutter().getIcons().stream().filter(icon -> icon.toString().contains("/run.svg")).count();
+    }
+
+    public static void selectAllAndSave(RemoteRobotController controller, int waitDurationInSeconds) {
+        //assumes unlogged toolbar is open
+        controller.getIdeaFrame().getSelectAllicon().click();
+        pause(ofMillis(500).toMillis());
+
+        controller.getIdeaFrame().getSaveGlobalButton().click();
+        pause(ofSeconds(waitDurationInSeconds).toMillis());
+
+        controller.getIdeaFrame().getSaveFromConfirmButton().click();
+        pause(ofSeconds(2).toMillis());
     }
 }

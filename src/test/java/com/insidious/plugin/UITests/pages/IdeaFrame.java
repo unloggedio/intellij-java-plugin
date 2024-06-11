@@ -426,6 +426,10 @@ public class IdeaFrame extends CommonContainerFixture {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.NOTIFICATIONS_TAB);
     }
 
+    public ComponentFixture getNotificationsClearAll() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.NOTIFICATIONS_CLEAR_ALL);
+    }
+
     public List<ComponentFixture> getTestGenerationFailureBalloonNotification() {
         return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.TEST_GENERATION_FALIED_INDEX_POPUP);
     }

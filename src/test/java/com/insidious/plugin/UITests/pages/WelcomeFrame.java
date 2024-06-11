@@ -55,4 +55,12 @@ public class WelcomeFrame extends CommonContainerFixture {
     public ComponentFixture getVcsCreateButtonV2() {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GET_FROM_VCS_V2);
     }
+
+    public ComponentFixture getGitUseTokenOprionButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GIT_LOGIN_USE_TOKEN);
+    }
+
+    public ComponentFixture getGitPatLoginButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.GIT_PAT_LOGIN_BUTTON);
+    }
 }

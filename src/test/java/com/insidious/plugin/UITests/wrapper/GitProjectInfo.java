@@ -10,8 +10,8 @@ public class GitProjectInfo {
     private boolean switchBranchOnOpen;
     private String jdkVersion;
     private String testBasePath;
-
     private LocalProjectInfo localProjectInfo;
+    private GitLoginOptions loginOptions;
 
     public GitProjectInfo(String projectName, String gitUrl, String gitBranch, String buildFile, LocalProjectInfo.BuildSystem buildSystem, int startupWaitDuration, boolean switchBranchOnOpen, String jdkVersion, String testBasePath) {
         this.projectName = projectName;
@@ -103,5 +103,13 @@ public class GitProjectInfo {
 
     public void setLocalProjectInfo(LocalProjectInfo localProjectInfo) {
         this.localProjectInfo = localProjectInfo;
+    }
+
+    public GitLoginOptions getLoginOptions() {
+        return loginOptions;
+    }
+
+    public void setLoginOptions(GitLoginOptions loginOptions) {
+        this.loginOptions = loginOptions;
     }
 }

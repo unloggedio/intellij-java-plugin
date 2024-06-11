@@ -7,11 +7,13 @@ public class LocalProjectInfo {
     private String mainClassName;
     private int startupWaitDuration;
     private String projectPath;
+    private String clearTestsScriptName;
 
-    public LocalProjectInfo(String projectPath, String startScriptName, String revertScriptName, String removeScriptName, String mainClassName, int startupWaitDuration) {
+    public LocalProjectInfo(String projectPath, String startScriptName, String revertScriptName, String removeScriptName, String clearScriptsName, String mainClassName, int startupWaitDuration) {
         this.startScriptName = startScriptName;
         this.revertScriptName = revertScriptName;
         this.removeScriptName = removeScriptName;
+        this.clearTestsScriptName = clearScriptsName;
         this.mainClassName = mainClassName;
         this.startupWaitDuration = startupWaitDuration;
         this.projectPath = projectPath;
@@ -63,6 +65,14 @@ public class LocalProjectInfo {
 
     public void setProjectPath(String projectPath) {
         this.projectPath = projectPath;
+    }
+
+    public String getClearTestsScriptName() {
+        return clearTestsScriptName;
+    }
+
+    public void setClearTestsScriptName(String clearTestsScriptName) {
+        this.clearTestsScriptName = clearTestsScriptName;
     }
 
     public enum BuildSystem {MAVEN, GRADLE}

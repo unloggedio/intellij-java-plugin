@@ -123,6 +123,9 @@ public class UITestUtils {
         TEST_GENERATION_FALIED_INDEX_POPUP("//div[@accessiblename='Test Generation can start only after indexing is complete!' and @class='JEditorPane']"),
         SDK_COMBO_BOX("//div[@class='SdkComboBox']"),
         GRADLE_OPTIONS_BUILD_WITH("//div[@accessiblename='Build and run using:' and @class='ComboBox']"),
+        NOTIFICATIONS_CLEAR_ALL("//div[@text='Clear all']"),
+        GIT_LOGIN_USE_TOKEN("//div[@text='Use Token…']"),
+        GIT_PAT_LOGIN_BUTTON("//div[@text='Log In']"),
         GRADLE_REFRESH_ICON("//div[@tooltiptext='Reload All Gradle Projects']");
 
         private String value;
@@ -231,13 +234,17 @@ public class UITestUtils {
         throw new UIElementNotFoundException("Component with XPATH : " + xpath + " not found on UI");
     }
 
+    public static void clearStompFilter(RemoteRobotController controller) {
+        try {
+            controller.getIdeaFrame().getClearFiltersLabel().click();
+        } catch (Exception e) {
+            //clear filters not visible
+        }
+    }
+
     public static void setFilterOptionsForCurrentView(RemoteRobotController controller, FilterOptions filterOptions) {
         if (filterOptions.isClearFilters()) {
-            try {
-                controller.getIdeaFrame().getClearFiltersLabel().click();
-            } catch (Exception e) {
-                //No filters were active
-            }
+            clearStompFilter(controller);
         }
 
         controller.getIdeaFrame().getFilterButton().click();
@@ -285,6 +292,7 @@ public class UITestUtils {
     }
 
     public static void setSdkVersion(RemoteRobotController controller, GitProjectInfo projectUnderTest) {
+        System.out.println("Setting sdk version 1");
         controller.getKeyboard().hotKey(VK_META, VK_SEMICOLON);
         controller.getIdeaFrame().getJDKComboBox().click();
 
@@ -313,5 +321,6 @@ public class UITestUtils {
         controller.getIdeaFrame().getDownloadButton().click();
         controller.getIdeaFrame().getApplyButtonGeneric().click();
         controller.getIdeaFrame().getOKButtonGeneric().click();
+        System.out.println("Setting sdk version done");
     }
 }
