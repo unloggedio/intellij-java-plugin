@@ -62,7 +62,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(1)
-    @Disabled
+//    @Disabled
     public void cloneAndAddSDK() {
         int projectIndex = 0;
         step("Clone project - fresh state, change branch and setup sdk version", () -> {
@@ -72,8 +72,7 @@ public class UiTestsV3 {
             controller.waitForIndex();
         });
 
-        step("Revert all changes made to project, remove local sessions", () -> {
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRevertScriptName(), 5);
+        step("Remove local sessions", () -> {
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRemoveScriptName(), 2);
         });
 
@@ -85,7 +84,7 @@ public class UiTestsV3 {
     //remote mode start - start of remote chain tests for maven - demo
     @Test
     @Order(2)
-    @Disabled
+//    @Disabled
     public void remote_mode_general() {
         int projectIndex = 0;
         final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
@@ -120,13 +119,13 @@ public class UiTestsV3 {
             controller.getKeyboard().enterText(TestConstants.REMOTE_URL);
             controller.getIdeaFrame().getListSessionsButton().click();
 
-            pause(ofSeconds(10).toMillis());
+            pause(ofSeconds(5).toMillis());
 
             controller.getIdeaFrame().getAllVisibleRadioButtons().get(2).click();
             controller.getIdeaFrame().getApplyButtonGeneric().click();
 
             pause(ofSeconds(5).toMillis());
-
+            clearGotIts(controller);
             //TODO: Add an assertion to number of candidates expected here or assert candidates
         });
 
@@ -185,10 +184,10 @@ public class UiTestsV3 {
 
     @Test
     @Order(4)
-    @Disabled
+//    @Disabled
     public void serverIssue_44() {
         int projectIndex = 0;
-        step("Open main class and enusre InlayHint render behaviour is as expected", () -> {
+        step("Open main class and ensure InlayHint render behaviour is as expected", () -> {
             openFileIfNeeded(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
             //look for inlayHints and assert that clicking on it will not hide it
             TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
@@ -220,34 +219,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(5)
-    @Disabled
-    public void serverIssue_52() {
-        int projectIndex = 0;
-        step("Generate a new Junit test case for a particular method", () -> {
-            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
-            List<DirectInvokeTreeLine> assertions = new ArrayList<>();
-            inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
-            assertions.add(new DirectInvokeTreeLine(1, "java.lang.String"));
-            assertions.add(new DirectInvokeTreeLine(2, "String: yolo"));
-            DirectInvokeRequest request = new DirectInvokeRequest("FutureController.java",
-                    "public String getFutureResult(String s1)",
-                    inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
-                    true);
-            JunitGenerationRequest junitGenerationRequest = JunitGenerationRequest.fromDirectInvokeRequest(request,
-                    projectsToTest.get(projectIndex), true, JunitGenerationMethod.JUNIT_ICON,
-                    JunitGenerationOptions.defaultOptions());
-            junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("org.unlogged.demo.controller.FutureController"),
-                    new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true));
-            generateJunitTestCaseForMethod(controller, junitGenerationRequest);
-
-            String currentFileName = controller.getIdeaFrame().textEditor().getEditor().getFileName();
-            Assertions.assertEquals("TestFutureControllerV.java", currentFileName);
-        });
-    }
-
-    @Test
-    @Order(6)
-    @Disabled
+//    @Disabled
     public void serverIssues_7() {
         step("Close method options menu if open", () -> {
             closeOptionsTabIfOpen(controller);
@@ -263,8 +235,8 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(7)
-    @Disabled
+    @Order(6)
+//    @Disabled
     public void junitRemoteModeGeneration_sanity_remote() {
         int projectIndex = 0;
         step("Clear filters", () -> {
@@ -281,7 +253,7 @@ public class UiTestsV3 {
                 inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
                 true);
         JunitGenerationRequest junitGenerationRequest = JunitGenerationRequest.fromDirectInvokeRequest(request,
-                projectsToTest.get(projectIndex), true, JunitGenerationMethod.JUNIT_ICON,
+                projectsToTest.get(projectIndex), false, JunitGenerationMethod.JUNIT_ICON,
                 JunitGenerationOptions.defaultOptions());
         junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("org.unlogged.demo.controller.FutureController"),
                 new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true));
@@ -320,9 +292,13 @@ public class UiTestsV3 {
     }
 
     @Test
-    @Order(8)
-    @Disabled
+    @Order(7)
+//    @Disabled
     public void replayCaseSave_sanity_remote() {
+        step("Open toolbar if not already open", () -> {
+            closeOptionsTabIfOpen(controller);
+            openUnloggedToolbarIfNotOpen(controller, 2);
+        });
         step("Set Filter to FutureController and save it's candidates as replay cases", () -> {
             FilterOptions futureControllerOptions = new FilterOptions(List.of("org.unlogged.demo.controller.FutureController"),
                     new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true);
@@ -331,10 +307,37 @@ public class UiTestsV3 {
         });
     }
 
+    @Test
+    @Order(8)
+//    @Disabled
+    public void serverIssue_52() {
+        int projectIndex = 0;
+        step("Generate a new Junit test case for a particular method", () -> {
+            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
+            List<DirectInvokeTreeLine> assertions = new ArrayList<>();
+            inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
+            assertions.add(new DirectInvokeTreeLine(1, "java.lang.String"));
+            assertions.add(new DirectInvokeTreeLine(2, "String: yolo"));
+            DirectInvokeRequest request = new DirectInvokeRequest("FutureController.java",
+                    "public String getFutureResult(String s1)",
+                    inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
+                    true);
+            JunitGenerationRequest junitGenerationRequest = JunitGenerationRequest.fromDirectInvokeRequest(request,
+                    projectsToTest.get(projectIndex), false, JunitGenerationMethod.JUNIT_ICON,
+                    JunitGenerationOptions.defaultOptions());
+            junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("org.unlogged.demo.controller.FutureController"),
+                    new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true));
+            generateJunitTestCaseForMethod(controller, junitGenerationRequest);
+
+            String currentFileName = controller.getIdeaFrame().textEditor().getEditor().getFileName();
+            Assertions.assertEquals("TestFutureControllerV.java", currentFileName);
+        });
+    }
+
     //remote mode - ending case
     @Test
     @Order(9)
-    @Disabled
+//    @Disabled
     public void serverIssue_51() {
         step("Clear notifications", () -> {
             controller.getIdeaFrame().getNotificationTab().click();
@@ -374,15 +377,15 @@ public class UiTestsV3 {
     //local mode start and sanity
     @Test
     @Order(10)
-    @Disabled
+//    @Disabled
     public void run_mode_local_general() {
         int projectIndex = 0;
         final String annotationText = "@Unlogged";
 
         step("Add annotation and start project", () -> {
             UiTestInteractionUtils.openAndRevertGitChangesForFile(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, false);
+            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
         });
 
@@ -443,7 +446,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(11)
-    @Disabled
+//    @Disabled
     public void junitLocalModeGeneration_sanity_local() {
         int projectIndex = 0;
         step("Clear filters", () -> {
@@ -460,7 +463,7 @@ public class UiTestsV3 {
                 inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
                 true);
         JunitGenerationRequest junitGenerationRequest = JunitGenerationRequest.fromDirectInvokeRequest(request,
-                projectsToTest.get(projectIndex), true, JunitGenerationMethod.JUNIT_ICON,
+                projectsToTest.get(projectIndex), false, JunitGenerationMethod.JUNIT_ICON,
                 JunitGenerationOptions.defaultOptions());
         junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("org.unlogged.demo.controller.FutureController"),
                 new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true));
@@ -472,7 +475,7 @@ public class UiTestsV3 {
             Assertions.assertEquals("TestFutureControllerV.java", currentFileName);
 
             Long count = getNumberofTestsInCurrentFile(controller);
-            Assertions.assertEquals(4, count);
+            Assertions.assertEquals(1, count);
         });
 
         step("Generate Junit from Dummy data option", () -> {
@@ -483,7 +486,7 @@ public class UiTestsV3 {
             Assertions.assertEquals("TestFutureControllerV.java", currentFileName);
 
             Long count = getNumberofTestsInCurrentFile(controller);
-            Assertions.assertEquals(5, count);
+            Assertions.assertEquals(2, count);
         });
 
         step("Generate Junit from Replay data option", () -> {
@@ -494,14 +497,18 @@ public class UiTestsV3 {
             Assertions.assertEquals("TestFutureControllerV.java", currentFileName);
 
             Long count = getNumberofTestsInCurrentFile(controller);
-            Assertions.assertEquals(6, count);
+            Assertions.assertEquals(3, count);
         });
     }
 
     @Test
     @Order(12)
-    @Disabled
+//    @Disabled
     public void replayCaseSave_sanity_local() {
+        step("Clear filters and selections before save", () -> {
+            clearStompFilter(controller);
+
+        });
         step("Set Filter to FutureController and save it's candidates as replay cases", () -> {
             FilterOptions futureControllerOptions = new FilterOptions(List.of("org.unlogged.demo.controller.FutureController"),
                     new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true);
@@ -513,7 +520,7 @@ public class UiTestsV3 {
     //Server Issues Sheet - Issue 73
     @Test
     @Order(13)
-    @Disabled
+//    @Disabled
     public void serverIssues_73() {
         int projectIndex = 0;
         step("Close Options menu if open", () -> {
@@ -543,7 +550,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(14)
-    @Disabled
+//    @Disabled
     public void serverIssues_72() {
         //project is already up and running in local mode
         step("Save Candidates from one of FutureController's methods", () -> {
@@ -573,7 +580,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(15)
-    @Disabled
+//    @Disabled
     public void serverIssues_20_local() {
         //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
         //unlogged toolbar assumed to be open before this.
@@ -598,7 +605,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(16)
-    @Disabled
+//    @Disabled
     public void serverIssues_30_local() {
         //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
         //Assumes unlogged plugin window is open
@@ -625,7 +632,7 @@ public class UiTestsV3 {
     //start in local mode - ending case
     @Test
     @Order(17)
-    @Disabled
+//    @Disabled
     public void serverIssue_46() {
         //set filter to remote mode
         //don't select a session from remote, try to click on apply
@@ -669,7 +676,7 @@ public class UiTestsV3 {
     //an ending case
     @Test
     @Order(18)
-    @Disabled
+//    @Disabled
     public void serverIssue_36_local() {
         step("Select remote mode filter, then cancel, ensure that candidates are generated afterwards", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
@@ -698,6 +705,8 @@ public class UiTestsV3 {
         });
 
         step("Clear all previous candidates", () -> {
+            clearStompFilter(controller);
+            pause(ofMillis(250).toMillis());
             controller.getIdeaFrame().getToolBarDeleteButton().click();
             pause(ofMillis(500).toMillis());
         });
@@ -718,13 +727,17 @@ public class UiTestsV3 {
             //2 candidates are supposed to be generated for a successful direct Invoke form the above method
             Assertions.assertEquals(2, controller.getIdeaFrame().getAllVisibleCheckBoxes().size());
         });
+
+        step("Close options menu if open", () -> {
+            closeOptionsTabIfOpen(controller);
+        });
     }
 
     //start in local mode
     //an ending case
     @Test
     @Order(19)
-    @Disabled
+//    @Disabled
     public void serverIssue_37() {
         //set filter to remote mode
         //don't select a session from remote, try to click on apply
@@ -763,6 +776,8 @@ public class UiTestsV3 {
 
             controller.getIdeaFrame().getApplyButtonGeneric().click();
             pause(ofSeconds(5).toMillis());
+
+            controller.getIdeaFrame().getFilterCancel().click();
         });
 
         //Assert that nothing shows up in notifications
@@ -784,7 +799,7 @@ public class UiTestsV3 {
     //doesn't need project to start
     @Test
     @Order(20)
-    @Disabled
+//    @Disabled
     public void serverIssues_23() {
         int switchCount = 10;
         step("open filters tab", () -> {
@@ -883,7 +898,7 @@ public class UiTestsV3 {
             controller.getKeyboard().enterText(TestConstants.REMOTE_URL);
             controller.getIdeaFrame().getListSessionsButton().click();
 
-            pause(ofSeconds(10).toMillis());
+            pause(ofSeconds(5).toMillis());
 
             controller.getIdeaFrame().getAllVisibleRadioButtons().get(2).click();
             controller.getIdeaFrame().getApplyButtonGeneric().click();
@@ -935,7 +950,7 @@ public class UiTestsV3 {
                 inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
                 true);
         JunitGenerationRequest junitGenerationRequest = JunitGenerationRequest.fromDirectInvokeRequest(request,
-                projectsToTest.get(projectIndex), true, JunitGenerationMethod.JUNIT_ICON,
+                projectsToTest.get(projectIndex), false, JunitGenerationMethod.JUNIT_ICON,
                 JunitGenerationOptions.defaultOptions());
         junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("org.unlogged.demo.gradle.controller.FutureController"),
                 new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true));
@@ -1086,7 +1101,7 @@ public class UiTestsV3 {
                 inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
                 true);
         JunitGenerationRequest junitGenerationRequest = JunitGenerationRequest.fromDirectInvokeRequest(request,
-                projectsToTest.get(projectIndex), true, JunitGenerationMethod.JUNIT_ICON,
+                projectsToTest.get(projectIndex), false, JunitGenerationMethod.JUNIT_ICON,
                 JunitGenerationOptions.defaultOptions());
         junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("org.unlogged.demo.gradle.controller.FutureController"),
                 new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true));
@@ -1253,7 +1268,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(31)
-//    @Disabled
+    @Disabled
     public void junitLocalModeGeneration_sanity_local_multimodule() {
         int projectIndex = 2;
         step("Clear filters", () -> {
@@ -1299,6 +1314,7 @@ public class UiTestsV3 {
 
         step("Generate Junit from Replay data option", () -> {
             junitGenerationRequest.setJunitGenerationMethod(JunitGenerationMethod.REPLAY_DATA);
+            junitGenerationRequest.setExecuteOnDemand(false);
             generateJunitTestCaseForMethod(controller, junitGenerationRequest);
             String currentFileName = controller.getIdeaFrame().textEditor().getEditor().getFileName();
             //assert test case file is created

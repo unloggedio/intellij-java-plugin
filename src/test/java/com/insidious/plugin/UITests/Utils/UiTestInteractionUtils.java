@@ -35,7 +35,11 @@ public class UiTestInteractionUtils {
             openFileIfNeeded(filename, controller);
         }
         TextEditorFixture textEditorFixture = controller.getIdeaFrame().textEditor();
-        expandJavaFile(textEditorFixture.getEditor());
+        try {
+            expandJavaFile(textEditorFixture.getEditor());
+        } catch (NoSuchElementException e) {
+            //package text not found
+        }
 
         List<RemoteText> mainClassContents = textEditorFixture.getEditor().getData().getAll();
         RemoteText firstSemicolon = mainClassContents.stream().filter(text -> text.getText().equals(";")).toList().get(0);
@@ -77,7 +81,8 @@ public class UiTestInteractionUtils {
         return editorFixture.getEditor().callJs("local.get('editor').getDocument().getLineNumber(" + offset + ")", true);
     }
 
-    public static void interactWithMockEditPanel(String mockname, Map<Integer, String> subValues, IdeaFrame ideaFrame, String type, Keyboard keyboard) {
+    public static void interactWithMockEditPanel(String mockname, Map<Integer, String> subValues, IdeaFrame
+            ideaFrame, String type, Keyboard keyboard) {
         //name the mock
         ComponentFixture replayCaseName = ideaFrame.getComponentByXpath("//div[@class='JTextField']");
         replayCaseName.moveMouse();
@@ -153,7 +158,8 @@ public class UiTestInteractionUtils {
 
     //The shell script file here is expected to have one command to run
     //waitForSeconds is the duration to wait for script execution.
-    public static void executeShellScriptAndWait(RemoteRobotController controller, String filename, int waitForSeconds) {
+    public static void executeShellScriptAndWait(RemoteRobotController controller, String filename,
+                                                 int waitForSeconds) {
         openFileIfNeeded(filename, controller);
         TextEditorFixture shellScript = controller.getIdeaFrame().textEditor();
         //click the first icon
@@ -317,7 +323,8 @@ public class UiTestInteractionUtils {
         return ideExceptions;
     }
 
-    public static void generateJunitTestCaseForMethod(RemoteRobotController controller, JunitGenerationRequest request) {
+    public static void generateJunitTestCaseForMethod(RemoteRobotController controller, JunitGenerationRequest
+            request) {
         if (request.getJunitGenerationMethod().equals(JunitGenerationMethod.JUNIT_ICON)) {
             generateJunitUsingIcon(controller, request);
         } else if (request.getJunitGenerationMethod().equals(JunitGenerationMethod.REPLAY_DATA)) {
@@ -327,21 +334,25 @@ public class UiTestInteractionUtils {
         }
     }
 
+    //reorder steps, make directInvoke only if candidates are not present
     public static void generateJunitUsingIcon(RemoteRobotController controller, JunitGenerationRequest request) {
         if (request.isExecuteOnDemand()) {
             directInvokeMethod(request.getDirectInvokeRequest(), controller);
         }
+        //doesn't need to open file
         clearGotIts(controller);
 
         if (request.getFilterOptions() != null) {
             setFilterOptionsForCurrentView(controller, request.getFilterOptions());
         }
         closeOptionsTabIfOpen(controller);
-
-        controller.getIdeaFrame().getRefreshButton().click();
-        pause(ofSeconds(2).toMillis());
-
-        controller.getIdeaFrame().getFirstCheckbox().click();
+        try {
+            controller.getIdeaFrame().getFirstCheckbox().click();
+        } catch (Exception e) {
+            directInvokeMethod(request.getDirectInvokeRequest(), controller);
+            closeOptionsTabIfOpen(controller);
+            controller.getIdeaFrame().getFirstCheckbox().click();
+        }
         clearGotIts(controller);
 
         controller.getIdeaFrame().getJunitTopToolbarIcon().click();
@@ -349,12 +360,9 @@ public class UiTestInteractionUtils {
     }
 
     public static void junitDummyDataGeneration(RemoteRobotController controller, JunitGenerationRequest request) {
-
         DirectInvokeRequest directInvokeRequest = request.getDirectInvokeRequest();
-        if (directInvokeRequest.isOpenFile()) {
-            openFileIfNeeded(directInvokeRequest.getClassname(), controller);
-            pause(ofMillis(500).toMillis());
-        }
+        openFileIfNeeded(request.getDirectInvokeRequest().getClassname(), controller);
+
         expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
         searchFirstInCurrentFile(controller, directInvokeRequest.getMethodIdentifier());
 
@@ -395,6 +403,8 @@ public class UiTestInteractionUtils {
 
         if (request.isExecuteOnDemand()) {
             directInvokeMethod(request.getDirectInvokeRequest(), controller);
+        } else {
+            openFileIfNeeded(request.getDirectInvokeRequest().getClassname(), controller);
         }
 
         searchFirstInCurrentFile(controller, request.getDirectInvokeRequest().getMethodIdentifier());
@@ -415,7 +425,8 @@ public class UiTestInteractionUtils {
         pause(ofSeconds(3).toMillis());
     }
 
-    public static void executeDeterministicShellCommand(RemoteRobotController controller, String command, int waitDurationInSeconds) {
+    public static void executeDeterministicShellCommand(RemoteRobotController controller, String command,
+                                                        int waitDurationInSeconds) {
         controller.getIdeaFrame().getTerminalToolBarSelectable().click();
         pause(ofSeconds(10).toMillis());
 
@@ -468,6 +479,8 @@ public class UiTestInteractionUtils {
             }
         }
 
+        controller.unsertIdeaFrame();
+
         if (projectUnderTest.isSwitchBranchOnOpen()) {
             executeDeterministicShellCommand(controller, "git checkout " + projectUnderTest.getGitBranch(), 2);
         }
@@ -485,7 +498,8 @@ public class UiTestInteractionUtils {
         }
     }
 
-    public static void runIntelliJIdeaAction(RemoteRobotController controller, String option, int waitDurationInSeconds) {
+    public static void runIntelliJIdeaAction(RemoteRobotController controller, String option,
+                                             int waitDurationInSeconds) {
         controller.getKeyboard().hotKey(VK_META, VK_SHIFT, VK_A);
         pause(ofMillis(250).toMillis());
         controller.getKeyboard().enterText(option);
@@ -494,7 +508,8 @@ public class UiTestInteractionUtils {
         pause(ofSeconds(waitDurationInSeconds).toMillis());
     }
 
-    public static void runIntelliJIdeaActionV2(RemoteRobotController controller, String option, int waitDurationInSeconds) {
+    public static void runIntelliJIdeaActionV2(RemoteRobotController controller, String option,
+                                               int waitDurationInSeconds) {
         controller.getKeyboard().hotKey(VK_META, VK_SHIFT, VK_O);
         pause(ofMillis(250).toMillis());
         controller.getKeyboard().enterText(option);
@@ -503,7 +518,8 @@ public class UiTestInteractionUtils {
         pause(ofSeconds(waitDurationInSeconds).toMillis());
     }
 
-    public static void addUnloggedDependenciesToBuildFile(RemoteRobotController controller, GitProjectInfo projectUnderTest, boolean open) {
+    public static void addUnloggedDependenciesToBuildFile(RemoteRobotController controller, GitProjectInfo
+            projectUnderTest, boolean open) {
         if (projectUnderTest.getBuildSystem().equals(LocalProjectInfo.BuildSystem.MAVEN)) {
             addMavenDependenciesAndSync(controller, projectUnderTest.getBuildFile(), open);
         } else if (projectUnderTest.getBuildSystem().equals(LocalProjectInfo.BuildSystem.GRADLE)) {

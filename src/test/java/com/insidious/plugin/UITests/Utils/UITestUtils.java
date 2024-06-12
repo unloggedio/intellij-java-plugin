@@ -243,6 +243,14 @@ public class UITestUtils {
         }
     }
 
+    public static void clearStompSelections(RemoteRobotController controller) {
+        try {
+            controller.getIdeaFrame().getClearSelectionHyperlink().click();
+        } catch (Exception e) {
+            //clear selection not visible
+        }
+    }
+
     public static void setFilterOptionsForCurrentView(RemoteRobotController controller, FilterOptions filterOptions) {
         if (filterOptions.isClearFilters()) {
             clearStompFilter(controller);
@@ -251,7 +259,6 @@ public class UITestUtils {
         controller.getIdeaFrame().getFilterButton().click();
         pause(ofMillis(500).toMillis());
         List<ComponentFixture> fixtures = controller.getIdeaFrame().getAllAddIconComponents();
-        System.out.println("Fixture List Size : " + fixtures.size());
         assert fixtures.size() == 4;
 
         //set Included classes
