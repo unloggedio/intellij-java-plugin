@@ -56,13 +56,13 @@ public class UiTestsV3 {
         LocalProjectInfo multiModuleDemo = new LocalProjectInfo("multimodule-demo-1", "start_project.sh",
                 "git_rollback.sh", "remove_local_sessions.sh", "clear_tests.sh", "CustomerApplication.java", 30);
         multimoduleDemo.setLocalProjectInfo(multiModuleDemo);
-        multimoduleDemo.setLoginOptions(new GitLoginOptions("your Personal Access Token here")); //your git personal access token here
+        multimoduleDemo.setLoginOptions(new GitLoginOptions("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")); //your git personal access token here
         projectsToTest.add(multimoduleDemo);
     }
 
     @Test
     @Order(1)
-//    @Disabled
+    //@Disabled
     public void cloneAndAddSDK() {
         int projectIndex = 0;
         step("Clone project - fresh state, change branch and setup sdk version", () -> {
@@ -84,7 +84,7 @@ public class UiTestsV3 {
     //remote mode start - start of remote chain tests for maven - demo
     @Test
     @Order(2)
-//    @Disabled
+    //@Disabled
     public void remote_mode_general() {
         int projectIndex = 0;
         final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
@@ -160,7 +160,7 @@ public class UiTestsV3 {
     //remote mode start - debug DirectInvoke for this method
     @Test
     @Order(3)
-    @Disabled
+    //@Disabled
     public void serverIssue_14() {
         int projectIndex = 0;
         step("Try to generate dummy data boilerplate Junit code.", () -> {
@@ -184,7 +184,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(4)
-//    @Disabled
+    //@Disabled
     public void serverIssue_44() {
         int projectIndex = 0;
         step("Open main class and ensure InlayHint render behaviour is as expected", () -> {
@@ -219,7 +219,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(5)
-//    @Disabled
+    //@Disabled
     public void serverIssues_7() {
         step("Close method options menu if open", () -> {
             closeOptionsTabIfOpen(controller);
@@ -236,7 +236,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(6)
-//    @Disabled
+    //@Disabled
     public void junitRemoteModeGeneration_sanity_remote() {
         int projectIndex = 0;
         step("Clear filters", () -> {
@@ -293,7 +293,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(7)
-//    @Disabled
+    //@Disabled
     public void replayCaseSave_sanity_remote() {
         step("Open toolbar if not already open", () -> {
             closeOptionsTabIfOpen(controller);
@@ -309,7 +309,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(8)
-//    @Disabled
+    //@Disabled
     public void serverIssue_52() {
         int projectIndex = 0;
         step("Generate a new Junit test case for a particular method", () -> {
@@ -337,7 +337,7 @@ public class UiTestsV3 {
     //remote mode - ending case
     @Test
     @Order(9)
-//    @Disabled
+    //@Disabled
     public void serverIssue_51() {
         step("Clear notifications", () -> {
             controller.getIdeaFrame().getNotificationTab().click();
@@ -377,7 +377,7 @@ public class UiTestsV3 {
     //local mode start and sanity
     @Test
     @Order(10)
-//    @Disabled
+    //@Disabled
     public void run_mode_local_general() {
         int projectIndex = 0;
         final String annotationText = "@Unlogged";
@@ -446,7 +446,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(11)
-//    @Disabled
+    //@Disabled
     public void junitLocalModeGeneration_sanity_local() {
         int projectIndex = 0;
         step("Clear filters", () -> {
@@ -503,11 +503,11 @@ public class UiTestsV3 {
 
     @Test
     @Order(12)
-//    @Disabled
+    //@Disabled
     public void replayCaseSave_sanity_local() {
         step("Clear filters and selections before save", () -> {
             clearStompFilter(controller);
-
+            clearStompSelections(controller);
         });
         step("Set Filter to FutureController and save it's candidates as replay cases", () -> {
             FilterOptions futureControllerOptions = new FilterOptions(List.of("org.unlogged.demo.controller.FutureController"),
@@ -520,7 +520,7 @@ public class UiTestsV3 {
     //Server Issues Sheet - Issue 73
     @Test
     @Order(13)
-//    @Disabled
+    //@Disabled
     public void serverIssues_73() {
         int projectIndex = 0;
         step("Close Options menu if open", () -> {
@@ -550,7 +550,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(14)
-//    @Disabled
+    //@Disabled
     public void serverIssues_72() {
         //project is already up and running in local mode
         step("Save Candidates from one of FutureController's methods", () -> {
@@ -580,7 +580,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(15)
-//    @Disabled
+    //@Disabled
     public void serverIssues_20_local() {
         //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
         //unlogged toolbar assumed to be open before this.
@@ -605,7 +605,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(16)
-//    @Disabled
+    //@Disabled
     public void serverIssues_30_local() {
         //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
         //Assumes unlogged plugin window is open
@@ -632,7 +632,7 @@ public class UiTestsV3 {
     //start in local mode - ending case
     @Test
     @Order(17)
-//    @Disabled
+    //@Disabled
     public void serverIssue_46() {
         //set filter to remote mode
         //don't select a session from remote, try to click on apply
@@ -676,7 +676,7 @@ public class UiTestsV3 {
     //an ending case
     @Test
     @Order(18)
-//    @Disabled
+    //@Disabled
     public void serverIssue_36_local() {
         step("Select remote mode filter, then cancel, ensure that candidates are generated afterwards", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
@@ -737,7 +737,7 @@ public class UiTestsV3 {
     //an ending case
     @Test
     @Order(19)
-//    @Disabled
+    //@Disabled
     public void serverIssue_37() {
         //set filter to remote mode
         //don't select a session from remote, try to click on apply
@@ -799,7 +799,7 @@ public class UiTestsV3 {
     //doesn't need project to start
     @Test
     @Order(20)
-//    @Disabled
+    //@Disabled
     public void serverIssues_23() {
         int switchCount = 10;
         step("open filters tab", () -> {
@@ -823,7 +823,7 @@ public class UiTestsV3 {
     //switch to gradle project
     @Test
     @Order(21)
-    @Disabled
+    //@Disabled
     public void gradle_project_onboarding() {
         int projectIndex = 1;
         try {
@@ -841,19 +841,18 @@ public class UiTestsV3 {
             cloneAndOpenProject(controller, projectsToTest.get(projectIndex));
             //setup sdk version and wait till index is complete, then start tests in normal flow
             setSdkVersion(controller, projectsToTest.get(projectIndex));
-            pause(ofSeconds(20).toMillis());
+            pause(ofSeconds(25).toMillis());
         });
 
         System.out.println("Setting sdk version");
         step("Set gradle Options : ", () -> {
             setIntelliJAsGradleBuilder(controller, projectsToTest.get(projectIndex));
-            pause(ofSeconds(20).toMillis());
+            pause(ofSeconds(25).toMillis());
         });
 
         //add assertions for exceptions popping up in notifications
 
-        step("Revert all changes made to project, remove local sessions", () -> {
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRevertScriptName(), 5);
+        step("Remove local sessions", () -> {
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRemoveScriptName(), 2);
         });
 
@@ -865,13 +864,12 @@ public class UiTestsV3 {
 
     @Test
     @Order(22)
-    @Disabled
+    //@Disabled
     public void remote_mode_general_gradle() {
         int projectIndex = 1;
         final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
         System.out.println("Main class name = " + projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName());
         step("Add annotation and start project", () -> {
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, true);
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
         });
@@ -904,6 +902,7 @@ public class UiTestsV3 {
             controller.getIdeaFrame().getApplyButtonGeneric().click();
 
             pause(ofSeconds(5).toMillis());
+            clearGotIts(controller);
         });
 
         step("Execute methods and assert responses", () -> {
@@ -933,7 +932,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(23)
-    @Disabled
+    //@Disabled
     public void junitRemoteModeGeneration_sanity_remote_gradle() {
         int projectIndex = 1;
         step("Clear filters", () -> {
@@ -998,14 +997,28 @@ public class UiTestsV3 {
 
     @Test
     @Order(24)
-    @Disabled
+    //@Disabled
     public void replayCaseSave_sanity_remote_gradle() {
+
+        step("Close options before next test", () -> {
+            closeOptionsTabIfOpen(controller);
+        });
+
+        step("Clear filters and selections", () -> {
+            clearStompFilter(controller);
+            clearStompSelections(controller);
+        });
+
         step("Set Filter to FutureController and save it's candidates as replay cases", () -> {
             FilterOptions futureControllerOptions = new FilterOptions(List.of("org.unlogged.demo.gradle.controller.FutureController"),
                     new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true);
             setFilterOptionsForCurrentView(controller, futureControllerOptions);
 
             selectAllAndSave(controller, 10);
+        });
+
+        step("Close options if open", () -> {
+            closeOptionsTabIfOpen(controller);
         });
 
         step("Stop running process", () -> {
@@ -1015,15 +1028,15 @@ public class UiTestsV3 {
 
     @Test
     @Order(25)
-    @Disabled
+    //@Disabled
     public void run_mode_local_general_gradle() {
         int projectIndex = 1;
         final String annotationText = "@Unlogged";
 
         step("Add annotation and start project", () -> {
             UiTestInteractionUtils.openAndRevertGitChangesForFile(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, false);
+            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
         });
 
@@ -1084,7 +1097,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(26)
-    @Disabled
+    //@Disabled
     public void junitLocalModeGeneration_sanity_local_gradle() {
         int projectIndex = 1;
         step("Clear filters", () -> {
@@ -1137,12 +1150,23 @@ public class UiTestsV3 {
             Long count = getNumberofTestsInCurrentFile(controller);
             Assertions.assertEquals(3, count);
         });
+
+        step("Close options tab if open", () -> {
+            closeOptionsTabIfOpen(controller);
+        });
     }
 
     @Test
     @Order(27)
-    @Disabled
+    //@Disabled
     public void replayCaseSave_sanity_local_gradle() {
+        step("Close options tab if open", () -> {
+            closeOptionsTabIfOpen(controller);
+        });
+        step("Clear filter and selections", () -> {
+            clearStompSelections(controller);
+            clearStompFilter(controller);
+        });
         step("Set Filter to FutureController and save it's candidates as replay cases", () -> {
             FilterOptions futureControllerOptions = new FilterOptions(List.of("org.unlogged.demo.gradle.controller.FutureController"),
                     new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true);
@@ -1157,24 +1181,20 @@ public class UiTestsV3 {
 
     @Test
     @Order(28)
-    @Disabled
+    //@Disabled
     public void close_LastProject() {
-        try {
-            if (controller.getIdeaFrame() != null) {
-                UiTestInteractionUtils.runIntelliJIdeaAction(controller, "Close Project", 7);
-            }
-        } catch (Exception e) {
+        step("Open readme file to prevent shortcut clash", () -> {
             openFileIfNeeded("README.md", controller);
             pause(ofMillis(500).toMillis());
             UiTestInteractionUtils.runIntelliJIdeaAction(controller, "Close Project", 7);
-        }
+        });
     }
 
     //Add multimodule cases from multi-module-demo1
     //----------------
     @Test
     @Order(29)
-    @Disabled
+    //@Disabled
     public void onboarding_multimodule() {
         int projectIndex = 2;
 
@@ -1183,30 +1203,46 @@ public class UiTestsV3 {
             cloneAndOpenProject(controller, projectsToTest.get(2));
             pause(ofSeconds(5).toMillis());
             setSdkVersion(controller, projectsToTest.get(projectIndex));
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRevertScriptName(), 3);
+            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRemoveScriptName(), 3);
         });
 
         step("Open Pom and add dependency", () -> {
             ContainerFixture projectViewTree = controller.getIdeaFrame().getProjectViewTree();
             RemoteText firstPom = projectViewTree.getData().getAll().stream().filter(text -> text.getText().equals("pom.xml")).toList().get(0);
             firstPom.doubleClick();
-
             addUnloggedDependenciesToBuildFile(controller, projectsToTest.get(projectIndex), false);
         });
     }
 
     @Test
     @Order(30)
-    @Disabled
+    //@Disabled
     public void multimodule_local_sanity_multimodule() {
         int projectIndex = 2;
         //don't add annotations
         //only base pom has unlogged sdk at this stage, assert the number of candidates generated for method
 
         step("Start project", () -> {
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getRemoveScriptName(), 3);
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getStartupWaitDuration());
         });
+
+        step("Set mocks", () -> {
+            openFileIfNeeded("CustomerController.java", controller);
+            pause(ofSeconds(2).toMillis());
+            GutterIcon mockIcon = controller.getIdeaFrame().textEditor().getGutter().getIcons().stream()
+                    .filter(icon -> icon.toString().contains("mock_ghost_icon_v2.svg"))
+                    .toList().get(0);
+
+            mockIcon.click();
+            controller.getIdeaFrame().getCreateNewMockButton().click();
+            controller.getIdeaFrame().getMockPopupCloseButton().click();
+            controller.getIdeaFrame().getFirstJTextField().click();
+            controller.getKeyboard().hotKey(VK_META, VK_A);
+            controller.getKeyboard().hotKey(VK_BACK_SPACE);
+            controller.getKeyboard().enterText("Custom mock");
+            controller.getIdeaFrame().getMockEditSaveButton().click();
+        });
+
         step("Clear candidates and DirectInvoke controller method", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
             controller.getIdeaFrame().getToolBarDeleteButton().click();
@@ -1216,20 +1252,22 @@ public class UiTestsV3 {
             List<DirectInvokeTreeLine> assertions = new ArrayList<>();
             inputLines.add(new DirectInvokeTreeLine(1, "1"));
             assertions.add(new DirectInvokeTreeLine(1, "com.purnima.jain.customer.domain.aggregate.Customer"));
-            assertions.add(new DirectInvokeTreeLine(2, "customerId: 131"));
+            assertions.add(new DirectInvokeTreeLine(2, "customerId: 0"));
             assertions.add(new DirectInvokeTreeLine(3, "customerName: 1321"));
             DirectInvokeRequest request = new DirectInvokeRequest("CustomerController.java",
                     "public Customer getCustomer(@PathVariable Integer customerId)",
                     inputLines, assertions, Arrays.asList(AssertionOptions.DIRECT_INVOKE_RESPONSE),
                     true);
             UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
+            pause(ofSeconds(10).toMillis());
+            closeOptionsTabIfOpen(controller);
         });
 
-        step("Assert number of candidates generated as 7", () -> {
+        step("Assert number of candidates generated as 3", () -> {
             controller.getIdeaFrame().getSelectAllicon().click();
             pause(ofMillis(250).toMillis());
             try {
-                ComponentFixture numberOfCandidates = controller.getIdeaFrame().getComponentByXpath("//div[@text='7 selected']");
+                ComponentFixture numberOfCandidates = controller.getIdeaFrame().getComponentByXpath("//div[@text='3 selected']");
             } catch (Exception e) {
                 Assertions.fail("Either no candidates were generated or wrong number of candidates generated");
             } finally {
@@ -1251,7 +1289,7 @@ public class UiTestsV3 {
             pause(ofSeconds(10).toMillis());
         });
 
-        step("Open Library and confirm the number of candidates is 7", () -> {
+        step("Open Library and confirm the number of candidates is 3", () -> {
             controller.getIdeaFrame().getlibraryTabHeader().click();
             pause(ofMillis(500).toMillis());
 
@@ -1259,18 +1297,58 @@ public class UiTestsV3 {
             pause(ofMillis(250).toMillis());
 
             try {
-                controller.getIdeaFrame().getComponentByXpath("//div[@text='7 selected']");
+                controller.getIdeaFrame().getComponentByXpath("//div[@text='3 selected']");
             } catch (Exception e) {
                 Assertions.fail("Wrong number of candidates");
             }
+
+            step("Delete candidates and ensure no check boxes are visible", () -> {
+                controller.getIdeaFrame().getToolBarDeleteButton().click();
+                controller.getIdeaFrame().getOKButtonGeneric().click();
+                pause(ofMillis(250).toMillis());
+
+                try {
+                    List<ComponentFixture> checkBoxes = controller.getIdeaFrame().getAllVisibleCheckBoxes();
+                    Assertions.assertTrue(checkBoxes == null || checkBoxes.isEmpty());
+                } catch (Exception e) {
+                    //passing
+                }
+            });
+        });
+
+        step("Assert the number of mocks as 2", () -> {
+            List<ComponentFixture> radioButtons = controller.getIdeaFrame().getAllVisibleRadioButtons();
+            radioButtons.get(1).click();
+
+            controller.getIdeaFrame().getSelectAllicon().click();
+            pause(ofMillis(250).toMillis());
+
+            try {
+                controller.getIdeaFrame().getComponentByXpath("//div[@text='2 selected']");
+            } catch (Exception e) {
+                Assertions.fail("Wrong number of saved mocks");
+            }
+
+            step("Delete mocks and ensure no check boxes are visible", () -> {
+                controller.getIdeaFrame().getToolBarDeleteButton().click();
+                controller.getIdeaFrame().getOKButtonGeneric().click();
+                pause(ofMillis(250).toMillis());
+                try {
+                    List<ComponentFixture> checkBoxes = controller.getIdeaFrame().getAllVisibleCheckBoxes();
+                    Assertions.assertTrue(checkBoxes == null || checkBoxes.isEmpty());
+                } catch (Exception e) {
+                    //passing
+                }
+            });
         });
     }
 
     @Test
     @Order(31)
-    @Disabled
+    //@Disabled
     public void junitLocalModeGeneration_sanity_local_multimodule() {
         int projectIndex = 2;
+
         step("Clear filters", () -> {
             clearStompFilter(controller);
         });
@@ -1326,7 +1404,7 @@ public class UiTestsV3 {
     }
 
 //    @Test
-//    @Disabled
+//    //@Disabled
 //    @Order(25)
 //    public void ide_errors_checkIDEFatalExceptions_sanity() {
 //        List<String> listIDE = listIDEFatalExceptions(controller);
@@ -1354,7 +1432,7 @@ public class UiTestsV3 {
 
     //    @Test
 //    @Order(1)
-//    @Disabled
+//    //@Disabled
 //    public void openProjectAndAddSDK() {
 //
 //        step("Open Project", () -> {
