@@ -223,11 +223,19 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public TypeInfo getTypeInfo(String name) {
 
-        String url = this.endpoint + this.getTypeInfoTypeString + this.sessionURL + "&name=" + name;
+        String url = this.endpoint + this.getTypeInfoTypeString + this.sessionURL;
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<TypeInfo> typeInfo = new AtomicReference<>();
 
-        get(url, new Callback() {
+        String nameJson;
+        try {
+            nameJson = objectMapper.writeValueAsString(name);
+        } catch (JsonProcessingException e) {
+            logger.error("Error converting name to JSON", e);
+            return null;
+        }
+
+        post(url, nameJson, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 logger.info("failure encountered", e);
@@ -480,11 +488,20 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
     @Override
     public List<TestCandidateMethodAggregate> getTestCandidateAggregatesByClassName(String className) {
 
-        String url = this.endpoint + this.getTestCandidateAggregatesByClassName + this.sessionURL + "&className=" + className;
+        String url = this.endpoint + this.getTestCandidateAggregatesByClassName + this.sessionURL;
         CountDownLatch latch = new CountDownLatch(1);
 
         ArrayList<TestCandidateMethodAggregate> localtcma = new ArrayList<>();
-        get(url, new Callback() {
+
+        String classNameJson;
+        try {
+            classNameJson = objectMapper.writeValueAsString(className);
+        } catch (JsonProcessingException e) {
+            logger.error("Error converting className to JSON", e);
+            return Collections.emptyList();
+        }
+
+        post(url, classNameJson, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 logger.info("failure encountered", e);
@@ -1058,10 +1075,19 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
 
     @Override
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
-        String url = this.endpoint + this.getClassMethodAggregates + this.sessionURL + "&qualifiedName=" + qualifiedName;
+        String url = this.endpoint + this.getClassMethodAggregates + this.sessionURL;
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<ClassMethodAggregates> classMethodAggregates = new AtomicReference<>();
-        get(url, new Callback() {
+
+        String qualifiedNameJson;
+        try {
+            qualifiedNameJson = objectMapper.writeValueAsString(qualifiedName);
+        } catch (JsonProcessingException e) {
+            logger.error("Error converting qualifiedName to JSON", e);
+            return null;
+        }
+
+        post(url, qualifiedNameJson, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 logger.info("failure encountered", e);
