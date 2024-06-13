@@ -1146,40 +1146,4 @@ public class NetworkSessionInstanceClient implements SessionInstanceInterface {
         return null;
     }
 
-    public List<ExecutionSession> sessionDiscovery(String packageName) {
-        String url = this.endpoint + this.discovery + "?packageName=" + packageName;
-        CountDownLatch latch = new CountDownLatch(1);
-        ArrayList<ExecutionSession> executionSessionList = new ArrayList<>();
-
-        get(url, new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                logger.info("failure encountered", e);
-                latch.countDown();
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                try (response) {
-                    String responseBody = Objects.requireNonNull(response.body()).string();
-                    List<ExecutionSession> executionSessionLocal = objectMapper.readValue(responseBody,
-                            new TypeReference<>() {
-                            });
-                    executionSessionLocal.forEach(e -> e.setSessionMode(ExecutionSessionSourceMode.REMOTE));
-                    executionSessionList.addAll(executionSessionLocal);
-                } finally {
-                    latch.countDown();
-                }
-            }
-        });
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-
-        }
-
-        return executionSessionList;
-    }
-
 }
