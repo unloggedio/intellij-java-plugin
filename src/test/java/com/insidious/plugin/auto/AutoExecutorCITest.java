@@ -113,6 +113,9 @@ public class AutoExecutorCITest {
                 String targetClassname = row.getCell(0).getStringCellValue();
                 String targetMethodInfo = row.getCell(1).getStringCellValue();
                 String selectedImplementation = row.getCell(2).getStringCellValue();
+                if (selectedImplementation == null || selectedImplementation.isBlank() || selectedImplementation.isEmpty()) {
+                    selectedImplementation = targetClassname;
+                }
                 String responseType = row.getCell(3).getStringCellValue();
                 String methodInput = row.getCell(4).getStringCellValue();
                 String methodAssertionType = row.getCell(5).getStringCellValue();
