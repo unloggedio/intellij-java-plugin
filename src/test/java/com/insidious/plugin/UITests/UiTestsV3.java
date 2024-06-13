@@ -56,7 +56,7 @@ public class UiTestsV3 {
         LocalProjectInfo multiModuleDemo = new LocalProjectInfo("multimodule-demo-1", "start_project.sh",
                 "git_rollback.sh", "remove_local_sessions.sh", "clear_tests.sh", "CustomerApplication.java", 30);
         multimoduleDemo.setLocalProjectInfo(multiModuleDemo);
-        multimoduleDemo.setLoginOptions(new GitLoginOptions("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")); //your git personal access token here
+        multimoduleDemo.setLoginOptions(new GitLoginOptions("add your personal access token here")); //your git personal access token here
         projectsToTest.add(multimoduleDemo);
     }
 
