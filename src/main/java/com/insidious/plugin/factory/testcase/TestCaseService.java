@@ -303,7 +303,7 @@ public class TestCaseService {
         }
 
 
-        if (!hasConstructor) {
+        if (!hasConstructor && sessionInstance != null) {
             TestCandidateMetadata constructorCandidate = sessionInstance.getConstructorCandidate(targetTestSubject);
             // this can be null for static classes
             if (constructorCandidate != null) {
@@ -470,12 +470,14 @@ public class TestCaseService {
             List<String> typeNames = new LinkedList<>();
             typeNames.add(fieldParameterType);
 
-            TypeInfo fieldTypeInfo = sessionInstance.getTypeInfo(fieldParameterType);
-            int[] interfaces = fieldTypeInfo.getInterfaces();
-            if (interfaces != null) {
-                for (int interfaceTypeId : interfaces) {
-                    TypeInfo interfaceTypeInfo = sessionInstance.getTypeInfo(interfaceTypeId);
-                    typeNames.add(interfaceTypeInfo.getTypeNameFromClass());
+            if (sessionInstance != null) {
+                TypeInfo fieldTypeInfo = sessionInstance.getTypeInfo(fieldParameterType);
+                int[] interfaces = fieldTypeInfo.getInterfaces();
+                if (interfaces != null) {
+                    for (int interfaceTypeId : interfaces) {
+                        TypeInfo interfaceTypeInfo = sessionInstance.getTypeInfo(interfaceTypeId);
+                        typeNames.add(interfaceTypeInfo.getTypeNameFromClass());
+                    }
                 }
             }
 

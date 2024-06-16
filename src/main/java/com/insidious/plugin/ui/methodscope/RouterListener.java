@@ -14,4 +14,7 @@ public interface RouterListener {
     void showMockCreator();
 
     void runReplayTests();
+
+    void showOnboardingInstructions();
+
 }

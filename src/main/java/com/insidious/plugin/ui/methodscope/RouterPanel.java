@@ -1,10 +1,9 @@
 package com.insidious.plugin.ui.methodscope;
 
-import com.insidious.plugin.InsidiousNotification;
-import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.factory.MethodDisplayComponent;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.icons.AllIcons;
-import com.intellij.notification.NotificationType;
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,6 +11,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class RouterPanel {
+    private final MethodDisplayComponent methodDisplayComponent;
     private JLabel executeMethodRouteLabel;
     private JLabel runReplayTests;
     private JLabel filterInTimeline;
@@ -21,10 +21,23 @@ public class RouterPanel {
     private JLabel fuzzyTestLabel;
     private JPanel mainPanel;
     private JLabel replayJunitTest;
-    private JPanel runtimeActionPanel;
+    private JLabel setupInstructionsLabel;
+    private JLabel requiredSdkInfoLabel;
+    private JPanel methodInfoContainer;
+    private MethodAdapter method;
 
     public RouterPanel(RouterListener routerListener) {
 
+        setupInstructionsLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        setupInstructionsLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                routerListener.showOnboardingInstructions();
+            }
+        });
+
+        methodDisplayComponent = new MethodDisplayComponent();
+        methodInfoContainer.add(methodDisplayComponent.getComponent(), BorderLayout.CENTER);
 
         loadTestLabel.setEnabled(false);
         loadTestLabel.setToolTipText("Coming soon");
@@ -129,6 +142,10 @@ public class RouterPanel {
 
     }
 
+    public void setMethod(MethodAdapter method) {
+        this.method = method;
+        methodDisplayComponent.setMethod(method);
+    }
 
 
     public JPanel getComponent() {
