@@ -56,7 +56,7 @@ public class UiTestsV3 {
         LocalProjectInfo multiModuleDemo = new LocalProjectInfo("multimodule-demo-1", "start_project.sh",
                 "git_rollback.sh", "remove_local_sessions.sh", "clear_tests.sh", "CustomerApplication.java", 30);
         multimoduleDemo.setLocalProjectInfo(multiModuleDemo);
-        multimoduleDemo.setLoginOptions(new GitLoginOptions("add your personal access token here")); //your git personal access token here
+        multimoduleDemo.setLoginOptions(new GitLoginOptions("Your Personal access token here")); //your git personal access token here
         projectsToTest.add(multimoduleDemo);
     }
 
@@ -90,31 +90,15 @@ public class UiTestsV3 {
         final String annotationText = "@Unlogged(counter=\"2\")";
 
         step("Add annotation and start project", () -> {
-            UiTestInteractionUtils.openAndRevertGitChangesForFile(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
-            addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, false);
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
+            addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, true);
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
         });
 
-        step("Set source filter to Localhost", () -> {
-            UiTestInteractionUtils.openUnloggedToolbarIfNotOpen(controller, 2);
-            clearGotIts(controller);
-
-            controller.getIdeaFrame().getFilterButton().click();
-            pause(ofMillis(250).toMillis());
-
-            ComponentFixture titlePanel = controller.getIdeaFrame().getMyContentPanel();
-            RemoteText sourcesTabText = titlePanel.getData().getAll().stream().filter(remoteText -> remoteText.getText().equals("Sources")).toList().get(0);
-            sourcesTabText.click();
-            controller.getIdeaFrame().getLocalHostRadioButton().click();
-            controller.getIdeaFrame().getApplyButtonGeneric().click();
-
-            clearGotIts(controller);
+        step("Open unlogged toolwindow if not open", () -> {
+            openUnloggedToolbarIfNotOpen(controller, 2);
         });
 
         step("DirectInvoke and assert results, for call 1 -> should see 4 candidates", () -> {
-            controller.getIdeaFrame().getToolBarDeleteButton().click();
-
             List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
             List<DirectInvokeTreeLine> assertions = new ArrayList<>();
             inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
@@ -124,6 +108,8 @@ public class UiTestsV3 {
                     "public String getFutureResult(String s1)",
                     inputLines, assertions, List.of(AssertionOptions.DIRECT_INVOKE_RESPONSE),
                     true);
+
+            controller.getIdeaFrame().getToolBarDeleteButton().click();
             UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
             pause(ofSeconds(2).toMillis());
 
@@ -204,6 +190,7 @@ public class UiTestsV3 {
         //TODO : revert changes if annotations are already present
 
         step("Add annotation and start project", () -> {
+            UiTestInteractionUtils.openAndRevertGitChangesForFile(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, true);
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
         });
@@ -1390,12 +1377,15 @@ public class UiTestsV3 {
         });
 
         step("Save replay cases", () -> {
+            clearGotIts(controller);
             controller.getIdeaFrame().getSelectAllicon().click();
             pause(ofSeconds(1).toMillis());
 
+            clearGotIts(controller);
             controller.getIdeaFrame().getSaveGlobalButton().click();
-            pause(ofSeconds(10).toMillis());
+            pause(ofSeconds(15).toMillis());
 
+            clearGotIts(controller);
             controller.getIdeaFrame().getSaveFromConfirmButton().click();
             pause(ofSeconds(10).toMillis());
         });
