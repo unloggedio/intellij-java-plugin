@@ -59,7 +59,19 @@ public class ScanTests {
                 "com.videobug.testbed.config.WebConfigurer"), new AssertionOptions("0", 1L));
 
         ScanTestModel session2 = new ScanTestModel("selogger-2", assertions);
-        scanTests.add(session2);
+//        scanTests.add(session2);
+
+        assertions = new HashMap<>();
+        assertions.put(new MethodReference("getFutureResult",
+                "org.unlogged.demo.controller.FutureController"), new AssertionOptions("\"yolo\"", 4L));
+        assertions.put(new MethodReference("getFutureResultOptional",
+                "org.unlogged.demo.controller.FutureController"), new AssertionOptions("\"string\"", 3L));
+        assertions.put(new MethodReference("getUrl",
+                "org.unlogged.demo.controller.SiteUrl"), new AssertionOptions("\"https://localhost:8080\"", 2L));
+
+        ScanTestModel freqLogging = new ScanTestModel("freq-logging-maven-demo", assertions);
+        scanTests.add(freqLogging);
+
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("enrich", "org.unlogged.springwebfluxdemo.enrich.nonreactive.PersonNameEnricherV1"), new AssertionOptions("{\"id\":\"string\",\"name\":\"string#En\",\"age\":0}"));
@@ -140,6 +152,7 @@ public class ScanTests {
     }
 
     public Map<MethodReference, AssertionResult> assertScannedValuesFromSession(Map<MethodReference, AssertionOptions> assetions, String sessionFolder) throws SQLException, IOException, InterruptedException {
+        System.out.println("In test for : " + sessionFolder);
         String sessionPath = SESSIONS_PATH + sessionFolder;
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getName()).thenReturn("test-project");
@@ -181,6 +194,7 @@ public class ScanTests {
         };
         AtomicReference<ScheduledFuture<?>> lastFuture = new AtomicReference<>(null);
         sessionInstance.getTestCandidates(testCandidateMetadata -> {
+            System.out.println("In candidate list for : " + sessionFolder);
             waiting.set(false);
             assetions.forEach((key, value) -> {
                 String classname = key.getContainingClass();
