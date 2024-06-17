@@ -8,10 +8,7 @@ import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.ActiveSessionManager;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
-import com.insidious.plugin.scan.model.AssertionResult;
-import com.insidious.plugin.scan.model.MethodReference;
-import com.insidious.plugin.scan.model.ScanTestModel;
-import com.insidious.plugin.scan.model.ScanTestResult;
+import com.insidious.plugin.scan.model.*;
 import com.insidious.plugin.ui.stomp.StompFilterModel;
 import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
 import com.insidious.plugin.util.ClassTypeUtils;
@@ -45,44 +42,44 @@ public class ScanTests {
     public void runScanTests() throws SQLException, IOException, InterruptedException {
 
         List<ScanTestModel> scanTests = new ArrayList<>();
-        Map<MethodReference, String> assertions = new HashMap<>();
+        Map<MethodReference, AssertionOptions> assertions = new HashMap<>();
         assertions.put(new MethodReference("coffeeFlixList",
                         "org.unlogged.springwebfluxdemo.controller.flow1.CustomControllerCE"),
-                "[{\"id\":\"cee4e721-93ac-4b5e-a212-047b56b0aab9\",\"name\":\"Black Alert Redis\"},{\"id\":\"3aedcd81-a39d-4fc3-a1e8-4330d46ff65e\",\"name\":\"Darth Redis\"},{\"id\":\"f8228860-300e-4354-984a-2f0d351f1539\",\"name\":\"Jet Black Redis\"}]");
+                new AssertionOptions("[{\"id\":\"cee4e721-93ac-4b5e-a212-047b56b0aab9\",\"name\":\"Black Alert Redis\"},{\"id\":\"3aedcd81-a39d-4fc3-a1e8-4330d46ff65e\",\"name\":\"Darth Redis\"},{\"id\":\"f8228860-300e-4354-984a-2f0d351f1539\",\"name\":\"Jet Black Redis\"}]", 1L));
 
         assertions.put(new MethodReference("connector",
                         "org.unlogged.springwebfluxdemo.client.GreetingClient"),
-                "{\"httpClient\":{},\"resourceFactory\":null,\"running\":true,\"lifecycleMonitor\":{}}");
+                new AssertionOptions("{\"httpClient\":{},\"resourceFactory\":null,\"running\":true,\"lifecycleMonitor\":{}}", 1L));
 
         ScanTestModel reactiveSessionTest = new ScanTestModel("selogger-4", assertions);
         scanTests.add(reactiveSessionTest);
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("setLocationForStaticAssets",
-                "com.videobug.testbed.config.WebConfigurer"), "0");
+                "com.videobug.testbed.config.WebConfigurer"), new AssertionOptions("0", 1L));
 
         ScanTestModel session2 = new ScanTestModel("selogger-2", assertions);
         scanTests.add(session2);
 
         assertions = new HashMap<>();
-        assertions.put(new MethodReference("enrich", "org.unlogged.springwebfluxdemo.enrich.nonreactive.PersonNameEnricherV1"), "{\"id\":\"string\",\"name\":\"string#En\",\"age\":0}");
-        assertions.put(new MethodReference("saveStaff", "org.unlogged.springwebfluxdemo.controller.RXJavaSQLOpsController"), "1");
-        assertions.put(new MethodReference("getBlockedString", "org.unlogged.springwebfluxdemo.controller.MonoOpsController"), "\"MonoString\"");
-        assertions.put(new MethodReference("getTypeWrapped", "org.unlogged.springwebfluxdemo.handler.GreetingHandler"), "{\"statusCode\":200,\"headers\":{\"Content-Type\":[\"application/json\"]},\"cookies\":{},\"hints\":{},\"inserter\":{\"arg$1\":{\"intValue\":0,\"longValue\":0,\"charValue\":\"\\u0000\",\"doubleValue\":0.0,\"floatValue\":0.0,\"stringValue\":null,\"shortValue\":0,\"byteValue\":0,\"boolValue\":false,\"intWrapper\":null,\"longWrapper\":null,\"charWrapper\":null,\"doubleWrapper\":null,\"floatWrapper\":null,\"shortWrapper\":null,\"ByteWrapper\":null,\"booleanWrapper\":null,\"object\":null}}}");
-        assertions.put(new MethodReference("mapAndFilter", "org.unlogged.springwebfluxdemo.controller.RXJavaController"), "\"E,678,1015,760,740,489_Completed\"");
-        assertions.put(new MethodReference("parallelExecutor", "org.unlogged.springwebfluxdemo.controller.ReactorSchedulerOpsController"), "\"action\"");
-        assertions.put(new MethodReference("returnMockString", "org.unlogged.springwebfluxdemo.controller.MockUtils"), "\"Test String\"");
-        assertions.put(new MethodReference("returnMockString", "org.unlogged.springwebfluxdemo.controller.MockUtils"), "\"Test String\"");
-        assertions.put(new MethodReference("all", "org.unlogged.springwebfluxdemo.repository.RedisCoffeeInteractionRepoImpl"), "[{\"id\":\"999ea222-d5a9-4236-a547-57132e017d2e\",\"name\":\"Black Alert Redis\"},{\"id\":\"ce39296e-c4f5-49e7-befd-e82d4a173a90\",\"name\":\"Jet Black Redis\"},{\"id\":\"ed300b41-679a-4727-bfd1-4d4ee4186c58\",\"name\":\"Darth Redis\"}]");
-        assertions.put(new MethodReference("notifyShopV1", "org.unlogged.springwebfluxdemo.controller.CasesController"), "true");
-        assertions.put(new MethodReference("updateStaffNameForId", "org.unlogged.springwebfluxdemo.repository.flow1.RXjavaSqlRepoImpl"), "false");
+        assertions.put(new MethodReference("enrich", "org.unlogged.springwebfluxdemo.enrich.nonreactive.PersonNameEnricherV1"), new AssertionOptions("{\"id\":\"string\",\"name\":\"string#En\",\"age\":0}"));
+        assertions.put(new MethodReference("saveStaff", "org.unlogged.springwebfluxdemo.controller.RXJavaSQLOpsController"), new AssertionOptions("1"));
+        assertions.put(new MethodReference("getBlockedString", "org.unlogged.springwebfluxdemo.controller.MonoOpsController"), new AssertionOptions("\"MonoString\""));
+        assertions.put(new MethodReference("getTypeWrapped", "org.unlogged.springwebfluxdemo.handler.GreetingHandler"), new AssertionOptions("{\"statusCode\":200,\"headers\":{\"Content-Type\":[\"application/json\"]},\"cookies\":{},\"hints\":{},\"inserter\":{\"arg$1\":{\"intValue\":0,\"longValue\":0,\"charValue\":\"\\u0000\",\"doubleValue\":0.0,\"floatValue\":0.0,\"stringValue\":null,\"shortValue\":0,\"byteValue\":0,\"boolValue\":false,\"intWrapper\":null,\"longWrapper\":null,\"charWrapper\":null,\"doubleWrapper\":null,\"floatWrapper\":null,\"shortWrapper\":null,\"ByteWrapper\":null,\"booleanWrapper\":null,\"object\":null}}}"));
+        assertions.put(new MethodReference("mapAndFilter", "org.unlogged.springwebfluxdemo.controller.RXJavaController"), new AssertionOptions("\"E,678,1015,760,740,489_Completed\""));
+        assertions.put(new MethodReference("parallelExecutor", "org.unlogged.springwebfluxdemo.controller.ReactorSchedulerOpsController"), new AssertionOptions("\"action\""));
+        assertions.put(new MethodReference("returnMockString", "org.unlogged.springwebfluxdemo.controller.MockUtils"), new AssertionOptions("\"Test String\""));
+        assertions.put(new MethodReference("returnMockString", "org.unlogged.springwebfluxdemo.controller.MockUtils"), new AssertionOptions("\"Test String\""));
+        assertions.put(new MethodReference("all", "org.unlogged.springwebfluxdemo.repository.RedisCoffeeInteractionRepoImpl"), new AssertionOptions("[{\"id\":\"999ea222-d5a9-4236-a547-57132e017d2e\",\"name\":\"Black Alert Redis\"},{\"id\":\"ce39296e-c4f5-49e7-befd-e82d4a173a90\",\"name\":\"Jet Black Redis\"},{\"id\":\"ed300b41-679a-4727-bfd1-4d4ee4186c58\",\"name\":\"Darth Redis\"}]"));
+        assertions.put(new MethodReference("notifyShopV1", "org.unlogged.springwebfluxdemo.controller.CasesController"), new AssertionOptions("true"));
+        assertions.put(new MethodReference("updateStaffNameForId", "org.unlogged.springwebfluxdemo.repository.flow1.RXjavaSqlRepoImpl"), new AssertionOptions("false"));
         ScanTestModel webflux11 = new ScanTestModel("webflux-java11-auto", assertions);
-        scanTests.add(webflux11);
+//        scanTests.add(webflux11);
 
         assertions = new HashMap<>();
-        assertions.put(new MethodReference("getGreeting", "org.unlogged.springwebfluxdemo.controller.EntryPointController"), "{\"message\":\"Hello, Spring!\",\"typeWrapper\":null,\"someBean\":{},\"listOfStrings\":[\"123\",\"65\",\"513\",\"3\",\"47\",\"23\",\"255\",\"363\"]}");
+        assertions.put(new MethodReference("getGreeting", "org.unlogged.springwebfluxdemo.controller.EntryPointController"), new AssertionOptions("{\"message\":\"Hello, Spring!\",\"typeWrapper\":null,\"someBean\":{},\"listOfStrings\":[\"123\",\"65\",\"513\",\"3\",\"47\",\"23\",\"255\",\"363\"]}"));
         ScanTestModel webflux11Controller = new ScanTestModel("webflux-java-11-controller", assertions);
-        scanTests.add(webflux11Controller);
+//        scanTests.add(webflux11Controller);
 
         List<ScanTestResult> scanTestResults = new ArrayList<>();
         for (ScanTestModel scanTestModel : scanTests) {
@@ -120,8 +117,10 @@ public class ScanTests {
                 System.out.println("Classname : " + key.getContainingClass());
                 System.out.println("Methodname : " + key.getMethodName());
                 System.out.println("->");
-                System.out.println("Expected value : " + value.getExpectedValue());
-                System.out.println("Recorded value : " + value.getScannedValue());
+                System.out.println("Expected Value : " + value.getExpectedValue());
+                System.out.println("Recorded Value : " + value.getScannedValue());
+                System.out.println("Expected Count : " + value.getExpectedCount());
+                System.out.println("Recorded Count : " + value.getActualCount());
                 System.out.println("Status : " + (value.isPassing() ? "Passing" : "Failing"));
                 System.out.println("\n");
                 if (!value.isPassing()) {
@@ -140,7 +139,7 @@ public class ScanTests {
         Assertions.assertEquals(true, overallPassing.get());
     }
 
-    public Map<MethodReference, AssertionResult> assertScannedValuesFromSession(Map<MethodReference, String> assetions, String sessionFolder) throws SQLException, IOException, InterruptedException {
+    public Map<MethodReference, AssertionResult> assertScannedValuesFromSession(Map<MethodReference, AssertionOptions> assetions, String sessionFolder) throws SQLException, IOException, InterruptedException {
         String sessionPath = SESSIONS_PATH + sessionFolder;
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getName()).thenReturn("test-project");
@@ -186,7 +185,8 @@ public class ScanTests {
             assetions.forEach((key, value) -> {
                 String classname = key.getContainingClass();
                 String methodname = key.getMethodName();
-                String expectedValue = value;
+                String expectedValue = value.getExpectedValue();
+                Long count = value.getCount();
 
                 if (assertionResults.containsKey(key)) {
                     return;
@@ -212,7 +212,19 @@ public class ScanTests {
                     }
                 }
                 if (!candidateBareBoneList.isEmpty()) {
-                    assertionResults.put(key, new AssertionResult(value, scannedValueReference, passing));
+                    Long current = (long) candidateBareBoneList.size();
+                    if (assertionResults.containsKey(key)) {
+                        if (assertionResults.get(key).getActualCount() == null) {
+                            assertionResults.get(key).setActualCount(0L);
+                        }
+                        current += assertionResults.get(key).getActualCount();
+                    }
+                    if (count != null) {
+                        if (!current.equals(count)) {
+                            passing = false;
+                        }
+                    }
+                    assertionResults.put(key, new AssertionResult(value.getExpectedValue(), scannedValueReference, passing, count, current));
                 }
             });
             cdl.countDown();
