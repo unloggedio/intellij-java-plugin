@@ -8,22 +8,13 @@ import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
-import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.autoexecutor.AutoExecutorReportRecord;
-import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.factory.CandidateSearchQuery;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
-import com.insidious.plugin.pojo.frameworks.JsonFramework;
-import com.insidious.plugin.pojo.frameworks.MockFramework;
-import com.insidious.plugin.pojo.frameworks.TestFramework;
-import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.ui.treeeditor.JsonTreeEditor;
 import com.insidious.plugin.util.*;
@@ -40,12 +31,12 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
-import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
-import com.intellij.psi.*;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiType;
 import com.intellij.psi.search.ProjectAndLibrariesScope;
-import com.intellij.psi.search.searches.ReferencesSearch;
 import com.intellij.ui.components.JBScrollPane;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
@@ -54,12 +45,9 @@ import javax.swing.*;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 
 public class MethodDirectInvokeComponent
         implements Disposable {
@@ -67,13 +55,11 @@ public class MethodDirectInvokeComponent
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private final ObjectMapper objectMapper;
-    private final RouterPanel routerPanel;
+    //    private final RouterPanel routerPanel;
     private JPanel mainContainer;
     private Editor returnValueTextArea;
     private JButton createBoilerplateButton;
-    private JLabel methodNameLabel;
     private JPanel centerPanel;
-    private JPanel controlPanel;
     private MethodAdapter methodElement;
     private JBScrollPane parameterScrollPanel = null;
     private TestCaseDesignerLite designerLite;
@@ -90,182 +76,45 @@ public class MethodDirectInvokeComponent
         this.insidiousService = insidiousService;
         this.objectMapper = ObjectMapperInstance.getInstance();
 
-        routerPanel = new RouterPanel(new RouterListener() {
-            @Override
-            public void showDirectInvoke() {
-                isShowingRouter = false;
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    renderForMethod(methodElement, null);
-                });
-            }
-
-            @Override
-            public void showStompAndFilterForMethod() {
-                isShowingRouter = false;
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    insidiousService.showStompAndFilterForMethod(methodElement);
-                });
-            }
-
-            @Override
-            public void showJunitCreator() {
-                isShowingRouter = false;
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    TestCaseGenerationConfiguration configuration = new TestCaseGenerationConfiguration(
-                            TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Jackson,
-                            ResourceEmbedMode.IN_CODE
-                    );
+//        centerPanel.add(routerPanel.getComponent(), BorderLayout.CENTER);
 
 
-                    designerLite = new TestCaseDesignerLite(methodElement, configuration, true, insidiousService);
+//        AnAction closeAction = new AnAction(() -> "Back", AllIcons.Actions.Back) {
+//            @Override
+//            public void actionPerformed(@NotNull AnActionEvent e) {
+//                centerPanel.removeAll();
+////                if (isShowingRouter) {
+//                isShowingRouter = false;
+//                componentLifecycleListener.onClose();
+////                } else {
+////                    centerPanel.add(routerPanel.getComponent(), BorderLayout.CENTER);
+////                    isShowingRouter = true;
+////                }
+//                centerPanel.revalidate();
+//                centerPanel.repaint();
+//            }
+//
+//            @Override
+//            public boolean isDumbAware() {
+//                return false;
+//            }
+//
+//            @Override
+//            public boolean displayTextInToolbar() {
+//                return true;
+//            }
+//
+//        };
 
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        centerPanel.removeAll();
-                        centerPanel.add(designerLite.getComponent(), BorderLayout.CENTER);
+//        List<AnAction> action11 = new ArrayList<>();
+//        action11.add(closeAction);
 
-                        centerPanel.getParent().revalidate();
-                        centerPanel.getParent().repaint();
-                    });
-                });
-            }
-
-            @Override
-            public void showJunitFromRecordedCreator() {
-
-                isShowingRouter = false;
-
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    TestCaseGenerationConfiguration configuration = new TestCaseGenerationConfiguration(
-                            TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Jackson,
-                            ResourceEmbedMode.IN_CODE
-                    );
-
-                    insidiousService.showStompAndFilterForMethod(methodElement);
-                    insidiousService.selectVisibleCandidates();
-
-
-                    List<TestCandidateMetadata> candidates = insidiousService.getCandidatesForMethod(methodElement);
-                    if (candidates.isEmpty()) {
-                        InsidiousNotification.notifyMessage(
-                                "No replay records found for this method, start your application with unlogged-sdk " +
-                                        "and execute method to record execution",
-                                NotificationType.WARNING
-                        );
-                        return;
-                    }
-
-                    configuration.setTestMethodName(methodElement.getName());
-
-                    for (TestCandidateMetadata selectedCandidate : candidates) {
-                        configuration.getTestCandidateMetadataList().add(selectedCandidate);
-                        configuration.getCallExpressionList().addAll(selectedCandidate.getCallsList());
-
-                    }
-                    designerLite = new TestCaseDesignerLite(methodElement, configuration, false, insidiousService);
-
-
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        centerPanel.removeAll();
-                        centerPanel.add(designerLite.getComponent(), BorderLayout.CENTER);
-
-                        centerPanel.getParent().revalidate();
-                        centerPanel.getParent().repaint();
-                    });
-
-                });
-
-            }
-
-            @Override
-            public void showMockCreator() {
-                isShowingRouter = false;
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-
-                    CountDownLatch cdl = new CountDownLatch(1);
-                    List<PsiReference> psiReferences = new ArrayList<>();
-                    ProgressManager.getInstance()
-                            .runProcessWithProgressSynchronously(new Runnable() {
-                                @Override
-                                public void run() {
-                                    @NotNull Collection<PsiReference> references =
-                                            ApplicationManager.getApplication().runReadAction(
-                                                    (Computable<Collection<PsiReference>>) () -> ReferencesSearch.search(
-                                                            methodElement.getPsiMethod()).findAll());
-                                    psiReferences.addAll(references);
-                                    cdl.countDown();
-
-                                }
-                            }, "Search for references to method", false, insidiousService.getProject());
-
-
-                    try {
-                        cdl.await();
-                    } catch (InterruptedException e) {
-                        return;
-                    }
-                    if (psiReferences.isEmpty()) {
-                        InsidiousNotification.notifyMessage("Could not find a call for this method. Please use this " +
-                                "method to create a mock for it", NotificationType.WARNING);
-                        return;
-                    }
-
-                    for (PsiReference reference : psiReferences) {
-                        if (reference instanceof PsiReferenceExpression) {
-                            PsiReferenceExpression refExpr = (PsiReferenceExpression) reference;
-                            insidiousService.showMockCreator((JavaMethodAdapter) methodElement,
-                                    (PsiMethodCallExpression) refExpr.getParent(), declaredMock -> {
-                                        insidiousService.hideBottomSplit();
-                                    });
-                            break;
-                        }
-                    }
-                });
-            }
-
-            @Override
-            public void runReplayTests() {
-                routeToCiDocumentation();
-            }
-        });
-        centerPanel.add(routerPanel.getComponent(), BorderLayout.CENTER);
-
-
-        AnAction closeAction = new AnAction(() -> "Back", AllIcons.Actions.Back) {
-            @Override
-            public void actionPerformed(@NotNull AnActionEvent e) {
-                centerPanel.removeAll();
-                if (isShowingRouter) {
-                    isShowingRouter = false;
-                    componentLifecycleListener.onClose(MethodDirectInvokeComponent.this);
-                } else {
-                    centerPanel.add(routerPanel.getComponent(), BorderLayout.CENTER);
-                    isShowingRouter = true;
-                }
-                centerPanel.revalidate();
-                centerPanel.repaint();
-            }
-
-            @Override
-            public boolean isDumbAware() {
-                return false;
-            }
-
-            @Override
-            public boolean displayTextInToolbar() {
-                return true;
-            }
-
-        };
-
-        List<AnAction> action11 = new ArrayList<>();
-        action11.add(closeAction);
-
-        ActionToolbarImpl actionToolbar = new ActionToolbarImpl(
-                "MDIC ActionToolBar", new DefaultActionGroup(action11), true);
-        actionToolbar.setMiniMode(false);
-        actionToolbar.setForceMinimumSize(true);
-        actionToolbar.setTargetComponent(centerPanel);
-        controlPanel.add(actionToolbar.getComponent(), BorderLayout.EAST);
+//        ActionToolbarImpl actionToolbar = new ActionToolbarImpl(
+//                "MDIC ActionToolBar", new DefaultActionGroup(action11), true);
+//        actionToolbar.setMiniMode(false);
+//        actionToolbar.setForceMinimumSize(true);
+//        actionToolbar.setTargetComponent(centerPanel);
+//        controlPanel.add(actionToolbar.getComponent(), BorderLayout.EAST);
 
 
 //        closeButton.setIcon(UIUtils.CLOSE_LINE_SVG);
@@ -308,24 +157,6 @@ public class MethodDirectInvokeComponent
     }
 
 
-    public void routeToCiDocumentation() {
-        String link = "https://read.unlogged.io/cirunner/";
-        if (Desktop.isDesktopSupported()) {
-            try {
-                java.awt.Desktop.getDesktop()
-                        .browse(java.net.URI.create(link));
-            } catch (Exception e) {
-            }
-        } else {
-            InsidiousNotification.notifyMessage(
-                    "<a href='https://read.unlogged.io/cirunner/'>Documentation</a> for running unlogged replay tests from " +
-                            "CLI/Maven/Gradle", NotificationType.INFORMATION);
-        }
-        UsageInsightTracker.getInstance().RecordEvent(
-                "routeToGithub", null);
-    }
-
-
     private int expandAll(JTree tree, TreePath parent) {
         TreeNode node = (TreeNode) parent.getLastPathComponent();
         if (node.getChildCount() >= 0) {
@@ -350,8 +181,7 @@ public class MethodDirectInvokeComponent
 
 
         if (!isConnected) {
-            String message = "Start your application with Java unlogged-sdk to start using " +
-                    "method DirectInvoke";
+            String message = "Application is not running with unlogged-sdk.";
             InsidiousNotification.notifyMessage(message, NotificationType.INFORMATION);
             return;
         }
@@ -362,7 +192,8 @@ public class MethodDirectInvokeComponent
             return;
         }
 //        createBoilerplateButton.setVisible(false);
-        this.chooseClassAndDirectInvoke();
+        DumbService.getInstance(insidiousService.getProject()).runWhenSmart(
+                this::chooseClassAndDirectInvoke);
     }
 
     public void renderForMethod(MethodAdapter methodElement1, List<String> methodArgumentValues) {
@@ -370,6 +201,7 @@ public class MethodDirectInvokeComponent
             logger.info("DirectInvoke got null method");
             return;
         }
+        this.methodElement = methodElement1;
         ClassAdapter containingClass = methodElement.getContainingClass();
 
         ParameterAdapter[] methodParameters = methodElement.getParameters();
@@ -385,19 +217,19 @@ public class MethodDirectInvokeComponent
         if (existingRequests != null) {
             methodArgumentValues = existingRequests.getMethodParameters();
         } else {
-            SessionInstance sessionInstance = this.insidiousService.getSessionInstance();
-            if (sessionInstance != null) {
-                CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
-                        methodElement, CandidateFilterType.METHOD, false);
-
-                List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(query);
-                int candidateCount = methodTestCandidates.size();
-                if (candidateCount > 0) {
-                    TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(0);
-                    methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
-                            mostRecentTestCandidate);
-                }
-            }
+//            SessionInstanceInterface sessionInstance = this.insidiousService.getSessionInstance();
+//            if (sessionInstance != null) {
+//                CandidateSearchQuery query = insidiousService.createSearchQueryForMethod(
+//                        methodElement, CandidateFilterType.METHOD, false);
+//
+//                List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(query);
+//                int candidateCount = methodTestCandidates.size();
+//                if (candidateCount > 0) {
+//                    TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(0);
+//                    methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
+//                            mostRecentTestCandidate);
+//                }
+//            }
         }
 
         methodParameterContainer = new JPanel();
@@ -685,8 +517,10 @@ public class MethodDirectInvokeComponent
     }
 
     private void chooseClassAndDirectInvoke() {
-        insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(),
-                this::classSelected);
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            insidiousService.chooseClassImplementation(methodElement.getContainingClass().getQualifiedName(),
+                    this::classSelected);
+        });
     }
 
     @Override
@@ -699,27 +533,6 @@ public class MethodDirectInvokeComponent
 
     public void setMethod(MethodAdapter method) {
         this.methodElement = method;
-        ClassAdapter containingClass = methodElement.getContainingClass();
-
-        String methodName = methodElement.getName();
-
-
-        String className = ApplicationManager.getApplication().runReadAction(
-                (Computable<String>) containingClass::getName);
-
-        String text = className + "." + methodName;
-        methodNameLabel.setText(text.substring(0, Math.min(text.length(), 40)) +
-                (text.length() > 40 ? "..." : ""));
-        methodNameLabel.setToolTipText(methodName);
-
-        logger.warn("render method executor for: " + methodName);
     }
 
-    public void showRouter() {
-        isShowingRouter = true;
-        centerPanel.removeAll();
-        centerPanel.add(routerPanel.getComponent(), BorderLayout.CENTER);
-        centerPanel.revalidate();
-        centerPanel.repaint();
-    }
 }

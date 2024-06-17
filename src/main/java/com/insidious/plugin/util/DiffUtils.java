@@ -2,6 +2,8 @@ package com.insidious.plugin.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.assertions.*;
@@ -12,8 +14,6 @@ import com.insidious.plugin.ui.methodscope.DifferenceResult;
 import com.intellij.openapi.diagnostic.Logger;
 
 import java.util.*;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static com.insidious.plugin.util.ParameterUtils.processResponseForFloatAndDoubleTypes;
 
@@ -27,7 +27,8 @@ public class DiffUtils {
     ) {
         AtomicAssertion testAssertions = testCandidateMetadata.getTestAssertions();
         String returnValueAsString = processResponseForFloatAndDoubleTypes(
-                agentCommandResponse.getResponseClassName(), String.valueOf(agentCommandResponse.getMethodReturnValue()));
+                agentCommandResponse.getResponseClassName(),
+                String.valueOf(agentCommandResponse.getMethodReturnValue()));
         String responseClassname = agentCommandResponse.getResponseClassName();
         if (responseClassname != null
                 && responseClassname.equals("java.lang.String")
@@ -41,8 +42,8 @@ public class DiffUtils {
         }
 
         if (testAssertions != null && AtomicAssertionUtils.countAssertions(testAssertions) > 0) {
-            Map<String, Object> leftOnlyMap = new HashMap<>();
-            Map<String, Object> rightOnlyMap = new HashMap<>();
+            JsonNode leftOnlyMap = objectMapper.createObjectNode();
+            JsonNode rightOnlyMap = objectMapper.createObjectNode();
             List<DifferenceInstance> differencesList = new ArrayList<>();
             DiffResultType diffResultType;
             try {
@@ -203,14 +204,14 @@ public class DiffUtils {
                 m2 = objectMapper.createObjectNode();
             }
 
-            Map<String, Map<String, ?>> objectMapDifference = compareObjectNodes(m1, m2);
+            Map<String, Object> objectMapDifference = compareObjectNodes(m1, m2);
 //            System.out.println(res);
 
 //            res.entriesOnlyOnLeft().forEach((key, value) -> System.out.println(key + ": " + value));
-            Map<String, Object> leftOnly = (Map<String, Object>) objectMapDifference.get("left");
+            JsonNode leftOnly = (JsonNode) objectMapDifference.get("left");
 
 //            res.entriesOnlyOnRight().forEach((key, value) -> System.out.println(key + ": " + value));
-            Map<String, Object> rightOnly = (Map<String, Object>) objectMapDifference.get("right");
+            JsonNode rightOnly = (JsonNode) objectMapDifference.get("right");
 
 //            res.entriesDiffering().forEach((key, value) -> System.out.println(key + ": " + value));
             Map<String, ValueDifference> differences = (Map<String, ValueDifference>) objectMapDifference.get(
@@ -241,17 +242,17 @@ public class DiffUtils {
         }
     }
 
-    public static Map<String, Map<String, ?>> compareObjectNodes(JsonNode node1, JsonNode node2) {
-        Map<String, Map<String, ?>> differencesMap = new LinkedHashMap<>();
+    public static Map<String, Object> compareObjectNodes(JsonNode node1, JsonNode node2) {
+        Map<String, Object> differencesMap = new HashMap<>();
         compareObjectNodes(node1, node2, "", differencesMap);
         return differencesMap;
     }
 
     private static void compareObjectNodes(JsonNode node1, JsonNode node2, String path,
-                                           Map<String, Map<String, ?>> differencesMap) {
-        Map<String, Object> leftOnly = new HashMap<>();
-        Map<String, Object> rightOnly = new HashMap<>();
-        Map<String, String> common = new HashMap<>();
+                                           Map<String, Object> differencesMap) {
+        ObjectNode leftOnly = objectMapper.createObjectNode();
+        ObjectNode rightOnly = objectMapper.createObjectNode();
+        ObjectNode common = objectMapper.createObjectNode();
         Map<String, ValueDifference> differences = new HashMap<>();
 
         Iterator<String> fieldNames = node1.fieldNames();
@@ -312,26 +313,31 @@ public class DiffUtils {
     }
 
 
-    public static Map<String, Object> getFlatMapFor(String s1) {
+    public static JsonNode getFlatMapFor(String s1) {
         try {
-            Map<String, Object> m1;
+            JsonNode m1;
             if (s1 == null || s1.isEmpty() || s1.equals("null")) {
-                m1 = new TreeMap<>();
+                m1 = objectMapper.getNodeFactory().objectNode();
             } else {
-                m1 = (Map<String, Object>) (objectMapper.readValue(s1, Map.class));
+                JsonNode map;
+                try {
+                    map = objectMapper.readTree(s1);
+                } catch (Exception e) {
+                    map = objectMapper.getNodeFactory().textNode(s1);
+                }
+                m1 = map;
                 m1 = flatten(m1);
             }
             return m1;
         } catch (Exception e) {
             logger.warn("Flatmap make Exception: ", e);
-            Map<String, Object> m1 = new TreeMap<>();
-            m1.put("value", s1);
+            JsonNode m1 = objectMapper.getNodeFactory().textNode(s1);
             return m1;
         }
     }
 
     static private List<DifferenceInstance> getDifferenceModel(
-            Map<String, Object> left, Map<String, Object> right,
+            JsonNode left, JsonNode right,
             Map<String, ValueDifference> differences
     ) {
         ArrayList<DifferenceInstance> differenceInstances = new ArrayList<>();
@@ -340,45 +346,77 @@ public class DiffUtils {
                     differences.get(key).rightValue(), DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE);
             differenceInstances.add(instance);
         }
-        for (String key : left.keySet()) {
-            DifferenceInstance instance = new DifferenceInstance(key, left.get(key),
+        if (left instanceof ObjectNode) {
+            ObjectNode leftObject = (ObjectNode) left;
+            for (Iterator<String> it = leftObject.fieldNames(); it.hasNext(); ) {
+                String key = it.next();
+                DifferenceInstance instance = new DifferenceInstance(key, left.get(key),
+                        "", DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY);
+                differenceInstances.add(instance);
+            }
+        } else if (left instanceof ArrayNode) {
+            ArrayNode leftObject = (ArrayNode) left;
+            for (Iterator<String> it = leftObject.fieldNames(); it.hasNext(); ) {
+                String key = it.next();
+                DifferenceInstance instance = new DifferenceInstance(key, left.get(key),
+                        "", DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY);
+                differenceInstances.add(instance);
+            }
+        } else {
+            DifferenceInstance instance = new DifferenceInstance("Left", left,
                     "", DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY);
             differenceInstances.add(instance);
         }
-        for (String key : right.keySet()) {
-            DifferenceInstance instance = new DifferenceInstance(key, "",
-                    right.get(key), DifferenceInstance.DIFFERENCE_TYPE.RIGHT_ONLY);
+
+        if (right instanceof ObjectNode) {
+            ObjectNode leftObject = (ObjectNode) right;
+            for (Iterator<String> it = leftObject.fieldNames(); it.hasNext(); ) {
+                String key = it.next();
+                DifferenceInstance instance = new DifferenceInstance(key, right.get(key),
+                        "", DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY);
+                differenceInstances.add(instance);
+            }
+        } else if (right instanceof ArrayNode) {
+            ArrayNode leftObject = (ArrayNode) right;
+            for (Iterator<String> it = leftObject.fieldNames(); it.hasNext(); ) {
+                String key = it.next();
+                DifferenceInstance instance = new DifferenceInstance(key, right.get(key),
+                        "", DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY);
+                differenceInstances.add(instance);
+            }
+        } else {
+            DifferenceInstance instance = new DifferenceInstance("Left", right,
+                    "", DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY);
             differenceInstances.add(instance);
         }
+
         return differenceInstances;
     }
 
-    static public Map<String, Object> flatten(Map<String, Object> map) {
-        return map.entrySet().stream()
-                .flatMap(DiffUtils::flattenEntry)
-                .collect(LinkedHashMap::new, (m, e) -> m.put("/" + e.getKey(), e.getValue()), LinkedHashMap::putAll);
+    public static JsonNode flatten(JsonNode node) {
+        ObjectNode flattenedNode = objectMapper.createObjectNode();
+        flatten("", node, flattenedNode);
+        return flattenedNode;
     }
 
-    static private Stream<Map.Entry<String, Object>> flattenEntry(Map.Entry<String, Object> entry) {
-        if (entry == null) {
-            return Stream.empty();
+    private static void flatten(String prefix, JsonNode node, ObjectNode flattenedNode) {
+        if (node.isObject()) {
+            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> field = fields.next();
+                String newPrefix = prefix.isEmpty() ? field.getKey() : prefix + "/" + field.getKey();
+                flatten(newPrefix, field.getValue(), flattenedNode);
+            }
+        } else if (node.isArray()) {
+            for (int i = 0; i < node.size(); i++) {
+                String newPrefix = prefix + "/" + i;
+                flatten(newPrefix, node.get(i), flattenedNode);
+            }
+        } else {
+            flattenedNode.set(prefix, node);
         }
-
-        if (entry.getValue() instanceof Map<?, ?>) {
-            return ((Map<?, ?>) entry.getValue()).entrySet().stream()
-                    .flatMap(e -> flattenEntry(
-                            new AbstractMap.SimpleEntry<>(entry.getKey() + "/" + e.getKey(), e.getValue())));
-        }
-
-        if (entry.getValue() instanceof List<?>) {
-            List<?> list = (List<?>) entry.getValue();
-            return IntStream.range(0, list.size())
-                    .mapToObj(i -> new AbstractMap.SimpleEntry<String, Object>(entry.getKey() + "/" + i, list.get(i)))
-                    .flatMap(DiffUtils::flattenEntry);
-        }
-
-        return Stream.of(entry);
     }
+
 
     public static boolean isNumeric(String strNum) {
         if (strNum == null) {

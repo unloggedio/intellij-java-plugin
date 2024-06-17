@@ -2,6 +2,7 @@ package com.insidious.plugin.factory.testcase.routine;
 
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.candidate.CandidateMetadataFactory;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -38,7 +39,10 @@ public class ObjectRoutine {
     }
 
     public static List<Parameter> getNonPojoParameters(List<TestCandidateMetadata> testCandidateList1,
-                                                       SessionInstance sessionInstance) {
+														SessionInstanceInterface sessionInstance) {
+        if (sessionInstance == null) {
+            return new ArrayList<>();
+        }
         Map<String, ClassInfo> classIndex = sessionInstance.getClassIndex();
 
         return testCandidateList1.stream()
@@ -79,7 +83,7 @@ public class ObjectRoutine {
     public ObjectRoutineScript toObjectRoutineScript(
             TestCaseGenerationConfiguration generationConfiguration,
             TestGenerationState testGenerationState,
-            SessionInstance sessionInstance,
+            SessionInstanceInterface sessionInstance,
             VariableContainer fieldsContainer
     ) {
 //        TestCandidateMetadata lastCandidate = generationConfiguration.getTestCandidateMetadataList()

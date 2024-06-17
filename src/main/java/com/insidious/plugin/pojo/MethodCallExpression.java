@@ -1,5 +1,6 @@
 package com.insidious.plugin.pojo;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.ParameterNameFactory;
@@ -13,7 +14,6 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
-import com.j256.ormlite.field.DatabaseField;
 import org.objectweb.asm.Opcodes;
 
 import java.io.Serializable;
@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MethodCallExpression implements Expression, Serializable {
 
     private static final Logger logger = LoggerUtil.getInstance(MethodCallExpression.class);
@@ -593,6 +594,10 @@ public class MethodCallExpression implements Expression, Serializable {
                 (", subject=" + (subject == null ? "" : subject.getType())) +
                 ", id=" + id +
                 '}';
+    }
+
+    public boolean isConstructor() {
+        return methodName.equals("<init>");
     }
 
     @Override

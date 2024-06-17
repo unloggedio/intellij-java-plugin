@@ -279,7 +279,7 @@ public class UnloggedSDKOnboarding {
                 "routeToGithub", null);
     }
 
-    public JPanel getComponent() {
+    public JComponent getComponent() {
         return this.mainPanel;
     }
 

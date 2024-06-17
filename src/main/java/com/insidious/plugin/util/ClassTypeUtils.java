@@ -13,6 +13,7 @@ import com.insidious.plugin.MethodSignatureParser;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
+import com.intellij.debugger.engine.JVMNameUtil;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmPrimitiveTypeKind;
 import com.intellij.lang.jvm.types.JvmType;
@@ -259,7 +260,6 @@ public class ClassTypeUtils {
         return containerClassName;
 
     }
-
 
 
     /**
@@ -563,8 +563,9 @@ public class ClassTypeUtils {
 
     public static Pair<PsiMethod, PsiSubstitutor> getPsiMethod(MethodCallExpression methodCallExpression, Project project) {
         String subjectClassName = ClassTypeUtils.getDescriptorToDottedClassName(methodCallExpression.getSubject().getType());
-        PsiClass classPsiElement = JavaPsiFacade.getInstance(project).findClass(subjectClassName,
-                GlobalSearchScope.allScope(project));
+        PsiClass classPsiElement = ApplicationManager.getApplication().runReadAction(
+                (Computable<PsiClass>) () -> JavaPsiFacade.getInstance(project).findClass(subjectClassName,
+                        GlobalSearchScope.allScope(project)));
         if (classPsiElement == null) {
             logger.warn("Class not found [" + subjectClassName + "]");
             return null;
@@ -576,8 +577,18 @@ public class ClassTypeUtils {
             methodName = methodName.split("\\$")[1];
             isLambda = true;
         }
-        List<Pair<PsiMethod, PsiSubstitutor>> methodsByNameList = classPsiElement.findMethodsAndTheirSubstitutorsByName(
-                methodName, false);
+        List<Pair<PsiMethod, PsiSubstitutor>> methodsByNameList;
+        if (methodName.equals("<init>")) {
+            classPsiElement.getConstructors();
+            methodsByNameList = ApplicationManager.getApplication().runReadAction(
+                    (Computable<List<Pair<PsiMethod, PsiSubstitutor>>>) () -> classPsiElement.findMethodsAndTheirSubstitutorsByName(
+                            getSimpleClassName(classPsiElement.getQualifiedName()), false));
+        } else {
+            String finalMethodName = methodName;
+            methodsByNameList = ApplicationManager.getApplication().runReadAction(
+                    (Computable<List<Pair<PsiMethod, PsiSubstitutor>>>) () -> classPsiElement.findMethodsAndTheirSubstitutorsByName(
+                            finalMethodName, false));
+        }
 
         if (methodsByNameList.size() == 1) {
             // should we verify parameters ?
@@ -686,9 +697,9 @@ public class ClassTypeUtils {
                 return false;
             }
         }
-        boolean nameContainsTrue = !actualArgumentType.getCanonicalText().contains(expectedType.getCanonicalText());
-        boolean isAssignable = !actualArgumentType.isAssignableFrom(expectedType);
-        return nameContainsTrue && isAssignable;
+        boolean nameNotContainsTrue = !actualArgumentType.getCanonicalText().contains(expectedType.getCanonicalText());
+        boolean isNotAssignable = !actualArgumentType.isAssignableFrom(expectedType);
+        return nameNotContainsTrue || isNotAssignable;
     }
 
     // method call expressions are in the form

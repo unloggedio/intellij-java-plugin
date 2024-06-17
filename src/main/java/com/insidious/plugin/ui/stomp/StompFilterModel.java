@@ -7,11 +7,11 @@ import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
+import org.jetbrains.kotlin.fir.resolve.calls.Candidate;
 
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.stream.Collectors;
 
 public class StompFilterModel {
     private final Set<String> includedClassNames = new CopyOnWriteArraySet<>();
@@ -20,13 +20,6 @@ public class StompFilterModel {
     private final Set<String> excludedMethodNames = new CopyOnWriteArraySet<>();
     boolean followEditor;
     CandidateFilterType candidateFilterType = CandidateFilterType.ALL;
-    public boolean isEmpty() {
-        return includedClassNames.isEmpty()
-                && includedMethodNames.isEmpty()
-                && excludedClassNames.isEmpty()
-                && excludedMethodNames.isEmpty();
-
-    }
 
     public StompFilterModel(StompFilterModel stompFilterModel) {
         this.includedMethodNames.addAll(stompFilterModel.includedMethodNames);
@@ -38,6 +31,14 @@ public class StompFilterModel {
     }
 
     public StompFilterModel() {
+    }
+
+    public boolean isEmpty() {
+        return includedClassNames.isEmpty()
+                && includedMethodNames.isEmpty()
+                && excludedClassNames.isEmpty()
+                && excludedMethodNames.isEmpty();
+
     }
 
     @Override
@@ -57,6 +58,10 @@ public class StompFilterModel {
         return Objects.hash(includedClassNames, excludedClassNames, includedMethodNames, excludedMethodNames,
                 followEditor,
                 candidateFilterType);
+    }
+
+	public CandidateFilterType getCandidateFilterType() {
+        return this.candidateFilterType;
     }
 
     public boolean isFollowEditor() {
@@ -100,71 +105,13 @@ public class StompFilterModel {
 
     }
 
-    public boolean addMethods(PsiClass psiClass) {
-        boolean changed = false;
-        for (PsiMethod method : ApplicationManager.getApplication().runReadAction(
-                (Computable<PsiMethod[]>) psiClass::getMethods)) {
-            String name = ApplicationManager.getApplication()
-                    .runReadAction((Computable<String>) method::getName);
-            if (InsidiousService.SKIP_METHOD_IN_FOLLOW_FILTER.contains(name)) {
-                continue;
-            }
-            if (!getIncludedMethodNames().contains(name)) {
-                changed = true;
-                getIncludedMethodNames().add(name);
-            }
-        }
-        return changed;
-    }
 
-
-    public boolean addClassAndSuperClasses(PsiClass psiClass) {
-        Set<String> classNames = new HashSet<>(includedClassNames);
-
-        boolean changed = false;
-        while (psiClass != null) {
-            PsiClass finalPsiClass = psiClass;
-            String qualifiedName = ApplicationManager.getApplication().runReadAction(
-                    (Computable<String>) finalPsiClass::getQualifiedName);
-            if ("java.lang.Object".equals(qualifiedName)) {
-                break;
-            }
-            if (!classNames.contains(qualifiedName)) {
-                changed = true;
-                classNames.add(qualifiedName);
-            }
-            changed = addMethods(psiClass) || changed;
-            changed = addInterfaces(psiClass) || changed;
-            psiClass = DumbService.getInstance(psiClass.getProject())
-                    .runReadActionInSmartMode(() -> ApplicationManager.getApplication().runReadAction(
-                            (Computable<PsiClass>) finalPsiClass::getSuperClass));
-        }
-        includedClassNames.addAll(classNames);
-        return changed;
-    }
-
-    public boolean addInterfaces(PsiClass psiClass) {
-        boolean changed = false;
-        PsiClass[] interfaces = ApplicationManager.getApplication().runReadAction(
-                (Computable<PsiClass[]>) psiClass::getInterfaces);
-        for (PsiClass type : interfaces) {
-            changed = addClassAndSuperClasses(type) || changed;
-        }
-        return changed;
-    }
-
-    public boolean addFromClassRecursively(PsiClass psiClass) {
-        boolean changed;
-        changed = addClassAndSuperClasses(psiClass);
-        changed = addInterfaces(psiClass) || changed;
-        changed = addMethods(psiClass) || changed;
-        return changed;
-    }
 
     public void clearIncluded() {
         includedClassNames.clear();
         includedMethodNames.clear();
     }
+
     public void clearExcluded() {
         excludedClassNames.clear();
         excludedMethodNames.clear();

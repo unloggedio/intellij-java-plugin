@@ -188,10 +188,10 @@ public class MockDefinitionEditor {
 
         saveButton.addActionListener(e -> {
             onSaveListener.onSaveDeclaredMock(declaredMock);
-            componentLifecycleListener.onClose(null);
+            componentLifecycleListener.onClose();
         });
         cancelButton.addActionListener(e -> {
-            componentLifecycleListener.onClose(null);
+            componentLifecycleListener.onClose();
         });
 
     }

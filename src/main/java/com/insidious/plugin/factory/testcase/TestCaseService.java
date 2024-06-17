@@ -1,9 +1,11 @@
 package com.insidious.plugin.factory.testcase;
 
+import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.InsidiousNotification;
+import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.client.ParameterNameFactory;
-import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.mock.MockFactory;
@@ -24,6 +26,7 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.debugger.engine.JVMNameUtil;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmType;
@@ -38,6 +41,7 @@ import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.PsiTypesUtil;
 import com.squareup.javapoet.*;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
@@ -49,12 +53,12 @@ import java.util.stream.Collectors;
 
 public class TestCaseService {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseService.class);
-    private final SessionInstance sessionInstance;
+    private final SessionInstanceInterface sessionInstance;
     private final Project project;
 
-    public TestCaseService(SessionInstance sessionInstance) {
+    public TestCaseService(SessionInstanceInterface sessionInstance, Project project) {
         this.sessionInstance = sessionInstance;
-        this.project = sessionInstance.getProject();
+        this.project = project;
     }
 
 
@@ -131,7 +135,7 @@ public class TestCaseService {
         }
 
 
-        if (objectRoutineContainer.getVariablesOfType("okhttp3.").size() > 0) {
+        if (!objectRoutineContainer.getVariablesOfType("okhttp3.").isEmpty()) {
             testClassSpecBuilder.addMethod(MethodSpecUtil.createOkHttpMockCreator());
         }
 
@@ -199,6 +203,10 @@ public class TestCaseService {
             TestCaseWriter.setParameterTypeFromPsiType(mainMethod.getReturnValue(),
                     (PsiType) returnType, true);
         }
+        if (mainMethod.getMethodName().equals("<init>")) {
+            TestCaseWriter.setParameterTypeFromPsiType(mainMethod.getReturnValue(),
+                    PsiTypesUtil.getClassType(targetMethodPsi.getContainingClass()), true);
+        }
     }
 
     public static void normalizeMethodTypes(MethodCallExpression mainMethod,
@@ -233,27 +241,79 @@ public class TestCaseService {
         }
     }
 
+
     public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
 
 
         ParameterNameFactory parameterNameFactory = new ParameterNameFactory();
         TestGenerationState testGenerationState = new TestGenerationState(parameterNameFactory);
 
-        Parameter targetTestSubject = generationConfiguration
+        TestCandidateMetadata testCandidateMetadata1 = generationConfiguration
                 .getTestCandidateMetadataList()
-                .get(0)
-                .getTestSubject();
+                .get(0);
+        MethodCallExpression targetMethod = testCandidateMetadata1.getMainMethod();
+        String targetMethodName = targetMethod.getMethodName();
+        Parameter targetTestSubject = testCandidateMetadata1.getTestSubject();
+        TestCaseWriter testCaseWriter = new TestCaseWriter();
 
-        TestCandidateMetadata constructorCandidate = sessionInstance.getConstructorCandidate(targetTestSubject);
-        // this can be null for static classes
-        if (constructorCandidate != null) {
-            generationConfiguration.getTestCandidateMetadataList().add(0, constructorCandidate);
+        List<TestCandidateMetadata> boilerplatedCandidates = new ArrayList<>();
+        for (TestCandidateMetadata testCandidateMetadata : generationConfiguration.getTestCandidateMetadataList()) {
+            MethodCallExpression mainMethod = testCandidateMetadata.getMainMethod();
+
+            Pair<PsiMethod, PsiSubstitutor> targetMethodPsiPair = ClassTypeUtils.getPsiMethod(
+                    mainMethod, project);
+            PsiMethod targetMethodPsi = null;
+            if (targetMethodPsiPair == null) {
+                continue;
+            }
+            targetMethodPsi = targetMethodPsiPair.getFirst();
+            PsiSubstitutor psiSubstitutor = targetMethodPsiPair.getSecond();
+            List<TestCandidateMetadata> candidates = testCaseWriter.generateTestCaseBoilerPlace(
+                    new JavaMethodAdapter(targetMethodPsi), generationConfiguration);
+
+            boilerplatedCandidates.addAll(candidates);
+//            for (TestCandidateMetadata tcm : candidates) {
+//                // mock all calls by default
+//                generationConfiguration.getCallExpressionList()
+//                        .addAll(tcm.getCallsList());
+//            }
+
         }
-//        CountDownLatch cdl = new CountDownLatch(1);
+
+        boolean hasConstructor = false;
+        for (TestCandidateMetadata boilerplatedCandidate : boilerplatedCandidates) {
+            if (boilerplatedCandidate.getMainMethod().isConstructor()) {
+                generationConfiguration.getTestCandidateMetadataList().add(0, boilerplatedCandidate);
+                if (boilerplatedCandidate.getMainMethod().getSubject().getType().equals(targetTestSubject.getType())) {
+                    boilerplatedCandidate.getMainMethod().setSubject(targetTestSubject);
+                    hasConstructor = true;
+                }
+            }
+        }
+
+
+        Optional<TestCandidateMetadata> bbt = boilerplatedCandidates.stream().filter(
+                e -> e.getMainMethod().getMethodName().equals(targetMethodName) &&
+                        e.getMainMethod().getSubject().getType().equals(targetMethod.getSubject().getType())
+        ).findFirst();
+
+        if (bbt.isPresent()) {
+//            generationConfiguration.getTestCandidateMetadataList().clear();
+//            generationConfiguration.getTestCandidateMetadataList().add(bbt.get());
+        }
+
+
+        if (!hasConstructor && sessionInstance != null) {
+            TestCandidateMetadata constructorCandidate = sessionInstance.getConstructorCandidate(targetTestSubject);
+            // this can be null for static classes
+            if (constructorCandidate != null) {
+                generationConfiguration.getTestCandidateMetadataList().add(0, constructorCandidate);
+            }
+
+        }
         ApplicationManager.getApplication().runReadAction(() -> {
             normalizeTypeInformationUsingProject(generationConfiguration);
         });
-//        cdl.await();
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
 
@@ -294,18 +354,27 @@ public class TestCaseService {
 
     private void normalizeTypeInformationUsingProject(TestCaseGenerationConfiguration generationConfiguration) {
 
-        for (TestCandidateMetadata testCandidateMetadata : generationConfiguration.getTestCandidateMetadataList()) {
+        List<TestCandidateMetadata> testCandidateMetadataList = new ArrayList<>(
+                generationConfiguration.getTestCandidateMetadataList());
+        for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
+
 
             MethodCallExpression mainMethod = testCandidateMetadata.getMainMethod();
 
             Pair<PsiMethod, PsiSubstitutor> targetMethodPsiPair = ClassTypeUtils.getPsiMethod(
-                    testCandidateMetadata.getMainMethod(), project);
+                    mainMethod, project);
             PsiMethod targetMethodPsi = null;
             if (targetMethodPsiPair == null) {
                 continue;
             }
             targetMethodPsi = targetMethodPsiPair.getFirst();
             PsiSubstitutor psiSubstitutor = targetMethodPsiPair.getSecond();
+
+            JavaMethodAdapter methodAdapter1 = new JavaMethodAdapter(targetMethodPsi);
+            String testMethodName = "testMethod" + ClassTypeUtils.upperInstanceName(methodAdapter1.getName());
+            generationConfiguration.setTestMethodName(testMethodName);
+
+
             normalizeMethodTypes(mainMethod, targetMethodPsi, psiSubstitutor);
 
             Collection<PsiMethodCallExpression> childCallExpressions = PsiTreeUtil.findChildrenOfType(targetMethodPsi,
@@ -334,6 +403,34 @@ public class TestCaseService {
                     normalizeMethodTypes(methodCallExpression, callExpress);
                 }
             }
+
+
+            List<Parameter> expectedFields = testCandidateMetadata.getFields().all();
+//            PsiField[] actualFields = targetClass.getAllFields();
+            for (Parameter fieldParameter : expectedFields) {
+//                PsiField fieldAccessed = findFieldAccessedInMethodAtLine(
+//                        targetMethodPsi, fieldParameter.getProbeInfo().getLine(), targetMethodPsi.getProject()
+//                );
+                DataInfo probeInfo = fieldParameter.getProbeInfo();
+                if (probeInfo.getAttributes() == null) {
+                    continue;
+                }
+                String nameFromProbe = probeInfo.getAttribute("Name",
+                        probeInfo.getAttribute("FieldName", null));
+                if (nameFromProbe != null) {
+                    fieldParameter.setName(nameFromProbe);
+                }
+//                if (fieldAccessed != null) {
+//                    fieldParameter.setName(fieldAccessed.getName());
+//                    PsiType type = fieldAccessed.getType();
+//                    PsiType typeSubstituted = ClassTypeUtils.substituteClassRecursively((PsiType) type,
+//                            psiSubstitutor);
+//
+//                    TestCaseWriter.setParameterTypeFromPsiType(fieldParameter, typeSubstituted, false);
+//                }
+            }
+
+
         }
 
     }
@@ -350,7 +447,8 @@ public class TestCaseService {
         PsiClass classPsiInstance = null;
         try {
             classPsiInstance = JavaPsiFacade.getInstance(project)
-                    .findClass(ClassTypeUtils.getDescriptorToDottedClassName(target.getType()), GlobalSearchScope.allScope(project));
+                    .findClass(ClassTypeUtils.getDescriptorToDottedClassName(target.getType()),
+                            GlobalSearchScope.allScope(project));
         } catch (IndexNotReadyException e) {
             InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
                     NotificationType.ERROR);
@@ -361,6 +459,7 @@ public class TestCaseService {
         for (Parameter fieldParameter : fields) {
 
             String fieldParameterType = fieldParameter.getType();
+            boolean isPrimitive = fieldParameter.isPrimitiveType();
             if (fieldParameterType.startsWith("org.slf4j.Logger")) {
                 continue;
             }
@@ -371,10 +470,15 @@ public class TestCaseService {
             List<String> typeNames = new LinkedList<>();
             typeNames.add(fieldParameterType);
 
-            TypeInfo fieldTypeInfo = sessionInstance.getTypeInfo(fieldParameterType);
-            for (int interfaceTypeId : fieldTypeInfo.getInterfaces()) {
-                TypeInfo interfaceTypeInfo = sessionInstance.getTypeInfo(interfaceTypeId);
-                typeNames.add(interfaceTypeInfo.getTypeNameFromClass());
+            if (sessionInstance != null) {
+                TypeInfo fieldTypeInfo = sessionInstance.getTypeInfo(fieldParameterType);
+                int[] interfaces = fieldTypeInfo.getInterfaces();
+                if (interfaces != null) {
+                    for (int interfaceTypeId : interfaces) {
+                        TypeInfo interfaceTypeInfo = sessionInstance.getTypeInfo(interfaceTypeId);
+                        typeNames.add(interfaceTypeInfo.getTypeNameFromClass());
+                    }
+                }
             }
 
 
@@ -385,7 +489,13 @@ public class TestCaseService {
                                 PsiClassReferenceType classType = (PsiClassReferenceType) e.getType();
                                 return typeNames.contains(classType.rawType().getCanonicalText());
                             } else {
-                                return typeNames.contains(e.getType().getCanonicalText());
+                                String jvmPrimitiveSignature = JVMNameUtil.getPrimitiveSignature(
+                                        e.getType().getCanonicalText());
+                                return typeNames.contains(e.getType().getCanonicalText()) ||
+                                        (isPrimitive && typeNames.contains(jvmPrimitiveSignature)) ||
+                                        (isPrimitive
+                                                && typeNames.contains("J")
+                                                && jvmPrimitiveSignature.equals("I"));
                             }
                         })
                         .collect(Collectors.toList());
@@ -434,7 +544,7 @@ public class TestCaseService {
                     case "I":
                         fieldParameter.setTypeForced("java.lang.Integer");
                         break;
-                    case "L":
+                    case "J":
                         fieldParameter.setTypeForced("java.lang.Long");
                         break;
                     case "F":
@@ -464,7 +574,7 @@ public class TestCaseService {
 
                 mainMethod.setMethodAccess(Opcodes.ACC_PUBLIC);
                 testCandidateMetadata.setMainMethod(mainMethod);
-                mockCreatorCandidates.add(testCandidateMetadata);
+//                mockCreatorCandidates.add(testCandidateMetadata);
             } else {
                 TestCandidateMetadata metadata = MockFactory.createParameterMock(fieldParameter,
                         objectRoutineContainer.getGenerationConfiguration());

@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
@@ -126,6 +127,7 @@ public class JsonTreeEditor {
                     valueAsString = dataJson.toString();
                 }
 
+                valueAsString = StringUtil.convertLineSeparators(valueAsString);
                 @NotNull Document jsonTextDocument = EditorFactory.getInstance()
                         .createDocument(valueAsString);
 

@@ -1,6 +1,5 @@
 package com.insidious.plugin.pojo;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.MethodInfo;
@@ -20,6 +19,14 @@ public class ClassWeaveInfo {
     private final Map<Integer, List<DataInfo>> probesByMethod;
     private final Map<Integer, List<DataInfo>> probesByClass;
 
+	public ClassWeaveInfo() {
+		this.classInfoList = null;
+		this.methodInfoList = null;
+		this.dataInfoList = null;
+		this.methodByClass = null;
+		this.probesByMethod = null;
+		this.probesByClass = null;
+	}
 
     public ClassWeaveInfo(
             List<ClassInfo> classInfoList,

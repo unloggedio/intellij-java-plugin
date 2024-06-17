@@ -4,3 +4,4 @@ build/
 .DS_STORE
 .gradle/
 *.db
+build.mk

@@ -2,6 +2,7 @@ package com.insidious.plugin.factory.testcase.routine;
 
 
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.SessionInstanceInterface;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
@@ -182,7 +183,7 @@ public class ObjectRoutineContainer {
     }
 
     public ObjectRoutineScriptContainer toObjectRoutineScriptContainer(
-            SessionInstance sessionInstance, TestGenerationState testGenerationState
+            SessionInstanceInterface sessionInstance, TestGenerationState testGenerationState
     ) {
         ObjectRoutineScriptContainer container = new ObjectRoutineScriptContainer(this.packageName,
                 testGenerationState, generationConfiguration);
@@ -246,6 +247,10 @@ public class ObjectRoutineContainer {
             for (Parameter parameter : fieldsContainer.all()) {
 
                 if (constructorNonPojoParams.stream().anyMatch(e -> e.getValue() == parameter.getValue())) {
+                    continue;
+                }
+
+                if (parameter.isPrimitiveType()) {
                     continue;
                 }
 

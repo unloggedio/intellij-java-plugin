@@ -1,10 +1,13 @@
 package com.insidious.plugin.client.pojo;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.insidious.plugin.constants.ExecutionSessionSourceMode;
 
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Date;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ExecutionSession {
 
 
@@ -16,6 +19,7 @@ public class ExecutionSession {
     private String sessionId;
     private String hostname;
     private String path;
+    private ExecutionSessionSourceMode executionSessionSourceMode;
 
     public String getSessionId() {
         return sessionId;
@@ -57,10 +61,21 @@ public class ExecutionSession {
         this.createdAt = createdAt;
     }
 
+    public ExecutionSessionSourceMode getSessionMode() {
+        if (this.executionSessionSourceMode == null) {
+            this.executionSessionSourceMode = ExecutionSessionSourceMode.LOCAL;
+        }
+        return this.executionSessionSourceMode;
+    }
+
+    public void setSessionMode(ExecutionSessionSourceMode executionSessionSourceMode) {
+        this.executionSessionSourceMode = executionSessionSourceMode;
+    }
+
     @Override
     public String toString() {
-        return "[" + hostname + "] " +
-                sessionId + " - " + createdAt;
+        return "[" + executionSessionSourceMode + "][" + hostname + "]" +
+                sessionId + "@" + createdAt;
     }
 
     public String getDatabaseConnectionString() {

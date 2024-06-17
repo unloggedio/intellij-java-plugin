@@ -3,47 +3,45 @@ package com.insidious.plugin.client;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.callbacks.*;
-import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.factory.ActiveSessionManager;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TracePoint;
+import com.insidious.plugin.upload.ExecutionSessionSource;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
-import com.intellij.openapi.project.Project;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class VideobugLocalClient implements VideobugClientInterface {
+public class UnloggedLocalClient implements UnloggedClientInterface {
 
-    private static final Logger logger = Logger.getInstance(VideobugLocalClient.class.getName());
+    private static final Logger logger = Logger.getInstance(UnloggedLocalClient.class.getName());
     private final String pathToSessions;
-    private final VideobugNetworkClient networkClient;
+    //     private final NetworkSessionInstanceClient networkClient;
     private final ScheduledExecutorService threadPoolExecutor5Seconds =
             Executors.newScheduledThreadPool(1, new DefaultThreadFactory("UnloggedClientPool", true));
-    private final Project project;
-    private final ActiveSessionManager sessionManager;
-    private SessionInstance sessionInstance;
+    private SessionInstanceInterface sessionInstance;
     private ProjectItem currentProject;
     private File sessionPathFile;
+    private ExecutionSessionSource executionSessionSource;
 
-    public VideobugLocalClient(String pathToSessions, Project project, ActiveSessionManager sessionManager) {
-        this.project = project;
-        this.sessionManager = sessionManager;
+    public UnloggedLocalClient(String pathToSessions) {
         if (!pathToSessions.endsWith("/")) {
             pathToSessions = pathToSessions + "/";
         }
         this.pathToSessions = pathToSessions;
         this.sessionPathFile = new File(pathToSessions);
-        this.networkClient = new VideobugNetworkClient("https://cloud.bug.video");
+//         this.networkClient = new NetworkSessionInstanceClient("http://localhost:8123");
     }
 
     @Override
@@ -118,26 +116,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         logger.debug("Session list: " + list);
 
-        if (list.size() > 1) {
-            list.sort(Comparator.comparing(ExecutionSession::getSessionId));
-            logger.debug("Session list after sort by session id: " + list);
-            Collections.reverse(list);
-            logger.debug("Session list after reverse: " + list);
-
-            int i = -1;
-            if (list.size() > 0) {
-
-                for (ExecutionSession executionSession : list) {
-                    i++;
-                    if (i == 0) {
-                        continue;
-                    }
-                    logger.warn("Deleting session: " + executionSession.getSessionId() + " => " + project.getName());
-                    sessionManager.cleanUpSessionDirectory(executionSession);
-                }
-            }
-        }
-
 
         return list;
 
@@ -155,9 +133,9 @@ public class VideobugLocalClient implements VideobugClientInterface {
             SearchQuery searchQuery,
             String sessionId,
             ClientCallBack<TracePoint> getProjectSessionErrorsCallback) {
-//        logger.info("trace by string value: " + searchQuery);
-//        checkSession(sessionId);
-//        this.sessionInstance.queryTracePointsByValue(searchQuery, getProjectSessionErrorsCallback);
+        //        logger.info("trace by string value: " + searchQuery);
+        //        checkSession(sessionId);
+        //        this.sessionInstance.queryTracePointsByValue(searchQuery, getProjectSessionErrorsCallback);
 
     }
 
@@ -166,12 +144,12 @@ public class VideobugLocalClient implements VideobugClientInterface {
             FilteredDataEventsRequest filteredDataEventsRequest
     ) {
 
-//        if (filteredDataEventsRequest.getSessionId() != null) {
-//            checkSession(filteredDataEventsRequest.getSessionId());
-//        }
-//        if (this.sessionInstance == null) {
-//            throw new SessionNotSelectedException();
-//        }
+        //        if (filteredDataEventsRequest.getSessionId() != null) {
+        //            checkSession(filteredDataEventsRequest.getSessionId());
+        //        }
+        //        if (this.sessionInstance == null) {
+        //            throw new SessionNotSelectedException();
+        //        }
         ReplayData replayData = this.sessionInstance.fetchObjectHistoryByObjectId(filteredDataEventsRequest);
         replayData.setClient(this);
         return replayData;
@@ -182,16 +160,16 @@ public class VideobugLocalClient implements VideobugClientInterface {
     public void queryTracePointsByTypes(SearchQuery searchQuery,
                                         String sessionId, int historyDepth,
                                         ClientCallBack<TracePoint> clientCallBack) {
-//        logger.info("get trace by object type: " + searchQuery.getQuery());
-//        checkSession(sessionId);
-//        this.sessionInstance.queryTracePointsByTypes(searchQuery, clientCallBack);
+        //        logger.info("get trace by object type: " + searchQuery.getQuery());
+        //        checkSession(sessionId);
+        //        this.sessionInstance.queryTracePointsByTypes(searchQuery, clientCallBack);
 
 
     }
 
     @Override
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) {
-//        checkSession(filteredDataEventsRequest.getSessionId());
+        //        checkSession(filteredDataEventsRequest.getSessionId());
         ReplayData replayData = this.sessionInstance.fetchDataEvents(filteredDataEventsRequest);
         replayData.setClient(this);
         return replayData;
@@ -240,12 +218,12 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @Override
     public void getAgentDownloadUrl(AgentDownloadUrlCallback agentDownloadUrlCallback) {
-        networkClient.getAgentDownloadUrl(agentDownloadUrlCallback);
+//         networkClient.getAgentDownloadUrl(agentDownloadUrlCallback);
     }
 
     @Override
     public void downloadAgentFromUrl(String url, String insidiousLocalPath, boolean overwrite) {
-        networkClient.downloadAgentFromUrl(url, insidiousLocalPath, overwrite);
+//         networkClient.downloadAgentFromUrl(url, insidiousLocalPath, overwrite);
     }
 
     @Override
@@ -253,59 +231,16 @@ public class VideobugLocalClient implements VideobugClientInterface {
         threadPoolExecutor5Seconds.shutdown();
     }
 
-//    @Override
-//    public void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback) {
-//
-//
-//        threadPoolExecutor5Seconds.scheduleAtFixedRate(new Runnable() {
-//            @Override
-//            public void run() {
-//                if (1 < 2) {
-//                    return;
-//                }
-//
-//                List<ExecutionSession> sessions = getLocalSessions();
-//                ExecutionSession executionSession = sessions.get(0);
-//                try {
-//                    setSessionInstance(new SessionInstance(executionSession));
-//                } catch (SQLException | IOException e) {
-//                    throw new RuntimeException(e);
-//                }
-//
-//                queryTracePointsByTypes(SearchQuery.ByType(typeNameList),
-//                        sessionInstance.getExecutionSession().getSessionId(), 2,
-//                        new ClientCallBack<TracePoint>() {
-//                            @Override
-//                            public void error(ExceptionResponse errorResponse) {
-//                                logger.info("failed to query traces by type in scheduler: " + errorResponse.getMessage());
-//                            }
-//
-//                            @Override
-//                            public void success(Collection<TracePoint> tracePoints) {
-//                                if (tracePoints.size() > 0) {
-//                                    videobugExceptionCallback.onNewTracePoints(tracePoints);
-//                                }
-//                            }
-//
-//                            @Override
-//                            public void completed() {
-//
-//                            }
-//                        });
-//            }
-//        }, 5, 5, TimeUnit.SECONDS);
-//    }
-
 
     @Override
     public void queryTracePointsByEventType(
             SearchQuery searchQuery,
             String sessionId,
             ClientCallBack<TracePoint> tracePointsCallback) {
-//        checkSession(sessionId);
-//        logger.info("trace by probe ids: " + searchQuery);
-//        checkProgressIndicator("Searching locally by value [" + searchQuery.getQuery() + "]", null);
-//        this.sessionInstance.queryTracePointsByEventType(searchQuery, tracePointsCallback);
+        //        checkSession(sessionId);
+        //        logger.info("trace by probe ids: " + searchQuery);
+        //        checkProgressIndicator("Searching locally by value [" + searchQuery.getQuery() + "]", null);
+        //        this.sessionInstance.queryTracePointsByEventType(searchQuery, tracePointsCallback);
 
 
     }
@@ -317,13 +252,23 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
     @Override
-    public SessionInstance getSessionInstance() {
+    public SessionInstanceInterface getSessionInstance() {
         return sessionInstance;
     }
 
     @Override
-    public void setSessionInstance(SessionInstance sessionInstance) {
+    public void setSessionInstance(SessionInstanceInterface sessionInstance) {
         this.sessionInstance = sessionInstance;
+    }
+
+    @Override
+    public void setSourceModel(ExecutionSessionSource executionSessionSource) {
+        this.executionSessionSource = executionSessionSource;
+    }
+
+    @Override
+    public List<ExecutionSession> sessionDiscovery(Boolean filterSession) {
+        return getLocalSessions();
     }
 
 }

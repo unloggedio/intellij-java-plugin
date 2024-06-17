@@ -1,30 +1,17 @@
 package com.insidious.plugin.factory;
 
-import com.google.gson.Gson;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.agent.ServerMetadata;
-import com.insidious.plugin.client.DaoService;
-import com.insidious.plugin.client.ParameterProvider;
-import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.client.VideobugLocalClient;
+import com.insidious.plugin.client.*;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.factory.testcase.TestCaseService;
-import com.insidious.plugin.factory.testcase.ValueResourceContainer;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
-import com.insidious.plugin.pojo.frameworks.JsonFramework;
-import com.insidious.plugin.pojo.frameworks.MockFramework;
-import com.insidious.plugin.pojo.frameworks.TestFramework;
-import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.intellij.openapi.project.Project;
-import com.j256.ormlite.jdbc.JdbcConnectionSource;
-import com.j256.ormlite.support.ConnectionSource;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -35,7 +22,6 @@ import java.awt.datatransfer.StringSelection;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
 
 public class TestCaseServiceTest {
@@ -108,8 +94,7 @@ public class TestCaseServiceTest {
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getBasePath()).thenReturn("./");
 
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions",
-                project, null);
+        UnloggedLocalClient client = new UnloggedLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
 
 //        TestCaseService testCaseService = new TestCaseService(getDaoService("jdbc:sqlite:execution.db"), client);
 
@@ -453,8 +438,7 @@ public class TestCaseServiceTest {
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getBasePath()).thenReturn("./");
 
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions", project,
-                null);
+        UnloggedLocalClient client = new UnloggedLocalClient(System.getenv("HOME") + "/.videobug/sessions");
 
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
         if (sessions.getItems().size() == 0) {
@@ -462,7 +446,7 @@ public class TestCaseServiceTest {
         }
         ExecutionSession session = sessions.getItems().get(0);
         client.setSessionInstance(new SessionInstance(session, new ServerMetadata(), project));
-        SessionInstance sessionInstance = client.getSessionInstance();
+        SessionInstanceInterface sessionInstance = client.getSessionInstance();
         sessionInstance.unlockNextScan();
         sessionInstance.close();
 

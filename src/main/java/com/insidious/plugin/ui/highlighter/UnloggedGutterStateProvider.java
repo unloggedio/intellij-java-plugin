@@ -85,7 +85,7 @@ public class UnloggedGutterStateProvider implements LineMarkerProvider {
 
             return new LineMarkerInfo<>(
                     (PsiIdentifier) element,
-                    element.getTextRange(), gutterIcon, psiIdentifier -> "Process is online, can direct execute methods",
+                    element.getTextRange(), gutterIcon, psiIdentifier -> "Select method to generate test",
                     navHandlerMap.get(gutterStateForMethod), GutterIconRenderer.Alignment.LEFT);
         }
         return null;
