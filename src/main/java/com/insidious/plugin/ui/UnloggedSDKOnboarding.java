@@ -4,6 +4,7 @@ import com.insidious.plugin.Constants;
 import com.insidious.plugin.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.ui.methodscope.ComponentProvider;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.ui.JBColor;
@@ -16,8 +17,8 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-public class UnloggedSDKOnboarding {
-    public static final Color CIRCLE_BLUE_FILL_COLOR = new Color(53, 116, 240);
+public class UnloggedSDKOnboarding implements ComponentProvider {
+    public static final Color CIRCLE_BLUE_FILL_COLOR = new JBColor(new Color(53, 116, 240), new Color(53, 116, 240));
     private final String UNLOGGED_SDK_VERSION = Constants.AGENT_VERSION;
     private final String maven_default =
             "<dependency>\n" +
@@ -281,6 +282,11 @@ public class UnloggedSDKOnboarding {
 
     public JComponent getComponent() {
         return this.mainPanel;
+    }
+
+    @Override
+    public String getTitle() {
+        return "";
     }
 
     public void showStep2(UnloggedOnboardingScreenV2 screen) {

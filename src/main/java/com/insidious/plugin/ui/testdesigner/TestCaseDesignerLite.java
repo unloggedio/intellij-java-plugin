@@ -22,6 +22,7 @@ import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.ui.methodscope.ComponentProvider;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ObjectMapperInstance;
@@ -58,7 +59,7 @@ import java.nio.file.FileSystems;
 import java.util.List;
 import java.util.*;
 
-public class TestCaseDesignerLite {
+public class TestCaseDesignerLite implements ComponentProvider {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseDesignerLite.class);
     private static final ObjectMapper objectMapper = ObjectMapperInstance.getInstance();
     private final LightVirtualFile testCaseScriptFile;
@@ -332,6 +333,11 @@ public class TestCaseDesignerLite {
 
     public JComponent getComponent() {
         return mainPanel;
+    }
+
+    @Override
+    public String getTitle() {
+        return "Junit Designer";
     }
 
 

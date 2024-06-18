@@ -23,9 +23,10 @@ import com.insidious.plugin.pojo.frameworks.JsonFramework;
 import com.insidious.plugin.pojo.frameworks.MockFramework;
 import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import com.insidious.plugin.ui.methodscope.*;
-import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
-import com.insidious.plugin.ui.mocking.OnSaveListener;
+import com.insidious.plugin.ui.methodscope.AgentCommandResponseListener;
+import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
+import com.insidious.plugin.ui.methodscope.ComponentProvider;
+import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.upload.ExecutionSessionSource;
 import com.insidious.plugin.util.ClassTypeUtils;
 import com.insidious.plugin.util.LoggerUtil;
@@ -49,7 +50,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.*;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Pair;
-import com.intellij.psi.*;
+import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiSubstitutor;
 import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
@@ -76,7 +78,7 @@ public class StompComponent implements
         Consumer<List<TestCandidateBareBone>>,
         TestCandidateLifeListener,
         ComponentLifecycleListener<MethodDirectInvokeComponent>,
-        Runnable, Disposable {
+        Runnable, Disposable, ComponentProvider {
     public static final int COMPONENT_HEIGHT = 93;
     public static final int MAX_ITEM_TO_DISPLAY = 50;
     private static final Logger logger = LoggerUtil.getInstance(StompComponent.class);
@@ -115,7 +117,6 @@ public class StompComponent implements
     private JPanel actionToolbarContainer;
     private JPanel timelineControlPanel;
     private JPanel topContainerPanel;
-    private JSplitPane splitPane;
     private JLabel sourceLabelFilter;
     private long lastEventId = 0;
     private TestCandidateSaveForm saveFormReference;
@@ -126,7 +127,8 @@ public class StompComponent implements
     private SessionInstanceInterface sessionInstance;
     private boolean hasShownVersionWarning;
     private MethodAdapter methodAdapter;
-private boolean isShowingRouter = false;
+    private boolean isShowingRouter = false;
+
     public StompComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
         this.project = insidiousService.getProject();
@@ -401,7 +403,6 @@ private boolean isShowingRouter = false;
     }
 
 
-
     private void createJunitFromSelected() {
         System.err.println("generate junit test");
         if (selectedCandidates.isEmpty()) {
@@ -538,7 +539,6 @@ private boolean isShowingRouter = false;
                     saveFormReference = new TestCandidateSaveForm(sourceCandidates, candidateLifeListener,
                             () -> {
                                 ApplicationManager.getApplication().invokeLater(() -> {
-                                    hideBottomSplit();
                                     scrollContainer.revalidate();
                                     scrollContainer.repaint();
                                 });
@@ -548,7 +548,6 @@ private boolean isShowingRouter = false;
                     ApplicationManager.getApplication().invokeLater(() -> {
                         JPanel saveFormComponent = saveFormReference.getComponent();
                         southPanel.removeAll();
-                        splitPane.setDividerLocation(100);
                         saveFormComponent.setMaximumSize(new Dimension(600, 800));
                         southPanel.add(saveFormComponent, BorderLayout.CENTER);
                         southPanel.revalidate();
@@ -638,6 +637,11 @@ private boolean isShowingRouter = false;
     }
 
     @Override
+    public String getTitle() {
+        return "Execution timeline";
+    }
+
+    @Override
     synchronized public void accept(final List<TestCandidateBareBone> testCandidateMetadataList) {
 
 
@@ -706,9 +710,6 @@ private boolean isShowingRouter = false;
     }
 
     private synchronized void addCandidateToUi(TestCandidateBareBone testCandidateMetadata, int index) {
-        if (1 < 2) {
-            return;
-        }
         JCheckBox comp1 = new JCheckBox();
         StompItem stompItem = new StompItem(testCandidateMetadata, this, insidiousService, comp1);
 
@@ -1321,11 +1322,6 @@ private boolean isShowingRouter = false;
     }
 
 
-
-    public void removeDirectInvoke() {
-        hideBottomSplit();
-    }
-
     private void setConnectedAndWaiting() {
         if (!welcomePanelRemoved) {
             historyStreamScrollPanel.setVisible(true);
@@ -1386,8 +1382,6 @@ private boolean isShowingRouter = false;
 
     @Override
     public void onClose() {
-        removeDirectInvoke();
-
     }
 
     @Override
@@ -1553,10 +1547,6 @@ private boolean isShowingRouter = false;
         Notifications.Bus.notify(notification);
     }
 
-    public void hideBottomSplit() {
-        southPanel.removeAll();
-        splitPane.setDividerLocation(splitPane.getHeight());
-    }
 
     public void createJunitFromSelectedReplay() {
 

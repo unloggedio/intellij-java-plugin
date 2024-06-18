@@ -6,6 +6,7 @@ import com.insidious.plugin.mocking.ParameterMatcher;
 import com.insidious.plugin.mocking.ThenParameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
+import com.insidious.plugin.ui.methodscope.ComponentProvider;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.application.ApplicationManager;
@@ -32,7 +33,7 @@ import java.util.List;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
 
-public class MockDefinitionEditor {
+public class MockDefinitionEditor implements ComponentProvider {
     private static final Logger logger = LoggerUtil.getInstance(MockDefinitionEditor.class);
     private final MethodUnderTest methodUnderTest;
     private final DeclaredMock declaredMock;
@@ -57,7 +58,6 @@ public class MockDefinitionEditor {
     private JPanel thenTitlePanel;
     private JLabel changeThenType;
     private JPanel thenReturnLabelContainer;
-    private JButton cancelButton;
     private JLabel thenTextLabel;
     private JLabel returnValueLabel;
     private JPanel bottomControlPanel;
@@ -190,10 +190,6 @@ public class MockDefinitionEditor {
             onSaveListener.onSaveDeclaredMock(declaredMock);
             componentLifecycleListener.onClose();
         });
-        cancelButton.addActionListener(e -> {
-            componentLifecycleListener.onClose();
-        });
-
     }
 
     private void updateUiValues() {
@@ -256,5 +252,10 @@ public class MockDefinitionEditor {
 
     public JComponent getComponent() {
         return mainPanel;
+    }
+
+    @Override
+    public String getTitle() {
+        return "Mock editor";
     }
 }
