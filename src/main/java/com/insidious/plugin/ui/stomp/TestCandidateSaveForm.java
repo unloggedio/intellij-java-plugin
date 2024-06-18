@@ -23,6 +23,7 @@ import com.insidious.plugin.ui.library.DeclaredMockItemPanel;
 import com.insidious.plugin.ui.library.ItemLifeCycleListener;
 import com.insidious.plugin.ui.library.StoredCandidateItemPanel;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
+import com.insidious.plugin.ui.methodscope.ComponentProvider;
 import com.insidious.plugin.util.*;
 import com.intellij.icons.AllIcons;
 import com.intellij.lang.jvm.JvmModifier;
@@ -55,7 +56,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class TestCandidateSaveForm {
+public class TestCandidateSaveForm implements ComponentProvider {
     private final static Logger logger = LoggerUtil.getInstance(TestCandidateSaveForm.class);
     private final List<TestCandidateMetadata> candidateMetadataList;
     private final List<StoredCandidate> candidateList;
@@ -74,7 +75,7 @@ public class TestCandidateSaveForm {
     private JPanel replayLabelContainer;
     private JPanel hiddenCandidateListContainer;
     private JButton confirmButton;
-    private JButton cancelButton;
+//    private JButton cancelButton;
     private JRadioButton integrationRadioButton;
     private JRadioButton unitRadioButton;
     private JCheckBox checkBox1;
@@ -318,14 +319,14 @@ public class TestCandidateSaveForm {
             });
         });
 
-        cancelButton.setIcon(AllIcons.Actions.Cancel);
-        cancelButton.addActionListener(e -> {
-            JSONObject eventProperties = new JSONObject();
-            eventProperties.put("count", candidateMetadataList.size());
-            UsageInsightTracker.getInstance().RecordEvent("TCSF_CLOSED", eventProperties);
-
-            componentLifecycleListener.onClose();
-        });
+//        cancelButton.setIcon(AllIcons.Actions.Cancel);
+//        cancelButton.addActionListener(e -> {
+//            JSONObject eventProperties = new JSONObject();
+//            eventProperties.put("count", candidateMetadataList.size());
+//            UsageInsightTracker.getInstance().RecordEvent("TCSF_CLOSED", eventProperties);
+//
+//            componentLifecycleListener.onClose();
+//        });
 
         if (progressIndicator.isCanceled()) {
             componentLifecycleListener.onClose();
@@ -333,11 +334,10 @@ public class TestCandidateSaveForm {
         }
 
 
-        Integer allAssertionsCount = candidateList.stream()
-                .flatMap(e -> AtomicAssertionUtils.flattenAssertionMap(e.getTestAssertions()).stream())
-                .map(AtomicAssertionUtils::countAssertions).mapToInt(e -> e)
+        Integer assertionCount = candidateList.stream()
+                .flatMap(e1 -> AtomicAssertionUtils.flattenAssertionMap(e1.getTestAssertions()).stream())
+                .map(AtomicAssertionUtils::countAssertions).mapToInt(e1 -> e1)
                 .sum();
-        Integer assertionCount = allAssertionsCount;
 
         assertionCountLabel.setText(assertionCount + " assertions");
 
@@ -946,6 +946,11 @@ public class TestCandidateSaveForm {
 
     public JPanel getComponent() {
         return mainPanel;
+    }
+
+    @Override
+    public String getTitle() {
+        return "Save replay";
     }
 
 

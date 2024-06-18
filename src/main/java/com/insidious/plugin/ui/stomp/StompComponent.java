@@ -111,7 +111,6 @@ public class StompComponent implements
     private JPanel infoPanel;
     private JLabel selectedCountLabel;
     private JLabel clearSelectionLabel;
-    private JPanel southPanel;
     private JLabel clearFilterLabel;
     private JLabel filterAppliedLabel;
     private JPanel actionToolbarContainer;
@@ -539,23 +538,17 @@ public class StompComponent implements
                     saveFormReference = new TestCandidateSaveForm(sourceCandidates, candidateLifeListener,
                             () -> {
                                 ApplicationManager.getApplication().invokeLater(() -> {
-                                    scrollContainer.revalidate();
-                                    scrollContainer.repaint();
+                                    insidiousService.showRouter();
                                 });
                             }, progressIndicator);
                     cdl.countDown();
 
                     ApplicationManager.getApplication().invokeLater(() -> {
                         JPanel saveFormComponent = saveFormReference.getComponent();
-                        southPanel.removeAll();
                         saveFormComponent.setMaximumSize(new Dimension(600, 800));
-                        southPanel.add(saveFormComponent, BorderLayout.CENTER);
-                        southPanel.revalidate();
-                        southPanel.repaint();
-                        southPanel.getParent().revalidate();
-                        southPanel.getParent().repaint();
                         scrollContainer.revalidate();
                         scrollContainer.repaint();
+                        insidiousService.showSaveFrom(saveFormReference);
                     });
 
 

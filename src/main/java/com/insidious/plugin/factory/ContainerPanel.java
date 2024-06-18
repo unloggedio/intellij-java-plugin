@@ -1,7 +1,6 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.adapter.MethodAdapter;
-import com.insidious.plugin.ui.UnloggedSDKOnboarding;
 import com.insidious.plugin.ui.methodscope.ComponentProvider;
 import com.insidious.plugin.ui.methodscope.RouterPanel;
 import com.insidious.plugin.ui.stomp.StompComponent;
@@ -66,9 +65,7 @@ public class ContainerPanel extends JPanel {
             } else {
                 container.add(content.getComponent(), new GridConstraints());
                 routerPanel.setTitle(content.getTitle());
-                if (!(content instanceof UnloggedSDKOnboarding)) {
-                    routerPanel.setMiniMode(true);
-                }
+                routerPanel.setMiniMode(true);
             }
             container.revalidate();
             container.repaint();

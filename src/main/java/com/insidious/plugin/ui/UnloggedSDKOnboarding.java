@@ -53,8 +53,6 @@ public class UnloggedSDKOnboarding implements ComponentProvider {
     private JTextArea gradleTextArea;
     private JButton gradleCopyButton;
     private JTextArea mavenDependencyAreaAnnotation;
-    private JPanel infoPanel;
-    private JLabel headingLabel;
     private JPanel mainContent;
     private JPanel mavenPanel;
     private JPanel dependencyContents;
@@ -73,7 +71,7 @@ public class UnloggedSDKOnboarding implements ComponentProvider {
     private JPanel step4ContainerPanel;
     private JLabel emailButton;
     private JLabel githubButton;
-//    private JButton doneButton;
+    //    private JButton doneButton;
     private JPanel gradleDependencyContents;
     private JScrollPane extraMavenTextAreaScrollPanel;
     private JCheckBox usingMavenCompilerPluginCheckBox;
@@ -82,8 +80,6 @@ public class UnloggedSDKOnboarding implements ComponentProvider {
 
     public UnloggedSDKOnboarding(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
-
-        headingLabel.setFont(new Font("SF Pro Text", Font.BOLD, 16));
 
         extraMavenTextAreaScrollPanel.setBorder(BorderFactory.createEmptyBorder());
         extraMavenTextAreaScrollPanel.setVisible(false);
@@ -123,15 +119,12 @@ public class UnloggedSDKOnboarding implements ComponentProvider {
         primaryTabbedPane.setIconAt(0, UIUtils.MAVEN_ICON);
         primaryTabbedPane.setIconAt(1, UIUtils.GRADLE_ICON);
 
-        primaryTabbedPane.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                int selectedIndex = primaryTabbedPane.getSelectedIndex();
-                if (selectedIndex == 0) {
-                    mvnOrGradleClean.setText("mvn clean");
-                } else {
-                    mvnOrGradleClean.setText("gradle clean");
-                }
+        primaryTabbedPane.addChangeListener(e -> {
+            int selectedIndex = primaryTabbedPane.getSelectedIndex();
+            if (selectedIndex == 0) {
+                mvnOrGradleClean.setText("mvn clean");
+            } else {
+                mvnOrGradleClean.setText("gradle clean");
             }
         });
 
@@ -287,14 +280,6 @@ public class UnloggedSDKOnboarding implements ComponentProvider {
     @Override
     public String getTitle() {
         return "";
-    }
-
-    public void showStep2(UnloggedOnboardingScreenV2 screen) {
-        mainPanel.removeAll();
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.add(screen.getComponent(), new GridConstraints());
-        mainPanel.revalidate();
-        mainPanel.repaint();
     }
 
     private enum ProjectType {MAVEN, GRADLE}

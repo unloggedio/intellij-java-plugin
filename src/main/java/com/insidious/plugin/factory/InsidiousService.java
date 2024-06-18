@@ -50,10 +50,7 @@ import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
-import com.insidious.plugin.ui.stomp.StompComponent;
-import com.insidious.plugin.ui.stomp.StompFilterModel;
-import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
-import com.insidious.plugin.ui.stomp.UnloggedClientFactory;
+import com.insidious.plugin.ui.stomp.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.upload.ExecutionSessionSource;
@@ -892,6 +889,7 @@ final public class InsidiousService implements
             );
             return;
         }
+        containerPanel.setMethod(method);
 
         StompFilterModel stompFilterModel = configurationState.getFilterModel();
         stompFilterModel.setFollowEditor(false);
@@ -2391,4 +2389,7 @@ final public class InsidiousService implements
 
     }
 
+    public void showSaveFrom(TestCandidateSaveForm saveFormReference) {
+        containerPanel.setViewport(saveFormReference);
+    }
 }
