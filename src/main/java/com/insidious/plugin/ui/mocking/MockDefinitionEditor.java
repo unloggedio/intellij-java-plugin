@@ -17,11 +17,9 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiMethodCallExpression;
-import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -48,7 +46,6 @@ public class MockDefinitionEditor implements ComponentProvider {
     private JButton chainAnotherReturnButton;
     private JPanel returnItemList;
     private JButton saveButton;
-    private JLabel callExpressionLabel;
     private JPanel nameAndSettingPanel;
     private JPanel nameContainerPanel;
     private JPanel whenThenParentPanel;
@@ -78,7 +75,7 @@ public class MockDefinitionEditor implements ComponentProvider {
 
         String expressionText = ApplicationManager.getApplication().runReadAction(
                 (Computable<String>) () -> methodCallExpression.getMethodExpression().getText());
-        callExpressionLabel.setText(expressionText);
+//        callExpressionLabel.setText(expressionText);
 
         changeThenType.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         returnValueLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -155,7 +152,7 @@ public class MockDefinitionEditor implements ComponentProvider {
         if (fieldTypeName.contains(".")) {
             fieldTypeName = fieldTypeName.substring(fieldTypeName.lastIndexOf(".") + 1);
         }
-        callExpressionLabel.setText(fieldTypeName + "." + declaredMock.getMethodName() + "()");
+//        callExpressionLabel.setText(fieldTypeName + "." + declaredMock.getMethodName() + "()");
 
         updateUiValues();
         addListeners();
@@ -196,10 +193,6 @@ public class MockDefinitionEditor implements ComponentProvider {
         parameterListContainerPanel.removeAll();
         whenPanelList.clear();
         thenPanelList.clear();
-
-        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
-        titledBorder.setTitleColor(JBColor.BLACK);
-
 
         nameTextField.setText(declaredMock.getName());
         nameTextField.setSelectionStart(0);

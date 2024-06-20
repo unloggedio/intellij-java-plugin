@@ -298,10 +298,10 @@ public class JsonTreeEditor {
         if (this.editable && allButtons) {
             if (viewState) {
                 localListAction.add(this.editAction);
-                localListAction.add(this.buildJsonAction);
+//                localListAction.add(this.buildJsonAction);
             } else {
                 localListAction.add(this.cancelAction);
-//                localListAction.add(this.saveAction);
+                localListAction.add(this.saveAction);
             }
         }
         ActionToolbarImpl actionToolbar = new ActionToolbarImpl("JTE actionToolbar",

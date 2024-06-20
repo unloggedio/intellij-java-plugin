@@ -320,6 +320,9 @@ final public class InsidiousService implements
                     return;
                 }
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    if (project.isDisposed()) {
+                        return;
+                    }
                     DumbService.getInstance(project)
                             .runReadActionInSmartMode(() -> {
                                 populateFromEditors(event);
@@ -2062,7 +2065,9 @@ final public class InsidiousService implements
                         ApplicationManager.getApplication().executeOnPooledThread(() -> {
                             MockDefinitionEditor mockCreator = showNewDeclaredMockCreator(method, callExpression,
                                     onSaveListener);
+                            containerPanel.setMethod(method);
                             ApplicationManager.getApplication().invokeLater(() -> {
+
                                 containerPanel.setViewport(mockCreator);
                             });
                         });
@@ -2088,6 +2093,7 @@ final public class InsidiousService implements
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
                     MockDefinitionEditor mockCreator = showNewDeclaredMockCreator(method, callExpression,
                             onSaveListener);
+                    containerPanel.setMethod(method);
                     ApplicationManager.getApplication().invokeLater(() -> {
                         containerPanel.setViewport(mockCreator);
                     });

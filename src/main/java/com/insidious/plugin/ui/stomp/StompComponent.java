@@ -1432,8 +1432,7 @@ public class StompComponent implements
 //        logger.warn("entr acceptSingle: " + testCandidateMetadata);
         String className = testCandidateMetadata.getMethodUnderTest().getClassName();
         String methodName = testCandidateMetadata.getMethodUnderTest().getName();
-        String key = className + "." +
-                methodName;
+        String key = className + "." + methodName;
         AtomicInteger countAtomic = countByMethodName.get(key);
         if (countAtomic == null) {
             countAtomic = new AtomicInteger(0);
