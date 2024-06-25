@@ -24,7 +24,6 @@ public class UsageInsightTracker {
     private final VersionManager versionManager;
     private final List<String> UsersToSkip = Arrays.asList(
             "artpar",
-            "Amogh",
             "akshatjain",
             "rssamarth",
             "testerfresher",
@@ -55,7 +54,7 @@ public class UsageInsightTracker {
     }
 
     public void RecordEvent(String eventName, JSONObject eventProperties) {
-//        logger.warn("RecordEvent [" + eventName + "]");
+        logger.warn("RecordEvent [" + eventName + "]");
         if (shutdown || UsersToSkip.contains(HOSTNAME)) {
             return;
         }

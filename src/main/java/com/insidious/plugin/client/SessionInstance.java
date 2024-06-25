@@ -991,6 +991,8 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
             }
 
             archiveIndex = readArchiveIndex(typeIndexBytes.getBytes(), INDEX_TYPE_DAT_FILE);
+            new File(typeIndexBytes.getCacheFileLocation()).delete();
+
             ConcurrentIndexedCollection<TypeInfoDocument> typeIndex = archiveIndex.getTypeInfoIndex();
             typeIndex.parallelStream().forEach(e -> typeInfoIndex.put(e.getTypeId(), e));
         } catch (Exception e) {
@@ -1179,7 +1181,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                 File cacheFile = new File(cacheFileLocation);
                 try (FileInputStream inputStream = new FileInputStream(cacheFile)) {
                     byte[] bytes = IOUtils.toByteArray(inputStream);
-                    return new NameWithBytes(name, bytes);
+                    return new NameWithBytes(name, bytes, cacheFileLocation);
                 }
             }
 
@@ -1196,7 +1198,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                             FileUtils.writeByteArrayToFile(cacheFile, fileBytes);
                             cacheEntries.put(cacheKey, entry.getName());
 
-                            NameWithBytes nameWithBytes = new NameWithBytes(entry.getName(), fileBytes);
+                            NameWithBytes nameWithBytes = new NameWithBytes(entry.getName(), fileBytes, cacheFileLocation);
                             logger.info(
                                     pathName + " file from " + sessionFile.getName() + " is " + nameWithBytes.getBytes().length + " bytes");
                             return nameWithBytes;
@@ -1238,7 +1240,8 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         } catch (Exception e) {
 //            e.printStackTrace();
             logger.warn(
-                    "failed to create file [" + pathName + "] on disk from" + " archive[" + sessionFile.getName() + "]");
+                    "failed to create file [" + pathName + "] on disk from" + " archive[" + sessionFile.getName() +
+                            "] =>" +  e.getMessage());
             return null;
         }
         return null;
@@ -1306,7 +1309,8 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         } catch (Exception e) {
 //            e.printStackTrace();
             logger.warn(
-                    "failed to create file [" + pathName + "] on disk from" + " archive[" + sessionFile.getName() + "]");
+                    "failed to create file [" + pathName + "] on disk from" + " archive[" + sessionFile.getName() +
+                            "]", e);
             return null;
         }
         return null;
@@ -1653,6 +1657,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         logger.warn("Reading data from file [" + bytesWithName.getBytes().length + "] => " + eventsContainer.event()
                 .entries().size() + " events ");
 
+        new File(bytesWithName.getCacheFileLocation()).delete();
 
         checkProgressIndicator(null, "Mapping " + eventsContainer.event()
                 .entries()
@@ -1717,6 +1722,8 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //                e.printStackTrace();
                 logger.error("failed to read object index from session bytes: " + e.getMessage(), e);
                 continue;
+            } finally {
+                new File(objectsIndexBytes.getCacheFileLocation()).delete();
             }
             Map<Long, ObjectInfo> sessionObjectInfo = objectIndex.getObjectsByObjectIdWithLongKeys(valueIds);
             objectInfo.putAll(sessionObjectInfo);
@@ -1735,6 +1742,8 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //                e.printStackTrace();
                 logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
                 continue;
+            } finally {
+                new File(stringsIndexBytes.getCacheFileLocation()).delete();
             }
             Map<Long, StringInfo> sessionStringInfo = stringIndex.getStringsByIdWithLongKeys(
                     valueIds.stream()
@@ -1856,6 +1865,8 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
         ArrayList<KaitaiInsidiousEventParser.Block> events = eventsContainer.event()
                 .entries();
         kaitaiStream.close();
+        new File(bytesWithName.getCacheFileLocation()).delete();
+
         long end = new Date().getTime();
         logger.warn("Reading data from file [" + "] => " + events.size() + " events ");
 
@@ -2120,7 +2131,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
                 logger.warn("failed to read archive [" + sessionArchive.getName() + "]");
                 continue;
             }
-            if (dataEventList.size() == 0) {
+            if (dataEventList.isEmpty()) {
                 continue;
             }
 
@@ -2142,6 +2153,8 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //                e.printStackTrace();
                 logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
                 continue;
+            } finally {
+                new File(stringsIndexBytes.getCacheFileLocation()).delete();
             }
             Set<Long> potentialStringIds = valueIds.stream()
                     .filter(e -> e > 10)
@@ -2175,6 +2188,9 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //                e.printStackTrace();
                 logger.error("failed to read object index from session archive", e);
                 continue;
+            } finally {
+                new File(objectIndexBytes.getCacheFileLocation()).delete();
+
             }
 
 
@@ -2217,7 +2233,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 
         // we need to go thru the archives again to load the set of object information which we
         // did not find earlier since the object was probably created earlier
-        if (remainingObjectIds.size() > 0 || remainingStringIds.size() > 0) {
+        if (!remainingObjectIds.isEmpty() || !remainingStringIds.isEmpty()) {
 
             for (File sessionArchive : sessionArchivesLocal) {
 
@@ -2233,6 +2249,8 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //                    e.printStackTrace();
                     logger.error("failed to read object index from session archive", e);
                     continue;
+                } finally {
+                    new File(objectIndexBytes.getCacheFileLocation()).delete();
                 }
 
 
@@ -2262,6 +2280,8 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //                    e.printStackTrace();
                     logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
                     continue;
+                } finally {
+                    new File(stringsIndexBytes.getCacheFileLocation()).delete();
                 }
                 Map<Long, StringInfo> sessionStringInfo = stringIndex.getStringsByIdWithLongKeys(remainingStringIds);
                 if (remainingStringIds.size() != sessionStringInfo.size()) {
@@ -2493,7 +2513,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
             NameWithBytes objectIndex = createFileOnDiskFromSessionArchiveFile(lastSessionArchive,
                     INDEX_OBJECT_DAT_FILE.getFileName());
             if (objectIndex == null) {
-                logger.error("failed to read object info index from: " + lastSessionArchive);
+                logger.warn("failed to read object info index from: " + lastSessionArchive);
                 continue;
             }
 //                assert objectIndex != null;
@@ -2501,6 +2521,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //            if (objectIndexCollection != null) {
 //                objectIndexCollection = null;
 //            }
+            new File(objectIndex.getCacheFileLocation()).delete();
             objectIndexCollection = archiveObjectIndex.getObjectIndex();
             if (archiveObjectIndex.getObjectByObjectId(eventValue) == null) {
                 continue;

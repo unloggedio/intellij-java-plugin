@@ -29,12 +29,16 @@ import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.mocking.DeclaredMock;
 import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.pojo.atomic.StoredCandidate;
 import com.insidious.plugin.pojo.atomic.StoredCandidateMetadata;
 import com.insidious.plugin.pojo.dao.MethodDefinition;
+import com.insidious.plugin.pojo.frameworks.JsonFramework;
+import com.insidious.plugin.pojo.frameworks.MockFramework;
+import com.insidious.plugin.pojo.frameworks.TestFramework;
 import com.insidious.plugin.record.AtomicRecordService;
 import com.insidious.plugin.ui.InsidiousCaretListener;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
@@ -45,12 +49,11 @@ import com.insidious.plugin.ui.library.ItemFilterType;
 import com.insidious.plugin.ui.library.LibraryComponent;
 import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
+import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
-import com.insidious.plugin.ui.stomp.StompComponent;
-import com.insidious.plugin.ui.stomp.StompFilterModel;
-import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
-import com.insidious.plugin.ui.stomp.UnloggedClientFactory;
+import com.insidious.plugin.ui.stomp.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
+import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.upload.ExecutionSessionSource;
 import com.insidious.plugin.upload.SourceFilter;
 import com.insidious.plugin.util.*;
@@ -89,6 +92,7 @@ import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
@@ -100,6 +104,7 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.*;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.search.searches.ReferencesSearch;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.awt.RelativePoint;
@@ -113,6 +118,7 @@ import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -169,6 +175,7 @@ final public class InsidiousService implements
     private final AutomaticExecutorService automaticExecutorService = new AutomaticExecutorService(this);
     private final ReportingService reportingService = new ReportingService(this);
     private final Map<String, ServerMetadata> checkCache = new HashMap<>();
+    private final ContainerPanel containerPanel = new ContainerPanel(new BorderLayout());
     Map<MethodUnderTest, List<UnloggedTimingTag>> availableTimingTags = new HashMap<>();
     private ScheduledExecutorService stompComponentThreadPool = null;
     private SessionLoader sessionLoader;
@@ -176,20 +183,20 @@ final public class InsidiousService implements
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
     private TestCaseService testCaseService;
-    private MethodDirectInvokeComponent methodDirectInvokeComponent;
     private CoverageReportComponent coverageReportComponent;
     private StompComponent stompWindow;
     private Content testDesignerContent;
     private Content directMethodInvokeContent;
     private Content atomicTestContent;
     private Content stompWindowContent;
-    private Content onboardingWindowContent;
     private UnloggedSDKOnboarding onboardingWindow;
     private boolean addedStompWindow;
     private Content libraryWindowContent;
     private LibraryComponent libraryToolWindow;
     private ToolWindow toolWindow;
     private ServerMetadata serverMetadata = null;
+    private RouterPanel routerPanel;
+    private MethodDirectInvokeComponent directInvokeComponent;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -314,6 +321,9 @@ final public class InsidiousService implements
                     return;
                 }
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    if (project.isDisposed()) {
+                        return;
+                    }
                     DumbService.getInstance(project)
                             .runReadActionInSmartMode(() -> {
                                 populateFromEditors(event);
@@ -357,6 +367,22 @@ final public class InsidiousService implements
         }
         resetTimeline();
     }
+
+//    public void generateAndSaveTestCase(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
+//        TestCaseService testCaseService = getTestCaseService();
+//        if (testCaseService == null) {
+//            return;
+//        }
+//        TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+//        ArrayList<TestCaseUnit> testCaseScripts = new ArrayList<>();
+//        testCaseScripts.add(testCaseUnit);
+//        TestSuite testSuite = new TestSuite(testCaseScripts);
+//        junitTestCaseWriter.saveTestSuite(testSuite);
+//    }
+
+//    public TestCaseGenerationConfiguration generateMethodBoilerplate(MethodAdapter methodAdapter) {
+//        return testCaseDesignerWindow.generateTestCaseBoilerPlace(methodAdapter);
+//    }
 
     public void chooseClassImplementation(String className, ClassChosenListener classChosenListener) {
 
@@ -445,22 +471,6 @@ final public class InsidiousService implements
         return this.currentState.getCurrentMethod();
     }
 
-//    public void generateAndSaveTestCase(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
-//        TestCaseService testCaseService = getTestCaseService();
-//        if (testCaseService == null) {
-//            return;
-//        }
-//        TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-//        ArrayList<TestCaseUnit> testCaseScripts = new ArrayList<>();
-//        testCaseScripts.add(testCaseUnit);
-//        TestSuite testSuite = new TestSuite(testCaseScripts);
-//        junitTestCaseWriter.saveTestSuite(testSuite);
-//    }
-
-//    public TestCaseGenerationConfiguration generateMethodBoilerplate(MethodAdapter methodAdapter) {
-//        return testCaseDesignerWindow.generateTestCaseBoilerPlace(methodAdapter);
-//    }
-
     public void init() {
 
         try {
@@ -487,6 +497,14 @@ final public class InsidiousService implements
                 .getSystemClipboard();
         clipboard.setContents(selection, null);
     }
+
+//    public void generateAndUploadReport() throws APICallException, IOException {
+//        UsageInsightTracker.getInstance()
+//                .RecordEvent("DiagnosticReport", null);
+//        DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project,
+//                this.currentModule);
+//        diagnosticService.generateAndUploadReport();
+//    }
 
     public TestCaseUnit getTestCandidateCode(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
 //        TestCaseService testCaseService;
@@ -540,16 +558,30 @@ final public class InsidiousService implements
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        return;
     }
 
-//    public void generateAndUploadReport() throws APICallException, IOException {
-//        UsageInsightTracker.getInstance()
-//                .RecordEvent("DiagnosticReport", null);
-//        DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project,
-//                this.currentModule);
-//        diagnosticService.generateAndUploadReport();
-//    }
+    public void showDirectInvoke(JavaMethodAdapter method, TestCandidateMetadata selectedCandidate) {
+        directInvokeComponent = new MethodDirectInvokeComponent(this,
+                new ComponentLifecycleListener<MethodDirectInvokeComponent>() {
+                    @Override
+                    public void onClose() {
+
+                    }
+                });
+//        JComponent content = directInvokeComponent.getComponent();
+//        content.setMinimumSize(new Dimension(-1, 400));
+//        content.setMaximumSize(new Dimension(-1, 500));
+
+        containerPanel.setViewport(directInvokeComponent);
+
+        List<String> methodArgumentValues = selectedCandidate != null ? selectedCandidate.getMainMethod().getArguments()
+                .stream().map(e -> new String(e.getProb().getSerializedValue()))
+                .collect(Collectors.toList()) : null;
+        directInvokeComponent.renderForMethod(method,
+                methodArgumentValues);
+        directInvokeComponent.triggerExecute();
+
+    }
 
     public void addAllTabs() {
         ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
@@ -570,9 +602,10 @@ final public class InsidiousService implements
         }
         stompComponentThreadPool = Executors.newScheduledThreadPool(2);
         stompComponentThreadPool.scheduleWithFixedDelay(stompWindow, 0, 1, TimeUnit.MILLISECONDS);
+        testCaseService = new TestCaseService(null, project);
 
         stompWindowContent =
-                contentFactory.createContent(stompWindow.getComponent(), "Live", false);
+                contentFactory.createContent(containerPanel, "Live", false);
 
         stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
@@ -588,82 +621,189 @@ final public class InsidiousService implements
         libraryWindowContent.setIcon(UIUtils.LIBRARY_ICON);
         contentManager.addContent(libraryWindowContent);
 
-
-//        onboardingWindow = new UnloggedSDKOnboarding(this);
-//
-//        onboardingWindowContent = contentFactory.createContent(
-//                onboardingWindow.getComponent(), "Setup", false);
-//
-//        onboardingWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-//        onboardingWindowContent.setIcon(UIUtils.UNLOGGED_SETUP);
-//        contentManager.addContent(onboardingWindowContent);
+        onboardingWindow = new UnloggedSDKOnboarding(InsidiousService.this);
 
 
-        // stomp window
-//        stompWindow = new StompComponent(this);
-//        threadPoolExecutor.submit(stompWindow);
-//        stompWindowContent =
-//                contentFactory.createContent(stompWindow.getComponent(), "Stomp", false);
-//        stompWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-//        stompWindowContent.setIcon(UIUtils.ATOMIC_TESTS);
-//        contentManager.addContent(stompWindowContent);
+        RouterListener routerPanelListener = new RouterListener() {
+            @Override
+            public void showDirectInvoke() {
+                if (currentState.getCurrentMethod() == null) {
+                    InsidiousNotification.notifyMessage("select a method by using the play icon on the gutter",
+                            NotificationType.INFORMATION);
+                    return;
+                }
+                InsidiousService.this.showDirectInvoke((JavaMethodAdapter) currentState.getCurrentMethod(), null);
+            }
 
-        // method executor window
-//        atomicTestComponentWindow = new AtomicTestComponent(this);
-//        atomicTestContent =
-//                contentFactory.createContent(atomicTestComponentWindow.getComponent(), "Get Started", false);
-//        atomicTestContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-//        atomicTestContent.setIcon(UIUtils.ATOMIC_TESTS);
-//        contentManager.addContent(atomicTestContent);
+            @Override
+            public void showStompAndFilterForMethod() {
+                if (currentState.getCurrentMethod() == null) {
+                    InsidiousNotification.notifyMessage("Select a method from the gutter icon play icons",
+                            NotificationType.INFORMATION);
+                    return;
+                }
+                containerPanel.setViewport(stompWindow);
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    InsidiousService.this.showStompAndFilterForMethod(currentState.getCurrentMethod());
+                });
+            }
 
-//        if (currentState.isAgentServerRunning()) {
-//            atomicTestComponentWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
-//        } else {
-//            atomicTestComponentWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
-//        }
+            @Override
+            public void showJunitCreator() {
+                if (currentState.getCurrentMethod() == null) {
+                    InsidiousNotification.notifyMessage("Select a method from the gutter icon play icons",
+                            NotificationType.INFORMATION);
+                    return;
+                }
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    TestCaseGenerationConfiguration configuration = new TestCaseGenerationConfiguration(
+                            TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Jackson,
+                            ResourceEmbedMode.IN_CODE
+                    );
 
 
-//        methodDirectInvokeComponent = new MethodDirectInvokeComponent(this);
-//        this.directMethodInvokeContent =
-//                contentFactory.createContent(methodDirectInvokeComponent.getContent(), "Direct Invoke", false);
-//        this.directMethodInvokeContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-//        this.directMethodInvokeContent.setIcon(UIUtils.EXECUTE_METHOD);
-//        contentManager.addContent(this.directMethodInvokeContent);
+                    TestCaseDesignerLite designerLite = new TestCaseDesignerLite(currentState.getCurrentMethod(),
+                            configuration, true, InsidiousService.this);
 
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        containerPanel.setViewport(designerLite);
+                    });
+                });
+            }
+
+            @Override
+            public void showJunitFromRecordedCreator() {
+
+                if (currentState.getCurrentMethod() == null) {
+                    InsidiousNotification.notifyMessage("Select a method from the gutter icon play icons",
+                            NotificationType.INFORMATION);
+                    return;
+                }
+
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    TestCaseGenerationConfiguration configuration = new TestCaseGenerationConfiguration(
+                            TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.Jackson,
+                            ResourceEmbedMode.IN_CODE
+                    );
+
+                    InsidiousService.this.showStompAndFilterForMethod(currentState.getCurrentMethod());
+                    InsidiousService.this.selectVisibleCandidates();
+
+
+                    List<TestCandidateMetadata> candidates = InsidiousService.this.getCandidatesForMethod(
+                            currentState.getCurrentMethod());
+                    if (candidates.isEmpty()) {
+                        InsidiousNotification.notifyMessage(
+                                "No replay records found for this method, start your application with unlogged-sdk " +
+                                        "and execute method to record execution",
+                                NotificationType.WARNING
+                        );
+                        return;
+                    }
+
+                    configuration.setTestMethodName(currentState.getCurrentMethod().getName());
+
+                    for (TestCandidateMetadata selectedCandidate : candidates) {
+                        configuration.getTestCandidateMetadataList().add(selectedCandidate);
+                        configuration.getCallExpressionList().addAll(selectedCandidate.getCallsList());
+
+                    }
+                    TestCaseDesignerLite designerLite = new TestCaseDesignerLite(currentState.getCurrentMethod(),
+                            configuration, false, InsidiousService.this);
+
+                    ApplicationManager.getApplication()
+                            .invokeLater(() -> containerPanel.setViewport(designerLite));
+
+                });
+
+            }
+
+            @Override
+            public void showMockCreator() {
+
+                if (currentState.getCurrentMethod() == null) {
+                    InsidiousNotification.notifyMessage("Select a method from the gutter icon play icons",
+                            NotificationType.INFORMATION);
+                    return;
+                }
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+
+                    CountDownLatch cdl = new CountDownLatch(1);
+                    List<PsiReference> psiReferences = new ArrayList<>();
+                    ProgressManager.getInstance()
+                            .runProcessWithProgressSynchronously(() -> {
+                                @NotNull Collection<PsiReference> references =
+                                        ApplicationManager.getApplication().runReadAction(
+                                                (Computable<Collection<PsiReference>>) () -> ReferencesSearch.search(
+                                                        currentState.getCurrentMethod().getPsiMethod()).findAll());
+                                psiReferences.addAll(references);
+                                cdl.countDown();
+
+                            }, "Search for references to method", false, project);
+
+
+                    try {
+                        cdl.await();
+                    } catch (InterruptedException e) {
+                        return;
+                    }
+                    if (psiReferences.isEmpty()) {
+                        InsidiousNotification.notifyMessage("No replay data found. Start application with " +
+                                "unlogged-sdk and execute the method to record.", NotificationType.WARNING);
+                        return;
+                    }
+
+                    for (PsiReference reference : psiReferences) {
+                        if (reference instanceof PsiReferenceExpression) {
+                            PsiReferenceExpression refExpr = (PsiReferenceExpression) reference;
+                            InsidiousService.this.showMockCreator((JavaMethodAdapter) currentState.getCurrentMethod(),
+                                    (PsiMethodCallExpression) refExpr.getParent(), declaredMock -> {
+                                        InsidiousService.this.showRouter();
+                                    });
+                            break;
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void runReplayTests() {
+                routeToCiDocumentation();
+            }
+
+            @Override
+            public void showOnboardingInstructions() {
+                containerPanel.setViewport(onboardingWindow);
+            }
+        };
+        routerPanel = new RouterPanel(routerPanelListener, this);
+        containerPanel.setStompComponent(stompWindow, routerPanel);
+        routerPanelListener.showOnboardingInstructions();
 
         SingleWindowView singleWindowView = new SingleWindowView(project);
         singleWindowContent = contentFactory.createContent(singleWindowView.getContent(),
                 "Raw Cases", false);
 
 
-//        coverageReportComponent = new CoverageReportComponent();
-//        Content coverageComponent = contentFactory.createContent(coverageReportComponent.getContent(),
-//                "Coverage", false);
-//
-//        coverageComponent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-//        coverageComponent.setIcon(UIUtils.COVERAGE_TOOL_WINDOW_ICON);
-//        contentManager.addContent(coverageComponent);
-//
     }
 
+    public void routeToCiDocumentation() {
+        String link = "https://read.unlogged.io/cirunner/";
+        if (Desktop.isDesktopSupported()) {
+            try {
+                java.awt.Desktop.getDesktop()
+                        .browse(java.net.URI.create(link));
+            } catch (Exception e) {
+            }
+        } else {
+            InsidiousNotification.notifyMessage(
+                    "<a href='https://read.unlogged.io/cirunner/'>Documentation</a> for running unlogged replay tests from " +
+                            "CLI/Maven/Gradle", NotificationType.INFORMATION);
+        }
+        UsageInsightTracker.getInstance().RecordEvent(
+                "routeToGithub", null);
+    }
 
-//    public void addLiveView() {
-//        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
-//        if (!liveViewAdded) {
-//            toolWindow.getContentManager().addContent(liveWindowContent);
-//            toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
-//            liveViewAdded = true;
-//            try {
-//                liveViewWindow.setTreeStateToLoading();
-//                liveViewWindow.loadInfoBanner();
-//            } catch (Exception e) {
-//                //exception setting state
-//                logger.error("Failed to start scan after proceed.");
-//            }
-//        } else {
-//            toolWindow.getContentManager().setSelectedContent(liveWindowContent);
-//        }
-//    }
 
     public UnloggedClientInterface getClient() {
         return client;
@@ -725,20 +865,20 @@ final public class InsidiousService implements
     }
 
     public void methodFocussedHandler(final MethodAdapter method) {
-        if (method == null || method.getContainingClass() == null) {
-            return;
-        }
-        currentState.setCurrentMethod(method);
-        if (stompWindow != null) {
-            ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                stompWindow.onMethodFocussed(method);
-            });
-        }
-        if (libraryToolWindow != null) {
-            ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                libraryToolWindow.onMethodFocussed(method);
-            });
-        }
+//        if (method == null || method.getContainingClass() == null) {
+//            return;
+//        }
+//        currentState.setCurrentMethod(method);
+//        if (stompWindow != null) {
+//            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+//                containerPanel.setMethod(method);
+//            });
+//        }
+//        if (libraryToolWindow != null) {
+//            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+//                libraryToolWindow.onMethodFocussed(method);
+//            });
+//        }
     }
 
     public void setLibraryFilterState(LibraryFilterState libraryFilterState) {
@@ -753,6 +893,7 @@ final public class InsidiousService implements
             );
             return;
         }
+        containerPanel.setMethod(method);
 
         StompFilterModel stompFilterModel = configurationState.getFilterModel();
         stompFilterModel.setFollowEditor(false);
@@ -763,6 +904,7 @@ final public class InsidiousService implements
                 (Computable<String>) method::getName));
         stompWindow.onMethodFocussed(null);
         stompWindow.onMethodFocussed(method);
+        containerPanel.setViewport(stompWindow);
         resetTimeline();
 //        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
 
@@ -1301,7 +1443,6 @@ final public class InsidiousService implements
 
 
         if (!mostRecentSession.getSessionId().equals("na")) {
-            removeOnboardingTab();
 
             ApplicationManager.getApplication().invokeLater(() -> {
 
@@ -1489,17 +1630,6 @@ final public class InsidiousService implements
         DaemonCodeAnalyzer.getInstance(project).restart();
     }
 
-    public void removeOnboardingTab() {
-        if (toolWindow == null || onboardingWindow == null) {
-            return;
-        }
-        ApplicationManager.getApplication().invokeLater(
-                () -> {
-                    toolWindow.getContentManager().removeContent(onboardingWindowContent, true);
-                    onboardingWindow = null;
-                    onboardingWindowContent = null;
-                });
-    }
 
     public void showDiffEditor(SimpleDiffRequest request) {
         DiffManager.getInstance().showDiff(project, request);
@@ -1733,6 +1863,8 @@ final public class InsidiousService implements
         JSONObject properties = new JSONObject();
         properties.put("agentVersion", serverMetadata.getAgentVersion());
         properties.put("package", serverMetadata.getIncludePackageName());
+        properties.put("mode", serverMetadata.getMode());
+        properties.put("server", serverMetadata.getAgentServerUrl());
         properties.put("project", project.getName());
 
         UsageInsightTracker.getInstance().RecordEvent("AGENT_CONNECTED", properties);
@@ -1923,7 +2055,23 @@ final public class InsidiousService implements
     public void showMockCreator(JavaMethodAdapter method, PsiMethodCallExpression callExpression, OnSaveListener onSaveListener) {
         if (stompWindow == null) {
             if (toolWindow == null) {
-                initiateUI();
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    initiateUI();
+                    toolWindow.show();
+                    if (stompWindowContent != null) {
+                        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
+                        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                            MockDefinitionEditor mockCreator = showNewDeclaredMockCreator(method, callExpression,
+                                    onSaveListener);
+                            containerPanel.setMethod(method);
+                            ApplicationManager.getApplication().invokeLater(() -> {
+
+                                containerPanel.setViewport(mockCreator);
+                            });
+                        });
+                    }
+                });
+                return;
             } else {
                 if (stompWindowContent == null) {
                     InsidiousNotification.notifyMessage(
@@ -1941,41 +2089,61 @@ final public class InsidiousService implements
             if (stompWindowContent != null) {
                 toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    stompWindow.showNewDeclaredMockCreator(method, callExpression, onSaveListener);
-                    stompWindow.onMethodFocussed(method);
+                    MockDefinitionEditor mockCreator = showNewDeclaredMockCreator(method, callExpression,
+                            onSaveListener);
+                    containerPanel.setMethod(method);
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        containerPanel.setViewport(mockCreator);
+                    });
                 });
             }
         });
 
     }
 
+    public MockDefinitionEditor showNewDeclaredMockCreator(
+            JavaMethodAdapter javaMethodAdapter,
+            PsiMethodCallExpression psiMethodCallExpression,
+            OnSaveListener onSaveListener) {
+        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(javaMethodAdapter);
+        MockDefinitionEditor mockEditor = new MockDefinitionEditor(methodUnderTest,
+                psiMethodCallExpression, project, declaredMock -> {
+            String newMockId = saveMockDefinition(declaredMock);
+            InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
+            onSaveListener.onSaveDeclaredMock(declaredMock);
+
+        }, () -> {
+
+        });
+        JComponent mockEditorComponent = mockEditor.getComponent();
+        mockEditorComponent.setMinimumSize(new Dimension(-1, 500));
+        mockEditorComponent.setMaximumSize(new Dimension(-1, 600));
+        return mockEditor;
+
+    }
+
     public void showRouterForMethod(MethodAdapter method) {
-        if (stompWindow == null) {
-            if (toolWindow == null) {
-                initiateUI();
-            } else {
-                if (stompWindowContent == null) {
-                    InsidiousNotification.notifyMessage(
-                            "Please start the application with unlogged-sdk and open the unlogged tool window to use",
-                            NotificationType.WARNING
-                    );
-                    return;
-                }
-            }
-        }
         if (stompWindow != null) {
             stompWindow.onMethodFocussed(method);
         }
+        currentState.setCurrentMethod(method);
+        if (toolWindow == null) {
+            ApplicationManager.getApplication().invokeLater(() -> {
+                initiateUI();
+                toolWindow.show();
+                if (stompWindowContent != null) {
+                    toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
+                    containerPanel.setMethod(method);
+                }
+            });
+        } else {
+            containerPanel.setMethod(method);
+        }
 
-        ApplicationManager.getApplication().invokeLater(() -> {
-            toolWindow.show();
-            if (stompWindowContent != null) {
-                stompWindow.showRouterForMethod(method);
-                toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
-            }
-        });
+    }
 
-
+    public void showRouter() {
+        containerPanel.setViewport(null);
     }
 
     public void reloadLibrary() {
@@ -2119,10 +2287,6 @@ final public class InsidiousService implements
     }
 
 
-    public void hideBottomSplit() {
-        stompWindow.hideBottomSplit();
-    }
-
     public void createJunitFromSelectedReplay() {
         List<TestCandidateBareBone> selectedCandidates = stompWindow.getSelectedCandidates();
 
@@ -2138,11 +2302,15 @@ final public class InsidiousService implements
     }
 
     public List<TestCandidateMetadata> getCandidatesForMethod(MethodAdapter methodElement) {
+        SessionInstanceInterface sessionInstance = currentState.getSessionInstance();
+        if (sessionInstance == null) {
+            return new ArrayList<>();
+        }
         StompFilterModel filterModel = new StompFilterModel();
         addFromClassRecursively(methodElement.getContainingClass().getSource(), filterModel);
         filterModel.getIncludedMethodNames().clear();
         filterModel.getIncludedMethodNames().add(methodElement.getName());
-        List<TestCandidateBareBone> candidateBones = currentState.getSessionInstance()
+        List<TestCandidateBareBone> candidateBones = sessionInstance
                 .getTestCandidatePaginatedByStompFilterModel(filterModel, 0, 10);
         return candidateBones.stream().map(e -> getTestCandidateById(e.getId(), true)).collect(Collectors.toList());
 
@@ -2222,10 +2390,13 @@ final public class InsidiousService implements
                 }
             }
         }
-
     }
 
     public void toggleReportGeneration() {
         this.reportingService.toggleReportMode();
+    }
+
+    public void showSaveFrom(TestCandidateSaveForm saveFormReference) {
+        containerPanel.setViewport(saveFormReference);
     }
 }
