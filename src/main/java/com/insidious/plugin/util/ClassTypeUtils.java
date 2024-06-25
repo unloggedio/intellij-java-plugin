@@ -597,7 +597,8 @@ public class ClassTypeUtils {
 
         int expectedParameterSize = methodCallExpression.getArguments().size();
         List<Pair<PsiMethod, PsiSubstitutor>> matching = methodsByNameList.stream()
-                .filter(e -> e.getFirst().getParameters().length == expectedParameterSize).collect(
+                .filter(e -> ApplicationManager.getApplication().runReadAction(
+                        (Computable<JvmParameter[]>) () -> e.getFirst().getParameters()).length == expectedParameterSize).collect(
                         Collectors.toList());
         if (matching.size() == 1) {
             return matching.get(0);
