@@ -304,7 +304,7 @@ public class UiTestsV3 {
     //remote mode start - start of remote chain tests for maven - demo
     @Test
     @Order(3)
-    //@Disabled
+    @Disabled
     public void remote_mode_general() {
         int projectIndex = 0;
         final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
@@ -418,7 +418,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(5)
-    //@Disabled
+    @Disabled
     public void serverIssue_44() {
         int projectIndex = 0;
         backToMenuIfOpen(controller);
@@ -458,7 +458,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(6)
-    //@Disabled
+    @Disabled
     public void serverIssues_7() {
         step("Close method options menu if open", () -> {
             backToMenuIfOpen(controller);
@@ -481,7 +481,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(7)
-    //@Disabled
+    @Disabled
     public void junitRemoteModeGeneration_sanity_remote() {
         int projectIndex = 0;
         step("Back to menu if needed", () -> {
@@ -542,7 +542,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(8)
-    //@Disabled
+    @Disabled
     public void replayCaseSave_sanity_remote() {
         step("Open toolbar if not already open", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
@@ -565,7 +565,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(9)
-    //@Disabled
+    @Disabled
     public void serverIssue_52() {
         int projectIndex = 0;
         step("Generate a new Junit test case for a particular method", () -> {
@@ -593,7 +593,7 @@ public class UiTestsV3 {
     //remote mode - ending case
     @Test
     @Order(10)
-    //@Disabled
+    @Disabled
     public void serverIssue_51() {
         step("Clear notifications", () -> {
             controller.getIdeaFrame().getNotificationTab().click();
@@ -641,20 +641,21 @@ public class UiTestsV3 {
     //local mode start and sanity
     @Test
     @Order(11)
-    @Disabled
+//    @Disabled
     public void run_mode_local_general() {
         int projectIndex = 0;
         final String annotationText = "@Unlogged";
 
         step("Add annotation and start project", () -> {
+            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
             UiTestInteractionUtils.openAndRevertGitChangesForFile(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, false);
-            executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getClearTestsScriptName(), 2);
             executeShellScriptAndWait(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getStartScriptName(), projectsToTest.get(projectIndex).getLocalProjectInfo().getStartupWaitDuration());
         });
 
         step("Set source filter to Localhost", () -> {
             UiTestInteractionUtils.openUnloggedToolbarIfNotOpen(controller, 2);
+            backToMenuIfOpen(controller);
             controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             clearGotIts(controller);
 
@@ -704,19 +705,11 @@ public class UiTestsV3 {
         });
 
         backToMenuIfOpen(controller);
-
-        step("Refresh loaded Candidates", () -> {
-            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
-            controller.getIdeaFrame().getRefreshButton().click();
-            pause(ofSeconds(2).toMillis());
-            backToMenuIfOpen(controller);
-            controller.getIdeaFrame().getToolBarDeleteButton().click();
-        });
     }
 
     @Test
     @Order(12)
-    @Disabled
+//    @Disabled
     public void junitLocalModeGeneration_sanity_local() {
         int projectIndex = 0;
         step("Back to menu", () -> {
@@ -774,7 +767,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(13)
-    @Disabled
+//    @Disabled
     public void replayCaseSave_sanity_local() {
         step("Clear filters and selections before save", () -> {
             backToMenuIfOpen(controller);
@@ -792,7 +785,7 @@ public class UiTestsV3 {
     //Server Issues Sheet - Issue 73
     @Test
     @Order(14)
-    @Disabled
+//    @Disabled
     public void serverIssues_73() {
         int projectIndex = 0;
         step("Close Options menu if open", () -> {
@@ -822,7 +815,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(15)
-    @Disabled
+//    @Disabled
     public void serverIssues_72() {
         //project is already up and running in local mode
         step("Save Candidates", () -> {
@@ -838,6 +831,8 @@ public class UiTestsV3 {
             openUnloggedToolbarIfNotOpen(controller, 1);
 
             //save all
+            backToMenuIfOpen(controller);
+            pause(ofMillis(500).toMillis());
             controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             clearStompFilter(controller);
             pause(ofSeconds(1).toMillis());
@@ -858,7 +853,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(16)
-    @Disabled
+//    @Disabled
     public void serverIssues_20_local() {
         //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
         //unlogged toolbar assumed to be open before this.
@@ -884,7 +879,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(17)
-    @Disabled
+//    @Disabled
     public void serverIssues_30_local() {
         //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
         //Assumes unlogged plugin window is open
@@ -911,7 +906,7 @@ public class UiTestsV3 {
     //start in local mode - ending case
     @Test
     @Order(18)
-    @Disabled
+//    @Disabled
     public void serverIssue_46() {
         //set filter to remote mode
         //don't select a session from remote, try to click on apply
@@ -959,7 +954,7 @@ public class UiTestsV3 {
     //an ending case
     @Test
     @Order(19)
-    @Disabled
+//    @Disabled
     public void serverIssue_36_local() {
         step("Select remote mode filter, then cancel, ensure that candidates are generated afterwards", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
@@ -1012,6 +1007,8 @@ public class UiTestsV3 {
             UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
             pause(ofSeconds(3).toMillis());
 
+            backToMenuIfOpen(controller);
+            pause(ofMillis(500).toMillis());
             controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             pause(ofSeconds(1).toMillis());
             //1 candidate to be generated for above method
@@ -1027,7 +1024,7 @@ public class UiTestsV3 {
     //an ending case
     @Test
     @Order(20)
-    @Disabled
+//    @Disabled
     public void serverIssue_37() {
         //set filter to remote mode
         //don't select a session from remote, try to click on apply
@@ -1043,6 +1040,9 @@ public class UiTestsV3 {
 
         step("Set Source to remote URL after a failed attempt at applying remote changes", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
+            backToMenuIfOpen(controller);
+
+            pause(ofMillis(500).toMillis());
             controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             clearGotIts(controller);
 
@@ -1091,7 +1091,7 @@ public class UiTestsV3 {
     //doesn't need project to start
     @Test
     @Order(21)
-    @Disabled
+//    @Disabled
     public void serverIssues_23() {
         int switchCount = 10;
         step("open filters tab", () -> {
