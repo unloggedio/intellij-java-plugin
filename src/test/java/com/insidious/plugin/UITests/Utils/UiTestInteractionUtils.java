@@ -62,6 +62,14 @@ public class UiTestInteractionUtils {
         controller.getKeyboard().hotKey(VK_ENTER);
     }
 
+    public static List<GutterIcon> getAllUnloggedEntryPointGutterIconsSortedForOpenFile(RemoteRobotController controller) {
+        return controller.getIdeaFrame().textEditor().getGutter().getIcons()
+                .stream().filter(gutterIcon -> gutterIcon.toString().contains("profileBlue.svg"))
+                .sorted((icon1, icon2) -> {
+                    return icon1.getLineNumber() - icon2.getLineNumber();
+                }).toList();
+    }
+
     private static RemoteText getFirstPublicKeywordOnLeft(List<RemoteText> sourceTexts, int indexOfMain) {
         for (int i = indexOfMain - 1; i >= 0; i--) {
             RemoteText text = sourceTexts.get(i);
@@ -251,6 +259,7 @@ public class UiTestInteractionUtils {
 
         selectedMethodIcon.click();
         controller.getIdeaFrame().getGoToDirectInvokeButton().click();
+        pause(ofSeconds(3).toMillis());
 
         ComponentFixture argumentsTree = controller.getIdeaFrame().getTree();
         List<RemoteText> remoteTexts = argumentsTree.getData().getAll();
@@ -339,13 +348,14 @@ public class UiTestInteractionUtils {
         if (request.isExecuteOnDemand()) {
             directInvokeMethod(request.getDirectInvokeRequest(), controller);
         }
+        backToMenuIfOpen(controller);
+        controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
         //doesn't need to open file
         clearGotIts(controller);
 
         if (request.getFilterOptions() != null) {
             setFilterOptionsForCurrentView(controller, request.getFilterOptions());
         }
-        closeOptionsTabIfOpen(controller);
         try {
             controller.getIdeaFrame().getFirstCheckbox().click();
         } catch (Exception e) {
@@ -397,6 +407,8 @@ public class UiTestInteractionUtils {
         //TODO: Can also assert test case path here
         controller.getIdeaFrame().getBoilerplateTestSaveButton().click();
         pause(ofSeconds(3).toMillis());
+
+        backToMenuIfOpen(controller);
     }
 
     public static void junitReplayDataGeneration(RemoteRobotController controller, JunitGenerationRequest request) {
@@ -423,6 +435,8 @@ public class UiTestInteractionUtils {
         //TODO: Can also assert test case path here
         controller.getIdeaFrame().getBoilerplateTestSaveButton().click();
         pause(ofSeconds(3).toMillis());
+
+        backToMenuIfOpen(controller);
     }
 
     public static void executeDeterministicShellCommand(RemoteRobotController controller, String command,
@@ -495,6 +509,14 @@ public class UiTestInteractionUtils {
             } catch (Exception e) {
                 done = true;
             }
+        }
+    }
+
+    public static void backToMenuIfOpen(RemoteRobotController controller) {
+        try {
+            controller.getIdeaFrame().getBackToMenuButton().click();
+        } catch (Exception e) {
+
         }
     }
 

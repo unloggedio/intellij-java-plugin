@@ -579,7 +579,7 @@ final public class InsidiousService implements
                 .collect(Collectors.toList()) : null;
         directInvokeComponent.renderForMethod(method,
                 methodArgumentValues);
-        directInvokeComponent.triggerExecute();
+//        directInvokeComponent.triggerExecute();
 
     }
 

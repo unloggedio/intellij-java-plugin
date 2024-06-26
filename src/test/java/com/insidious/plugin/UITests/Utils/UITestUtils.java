@@ -126,6 +126,10 @@ public class UITestUtils {
         NOTIFICATIONS_CLEAR_ALL("//div[@text='Clear all']"),
         GIT_LOGIN_USE_TOKEN("//div[@text='Use Token…']"),
         GIT_PAT_LOGIN_BUTTON("//div[@text='Log In']"),
+        BACK_TO_MENU_BUTTON("//div[@text='Back to menu']"),
+        EDIT_ARGUMENTS_BUTTON("//div[@myicon='edit.svg']]"),
+        BUILD_TOOLBAR_BOTTOM("//div[@tooltiptext='Build']"),
+        FILTER_ON_TIMELINE_NAV("//div[@defaulticon='filter.svg']"),
         GRADLE_REFRESH_ICON("//div[@tooltiptext='Reload All Gradle Projects']"),
         CLEAR_SELECTIONS_CANSDIDATE("//div[@visible_text='Clear selection']");
 

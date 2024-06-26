@@ -85,9 +85,49 @@ public class UiTestsV3 {
     @Test
     @Order(2)
     //@Disabled
-    public void local_mode_frequencey_loggin_Test() {
+    public void local_mode_frequencey_logging_Test() {
+        //add to other files
         int projectIndex = 0;
-        final String annotationText = "@Unlogged(counter=\"2\")";
+        final int processCounter = 4;
+        final int classCounter = 3;
+        final int methodCounter = 1;
+
+        final String annotationText = "@Unlogged(counter=\"" + processCounter + "\")";
+        final String classAnnotationText = "@UnloggedClass(counter=\"" + classCounter + "\")";
+        final String methodAnnotationText = "@UnloggedMethod(counter=\"" + methodCounter + "\")";
+
+        final String unloggedClassImport = "import io.unlogged.UnloggedClass;";
+        final String unloggedMethodImport = "import io.unlogged.UnloggedMethod;";
+
+        step("Add counters for class level and method level", () -> {
+            openFileIfNeeded("FutureController.java", controller);
+            expandJavaFile(controller.getIdeaFrame().textEditor().getEditor());
+
+            RemoteText firstSemiColon = controller.getIdeaFrame().textEditor().getEditor().getData().getAll().stream()
+                    .filter(text -> text.getText().equals(";")).findFirst().get();
+            firstSemiColon.click();
+            controller.getKeyboard().hotKey(VK_RIGHT);
+            controller.getKeyboard().hotKey(VK_ENTER);
+
+            controller.getKeyboard().enterText(unloggedClassImport);
+            controller.getKeyboard().hotKey(VK_ENTER);
+            controller.getKeyboard().enterText(unloggedMethodImport);
+
+            controller.getIdeaFrame().getBuildToolbarIcon().click();
+
+            List<RemoteText> publicKeywords = controller.getIdeaFrame().textEditor().getEditor().getData().getAll().stream().filter(text -> text.getText().equals("public")).toList();
+            assert publicKeywords.size() == 4;
+
+            publicKeywords.get(0).click();
+            controller.getKeyboard().hotKey(VK_LEFT);
+            controller.getKeyboard().enterText(classAnnotationText);
+
+            publicKeywords.get(2).click();
+            controller.getKeyboard().hotKey(VK_LEFT);
+            controller.getKeyboard().enterText(methodAnnotationText);
+            controller.getKeyboard().hotKey(VK_ENTER);
+
+        });
 
         step("Add annotation and start project", () -> {
             addUnloggedToStartFile(controller, projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), annotationText, true);
@@ -98,83 +138,166 @@ public class UiTestsV3 {
             openUnloggedToolbarIfNotOpen(controller, 2);
         });
 
-        step("DirectInvoke and assert results, for call 1 -> should see 4 candidates", () -> {
-            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
-            List<DirectInvokeTreeLine> assertions = new ArrayList<>();
-            inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
-            assertions.add(new DirectInvokeTreeLine(1, "java.lang.String"));
-            assertions.add(new DirectInvokeTreeLine(2, "String: yolo"));
-            DirectInvokeRequest request = new DirectInvokeRequest("FutureController.java",
-                    "public String getFutureResult(String s1)",
-                    inputLines, assertions, List.of(AssertionOptions.DIRECT_INVOKE_RESPONSE),
-                    true);
+        step("DirectInvoke and assert methods from FutureController", () -> {
 
-            controller.getIdeaFrame().getToolBarDeleteButton().click();
-            UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
-            pause(ofSeconds(2).toMillis());
+            step("Open file", () -> {
+                openFileIfNeeded("FutureController.java", controller);
+                pause(ofSeconds(2).toMillis());
+            });
 
-            closeOptionsTabIfOpen(controller);
-            //assert 4 check boxes to be visible
+            List<GutterIcon> gutterIcons = UiTestInteractionUtils.getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller);
+            assert gutterIcons.size() == 2;
 
-            Integer checkboxes = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
-            Assertions.assertEquals(2, checkboxes);
+            //select method to test for @UnloggedMethod counter
+            gutterIcons.get(0).click();
 
-            controller.getIdeaFrame().getToolBarDeleteButton().click();
-        });
+            step("Test @UnloggedMethod(counter = \"" + methodCounter + "\")", () -> {
+                controller.getIdeaFrame().getGoToDirectInvokeButton().click();
+                controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
+                pause(ofSeconds(2).toMillis());
 
-        step("DirectInvoke and assert results, for call 2 -> should see no new candidates", () -> {
-            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
-            List<DirectInvokeTreeLine> assertions = new ArrayList<>();
-            inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
-            assertions.add(new DirectInvokeTreeLine(1, "java.lang.String"));
-            assertions.add(new DirectInvokeTreeLine(2, "String: yolo"));
-            DirectInvokeRequest request = new DirectInvokeRequest("FutureController.java",
-                    "public String getFutureResult(String s1)",
-                    inputLines, assertions, List.of(AssertionOptions.DIRECT_INVOKE_RESPONSE),
-                    true);
-            UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
-            pause(ofSeconds(2).toMillis());
+                backToMenuIfOpen(controller);
+                controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+                pause(ofSeconds(1).toMillis());
 
-            closeOptionsTabIfOpen(controller);
-            //assert 4 check boxes to be visible
-
-            try {
                 Integer checkboxes = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
-                if (checkboxes != null && checkboxes >= 1) {
-                    Assertions.fail("Candidates should not have appeared");
+
+                //There should be only 1 candidate
+                Assertions.assertEquals(1, checkboxes);
+                backToMenuIfOpen(controller);
+
+
+                for (int i = 0; i < methodCounter; i++) {
+                    controller.getIdeaFrame().getGoToDirectInvokeButton().click();
+                    controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
+                    pause(ofSeconds(2).toMillis());
+                    backToMenuIfOpen(controller);
+
+                    controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+                    pause(ofSeconds(1).toMillis());
+                    Integer checkboxesTemp = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
+
+                    if (i < (methodCounter - 1)) {
+                        Assertions.assertEquals(1, checkboxesTemp);
+                    } else {
+                        Assertions.assertEquals(2, checkboxesTemp);
+                    }
+                    backToMenuIfOpen(controller);
                 }
-            } catch (Exception e) {
-                //No candidates appeared as excepted
-            }
+            });
 
-            controller.getIdeaFrame().getToolBarDeleteButton().click();
+            //reload icons
+            gutterIcons = getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller);
+            assert gutterIcons.size() == 2;
+
+            //test class counter with the 2nd method in the class
+            gutterIcons.get(1).click();
+
+            step("Test @UnloggedClass(counter = \"" + classCounter + "\")", () -> {
+                controller.getIdeaFrame().getGoToDirectInvokeButton().click();
+                controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
+                pause(ofSeconds(2).toMillis());
+
+                backToMenuIfOpen(controller);
+                controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+                pause(ofSeconds(1).toMillis());
+                Integer checkboxes = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
+
+                //There should be only 1 candidate
+                Assertions.assertEquals(1, checkboxes);
+                backToMenuIfOpen(controller);
+
+                for (int i = 0; i < classCounter; i++) {
+                    controller.getIdeaFrame().getGoToDirectInvokeButton().click();
+                    controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
+                    pause(ofSeconds(2).toMillis());
+                    backToMenuIfOpen(controller);
+
+                    controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+                    pause(ofSeconds(1).toMillis());
+                    Integer checkboxesTemp = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
+
+                    if (i < classCounter - 1) {
+                        Assertions.assertEquals(1, checkboxesTemp);
+                    } else {
+                        Assertions.assertEquals(2, checkboxesTemp);
+                    }
+                    backToMenuIfOpen(controller);
+                }
+            });
+
+            //test process level counter and github_sdk_issue_#83
+            openFileIfNeeded("ReferralUtilsBase.java", controller);
+            gutterIcons = getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller);
+
+            assert gutterIcons.size() == 2;
+            gutterIcons.get(0).click();
+
+            step("Call method 1 and confirm process counter is at " + processCounter, () -> {
+                controller.getIdeaFrame().getGoToDirectInvokeButton().click();
+                controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
+                pause(ofSeconds(2).toMillis());
+
+                backToMenuIfOpen(controller);
+                controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+                pause(ofSeconds(1).toMillis());
+                Integer checkboxes = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
+
+                //There should be only 1 candidate
+                Assertions.assertEquals(1, checkboxes);
+                backToMenuIfOpen(controller);
+
+                for (int i = 0; i < processCounter; i++) {
+                    controller.getIdeaFrame().getGoToDirectInvokeButton().click();
+                    controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
+                    pause(ofSeconds(2).toMillis());
+                    backToMenuIfOpen(controller);
+
+                    controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+                    pause(ofSeconds(1).toMillis());
+                    Integer checkboxesTemp = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
+
+                    if (i < processCounter - 1) {
+                        Assertions.assertEquals(1, checkboxesTemp);
+                    } else {
+                        Assertions.assertEquals(2, checkboxesTemp);
+                    }
+                    backToMenuIfOpen(controller);
+                }
+            });
+
+            //reload icons
+            gutterIcons = getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller);
+
+            assert gutterIcons.size() == 2;
+            gutterIcons.get(1).click();
+
+            step("Confirm method 2 gets a candidate generated on first call", () -> {
+                controller.getIdeaFrame().getGoToDirectInvokeButton().click();
+                controller.getIdeaFrame().getDirectInvokeExecuteButtonNew().click();
+                pause(ofSeconds(2).toMillis());
+
+                backToMenuIfOpen(controller);
+                controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+                pause(ofSeconds(1).toMillis());
+                Integer checkboxes = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
+
+                //There should be 3 candidates (function overloading)
+                Assertions.assertEquals(3, checkboxes);
+                backToMenuIfOpen(controller);
+            });
         });
 
-        step("DirectInvoke and assert results, for call 3 -> should see 4 candidates", () -> {
-            List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
-            List<DirectInvokeTreeLine> assertions = new ArrayList<>();
-            inputLines.add(new DirectInvokeTreeLine(1, "Amg"));
-            assertions.add(new DirectInvokeTreeLine(1, "java.lang.String"));
-            assertions.add(new DirectInvokeTreeLine(2, "String: yolo"));
-            DirectInvokeRequest request = new DirectInvokeRequest("FutureController.java",
-                    "public String getFutureResult(String s1)",
-                    inputLines, assertions, List.of(AssertionOptions.DIRECT_INVOKE_RESPONSE),
-                    true);
-            UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
-            pause(ofSeconds(2).toMillis());
+        closeAndRevert();
+    }
 
-            closeOptionsTabIfOpen(controller);
-            //assert 4 check boxes to be visible
-
-            Integer checkboxes = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
-            Assertions.assertEquals(2, checkboxes);
-
-            controller.getIdeaFrame().getToolBarDeleteButton().click();
-        });
-
-
+    private void closeAndRevert() {
         step("Stop running process", () -> {
             stopProcessInTerminal(controller);
+        });
+
+        step("Revert futureController", () -> {
+            UiTestInteractionUtils.openAndRevertGitChangesForFile("FutureController.java", controller);
         });
     }
 
@@ -186,8 +309,7 @@ public class UiTestsV3 {
         int projectIndex = 0;
         final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
 
-        //TODO: stop process if running already
-        //TODO : revert changes if annotations are already present
+        closeAndRevert();
 
         step("Add annotation and start project", () -> {
             UiTestInteractionUtils.openAndRevertGitChangesForFile(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
@@ -197,7 +319,12 @@ public class UiTestsV3 {
 
         step("Set Source to remote URL", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
+            backToMenuIfOpen(controller);
             clearGotIts(controller);
+
+            openFileIfNeeded("FutureController.java", controller);
+            getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller).get(0).click();
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption();
 
             controller.getIdeaFrame().getFilterButton().click();
             pause(ofMillis(250).toMillis());
@@ -253,6 +380,10 @@ public class UiTestsV3 {
                     true);
             UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
         });
+
+        step("Back to menu", () -> {
+            backToMenuIfOpen(controller);
+        });
     }
 
     //remote mode start - debug DirectInvoke for this method
@@ -277,6 +408,10 @@ public class UiTestsV3 {
             junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("org.unlogged.demo.gradle.service.ReactiveStudentService"),
                     new ArrayList<>(), List.of("updateStudent"), new ArrayList<>(), true));
             generateJunitTestCaseForMethod(controller, junitGenerationRequest);
+        });
+
+        step("Back to menu", () -> {
+            backToMenuIfOpen(controller);
         });
     }
 
@@ -313,6 +448,10 @@ public class UiTestsV3 {
                 Assertions.fail("Did not find inlayHints for main method");
             }
         });
+
+        step("Back to menu if needed", () -> {
+            backToMenuIfOpen(controller);
+        });
     }
 
     @Test
@@ -320,15 +459,21 @@ public class UiTestsV3 {
     //@Disabled
     public void serverIssues_7() {
         step("Close method options menu if open", () -> {
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
         });
         step("Verify that candidates are visible", () -> {
-            pause(ofSeconds(10).toMillis());
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+            clearStompFilter(controller);
+            pause(ofSeconds(3).toMillis());
             try {
                 controller.getIdeaFrame().getFirstCheckbox();
             } catch (Exception e) {
                 Assertions.fail("No Candidates found");
             }
+        });
+
+        step("Back to menu", () -> {
+            backToMenuIfOpen(controller);
         });
     }
 
@@ -337,8 +482,8 @@ public class UiTestsV3 {
     //@Disabled
     public void junitRemoteModeGeneration_sanity_remote() {
         int projectIndex = 0;
-        step("Clear filters", () -> {
-            clearStompFilter(controller);
+        step("Back to menu if needed", () -> {
+            backToMenuIfOpen(controller);
         });
 
         List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
@@ -356,6 +501,7 @@ public class UiTestsV3 {
         junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("org.unlogged.demo.controller.FutureController"),
                 new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true));
 
+        backToMenuIfOpen(controller);
         step("Generate Junit from Icon", () -> {
             generateJunitTestCaseForMethod(controller, junitGenerationRequest);
             String currentFileName = controller.getIdeaFrame().textEditor().getEditor().getFileName();
@@ -394,14 +540,21 @@ public class UiTestsV3 {
     //@Disabled
     public void replayCaseSave_sanity_remote() {
         step("Open toolbar if not already open", () -> {
-            closeOptionsTabIfOpen(controller);
             openUnloggedToolbarIfNotOpen(controller, 2);
+            backToMenuIfOpen(controller);
         });
         step("Set Filter to FutureController and save it's candidates as replay cases", () -> {
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+            clearStompFilter(controller);
+
             FilterOptions futureControllerOptions = new FilterOptions(List.of("org.unlogged.demo.controller.FutureController"),
                     new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true);
             setFilterOptionsForCurrentView(controller, futureControllerOptions);
             selectAllAndSave(controller, 10);
+        });
+
+        step("Back to menu", () -> {
+            backToMenuIfOpen(controller);
         });
     }
 
@@ -447,6 +600,10 @@ public class UiTestsV3 {
 
         step("Switch to localhost source", () -> {
             openUnloggedToolbarIfNotOpen(controller, 1);
+            backToMenuIfOpen(controller);
+
+            controller.getIdeaFrame().getClearFiltersLabel().click();
+
             controller.getIdeaFrame().getFilterButton().click();
             pause(ofMillis(250).toMillis());
 
@@ -465,6 +622,10 @@ public class UiTestsV3 {
         } catch (Exception e) {
             //pass
         }
+
+        step("back to menu", () -> {
+            backToMenuIfOpen(controller);
+        });
 
         step("Stop running process", () -> {
             stopProcessInTerminal(controller);
@@ -489,6 +650,7 @@ public class UiTestsV3 {
 
         step("Set source filter to Localhost", () -> {
             UiTestInteractionUtils.openUnloggedToolbarIfNotOpen(controller, 2);
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             clearGotIts(controller);
 
             controller.getIdeaFrame().getFilterButton().click();
@@ -509,6 +671,8 @@ public class UiTestsV3 {
             controller.getIdeaFrame().getToolBarDeleteButton().click();
             pause(ofSeconds(3).toMillis());
         });
+
+        backToMenuIfOpen(controller);
 
         step("DirectInvoke and assert results", () -> {
             List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
@@ -534,10 +698,13 @@ public class UiTestsV3 {
             UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
         });
 
+        backToMenuIfOpen(controller);
+
         step("Refresh loaded Candidates", () -> {
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             controller.getIdeaFrame().getRefreshButton().click();
             pause(ofSeconds(2).toMillis());
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
             controller.getIdeaFrame().getToolBarDeleteButton().click();
         });
     }
@@ -547,8 +714,8 @@ public class UiTestsV3 {
     //@Disabled
     public void junitLocalModeGeneration_sanity_local() {
         int projectIndex = 0;
-        step("Clear filters", () -> {
-            clearStompFilter(controller);
+        step("Back to menu", () -> {
+            backToMenuIfOpen(controller);
         });
 
         List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
@@ -566,6 +733,7 @@ public class UiTestsV3 {
         junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("org.unlogged.demo.controller.FutureController"),
                 new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true));
 
+        backToMenuIfOpen(controller);
         step("Generate Junit from Icon", () -> {
             generateJunitTestCaseForMethod(controller, junitGenerationRequest);
             String currentFileName = controller.getIdeaFrame().textEditor().getEditor().getFileName();
@@ -604,8 +772,9 @@ public class UiTestsV3 {
     //@Disabled
     public void replayCaseSave_sanity_local() {
         step("Clear filters and selections before save", () -> {
+            backToMenuIfOpen(controller);
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             clearStompFilter(controller);
-            clearStompSelections(controller);
         });
         step("Set Filter to FutureController and save it's candidates as replay cases", () -> {
             FilterOptions futureControllerOptions = new FilterOptions(List.of("org.unlogged.demo.controller.FutureController"),
@@ -622,7 +791,7 @@ public class UiTestsV3 {
     public void serverIssues_73() {
         int projectIndex = 0;
         step("Close Options menu if open", () -> {
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
         });
 
         step("Open main class and enusre InlayHint render behaviour is as expected", () -> {
@@ -651,7 +820,7 @@ public class UiTestsV3 {
     //@Disabled
     public void serverIssues_72() {
         //project is already up and running in local mode
-        step("Save Candidates from one of FutureController's methods", () -> {
+        step("Save Candidates", () -> {
 
             //clear notifications before generating tests
             controller.getIdeaFrame().getNotificationTab().click();
@@ -664,6 +833,10 @@ public class UiTestsV3 {
             openUnloggedToolbarIfNotOpen(controller, 1);
 
             //save all
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+            clearStompFilter(controller);
+            pause(ofSeconds(1).toMillis());
+
             controller.getIdeaFrame().getSelectAllicon().click();
             pause(ofMillis(500).toMillis());
 
@@ -674,6 +847,8 @@ public class UiTestsV3 {
             Assertions.assertTrue(controller.getIdeaFrame().getTestGenerationFailureBalloonNotification().isEmpty() ||
                     controller.getIdeaFrame().getTestGenerationFailureBalloonNotification() == null);
         });
+
+        backToMenuIfOpen(controller);
     }
 
     @Test
@@ -684,11 +859,12 @@ public class UiTestsV3 {
         //unlogged toolbar assumed to be open before this.
 
         step("Close Options menu if open", () -> {
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
         });
 
         step("Look for Local and ensure it opens filters", () -> {
             openUnloggedToolbarIfNotOpen(controller, 1);
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
 
             ComponentFixture localMarker = controller.getIdeaFrame().getLocalModeHyperlink();
             localMarker.click();
@@ -709,11 +885,11 @@ public class UiTestsV3 {
         //Assumes unlogged plugin window is open
 
         step("Close Options menu if open", () -> {
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
         });
         step("open Filters, switch to remote and assert JTextField contains default PrePopulated URL", () -> {
             openUnloggedToolbarIfNotOpen(controller, 1);
-
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             ComponentFixture localMarker = controller.getIdeaFrame().getLocalModeHyperlink();
             localMarker.click();
             pause(ofMillis(250).toMillis());
@@ -736,8 +912,12 @@ public class UiTestsV3 {
         //don't select a session from remote, try to click on apply
         //assert that the filter tab is still open
 
+        backToMenuIfOpen(controller);
+
         step("Set Source to remote URL, but click on apply without selecting a session", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+
             clearGotIts(controller);
 
             controller.getIdeaFrame().getFilterButton().click();
@@ -778,6 +958,9 @@ public class UiTestsV3 {
     public void serverIssue_36_local() {
         step("Select remote mode filter, then cancel, ensure that candidates are generated afterwards", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
+            backToMenuIfOpen(controller);
+
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             clearGotIts(controller);
 
             controller.getIdeaFrame().getFilterButton().click();
@@ -807,6 +990,8 @@ public class UiTestsV3 {
             pause(ofMillis(250).toMillis());
             controller.getIdeaFrame().getToolBarDeleteButton().click();
             pause(ofMillis(500).toMillis());
+
+            backToMenuIfOpen(controller);
         });
 
         step("DirectInvoke a method and make sure that ", () -> {
@@ -822,12 +1007,14 @@ public class UiTestsV3 {
             UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
             pause(ofSeconds(3).toMillis());
 
-            //2 candidates are supposed to be generated for a successful direct Invoke form the above method
-            Assertions.assertEquals(2, controller.getIdeaFrame().getAllVisibleCheckBoxes().size());
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+            pause(ofSeconds(1).toMillis());
+            //1 candidate to be generated for above method
+            Assertions.assertEquals(1, controller.getIdeaFrame().getAllVisibleCheckBoxes().size());
         });
 
         step("Close options menu if open", () -> {
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
         });
     }
 
@@ -851,6 +1038,7 @@ public class UiTestsV3 {
 
         step("Set Source to remote URL after a failed attempt at applying remote changes", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             clearGotIts(controller);
 
             controller.getIdeaFrame().getFilterButton().click();
@@ -892,6 +1080,7 @@ public class UiTestsV3 {
         step("stop running process", () -> {
             stopProcessInTerminal(controller);
         });
+
     }
 
     //doesn't need project to start
@@ -902,6 +1091,9 @@ public class UiTestsV3 {
         int switchCount = 10;
         step("open filters tab", () -> {
             openUnloggedToolbarIfNotOpen(controller, 1);
+            backToMenuIfOpen(controller);
+
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             controller.getIdeaFrame().getFilterButton().click();
 
             ComponentFixture titlePanel = controller.getIdeaFrame().getMyContentPanel();
@@ -974,6 +1166,10 @@ public class UiTestsV3 {
 
         step("Set Source to remote URL", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
+            openFileIfNeeded("FutureController.java", controller);
+            getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller).get(0).click();
+
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             clearGotIts(controller);
 
             controller.getIdeaFrame().getFilterButton().click();
@@ -1033,8 +1229,8 @@ public class UiTestsV3 {
     //@Disabled
     public void junitRemoteModeGeneration_sanity_remote_gradle() {
         int projectIndex = 1;
-        step("Clear filters", () -> {
-            clearStompFilter(controller);
+        step("Back to menu", () -> {
+            backToMenuIfOpen(controller);
         });
 
         List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
@@ -1052,6 +1248,7 @@ public class UiTestsV3 {
         junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("org.unlogged.demo.gradle.controller.FutureController"),
                 new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true));
 
+        backToMenuIfOpen(controller);
         step("Generate Junit from Icon", () -> {
             generateJunitTestCaseForMethod(controller, junitGenerationRequest);
             String currentFileName = controller.getIdeaFrame().textEditor().getEditor().getFileName();
@@ -1074,7 +1271,7 @@ public class UiTestsV3 {
         });
 
         step("Close options before next step", () -> {
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
         });
 
         step("Generate Junit from Replay data option", () -> {
@@ -1089,7 +1286,7 @@ public class UiTestsV3 {
         });
 
         step("Close options before next test", () -> {
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
         });
     }
 
@@ -1099,10 +1296,11 @@ public class UiTestsV3 {
     public void replayCaseSave_sanity_remote_gradle() {
 
         step("Close options before next test", () -> {
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
         });
 
         step("Clear filters and selections", () -> {
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             clearStompFilter(controller);
             clearStompSelections(controller);
         });
@@ -1116,7 +1314,7 @@ public class UiTestsV3 {
         });
 
         step("Close options if open", () -> {
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
         });
 
         step("Stop running process", () -> {
@@ -1140,6 +1338,7 @@ public class UiTestsV3 {
 
         step("Set source filter to Localhost", () -> {
             UiTestInteractionUtils.openUnloggedToolbarIfNotOpen(controller, 2);
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             clearGotIts(controller);
 
             controller.getIdeaFrame().getFilterButton().click();
@@ -1186,9 +1385,12 @@ public class UiTestsV3 {
         });
 
         step("Refresh loaded Candidates", () -> {
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+            pause(ofSeconds(1).toMillis());
+
             controller.getIdeaFrame().getRefreshButton().click();
             pause(ofSeconds(2).toMillis());
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
             controller.getIdeaFrame().getToolBarDeleteButton().click();
         });
     }
@@ -1198,8 +1400,8 @@ public class UiTestsV3 {
     //@Disabled
     public void junitLocalModeGeneration_sanity_local_gradle() {
         int projectIndex = 1;
-        step("Clear filters", () -> {
-            clearStompFilter(controller);
+        step("Back to menu", () -> {
+            backToMenuIfOpen(controller);
         });
 
         List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
@@ -1217,6 +1419,7 @@ public class UiTestsV3 {
         junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("org.unlogged.demo.gradle.controller.FutureController"),
                 new ArrayList<>(), List.of("getFutureResult"), new ArrayList<>(), true));
 
+        backToMenuIfOpen(controller);
         step("Generate Junit from Icon", () -> {
             generateJunitTestCaseForMethod(controller, junitGenerationRequest);
             String currentFileName = controller.getIdeaFrame().textEditor().getEditor().getFileName();
@@ -1250,7 +1453,7 @@ public class UiTestsV3 {
         });
 
         step("Close options tab if open", () -> {
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
         });
     }
 
@@ -1259,9 +1462,10 @@ public class UiTestsV3 {
     //@Disabled
     public void replayCaseSave_sanity_local_gradle() {
         step("Close options tab if open", () -> {
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
         });
         step("Clear filter and selections", () -> {
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
             clearStompSelections(controller);
             clearStompFilter(controller);
         });
@@ -1339,6 +1543,8 @@ public class UiTestsV3 {
             controller.getKeyboard().hotKey(VK_BACK_SPACE);
             controller.getKeyboard().enterText("Custom mock");
             controller.getIdeaFrame().getMockEditSaveButton().click();
+
+            backToMenuIfOpen(controller);
         });
 
         step("Clear candidates and DirectInvoke controller method", () -> {
@@ -1358,14 +1564,18 @@ public class UiTestsV3 {
                     true);
             UiTestInteractionUtils.directInvokeAndAssertResponse(request, controller);
             pause(ofSeconds(10).toMillis());
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
         });
 
-        step("Assert number of candidates generated as 3", () -> {
+        //to be refactored
+        step("Assert number of candidates generated as 1", () -> {
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+            pause(ofMillis(500).toMillis());
+
             controller.getIdeaFrame().getSelectAllicon().click();
             pause(ofMillis(250).toMillis());
             try {
-                ComponentFixture numberOfCandidates = controller.getIdeaFrame().getComponentByXpath("//div[@text='3 selected']");
+                ComponentFixture numberOfCandidates = controller.getIdeaFrame().getComponentByXpath("//div[@text='1 selected']");
             } catch (Exception e) {
                 Assertions.fail("Either no candidates were generated or wrong number of candidates generated");
             } finally {
@@ -1390,7 +1600,7 @@ public class UiTestsV3 {
             pause(ofSeconds(10).toMillis());
         });
 
-        step("Open Library and confirm the number of candidates is 3", () -> {
+        step("Open Library and confirm the number of candidates is 1", () -> {
             controller.getIdeaFrame().getlibraryTabHeader().click();
             pause(ofMillis(500).toMillis());
 
@@ -1398,7 +1608,7 @@ public class UiTestsV3 {
             pause(ofMillis(250).toMillis());
 
             try {
-                controller.getIdeaFrame().getComponentByXpath("//div[@text='3 selected']");
+                controller.getIdeaFrame().getComponentByXpath("//div[@text='1 selected']");
             } catch (Exception e) {
                 Assertions.fail("Wrong number of candidates");
             }
@@ -1450,8 +1660,8 @@ public class UiTestsV3 {
     public void junitLocalModeGeneration_sanity_local_multimodule() {
         int projectIndex = 2;
 
-        step("Clear filters", () -> {
-            clearStompFilter(controller);
+        step("Back to menu", () -> {
+            backToMenuIfOpen(controller);
         });
 
         List<DirectInvokeTreeLine> inputLines = new ArrayList<>();
@@ -1470,6 +1680,8 @@ public class UiTestsV3 {
         junitGenerationRequest.setFilterOptions(new FilterOptions(List.of("com.purnima.jain.customer.controller.CustomerController"),
                 new ArrayList<>(), List.of("getCustomer"), new ArrayList<>(), true));
 
+        backToMenuIfOpen(controller);
+
         step("Generate Junit from Icon", () -> {
             generateJunitTestCaseForMethod(controller, junitGenerationRequest);
             String currentFileName = controller.getIdeaFrame().textEditor().getEditor().getFileName();
@@ -1478,6 +1690,8 @@ public class UiTestsV3 {
 
             Long count = getNumberofTestsInCurrentFile(controller);
             Assertions.assertEquals(1, count);
+
+            backToMenuIfOpen(controller);
         });
 
         step("Generate Junit from Dummy data option", () -> {
@@ -1489,6 +1703,8 @@ public class UiTestsV3 {
 
             Long count = getNumberofTestsInCurrentFile(controller);
             Assertions.assertEquals(2, count);
+
+            backToMenuIfOpen(controller);
         });
 
         step("Generate Junit from Replay data option", () -> {
@@ -1501,6 +1717,8 @@ public class UiTestsV3 {
 
             Long count = getNumberofTestsInCurrentFile(controller);
             Assertions.assertEquals(3, count);
+
+            backToMenuIfOpen(controller);
         });
     }
 

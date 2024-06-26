@@ -433,6 +433,22 @@ public class IdeaFrame extends CommonContainerFixture {
         return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.CLEAR_SELECTIONS_CANSDIDATE);
     }
 
+    public ComponentFixture getBackToMenuButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.BACK_TO_MENU_BUTTON);
+    }
+
+    public ComponentFixture getEditArgumentsButton() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.EDIT_ARGUMENTS_BUTTON);
+    }
+
+    public ComponentFixture getBuildToolbarIcon() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.BUILD_TOOLBAR_BOTTOM);
+    }
+
+    public ComponentFixture getFilterOnTimelineMenuOption() {
+        return UITestUtils.getComponentFixture(remoteRobot, UITestUtils.UITags.FILTER_ON_TIMELINE_NAV);
+    }
+
     public List<ComponentFixture> getTestGenerationFailureBalloonNotification() {
         return UITestUtils.getComponentFixtures(remoteRobot, UITestUtils.UITags.TEST_GENERATION_FALIED_INDEX_POPUP);
     }
