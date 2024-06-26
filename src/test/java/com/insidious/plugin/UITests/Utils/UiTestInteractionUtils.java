@@ -357,11 +357,14 @@ public class UiTestInteractionUtils {
         if (request.getFilterOptions() != null) {
             setFilterOptionsForCurrentView(controller, request.getFilterOptions());
         }
+        pause(ofSeconds(1).toMillis());
         try {
             controller.getIdeaFrame().getFirstCheckbox().click();
         } catch (Exception e) {
             directInvokeMethod(request.getDirectInvokeRequest(), controller);
             backToMenuIfOpen(controller);
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+            pause(ofMillis(500).toMillis());
             controller.getIdeaFrame().getFirstCheckbox().click();
         }
         clearGotIts(controller);

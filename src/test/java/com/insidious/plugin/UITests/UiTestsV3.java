@@ -304,7 +304,7 @@ public class UiTestsV3 {
     //remote mode start - start of remote chain tests for maven - demo
     @Test
     @Order(3)
-    @Disabled
+    //@Disabled
     public void remote_mode_general() {
         int projectIndex = 0;
         final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
@@ -418,7 +418,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(5)
-    @Disabled
+    //@Disabled
     public void serverIssue_44() {
         int projectIndex = 0;
         backToMenuIfOpen(controller);
@@ -458,7 +458,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(6)
-    @Disabled
+    //@Disabled
     public void serverIssues_7() {
         step("Close method options menu if open", () -> {
             backToMenuIfOpen(controller);
@@ -542,7 +542,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(8)
-    @Disabled
+    //@Disabled
     public void replayCaseSave_sanity_remote() {
         step("Open toolbar if not already open", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
@@ -565,7 +565,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(9)
-    @Disabled
+    //@Disabled
     public void serverIssue_52() {
         int projectIndex = 0;
         step("Generate a new Junit test case for a particular method", () -> {
@@ -593,7 +593,7 @@ public class UiTestsV3 {
     //remote mode - ending case
     @Test
     @Order(10)
-    @Disabled
+    //@Disabled
     public void serverIssue_51() {
         step("Clear notifications", () -> {
             controller.getIdeaFrame().getNotificationTab().click();
@@ -607,7 +607,7 @@ public class UiTestsV3 {
             openUnloggedToolbarIfNotOpen(controller, 1);
             backToMenuIfOpen(controller);
 
-            controller.getIdeaFrame().getClearFiltersLabel().click();
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
 
             controller.getIdeaFrame().getFilterButton().click();
             pause(ofMillis(250).toMillis());
