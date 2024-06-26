@@ -62,7 +62,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(1)
-    //@Disabled
+    @Disabled
     public void cloneAndAddSDK() {
         int projectIndex = 0;
         step("Clone project - fresh state, change branch and setup sdk version", () -> {
@@ -84,7 +84,7 @@ public class UiTestsV3 {
     //remote mode start - start of remote chain tests for maven - demo
     @Test
     @Order(2)
-    //@Disabled
+    @Disabled
     public void local_mode_frequencey_logging_Test() {
         //add to other files
         int projectIndex = 0;
@@ -158,7 +158,7 @@ public class UiTestsV3 {
 
                 backToMenuIfOpen(controller);
                 controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
-                pause(ofSeconds(1).toMillis());
+                pause(ofSeconds(2).toMillis());
 
                 Integer checkboxes = controller.getIdeaFrame().getAllVisibleCheckBoxes().size();
 
@@ -304,7 +304,7 @@ public class UiTestsV3 {
     //remote mode start - start of remote chain tests for maven - demo
     @Test
     @Order(3)
-    //@Disabled
+    @Disabled
     public void remote_mode_general() {
         int projectIndex = 0;
         final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
@@ -324,7 +324,8 @@ public class UiTestsV3 {
 
             openFileIfNeeded("FutureController.java", controller);
             getAllUnloggedEntryPointGutterIconsSortedForOpenFile(controller).get(0).click();
-            controller.getIdeaFrame().getFilterOnTimelineMenuOption();
+            controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
+            pause(ofSeconds(1).toMillis());
 
             controller.getIdeaFrame().getFilterButton().click();
             pause(ofMillis(250).toMillis());
@@ -389,7 +390,7 @@ public class UiTestsV3 {
     //remote mode start - debug DirectInvoke for this method
     @Test
     @Order(4)
-    //@Disabled
+    @Disabled
     public void serverIssue_14() {
         int projectIndex = 0;
         step("Try to generate dummy data boilerplate Junit code.", () -> {
@@ -417,9 +418,10 @@ public class UiTestsV3 {
 
     @Test
     @Order(5)
-    //@Disabled
+    @Disabled
     public void serverIssue_44() {
         int projectIndex = 0;
+        backToMenuIfOpen(controller);
         step("Open main class and ensure InlayHint render behaviour is as expected", () -> {
             openFileIfNeeded(projectsToTest.get(projectIndex).getLocalProjectInfo().getMainClassName(), controller);
             //look for inlayHints and assert that clicking on it will not hide it
@@ -456,7 +458,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(6)
-    //@Disabled
+    @Disabled
     public void serverIssues_7() {
         step("Close method options menu if open", () -> {
             backToMenuIfOpen(controller);
@@ -503,6 +505,7 @@ public class UiTestsV3 {
 
         backToMenuIfOpen(controller);
         step("Generate Junit from Icon", () -> {
+            junitGenerationRequest.setExecuteOnDemand(true);
             generateJunitTestCaseForMethod(controller, junitGenerationRequest);
             String currentFileName = controller.getIdeaFrame().textEditor().getEditor().getFileName();
             //assert test case file is created
@@ -513,6 +516,7 @@ public class UiTestsV3 {
         });
 
         step("Generate Junit from Dummy data option", () -> {
+            junitGenerationRequest.setExecuteOnDemand(false);
             junitGenerationRequest.setJunitGenerationMethod(JunitGenerationMethod.DUMMY_DATA);
             generateJunitTestCaseForMethod(controller, junitGenerationRequest);
             String currentFileName = controller.getIdeaFrame().textEditor().getEditor().getFileName();
@@ -524,6 +528,7 @@ public class UiTestsV3 {
         });
 
         step("Generate Junit from Replay data option", () -> {
+            junitGenerationRequest.setExecuteOnDemand(false);
             junitGenerationRequest.setJunitGenerationMethod(JunitGenerationMethod.REPLAY_DATA);
             generateJunitTestCaseForMethod(controller, junitGenerationRequest);
             String currentFileName = controller.getIdeaFrame().textEditor().getEditor().getFileName();
@@ -537,7 +542,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(8)
-    //@Disabled
+    @Disabled
     public void replayCaseSave_sanity_remote() {
         step("Open toolbar if not already open", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
@@ -560,7 +565,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(9)
-    //@Disabled
+    @Disabled
     public void serverIssue_52() {
         int projectIndex = 0;
         step("Generate a new Junit test case for a particular method", () -> {
@@ -588,7 +593,7 @@ public class UiTestsV3 {
     //remote mode - ending case
     @Test
     @Order(10)
-    //@Disabled
+    @Disabled
     public void serverIssue_51() {
         step("Clear notifications", () -> {
             controller.getIdeaFrame().getNotificationTab().click();
@@ -636,7 +641,7 @@ public class UiTestsV3 {
     //local mode start and sanity
     @Test
     @Order(11)
-    //@Disabled
+    @Disabled
     public void run_mode_local_general() {
         int projectIndex = 0;
         final String annotationText = "@Unlogged";
@@ -711,7 +716,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(12)
-    //@Disabled
+    @Disabled
     public void junitLocalModeGeneration_sanity_local() {
         int projectIndex = 0;
         step("Back to menu", () -> {
@@ -769,7 +774,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(13)
-    //@Disabled
+    @Disabled
     public void replayCaseSave_sanity_local() {
         step("Clear filters and selections before save", () -> {
             backToMenuIfOpen(controller);
@@ -787,7 +792,7 @@ public class UiTestsV3 {
     //Server Issues Sheet - Issue 73
     @Test
     @Order(14)
-    //@Disabled
+    @Disabled
     public void serverIssues_73() {
         int projectIndex = 0;
         step("Close Options menu if open", () -> {
@@ -817,7 +822,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(15)
-    //@Disabled
+    @Disabled
     public void serverIssues_72() {
         //project is already up and running in local mode
         step("Save Candidates", () -> {
@@ -853,7 +858,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(16)
-    //@Disabled
+    @Disabled
     public void serverIssues_20_local() {
         //Ensure that the hyperlink text "Local" is visible in Plugin and you open filters when you open it.
         //unlogged toolbar assumed to be open before this.
@@ -879,7 +884,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(17)
-    //@Disabled
+    @Disabled
     public void serverIssues_30_local() {
         //On Clicking on remote in Filter -> Sources -> Remote, you should see a pre-populated URL
         //Assumes unlogged plugin window is open
@@ -906,7 +911,7 @@ public class UiTestsV3 {
     //start in local mode - ending case
     @Test
     @Order(18)
-    //@Disabled
+    @Disabled
     public void serverIssue_46() {
         //set filter to remote mode
         //don't select a session from remote, try to click on apply
@@ -954,7 +959,7 @@ public class UiTestsV3 {
     //an ending case
     @Test
     @Order(19)
-    //@Disabled
+    @Disabled
     public void serverIssue_36_local() {
         step("Select remote mode filter, then cancel, ensure that candidates are generated afterwards", () -> {
             openUnloggedToolbarIfNotOpen(controller, 2);
@@ -1022,7 +1027,7 @@ public class UiTestsV3 {
     //an ending case
     @Test
     @Order(20)
-    //@Disabled
+    @Disabled
     public void serverIssue_37() {
         //set filter to remote mode
         //don't select a session from remote, try to click on apply
@@ -1086,7 +1091,7 @@ public class UiTestsV3 {
     //doesn't need project to start
     @Test
     @Order(21)
-    //@Disabled
+    @Disabled
     public void serverIssues_23() {
         int switchCount = 10;
         step("open filters tab", () -> {
@@ -1113,7 +1118,7 @@ public class UiTestsV3 {
     //switch to gradle project
     @Test
     @Order(22)
-    //@Disabled
+    @Disabled
     public void gradle_project_onboarding() {
         int projectIndex = 1;
         try {
@@ -1154,7 +1159,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(23)
-    //@Disabled
+    @Disabled
     public void remote_mode_general_gradle() {
         int projectIndex = 1;
         final String annotationText = "@Unlogged(serverEndpoint = \"" + TestConstants.REMOTE_URL + "\")";
@@ -1226,7 +1231,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(24)
-    //@Disabled
+    @Disabled
     public void junitRemoteModeGeneration_sanity_remote_gradle() {
         int projectIndex = 1;
         step("Back to menu", () -> {
@@ -1292,7 +1297,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(25)
-    //@Disabled
+    @Disabled
     public void replayCaseSave_sanity_remote_gradle() {
 
         step("Close options before next test", () -> {
@@ -1324,7 +1329,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(26)
-    //@Disabled
+    @Disabled
     public void run_mode_local_general_gradle() {
         int projectIndex = 1;
         final String annotationText = "@Unlogged";
@@ -1397,7 +1402,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(27)
-    //@Disabled
+    @Disabled
     public void junitLocalModeGeneration_sanity_local_gradle() {
         int projectIndex = 1;
         step("Back to menu", () -> {
@@ -1459,7 +1464,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(28)
-    //@Disabled
+    @Disabled
     public void replayCaseSave_sanity_local_gradle() {
         step("Close options tab if open", () -> {
             backToMenuIfOpen(controller);
@@ -1483,7 +1488,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(29)
-    //@Disabled
+    @Disabled
     public void close_LastProject() {
         step("Open readme file to prevent shortcut clash", () -> {
             openFileIfNeeded("README.md", controller);
@@ -1496,7 +1501,7 @@ public class UiTestsV3 {
     //----------------
     @Test
     @Order(30)
-    //@Disabled
+    @Disabled
     public void onboarding_multimodule() {
         int projectIndex = 2;
 
@@ -1518,7 +1523,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(31)
-    //@Disabled
+    @Disabled
     public void multimodule_local_sanity_multimodule() {
         int projectIndex = 2;
         //don't add annotations
@@ -1656,7 +1661,7 @@ public class UiTestsV3 {
 
     @Test
     @Order(32)
-    //@Disabled
+    @Disabled
     public void junitLocalModeGeneration_sanity_local_multimodule() {
         int projectIndex = 2;
 
@@ -1723,7 +1728,7 @@ public class UiTestsV3 {
     }
 
 //    @Test
-//    //@Disabled
+//    @Disabled
 //    @Order(25)
 //    public void ide_errors_checkIDEFatalExceptions_sanity() {
 //        List<String> listIDE = listIDEFatalExceptions(controller);
@@ -1751,7 +1756,7 @@ public class UiTestsV3 {
 
     //    @Test
 //    @Order(1)
-//    //@Disabled
+//    @Disabled
 //    public void openProjectAndAddSDK() {
 //
 //        step("Open Project", () -> {

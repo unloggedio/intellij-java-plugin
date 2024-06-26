@@ -307,7 +307,7 @@ public class UiTestInteractionUtils {
     public static void openUnloggedToolbarIfNotOpen(RemoteRobotController controller, int waitDurationSeconds) {
         try {
             //Check if filter button is visible
-            controller.getIdeaFrame().getFilterButton();
+            controller.getIdeaFrame().getlibraryTabHeader();
         } catch (UIElementNotFoundException notFoundException) {
             controller.getIdeaFrame().getUnloggedToolbarComponent().click();
             pause(ofSeconds(waitDurationSeconds).toMillis());
@@ -352,6 +352,7 @@ public class UiTestInteractionUtils {
         controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
         //doesn't need to open file
         clearGotIts(controller);
+        pause(ofMillis(500).toMillis());
 
         if (request.getFilterOptions() != null) {
             setFilterOptionsForCurrentView(controller, request.getFilterOptions());
@@ -360,7 +361,7 @@ public class UiTestInteractionUtils {
             controller.getIdeaFrame().getFirstCheckbox().click();
         } catch (Exception e) {
             directInvokeMethod(request.getDirectInvokeRequest(), controller);
-            closeOptionsTabIfOpen(controller);
+            backToMenuIfOpen(controller);
             controller.getIdeaFrame().getFirstCheckbox().click();
         }
         clearGotIts(controller);
