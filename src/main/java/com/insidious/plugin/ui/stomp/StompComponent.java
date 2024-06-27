@@ -1448,6 +1448,7 @@ public class StompComponent implements
                 InsidiousNotification.notifyMessage("Excluded [" + key + "] from live view. If you want to see them " +
                                 "include the class [" + className + "] and method [" + methodName + "] in filters.",
                         NotificationType.INFORMATION);
+                updateFilterLabel();
                 return;
 
             }
