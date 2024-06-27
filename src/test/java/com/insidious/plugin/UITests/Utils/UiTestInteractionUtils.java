@@ -364,7 +364,7 @@ public class UiTestInteractionUtils {
             directInvokeMethod(request.getDirectInvokeRequest(), controller);
             backToMenuIfOpen(controller);
             controller.getIdeaFrame().getFilterOnTimelineMenuOption().click();
-            pause(ofMillis(500).toMillis());
+            pause(ofSeconds(1).toMillis());
             controller.getIdeaFrame().getFirstCheckbox().click();
         }
         clearGotIts(controller);
