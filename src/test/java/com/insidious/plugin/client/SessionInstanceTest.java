@@ -90,7 +90,7 @@ public class SessionInstanceTest extends TestCase {
 
     @Test
     public void testScanReactive() throws SQLException, IOException, InterruptedException {
-        String sessionPath = SESSIONS_PATH + "mongo-crud-non-reactive";
+        String sessionPath = SESSIONS_PATH + "responseEntity-non-reactive";
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getName()).thenReturn("test-project");
         new UnloggedLocalClient(sessionPath);
@@ -125,6 +125,12 @@ public class SessionInstanceTest extends TestCase {
                 System.out.println("Method : " + bareBoneCandidate.getMethodUnderTest().getName());
                 System.out.println("Candidate output : " + returnValue);
                 System.out.println("\n");
+
+                System.out.println("Assertion command : ");
+                System.out.println("assertions.put(new MethodReference(\""+bareBoneCandidate.getMethodUnderTest().getName()+"\",\n" +
+                        "                        \""+bareBoneCandidate.getMethodUnderTest().getClassName()+"\"),\n" +
+                        "                new AssertionOptions(\""+returnValue+"\", null));");
+                System.out.println("------------\n");
             }
             if (!done.get()) {
                 cdl.countDown();

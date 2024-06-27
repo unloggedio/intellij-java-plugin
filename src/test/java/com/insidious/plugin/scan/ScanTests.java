@@ -175,6 +175,27 @@ public class ScanTests {
         ScanTestModel optionalNonReactive = new ScanTestModel("optional-non-reactive", assertions);
         scanTests.add(optionalNonReactive);
 
+        assertions = new HashMap<>();
+        assertions.put(new MethodReference("createWithCode",
+                        "org.unlogged.demo.controller.ResponseEntityOps"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"user_id\":1,\"username\":\"u1\",\"password\":\"p1\",\"email\":\"e1\"},\"status\":\"CREATED\"}", null));
+
+        assertions.put(new MethodReference("getUserOf",
+                        "org.unlogged.demo.controller.ResponseEntityOps"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"type\":\"about:blank\",\"title\":null,\"status\":200,\"detail\":null,\"instance\":null,\"properties\":null},\"status\":200}", null));
+
+        assertions.put(new MethodReference("getOkUser",
+                        "org.unlogged.demo.controller.ResponseEntityOps"),
+                new AssertionOptions("{\"headers\":{},\"body\":{\"user_id\":1,\"username\":\"u1\",\"password\":\"p1\",\"email\":\"e1\"},\"status\":\"OK\"}", null));
+
+        assertions.put(new MethodReference("getOkString",
+                        "org.unlogged.demo.controller.ResponseEntityOps"),
+                new AssertionOptions("{\"headers\":{},\"body\":\"ok\",\"status\":\"OK\"}", null));
+
+        //SDK 0.6.3 - Response Entity Non reactive candidates
+        ScanTestModel responseEntityNonReactive = new ScanTestModel("responseEntity-non-reactive", assertions);
+        scanTests.add(responseEntityNonReactive);
+
         List<ScanTestResult> scanTestResults = new ArrayList<>();
         for (ScanTestModel scanTestModel : scanTests) {
             Map<MethodReference, AssertionResult> assertionResults = assertScannedValuesFromSession(scanTestModel.getAssertions(), scanTestModel.getSessionFolder());
