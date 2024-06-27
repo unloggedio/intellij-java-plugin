@@ -196,6 +196,91 @@ public class ScanTests {
         ScanTestModel responseEntityNonReactive = new ScanTestModel("responseEntity-non-reactive", assertions);
         scanTests.add(responseEntityNonReactive);
 
+        assertions = new HashMap<>();
+        assertions.put(new MethodReference("groupBy",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("{\"a\":[{\"user_id\":9903,\"username\":\"arb\",\"password\":\"YK04\",\"email\":\"SHA@gmail.com\"}],\"c\":[{\"user_id\":401,\"username\":\"CLP\",\"password\":\"C401\",\"email\":\"CLP401@gmail.com\"}],\"d\":[{\"user_id\":403,\"username\":\"DED\",\"password\":\"D403\",\"email\":\"DED403@gmail.com\"}],\"t\":[{\"user_id\":402,\"username\":\"TRP\",\"password\":\"T402\",\"email\":\"TRP402@gmail.com\"}],\"u\":[{\"user_id\":1,\"username\":\"User1\",\"password\":\"User1pass\",\"email\":\"User1@gmail.com\"},{\"user_id\":2,\"username\":\"User2\",\"password\":\"User2pass\",\"email\":\"User2@gmail.com\"},{\"user_id\":3,\"username\":\"User3\",\"password\":\"User3pass\",\"email\":\"User3@gmail.com\"}],\"l\":[{\"user_id\":9901,\"username\":\"lck\",\"password\":\"S???\",\"email\":\"SL?@gmail.com\"}],\"m\":[{\"user_id\":9902,\"username\":\"msc\",\"password\":\"S117\",\"email\":\"S117@gmail.com\"}]}", null));
+
+        assertions.put(new MethodReference("getUserList",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("[{\"user_id\":11,\"username\":\"UserA\",\"password\":\"a\",\"email\":\"userA@gmail.com\"},{\"user_id\":23,\"username\":\"UserB\",\"password\":\"b\",\"email\":\"userB@gmail.com\"},{\"user_id\":14,\"username\":\"UserC\",\"password\":\"c\",\"email\":\"userC@gmail.com\"},{\"user_id\":59,\"username\":\"UserD\",\"password\":\"d\",\"email\":\"userD@gmail.com\"},{\"user_id\":64,\"username\":\"UserE\",\"password\":\"e\",\"email\":\"userE@gmail.com\"},{\"user_id\":80,\"username\":\"UserF\",\"password\":\"f\",\"email\":\"userF@gmail.com\"},{\"user_id\":24,\"username\":\"UserG\",\"password\":\"g\",\"email\":\"userG@gmail.com\"}]", null));
+
+        assertions.put(new MethodReference("getSortedIdOrder",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("\"11 < 14 < 23 < 24 < 59 < 64 < 80\"", null));
+
+        assertions.put(new MethodReference("getUserGroups",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("[[{\"user_id\":1,\"username\":\"User1\",\"password\":\"User1pass\",\"email\":\"User1@gmail.com\"},{\"user_id\":2,\"username\":\"User2\",\"password\":\"User2pass\",\"email\":\"User2@gmail.com\"},{\"user_id\":3,\"username\":\"User3\",\"password\":\"User3pass\",\"email\":\"User3@gmail.com\"}],[{\"user_id\":401,\"username\":\"CLP\",\"password\":\"C401\",\"email\":\"CLP401@gmail.com\"},{\"user_id\":402,\"username\":\"TRP\",\"password\":\"T402\",\"email\":\"TRP402@gmail.com\"},{\"user_id\":403,\"username\":\"DED\",\"password\":\"D403\",\"email\":\"DED403@gmail.com\"}],[{\"user_id\":9901,\"username\":\"lck\",\"password\":\"S???\",\"email\":\"SL?@gmail.com\"},{\"user_id\":9902,\"username\":\"msc\",\"password\":\"S117\",\"email\":\"S117@gmail.com\"},{\"user_id\":9903,\"username\":\"arb\",\"password\":\"YK04\",\"email\":\"SHA@gmail.com\"}]]", null));
+
+        assertions.put(new MethodReference("reduceUsage",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("30918", null));
+
+        assertions.put(new MethodReference("matchCases",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("{\"all-false\":false,\"all-true\":true,\"any-false\":false,\"any-true\":true,\"none-false\":false,\"none-true\":true}", null));
+
+        assertions.put(new MethodReference("distinctUsage",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("[2,5,3,4]", null));
+
+        assertions.put(new MethodReference("limitUsers",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("[]", null));
+
+        assertions.put(new MethodReference("countUsersInGroups",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("9", null));
+
+        assertions.put(new MethodReference("peek_all",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("[[{\"user_id\":1,\"username\":\"User1#\",\"password\":\"user1pass_1397\",\"email\":\"user1pass_1397\"},{\"user_id\":2,\"username\":\"User2#\",\"password\":\"user2pass_1397\",\"email\":\"user2pass_1397\"},{\"user_id\":3,\"username\":\"User3#\",\"password\":\"user3pass_1397\",\"email\":\"user3pass_1397\"}],[{\"user_id\":401,\"username\":\"CLP#\",\"password\":\"c401_1397\",\"email\":\"c401_1397\"},{\"user_id\":402,\"username\":\"TRP#\",\"password\":\"t402_1397\",\"email\":\"t402_1397\"},{\"user_id\":403,\"username\":\"DED#\",\"password\":\"d403_1397\",\"email\":\"d403_1397\"}],[{\"user_id\":9901,\"username\":\"lck#\",\"password\":\"s???_1397\",\"email\":\"s???_1397\"},{\"user_id\":9902,\"username\":\"msc#\",\"password\":\"s117_1397\",\"email\":\"s117_1397\"},{\"user_id\":9903,\"username\":\"arb#\",\"password\":\"yk04_1397\",\"email\":\"yk04_1397\"}]]", null));
+
+        assertions.put(new MethodReference("flatmap_minId",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("{\"user_id\":1,\"username\":\"User1\",\"password\":\"User1pass\",\"email\":\"User1@gmail.com\"}", null));
+
+        assertions.put(new MethodReference("flatmap_maxId",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("{\"user_id\":9903,\"username\":\"arb\",\"password\":\"YK04\",\"email\":\"SHA@gmail.com\"}", null));
+
+        assertions.put(new MethodReference("toArrayCollection_Usernames",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("[\"UserA\",\"UserB\",\"UserC\",\"UserD\",\"UserE\",\"UserF\",\"UserG\"]", null));
+
+        assertions.put(new MethodReference("filterAndFindFirst",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("{\"user_id\":14,\"username\":\"UserC\",\"password\":\"c\",\"email\":\"userC@gmail.com\"}", null));
+
+        assertions.put(new MethodReference("mapAndFilter",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("[11,23,59]", null));
+
+        assertions.put(new MethodReference("mapVector",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("[11,23,14,59,64,80,24]", null));
+
+        assertions.put(new MethodReference("mapSet",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("[64,80,23,24,11,59,14]", null));
+
+        assertions.put(new MethodReference("mapAndCollect",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("[11,23,14,59,64,80,24]", null));
+
+        assertions.put(new MethodReference("forEachRunParallel",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("[{\"user_id\":11,\"username\":\"UserA#\",\"password\":\"a_1459\",\"email\":\"userA-@gmail.com\"},{\"user_id\":23,\"username\":\"UserB#\",\"password\":\"b_1459\",\"email\":\"userB-@gmail.com\"},{\"user_id\":14,\"username\":\"UserC#\",\"password\":\"C_1397\",\"email\":\"userC+@gmail.com\"},{\"user_id\":59,\"username\":\"UserD#\",\"password\":\"d_1459\",\"email\":\"userD-@gmail.com\"},{\"user_id\":64,\"username\":\"UserE#\",\"password\":\"E_1397\",\"email\":\"userE+@gmail.com\"},{\"user_id\":80,\"username\":\"UserF#\",\"password\":\"F_1397\",\"email\":\"userF+@gmail.com\"},{\"user_id\":24,\"username\":\"UserG#\",\"password\":\"G_1397\",\"email\":\"userG+@gmail.com\"}]", null));
+
+        assertions.put(new MethodReference("forEachRun",
+                        "org.unlogged.demo.controller.StreamOpsController"),
+                new AssertionOptions("[{\"user_id\":11,\"username\":\"UserA#\",\"password\":\"a_1459\",\"email\":\"userA-@gmail.com\"},{\"user_id\":23,\"username\":\"UserB#\",\"password\":\"b_1459\",\"email\":\"userB-@gmail.com\"},{\"user_id\":14,\"username\":\"UserC#\",\"password\":\"C_1397\",\"email\":\"userC+@gmail.com\"},{\"user_id\":59,\"username\":\"UserD#\",\"password\":\"d_1459\",\"email\":\"userD-@gmail.com\"},{\"user_id\":64,\"username\":\"UserE#\",\"password\":\"E_1397\",\"email\":\"userE+@gmail.com\"},{\"user_id\":80,\"username\":\"UserF#\",\"password\":\"F_1397\",\"email\":\"userF+@gmail.com\"},{\"user_id\":24,\"username\":\"UserG#\",\"password\":\"G_1397\",\"email\":\"userG+@gmail.com\"}]", null));
+
+        //SDK 0.6.3 - Streams Non reactive candidates
+        ScanTestModel streamNonReactive = new ScanTestModel("stream-non-reactive", assertions);
+        scanTests.add(streamNonReactive);
+
         List<ScanTestResult> scanTestResults = new ArrayList<>();
         for (ScanTestModel scanTestModel : scanTests) {
             Map<MethodReference, AssertionResult> assertionResults = assertScannedValuesFromSession(scanTestModel.getAssertions(), scanTestModel.getSessionFolder());
