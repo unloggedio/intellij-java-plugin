@@ -323,10 +323,14 @@ final public class InsidiousService implements
                     if (project.isDisposed()) {
                         return;
                     }
-                    DumbService.getInstance(project)
-                            .runReadActionInSmartMode(() -> {
-                                populateFromEditors(event);
-                            });
+                    try {
+                        DumbService.getInstance(project)
+                                .runReadActionInSmartMode(() -> {
+                                    populateFromEditors(event);
+                                });
+                    } catch (Exception e) {
+                        // ignore
+                    }
                 });
             }
         };
@@ -576,10 +580,7 @@ final public class InsidiousService implements
         List<String> methodArgumentValues = selectedCandidate != null ? selectedCandidate.getMainMethod().getArguments()
                 .stream().map(e -> new String(e.getProb().getSerializedValue()))
                 .collect(Collectors.toList()) : null;
-        directInvokeComponent.renderForMethod(method,
-                methodArgumentValues);
-        directInvokeComponent.triggerExecute();
-
+        directInvokeComponent.renderForMethod(method, methodArgumentValues);
     }
 
     public void addAllTabs() {
