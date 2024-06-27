@@ -52,6 +52,7 @@ public class ScanTests {
         assertions.put(new MethodReference("getUrl",
                 "org.unlogged.demo.controller.SiteUrl"), new AssertionOptions("\"https://localhost:8080\"", 2L));
 
+        //SDK 0.6.100 - With process counter = 4, class counter = 3 and method counter = 2
         ScanTestModel freqLogging = new ScanTestModel("freq-logging-maven-demo", assertions);
         scanTests.add(freqLogging);
 
@@ -76,6 +77,7 @@ public class ScanTests {
                         "org.unlogged.demo.controller.ModelMapperOpsController"),
                 new AssertionOptions("{\"id\":1,\"username\":\"user1\"}", null));
 
+        //SDK 0.6.3 - Model mapper candidates
         ScanTestModel modelMapperNonReactive = new ScanTestModel("modelmapper-non-reactive", assertions);
         scanTests.add(modelMapperNonReactive);
 
@@ -100,8 +102,78 @@ public class ScanTests {
                         "org.unlogged.demo.controller.MongoOpsController"),
                 new AssertionOptions("{\"id\":\"string\",\"name\":\"string\"}", null));
 
+        //SDK 0.6.3 - Mongo Crud Non reactive
         ScanTestModel mongoCrudNonReactive = new ScanTestModel("mongo-crud-non-reactive", assertions);
         scanTests.add(mongoCrudNonReactive);
+
+        assertions = new HashMap<>();
+        assertions.put(new MethodReference("chain",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("\"default\"", null));
+
+        assertions.put(new MethodReference("getNonEmptyOptionalUser",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("{\"name\":\"a\",\"email\":\"c\",\"number\":\"e\"}", null));
+
+        assertions.put(new MethodReference("flatMapUsage",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("\"a\"", null));
+
+        assertions.put(new MethodReference("countNameLength",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("5", null));
+
+        assertions.put(new MethodReference("getDefaultUser",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("{\"user_id\":1,\"username\":\"User1\",\"password\":\"user\",\"email\":\"user@gmail.com\"}", null));
+
+        assertions.put(new MethodReference("filterUserOptional",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("[true,false]", null));
+
+        assertions.put(new MethodReference("getUserUsage",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("{\"user_id\":1,\"username\":\"User1\",\"password\":\"user\",\"email\":\"user@gmail.com\"}", null));
+
+        assertions.put(new MethodReference("throwOnNull",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("{\"cause\":null,\"stackTrace\":[{\"classLoaderName\":null,\"moduleName\":\"java.base\",\"moduleVersion\":\"17.0.7\",\"methodName\":\"orElseThrow\",\"fileName\":\"Optional.java\",\"lineNumber\":403,\"nativeMethod\":false,\"className\":\"java.util.Optional\"},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"Unlogged$Probed$$throwOnNull\",\"fileName\":\"OptionalOpsController.java\",\"lineNumber\":74,\"nativeMethod\":false,\"className\":\"org.unlogged.demo.controller.OptionalOpsController\"},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"throwOnNull\",\"fileName\":\"OptionalOpsController.java\",\"lineNumber\":-1,\"nativeMethod\":false,\"className\":\"org.unlogged.demo.controller.OptionalOpsController\"},{\"classLoaderName\":null,\"moduleName\":\"java.base\",\"moduleVersion\":\"17.0.7\",\"methodName\":\"invoke0\",\"fileName\":\"NativeMethodAccessorImpl.java\",\"lineNumber\":-2,\"nativeMethod\":true,\"className\":\"jdk.internal.reflect.NativeMethodAccessorImpl\"},{\"classLoaderName\":null,\"moduleName\":\"java.base\",\"moduleVersion\":\"17.0.7\",\"methodName\":\"invoke\",\"fileName\":\"NativeMethodAccessorImpl.java\",\"lineNumber\":77,\"nativeMethod\":false,\"className\":\"jdk.internal.reflect.NativeMethodAccessorImpl\"},{\"classLoaderName\":null,\"moduleName\":\"java.base\",\"moduleVersion\":\"17.0.7\",\"methodName\":\"invoke\",\"fileName\":\"DelegatingMethodAccessorImpl.java\",\"lineNumber\":43,\"nativeMethod\":false,\"className\":\"jdk.internal.reflect.DelegatingMethodAccessorImpl\"},{\"classLoaderName\":null,\"moduleName\":\"java.base\",\"moduleVersion\":\"17.0.7\",\"methodName\":\"invoke\",\"fileName\":\"Method.java\",\"lineNumber\":568,\"nativeMethod\":false,\"className\":\"java.lang.reflect.Method\"},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"executeCommandRaw\",\"fileName\":\"AgentCommandExecutorImpl.java\",\"lineNumber\":407,\"nativeMethod\":false,\"className\":\"io.unlogged.AgentCommandExecutorImpl\"},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"executeCommand\",\"fileName\":\"AgentCommandExecutorImpl.java\",\"lineNumber\":477,\"nativeMethod\":false,\"className\":\"io.unlogged.AgentCommandExecutorImpl\"},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"serve\",\"fileName\":\"AgentCommandServer.java\",\"lineNumber\":74,\"nativeMethod\":false,\"className\":\"io.unlogged.command.AgentCommandServer\"},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"execute\",\"fileName\":\"NanoHTTPD.java\",\"lineNumber\":945,\"nativeMethod\":false,\"className\":\"fi.iki.elonen.NanoHTTPD$HTTPSession\"},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"run\",\"fileName\":\"NanoHTTPD.java\",\"lineNumber\":192,\"nativeMethod\":false,\"className\":\"fi.iki.elonen.NanoHTTPD$ClientHandler\"},{\"classLoaderName\":null,\"moduleName\":\"java.base\",\"moduleVersion\":\"17.0.7\",\"methodName\":\"run\",\"fileName\":\"Thread.java\",\"lineNumber\":833,\"nativeMethod\":false,\"className\":\"java.lang.Thread\"}],\"message\":null,\"suppressed\":[],\"localizedMessage\":null}", null));
+
+        assertions.put(new MethodReference("orElseGet",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("{\"user_id\":1,\"username\":\"User1\",\"password\":\"user\",\"email\":\"user@gmail.com\"}", null));
+
+        assertions.put(new MethodReference("orElseCase",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("\"Default\"", null));
+
+        assertions.put(new MethodReference("orElseCase",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("\"Default\"", null));
+
+        assertions.put(new MethodReference("ifPresent",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("\"Ace###\"", null));
+
+        assertions.put(new MethodReference("getEmptyStatus",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("[false,true]", null));
+
+        assertions.put(new MethodReference("getPresentStatus",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("[true,false]", null));
+
+        assertions.put(new MethodReference("createNullable",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("null", null));
+
+        assertions.put(new MethodReference("create1",
+                        "org.unlogged.demo.controller.OptionalOpsController"),
+                new AssertionOptions("\"default\"", null));
+
+        //SDK 0.6.3 - Optional Usage Non reactive
+        ScanTestModel optionalNonReactive = new ScanTestModel("optional-non-reactive", assertions);
+        scanTests.add(optionalNonReactive);
 
         List<ScanTestResult> scanTestResults = new ArrayList<>();
         for (ScanTestModel scanTestModel : scanTests) {
