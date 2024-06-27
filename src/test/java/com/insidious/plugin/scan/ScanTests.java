@@ -57,11 +57,11 @@ public class ScanTests {
 
         assertions = new HashMap<>();
         assertions.put(new MethodReference("getDefaultModel",
-                "org.unlogged.demo.controller.ModelMapperOpsController"),
+                        "org.unlogged.demo.controller.ModelMapperOpsController"),
                 new AssertionOptions("{\"id\":1,\"username\":\"User1\",\"address\":{\"house\":\"#144\",\"street\":\"StreetX\",\"area\":\"AreaX\",\"city\":\"CityX\",\"state\":\"StateX\",\"country\":\"CountryX\",\"pincode\":\"PinX\"},\"contactInformation\":{\"emails\":[\"user1@gmail.com\",\"user1@yahoo.com\"],\"numbers\":[\"phone-number-1\",\"phone-number-2\"]}}", null));
 
         assertions.put(new MethodReference("getFromConverter",
-                "org.unlogged.demo.controller.ModelMapperOpsController"),
+                        "org.unlogged.demo.controller.ModelMapperOpsController"),
                 new AssertionOptions("{\"username\":\"User1\",\"phoneNumber\":\"phone-number-1\",\"email\":\"user1@gmail.com\",\"address\":\"##144, StateX, AreaX, CityX, StateX, CountryX - Pin-code : PinX\"}", null));
 
         assertions.put(new MethodReference("getEmptyUserModelDto",
@@ -76,14 +76,40 @@ public class ScanTests {
                         "org.unlogged.demo.controller.ModelMapperOpsController"),
                 new AssertionOptions("{\"id\":1,\"username\":\"user1\"}", null));
 
-        ScanTestModel modelMapperNonReactive = new ScanTestModel("modelmapper-recordings", assertions);
+        ScanTestModel modelMapperNonReactive = new ScanTestModel("modelmapper-non-reactive", assertions);
         scanTests.add(modelMapperNonReactive);
+
+        assertions = new HashMap<>();
+        assertions.put(new MethodReference("deleteById",
+                        "org.unlogged.demo.controller.MongoOpsController"),
+                new AssertionOptions("0", null));
+
+        assertions.put(new MethodReference("updatePojo",
+                        "org.unlogged.demo.controller.MongoOpsController"),
+                new AssertionOptions("{\"id\":\"string\",\"name\":\"string\"}", null));
+
+        assertions.put(new MethodReference("getById",
+                        "org.unlogged.demo.controller.MongoOpsController"),
+                new AssertionOptions("{\"id\":\"string\",\"name\":\"string\"}", null));
+
+        assertions.put(new MethodReference("getall",
+                        "org.unlogged.demo.controller.MongoOpsController"),
+                new AssertionOptions("[{\"id\":\"aaa\",\"name\":\"Name AAA\"},{\"id\":\"string\",\"name\":\"string\"}]", null));
+
+        assertions.put(new MethodReference("insertNew",
+                        "org.unlogged.demo.controller.MongoOpsController"),
+                new AssertionOptions("{\"id\":\"string\",\"name\":\"string\"}", null));
+
+        ScanTestModel mongoCrudNonReactive = new ScanTestModel("mongo-crud-non-reactive", assertions);
+        scanTests.add(mongoCrudNonReactive);
 
         List<ScanTestResult> scanTestResults = new ArrayList<>();
         for (ScanTestModel scanTestModel : scanTests) {
             Map<MethodReference, AssertionResult> assertionResults = assertScannedValuesFromSession(scanTestModel.getAssertions(), scanTestModel.getSessionFolder());
             ScanTestResult scanTestResult = new ScanTestResult(scanTestModel.getSessionFolder(), assertionResults, scanTestModel);
             scanTestResults.add(scanTestResult);
+
+            Thread.sleep(500);
         }
 
         Map<ScanTestModel, Boolean> sessionWiseStatus = new HashMap<>();
@@ -138,7 +164,7 @@ public class ScanTests {
     }
 
     public Map<MethodReference, AssertionResult> assertScannedValuesFromSession(Map<MethodReference, AssertionOptions> assetions, String sessionFolder) throws SQLException, IOException, InterruptedException {
-        System.out.println("In test for : " + sessionFolder);
+        System.out.println("[Testing session] : " + sessionFolder);
         String sessionPath = SESSIONS_PATH + sessionFolder;
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getName()).thenReturn("test-project");

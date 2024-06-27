@@ -90,7 +90,7 @@ public class SessionInstanceTest extends TestCase {
 
     @Test
     public void testScanReactive() throws SQLException, IOException, InterruptedException {
-        String sessionPath = SESSIONS_PATH + "modelmapper-recordings";
+        String sessionPath = SESSIONS_PATH + "mongo-crud-non-reactive";
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getName()).thenReturn("test-project");
         new UnloggedLocalClient(sessionPath);
