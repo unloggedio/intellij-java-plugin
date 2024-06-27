@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SessionInstanceTest extends TestCase {
-    public static final String SESSIONS_PATH = "/Users/artpar/workspace/code/insidious/plugin/src/test/resources/test-sessions/";
+    public static final String SESSIONS_PATH = "/Users/testerfresher/Desktop/Source/plugin/src/test/resources/test-sessions/";
 
     @Test
     public void testScan1() throws SQLException, IOException, InterruptedException {
@@ -90,7 +90,7 @@ public class SessionInstanceTest extends TestCase {
 
     @Test
     public void testScanReactive() throws SQLException, IOException, InterruptedException {
-        String sessionPath = SESSIONS_PATH + "selogger-6";
+        String sessionPath = SESSIONS_PATH + "modelmapper-recordings";
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getName()).thenReturn("test-project");
         new UnloggedLocalClient(sessionPath);
