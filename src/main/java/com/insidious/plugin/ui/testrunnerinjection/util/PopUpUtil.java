@@ -5,6 +5,7 @@ import com.insidious.plugin.ui.testrunnerinjection.TestRunnerInjector;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.ui.popup.*;
 
 import javax.swing.*;

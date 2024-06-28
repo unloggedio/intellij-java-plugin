@@ -177,9 +177,6 @@ public class TestRunnerInjector {
      * Replaces the default JComboBox with the custom CheckComboBox to support multiple selections.
      */
     private void initializeModuleDropDown() {
-
-//        DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
-//        dumbService.runWhenSmart(() -> {
         CheckComboBox checkComboBox = new CheckComboBox(multiModuleManager.populateCheckComboBoxWithModules());
         checkComboBox.setPreferredSize(new Dimension(-1,40));
 
@@ -195,7 +192,6 @@ public class TestRunnerInjector {
                 null, null, null, 0, false
         );
         dropDownPanel.add(moduleSelector, gridConstraints);
-//        });
     }
 
     /**

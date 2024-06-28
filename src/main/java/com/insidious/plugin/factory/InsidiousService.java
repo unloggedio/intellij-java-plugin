@@ -769,7 +769,9 @@ final public class InsidiousService implements
 
             @Override
             public void runReplayTests() {
-                PopUpUtil.showTestRunnerPopUp(InsidiousService.this);
+                DumbService.getInstance(project).runWhenSmart(() -> {
+                    PopUpUtil.showTestRunnerPopUp(InsidiousService.this);
+                });
             }
 
             @Override
