@@ -2,15 +2,12 @@ package com.insidious.plugin.ui.testrunnerinjection.util;
 
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
-import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 
 import javax.swing.*;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 /**
  * The MultiModuleManager class provides utilities for populating
  * module checkboxes and checking for specific files.
@@ -66,8 +63,6 @@ public class MultiModuleManager {
         Module[] modules = moduleManager.getModules();
         for (Module module : modules) {
             boolean needsInjection = !checkModuleForRunnerFile(module);
-            //TODO: issue yaha se aara hai
-            System.out.println(module.getName() + " Has Unlogged: " + needsInjection);
             moduleMap.put(module, needsInjection);
         }
         return moduleMap;
@@ -80,16 +75,13 @@ public class MultiModuleManager {
      * @return true if the file exists, false otherwise
      */
     private boolean checkModuleForRunnerFile(Module module) {
-        // Using AtomicBoolean for thread-safe updates
-        AtomicBoolean fileExists = new AtomicBoolean(false);
-        //we can see it is happening because the service is in dumb mode once I click inject
-        // Inside this lambda, the indexing should be complete
+        boolean fileExists = false;
         String desiredDirectoryPath = CommonFileUtil.constructTestRunnerDirectoryPath(module.getModuleFilePath());
         String testRunnerFilePath = desiredDirectoryPath + "/UnloggedTest.java";
         File testRunnerFile = new File(testRunnerFilePath);
         if (testRunnerFile.exists()) {
-            fileExists.set(true);
+            fileExists = true;
         }
-        return fileExists.get();
+        return fileExists;
     }
 }
