@@ -1240,7 +1240,7 @@ public class SessionInstance implements SessionInstanceInterface, Runnable {
 //            e.printStackTrace();
             logger.warn(
                     "failed to create file [" + pathName + "] on disk from" + " archive[" + sessionFile.getName() +
-                            "]", e);
+                            "] =>" +  e.getMessage());
             return null;
         }
         return null;

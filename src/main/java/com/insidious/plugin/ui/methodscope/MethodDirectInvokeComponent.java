@@ -18,14 +18,11 @@ import com.insidious.plugin.pojo.atomic.ClassUnderTest;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.ui.treeeditor.JsonTreeEditor;
 import com.insidious.plugin.util.*;
-import com.intellij.icons.AllIcons;
 import com.intellij.lang.jvm.util.JvmClassUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
-import com.intellij.openapi.actionSystem.impl.ActionToolbarImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -50,7 +47,7 @@ import java.util.List;
 import java.util.*;
 
 public class MethodDirectInvokeComponent
-        implements Disposable {
+        implements Disposable, ComponentProvider {
     private static final Logger logger = LoggerUtil.getInstance(MethodDirectInvokeComponent.class);
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
@@ -306,8 +303,13 @@ public class MethodDirectInvokeComponent
 
     }
 
-    public JComponent getContent() {
+    public JComponent getComponent() {
         return mainContainer;
+    }
+
+    @Override
+    public String getTitle() {
+        return "Direct Invoke";
     }
 
     public void triggerExecute() {

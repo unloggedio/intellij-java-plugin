@@ -50,10 +50,7 @@ import com.insidious.plugin.ui.library.LibraryFilterState;
 import com.insidious.plugin.ui.methodscope.*;
 import com.insidious.plugin.ui.mocking.MockDefinitionEditor;
 import com.insidious.plugin.ui.mocking.OnSaveListener;
-import com.insidious.plugin.ui.stomp.StompComponent;
-import com.insidious.plugin.ui.stomp.StompFilterModel;
-import com.insidious.plugin.ui.stomp.TestCandidateBareBone;
-import com.insidious.plugin.ui.stomp.UnloggedClientFactory;
+import com.insidious.plugin.ui.stomp.*;
 import com.insidious.plugin.ui.testdesigner.JUnitTestCaseWriter;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesignerLite;
 import com.insidious.plugin.upload.ExecutionSessionSource;
@@ -323,10 +320,17 @@ final public class InsidiousService implements
                     return;
                 }
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    DumbService.getInstance(project)
-                            .runReadActionInSmartMode(() -> {
-                                populateFromEditors(event);
-                            });
+                    if (project.isDisposed()) {
+                        return;
+                    }
+                    try {
+                        DumbService.getInstance(project)
+                                .runReadActionInSmartMode(() -> {
+                                    populateFromEditors(event);
+                                });
+                    } catch (Exception e) {
+                        // ignore
+                    }
                 });
             }
         };
@@ -567,18 +571,16 @@ final public class InsidiousService implements
 
                     }
                 });
-        JComponent content = directInvokeComponent.getContent();
-        content.setMinimumSize(new Dimension(-1, 400));
-        content.setMaximumSize(new Dimension(-1, 500));
+//        JComponent content = directInvokeComponent.getComponent();
+//        content.setMinimumSize(new Dimension(-1, 400));
+//        content.setMaximumSize(new Dimension(-1, 500));
 
-        containerPanel.setViewport(content);
+        containerPanel.setViewport(directInvokeComponent);
 
-        directInvokeComponent.renderForMethod(method,
-                selectedCandidate != null ? selectedCandidate.getMainMethod().getArguments()
-                        .stream().map(e -> new String(e.getProb().getSerializedValue()))
-                        .collect(Collectors.toList()) : null);
-        directInvokeComponent.triggerExecute();
-
+        List<String> methodArgumentValues = selectedCandidate != null ? selectedCandidate.getMainMethod().getArguments()
+                .stream().map(e -> new String(e.getProb().getSerializedValue()))
+                .collect(Collectors.toList()) : null;
+        directInvokeComponent.renderForMethod(method, methodArgumentValues);
     }
 
     public void addAllTabs() {
@@ -640,7 +642,7 @@ final public class InsidiousService implements
                             NotificationType.INFORMATION);
                     return;
                 }
-                containerPanel.setViewport(stompWindow.getComponent());
+                containerPanel.setViewport(stompWindow);
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
                     InsidiousService.this.showStompAndFilterForMethod(currentState.getCurrentMethod());
                 });
@@ -664,7 +666,7 @@ final public class InsidiousService implements
                             configuration, true, InsidiousService.this);
 
                     ApplicationManager.getApplication().invokeLater(() -> {
-                        containerPanel.setViewport(designerLite.getComponent());
+                        containerPanel.setViewport(designerLite);
                     });
                 });
             }
@@ -710,7 +712,7 @@ final public class InsidiousService implements
                             configuration, false, InsidiousService.this);
 
                     ApplicationManager.getApplication()
-                            .invokeLater(() -> containerPanel.setViewport(designerLite.getComponent()));
+                            .invokeLater(() -> containerPanel.setViewport(designerLite));
 
                 });
 
@@ -756,7 +758,7 @@ final public class InsidiousService implements
                             PsiReferenceExpression refExpr = (PsiReferenceExpression) reference;
                             InsidiousService.this.showMockCreator((JavaMethodAdapter) currentState.getCurrentMethod(),
                                     (PsiMethodCallExpression) refExpr.getParent(), declaredMock -> {
-                                        InsidiousService.this.hideBottomSplit();
+                                        InsidiousService.this.showRouter();
                                     });
                             break;
                         }
@@ -771,10 +773,10 @@ final public class InsidiousService implements
 
             @Override
             public void showOnboardingInstructions() {
-                containerPanel.setViewport(onboardingWindow.getComponent());
+                containerPanel.setViewport(onboardingWindow);
             }
         };
-        routerPanel = new RouterPanel(routerPanelListener);
+        routerPanel = new RouterPanel(routerPanelListener, this);
         containerPanel.setStompComponent(stompWindow, routerPanel);
         routerPanelListener.showOnboardingInstructions();
 
@@ -891,6 +893,7 @@ final public class InsidiousService implements
             );
             return;
         }
+        containerPanel.setMethod(method);
 
         StompFilterModel stompFilterModel = configurationState.getFilterModel();
         stompFilterModel.setFollowEditor(false);
@@ -901,6 +904,7 @@ final public class InsidiousService implements
                 (Computable<String>) method::getName));
         stompWindow.onMethodFocussed(null);
         stompWindow.onMethodFocussed(method);
+        containerPanel.setViewport(stompWindow);
         resetTimeline();
 //        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
 
@@ -1862,6 +1866,8 @@ final public class InsidiousService implements
         JSONObject properties = new JSONObject();
         properties.put("agentVersion", serverMetadata.getAgentVersion());
         properties.put("package", serverMetadata.getIncludePackageName());
+        properties.put("mode", serverMetadata.getMode());
+        properties.put("server", serverMetadata.getAgentServerUrl());
         properties.put("project", project.getName());
 
         UsageInsightTracker.getInstance().RecordEvent("AGENT_CONNECTED", properties);
@@ -2052,7 +2058,23 @@ final public class InsidiousService implements
     public void showMockCreator(JavaMethodAdapter method, PsiMethodCallExpression callExpression, OnSaveListener onSaveListener) {
         if (stompWindow == null) {
             if (toolWindow == null) {
-                initiateUI();
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    initiateUI();
+                    toolWindow.show();
+                    if (stompWindowContent != null) {
+                        toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
+                        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                            MockDefinitionEditor mockCreator = showNewDeclaredMockCreator(method, callExpression,
+                                    onSaveListener);
+                            containerPanel.setMethod(method);
+                            ApplicationManager.getApplication().invokeLater(() -> {
+
+                                containerPanel.setViewport(mockCreator);
+                            });
+                        });
+                    }
+                });
+                return;
             } else {
                 if (stompWindowContent == null) {
                     InsidiousNotification.notifyMessage(
@@ -2072,8 +2094,9 @@ final public class InsidiousService implements
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
                     MockDefinitionEditor mockCreator = showNewDeclaredMockCreator(method, callExpression,
                             onSaveListener);
+                    containerPanel.setMethod(method);
                     ApplicationManager.getApplication().invokeLater(() -> {
-                        containerPanel.setViewport(mockCreator.getComponent());
+                        containerPanel.setViewport(mockCreator);
                     });
                 });
             }
@@ -2081,9 +2104,12 @@ final public class InsidiousService implements
 
     }
 
-    public MockDefinitionEditor showNewDeclaredMockCreator(JavaMethodAdapter javaMethodAdapter,
-                                                           PsiMethodCallExpression psiMethodCallExpression, OnSaveListener onSaveListener) {
-        MockDefinitionEditor mockEditor = new MockDefinitionEditor(MethodUnderTest.fromMethodAdapter(javaMethodAdapter),
+    public MockDefinitionEditor showNewDeclaredMockCreator(
+            JavaMethodAdapter javaMethodAdapter,
+            PsiMethodCallExpression psiMethodCallExpression,
+            OnSaveListener onSaveListener) {
+        MethodUnderTest methodUnderTest = MethodUnderTest.fromMethodAdapter(javaMethodAdapter);
+        MockDefinitionEditor mockEditor = new MockDefinitionEditor(methodUnderTest,
                 psiMethodCallExpression, project, declaredMock -> {
             String newMockId = saveMockDefinition(declaredMock);
             InsidiousNotification.notifyMessage("Mock definition updated", NotificationType.INFORMATION);
@@ -2104,8 +2130,23 @@ final public class InsidiousService implements
             stompWindow.onMethodFocussed(method);
         }
         currentState.setCurrentMethod(method);
-        containerPanel.setMethod(method);
+        if (toolWindow == null) {
+            ApplicationManager.getApplication().invokeLater(() -> {
+                initiateUI();
+                toolWindow.show();
+                if (stompWindowContent != null) {
+                    toolWindow.getContentManager().setSelectedContent(stompWindowContent, true);
+                    containerPanel.setMethod(method);
+                }
+            });
+        } else {
+            containerPanel.setMethod(method);
+        }
 
+    }
+
+    public void showRouter() {
+        containerPanel.setViewport(null);
     }
 
     public void reloadLibrary() {
@@ -2249,10 +2290,6 @@ final public class InsidiousService implements
     }
 
 
-    public void hideBottomSplit() {
-        stompWindow.hideBottomSplit();
-    }
-
     public void createJunitFromSelectedReplay() {
         List<TestCandidateBareBone> selectedCandidates = stompWindow.getSelectedCandidates();
 
@@ -2359,4 +2396,7 @@ final public class InsidiousService implements
 
     }
 
+    public void showSaveFrom(TestCandidateSaveForm saveFormReference) {
+        containerPanel.setViewport(saveFormReference);
+    }
 }

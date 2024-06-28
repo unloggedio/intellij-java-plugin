@@ -6,6 +6,7 @@ import com.insidious.plugin.mocking.ParameterMatcher;
 import com.insidious.plugin.mocking.ThenParameter;
 import com.insidious.plugin.pojo.atomic.MethodUnderTest;
 import com.insidious.plugin.ui.methodscope.ComponentLifecycleListener;
+import com.insidious.plugin.ui.methodscope.ComponentProvider;
 import com.insidious.plugin.util.ClassUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.application.ApplicationManager;
@@ -16,11 +17,9 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiMethodCallExpression;
-import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -32,7 +31,7 @@ import java.util.List;
 
 import static com.intellij.uiDesigner.core.GridConstraints.*;
 
-public class MockDefinitionEditor {
+public class MockDefinitionEditor implements ComponentProvider {
     private static final Logger logger = LoggerUtil.getInstance(MockDefinitionEditor.class);
     private final MethodUnderTest methodUnderTest;
     private final DeclaredMock declaredMock;
@@ -47,7 +46,6 @@ public class MockDefinitionEditor {
     private JButton chainAnotherReturnButton;
     private JPanel returnItemList;
     private JButton saveButton;
-    private JLabel callExpressionLabel;
     private JPanel nameAndSettingPanel;
     private JPanel nameContainerPanel;
     private JPanel whenThenParentPanel;
@@ -57,7 +55,6 @@ public class MockDefinitionEditor {
     private JPanel thenTitlePanel;
     private JLabel changeThenType;
     private JPanel thenReturnLabelContainer;
-    private JButton cancelButton;
     private JLabel thenTextLabel;
     private JLabel returnValueLabel;
     private JPanel bottomControlPanel;
@@ -78,7 +75,7 @@ public class MockDefinitionEditor {
 
         String expressionText = ApplicationManager.getApplication().runReadAction(
                 (Computable<String>) () -> methodCallExpression.getMethodExpression().getText());
-        callExpressionLabel.setText(expressionText);
+//        callExpressionLabel.setText(expressionText);
 
         changeThenType.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         returnValueLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -155,7 +152,7 @@ public class MockDefinitionEditor {
         if (fieldTypeName.contains(".")) {
             fieldTypeName = fieldTypeName.substring(fieldTypeName.lastIndexOf(".") + 1);
         }
-        callExpressionLabel.setText(fieldTypeName + "." + declaredMock.getMethodName() + "()");
+//        callExpressionLabel.setText(fieldTypeName + "." + declaredMock.getMethodName() + "()");
 
         updateUiValues();
         addListeners();
@@ -190,20 +187,12 @@ public class MockDefinitionEditor {
             onSaveListener.onSaveDeclaredMock(declaredMock);
             componentLifecycleListener.onClose();
         });
-        cancelButton.addActionListener(e -> {
-            componentLifecycleListener.onClose();
-        });
-
     }
 
     private void updateUiValues() {
         parameterListContainerPanel.removeAll();
         whenPanelList.clear();
         thenPanelList.clear();
-
-        TitledBorder titledBorder = (TitledBorder) mainPanel.getBorder();
-        titledBorder.setTitleColor(JBColor.BLACK);
-
 
         nameTextField.setText(declaredMock.getName());
         nameTextField.setSelectionStart(0);
@@ -256,5 +245,10 @@ public class MockDefinitionEditor {
 
     public JComponent getComponent() {
         return mainPanel;
+    }
+
+    @Override
+    public String getTitle() {
+        return "Mock editor";
     }
 }
