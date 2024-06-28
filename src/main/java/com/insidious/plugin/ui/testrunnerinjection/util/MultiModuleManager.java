@@ -39,7 +39,7 @@ public class MultiModuleManager {
         if (moduleMap.size() == 1) {
             Map.Entry<Module, Boolean> singleEntry = moduleMap.entrySet().iterator().next();
             JCheckBox checkBox = new JCheckBox(singleEntry.getKey().getName());
-            checkBox.setSelected(singleEntry.getValue()); // Set selected based on the entry value
+            checkBox.setSelected(true); // Set selected to be true always
             checkBox.setEnabled(false);  // Always set to disabled
             return new JCheckBox[]{checkBox};
         }
@@ -62,8 +62,10 @@ public class MultiModuleManager {
         ModuleManager moduleManager = ModuleManager.getInstance(project);
         Module[] modules = moduleManager.getModules();
         for (Module module : modules) {
-            boolean hasUnloggedRunnerTest = !checkModuleForRunnerFile(module);
-            moduleMap.put(module, hasUnloggedRunnerTest);
+            boolean needsInjection = !checkModuleForRunnerFile(module);
+            //TODO: issue yaha se aara hai
+            System.out.println(module.getName()+" Has Unlogged: "+ needsInjection);
+            moduleMap.put(module, needsInjection);
         }
         return moduleMap;
     }
@@ -78,7 +80,10 @@ public class MultiModuleManager {
         DumbService dumbService = DumbService.getInstance(module.getProject());
         // Using AtomicBoolean for thread-safe updates
         AtomicBoolean fileExists = new AtomicBoolean(false);
+        System.out.println(dumbService.isDumb());
+        //we can see it is happening because the service is in dumb mode once I click inject
         if (dumbService != null) {
+            System.out.println("For the module: "+module.getName()+" SERVICE IS "+dumbService.isDumb());
             dumbService.runWhenSmart(() -> {
                 // Inside this lambda, the indexing should be complete
                 String desiredDirectoryPath = CommonFileUtil.constructTestRunnerDirectoryPath(module.getModuleFilePath());

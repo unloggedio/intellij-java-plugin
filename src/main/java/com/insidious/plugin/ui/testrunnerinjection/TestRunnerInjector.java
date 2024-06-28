@@ -7,6 +7,7 @@ import com.insidious.plugin.ui.testrunnerinjection.components.CheckComboBox;
 import com.insidious.plugin.ui.testrunnerinjection.util.MultiModuleManager;
 import com.insidious.plugin.ui.testrunnerinjection.util.RunnerWriter;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
 
@@ -177,6 +178,8 @@ public class TestRunnerInjector {
      */
     private void initializeModuleDropDown() {
 
+//        DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
+//        dumbService.runWhenSmart(() -> {
         CheckComboBox checkComboBox = new CheckComboBox(multiModuleManager.populateCheckComboBoxWithModules());
         checkComboBox.setPreferredSize(new Dimension(-1,40));
 
@@ -192,6 +195,7 @@ public class TestRunnerInjector {
                 null, null, null, 0, false
         );
         dropDownPanel.add(moduleSelector, gridConstraints);
+//        });
     }
 
     /**
@@ -204,7 +208,16 @@ public class TestRunnerInjector {
                 RunnerWriter runnerWriter = new RunnerWriter(insidiousService.getProject());
                 runnerWriter.writeFile(module.getText());
             }
+            refreshModuleDropDown();
         });
+    }
+
+    private void refreshModuleDropDown() {
+        // Reinitialize the module dropdown
+        initializeModuleDropDown();
+        // Repaint the panel to reflect changes
+        dropDownPanel.revalidate();
+        dropDownPanel.repaint();
     }
 
     /**
