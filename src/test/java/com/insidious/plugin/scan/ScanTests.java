@@ -144,7 +144,6 @@ public class ScanTests {
         };
         AtomicReference<ScheduledFuture<?>> lastFuture = new AtomicReference<>(null);
         sessionInstance.getTestCandidates(testCandidateMetadata -> {
-            System.out.println("In candidate list for : " + sessionFolder);
             waiting.set(false);
             assetions.forEach((key, value) -> {
                 String classname = key.getContainingClass();
@@ -591,6 +590,220 @@ public class ScanTests {
         //SDK - 0.6.4 - abstractions non reactive candidates
         ScanTestModel abstractionsNonReactive = new ScanTestModel("abstractions-non-reactive", assertions);
         scanTests.add(abstractionsNonReactive);
+
+        assertions = new HashMap<>();
+        assertions.put(new MethodReference("getStringVar",
+                        "org.unlogged.springwebfluxdemo.controller.VarKeywordController"),
+                new AssertionOptions("\"abce\"", null));
+
+        assertions.put(new MethodReference("getCharVar",
+                        "org.unlogged.springwebfluxdemo.controller.VarKeywordController"),
+                new AssertionOptions("\"a\"", null));
+
+        assertions.put(new MethodReference("getIntegerArrayVar",
+                        "org.unlogged.springwebfluxdemo.controller.VarKeywordController"),
+                new AssertionOptions("[1,2]", null));
+
+        assertions.put(new MethodReference("getObjectVar",
+                        "org.unlogged.springwebfluxdemo.controller.VarKeywordController"),
+                new AssertionOptions("{\"a\":3,\"b\":\"a\",\"c\":\"test\",\"d\":9.99}", null));
+
+        assertions.put(new MethodReference("getObjectArrayVar",
+                        "org.unlogged.springwebfluxdemo.controller.VarKeywordController"),
+                new AssertionOptions("[{\"a\":1,\"b\":\"a\",\"c\":\"test\",\"d\":9.99},{\"a\":2,\"b\":\"a\",\"c\":\"test\",\"d\":9.99},{\"a\":3,\"b\":\"a\",\"c\":\"test\",\"d\":9.99},{\"a\":4,\"b\":\"a\",\"c\":\"test\",\"d\":9.99}]", null));
+
+
+        //SDK - 0.6.4 - var - reactive candidates
+        ScanTestModel varReactive = new ScanTestModel("var-reactive", assertions);
+        scanTests.add(varReactive);
+
+        assertions = new HashMap<>();
+        assertions.put(new MethodReference("getType",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.splitter.service.TheatreReservationHandler"),
+                new AssertionOptions("\"THEATRE\"", null));
+
+        assertions.put(new MethodReference("getType",
+                        "org.unlogged.springwebfluxdemo.integrationpatterns.splitter.service.ConcertReservationHandler"),
+                new AssertionOptions("\"CONCERT\"", null));
+
+        assertions.put(new MethodReference("convertToObject",
+                        "org.unlogged.springwebfluxdemo.service.WeatherService"),
+                new AssertionOptions("{\"location\":{\"name\":\"String Prairie\",\"region\":\"Texas\",\"country\":\"United States of America\",\"lat\":29.89,\"lon\":-97.35,\"tz_id\":\"America/Chicago\",\"localtime_epoch\":1719575171,\"localtime\":\"2024-06-28 6:46\"},\"current\":{\"temp_c\":25.8,\"temp_f\":78.4,\"is_day\":1,\"condition\":{\"text\":\"Sunny\",\"icon\":\"//cdn.weatherapi.com/weather/64x64/day/113.png\",\"code\":1000},\"wind_mph\":3.8,\"wind_kph\":6.1,\"wind_degree\":190,\"wind_dir\":\"S\",\"pressure_mb\":1009.0,\"pressure_in\":29.8,\"precip_mm\":0.0,\"precip_in\":0.0,\"humidity\":100,\"cloud\":0,\"feelslike_c\":29.7,\"feelslike_f\":85.5,\"vis_km\":11.0,\"vis_miles\":6.0,\"uv\":1.0,\"gust_mph\":11.2,\"gust_kph\":18.0}}", null));
+
+        assertions.put(new MethodReference("getWeatherForAddress",
+                        "org.unlogged.springwebfluxdemo.service.WeatherService"),
+                new AssertionOptions("{\"location\":{\"name\":\"String Prairie\",\"region\":\"Texas\",\"country\":\"United States of America\",\"lat\":29.89,\"lon\":-97.35,\"tz_id\":\"America/Chicago\",\"localtime_epoch\":1719575171,\"localtime\":\"2024-06-28 6:46\"},\"current\":{\"temp_c\":25.8,\"temp_f\":78.4,\"is_day\":1,\"condition\":{\"text\":\"Sunny\",\"icon\":\"//cdn.weatherapi.com/weather/64x64/day/113.png\",\"code\":1000},\"wind_mph\":3.8,\"wind_kph\":6.1,\"wind_degree\":190,\"wind_dir\":\"S\",\"pressure_mb\":1009.0,\"pressure_in\":29.8,\"precip_mm\":0.0,\"precip_in\":0.0,\"humidity\":100,\"cloud\":0,\"feelslike_c\":29.7,\"feelslike_f\":85.5,\"vis_km\":11.0,\"vis_miles\":6.0,\"uv\":1.0,\"gust_mph\":11.2,\"gust_kph\":18.0}}", null));
+
+        assertions.put(new MethodReference("getWeather",
+                        "org.unlogged.springwebfluxdemo.controller.WeatherController"),
+                new AssertionOptions("{\"location\":{\"name\":\"String Prairie\",\"region\":\"Texas\",\"country\":\"United States of America\",\"lat\":29.89,\"lon\":-97.35,\"tz_id\":\"America/Chicago\",\"localtime_epoch\":1719575171,\"localtime\":\"2024-06-28 6:46\"},\"current\":{\"temp_c\":25.8,\"temp_f\":78.4,\"is_day\":1,\"condition\":{\"text\":\"Sunny\",\"icon\":\"//cdn.weatherapi.com/weather/64x64/day/113.png\",\"code\":1000},\"wind_mph\":3.8,\"wind_kph\":6.1,\"wind_degree\":190,\"wind_dir\":\"S\",\"pressure_mb\":1009.0,\"pressure_in\":29.8,\"precip_mm\":0.0,\"precip_in\":0.0,\"humidity\":100,\"cloud\":0,\"feelslike_c\":29.7,\"feelslike_f\":85.5,\"vis_km\":11.0,\"vis_miles\":6.0,\"uv\":1.0,\"gust_mph\":11.2,\"gust_kph\":18.0}}", null));
+
+        assertions.put(new MethodReference("all",
+                        "org.unlogged.springwebfluxdemo.controller.CoffeeController"),
+                new AssertionOptions("\"[{\\\"id\\\":\\\"0fa445f8-9641-408e-9a03-3d561faddee1\\\",\\\"name\\\":\\\"Black Alert Redis\\\"},org.springframework.data.redis.serializer.SerializationException: Could not read JSON: Unrecognized field \\\"department\\\" (class org.unlogged.springwebfluxdemo.model.Coffee), not marked as ignorable (2 known properties: \\\"id\\\", \\\"name\\\"])\\n at [Source: (byte[])\\\"{\\\"id\\\":\\\"string\\\",\\\"name\\\":\\\"string\\\",\\\"department\\\":\\\"string\\\"}\\\"; line: 1, column: 46] (through reference chain: org.unlogged.springwebfluxdemo.model.Coffee[\\\"department\\\"])]\"", null));
+
+        assertions.put(new MethodReference("getValue",
+                        "org.unlogged.springwebfluxdemo.controller.RedisOpsController"),
+                new AssertionOptions("{\"id\":\"string\",\"name\":\"string\",\"department\":\"string\"}", null));
+
+        assertions.put(new MethodReference("setValue",
+                        "org.unlogged.springwebfluxdemo.controller.RedisOpsController"),
+                new AssertionOptions("true", null));
+
+        assertions.put(new MethodReference("getExtendedType",
+                        "org.unlogged.springwebfluxdemo.sealedKeywordUsage.Truck"),
+                new AssertionOptions("\"Extended Truck Type\"", null));
+
+        assertions.put(new MethodReference("getType",
+                        "org.unlogged.springwebfluxdemo.sealedKeywordUsage.Truck"),
+                new AssertionOptions("\"Truck\"", null));
+
+        assertions.put(new MethodReference("getModel",
+                        "org.unlogged.springwebfluxdemo.sealedKeywordUsage.Vehicle"),
+                new AssertionOptions("\"Mahindra Jeeto\"", null));
+
+        assertions.put(new MethodReference("getExtendedType",
+                        "org.unlogged.springwebfluxdemo.sealedKeywordUsage.Car"),
+                new AssertionOptions("\"Extended Car Type\"", null));
+
+        assertions.put(new MethodReference("getVehicles",
+                        "org.unlogged.springwebfluxdemo.component.VehicleComponent"),
+                new AssertionOptions("[{\"model\":\"Honda City\",\"doors\":4},{\"model\":\"Eicher Pro\",\"capacity\":400},{\"model\":\"Tata Nexon EV\",\"doors\":4,\"batteryCapacity\":350},{\"model\":\"Mahindra Jeeto\",\"capacity\":550,\"fuelCapacity\":500}]", null));
+
+        assertions.put(new MethodReference("getAllVehicles2",
+                        "org.unlogged.springwebfluxdemo.controller.SealedClassController"),
+                new AssertionOptions("[{\"model\":\"Honda City\",\"type\":\"Car\",\"extendedType\":\"Extended Car Type\"},{\"model\":\"Eicher Pro\",\"type\":\"Truck\",\"extendedType\":\"Extended Truck Type\"},{\"model\":\"Tata Nexon EV\",\"type\":\"Car\",\"extendedType\":\"Extended Car Type\"},{\"model\":\"Mahindra Jeeto\",\"type\":\"Truck\",\"extendedType\":\"Extended Truck Type\"}]", null));
+
+
+        assertions.put(new MethodReference("getAllVehicles",
+                        "org.unlogged.springwebfluxdemo.controller.SealedClassController"),
+                new AssertionOptions("[{\"model\":\"Honda City\",\"doors\":4},{\"model\":\"Eicher Pro\",\"capacity\":400},{\"model\":\"Tata Nexon EV\",\"doors\":4,\"batteryCapacity\":350},{\"model\":\"Mahindra Jeeto\",\"capacity\":550,\"fuelCapacity\":500}]", null));
+
+        //SDK - 0.6.4 - sealed classes, redis and external api calls - reactive candidates
+        ScanTestModel scraReactive = new ScanTestModel("sealed-classes-redis-api-reactive", assertions);
+        scanTests.add(scraReactive);
+
+        assertions = new HashMap<>();
+
+        assertions.put(new MethodReference("getByName",
+                        "org.unlogged.demo.controller.VirtualThreadOps"),
+                new AssertionOptions("{\"user_id\":0,\"username\":\"string\",\"password\":\"string\",\"email\":\"string\"}", null));
+
+        assertions.put(new MethodReference("findAll",
+                        "org.unlogged.demo.controller.VirtualThreadOps"),
+                new AssertionOptions("[{\"user_id\":0,\"username\":\"string\",\"password\":\"string\",\"email\":\"string\"}]", null));
+
+        assertions.put(new MethodReference("insertUser",
+                        "org.unlogged.demo.controller.VirtualThreadOps"),
+                new AssertionOptions("0", null));
+
+        assertions.put(new MethodReference("getUser",
+                        "org.unlogged.demo.jspdemo.wfm.Services.UserService"),
+                new AssertionOptions("{\"user_id\":0,\"username\":\"string\",\"password\":\"string\",\"email\":\"string\"}", null));
+
+        //SDK 0.6.4 - VirtualThreads - Non Reactive //Java 21
+        ScanTestModel virtualThreadsNonReactive = new ScanTestModel("virtual-threads-non-reactive", assertions);
+        scanTests.add(virtualThreadsNonReactive);
+
+        assertions = new HashMap<>();
+        assertions.put(new MethodReference("parseDouble",
+                        "org.unlogged.demo.controller.EnhancedSwitchOpsController"),
+                new AssertionOptions("2.0", null));
+
+        assertions.put(new MethodReference("parseInput",
+                        "org.unlogged.demo.controller.EnhancedSwitchOpsController"),
+                new AssertionOptions("\"string\"", null));
+
+        assertions.put(new MethodReference("handleResultWithYield",
+                        "org.unlogged.demo.controller.EnhancedSwitchOpsController"),
+                new AssertionOptions("\"Processed a long string with yield: STRING\"", null));
+
+        assertions.put(new MethodReference("parseDouble",
+                        "org.unlogged.demo.controller.EnhancedSwitchOpsController"),
+                new AssertionOptions("\"string\"", null));
+
+        assertions.put(new MethodReference("processInputWithYield",
+                        "org.unlogged.demo.controller.EnhancedSwitchOpsController"),
+                new AssertionOptions("\"Processed a long string with yield: STRING\"", null));
+
+        assertions.put(new MethodReference("handleResult",
+                        "org.unlogged.demo.controller.EnhancedSwitchOpsController"),
+                new AssertionOptions("\"Processed a long string: STRING\"", null));
+
+        assertions.put(new MethodReference("parseInput",
+                        "org.unlogged.demo.controller.EnhancedSwitchOpsController"),
+                new AssertionOptions("\"string\"", null));
+
+        assertions.put(new MethodReference("processInput",
+                        "org.unlogged.demo.controller.EnhancedSwitchOpsController"),
+                new AssertionOptions("\"Processed a long string: STRING\"", null));
+
+        assertions.put(new MethodReference("switchJDK21",
+                        "org.unlogged.demo.controller.EnhancedSwitchOpsController"),
+                new AssertionOptions("2", null));
+
+        assertions.put(new MethodReference("findUser",
+                        "org.unlogged.demo.controller.EnhancedSwitchOpsController"),
+                new AssertionOptions("{\"error\":{\"cause\":{\"cause\":null,\"stackTrace\":[{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"Unlogged$Probed$$findUser\",\"fileName\":\"EnhancedSwitchOpsController.java\",\"lineNumber\":43,\"className\":\"org.unlogged.demo.controller.EnhancedSwitchOpsController\",\"nativeMethod\":false},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"findUser\",\"fileName\":\"EnhancedSwitchOpsController.java\",\"lineNumber\":-1,\"className\":\"org.unlogged.demo.controller.EnhancedSwitchOpsController\",\"nativeMethod\":false},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"Unlogged$Probed$$error\",\"fileName\":\"EnhancedSwitchOpsController.java\",\"lineNumber\":32,\"className\":\"org.unlogged.demo.controller.EnhancedSwitchOpsController\",\"nativeMethod\":false},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"error\",\"fileName\":\"EnhancedSwitchOpsController.java\",\"lineNumber\":-1,\"className\":\"org.unlogged.demo.controller.EnhancedSwitchOpsController\",\"nativeMethod\":false},{\"classLoaderName\":null,\"moduleName\":\"java.base\",\"moduleVersion\":\"21.0.1\",\"methodName\":\"invoke\",\"fileName\":\"DirectMethodHandleAccessor.java\",\"lineNumber\":103,\"className\":\"jdk.internal.reflect.DirectMethodHandleAccessor\",\"nativeMethod\":false},{\"classLoaderName\":null,\"moduleName\":\"java.base\",\"moduleVersion\":\"21.0.1\",\"methodName\":\"invoke\",\"fileName\":\"Method.java\",\"lineNumber\":580,\"className\":\"java.lang.reflect.Method\",\"nativeMethod\":false},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"executeCommandRaw\",\"fileName\":\"AgentCommandExecutorImpl.java\",\"lineNumber\":410,\"className\":\"io.unlogged.AgentCommandExecutorImpl\",\"nativeMethod\":false},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"executeCommand\",\"fileName\":\"AgentCommandExecutorImpl.java\",\"lineNumber\":480,\"className\":\"io.unlogged.AgentCommandExecutorImpl\",\"nativeMethod\":false},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"serve\",\"fileName\":\"AgentCommandServer.java\",\"lineNumber\":74,\"className\":\"io.unlogged.command.AgentCommandServer\",\"nativeMethod\":false},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"execute\",\"fileName\":\"NanoHTTPD.java\",\"lineNumber\":945,\"className\":\"fi.iki.elonen.NanoHTTPD$HTTPSession\",\"nativeMethod\":false},{\"classLoaderName\":\"app\",\"moduleName\":null,\"moduleVersion\":null,\"methodName\":\"run\",\"fileName\":\"NanoHTTPD.java\",\"lineNumber\":192,\"className\":\"fi.iki.elonen.NanoHTTPD$ClientHandler\",\"nativeMethod\":false},{\"classLoaderName\":null,\"moduleName\":\"java.base\",\"moduleVersion\":\"21.0.1\",\"methodName\":\"run\",\"fileName\":\"Thread.java\",\"lineNumber\":1583,\"className\":\"java.lang.Thread\",\"nativeMethod\":false}],\"message\":\"de error!\",\"suppressed\":[],\"localizedMessage\":\"de error!\"}}}", null));
+
+        assertions.put(new MethodReference("error",
+                        "org.unlogged.demo.controller.EnhancedSwitchOpsController"),
+                new AssertionOptions("\"Error OtherError[cause=java.lang.RuntimeException: de error!]\"", null));
+
+        assertions.put(new MethodReference("printQuadrant",
+                        "org.unlogged.demo.controller.EnhancedSwitchOpsController"),
+                new AssertionOptions("\"Second\"", null));
+
+        assertions.put(new MethodReference("printQuadrant",
+                        "org.unlogged.demo.controller.EnhancedSwitchOpsController"),
+                new AssertionOptions("\"First\"", null));
+
+        //SDK 0.6.4 - Enhanced Switch - Non Reactive //Java 21
+        ScanTestModel enhancedSwitchNonReactive = new ScanTestModel("enhanced-switch-non-reactive", assertions);
+        scanTests.add(enhancedSwitchNonReactive);
+
+        assertions = new HashMap<>();
+        assertions.put(new MethodReference("checkEqualPoints",
+                        "org.unlogged.demo.controller.RecordPatternController"),
+                new AssertionOptions("true", null));
+
+        assertions.put(new MethodReference("equalController",
+                        "org.unlogged.demo.controller.RecordPatternController"),
+                new AssertionOptions("true", null));
+
+        assertions.put(new MethodReference("lengthOfLine",
+                        "org.unlogged.demo.controller.RecordPatternController"),
+                new AssertionOptions("1", null));
+
+        assertions.put(new MethodReference("sumOfCoordinates",
+                        "org.unlogged.demo.controller.RecordPatternController"),
+                new AssertionOptions("5", null));
+
+        // SDK 0.6.4 - Records - Non Reactive //Java 21 -> gets stuck here
+        ScanTestModel recordPatternNonReactive = new ScanTestModel("record-non-reactive", assertions);
+        scanTests.add(recordPatternNonReactive);
+
+        assertions = new HashMap<>();
+
+        assertions.put(new MethodReference("writeFileWithCharset",
+                        "org.unlogged.demo.controller.FilesController"),
+                new AssertionOptions("0", null));
+
+        assertions.put(new MethodReference("writeFile",
+                        "org.unlogged.demo.controller.FilesController"),
+                new AssertionOptions("0", null));
+
+        assertions.put(new MethodReference("readFile",
+                        "org.unlogged.demo.controller.FilesController"),
+                new AssertionOptions("string", null));
+
+        assertions.put(new MethodReference("createFile",
+                        "org.unlogged.demo.controller.FilesController"),
+                new AssertionOptions("0", null));
+
+        //SDK 0.6.4 - File - Java 11 - Non reactive
+        ScanTestModel fileNonReactive = new ScanTestModel("record-non-reactive", assertions);
+        scanTests.add(fileNonReactive);
 
         return scanTests;
     }
