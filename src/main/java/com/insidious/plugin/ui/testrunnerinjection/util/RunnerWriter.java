@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.testrunnerinjection.util;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.notification.NotificationType;
 import com.insidious.plugin.InsidiousNotification;
@@ -47,10 +48,10 @@ public class RunnerWriter {
             return;
         }
 
-        File runnerFile = constructTestRunnerFile(targetModule.getModuleFilePath());
+        File runnerFile = constructTestRunnerFile(ProjectUtil.guessModuleDir(targetModule).getPath());
         logger.info("{} injected file exists: {}", runnerFile.getAbsolutePath(), runnerFile.exists());
         if (runnerFile.exists()) {
-            InsidiousNotification.notifyMessage("Runner file for the module: "+moduleName+", already exists", NotificationType.WARNING);
+            InsidiousNotification.notifyMessage("Runner file for the module: "+moduleName+", already exists at: "+ runnerFile.getAbsolutePath(), NotificationType.WARNING);
             return;
         }
 
@@ -98,7 +99,7 @@ public class RunnerWriter {
      * @return the File object representing the UnloggedTestRunner file.
      */
     private File constructTestRunnerFile(String modulePath) {
-        String desiredDirectoryPath = CommonFileUtil.constructTestRunnerDirectoryPath(modulePath);
+        String desiredDirectoryPath = modulePath + "/src/test/java";
         File desiredDirectory = new File(desiredDirectoryPath);
         desiredDirectory.mkdirs();
         String desiredPath = desiredDirectoryPath + "/UnloggedTest.java";

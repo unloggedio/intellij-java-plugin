@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.testrunnerinjection.util;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectUtil;
 
 import javax.swing.*;
 import java.io.File;
@@ -46,7 +47,8 @@ public class MultiModuleManager {
         return moduleMap.entrySet().stream()
                 .map(entry -> {
                     JCheckBox checkBox = new JCheckBox(entry.getKey().getName());
-                    checkBox.setEnabled(entry.getValue()); // Set enabled state based on Boolean value
+                    checkBox.setEnabled(entry.getValue());// Set enabled state based on Boolean value
+                    checkBox.setSelected(!entry.getValue());// If it is disabled it should be set to checked
                     return checkBox;
                 })
                 .toArray(JCheckBox[]::new);
@@ -76,7 +78,7 @@ public class MultiModuleManager {
      */
     private boolean checkModuleForRunnerFile(Module module) {
         boolean fileExists = false;
-        String desiredDirectoryPath = CommonFileUtil.constructTestRunnerDirectoryPath(module.getModuleFilePath());
+        String desiredDirectoryPath = ProjectUtil.guessModuleDir(module).getPath() + "/src/test/java";
         String testRunnerFilePath = desiredDirectoryPath + "/UnloggedTest.java";
         File testRunnerFile = new File(testRunnerFilePath);
         if (testRunnerFile.exists()) {
