@@ -6,6 +6,9 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.notification.NotificationType;
 import com.insidious.plugin.InsidiousNotification;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -19,6 +22,8 @@ import java.util.Arrays;
 public class RunnerWriter {
 
     private final Project project;
+
+    private final Logger logger = LoggerFactory.getLogger(RunnerWriter.class);
 
     /**
      * Constructor for RunnerWriter.
@@ -43,6 +48,7 @@ public class RunnerWriter {
         }
 
         File runnerFile = constructTestRunnerFile(targetModule.getModuleFilePath());
+        logger.info("{} injected file exists: {}", runnerFile.getAbsolutePath(), runnerFile.exists());
         if (runnerFile.exists()) {
             InsidiousNotification.notifyMessage("Runner file for the module: "+moduleName+", already exists", NotificationType.WARNING);
             return;
